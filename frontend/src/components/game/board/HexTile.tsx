@@ -29,6 +29,7 @@ export default function HexTile({
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   
+
   // Create proper hexagonal geometry with 90-degree rotation - larger size
   const hexGeometry = useMemo(() => {
     const geometry = new THREE.CircleGeometry(0.18, 6);
@@ -66,6 +67,24 @@ export default function HexTile({
           new THREE.Color('#8D6E63');
     }
   }, [tileType, isOceanSpace, hovered]);
+
+  // Get border color based on tile type
+  const borderColor = useMemo(() => {
+    switch (tileType) {
+      case 'ocean':
+        return new THREE.Color('#0D47A1');
+      case 'greenery':
+        return new THREE.Color('#2E7D32');
+      case 'city':
+        return new THREE.Color('#E65100');
+      case 'special':
+        return new THREE.Color('#6A1B9A');
+      default:
+        return isOceanSpace ? 
+          new THREE.Color('#0D47A1') : 
+          new THREE.Color('#5D4037');
+    }
+  }, [tileType, isOceanSpace]);
   
   // Calculate normal vector pointing outward from sphere center
   const normal = useMemo(() => {
@@ -136,9 +155,9 @@ export default function HexTile({
         position={[0, 0, 0.001]}
       >
         <meshBasicMaterial 
-          color="#333333" 
+          color={borderColor} 
           transparent
-          opacity={0.8}
+          opacity={0.9}
         />
       </mesh>
       
