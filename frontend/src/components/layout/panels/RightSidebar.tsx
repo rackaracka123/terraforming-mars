@@ -75,12 +75,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               
               {/* Internal step markings for oxygen - every single step */}
               <div className="oxygen-steps">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((oxygen) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
                   <div 
                     key={oxygen}
                     className="oxygen-step-mark"
                     style={{
-                      bottom: `${(oxygen / 14 * 100)}%`
+                      bottom: `${(oxygen / 14 * 90)}%`
                     }}
                   ></div>
                 ))}
@@ -91,7 +91,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 {/* Breathable Air milestone at 8% */}
                 <div 
                   className="milestone-indicator oxygen-milestone"
-                  style={{ bottom: `${(8 / 14 * 100)}%` }}
+                  style={{ bottom: `${(8 / 14 * 90)}%` }}
                   title="Oxygen Milestone: 8% rewards +1 TR"
                 >
                   <div className="milestone-icon">🫁</div>
@@ -99,16 +99,18 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
               
-              <div className="oxygen-scale">
+              {/* Internal oxygen numbers */}
+              <div className="oxygen-internal-numbers">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
                   <div 
                     key={oxygen}
-                    className="oxygen-scale-mark"
+                    className="oxygen-internal-number"
                     style={{
-                      bottom: `${(oxygen / 14 * 100)}%`
+                      bottom: `${(oxygen / 14 * 90)}%`,
+                      opacity: (globalParameters?.oxygen || 0) > oxygen ? 0 : 1
                     }}
                   >
-                    <div className="oxygen-scale-label">{oxygen}%</div>
+                    {oxygen}
                   </div>
                 ))}
               </div>
@@ -130,12 +132,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               
               {/* Internal step markings for temperature */}
               <div className="temperature-steps">
-                {getTemperatureMarkings().filter(temp => temp !== -30 && temp !== 8).map((temp) => (
+                {getTemperatureMarkings().filter(temp => temp !== -30).map((temp) => (
                   <div 
                     key={temp}
                     className="temperature-step-mark"
                     style={{
-                      bottom: `${((temp + 30) / 38 * 100)}%`
+                      bottom: `${((temp + 30) / 38 * 90)}%`
                     }}
                   ></div>
                 ))}
@@ -146,7 +148,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 {/* Temperate milestone at -8°C */}
                 <div 
                   className="milestone-indicator temperature-milestone"
-                  style={{ bottom: `${((-8 + 30) / 38 * 100)}%` }}
+                  style={{ bottom: `${((-8 + 30) / 38 * 90)}%` }}
                   title="Temperature Milestone: -8°C rewards +1 TR"
                 >
                   <div className="milestone-icon">🌡️</div>
@@ -154,16 +156,18 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
               
-              <div className="temperature-scale">
-                {getTemperatureMarkings().map((temp, i) => (
+              {/* Internal temperature numbers */}
+              <div className="temperature-internal-numbers">
+                {[-30, ...getTemperatureMarkings()].map((temp) => (
                   <div 
                     key={temp}
-                    className="temp-scale-mark"
+                    className="temperature-internal-number"
                     style={{
-                      bottom: `${((temp + 30) / 38 * 100)}%`
+                      bottom: `${((temp + 30) / 38 * 90)}%`,
+                      opacity: (globalParameters?.temperature || -30) > temp ? 0 : 1
                     }}
                   >
-                    <div className="temp-scale-label">{temp}°</div>
+                    {temp}
                   </div>
                 ))}
               </div>
@@ -289,6 +293,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
+          margin-top: 15px;
         }
         
         /* Dual Thermometer Styles */
@@ -303,7 +308,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           justify-content: center;
           position: relative;
           z-index: 2;
-          margin-bottom: -10px;
+          margin-bottom: 5px;
         }
         
         .temperature-bulb-inner {
@@ -367,7 +372,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           justify-content: center;
           position: relative;
           z-index: 2;
-          margin-bottom: -10px;
+          margin-bottom: 5px;
         }
         
         .oxygen-bulb-inner {
@@ -414,60 +419,36 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           width: 25px;
         }
         
-        .temp-scale-mark {
+        /* Internal Numbers */
+        .oxygen-internal-numbers, .temperature-internal-numbers {
           position: absolute;
-          display: flex;
-          align-items: center;
-          right: 0;
-          flex-direction: row-reverse;
-        }
-        
-        .temp-scale-line {
-          width: 4px;
-          height: 1px;
-          background: #ff8c00;
-          margin-left: 2px;
-          box-shadow: 0 0 1px rgba(255, 140, 0, 0.6);
-        }
-        
-        .temp-scale-label {
-          font-size: 10px;
-          color: #ff8c00;
-          font-weight: bold;
-          white-space: nowrap;
-          text-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
-        }
-        
-        .oxygen-scale {
-          position: absolute;
-          left: -30px;
           top: 0;
-          height: 100%;
-          width: 25px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
         }
         
-        .oxygen-scale-mark {
+        .oxygen-internal-number, .temperature-internal-number {
           position: absolute;
+          width: 100%;
           display: flex;
           align-items: center;
-          left: 0;
-          flex-direction: row-reverse;
-        }
-        
-        .oxygen-scale-line {
-          width: 4px;
-          height: 1px;
-          background: #00ff00;
-          margin-left: 2px;
-          box-shadow: 0 0 1px rgba(0, 255, 0, 0.6);
-        }
-        
-        .oxygen-scale-label {
+          justify-content: center;
           font-size: 10px;
-          color: #00ff00;
           font-weight: bold;
-          white-space: nowrap;
+          transition: opacity 0.3s ease;
+          transform: translateY(-50%);
+        }
+        
+        .oxygen-internal-number {
+          color: #00ff00;
           text-shadow: 0 0 3px rgba(0, 255, 0, 0.8);
+        }
+        
+        .temperature-internal-number {
+          color: #ff8c00;
+          text-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
         }
         
         /* Milestone Indicators */
@@ -582,8 +563,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           border: 1px solid rgba(0, 150, 255, 0.3);
           border-radius: 6px;
           padding: 6px;
-          width: 90%;
-          margin-top: 8px;
+          width: 70%;
+          margin-top: -5px;
         }
         
         .ocean-icon {
