@@ -43,6 +43,15 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
   const marsScene = useMemo(() => {
     const clonedScene = scene.clone();
     
+    // Calculate bounding box to normalize size to radius 2
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    const targetRadius = 2;
+    const scale = (targetRadius * 2) / maxDimension;
+    
+    clonedScene.scale.setScalar(scale);
+    
     // Apply terraforming color tint to all materials
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
@@ -61,15 +70,8 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
   
   return (
     <group ref={groupRef}>
-      {/* Temporary simple Mars sphere for debugging */}
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[2, 32, 32]} />
-        <meshStandardMaterial 
-          color={marsColorTint}
-          roughness={0.8}
-          metalness={0.1}
-        />
-      </mesh>
+      {/* Mars GLB model with terraforming color tint */}
+      <primitive object={marsScene} />
       
       {/* Hexagonal grid overlay */}
       <HexagonalGrid 
