@@ -7,6 +7,7 @@ interface Player {
   terraformRating: number;
   victoryPoints: number;
   passed?: boolean;
+  availableActions?: number;
   resources: {
     credits: number;
     steel: number;
@@ -20,9 +21,11 @@ interface Player {
 interface LeftSidebarProps {
   players: Player[];
   currentPlayer: Player | null;
+  socket?: any;
+  onPass?: () => void;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socket, onPass }) => {
   // Player color system - 6 distinct colors for up to 6 players
   const playerColors = [
     '#ff4757', // Red
@@ -143,8 +146,31 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer }) => 
     setHoveredCorp(`${playerId}-${corporation}`);
   };
 
+  const handlePass = () => {
+    if (onPass) {
+      onPass();
+    } else if (socket) {
+      socket.emit('pass-turn');
+    }
+  };
+
   return (
     <div className="left-sidebar">
+      {currentPlayer && (
+        <div className="actions-panel">
+          <div className="actions-counter">
+            <div className="actions-label">Actions Remaining</div>
+            <div className="actions-value">{currentPlayer.availableActions ?? 2}</div>
+          </div>
+          <button 
+            className="pass-button"
+            onClick={handlePass}
+            disabled={currentPlayer.passed}
+          >
+            Pass Turn
+          </button>
+        </div>
+      )}
       <div className="players-list">
         {playersToShow.map((player, index) => {
           const score = player.score || player.victoryPoints || player.terraformRating || 20;
@@ -226,6 +252,96 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer }) => 
           flex-direction: column;
           position: relative;
           overflow: visible;
+        }
+        
+        .actions-panel {
+          padding: 15px;
+          margin-bottom: 15px;
+          border-bottom: 1px solid rgba(100, 150, 200, 0.2);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .actions-counter {
+          background: linear-gradient(
+            135deg,
+            rgba(40, 80, 120, 0.8) 0%,
+            rgba(30, 60, 100, 0.8) 100%
+          );
+          border: 2px solid rgba(100, 200, 255, 0.4);
+          border-radius: 10px;
+          padding: 12px;
+          text-align: center;
+          box-shadow: 
+            0 4px 15px rgba(0, 0, 0, 0.3),
+            0 0 20px rgba(100, 200, 255, 0.2);
+        }
+        
+        .actions-label {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.7);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+        
+        .actions-value {
+          font-size: 32px;
+          font-weight: bold;
+          color: #4a90e2;
+          text-shadow: 
+            0 2px 4px rgba(0, 0, 0, 0.8),
+            0 0 20px rgba(74, 144, 226, 0.5);
+          font-family: 'Courier New', monospace;
+        }
+        
+        .pass-button {
+          background: linear-gradient(
+            135deg,
+            rgba(231, 76, 60, 0.9) 0%,
+            rgba(192, 57, 43, 0.9) 100%
+          );
+          border: 2px solid rgba(231, 76, 60, 0.6);
+          border-radius: 8px;
+          color: white;
+          font-size: 14px;
+          font-weight: bold;
+          padding: 10px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 
+            0 4px 15px rgba(0, 0, 0, 0.3),
+            0 0 15px rgba(231, 76, 60, 0.3);
+        }
+        
+        .pass-button:hover:not(:disabled) {
+          background: linear-gradient(
+            135deg,
+            rgba(231, 76, 60, 1) 0%,
+            rgba(192, 57, 43, 1) 100%
+          );
+          transform: translateY(-2px);
+          box-shadow: 
+            0 6px 20px rgba(0, 0, 0, 0.4),
+            0 0 25px rgba(231, 76, 60, 0.5);
+        }
+        
+        .pass-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        
+        .pass-button:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          background: linear-gradient(
+            135deg,
+            rgba(100, 100, 100, 0.8) 0%,
+            rgba(80, 80, 80, 0.8) 100%
+          );
+          border-color: rgba(100, 100, 100, 0.4);
         }
         
         .left-sidebar::before {

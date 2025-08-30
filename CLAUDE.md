@@ -39,18 +39,6 @@ npm test         # Run Jest tests
 ### Both Servers
 Frontend connects to backend at http://localhost:3001. Use root-level `npm start` to run both servers automatically.
 
-### Testing & Development Tools
-```bash
-# Automated UI Testing with Puppeteer
-npm run design:capture [test-name]    # Capture current design state
-npm run design:reference [test-name]  # Set reference/baseline image  
-npm run design:compare [test-name]    # Compare with reference image
-npm run design:component [test-name] [css-selector]  # Capture specific component
-```
-**Notes**: 
-- Puppeteer screenshots save to `design-screenshots/` with automatic visual diff analysis
-- Always set a reference image first, then use compare to detect UI changes
-- The system highlights pixel differences and provides percentage change metrics
 
 ## Core Architecture
 
@@ -164,6 +152,5 @@ When working with this codebase:
 - Frontend uses React 19 with Three.js for 3D rendering
 - Game state changes should go through EffectEngine for consistency
 - Card effects are composable - combine existing patterns rather than creating new ones
-- Update your testing and development tools to make it mandatory if you use a refrence image to create some design. to use this eval method of screenshoting a thing and compare it to the desired outcome
 - When creating mock. make sure to abstract it from the UI so it does not know, to ensure easier refactoring to real data later.
 - NEVER set a default value, if you expect something, crash if you dont have it.

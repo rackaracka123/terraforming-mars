@@ -20,6 +20,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
         <LeftSidebar 
           players={gameState?.players || []} 
           currentPlayer={currentPlayer}
+          socket={socket}
         />
         
         <Game3DView gameState={gameState} />

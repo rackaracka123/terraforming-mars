@@ -31,6 +31,7 @@ interface Player {
   victoryPoints: number;
   corporation?: string;
   passed?: boolean;
+  availableActions?: number;
 }
 
 export default function GameInterface() {
