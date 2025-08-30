@@ -105,7 +105,7 @@ export class GeodesicGrid {
     // Create a roughly hexagonal pattern centered around (0, 0, positive Z)
     
     // Define the hex pattern for Terraforming Mars board
-    const hexPattern = [5, 6, 6, 8, 8, 7, 6, 5]; // tiles per row
+    const hexPattern = [5, 6, 7, 8, 8, 7, 6, 5]; // tiles per row
     
     for (let row = 0; row < hexPattern.length; row++) {
       const hexesInRow = hexPattern[row];
@@ -122,9 +122,8 @@ export class GeodesicGrid {
         
         // Calculate position using proper hex grid math
         // In a hex grid, every other row is offset by half a hex width
-        // But we need to determine the offset pattern dynamically
-        const isOffsetRow = this.shouldOffsetRow(row, hexesInRow, hexPattern);
-        const xOffset = 0;
+        // Alternate offset pattern for proper hex alignment
+        const xOffset = (row % 2 === 1) ? hexWidth / 2 : 0.25;
         
         const normalizedCol = ((col - hexesInRow/2) * hexWidth + xOffset) / 2;
         const normalizedRow = ((row - hexPattern.length/2) * hexHeight) / 2;
