@@ -17,6 +17,27 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   generation, 
   currentPlayer 
 }) => {
+  // Mock global parameter milestone rewards
+  const getGlobalParameterRewards = () => {
+    const rewards: { [key: string]: string[] } = {
+      temperature: [
+        '-24°C: +1 TR', '-20°C: +1 TR', '-16°C: +1 TR', '-12°C: +1 TR', 
+        '-8°C: +1 TR', '-4°C: +1 TR', '0°C: +1 TR', '+4°C: +1 TR', '+8°C: +2 TR'
+      ],
+      oxygen: [
+        '1%: +1 TR', '2%: +1 TR', '3%: +1 TR', '4%: +1 TR', '5%: +1 TR',
+        '6%: +1 TR', '7%: +1 TR', '8%: +1 TR', '9%: +1 TR', '10%: +1 TR',
+        '11%: +1 TR', '12%: +1 TR', '13%: +1 TR', '14%: +2 TR'
+      ],
+      oceans: [
+        '1st Ocean: +1 TR', '2nd Ocean: +1 TR', '3rd Ocean: +1 TR',
+        '4th Ocean: +1 TR', '5th Ocean: +1 TR', '6th Ocean: +1 TR',
+        '7th Ocean: +1 TR', '8th Ocean: +1 TR', '9th Ocean: +2 TR'
+      ]
+    };
+    return rewards;
+  };
+
   // Get temperature scale markings (every 2 degrees)
   const getTemperatureMarkings = () => {
     const markings = [];
@@ -65,6 +86,19 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 ))}
               </div>
               
+              {/* Oxygen Milestone Indicators */}
+              <div className="oxygen-milestones">
+                {/* Breathable Air milestone at 8% */}
+                <div 
+                  className="milestone-indicator oxygen-milestone"
+                  style={{ bottom: `${(8 / 14 * 100)}%` }}
+                  title="Oxygen Milestone: 8% rewards +1 TR"
+                >
+                  <div className="milestone-icon">🫁</div>
+                  <div className="milestone-tooltip">8%: +1 TR</div>
+                </div>
+              </div>
+              
               <div className="oxygen-scale">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
                   <div 
@@ -74,7 +108,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                       bottom: `${(oxygen / 14 * 100)}%`
                     }}
                   >
-                    <div className="oxygen-scale-line"></div>
                     <div className="oxygen-scale-label">{oxygen}%</div>
                   </div>
                 ))}
@@ -108,6 +141,19 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 ))}
               </div>
               
+              {/* Temperature Milestone Indicators */}
+              <div className="temperature-milestones">
+                {/* Temperate milestone at -8°C */}
+                <div 
+                  className="milestone-indicator temperature-milestone"
+                  style={{ bottom: `${((-8 + 30) / 38 * 100)}%` }}
+                  title="Temperature Milestone: -8°C rewards +1 TR"
+                >
+                  <div className="milestone-icon">🌡️</div>
+                  <div className="milestone-tooltip">-8°C: +1 TR</div>
+                </div>
+              </div>
+              
               <div className="temperature-scale">
                 {getTemperatureMarkings().map((temp, i) => (
                   <div 
@@ -117,7 +163,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                       bottom: `${((temp + 30) / 38 * 100)}%`
                     }}
                   >
-                    <div className="temp-scale-line"></div>
                     <div className="temp-scale-label">{temp}°</div>
                   </div>
                 ))}
@@ -154,7 +199,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       
       <style>{`
         .right-sidebar {
-          min-width: 120px;
+          min-width: 180px;
           width: auto;
           height: 100vh;
           background: linear-gradient(180deg, 
@@ -162,7 +207,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             rgba(10, 15, 30, 0.95) 50%, 
             rgba(5, 10, 25, 0.95) 100%);
           border-left: 1px solid rgba(40, 50, 70, 0.6);
-          padding: 8px 12px;
+          padding: 8px 20px;
           overflow: visible;
           display: flex;
           flex-direction: column;
@@ -231,10 +276,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           display: flex;
           flex-direction: row;
           align-items: flex-start;
-          gap: 20px;
+          gap: 30px;
           flex: 1;
           width: 100%;
           justify-content: center;
+          padding-right: 80px;
         }
         
         .oxygen-meter, .temperature-meter {
@@ -405,14 +451,14 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           display: flex;
           align-items: center;
           left: 0;
-          flex-direction: row;
+          flex-direction: row-reverse;
         }
         
         .oxygen-scale-line {
           width: 4px;
           height: 1px;
           background: #00ff00;
-          margin-right: 2px;
+          margin-left: 2px;
           box-shadow: 0 0 1px rgba(0, 255, 0, 0.6);
         }
         
@@ -422,6 +468,79 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           font-weight: bold;
           white-space: nowrap;
           text-shadow: 0 0 3px rgba(0, 255, 0, 0.8);
+        }
+        
+        /* Milestone Indicators */
+        .oxygen-milestones, .temperature-milestones {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
+        }
+        
+        .milestone-indicator {
+          position: absolute;
+          width: 20px;
+          height: 16px;
+          background: linear-gradient(135deg, 
+            rgba(40, 40, 40, 0.95) 0%, 
+            rgba(20, 20, 20, 0.9) 100%);
+          border: 2px solid #666;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 
+            0 0 8px rgba(0, 0, 0, 0.8),
+            0 2px 4px rgba(0, 0, 0, 0.6);
+          transform: translateY(-50%);
+        }
+        
+        .oxygen-milestone {
+          left: -25px;
+        }
+        
+        .temperature-milestone {
+          right: -25px;
+        }
+        
+        .milestone-icon {
+          font-size: 10px;
+          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+        }
+        
+        .milestone-tooltip {
+          position: absolute;
+          background: rgba(0, 0, 0, 0.9);
+          color: white;
+          padding: 4px 6px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: bold;
+          white-space: nowrap;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s ease;
+          z-index: 1000;
+          border: 1px solid #666;
+        }
+        
+        .oxygen-milestone .milestone-tooltip {
+          right: 25px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+        
+        .temperature-milestone .milestone-tooltip {
+          left: 25px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+        
+        .milestone-indicator:hover .milestone-tooltip {
+          opacity: 1;
         }
         
         .current-values {
