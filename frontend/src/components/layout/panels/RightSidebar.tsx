@@ -6,17 +6,50 @@ interface GlobalParameters {
   oceans: number;
 }
 
+interface Milestone {
+  value: number;
+  icon: string;
+  tooltip: string;
+  reward?: string;
+}
+
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
   currentPlayer?: any;
+  temperatureMilestones?: Milestone[];
+  oxygenMilestones?: Milestone[];
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ 
   globalParameters, 
   generation, 
-  currentPlayer 
+  currentPlayer,
+  temperatureMilestones,
+  oxygenMilestones
 }) => {
+  // Set default values
+  const defaultTemperatureMilestones = temperatureMilestones || [{ value: -8, icon: '🌡️', tooltip: '-8°C: +1 TR', reward: '+1 TR' }];
+  const defaultOxygenMilestones = oxygenMilestones || [{ value: 8, icon: '🫁', tooltip: '8%: +1 TR', reward: '+1 TR' }];
+  // Helper function to create milestone objects easily
+  const createMilestone = (value: number, icon: string, reward: string = '+1 TR'): Milestone => ({
+    value,
+    icon,
+    tooltip: `${value}${value < 0 || value > 20 ? '°C' : '%'}: ${reward}`,
+    reward
+  });
+
+  // Example usage for multiple milestones:
+  // temperatureMilestones = [
+  //   createMilestone(-24, '❄️', '+1 TR'),
+  //   createMilestone(-8, '🌡️', '+1 TR'), 
+  //   createMilestone(0, '🔥', '+1 TR')
+  // ]
+  // oxygenMilestones = [
+  //   createMilestone(8, '🫁', '+1 TR'),
+  //   createMilestone(14, '🌬️', '+2 TR')
+  // ]
+
   // Mock global parameter milestone rewards
   const getGlobalParameterRewards = () => {
     const rewards: { [key: string]: string[] } = {
@@ -88,15 +121,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               
               {/* Oxygen Milestone Indicators */}
               <div className="oxygen-milestones">
-                {/* Breathable Air milestone at 8% */}
-                <div 
-                  className="milestone-indicator oxygen-milestone"
-                  style={{ bottom: `${(8 / 14 * 90)}%` }}
-                  title="Oxygen Milestone: 8% rewards +1 TR"
-                >
-                  <div className="milestone-icon">🫁</div>
-                  <div className="milestone-tooltip">8%: +1 TR</div>
-                </div>
+                {defaultOxygenMilestones.map((milestone, index) => (
+                  <div 
+                    key={index}
+                    className="milestone-indicator oxygen-milestone"
+                    style={{ bottom: `${(milestone.value / 14 * 90)}%` }}
+                    title={`Oxygen Milestone: ${milestone.tooltip}`}
+                  >
+                    <div className="milestone-icon">{milestone.icon}</div>
+                    <div className="milestone-tooltip">{milestone.tooltip}</div>
+                  </div>
+                ))}
               </div>
               
               {/* Internal oxygen numbers */}
@@ -145,15 +180,17 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
               
               {/* Temperature Milestone Indicators */}
               <div className="temperature-milestones">
-                {/* Temperate milestone at -8°C */}
-                <div 
-                  className="milestone-indicator temperature-milestone"
-                  style={{ bottom: `${((-8 + 30) / 38 * 90)}%` }}
-                  title="Temperature Milestone: -8°C rewards +1 TR"
-                >
-                  <div className="milestone-icon">🌡️</div>
-                  <div className="milestone-tooltip">-8°C: +1 TR</div>
-                </div>
+                {defaultTemperatureMilestones.map((milestone, index) => (
+                  <div 
+                    key={index}
+                    className="milestone-indicator temperature-milestone"
+                    style={{ bottom: `${((milestone.value + 30) / 38 * 90)}%` }}
+                    title={`Temperature Milestone: ${milestone.tooltip}`}
+                  >
+                    <div className="milestone-icon">{milestone.icon}</div>
+                    <div className="milestone-tooltip">{milestone.tooltip}</div>
+                  </div>
+                ))}
               </div>
               
               {/* Internal temperature numbers */}
@@ -203,7 +240,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       
       <style>{`
         .right-sidebar {
-          min-width: 180px;
+          min-width: 150px;
           width: auto;
           height: 100vh;
           background: linear-gradient(180deg, 
