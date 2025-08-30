@@ -8,6 +8,18 @@ Digital implementation of Terraforming Mars board game with real-time multiplaye
 
 ## Development Commands
 
+### Quick Start (Recommended)
+```bash
+npm start        # Starts both backend and frontend servers concurrently
+npm run dev      # Alias for npm start
+```
+
+### Individual Servers
+```bash
+npm run backend  # Backend only (port 3001)
+npm run frontend # Frontend only (port 3000)
+```
+
 ### Backend (Port 3001)
 ```bash
 cd backend
@@ -25,7 +37,13 @@ npm test         # Run Jest tests
 ```
 
 ### Both Servers
-Start backend first, then frontend. Frontend connects to backend at http://localhost:3001.
+Frontend connects to backend at http://localhost:3001. Use root-level `npm start` to run both servers automatically.
+
+### Testing & Development Tools
+```bash
+./capture_display.sh   # Capture screenshot for UI testing (saves to ~/tmp-feedback-loop/)
+```
+**Note**: Before running capture_display.sh for testing, ensure you're ready as it will take a screenshot of your current display.
 
 ## Core Architecture
 
@@ -139,3 +157,4 @@ When working with this codebase:
 - Frontend uses React 19 with Three.js for 3D rendering
 - Game state changes should go through EffectEngine for consistency
 - Card effects are composable - combine existing patterns rather than creating new ones
+- Update your testing and development tools to make it mandatory if you use a refrence image to create some design. to use this eval method of screenshoting a thing and compare it to the desired outcome
