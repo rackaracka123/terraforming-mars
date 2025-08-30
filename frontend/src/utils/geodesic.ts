@@ -67,27 +67,12 @@ export class GeodesicGrid {
    * Determine if a row should be offset for proper hex grid alignment
    */
   private static shouldOffsetRow(row: number, hexesInRow: number, pattern: number[]): boolean {
-    // For a proper hex grid, we need to create a symmetric offset pattern
-    // The goal is to make the hexes tessellate properly
-    
-    // Find the widest row(s) in the pattern
-    const maxHexes = Math.max(...pattern);
+    // For Terraforming Mars pattern [5, 6, 6, 8, 8, 7, 6, 5]
+    // The middle rows with 8 hexes (rows 3 and 4) should be offset 0.5 tile width to the right
     const centerRowIndex = Math.floor(pattern.length / 2);
     
-    // Create offset pattern based on row width relative to center
-    // Rows that are narrower than the row above/below them often need offset
-    const prevRowHexes = row > 0 ? pattern[row - 1] : hexesInRow;
-    const nextRowHexes = row < pattern.length - 1 ? pattern[row + 1] : hexesInRow;
-    
-    // Offset rows that have fewer hexes than their neighbors to create proper tessellation
-    // Also consider the overall position relative to center
-    if (row < centerRowIndex) {
-      // Top half: offset if this row has fewer hexes than the next row
-      return hexesInRow < nextRowHexes;
-    } else {
-      // Bottom half: offset if this row has fewer hexes than the previous row
-      return hexesInRow < prevRowHexes;
-    }
+    // Offset the middle rows with maximum hex count (8 hexes)
+    return hexesInRow === 8;
   }
 
   /**
@@ -139,7 +124,7 @@ export class GeodesicGrid {
         // In a hex grid, every other row is offset by half a hex width
         // But we need to determine the offset pattern dynamically
         const isOffsetRow = this.shouldOffsetRow(row, hexesInRow, hexPattern);
-        const xOffset = isOffsetRow ? hexWidth / 2 : 0;
+        const xOffset = 0;
         
         const normalizedCol = ((col - hexesInRow/2) * hexWidth + xOffset) / 2;
         const normalizedRow = ((row - hexPattern.length/2) * hexHeight) / 2;
