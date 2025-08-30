@@ -105,7 +105,7 @@ export class GeodesicGrid {
     // Create a roughly hexagonal pattern centered around (0, 0, positive Z)
     
     // Define the hex pattern for Terraforming Mars board
-    const hexPattern = [5, 6, 7, 8, 8, 7, 6, 5]; // tiles per row
+    const hexPattern = [5, 6, 7, 8, 9, 8, 7, 6, 5]; // tiles per row
     
     for (let row = 0; row < hexPattern.length; row++) {
       const hexesInRow = hexPattern[row];
