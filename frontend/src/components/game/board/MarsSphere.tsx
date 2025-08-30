@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import HexagonalGrid from './HexagonalGrid.tsx';
 
 
 interface MarsSphereProps {
@@ -11,19 +12,20 @@ interface MarsSphereProps {
 
 
 export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
-  const sphereRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
   
+  // Load the Mars GLTF model
+  const { scene } = useGLTF('/assets/models/mars.glb');
   
-  // Slow rotation animation
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.05;
-    }
-  });
+  // Disabled rotation for better tile visibility
+  // useFrame((state) => {
+  //   if (groupRef.current) {
+  //     groupRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+  //   }
+  // });
   
-  // Get Mars color based on terraforming progress
-  const marsColor = useMemo(() => {
+  // Get Mars color based on terraforming progress for tinting
+  const marsColorTint = useMemo(() => {
     const temp = gameState?.globalParameters?.temperature || -30;
     const oxygen = gameState?.globalParameters?.oxygen || 0;
     
@@ -37,17 +39,43 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
     return new THREE.Color(red, green, blue);
   }, [gameState?.globalParameters]);
   
+  // Clone the scene to avoid modifying the original
+  const marsScene = useMemo(() => {
+    const clonedScene = scene.clone();
+    
+    // Apply terraforming color tint to all materials
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.material) {
+        const material = child.material.clone();
+        if (material instanceof THREE.MeshStandardMaterial) {
+          // Mix original color with terraforming progress tint
+          const originalColor = material.color.clone();
+          material.color = originalColor.lerp(marsColorTint, 0.3);
+        }
+        child.material = material;
+      }
+    });
+    
+    return clonedScene;
+  }, [scene, marsColorTint]);
+  
   return (
     <group ref={groupRef}>
-      {/* Main Mars sphere */}
-      <mesh ref={sphereRef} position={[0, 0, 0]}>
-        <sphereGeometry args={[3, 32, 32]} />
+      {/* Temporary simple Mars sphere for debugging */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[2, 32, 32]} />
         <meshStandardMaterial 
-          color={marsColor}
+          color={marsColorTint}
           roughness={0.8}
           metalness={0.1}
         />
       </mesh>
+      
+      {/* Hexagonal grid overlay */}
+      <HexagonalGrid 
+        gameState={gameState} 
+        onHexClick={onHexClick}
+      />
     </group>
   );
 }

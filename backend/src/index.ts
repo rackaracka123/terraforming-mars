@@ -39,6 +39,8 @@ const createDemoGame = (): GameState => ({
   discardPile: [],
   soloMode: false,
   turn: 1,
+  currentActionCount: 0,
+  maxActionsPerTurn: 2,
   gameSettings: {
     expansions: [],
     corporateEra: false,
@@ -111,7 +113,9 @@ io.on('connection', (socket) => {
       playedCards: [],
       hand: [],
       availableActions: 2,
-      tags: []
+      tags: [],
+      actionsTaken: 0,
+      actionsRemaining: 2
     };
 
     game.players.push(player);
@@ -136,14 +140,45 @@ io.on('connection', (socket) => {
     if (!player || game.currentPlayer !== socket.id) return;
 
     // Cost 8 heat to raise temperature
-    if (player.resources.heat >= 8) {
+    if (player.resources.heat >= 8 && player.actionsRemaining && player.actionsRemaining > 0) {
       player.resources.heat -= 8;
       if (game.globalParameters.temperature < 8) {
         game.globalParameters.temperature += 2;
         player.terraformRating += 1;
+        
+        // Update action tracking
+        player.actionsTaken = (player.actionsTaken || 0) + 1;
+        player.actionsRemaining = (player.actionsRemaining || 2) - 1;
+        game.currentActionCount = (game.currentActionCount || 0) + 1;
+        
         io.to(data.gameId).emit('game-updated', game);
       }
     }
+  });
+
+  socket.on('skip-action', (data: { gameId: string }) => {
+    const game = games.get(data.gameId);
+    if (!game) return;
+
+    const player = game.players.find((p: Player) => p.id === socket.id);
+    if (!player || game.currentPlayer !== socket.id) return;
+
+    // Skip remaining actions and pass the turn
+    player.passed = true;
+    player.actionsRemaining = 0;
+    
+    // Move to next player
+    const currentIndex = game.players.findIndex(p => p.id === game.currentPlayer);
+    const nextIndex = (currentIndex + 1) % game.players.length;
+    game.currentPlayer = game.players[nextIndex].id;
+    
+    // Reset action tracking for next player
+    const nextPlayer = game.players[nextIndex];
+    nextPlayer.actionsTaken = 0;
+    nextPlayer.actionsRemaining = 2;
+    game.currentActionCount = 0;
+    
+    io.to(data.gameId).emit('game-updated', game);
   });
 
   socket.on('disconnect', () => {

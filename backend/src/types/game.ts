@@ -22,6 +22,8 @@ export interface GameState {
   turn: number;
   draftDirection?: DraftDirection;
   gameSettings: GameSettings;
+  currentActionCount?: number; // Current action number for the current player
+  maxActionsPerTurn?: number; // Maximum actions per turn (usually 2)
 }
 
 export enum GamePhase {

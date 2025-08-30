@@ -16,6 +16,8 @@ export interface Player {
   hand: Card[];
   availableActions: number;
   tags: CardTag[];
+  actionsTaken?: number; // Number of actions taken this turn
+  actionsRemaining?: number; // Actions remaining this turn
 }
 
 // Player actions and states

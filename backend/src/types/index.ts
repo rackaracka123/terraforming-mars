@@ -19,5 +19,3 @@ export * from './cards';
 export * from './milestones';
 export * from './awards';
 
-// Tiles
-export * from './tiles';

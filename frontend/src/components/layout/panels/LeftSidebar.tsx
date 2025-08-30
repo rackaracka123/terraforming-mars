@@ -8,6 +8,8 @@ interface Player {
   victoryPoints: number;
   passed?: boolean;
   availableActions?: number;
+  actionsTaken?: number;
+  actionsRemaining?: number;
   resources: {
     credits: number;
     steel: number;
@@ -30,7 +32,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
   const playerColors = [
     '#ff4757', // Red
     '#3742fa', // Blue  
-    '#2ed573', // Green
+    '#5fb85f', // Green
     '#ffa502', // Orange
     '#a55eea', // Purple
     '#26d0ce', // Cyan
@@ -38,6 +40,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
 
   const getPlayerColor = (index: number) => {
     return playerColors[index % playerColors.length];
+  };
+
+  const handlePass = () => {
+    if (onPass) {
+      onPass();
+    } else if (socket) {
+      socket.emit('pass-turn');
+    }
   };
 
   // Corporation information for tooltips
@@ -73,7 +83,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       ability: 'Reduced costs for space-based projects and colonies.'
     }
   };
-  // Mock players with different corporations - reduced to 2 players
+  // Mock players with different corporations and game states
   const mockPlayers = [
     { 
       id: '1', 
@@ -82,16 +92,48 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       passed: true,
       corporation: 'mars-direct',
       terraformRating: 35,
-      victoryPoints: 76
+      victoryPoints: 76,
+      availableActions: 0
+    },
+    { 
+      id: '2', 
+      name: 'Bob Martinez', 
+      score: 62, 
+      passed: false,
+      corporation: 'habitat-marte',
+      terraformRating: 31,
+      victoryPoints: 62,
+      availableActions: 1
     },
     { 
       id: '3', 
       name: 'Carol Kim', 
-      score: 28, 
+      score: 58, 
       passed: false,
       corporation: 'aurorai',
       terraformRating: 28,
-      victoryPoints: 28
+      victoryPoints: 58,
+      availableActions: 2
+    },
+    { 
+      id: '4', 
+      name: 'David Lee', 
+      score: 44, 
+      passed: true,
+      corporation: 'bio-sol',
+      terraformRating: 22,
+      victoryPoints: 44,
+      availableActions: 0
+    },
+    { 
+      id: '5', 
+      name: 'Eve Thompson', 
+      score: 41, 
+      passed: false,
+      corporation: 'chimera',
+      terraformRating: 20,
+      victoryPoints: 41,
+      availableActions: 1
     }
   ];
 
@@ -146,31 +188,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
     setHoveredCorp(`${playerId}-${corporation}`);
   };
 
-  const handlePass = () => {
-    if (onPass) {
-      onPass();
-    } else if (socket) {
-      socket.emit('pass-turn');
-    }
-  };
-
   return (
     <div className="left-sidebar">
-      {currentPlayer && (
-        <div className="actions-panel">
-          <div className="actions-counter">
-            <div className="actions-label">Actions Remaining</div>
-            <div className="actions-value">{currentPlayer.availableActions ?? 2}</div>
-          </div>
-          <button 
-            className="pass-button"
-            onClick={handlePass}
-            disabled={currentPlayer.passed}
-          >
-            Pass Turn
-          </button>
-        </div>
-      )}
       <div className="players-list">
         {playersToShow.map((player, index) => {
           const score = player.score || player.victoryPoints || player.terraformRating || 20;
@@ -179,10 +198,52 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           const corporation = player.corporation || 'polaris';
           const playerColor = getPlayerColor(index);
           
+          if (isCurrentPlayer) {
+            return (
+              <div 
+                key={player.id || index} 
+                className={`player-entry current ${isPassed ? 'passed' : ''}`}
+                style={{ '--player-color': playerColor } as React.CSSProperties}
+              >
+                <div className="player-content player-card">
+                <div className="player-avatar">
+                  <img 
+                    src={`/assets/pathfinders/corp-logo-${corporation}.png`} 
+                    alt={`${corporation} Corporation`}
+                    className="corp-logo-img"
+                    onMouseEnter={(e) => handleCorpHover(player.id, corporation, e)}
+                    onMouseLeave={() => setHoveredCorp(null)}
+                  />
+                </div>
+                <div className="player-info-section">
+                  <div className="player-name">{player.name}</div>
+                  <div className="player-score">{score}</div>
+                  {isCurrentPlayer && <div className="you-indicator">YOU</div>}
+                  {isPassed && <div className="passed-indicator">PASSED</div>}
+                </div>
+              </div>
+                <div className="player-actions">
+                  <div className="actions-remaining">
+                    <span className="action-label">
+                      {currentPlayer?.actionsRemaining || 1} ACTIONS LEFT
+                    </span>
+                  </div>
+                  <button 
+                    className="skip-btn"
+                    onClick={() => socket?.emit('skip-action', { gameId: 'demo' })}
+                    disabled={currentPlayer?.passed}
+                  >
+                    SKIP
+                  </button>
+                </div>
+              </div>
+            );
+          }
+          
           return (
             <div 
               key={player.id || index} 
-              className={`player-entry ${isCurrentPlayer ? 'current' : ''} ${isPassed ? 'passed' : ''}`}
+              className={`player-entry ${isPassed ? 'passed' : ''}`}
               style={{ '--player-color': playerColor } as React.CSSProperties}
             >
               <div className="player-content">
@@ -198,7 +259,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
                 <div className="player-info-section">
                   <div className="player-name">{player.name}</div>
                   <div className="player-score">{score}</div>
-                  {isCurrentPlayer && <div className="you-indicator">YOU</div>}
                   {isPassed && <div className="passed-indicator">PASSED</div>}
                 </div>
               </div>
@@ -239,7 +299,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       
       <style jsx global>{`
         .left-sidebar {
-          width: 200px;
+          width: 320px;
           background: linear-gradient(180deg, 
             rgba(0, 20, 40, 0.95) 0%, 
             rgba(0, 10, 30, 0.95) 50%, 
@@ -252,96 +312,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           flex-direction: column;
           position: relative;
           overflow: visible;
-        }
-        
-        .actions-panel {
-          padding: 15px;
-          margin-bottom: 15px;
-          border-bottom: 1px solid rgba(100, 150, 200, 0.2);
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        
-        .actions-counter {
-          background: linear-gradient(
-            135deg,
-            rgba(40, 80, 120, 0.8) 0%,
-            rgba(30, 60, 100, 0.8) 100%
-          );
-          border: 2px solid rgba(100, 200, 255, 0.4);
-          border-radius: 10px;
-          padding: 12px;
-          text-align: center;
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 20px rgba(100, 200, 255, 0.2);
-        }
-        
-        .actions-label {
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.7);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
-        }
-        
-        .actions-value {
-          font-size: 32px;
-          font-weight: bold;
-          color: #4a90e2;
-          text-shadow: 
-            0 2px 4px rgba(0, 0, 0, 0.8),
-            0 0 20px rgba(74, 144, 226, 0.5);
-          font-family: 'Courier New', monospace;
-        }
-        
-        .pass-button {
-          background: linear-gradient(
-            135deg,
-            rgba(231, 76, 60, 0.9) 0%,
-            rgba(192, 57, 43, 0.9) 100%
-          );
-          border: 2px solid rgba(231, 76, 60, 0.6);
-          border-radius: 8px;
-          color: white;
-          font-size: 14px;
-          font-weight: bold;
-          padding: 10px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(231, 76, 60, 0.3);
-        }
-        
-        .pass-button:hover:not(:disabled) {
-          background: linear-gradient(
-            135deg,
-            rgba(231, 76, 60, 1) 0%,
-            rgba(192, 57, 43, 1) 100%
-          );
-          transform: translateY(-2px);
-          box-shadow: 
-            0 6px 20px rgba(0, 0, 0, 0.4),
-            0 0 25px rgba(231, 76, 60, 0.5);
-        }
-        
-        .pass-button:active:not(:disabled) {
-          transform: translateY(0);
-        }
-        
-        .pass-button:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-          background: linear-gradient(
-            135deg,
-            rgba(100, 100, 100, 0.8) 0%,
-            rgba(80, 80, 80, 0.8) 100%
-          );
-          border-color: rgba(100, 100, 100, 0.4);
+          min-width: 320px;
         }
         
         .left-sidebar::before {
@@ -384,6 +355,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             0 0 15px var(--player-color, rgba(100, 150, 200, 0.3));
         }
         
+        .player-entry.current {
+          display: flex;
+          align-items: stretch;
+          padding: 0;
+          background: none;
+          border: none;
+          box-shadow: none;
+          clip-path: none;
+          overflow: visible;
+        }
+        
         .player-entry::before {
           content: '';
           position: absolute;
@@ -409,13 +391,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
         
-        .player-entry.current {
+        .player-entry.current .player-card {
           border: 3px solid rgba(255, 255, 255, 0.9);
           box-shadow: 
             0 0 20px rgba(255, 255, 255, 0.4),
             0 0 40px rgba(255, 255, 255, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.3);
-          transform: translateX(2px);
         }
         
         .player-entry.passed {
@@ -446,9 +427,125 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
         .player-content {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          gap: 10px;
           position: relative;
           z-index: 1;
+        }
+        
+        .player-content.player-card {
+          background: var(--player-color, rgba(30, 60, 90, 0.8));
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          padding: 16px;
+          clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
+          min-height: 80px;
+          box-shadow: 
+            0 4px 15px rgba(0, 0, 0, 0.4),
+            0 0 15px var(--player-color, rgba(100, 150, 200, 0.3));
+        }
+        
+        .player-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: linear-gradient(
+            90deg,
+            rgba(20, 20, 20, 0.9) 0%,
+            rgba(35, 35, 35, 0.7) 50%,
+            rgba(45, 45, 45, 0.5) 100%
+          );
+          border: 1px solid rgba(80, 80, 80, 0.3);
+          border-left: none;
+          margin-left: -1px;
+          margin-right: 10px;
+          clip-path: polygon(0 0, calc(100% - 2px) 0, 100% 50%, calc(100% - 2px) 100%, 0 100%);
+          box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+          overflow: visible;
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-50%) translateX(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+          }
+        }
+        
+        .actions-remaining {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 8px;
+          border-right: 1px solid rgba(60, 60, 60, 0.5);
+        }
+        
+        .action-label {
+          font-size: 10px;
+          font-weight: 600;
+          color: rgba(150, 150, 150, 0.8);
+          letter-spacing: 0.5px;
+        }
+        
+        .action-counter {
+          font-size: 11px;
+          font-weight: bold;
+          color: rgba(200, 200, 200, 0.9);
+          font-family: 'Courier New', monospace;
+        }
+        
+        .skip-btn {
+          background: linear-gradient(
+            135deg,
+            rgba(60, 60, 60, 0.8) 0%,
+            rgba(80, 80, 80, 0.6) 100%
+          );
+          border: 1px solid rgba(100, 100, 100, 0.4);
+          border-radius: 4px;
+          color: rgba(200, 200, 200, 0.9);
+          font-size: 10px;
+          font-weight: 600;
+          padding: 5px 10px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          letter-spacing: 0.5px;
+          box-shadow: 
+            0 1px 4px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+          white-space: nowrap;
+        }
+        
+        .skip-btn:hover:not(:disabled) {
+          background: linear-gradient(
+            135deg,
+            rgba(70, 70, 70, 0.9) 0%,
+            rgba(90, 90, 90, 0.7) 100%
+          );
+          color: rgba(220, 220, 220, 1);
+          border-color: rgba(120, 120, 120, 0.5);
+          box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+        
+        .skip-btn:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+        
+        .skip-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+          background: linear-gradient(
+            135deg,
+            rgba(40, 40, 40, 0.6) 0%,
+            rgba(50, 50, 50, 0.5) 100%
+          );
+          border-color: rgba(60, 60, 60, 0.3);
+          color: rgba(120, 120, 120, 0.6);
         }
         
         .player-avatar {
@@ -570,6 +667,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           flex-direction: column;
           align-items: flex-end;
           gap: 2px;
+          margin-left: auto;
+          padding-right: 10px;
         }
         
         .player-info-section .player-name {

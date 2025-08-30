@@ -2,7 +2,6 @@ import React from 'react';
 import LeftSidebar from '../panels/LeftSidebar.tsx';
 import TopMenuBar from '../panels/TopMenuBar.tsx';
 import RightSidebar from '../panels/RightSidebar.tsx';
-import BottomSection from '../panels/BottomSection.tsx';
 import Game3DView from '../../game/view/Game3DView.tsx';
 
 interface GameLayoutProps {
@@ -31,12 +30,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           currentPlayer={currentPlayer}
         />
       </div>
-      
-      <BottomSection 
-        currentPlayer={currentPlayer}
-        socket={socket}
-        gameState={gameState}
-      />
       
       <style jsx>{`
         .game-layout {

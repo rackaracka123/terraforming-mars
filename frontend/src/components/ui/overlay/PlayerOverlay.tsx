@@ -27,7 +27,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({ players, currentPlayer })
   const playerColors = [
     '#ff4757', // Red
     '#3742fa', // Blue  
-    '#2ed573', // Green
+    '#5fb85f', // Green
     '#ffa502', // Orange
     '#a55eea', // Purple
     '#26d0ce', // Cyan
