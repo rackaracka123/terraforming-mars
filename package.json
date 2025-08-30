@@ -11,9 +11,18 @@
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "clean": "rm -rf frontend/node_modules backend/node_modules node_modules",
-    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "design:capture": "node tools/design-inspector.js capture",
+    "design:reference": "node tools/design-inspector.js reference",
+    "design:compare": "node tools/design-inspector.js compare",
+    "design:component": "node tools/design-inspector.js component"
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "concurrently": "^7.6.0",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^24.17.1"
   }
 }

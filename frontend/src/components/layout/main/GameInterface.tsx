@@ -29,12 +29,13 @@ interface Player {
   production: any;
   terraformRating: number;
   victoryPoints: number;
+  corporation?: string;
+  passed?: boolean;
 }
 
 export default function GameInterface() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [playerName, setPlayerName] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
 
@@ -45,6 +46,8 @@ export default function GameInterface() {
     newSocket.on('connect', () => {
       setIsConnected(true);
       console.log('Connected to server');
+      // Auto-join with a default name
+      newSocket.emit('join-game', { gameId: 'demo', playerName: 'Player' });
     });
 
     newSocket.on('game-updated', (updatedGameState: GameState) => {
@@ -63,50 +66,12 @@ export default function GameInterface() {
     };
   }, []);
 
-  const joinGame = () => {
-    if (socket && playerName.trim()) {
-      socket.emit('join-game', { gameId: 'demo', playerName: playerName.trim() });
-    }
-  };
 
 
-
-  if (!isConnected) {
+  if (!isConnected || !gameState) {
     return (
       <div style={{ padding: '20px', color: 'white', background: '#000011', minHeight: '100vh' }}>
         <h2>Connecting to Terraforming Mars server...</h2>
-      </div>
-    );
-  }
-
-  if (!gameState) {
-    return (
-      <div style={{ padding: '20px', color: 'white', background: '#000011', minHeight: '100vh' }}>
-        <h2>Terraforming Mars 3D</h2>
-        <div>
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            style={{ padding: '10px', marginRight: '10px', fontSize: '16px' }}
-          />
-          <button
-            onClick={joinGame}
-            disabled={!playerName.trim()}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              backgroundColor: '#4a90e2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: playerName.trim() ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Join Demo Game
-          </button>
-        </div>
       </div>
     );
   }

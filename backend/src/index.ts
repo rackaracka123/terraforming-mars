@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { GameState, Player, GlobalParameters, ResourceType } from './types/cards';
+import { GameState, Player, GlobalParameters, ResourceType, GamePhase } from './types';
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,14 +26,50 @@ const createDemoGame = (): GameState => ({
   players: [],
   currentPlayer: '',
   generation: 1,
-  phase: 'research',
+  phase: GamePhase.RESEARCH,
   globalParameters: {
     temperature: -30,
     oxygen: 0,
     oceans: 0
   },
   milestones: [],
-  awards: []
+  awards: [],
+  firstPlayer: '',
+  deck: [],
+  discardPile: [],
+  soloMode: false,
+  turn: 1,
+  gameSettings: {
+    expansions: [],
+    corporateEra: false,
+    draftVariant: false,
+    initialDraft: false,
+    preludeExtension: false,
+    venusNextExtension: false,
+    coloniesExtension: false,
+    turmoilExtension: false,
+    removeNegativeAttackCards: false,
+    includeVenusMA: false,
+    moonExpansion: false,
+    pathfindersExpansion: false,
+    underworldExpansion: false,
+    escapeVelocityExpansion: false,
+    fast: false,
+    showOtherPlayersVP: true,
+    soloTR: false,
+    randomFirstPlayer: false,
+    requiresVenusTrackCompletion: false,
+    requiresMoonTrackCompletion: false,
+    moonStandardProjectVariant: false,
+    altVenusBoard: false,
+    escapeVelocityMode: false,
+    escapeVelocityThreshold: 30,
+    escapeVelocityPeriod: 2,
+    escapeVelocityPenalty: 1,
+    twoTempTerraformingThreshold: false,
+    heatFor: false,
+    breakthrough: false
+  }
 });
 
 // Create demo game
@@ -71,7 +107,11 @@ io.on('connection', (socket) => {
         heat: 1
       },
       terraformRating: 20,
-      victoryPoints: 0
+      victoryPoints: 0,
+      playedCards: [],
+      hand: [],
+      availableActions: 2,
+      tags: []
     };
 
     game.players.push(player);
@@ -92,7 +132,7 @@ io.on('connection', (socket) => {
     const game = games.get(data.gameId);
     if (!game) return;
 
-    const player = game.players.find(p => p.id === socket.id);
+    const player = game.players.find((p: Player) => p.id === socket.id);
     if (!player || game.currentPlayer !== socket.id) return;
 
     // Cost 8 heat to raise temperature

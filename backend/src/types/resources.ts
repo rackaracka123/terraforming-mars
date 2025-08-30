@@ -1,4 +1,4 @@
-// Core game type definitions for Terraforming Mars
+// Resource and global parameter type definitions for Terraforming Mars
 
 export enum ResourceType {
   CREDITS = 'credits',
@@ -15,8 +15,7 @@ export enum GlobalParameter {
   OCEAN = 'oceans'
 }
 
-
-// Player resource and production tracking
+// Resource interfaces
 export interface PlayerResources {
   credits: number;
   steel: number;
@@ -35,29 +34,36 @@ export interface PlayerProduction {
   heat: number;
 }
 
-// Game state interfaces
 export interface GlobalParameters {
   temperature: number; // -30 to +8
   oxygen: number; // 0 to 14
   oceans: number; // 0 to 9
 }
 
-export interface GameState {
-  id: string;
-  players: Player[];
-  currentPlayer: string;
-  generation: number;
-  phase: 'research' | 'action' | 'production';
-  globalParameters: GlobalParameters;
-  milestones: any[]; // TODO: Define milestone system
-  awards: any[]; // TODO: Define award system
+// Resource cost interfaces
+export interface ResourceCost {
+  credits?: number;
+  steel?: number;
+  titanium?: number;
+  plants?: number;
+  energy?: number;
+  heat?: number;
 }
 
-export interface Player {
-  id: string;
-  name: string;
-  resources: PlayerResources;
-  production: PlayerProduction;
-  terraformRating: number;
-  victoryPoints: number;
+export interface ResourceGain {
+  credits?: number;
+  steel?: number;
+  titanium?: number;
+  plants?: number;
+  energy?: number;
+  heat?: number;
+}
+
+export interface ProductionChange {
+  credits?: number;
+  steel?: number;
+  titanium?: number;
+  plants?: number;
+  energy?: number;
+  heat?: number;
 }

@@ -1,9 +1,9 @@
 import React from 'react';
-import LeftSidebar from './LeftSidebar.tsx';
-import TopMenuBar from './TopMenuBar.tsx';
-import RightSidebar from './RightSidebar.tsx';
-import BottomSection from './BottomSection.tsx';
-import GameBoard from './GameBoard.tsx';
+import LeftSidebar from '../panels/LeftSidebar.tsx';
+import TopMenuBar from '../panels/TopMenuBar.tsx';
+import RightSidebar from '../panels/RightSidebar.tsx';
+import BottomSection from '../panels/BottomSection.tsx';
+import GameBoard from '../../game/board/GameBoard.tsx';
 
 interface GameLayoutProps {
   gameState: any;

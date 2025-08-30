@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import { PanControls } from './PanControls.tsx';
-import HexGrid from './HexGrid.tsx';
+import { PanControls } from '../controls/PanControls.tsx';
+import HexGrid from '../board/HexGrid.tsx';
 import * as THREE from 'three';
 
 // Mars disk component
