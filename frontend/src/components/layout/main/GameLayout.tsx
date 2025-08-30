@@ -3,6 +3,9 @@ import LeftSidebar from '../panels/LeftSidebar.tsx';
 import TopMenuBar from '../panels/TopMenuBar.tsx';
 import RightSidebar from '../panels/RightSidebar.tsx';
 import Game3DView from '../../game/view/Game3DView.tsx';
+import BottomResourceBar from '../../ui/overlay/BottomResourceBar.tsx';
+import CardsHandOverlay from '../../ui/overlay/CardsHandOverlay.tsx';
+import PlayerOverlay from '../../ui/overlay/PlayerOverlay.tsx';
 
 interface GameLayoutProps {
   gameState: any;
@@ -30,6 +33,16 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           currentPlayer={currentPlayer}
         />
       </div>
+
+      {/* Overlay Components */}
+      <PlayerOverlay 
+        players={gameState?.players || []} 
+        currentPlayer={currentPlayer}
+      />
+      
+      <BottomResourceBar />
+      
+      <CardsHandOverlay />
       
       <style jsx>{`
         .game-layout {

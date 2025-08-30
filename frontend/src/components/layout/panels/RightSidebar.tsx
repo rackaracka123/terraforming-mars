@@ -226,6 +226,47 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         </div>
       </div>
 
+      {/* Milestones & Awards Section */}
+      <div className="milestones-awards-section">
+        <div className="section-title">MILESTONES & AWARDS</div>
+        
+        <div className="indicators-grid">
+          {/* Claimed Milestones */}
+          <div className="milestone-indicator claimed">
+            <div className="hex-icon">🏆</div>
+            <div className="indicator-label">Mayor</div>
+          </div>
+          
+          <div className="milestone-indicator available">
+            <div className="hex-icon">🌱</div>
+            <div className="indicator-label">Gardener</div>
+          </div>
+          
+          <div className="milestone-indicator unavailable">
+            <div className="hex-icon">🔧</div>
+            <div className="indicator-label">Builder</div>
+          </div>
+          
+          {/* Funded Awards */}
+          <div className="award-indicator funded">
+            <div className="hex-icon">🏢</div>
+            <div className="indicator-label">Landlord</div>
+            <div className="award-winner">Alice</div>
+          </div>
+          
+          <div className="award-indicator available">
+            <div className="hex-icon">💰</div>
+            <div className="indicator-label">Banker</div>
+          </div>
+          
+          <div className="award-indicator funded">
+            <div className="hex-icon">🧪</div>
+            <div className="indicator-label">Scientist</div>
+            <div className="award-winner">Carol</div>
+          </div>
+        </div>
+      </div>
+
       {/* Player Score Section */}
       <div className="player-score-section">
         {currentPlayer && (
@@ -638,6 +679,152 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
         
         
+        .milestones-awards-section {
+          flex-shrink: 0;
+          margin: 15px 0;
+          padding: 15px 10px;
+          background: linear-gradient(
+            135deg,
+            rgba(40, 30, 60, 0.4) 0%,
+            rgba(30, 20, 50, 0.3) 100%
+          );
+          border: 1px solid rgba(150, 100, 255, 0.3);
+          border-radius: 10px;
+          backdrop-filter: blur(5px);
+        }
+
+        .section-title {
+          font-size: 10px;
+          font-weight: bold;
+          color: rgba(150, 100, 255, 0.9);
+          text-align: center;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 12px;
+          border-bottom: 1px solid rgba(150, 100, 255, 0.3);
+          padding-bottom: 6px;
+        }
+
+        .indicators-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+
+        .milestone-indicator,
+        .award-indicator {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 8px 4px;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .milestone-indicator {
+          background: linear-gradient(
+            135deg,
+            rgba(255, 107, 53, 0.2) 0%,
+            rgba(255, 140, 66, 0.1) 100%
+          );
+          border: 1px solid rgba(255, 107, 53, 0.4);
+        }
+
+        .award-indicator {
+          background: linear-gradient(
+            135deg,
+            rgba(243, 156, 18, 0.2) 0%,
+            rgba(241, 196, 15, 0.1) 100%
+          );
+          border: 1px solid rgba(243, 156, 18, 0.4);
+        }
+
+        .milestone-indicator.claimed {
+          border-color: rgba(39, 174, 96, 0.6);
+          background: linear-gradient(
+            135deg,
+            rgba(39, 174, 96, 0.3) 0%,
+            rgba(46, 204, 113, 0.2) 100%
+          );
+        }
+
+        .milestone-indicator.unavailable {
+          opacity: 0.4;
+          border-color: rgba(100, 100, 100, 0.3);
+          background: linear-gradient(
+            135deg,
+            rgba(100, 100, 100, 0.2) 0%,
+            rgba(80, 80, 80, 0.1) 100%
+          );
+          cursor: not-allowed;
+        }
+
+        .award-indicator.funded {
+          border-color: rgba(52, 152, 219, 0.6);
+          background: linear-gradient(
+            135deg,
+            rgba(52, 152, 219, 0.3) 0%,
+            rgba(74, 144, 226, 0.2) 100%
+          );
+        }
+
+        .hex-icon {
+          width: 24px;
+          height: 24px;
+          background: rgba(0, 0, 0, 0.3);
+          clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          margin-bottom: 4px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .milestone-indicator.claimed .hex-icon {
+          background: rgba(39, 174, 96, 0.4);
+          border-color: rgba(39, 174, 96, 0.6);
+        }
+
+        .award-indicator.funded .hex-icon {
+          background: rgba(52, 152, 219, 0.4);
+          border-color: rgba(52, 152, 219, 0.6);
+        }
+
+        .indicator-label {
+          font-size: 8px;
+          font-weight: bold;
+          color: #ffffff;
+          text-align: center;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          line-height: 1.1;
+          margin-bottom: 2px;
+        }
+
+        .award-winner {
+          font-size: 7px;
+          color: rgba(52, 152, 219, 1);
+          font-weight: 500;
+          text-align: center;
+        }
+
+        .milestone-indicator:hover:not(.unavailable),
+        .award-indicator:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .milestone-indicator.claimed:hover {
+          box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        }
+
+        .award-indicator.funded:hover {
+          box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+        }
+
         .player-score-section {
           flex-shrink: 0;
           margin-top: 20px;
