@@ -17,45 +17,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   generation, 
   currentPlayer 
 }) => {
-  // Temperature ranges from -30°C to +8°C in steps of 2°C (19 total steps)
-  const getTemperatureSteps = () => {
-    const temp = globalParameters?.temperature || -30;
-    const steps = [];
-    for (let i = 0; i < 19; i++) {
-      const stepTemp = 8 - (i * 2); // 8, 6, 4, 2, 0, -2, -4, ..., -30
-      steps.push({
-        value: stepTemp,
-        isActive: temp >= stepTemp
-      });
+  // Get temperature scale markings (every 2 degrees)
+  const getTemperatureMarkings = () => {
+    const markings = [];
+    for (let temp = 8; temp >= -30; temp -= 2) {
+      markings.push(temp);
     }
-    return steps;
+    return markings;
   };
 
-  // Oxygen from 0% to 14% (14 steps)
-  const getOxygenSteps = () => {
-    const oxygen = globalParameters?.oxygen || 0;
-    const steps = [];
-    for (let i = 1; i <= 14; i++) {
-      steps.push({
-        value: i,
-        isActive: oxygen >= i
-      });
-    }
-    return steps;
-  };
 
-  // Oceans from 0 to 9 (9 steps)
-  const getOceanSteps = () => {
-    const oceans = globalParameters?.oceans || 0;
-    const steps = [];
-    for (let i = 1; i <= 9; i++) {
-      steps.push({
-        value: i,
-        isActive: oceans >= i
-      });
-    }
-    return steps;
-  };
 
   return (
     <div className="right-sidebar">
@@ -67,69 +38,105 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         </div>
       </div>
       
-      {/* Global Parameters Vertical Tracks - matching reference */}
+      {/* Separate Meters */}
       <div className="global-parameters">
-        {/* Temperature Track */}
-        <div className="parameter-track temperature-track">
-          <div className="track-header">
-            <div className="track-icon">🌡️</div>
-            <div className="track-bar temperature-bar">
-              {getTemperatureSteps().map((step, i) => (
-                <div 
-                  key={i}
-                  className={`track-segment temperature ${step.isActive ? 'active' : ''}`}
-                  title={`${step.value}°C`}
-                />
-              ))}
+        <div className="meters-container">
+          {/* Oxygen Meter (Left) */}
+          <div className="oxygen-meter">
+            <div className="oxygen-bulb">
+              <div className="bulb-inner oxygen-bulb-inner"></div>
             </div>
-            <div className="track-values">
-              <div className="track-value top">8</div>
-              <div className="track-value bottom">-30</div>
+            
+            <div className="oxygen-tube">
+              <div className="oxygen-fill" style={{
+                height: `${Math.max(0, (globalParameters?.oxygen || 0) / 14 * 100)}%`
+              }}></div>
+              
+              {/* Internal step markings for oxygen - every single step */}
+              <div className="oxygen-steps">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map((oxygen) => (
+                  <div 
+                    key={oxygen}
+                    className="oxygen-step-mark"
+                    style={{
+                      bottom: `${(oxygen / 14 * 100)}%`
+                    }}
+                  ></div>
+                ))}
+              </div>
+              
+              <div className="oxygen-scale">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
+                  <div 
+                    key={oxygen}
+                    className="oxygen-scale-mark"
+                    style={{
+                      bottom: `${(oxygen / 14 * 100)}%`
+                    }}
+                  >
+                    <div className="oxygen-scale-line"></div>
+                    <div className="oxygen-scale-label">{oxygen}%</div>
+                  </div>
+                ))}
+              </div>
             </div>
+            
+            <div className="current-oxygen">{globalParameters?.oxygen || 0}%</div>
           </div>
-          <div className="current-value">{globalParameters?.temperature || -30}°C</div>
+          
+          {/* Temperature Meter (Right) */}
+          <div className="temperature-meter">
+            <div className="temperature-bulb">
+              <div className="bulb-inner temperature-bulb-inner"></div>
+            </div>
+            
+            <div className="thermometer-tube">
+              <div className="temperature-fill" style={{
+                height: `${Math.max(0, ((globalParameters?.temperature || -30) + 30) / 38 * 100)}%`
+              }}></div>
+              
+              {/* Internal step markings for temperature */}
+              <div className="temperature-steps">
+                {getTemperatureMarkings().filter(temp => temp !== -30 && temp !== 8).map((temp) => (
+                  <div 
+                    key={temp}
+                    className="temperature-step-mark"
+                    style={{
+                      bottom: `${((temp + 30) / 38 * 100)}%`
+                    }}
+                  ></div>
+                ))}
+              </div>
+              
+              <div className="temperature-scale">
+                {getTemperatureMarkings().map((temp, i) => (
+                  <div 
+                    key={temp}
+                    className="temp-scale-mark"
+                    style={{
+                      bottom: `${((temp + 30) / 38 * 100)}%`
+                    }}
+                  >
+                    <div className="temp-scale-line"></div>
+                    <div className="temp-scale-label">{temp}°</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="current-temp">{globalParameters?.temperature || -30}°C</div>
+          </div>
         </div>
-
-        {/* Oxygen Track */}
-        <div className="parameter-track oxygen-track">
-          <div className="track-header">
-            <div className="track-icon">💨</div>
-            <div className="track-bar oxygen-bar">
-              {getOxygenSteps().map((step, i) => (
-                <div 
-                  key={i}
-                  className={`track-segment oxygen ${step.isActive ? 'active' : ''}`}
-                  title={`${step.value}%`}
-                />
-              ))}
-            </div>
-            <div className="track-values">
-              <div className="track-value top">14</div>
-              <div className="track-value bottom">0</div>
-            </div>
+        
+        {/* Ocean Counter */}
+        <div className="ocean-counter">
+          <div className="ocean-icon">🌊</div>
+          <div className="ocean-label">OCEANS</div>
+          <div className="ocean-count">
+            <span className="current-oceans">{globalParameters?.oceans || 0}</span>
+            <span className="ocean-separator"> / </span>
+            <span className="max-oceans">9</span>
           </div>
-          <div className="current-value">{globalParameters?.oxygen || 0}%</div>
-        </div>
-
-        {/* Oceans Track */}
-        <div className="parameter-track ocean-track">
-          <div className="track-header">
-            <div className="track-icon">🌊</div>
-            <div className="track-bar ocean-bar">
-              {getOceanSteps().map((step, i) => (
-                <div 
-                  key={i}
-                  className={`track-segment ocean ${step.isActive ? 'active' : ''}`}
-                  title={`${step.value} oceans`}
-                />
-              ))}
-            </div>
-            <div className="track-values">
-              <div className="track-value top">9</div>
-              <div className="track-value bottom">0</div>
-            </div>
-          </div>
-          <div className="current-value">{globalParameters?.oceans || 0}/9</div>
         </div>
       </div>
 
@@ -147,17 +154,22 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       
       <style>{`
         .right-sidebar {
-          width: 60px;
+          min-width: 120px;
+          width: auto;
           height: 100vh;
-          background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 20, 0.9) 100%);
-          border-left: 1px solid rgba(60, 60, 60, 0.5);
-          padding: 5px 2px;
-          overflow: hidden;
+          background: linear-gradient(180deg, 
+            rgba(5, 10, 20, 0.95) 0%, 
+            rgba(10, 15, 30, 0.95) 50%, 
+            rgba(5, 10, 25, 0.95) 100%);
+          border-left: 1px solid rgba(40, 50, 70, 0.6);
+          padding: 8px 12px;
+          overflow: visible;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
           position: relative;
+          box-shadow: inset 1px 0 2px rgba(100, 150, 200, 0.1);
         }
         
         .generation-counter {
@@ -166,18 +178,33 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
         
         .generation-hex {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 50%, #1a1a1a 100%);
           clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: #000;
+          color: #fff;
           font-weight: bold;
-          border: 1px solid #8b7355;
-          box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+          border: 1px solid #666;
+          box-shadow: 
+            inset 0 1px 2px rgba(255, 255, 255, 0.1),
+            0 2px 4px rgba(0, 0, 0, 0.5);
+          position: relative;
+        }
+        
+        .generation-hex::before {
+          content: '';
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          right: 2px;
+          bottom: 2px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+          clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+          pointer-events: none;
         }
         
         .gen-text {
@@ -195,96 +222,284 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 10px;
+          gap: 15px;
           width: 100%;
           height: calc(100vh - 100px);
         }
         
-        .parameter-track {
+        .meters-container {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+          gap: 20px;
+          flex: 1;
+          width: 100%;
+          justify-content: center;
+        }
+        
+        .oxygen-meter, .temperature-meter {
+          position: relative;
+          height: 450px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 3px;
-          width: 100%;
-          flex: 1;
         }
         
-        .track-header {
+        /* Dual Thermometer Styles */
+        .temperature-bulb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+          border: 2px solid #444;
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: center;
-          gap: 4px;
-          flex: 1;
-          width: 100%;
-        }
-        
-        .track-icon {
-          font-size: 10px;
-          width: 12px;
-          text-align: center;
-          margin-top: 5px;
-        }
-        
-        .track-bar {
-          width: 12px;
-          flex: 1;
-          min-height: 200px;
-          background: rgba(40, 40, 40, 0.8);
-          border: 1px solid rgba(100, 100, 100, 0.4);
-          border-radius: 6px;
-          overflow: hidden;
           position: relative;
+          z-index: 2;
+          margin-bottom: -10px;
+        }
+        
+        .temperature-bulb-inner {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #87ceeb 0%, #ff8c00 100%);
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .thermometer-tube, .oxygen-tube {
+          width: 18px;
+          height: 380px;
+          background: linear-gradient(to right, #1a1a1a 0%, #0a0a0a 50%, #1a1a1a 100%);
+          border: 1px solid #333;
+          border-radius: 8px 8px 0 0;
+          position: relative;
+          overflow: visible;
+        }
+        
+        .temperature-fill {
+          position: absolute;
+          bottom: 0;
+          left: 2px;
+          width: 14px;
+          background: linear-gradient(to top, #87ceeb 0%, #ffb347 50%, #ff8c00 100%);
+          border-radius: 0 0 7px 7px;
+          transition: height 0.5s ease;
+          box-shadow: 
+            0 0 8px rgba(255, 140, 0, 1),
+            0 0 15px rgba(255, 179, 71, 0.8),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3);
+          opacity: 1;
+          filter: brightness(1.2);
+        }
+        
+        .oxygen-fill {
+          position: absolute;
+          bottom: 0;
+          left: 2px;
+          width: 14px;
+          background: linear-gradient(to top, #006400 0%, #32cd32 50%, #00ff00 100%);
+          border-radius: 0 0 7px 7px;
+          transition: height 0.5s ease;
+          box-shadow: 
+            0 0 8px rgba(0, 255, 0, 1),
+            0 0 15px rgba(50, 205, 50, 0.8),
+            inset 0 1px 2px rgba(255, 255, 255, 0.3);
+          opacity: 1;
+          filter: brightness(1.2);
+        }
+        
+        .oxygen-bulb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+          border: 2px solid #444;
           display: flex;
-          flex-direction: column-reverse;
-          padding: 1px;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          z-index: 2;
+          margin-bottom: -10px;
         }
         
-        .track-segment {
-          flex: 1;
-          background: rgba(60, 60, 60, 0.5);
-          margin: 1px 0;
-          transition: all 0.2s ease;
+        .oxygen-bulb-inner {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #006400 0%, #00ff00 100%);
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
-        .track-segment.temperature.active {
-          background: linear-gradient(to top, #ff4500 0%, #ff8c00 100%);
-          box-shadow: 0 0 3px rgba(255, 69, 0, 0.8);
+        /* Internal Step Markings */
+        .oxygen-steps, .temperature-steps {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
         }
         
-        .track-segment.oxygen.active {
-          background: linear-gradient(to top, #00bfff 0%, #87ceeb 100%);
-          box-shadow: 0 0 3px rgba(0, 191, 255, 0.8);
+        .oxygen-step-mark {
+          position: absolute;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: rgba(0, 255, 0, 0.3);
+          border-top: 1px solid rgba(0, 255, 0, 0.5);
         }
         
-        .track-segment.ocean.active {
-          background: linear-gradient(to top, #0066cc 0%, #4da6ff 100%);
-          box-shadow: 0 0 3px rgba(0, 102, 204, 0.8);
+        .temperature-step-mark {
+          position: absolute;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: rgba(255, 140, 0, 0.3);
+          border-top: 1px solid rgba(255, 140, 0, 0.5);
         }
         
-        .track-values {
+        .temperature-scale {
+          position: absolute;
+          right: -30px;
+          top: 0;
+          height: 100%;
+          width: 25px;
+        }
+        
+        .temp-scale-mark {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          right: 0;
+          flex-direction: row-reverse;
+        }
+        
+        .temp-scale-line {
+          width: 4px;
+          height: 1px;
+          background: #ff8c00;
+          margin-left: 2px;
+          box-shadow: 0 0 1px rgba(255, 140, 0, 0.6);
+        }
+        
+        .temp-scale-label {
+          font-size: 10px;
+          color: #ff8c00;
+          font-weight: bold;
+          white-space: nowrap;
+          text-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
+        }
+        
+        .oxygen-scale {
+          position: absolute;
+          left: -30px;
+          top: 0;
+          height: 100%;
+          width: 25px;
+        }
+        
+        .oxygen-scale-mark {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          left: 0;
+          flex-direction: row;
+        }
+        
+        .oxygen-scale-line {
+          width: 4px;
+          height: 1px;
+          background: #00ff00;
+          margin-right: 2px;
+          box-shadow: 0 0 1px rgba(0, 255, 0, 0.6);
+        }
+        
+        .oxygen-scale-label {
+          font-size: 10px;
+          color: #00ff00;
+          font-weight: bold;
+          white-space: nowrap;
+          text-shadow: 0 0 3px rgba(0, 255, 0, 0.8);
+        }
+        
+        .current-values {
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          flex: 1;
-          min-height: 200px;
-          margin-left: 2px;
+          align-items: center;
+          gap: 4px;
         }
         
-        .track-value {
+        .current-temp {
+          font-size: 8px;
+          font-weight: bold;
+          color: #ff6b2d;
+          text-align: center;
+          background: rgba(0, 0, 0, 0.7);
+          padding: 2px 4px;
+          border-radius: 3px;
+          border: 1px solid #444;
+        }
+        
+        .current-oxygen {
+          font-size: 8px;
+          font-weight: bold;
+          color: #87ceeb;
+          text-align: center;
+          background: rgba(0, 0, 0, 0.7);
+          padding: 2px 4px;
+          border-radius: 3px;
+          border: 1px solid #444;
+        }
+        
+        /* Ocean Counter Styles */
+        .ocean-counter {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          background: linear-gradient(135deg, rgba(0, 100, 200, 0.15) 0%, rgba(0, 50, 150, 0.2) 100%);
+          border: 1px solid rgba(0, 150, 255, 0.3);
+          border-radius: 6px;
+          padding: 6px;
+          width: 90%;
+          margin-top: 8px;
+        }
+        
+        .ocean-icon {
+          font-size: 12px;
+          color: #4da6ff;
+        }
+        
+        .ocean-label {
           font-size: 6px;
-          color: #ccc;
           font-weight: bold;
-          width: 8px;
-          text-align: center;
+          color: #4da6ff;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         
-        .current-value {
-          font-size: 7px;
+        .ocean-count {
+          display: flex;
+          align-items: center;
+          font-size: 12px;
           font-weight: bold;
-          color: #fff;
-          text-align: center;
-          margin-top: 2px;
         }
+        
+        .current-oceans {
+          color: #00bfff;
+          text-shadow: 0 0 3px rgba(0, 191, 255, 0.6);
+        }
+        
+        .ocean-separator {
+          color: #666;
+        }
+        
+        .max-oceans {
+          color: #999;
+        }
+        
         
         .player-score-section {
           flex-shrink: 0;
@@ -299,17 +514,33 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
         
         .score-hex {
-          width: 45px;
-          height: 45px;
-          background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+          width: 42px;
+          height: 42px;
+          background: linear-gradient(135deg, #1e90ff 0%, #0066cc 50%, #004d99 100%);
           clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
           display: flex;
           align-items: center;
           justify-content: center;
           color: #fff;
           font-weight: bold;
-          border: 2px solid #2c5aa0;
-          box-shadow: 0 0 8px rgba(74, 144, 226, 0.4);
+          border: 2px solid #0a4d7a;
+          box-shadow: 
+            inset 0 1px 2px rgba(255, 255, 255, 0.2),
+            0 0 10px rgba(30, 144, 255, 0.6),
+            0 2px 6px rgba(0, 0, 0, 0.4);
+          position: relative;
+        }
+        
+        .score-hex::before {
+          content: '';
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          right: 3px;
+          bottom: 3px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+          clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+          pointer-events: none;
         }
         
         .score-value {
