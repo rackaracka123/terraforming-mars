@@ -64,6 +64,33 @@ export class GeodesicGrid {
   }
   
   /**
+   * Determine if a row should be offset for proper hex grid alignment
+   */
+  private static shouldOffsetRow(row: number, hexesInRow: number, pattern: number[]): boolean {
+    // For a proper hex grid, we need to create a symmetric offset pattern
+    // The goal is to make the hexes tessellate properly
+    
+    // Find the widest row(s) in the pattern
+    const maxHexes = Math.max(...pattern);
+    const centerRowIndex = Math.floor(pattern.length / 2);
+    
+    // Create offset pattern based on row width relative to center
+    // Rows that are narrower than the row above/below them often need offset
+    const prevRowHexes = row > 0 ? pattern[row - 1] : hexesInRow;
+    const nextRowHexes = row < pattern.length - 1 ? pattern[row + 1] : hexesInRow;
+    
+    // Offset rows that have fewer hexes than their neighbors to create proper tessellation
+    // Also consider the overall position relative to center
+    if (row < centerRowIndex) {
+      // Top half: offset if this row has fewer hexes than the next row
+      return hexesInRow < nextRowHexes;
+    } else {
+      // Bottom half: offset if this row has fewer hexes than the previous row
+      return hexesInRow < prevRowHexes;
+    }
+  }
+
+  /**
    * Create hexagonal grid positions on sphere surface
    * Based on the Terraforming Mars board layout - covers ~80% of one hemisphere
    */
@@ -87,37 +114,35 @@ export class GeodesicGrid {
     // Generate a concentrated hex grid on one side of Mars
     // Create a more systematic approach like the actual Terraforming Mars board
     
-    const rows = 8;
     const baseRadius = this.SPHERE_RADIUS;
     
     // Focus on the front-facing hemisphere (positive Z direction)
     // Create a roughly hexagonal pattern centered around (0, 0, positive Z)
     
-    for (let row = 0; row < rows; row++) {
-      // Variable number of hexes per row to create hexagonal board shape
-      let hexesInRow;
-      if (row <= 2) hexesInRow = 5 + row;      // 5, 6, 7
-      else if (row <= 4) hexesInRow = 8;       // 8, 8  
-      else if (row <= 6) hexesInRow = 9 - (row - 4); // 7, 6
-      else hexesInRow = 5;                     // 5
-      
-      const rowOffset = (8 - hexesInRow) * 0.5; // Center the row
+    // Define the hex pattern for Terraforming Mars board
+    const hexPattern = [5, 6, 6, 8, 8, 7, 6, 5]; // tiles per row
+    
+    for (let row = 0; row < hexPattern.length; row++) {
+      const hexesInRow = hexPattern[row];
       
       for (let col = 0; col < hexesInRow; col++) {
-        // Create hex coordinate
+        // Create hex coordinate using axial coordinates
         const q = col - Math.floor(hexesInRow / 2);
-        const r = row - 4; // Center vertically
+        const r = row - Math.floor(hexPattern.length / 2);
         const s = -q - r;
         
-        // Map tiles directly to front hemisphere with proper hexagonal spacing
-        // Create a flattened grid that gets projected onto front of sphere
-        const hexWidth = 0.46; // Width of hexagon with slightly larger gap
-        const hexHeight = 0.4; // Height spacing between rows (slightly larger)
+        // Proper hexagonal grid positioning
+        const hexWidth = 0.46;
+        const hexHeight = 0.4;
         
-        // Calculate proper hex grid offsets (every other row is offset by half width)
-        const xOffset = (row % 2) * (hexWidth / 2);
-        const normalizedCol = ((col - hexesInRow/2) * hexWidth + xOffset) / 2; 
-        const normalizedRow = ((row - 4) * hexHeight) / 2;
+        // Calculate position using proper hex grid math
+        // In a hex grid, every other row is offset by half a hex width
+        // But we need to determine the offset pattern dynamically
+        const isOffsetRow = this.shouldOffsetRow(row, hexesInRow, hexPattern);
+        const xOffset = isOffsetRow ? hexWidth / 2 : 0;
+        
+        const normalizedCol = ((col - hexesInRow/2) * hexWidth + xOffset) / 2;
+        const normalizedRow = ((row - hexPattern.length/2) * hexHeight) / 2;
         
         // Scale to cover ~70% of front hemisphere (slightly more spread)
         const scale = 0.70;
