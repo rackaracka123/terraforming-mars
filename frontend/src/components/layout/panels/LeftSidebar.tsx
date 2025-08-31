@@ -299,7 +299,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       
       <style jsx global>{`
         .left-sidebar {
-          width: 320px;
+          width: 100%;
+          max-width: 320px;
+          min-width: 280px;
+          height: calc(100vh - 120px);
           background: linear-gradient(180deg, 
             rgba(0, 20, 40, 0.95) 0%, 
             rgba(0, 10, 30, 0.95) 50%, 
@@ -312,7 +315,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           flex-direction: column;
           position: relative;
           overflow: visible;
-          min-width: 320px;
         }
         
         .left-sidebar::before {
@@ -334,8 +336,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
         .players-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 20px 15px;
+          gap: clamp(8px, 2vw, 12px);
+          padding: clamp(10px, 3vw, 20px) clamp(8px, 2vw, 15px);
           overflow: visible;
           height: 100%;
           justify-content: flex-start;
@@ -713,6 +715,92 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           border: 1px solid rgba(100, 255, 100, 0.4);
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
           letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 1200px) {
+          .left-sidebar {
+            min-width: 250px;
+            max-width: 280px;
+          }
+          
+          .player-entry {
+            min-height: 70px;
+            padding: 12px;
+          }
+          
+          .corp-logo-img {
+            width: 38px;
+            height: 38px;
+          }
+          
+          .player-info-section .player-name {
+            font-size: 11px !important;
+          }
+          
+          .player-score {
+            font-size: 24px;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .left-sidebar {
+            min-width: 200px;
+            max-width: 240px;
+          }
+          
+          .player-entry {
+            min-height: 60px;
+            padding: 10px;
+          }
+          
+          .corp-logo-img {
+            width: 32px;
+            height: 32px;
+          }
+          
+          .player-info-section .player-name {
+            font-size: 10px !important;
+          }
+          
+          .player-score {
+            font-size: 20px;
+          }
+          
+          .action-label {
+            font-size: 9px;
+          }
+          
+          .skip-btn {
+            font-size: 9px;
+            padding: 4px 8px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .left-sidebar {
+            min-width: 100%;
+            max-width: 100%;
+            border-right: none;
+            border-bottom: 1px solid rgba(100, 150, 200, 0.2);
+            padding: 10px 0;
+          }
+          
+          .players-list {
+            flex-direction: row;
+            overflow-x: auto;
+            overflow-y: visible;
+            padding: 10px;
+            gap: 8px;
+          }
+          
+          .player-entry {
+            min-width: 200px;
+            flex-shrink: 0;
+          }
+          
+          .player-entry.current {
+            min-width: 250px;
+          }
         }
       `}</style>
     </div>

@@ -5,6 +5,7 @@ interface TopMenuBarProps {}
 
 const TopMenuBar: React.FC<TopMenuBarProps> = () => {
   const [activeModal, setActiveModal] = useState<'milestones' | 'projects' | 'awards' | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const menuItems = [
     { id: 'milestones' as const, label: 'MILESTONES', color: '#ff6b35' },
@@ -28,12 +29,23 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
   return (
     <div className="top-menu-bar">
       <div className="menu-container">
-        <div className="menu-items">
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          ☰ Menu
+        </button>
+
+        <div className={`menu-items ${mobileMenuOpen ? 'mobile-open' : ''}`}>
           {menuItems.map((item) => (
             <button
               key={item.id}
               className="menu-item"
-              onClick={() => handleTabClick(item.id)}
+              onClick={() => {
+                handleTabClick(item.id);
+                setMobileMenuOpen(false);
+              }}
               style={{ '--item-color': item.color } as React.CSSProperties}
             >
               {item.label}
@@ -110,6 +122,111 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
         
         .action-btn:hover {
           background: rgba(255, 255, 255, 0.2);
+        }
+
+        .mobile-menu-toggle {
+          display: none;
+          background: none;
+          border: 1px solid #333;
+          color: white;
+          padding: 8px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .mobile-menu-toggle:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 1024px) {
+          .menu-container {
+            padding: 0 15px;
+            height: 50px;
+          }
+
+          .menu-item {
+            font-size: 12px;
+            padding: 8px 15px;
+          }
+
+          .action-btn {
+            padding: 6px 10px;
+            font-size: 11px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .menu-container {
+            padding: 0 10px;
+            position: relative;
+          }
+
+          .mobile-menu-toggle {
+            display: block;
+          }
+
+          .menu-items {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.98);
+            border: 1px solid #333;
+            border-top: none;
+            flex-direction: column;
+            gap: 0;
+            z-index: 1000;
+          }
+
+          .menu-items.mobile-open {
+            display: flex;
+          }
+
+          .menu-item {
+            width: 100%;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            border-radius: 0;
+            padding: 12px 20px;
+            font-size: 14px;
+          }
+
+          .menu-item:last-child {
+            border-bottom: none;
+          }
+
+          .menu-actions {
+            gap: 8px;
+          }
+
+          .action-btn {
+            padding: 6px 8px;
+            font-size: 10px;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .menu-actions {
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .action-btn {
+            padding: 4px 6px;
+            font-size: 9px;
+          }
+
+          .mobile-menu-toggle {
+            font-size: 12px;
+            padding: 6px 10px;
+          }
+
+          .menu-item {
+            padding: 10px 15px;
+            font-size: 12px;
+          }
         }
       `}</style>
     </div>

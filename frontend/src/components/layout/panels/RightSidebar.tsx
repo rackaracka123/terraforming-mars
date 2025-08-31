@@ -226,46 +226,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         </div>
       </div>
 
-      {/* Milestones & Awards Section */}
-      <div className="milestones-awards-section">
-        <div className="section-title">MILESTONES & AWARDS</div>
-        
-        <div className="indicators-grid">
-          {/* Claimed Milestones */}
-          <div className="milestone-indicator claimed">
-            <div className="hex-icon">🏆</div>
-            <div className="indicator-label">Mayor</div>
-          </div>
-          
-          <div className="milestone-indicator available">
-            <div className="hex-icon">🌱</div>
-            <div className="indicator-label">Gardener</div>
-          </div>
-          
-          <div className="milestone-indicator unavailable">
-            <div className="hex-icon">🔧</div>
-            <div className="indicator-label">Builder</div>
-          </div>
-          
-          {/* Funded Awards */}
-          <div className="award-indicator funded">
-            <div className="hex-icon">🏢</div>
-            <div className="indicator-label">Landlord</div>
-            <div className="award-winner">Alice</div>
-          </div>
-          
-          <div className="award-indicator available">
-            <div className="hex-icon">💰</div>
-            <div className="indicator-label">Banker</div>
-          </div>
-          
-          <div className="award-indicator funded">
-            <div className="hex-icon">🧪</div>
-            <div className="indicator-label">Scientist</div>
-            <div className="award-winner">Carol</div>
-          </div>
-        </div>
-      </div>
 
       {/* Player Score Section */}
       <div className="player-score-section">
@@ -281,15 +241,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
       
       <style>{`
         .right-sidebar {
+          width: 100%;
           min-width: 150px;
-          width: auto;
-          height: 100vh;
+          max-width: 250px;
+          height: calc(100vh - 120px);
           background: linear-gradient(180deg, 
             rgba(5, 10, 20, 0.95) 0%, 
             rgba(10, 15, 30, 0.95) 50%, 
             rgba(5, 10, 25, 0.95) 100%);
           border-left: 1px solid rgba(40, 50, 70, 0.6);
-          padding: 8px 20px;
+          padding: clamp(4px, 1vw, 8px) clamp(10px, 2vw, 20px);
           overflow: visible;
           display: flex;
           flex-direction: column;
@@ -351,7 +312,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           align-items: center;
           gap: 15px;
           width: 100%;
-          height: calc(100vh - 100px);
+          height: calc(100vh - 220px);
         }
         
         .meters-container {
@@ -367,11 +328,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         
         .oxygen-meter, .temperature-meter {
           position: relative;
-          height: 450px;
+          height: clamp(300px, 40vh, 450px);
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-top: 15px;
+          margin-top: clamp(8px, 2vh, 15px);
         }
         
         /* Dual Thermometer Styles */
@@ -398,8 +359,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
         
         .thermometer-tube, .oxygen-tube {
-          width: 18px;
-          height: 380px;
+          width: clamp(14px, 2vw, 18px);
+          height: calc(100% - 60px);
           background: linear-gradient(to right, #1a1a1a 0%, #0a0a0a 50%, #1a1a1a 100%);
           border: 1px solid #333;
           border-radius: 8px 8px 0 0;
@@ -679,151 +640,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
         
         
-        .milestones-awards-section {
-          flex-shrink: 0;
-          margin: 15px 0;
-          padding: 15px 10px;
-          background: linear-gradient(
-            135deg,
-            rgba(40, 30, 60, 0.4) 0%,
-            rgba(30, 20, 50, 0.3) 100%
-          );
-          border: 1px solid rgba(150, 100, 255, 0.3);
-          border-radius: 10px;
-          backdrop-filter: blur(5px);
-        }
-
-        .section-title {
-          font-size: 10px;
-          font-weight: bold;
-          color: rgba(150, 100, 255, 0.9);
-          text-align: center;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 12px;
-          border-bottom: 1px solid rgba(150, 100, 255, 0.3);
-          padding-bottom: 6px;
-        }
-
-        .indicators-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-        }
-
-        .milestone-indicator,
-        .award-indicator {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 8px 4px;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          cursor: pointer;
-          position: relative;
-        }
-
-        .milestone-indicator {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 107, 53, 0.2) 0%,
-            rgba(255, 140, 66, 0.1) 100%
-          );
-          border: 1px solid rgba(255, 107, 53, 0.4);
-        }
-
-        .award-indicator {
-          background: linear-gradient(
-            135deg,
-            rgba(243, 156, 18, 0.2) 0%,
-            rgba(241, 196, 15, 0.1) 100%
-          );
-          border: 1px solid rgba(243, 156, 18, 0.4);
-        }
-
-        .milestone-indicator.claimed {
-          border-color: rgba(39, 174, 96, 0.6);
-          background: linear-gradient(
-            135deg,
-            rgba(39, 174, 96, 0.3) 0%,
-            rgba(46, 204, 113, 0.2) 100%
-          );
-        }
-
-        .milestone-indicator.unavailable {
-          opacity: 0.4;
-          border-color: rgba(100, 100, 100, 0.3);
-          background: linear-gradient(
-            135deg,
-            rgba(100, 100, 100, 0.2) 0%,
-            rgba(80, 80, 80, 0.1) 100%
-          );
-          cursor: not-allowed;
-        }
-
-        .award-indicator.funded {
-          border-color: rgba(52, 152, 219, 0.6);
-          background: linear-gradient(
-            135deg,
-            rgba(52, 152, 219, 0.3) 0%,
-            rgba(74, 144, 226, 0.2) 100%
-          );
-        }
-
-        .hex-icon {
-          width: 24px;
-          height: 24px;
-          background: rgba(0, 0, 0, 0.3);
-          clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-          margin-bottom: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .milestone-indicator.claimed .hex-icon {
-          background: rgba(39, 174, 96, 0.4);
-          border-color: rgba(39, 174, 96, 0.6);
-        }
-
-        .award-indicator.funded .hex-icon {
-          background: rgba(52, 152, 219, 0.4);
-          border-color: rgba(52, 152, 219, 0.6);
-        }
-
-        .indicator-label {
-          font-size: 8px;
-          font-weight: bold;
-          color: #ffffff;
-          text-align: center;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          line-height: 1.1;
-          margin-bottom: 2px;
-        }
-
-        .award-winner {
-          font-size: 7px;
-          color: rgba(52, 152, 219, 1);
-          font-weight: 500;
-          text-align: center;
-        }
-
-        .milestone-indicator:hover:not(.unavailable),
-        .award-indicator:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .milestone-indicator.claimed:hover {
-          box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
-        }
-
-        .award-indicator.funded:hover {
-          box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-        }
 
         .player-score-section {
           flex-shrink: 0;
@@ -880,6 +696,111 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+
+        @media (max-width: 1200px) {
+          .right-sidebar {
+            min-width: 120px;
+            max-width: 180px;
+          }
+          
+          .meters-container {
+            gap: 20px;
+            padding-right: 60px;
+          }
+          
+          .generation-hex {
+            width: 32px;
+            height: 32px;
+          }
+          
+          .gen-text {
+            font-size: 7px;
+          }
+          
+          .gen-number {
+            font-size: 14px;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .right-sidebar {
+            min-width: 100px;
+            max-width: 150px;
+          }
+          
+          .meters-container {
+            gap: 15px;
+            padding-right: 40px;
+          }
+          
+          .generation-hex {
+            width: 28px;
+            height: 28px;
+          }
+          
+          .gen-text {
+            font-size: 6px;
+          }
+          
+          .gen-number {
+            font-size: 12px;
+          }
+          
+          .milestone-indicator {
+            width: 16px;
+            height: 14px;
+          }
+          
+          .milestone-icon {
+            font-size: 8px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .right-sidebar {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-left: none;
+            border-top: 1px solid rgba(40, 50, 70, 0.6);
+            padding: 10px;
+          }
+          
+          .global-parameters {
+            height: auto;
+          }
+          
+          .meters-container {
+            flex-direction: row;
+            justify-content: center;
+            padding-right: 0;
+            gap: 30px;
+          }
+          
+          .oxygen-meter, .temperature-meter {
+            height: clamp(200px, 25vh, 300px);
+            margin-top: 0;
+          }
+          
+          .milestones-awards-section {
+            margin: 10px 0;
+            padding: 10px;
+          }
+          
+          .indicators-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+          }
+          
+          .score-hex {
+            width: 36px;
+            height: 36px;
+          }
+          
+          .score-value {
+            font-size: 12px;
+          }
         }
       `}</style>
     </div>

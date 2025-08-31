@@ -100,7 +100,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           align-items: center;
           justify-content: space-between;
           padding: 15px 30px;
-          z-index: 200;
+          z-index: 100;
           box-shadow: 
             0 -8px 32px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(100, 150, 255, 0.2);
@@ -276,7 +276,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           box-shadow: 
             0 8px 25px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(150, 100, 255, 0.3);
-          z-index: 300;
+          z-index: 150;
         }
 
         .cards-grid {
@@ -384,6 +384,34 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           }
         }
 
+        @media (max-width: 1024px) {
+          .bottom-resource-bar {
+            height: 100px;
+            padding: 12px 25px;
+          }
+
+          .resources-grid {
+            gap: 12px;
+            max-width: 450px;
+          }
+
+          .resource-item {
+            padding: 10px 7px;
+          }
+
+          .cards-indicator {
+            padding: 12px 18px;
+          }
+
+          .cards-icon {
+            font-size: 20px;
+          }
+
+          .cards-count {
+            font-size: 18px;
+          }
+        }
+
         @media (max-width: 800px) {
           .bottom-resource-bar {
             flex-direction: column;
@@ -402,6 +430,58 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           .game-info-section {
             width: 100%;
             align-items: center;
+          }
+
+          .cards-preview {
+            position: static;
+            transform: none;
+            margin-bottom: 0;
+            margin-top: 10px;
+          }
+
+          .cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .bottom-resource-bar {
+            padding: 12px;
+            gap: 12px;
+          }
+
+          .resources-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+          }
+
+          .resource-item {
+            padding: 8px 5px;
+          }
+
+          .resource-icon {
+            font-size: 16px;
+          }
+
+          .resource-current {
+            font-size: 14px;
+          }
+
+          .resource-production {
+            font-size: 11px;
+          }
+
+          .cards-indicator {
+            padding: 10px 15px;
+          }
+
+          .phase-label {
+            font-size: 10px;
+          }
+
+          .actions-left {
+            font-size: 12px;
           }
         }
       `}</style>

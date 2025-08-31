@@ -46,8 +46,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
       
       <style jsx>{`
         .game-layout {
-          display: flex;
-          flex-direction: column;
+          display: grid;
+          grid-template-rows: auto 1fr;
           width: 100vw;
           height: 100vh;
           background: #000011;
@@ -56,9 +56,29 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
         }
         
         .game-content {
-          display: flex;
-          flex: 1;
+          display: grid;
+          grid-template-columns: minmax(280px, 320px) 1fr minmax(150px, 250px);
           min-height: 0;
+          gap: 0;
+        }
+
+        @media (max-width: 1200px) {
+          .game-content {
+            grid-template-columns: minmax(250px, 280px) 1fr minmax(120px, 180px);
+          }
+        }
+
+        @media (max-width: 900px) {
+          .game-content {
+            grid-template-columns: minmax(200px, 240px) 1fr minmax(100px, 150px);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .game-content {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr auto;
+          }
         }
       `}</style>
     </div>

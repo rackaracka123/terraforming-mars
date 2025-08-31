@@ -106,6 +106,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({ players, currentPlayer })
       
       <style jsx>{`
         .player-overlay {
+          display: none;
           position: absolute;
           top: 70px;
           left: 50%;

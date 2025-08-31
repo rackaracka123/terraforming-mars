@@ -579,14 +579,138 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           background: rgba(120, 120, 120, 0.8);
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1200px) {
           .cards-hand-expanded {
-            width: 95vw;
+            width: 700px;
+            max-width: 85vw;
           }
 
           .cards-grid {
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .cards-hand-expanded {
+            width: 95vw;
+            max-height: 350px;
+          }
+
+          .cards-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 8px;
+          }
+
+          .card-detail-popup {
+            width: 350px;
+            max-width: 85vw;
+          }
+
+          .detail-name {
+            font-size: 18px;
+          }
+
+          .detail-description {
+            font-size: 13px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .cards-hand-overlay {
+            bottom: 120px;
+          }
+
+          .hand-toggle {
+            padding: 12px 20px;
+            border-radius: 15px;
+          }
+
+          .toggle-icon {
+            font-size: 18px;
+          }
+
+          .cards-count {
+            font-size: 16px;
+          }
+
+          .playable-indicator {
+            font-size: 11px;
+          }
+
+          .cards-hand-expanded {
+            width: 95vw;
+            max-height: 300px;
+            padding: 15px;
+          }
+
+          .cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+          }
+
+          .card-item {
+            padding: 10px;
+          }
+
+          .card-name {
+            font-size: 12px;
+          }
+
+          .card-cost {
+            font-size: 11px;
+            padding: 3px 6px;
+          }
+
+          .card-tag {
+            font-size: 9px;
+            padding: 1px 4px;
+          }
+
+          .card-detail-popup {
+            width: 90vw;
+            padding: 20px;
+          }
+
+          .detail-name {
+            font-size: 16px;
+          }
+
+          .detail-cost {
+            font-size: 14px;
+          }
+
+          .detail-description {
+            font-size: 12px;
+          }
+
+          .section-title {
+            font-size: 14px;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .cards-hand-expanded {
+            padding: 10px;
+            max-height: 250px;
+          }
+
+          .cards-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .card-item {
+            padding: 8px;
+            min-height: 60px;
+          }
+
+          .card-content {
+            margin-right: 30px;
+          }
+
+          .card-cost {
+            top: 6px;
+            right: 6px;
           }
         }
       `}</style>
