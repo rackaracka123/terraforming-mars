@@ -21,7 +21,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Current mouse position
   const [isDragging, setIsDragging] = useState(false);
   const [justDragged, setJustDragged] = useState(false); // Track if we just finished dragging
-  const [isHandSpread, setIsHandSpread] = useState(false); // Track if hand should be spread
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null); // Track which card is hovered for neighbor spreading
   const handRef = useRef<HTMLDivElement>(null);
 
   // Mock Hearthstone cards data
@@ -99,30 +99,44 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     }
   ];
 
-  // Calculate card positions in arc - compact or spread based on hover
-  const calculateCardPosition = (index: number, totalCards: number, isSpread: boolean = false) => {
-    const handWidth = isSpread ? 600 : 400; // Spread vs compact width
+  // Calculate card positions with neighbor spreading for hovered or highlighted cards
+  const calculateCardPosition = (index: number, totalCards: number, spreadIndex: number | null = null) => {
+    const handWidth = 400; // Base compact width
     const handCurve = 0.3; // How curved the hand is
     const cardWidth = 120;
     const baseY = -20; // Base Y position
     
-    // Adjust spacing based on spread state
-    const maxSpacing = cardWidth * (isSpread ? 0.7 : 0.4);
-    const spacing = Math.min(maxSpacing, handWidth / Math.max(totalCards - 1, 1));
+    // Base compact spacing
+    const baseSpacing = cardWidth * 0.4;
+    const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
+    
+    // Calculate neighbor spreading offset
+    let spreadOffset = 0;
+    if (spreadIndex !== null) {
+      const distanceFromSpread = Math.abs(index - spreadIndex);
+      if (distanceFromSpread === 1) {
+        // Adjacent cards spread out
+        const direction = index > spreadIndex ? 1 : -1;
+        spreadOffset = direction * 25; // Increased spread for better visibility
+      } else if (distanceFromSpread === 2) {
+        // Second neighbors spread slightly
+        const direction = index > spreadIndex ? 1 : -1;
+        spreadOffset = direction * 12; // Slightly more spread for second neighbors
+      }
+    }
     
     // Center the hand
     const totalWidth = spacing * (totalCards - 1);
     const startX = -totalWidth / 2;
-    const x = startX + (index * spacing);
+    const x = startX + (index * spacing) + spreadOffset;
     
     // Create arc curve
     const normalizedX = x / (handWidth / 2); // -1 to 1
     const curveY = Math.pow(Math.abs(normalizedX), 2) * handCurve * 60;
     const y = baseY + curveY;
     
-    // Adjust rotation based on spread state
-    const maxRotation = isSpread ? 12 : 8;
-    const rotation = normalizedX * maxRotation;
+    // Compact rotation
+    const rotation = normalizedX * 8; // Max 8 degrees
     
     return { x, y, rotation };
   };
@@ -168,7 +182,9 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     
     // Calculate initial offset from mouse to card position
     const cardIndex = hearthstoneCards.findIndex(c => c.id === cardId);
-    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, isHandSpread);
+    const spreadCard = highlightedCard || hoveredCard;
+    const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
+    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, spreadIndex);
     const containerRect = handRef.current?.getBoundingClientRect();
     
     if (containerRect) {
@@ -255,13 +271,15 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
       <div 
         className="card-hand-container"
         ref={handRef}
-        onMouseEnter={() => setIsHandSpread(true)}
-        onMouseLeave={() => setIsHandSpread(false)}
       >
         {hearthstoneCards.map((card, index) => {
-          const position = calculateCardPosition(index, hearthstoneCards.length, isHandSpread);
+          // Determine which card should cause spreading (highlighted takes priority over hovered)
+          const spreadCard = highlightedCard || hoveredCard;
+          const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
+          const position = calculateCardPosition(index, hearthstoneCards.length, spreadIndex);
           const isHighlighted = highlightedCard === card.id;
           const isDraggedCard = draggedCard === card.id;
+          const isHovered = hoveredCard === card.id;
           
           // Calculate final position and transform
           let finalX = position.x;
@@ -270,10 +288,14 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           let scale = 1;
           let zIndex = index;
           
+          if (isHovered && !isDragging && !isHighlighted) {
+            scale = 1.05;
+            // Don't change zIndex to avoid covering other cards
+          }
+          
           if (isHighlighted && !isDragging) {
-            finalY -= 60; // Move up when highlighted/clicked
-            scale = 1.2;
-            zIndex = 1000;
+            scale = 1.1; // Slight scale but no vertical lift
+            zIndex = 1000; // Only highlighted cards get higher z-index
           }
           
           if (isDraggedCard) {
@@ -295,7 +317,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           return (
             <div
               key={card.id}
-              className={`hearthstone-card ${isHighlighted ? 'highlighted' : ''} ${isDraggedCard ? 'dragged' : ''} ${!card.playable ? 'unplayable' : ''}`}
+              className={`hearthstone-card ${isHighlighted ? 'highlighted' : ''} ${isDraggedCard ? 'dragged' : ''} ${isHovered ? 'hovered' : ''} ${!card.playable ? 'unplayable' : ''}`}
               style={{
                 transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
                 zIndex: zIndex,
@@ -304,6 +326,8 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
               } as React.CSSProperties}
               onClick={(e) => handleCardClick(card.id, e)}
               onMouseDown={(e) => handleDragStart(card.id, e)}
+              onMouseEnter={() => setHoveredCard(card.id)}
+              onMouseLeave={() => setHoveredCard(null)}
             >
               <div className="card-inner">
                 <div className="card-cost">{card.cost}</div>
@@ -364,6 +388,12 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           transform-origin: bottom center;
           pointer-events: auto;
           user-select: none;
+        }
+
+        .hearthstone-card.hovered {
+          box-shadow: 
+            0 0 10px rgba(255, 255, 255, 0.2),
+            0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         .hearthstone-card.highlighted {
