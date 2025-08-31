@@ -1,4 +1,7 @@
 import React, { useEffect } from 'react';
+import CostDisplay from '../display/CostDisplay.tsx';
+import ProductionDisplay from '../display/ProductionDisplay.tsx';
+import { Z_INDEX } from '../../../constants/zIndex.ts';
 
 interface Milestone {
   id: string;
@@ -17,7 +20,12 @@ interface StandardProject {
   cost: number;
   description: string;
   available: boolean;
-  requirements?: string;
+  effects: {
+    production?: { type: string; amount: number }[];
+    immediate?: { type: string; amount: number }[];
+    tiles?: string[];
+  };
+  icon?: string;
 }
 
 interface Award {
@@ -94,21 +102,33 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       name: 'Sell Patents',
       cost: 0,
       description: 'Discard any number of cards from hand and gain that many M€',
-      available: true
+      available: true,
+      effects: {
+        immediate: [{ type: 'credits', amount: 1 }]
+      },
+      icon: '/assets/resources/megacredit.png'
     },
     {
       id: 'power-plant',
       name: 'Power Plant',
       cost: 11,
       description: 'Increase your energy production 1 step',
-      available: true
+      available: true,
+      effects: {
+        production: [{ type: 'energy', amount: 1 }]
+      },
+      icon: '/assets/resources/power.png'
     },
     {
       id: 'asteroid',
       name: 'Asteroid',
       cost: 14,
       description: 'Raise temperature 1 step',
-      available: true
+      available: true,
+      effects: {
+        immediate: [{ type: 'temperature', amount: 1 }]
+      },
+      icon: '/assets/resources/asteroid.png'
     },
     {
       id: 'aquifer',
@@ -116,7 +136,10 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       cost: 18,
       description: 'Place an ocean tile',
       available: true,
-      requirements: 'Max 9 oceans'
+      effects: {
+        tiles: ['ocean']
+      },
+      icon: '/assets/tiles/ocean.png'
     },
     {
       id: 'greenery',
@@ -124,14 +147,22 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       cost: 23,
       description: 'Place a greenery tile and raise oxygen 1 step',
       available: true,
-      requirements: 'Max 14% oxygen'
+      effects: {
+        tiles: ['greenery'],
+        immediate: [{ type: 'oxygen', amount: 1 }]
+      },
+      icon: '/assets/tiles/greenery.png'
     },
     {
       id: 'city',
       name: 'City',
       cost: 25,
       description: 'Place a city tile',
-      available: true
+      available: true,
+      effects: {
+        tiles: ['city']
+      },
+      icon: '/assets/tiles/city.png'
     }
   ];
 
@@ -239,6 +270,64 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
     </div>
   );
 
+  const renderEffects = (effects: StandardProject['effects']) => {
+    const elements = [];
+    
+    if (effects.production) {
+      effects.production.forEach((prod, idx) => {
+        elements.push(
+          <div key={`prod-${idx}`} className="effect-item">
+            <ProductionDisplay amount={prod.amount} resourceType={prod.type} size="small" />
+          </div>
+        );
+      });
+    }
+    
+    if (effects.immediate) {
+      effects.immediate.forEach((imm, idx) => {
+        if (imm.type === 'credits') {
+          elements.push(
+            <div key={`imm-${idx}`} className="effect-item">
+              <CostDisplay cost={imm.amount} size="small" />
+              <span className="effect-label">per card</span>
+            </div>
+          );
+        } else if (imm.type === 'temperature') {
+          elements.push(
+            <div key={`imm-${idx}`} className="effect-item">
+              <img src="/assets/resources/heat.png" alt="Temperature" className="effect-icon" />
+              <span className="effect-amount">+{imm.amount}°</span>
+            </div>
+          );
+        } else if (imm.type === 'oxygen') {
+          elements.push(
+            <div key={`imm-${idx}`} className="effect-item">
+              <span className="oxygen-symbol">O₂</span>
+              <span className="effect-amount">+{imm.amount}%</span>
+            </div>
+          );
+        }
+      });
+    }
+    
+    if (effects.tiles) {
+      effects.tiles.forEach((tile, idx) => {
+        const tileIcons: { [key: string]: string } = {
+          ocean: '/assets/tiles/ocean.png',
+          greenery: '/assets/tiles/greenery.png',
+          city: '/assets/tiles/city.png'
+        };
+        elements.push(
+          <div key={`tile-${idx}`} className="effect-item">
+            <img src={tileIcons[tile]} alt={tile} className="effect-tile" />
+          </div>
+        );
+      });
+    }
+    
+    return elements;
+  };
+
   const renderProjects = () => (
     <div className="modal-content">
       <div className="modal-header">
@@ -251,14 +340,19 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             key={project.id} 
             className={`item-card project-card ${!project.available ? 'unavailable' : ''}`}
           >
-            <div className="item-header">
-              <div className="item-name">{project.name}</div>
-              <div className="item-cost">{project.cost} M€</div>
+            <div className="project-header">
+              <div className="project-icon-name">
+                {project.icon && (
+                  <img src={project.icon} alt={project.name} className="project-icon" />
+                )}
+                <div className="item-name">{project.name}</div>
+              </div>
+              <CostDisplay cost={project.cost} size="medium" />
             </div>
             <div className="item-description">{project.description}</div>
-            {project.requirements && (
-              <div className="item-requirements">Requirements: {project.requirements}</div>
-            )}
+            <div className="project-effects">
+              {renderEffects(project.effects)}
+            </div>
             <div className="item-actions">
               <button
                 className="action-btn play-btn"
@@ -336,7 +430,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 2000;
             padding: 20px;
           }
 
@@ -410,7 +504,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
 
           .items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 20px;
           }
 
@@ -466,6 +560,73 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+          }
+          
+          .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          }
+          
+          .project-icon-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          
+          .project-icon {
+            width: 24px;
+            height: 24px;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+          }
+          
+          .project-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          
+          .effect-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+          
+          .effect-icon {
+            width: 18px;
+            height: 18px;
+          }
+          
+          .effect-tile {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+          }
+          
+          .effect-amount {
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+          }
+          
+          .effect-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 10px;
+            font-style: italic;
+          }
+          
+          .oxygen-symbol {
+            color: #7dd3fc;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
           }
 
           .item-name {

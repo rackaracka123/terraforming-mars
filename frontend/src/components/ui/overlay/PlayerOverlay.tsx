@@ -1,4 +1,5 @@
 import React from 'react';
+import { Z_INDEX } from '../../../constants/zIndex.ts';
 
 interface Player {
   id: string;

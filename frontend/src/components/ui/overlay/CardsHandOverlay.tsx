@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Z_INDEX, getZIndex } from '../../../constants/zIndex.ts';
 
 interface HearthstoneCard {
   id: string;
@@ -396,7 +397,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           if (isHighlighted && !isDragging && cardsExpanded) {
             finalY -= 100; // Pop out significantly from the fan
             // Scale is managed by click handlers
-            zIndex = 1000; // High z-index for prominence
+            zIndex = Z_INDEX.CARD_HOVER; // High z-index for prominence
           }
           
           if (isDraggedCard) {
@@ -411,7 +412,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
               finalY = targetScreenY - containerRect.bottom;
             }
             // Keep the current rotation and scale (don't change them when dragging)
-            zIndex = 1001;
+            zIndex = getZIndex('CARD_HOVER', 1);
           }
           
           return (
@@ -466,7 +467,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           left: 0;
           right: 0;
           height: 100vh;
-          z-index: 150;
+          z-index: 200;
           pointer-events: none;
         }
 

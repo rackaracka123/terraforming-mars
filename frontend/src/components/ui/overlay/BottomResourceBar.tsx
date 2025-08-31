@@ -350,7 +350,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           box-shadow: 
             0 8px 25px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(150, 100, 255, 0.3);
-          z-index: 150;
+          z-index: 250;
         }
 
         .cards-grid {
