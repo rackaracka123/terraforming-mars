@@ -14,14 +14,24 @@ interface BottomResourceBarProps {}
 const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
   const [cardsExpanded, setCardsExpanded] = useState(false);
 
-  // Mock resource data
+  // Helper function to create image with embedded number
+  const createImageWithNumber = (imageSrc: string, number: number, className: string = '') => {
+    return (
+      <div className={`image-with-number ${className}`}>
+        <img src={imageSrc} alt="" className="base-image" />
+        <span className="embedded-number">{number}</span>
+      </div>
+    );
+  };
+
+  // Mock resource data with dedicated asset paths
   const mockResources: ResourceData[] = [
-    { id: 'credits', name: 'Credits', current: 45, production: 12, icon: '💰', color: '#f1c40f' },
-    { id: 'steel', name: 'Steel', current: 8, production: 3, icon: '🔩', color: '#95a5a6' },
-    { id: 'titanium', name: 'Titanium', current: 4, production: 1, icon: '⚙️', color: '#e74c3c' },
-    { id: 'plants', name: 'Plants', current: 12, production: 5, icon: '🌱', color: '#27ae60' },
-    { id: 'energy', name: 'Energy', current: 6, production: 2, icon: '⚡', color: '#3498db' },
-    { id: 'heat', name: 'Heat', current: 9, production: 1, icon: '🔥', color: '#e67e22' }
+    { id: 'credits', name: 'Credits', current: 45, production: 12, icon: '/assets/resources/megacredit.png', color: '#f1c40f' },
+    { id: 'steel', name: 'Steel', current: 8, production: 3, icon: '/assets/resources/steel.png', color: '#95a5a6' },
+    { id: 'titanium', name: 'Titanium', current: 4, production: 1, icon: '/assets/resources/titanium.png', color: '#e74c3c' },
+    { id: 'plants', name: 'Plants', current: 12, production: 5, icon: '/assets/resources/plant.png', color: '#27ae60' },
+    { id: 'energy', name: 'Energy', current: 6, production: 2, icon: '/assets/resources/power.png', color: '#3498db' },
+    { id: 'heat', name: 'Heat', current: 9, production: 1, icon: '/assets/resources/heat.png', color: '#e67e22' }
   ];
 
   const mockCardCount = 12;
@@ -37,10 +47,20 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
               className="resource-item"
               style={{ '--resource-color': resource.color } as React.CSSProperties}
             >
-              <div className="resource-icon">{resource.icon}</div>
-              <div className="resource-info">
-                <div className="resource-current">{resource.current}</div>
-                <div className="resource-production">+{resource.production}</div>
+              <div className="resource-production">
+                {createImageWithNumber('/assets/misc/production.png', resource.production, 'production-display')}
+              </div>
+              
+              <div className="resource-main">
+                <div className="resource-icon">
+                  {resource.id === 'credits' ? 
+                    createImageWithNumber(resource.icon, resource.current, 'credits-display') :
+                    <img src={resource.icon} alt={resource.name} className="resource-icon-img" />
+                  }
+                </div>
+                {resource.id !== 'credits' && (
+                  <div className="resource-current">{resource.current}</div>
+                )}
               </div>
             </div>
           ))}
@@ -137,7 +157,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           background: linear-gradient(
             135deg,
             rgba(30, 60, 90, 0.4) 0%,
@@ -145,7 +165,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           );
           border: 2px solid var(--resource-color);
           border-radius: 12px;
-          padding: 12px 8px;
+          padding: 8px 6px;
           transition: all 0.3s ease;
           cursor: pointer;
           position: relative;
@@ -175,30 +195,84 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
             0 0 15px var(--resource-color);
         }
 
+        .resource-production {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 4px;
+        }
+        
+        .resource-main {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        
         .resource-icon {
-          font-size: 18px;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
         }
-
-        .resource-info {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 2px;
+        
+        .resource-icon-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          image-rendering: crisp-edges;
         }
 
         .resource-current {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: bold;
           color: #ffffff;
           text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
         }
-
-        .resource-production {
-          font-size: 12px;
+        
+        .image-with-number {
+          position: relative;
+          display: inline-block;
+        }
+        
+        .base-image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        
+        .embedded-number {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           font-weight: bold;
-          color: var(--resource-color);
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+          pointer-events: none;
+          line-height: 1;
+        }
+        
+        .production-display {
+          width: 24px;
+          height: 24px;
+        }
+        
+        .production-display .embedded-number {
+          font-size: 12px;
+          color: #ffffff;
+        }
+        
+        .credits-display {
+          width: 32px;
+          height: 32px;
+        }
+        
+        .credits-display .embedded-number {
+          font-size: 14px;
+          color: #000000;
+          font-weight: 900;
         }
 
         .cards-section {
@@ -376,7 +450,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           }
 
           .resource-icon {
-            font-size: 16px;
+            width: 18px;
+            height: 18px;
           }
 
           .resource-current {
@@ -461,7 +536,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = () => {
           }
 
           .resource-icon {
-            font-size: 16px;
+            width: 18px;
+            height: 18px;
           }
 
           .resource-current {

@@ -29,8 +29,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   oxygenMilestones
 }) => {
   // Set default values
-  const defaultTemperatureMilestones = temperatureMilestones || [{ value: -8, icon: '🌡️', tooltip: '-8°C: +1 TR', reward: '+1 TR' }];
-  const defaultOxygenMilestones = oxygenMilestones || [{ value: 8, icon: '🫁', tooltip: '8%: +1 TR', reward: '+1 TR' }];
+  const defaultTemperatureMilestones = temperatureMilestones || [{ value: -8, icon: '/assets/global-parameters/temperature.png', tooltip: '-8°C: +1 TR', reward: '+1 TR' }];
+  const defaultOxygenMilestones = oxygenMilestones || [{ value: 8, icon: '/assets/global-parameters/oxygen.png', tooltip: '8%: +1 TR', reward: '+1 TR' }];
   // Helper function to create milestone objects easily
   const createMilestone = (value: number, icon: string, reward: string = '+1 TR'): Milestone => ({
     value,
@@ -128,7 +128,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                     style={{ bottom: `${(milestone.value / 14 * 90)}%` }}
                     title={`Oxygen Milestone: ${milestone.tooltip}`}
                   >
-                    <div className="milestone-icon">{milestone.icon}</div>
+                    <div className="milestone-icon">
+                      <img src={milestone.icon} alt="Oxygen" className="milestone-icon-img" />
+                    </div>
                     <div className="milestone-tooltip">{milestone.tooltip}</div>
                   </div>
                 ))}
@@ -187,7 +189,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                     style={{ bottom: `${((milestone.value + 30) / 38 * 90)}%` }}
                     title={`Temperature Milestone: ${milestone.tooltip}`}
                   >
-                    <div className="milestone-icon">{milestone.icon}</div>
+                    <div className="milestone-icon">
+                      <img src={milestone.icon} alt="Temperature" className="milestone-icon-img" />
+                    </div>
                     <div className="milestone-tooltip">{milestone.tooltip}</div>
                   </div>
                 ))}
@@ -216,7 +220,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         
         {/* Ocean Counter */}
         <div className="ocean-counter">
-          <div className="ocean-icon">🌊</div>
+          <div className="ocean-icon">
+            <img src="/assets/hex_blue.png" alt="Ocean" className="ocean-icon-img" />
+          </div>
           <div className="ocean-label">OCEANS</div>
           <div className="ocean-count">
             <span className="current-oceans">{globalParameters?.oceans || 0}</span>
@@ -529,6 +535,15 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         .milestone-icon {
           font-size: 10px;
           filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .milestone-icon-img {
+          width: 12px;
+          height: 12px;
+          object-fit: contain;
         }
         
         .milestone-tooltip {
@@ -609,6 +624,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         .ocean-icon {
           font-size: 12px;
           color: #4da6ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .ocean-icon-img {
+          width: 16px;
+          height: 16px;
+          object-fit: contain;
+          filter: brightness(1.2);
         }
         
         .ocean-label {

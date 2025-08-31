@@ -50,7 +50,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           grid-template-rows: auto 1fr;
           width: 100vw;
           height: 100vh;
-          background: #000011;
+          background: #000011 url('/assets/background-noise.png');
+          background-attachment: fixed;
+          background-repeat: repeat;
           color: white;
           overflow: hidden;
         }

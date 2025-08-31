@@ -50,67 +50,62 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
     }
   };
 
-  // Corporation information for tooltips
-  const corporationInfo: { [key: string]: { name: string; description: string; ability: string } } = {
-    'mars-direct': {
-      name: 'Mars Direct',
-      description: 'Direct approach to Mars terraforming with efficient resource management.',
-      ability: 'Start with extra steel production and building discounts.'
+  // Milestone information for tooltips
+  const milestoneInfo: { [key: string]: { name: string; description: string; requirement: string } } = {
+    'banker': {
+      name: 'Banker',
+      description: 'Awarded for having the highest M€ production.',
+      requirement: 'Achieve highest M€ production among all players.'
     },
-    'habitat-marte': {
-      name: 'Habitat Marte',
-      description: 'Specializes in creating sustainable living environments on Mars.',
-      ability: 'Reduced costs for city and habitat construction projects.'
+    'mayor': {
+      name: 'Mayor',
+      description: 'Awarded for placing the most city tiles.',
+      requirement: 'Build at least 3 city tiles.'
     },
-    'aurorai': {
-      name: 'Aurorai',
-      description: 'Advanced atmospheric engineering and terraforming technology.',
-      ability: 'Bonuses for oxygen and temperature raising projects.'
+    'builder': {
+      name: 'Builder',
+      description: 'Awarded for having the most building tags.',
+      requirement: 'Have at least 8 building tags in play.'
     },
-    'bio-sol': {
-      name: 'Bio-Sol',
-      description: 'Biological solutions for Mars ecosystem development.',
-      ability: 'Extra benefits from plant and microbe-based cards.'
+    'gardener': {
+      name: 'Gardener',
+      description: 'Awarded for placing the most greenery tiles.',
+      requirement: 'Place at least 3 greenery tiles.'
     },
-    'chimera': {
-      name: 'Chimera',
-      description: 'Hybrid technology corporation combining multiple approaches.',
-      ability: 'Flexible bonuses that adapt to different card types.'
-    },
-    'odyssey': {
-      name: 'Odyssey',
-      description: 'Space exploration and logistics specialists.',
-      ability: 'Reduced costs for space-based projects and colonies.'
+    'diversifier': {
+      name: 'Diversifier',
+      description: 'Awarded for having the most different types of tags.',
+      requirement: 'Have at least 8 different tag types.'
     }
   };
-  // Mock players with different corporations and game states
+  // Mock milestone achievements with proper icons
   const mockPlayers = [
     { 
       id: '1', 
       name: 'Alice Chen', 
       score: 76, 
       passed: true,
-      corporation: 'mars-direct',
+      milestoneIcon: 'banker',
       terraformRating: 35,
       victoryPoints: 76,
       availableActions: 0
     },
     { 
       id: '2', 
-      name: 'Bob Martinez', 
+      name: 'Bird Martinet', 
       score: 62, 
       passed: false,
-      corporation: 'habitat-marte',
+      milestoneIcon: 'mayor',
       terraformRating: 31,
       victoryPoints: 62,
       availableActions: 1
     },
     { 
       id: '3', 
-      name: 'Carol Kim', 
+      name: 'Cryo King', 
       score: 58, 
       passed: false,
-      corporation: 'aurorai',
+      milestoneIcon: 'builder',
       terraformRating: 28,
       victoryPoints: 58,
       availableActions: 2
@@ -120,17 +115,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       name: 'David Lee', 
       score: 44, 
       passed: true,
-      corporation: 'bio-sol',
+      milestoneIcon: 'gardener',
       terraformRating: 22,
       victoryPoints: 44,
       availableActions: 0
     },
     { 
       id: '5', 
-      name: 'Eve Thompson', 
+      name: 'Eva Thompson', 
       score: 41, 
       passed: false,
-      corporation: 'chimera',
+      milestoneIcon: 'diversifier',
       terraformRating: 20,
       victoryPoints: 41,
       availableActions: 1
@@ -146,7 +141,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
   const [hoveredCorp, setHoveredCorp] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
-  const handleCorpHover = (playerId: string, corporation: string, event: React.MouseEvent) => {
+  const handleMilestoneHover = (playerId: string, milestoneIcon: string, event: React.MouseEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const tooltipWidth = 280; // Width of the tooltip as defined in CSS
     const tooltipHeight = 120; // Approximate height of tooltip
@@ -185,7 +180,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
     }
     
     setTooltipPosition({ top, left });
-    setHoveredCorp(`${playerId}-${corporation}`);
+    setHoveredCorp(`${playerId}-${milestoneIcon}`);
   };
 
   return (
@@ -195,7 +190,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           const score = player.score || player.victoryPoints || player.terraformRating || 20;
           const isPassed = player.passed;
           const isCurrentPlayer = player.id === mockCurrentPlayer.id;
-          const corporation = player.corporation || 'polaris';
+          const milestoneIcon = player.milestoneIcon || 'banker';
           const playerColor = getPlayerColor(index);
           
           if (isCurrentPlayer) {
@@ -208,10 +203,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
                 <div className="player-content player-card">
                 <div className="player-avatar">
                   <img 
-                    src={`/assets/pathfinders/corp-logo-${corporation}.png`} 
-                    alt={`${corporation} Corporation`}
-                    className="corp-logo-img"
-                    onMouseEnter={(e) => handleCorpHover(player.id, corporation, e)}
+                    src={`/assets/ma/${milestoneIcon}.png`} 
+                    alt={`${player.name} Milestone`}
+                    className="milestone-icon-img"
+                    onMouseEnter={(e) => handleMilestoneHover(player.id, milestoneIcon, e)}
                     onMouseLeave={() => setHoveredCorp(null)}
                   />
                 </div>
@@ -249,10 +244,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
               <div className="player-content">
                 <div className="player-avatar">
                   <img 
-                    src={`/assets/pathfinders/corp-logo-${corporation}.png`} 
-                    alt={`${corporation} Corporation`}
-                    className="corp-logo-img"
-                    onMouseEnter={(e) => handleCorpHover(player.id, corporation, e)}
+                    src={`/assets/ma/${milestoneIcon}.png`} 
+                    alt={`${player.name} Milestone`}
+                    className="milestone-icon-img"
+                    onMouseEnter={(e) => handleMilestoneHover(player.id, milestoneIcon, e)}
                     onMouseLeave={() => setHoveredCorp(null)}
                   />
                 </div>
@@ -270,25 +265,25 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
       {/* Global tooltip rendered as a portal to document body */}
       {hoveredCorp && ReactDOM.createPortal(
         <div 
-          className="corp-tooltip"
+          className="milestone-tooltip"
           style={{
             top: tooltipPosition.top,
             left: tooltipPosition.left
           }}
         >
           {(() => {
-            const [, corporation] = hoveredCorp.split('-');
-            const corpInfo = corporationInfo[corporation];
-            return corpInfo ? (
+            const [, milestoneIcon] = hoveredCorp.split('-');
+            const milestoneData = milestoneInfo[milestoneIcon];
+            return milestoneData ? (
               <>
-                <div className="corp-tooltip-header">
-                  <strong>{corpInfo.name}</strong>
+                <div className="milestone-tooltip-header">
+                  <strong>{milestoneData.name}</strong>
                 </div>
-                <div className="corp-tooltip-description">
-                  {corpInfo.description}
+                <div className="milestone-tooltip-description">
+                  {milestoneData.description}
                 </div>
-                <div className="corp-tooltip-ability">
-                  <strong>Ability:</strong> {corpInfo.ability}
+                <div className="milestone-tooltip-requirement">
+                  <strong>Requirement:</strong> {milestoneData.requirement}
                 </div>
               </>
             ) : null;
@@ -422,7 +417,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           color: rgba(255, 255, 255, 0.6);
         }
         
-        .player-entry.passed .corp-logo-img {
+        .player-entry.passed .milestone-icon-img {
           filter: grayscale(100%) brightness(0.7);
         }
         
@@ -560,7 +555,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           position: relative;
         }
         
-        .corp-logo-img {
+        .milestone-icon-img {
           width: 44px;
           height: 44px;
           border-radius: 8px;
@@ -573,14 +568,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           max-height: 100%;
         }
         
-        .corp-logo-img:hover {
+        .milestone-icon-img:hover {
           border-color: rgba(255, 255, 255, 0.9);
           transform: scale(1.05);
           cursor: pointer;
           box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
         }
         
-        .corp-tooltip {
+        .milestone-tooltip {
           position: fixed;
           background: linear-gradient(
             135deg,
@@ -588,7 +583,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             rgba(15, 25, 45, 0.96) 50%,
             rgba(10, 20, 40, 0.98) 100%
           );
-          border: 2px solid rgba(120, 170, 255, 0.7);
+          border: 2px solid rgba(255, 165, 0, 0.7);
           border-radius: 10px;
           padding: 14px;
           width: 280px;
@@ -597,7 +592,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           color: white;
           box-shadow: 
             0 12px 35px rgba(0, 0, 0, 0.8),
-            0 0 25px rgba(120, 170, 255, 0.4),
+            0 0 25px rgba(255, 165, 0, 0.4),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           z-index: 10000;
           backdrop-filter: blur(15px);
@@ -607,7 +602,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           overflow-wrap: break-word;
         }
         
-        .corp-tooltip::before {
+        .milestone-tooltip::before {
           content: '';
           position: absolute;
           top: 0;
@@ -616,9 +611,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           bottom: 0;
           background: linear-gradient(
             45deg,
-            rgba(150, 200, 255, 0.08) 0%,
+            rgba(255, 200, 100, 0.08) 0%,
             transparent 50%,
-            rgba(100, 150, 255, 0.04) 100%
+            rgba(255, 165, 0, 0.04) 100%
           );
           border-radius: inherit;
           pointer-events: none;
@@ -635,31 +630,31 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           }
         }
         
-        .corp-tooltip-header {
+        .milestone-tooltip-header {
           font-size: 15px;
           font-weight: 600;
-          color: rgba(170, 220, 255, 1);
+          color: rgba(255, 200, 100, 1);
           margin-bottom: 10px;
           text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
           letter-spacing: 0.3px;
         }
         
-        .corp-tooltip-description {
+        .milestone-tooltip-description {
           line-height: 1.5;
           margin-bottom: 10px;
           color: rgba(255, 255, 255, 0.92);
           font-size: 12px;
         }
         
-        .corp-tooltip-ability {
+        .milestone-tooltip-requirement {
           font-size: 11px;
           color: rgba(255, 210, 120, 0.95);
           line-height: 1.4;
           padding-top: 8px;
-          border-top: 1px solid rgba(120, 170, 255, 0.4);
+          border-top: 1px solid rgba(255, 165, 0, 0.4);
         }
         
-        .corp-tooltip-ability strong {
+        .milestone-tooltip-requirement strong {
           color: rgba(255, 220, 140, 1);
           font-weight: 600;
         }
@@ -728,7 +723,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             padding: 12px;
           }
           
-          .corp-logo-img {
+          .milestone-icon-img {
             width: 38px;
             height: 38px;
           }
@@ -753,7 +748,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             padding: 10px;
           }
           
-          .corp-logo-img {
+          .milestone-icon-img {
             width: 32px;
             height: 32px;
           }
