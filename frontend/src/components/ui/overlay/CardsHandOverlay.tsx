@@ -24,6 +24,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null); // Track which card is hovered for neighbor spreading
   const [cardScales, setCardScales] = useState<Record<string, number>>({}); // Track each card's scale
   const [cardRotations, setCardRotations] = useState<Record<string, number>>({}); // Track each card's rotation
+  const [cardsExpanded, setCardsExpanded] = useState(false); // Track if cards are expanded/popped up
   const handRef = useRef<HTMLDivElement>(null);
 
   // Mock Hearthstone cards data
@@ -102,14 +103,14 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
   ];
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
-  const calculateCardPosition = (index: number, totalCards: number, spreadIndex: number | null = null) => {
-    const handWidth = 400; // Base compact width
-    const handCurve = 0.3; // How curved the hand is
+  const calculateCardPosition = (index: number, totalCards: number, spreadIndex: number | null = null, expanded: boolean = false) => {
+    const handWidth = expanded ? 800 : 400; // Much wider spread when expanded
+    const handCurve = expanded ? 0.15 : 0.3; // Even less curve when expanded for better visibility
     const cardWidth = 120;
     const baseY = -20; // Base Y position
     
-    // Base compact spacing
-    const baseSpacing = cardWidth * 0.4;
+    // Base spacing - much wider when expanded
+    const baseSpacing = expanded ? cardWidth * 1.2 : cardWidth * 0.4;
     const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
     
     // Calculate neighbor spreading offset
@@ -203,8 +204,8 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
   // Handle card hover scale and rotation changes
   const handleCardHover = (cardId: string) => {
     setHoveredCard(cardId);
-    if (!highlightedCard || highlightedCard !== cardId) {
-      setCardScale(cardId, 1.4); // Hover scale
+    if (cardsExpanded && (!highlightedCard || highlightedCard !== cardId)) {
+      setCardScale(cardId, 1.4); // Hover scale only when expanded
       setCardRotation(cardId, 0); // Straighten card on hover
     }
   };
@@ -217,7 +218,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     }
   };
 
-  // Handle card click (highlight)
+  // Handle card click (highlight and expand cards)
   const handleCardClick = (cardId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (isDragging || justDragged) return; // Ignore clicks right after dragging
@@ -226,6 +227,13 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     const card = hearthstoneCards.find(c => c.id === cardId);
     if (card && !card.playable) return;
     
+    // If cards are collapsed, just expand them without selecting a specific card
+    if (!cardsExpanded) {
+      setCardsExpanded(true);
+      return; // Don't proceed to card selection when expanding
+    }
+    
+    // Handle card selection when expanded
     if (highlightedCard === cardId) {
       setHighlightedCard(null);
       resetCardScale(cardId); // Reset scale when deselecting
@@ -241,17 +249,28 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
   const handleDragStart = (cardId: string, event: React.MouseEvent) => {
     event.preventDefault(); // Prevent browser default drag behavior
     
+    // Expand cards when drag starts if not already expanded
+    if (!cardsExpanded) {
+      setCardsExpanded(true);
+    }
+    
     // Calculate initial offset from mouse to card position
     const cardIndex = hearthstoneCards.findIndex(c => c.id === cardId);
     const spreadCard = highlightedCard || hoveredCard;
     const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
-    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, spreadIndex);
+    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, spreadIndex, cardsExpanded);
     const containerRect = handRef.current?.getBoundingClientRect();
     
     if (containerRect) {
+      // Adjust for collapsed state - if cards were collapsed, we need to account for the offset
+      let adjustedY = cardPosition.y;
+      if (!cardsExpanded) {
+        adjustedY += 90; // Account for collapsed offset
+      }
+      
       // Current card screen position
       const cardScreenX = containerRect.left + containerRect.width / 2 + cardPosition.x;
-      const cardScreenY = containerRect.bottom + cardPosition.y;
+      const cardScreenY = containerRect.bottom + adjustedY;
       
       // Store offset from mouse to card position
       setDragOffset({
@@ -295,10 +314,11 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     }, 100);
   };
 
-  // Handle click outside to dismiss
+  // Handle click outside to dismiss and collapse cards
   const handleClickOutside = (event: React.MouseEvent) => {
     if (handRef.current && !handRef.current.contains(event.target as Node)) {
       setHighlightedCard(null);
+      setCardsExpanded(false);
     }
   };
 
@@ -307,6 +327,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     const handleDocumentClick = (event: MouseEvent) => {
       if (handRef.current && !handRef.current.contains(event.target as Node)) {
         setHighlightedCard(null);
+        setCardsExpanded(false);
       }
     };
 
@@ -338,14 +359,14 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
       className="hearthstone-hand-overlay"
     >
       <div 
-        className="card-hand-container"
+        className={`card-hand-container ${cardsExpanded ? 'expanded' : ''}`}
         ref={handRef}
       >
         {hearthstoneCards.map((card, index) => {
           // Determine which card should cause spreading (highlighted takes priority over hovered)
           const spreadCard = highlightedCard || hoveredCard;
           const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
-          const position = calculateCardPosition(index, hearthstoneCards.length, spreadIndex);
+          const position = calculateCardPosition(index, hearthstoneCards.length, spreadIndex, cardsExpanded);
           const isHighlighted = highlightedCard === card.id;
           const isDraggedCard = draggedCard === card.id;
           const isHovered = hoveredCard === card.id;
@@ -357,13 +378,22 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           let scale = getCardScale(card.id); // Get the card's tracked scale
           let zIndex = index;
           
-          if (isHovered && !isDragging && !isHighlighted) {
+          // Apply expanded state offset and scaling
+          if (!cardsExpanded) {
+            finalY += 90; // Push cards down to show only top portion when collapsed
+            scale = 1.1; // Make collapsed cards slightly larger to indicate interactivity
+          } else {
+            // When expanded, make cards larger and spread more
+            scale = Math.max(scale, 1.5); // Minimum 1.5x scale when expanded
+          }
+          
+          if (isHovered && !isDragging && !isHighlighted && cardsExpanded) {
             finalY -= 80; // Move up even more to show more of the card
             // Scale is managed by hover handlers
             // Keep original zIndex to avoid covering other cards
           }
           
-          if (isHighlighted && !isDragging) {
+          if (isHighlighted && !isDragging && cardsExpanded) {
             finalY -= 100; // Pop out significantly from the fan
             // Scale is managed by click handlers
             zIndex = 1000; // High z-index for prominence
@@ -392,7 +422,11 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
                 transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
                 zIndex: zIndex,
                 '--card-type-color': getCardTypeColor(card.type),
-                '--rarity-color': getRarityColor(card.rarity)
+                '--rarity-color': getRarityColor(card.rarity),
+                '--card-x': `${finalX}px`,
+                '--card-y': `${finalY}px`,
+                '--card-rotation': `${finalRotation}deg`,
+                '--card-scale': scale
               } as React.CSSProperties}
               onClick={(e) => handleCardClick(card.id, e)}
               onMouseDown={(e) => handleDragStart(card.id, e)}
@@ -438,13 +472,34 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
 
         .card-hand-container {
           position: absolute;
-          bottom: 100px;
+          bottom: 0px;
           left: 50%;
           transform: translateX(-50%);
           width: 100%;
           height: 200px;
           pointer-events: auto;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .card-hand-container.expanded {
+          height: 280px; /* Increase height when expanded to accommodate larger cards */
+        }
+
+        .card-hand-container:not(.expanded) {
+          cursor: pointer;
+        }
+
+        .card-hand-container:not(.expanded) .hearthstone-card {
+          box-shadow: 
+            0 0 15px rgba(100, 150, 255, 0.3),
+            0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-hand-container:not(.expanded):hover .hearthstone-card {
+          transform: translate(var(--card-x), calc(var(--card-y) - 10px)) rotate(var(--card-rotation)) scale(var(--card-scale));
+          box-shadow: 
+            0 0 20px rgba(100, 150, 255, 0.5),
+            0 6px 25px rgba(0, 0, 0, 0.5);
         }
 
         .hearthstone-card {
@@ -454,7 +509,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           bottom: 0;
           left: 50%;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           transform-origin: bottom center;
           pointer-events: auto;
           user-select: none;
@@ -478,12 +533,13 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
         }
 
         .hearthstone-card:not(.dragged) {
-          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .hearthstone-card.unplayable {
-          opacity: 0.6;
+          opacity: 1.0;
           cursor: not-allowed;
+          filter: grayscale(50%); /* Use grayscale instead of transparency for unplayable cards */
         }
 
         .card-inner {
@@ -491,9 +547,9 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           height: 100%;
           background: linear-gradient(
             135deg,
-            rgba(20, 25, 40, 0.95) 0%,
-            rgba(35, 40, 55, 0.9) 50%,
-            rgba(25, 30, 45, 0.95) 100%
+            rgb(20, 25, 40) 0%,
+            rgb(35, 40, 55) 50%,
+            rgb(25, 30, 45) 100%
           );
           border: 3px solid var(--card-type-color);
           border-radius: 12px;
@@ -572,12 +628,12 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
         .card-description {
           flex: 1;
           font-size: 8px;
-          color: rgba(255, 255, 255, 0.9);
+          color: rgb(255, 255, 255);
           text-align: center;
           line-height: 1.3;
           margin: 8px 0;
           padding: 4px;
-          background: rgba(0, 0, 0, 0.2);
+          background: rgba(0, 0, 0, 0.3);
           border-radius: 4px;
           overflow: hidden;
           display: -webkit-box;
@@ -626,7 +682,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
 
         @media (max-width: 768px) {
           .card-hand-container {
-            bottom: 80px;
+            bottom: 0px;
           }
 
           .hearthstone-card {
