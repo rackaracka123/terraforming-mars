@@ -1,716 +1,591 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-interface MockCard {
+interface HearthstoneCard {
   id: string;
   name: string;
   cost: number;
-  type: 'event' | 'automated' | 'active';
-  tags: string[];
+  type: 'spell' | 'minion' | 'weapon';
+  attack?: number;
+  health?: number;
   description: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
   playable: boolean;
 }
 
 interface CardsHandOverlayProps {}
 
 const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
+  const [draggedCard, setDraggedCard] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 }); // Offset from initial click to card position
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Current mouse position
+  const [isDragging, setIsDragging] = useState(false);
+  const [justDragged, setJustDragged] = useState(false); // Track if we just finished dragging
+  const [isHandSpread, setIsHandSpread] = useState(false); // Track if hand should be spread
+  const handRef = useRef<HTMLDivElement>(null);
 
-  // Mock cards data
-  const mockCards: MockCard[] = [
+  // Mock Hearthstone cards data
+  const hearthstoneCards: HearthstoneCard[] = [
     {
       id: '1',
-      name: 'Power Plant',
-      cost: 11,
-      type: 'automated',
-      tags: ['energy', 'building'],
-      description: 'Increase your energy production by 1 step.',
+      name: 'Fireball',
+      cost: 4,
+      type: 'spell',
+      description: 'Deal 6 damage.',
+      rarity: 'common',
       playable: true
     },
     {
       id: '2',
-      name: 'Asteroid',
-      cost: 14,
-      type: 'event',
-      tags: ['space'],
-      description: 'Raise temperature 1 step.',
+      name: 'Chillwind Yeti',
+      cost: 4,
+      type: 'minion',
+      attack: 4,
+      health: 5,
+      description: 'A solid minion.',
+      rarity: 'common',
       playable: true
     },
     {
       id: '3',
-      name: 'Greenery',
-      cost: 23,
-      type: 'automated',
-      tags: ['plant', 'building'],
-      description: 'Place a greenery tile. Increase oxygen 1 step.',
+      name: 'Archmage Antonidas',
+      cost: 7,
+      type: 'minion',
+      attack: 5,
+      health: 7,
+      description: 'Whenever you cast a spell, add a Fireball to your hand.',
+      rarity: 'legendary',
       playable: false
     },
     {
       id: '4',
-      name: 'Mining Rights',
-      cost: 9,
-      type: 'automated',
-      tags: ['building'],
-      description: 'Place this tile on an area with a steel or titanium bonus.',
+      name: 'Lightning Bolt',
+      cost: 1,
+      type: 'spell',
+      description: 'Deal 3 damage. Overload: (1)',
+      rarity: 'common',
       playable: true
     },
     {
       id: '5',
-      name: 'Research',
-      cost: 11,
-      type: 'event',
-      tags: ['science'],
-      description: 'Draw 2 cards.',
+      name: 'Boulderfist Ogre',
+      cost: 6,
+      type: 'minion',
+      attack: 6,
+      health: 7,
+      description: 'A big, dumb creature.',
+      rarity: 'common',
       playable: true
     },
     {
       id: '6',
-      name: 'Solar Power',
-      cost: 10,
-      type: 'automated',
-      tags: ['energy', 'building'],
-      description: 'Increase your energy production by 1 step.',
+      name: 'Polymorph',
+      cost: 4,
+      type: 'spell',
+      description: 'Transform a minion into a 1/1 Sheep.',
+      rarity: 'common',
       playable: true
     },
     {
       id: '7',
-      name: 'Colony',
-      cost: 8,
-      type: 'automated',
-      tags: ['building'],
-      description: 'Place a city tile.',
+      name: 'Ysera',
+      cost: 9,
+      type: 'minion',
+      attack: 4,
+      health: 12,
+      description: 'At the end of your turn, add a Dream Card to your hand.',
+      rarity: 'legendary',
       playable: false
-    },
-    {
-      id: '8',
-      name: 'Investment Loan',
-      cost: 3,
-      type: 'event',
-      tags: ['earth'],
-      description: 'Decrease your M€ production 1 step and gain 10 M€.',
-      playable: true
-    },
-    {
-      id: '9',
-      name: 'Carbonate Processing',
-      cost: 6,
-      type: 'automated',
-      tags: ['building'],
-      description: 'Increase your energy production 1 step and your heat production 1 step.',
-      playable: false
-    },
-    {
-      id: '10',
-      name: 'Breathing Filters',
-      cost: 11,
-      type: 'automated',
-      tags: ['science'],
-      description: 'Increase your oxygen requirement by 2.',
-      playable: true
-    },
-    {
-      id: '11',
-      name: 'Underground City',
-      cost: 18,
-      type: 'automated',
-      tags: ['city', 'building'],
-      description: 'Decrease your energy production 2 steps and place a city tile.',
-      playable: false
-    },
-    {
-      id: '12',
-      name: 'Lightning Harvest',
-      cost: 8,
-      type: 'automated',
-      tags: ['energy'],
-      description: 'Increase your energy production 1 step and your M€ production 1 step.',
-      playable: true
     }
   ];
 
+  // Calculate card positions in arc - compact or spread based on hover
+  const calculateCardPosition = (index: number, totalCards: number, isSpread: boolean = false) => {
+    const handWidth = isSpread ? 600 : 400; // Spread vs compact width
+    const handCurve = 0.3; // How curved the hand is
+    const cardWidth = 120;
+    const baseY = -20; // Base Y position
+    
+    // Adjust spacing based on spread state
+    const maxSpacing = cardWidth * (isSpread ? 0.7 : 0.4);
+    const spacing = Math.min(maxSpacing, handWidth / Math.max(totalCards - 1, 1));
+    
+    // Center the hand
+    const totalWidth = spacing * (totalCards - 1);
+    const startX = -totalWidth / 2;
+    const x = startX + (index * spacing);
+    
+    // Create arc curve
+    const normalizedX = x / (handWidth / 2); // -1 to 1
+    const curveY = Math.pow(Math.abs(normalizedX), 2) * handCurve * 60;
+    const y = baseY + curveY;
+    
+    // Adjust rotation based on spread state
+    const maxRotation = isSpread ? 12 : 8;
+    const rotation = normalizedX * maxRotation;
+    
+    return { x, y, rotation };
+  };
+
   const getCardTypeColor = (type: string) => {
     switch (type) {
-      case 'event': return '#e74c3c';
-      case 'automated': return '#27ae60';
-      case 'active': return '#3498db';
+      case 'spell': return '#8B5BFF';
+      case 'minion': return '#FFB800';
+      case 'weapon': return '#FF6B6B';
       default: return '#95a5a6';
     }
   };
 
-  const playableCards = mockCards.filter(card => card.playable);
-  const unplayableCards = mockCards.filter(card => !card.playable);
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'common': return '#ffffff';
+      case 'rare': return '#0099cc';
+      case 'epic': return '#cc00ff';
+      case 'legendary': return '#ff8000';
+      default: return '#ffffff';
+    }
+  };
+
+  // Handle card click (highlight)
+  const handleCardClick = (cardId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (isDragging || justDragged) return; // Ignore clicks right after dragging
+    
+    // Don't allow interaction with unplayable cards
+    const card = hearthstoneCards.find(c => c.id === cardId);
+    if (card && !card.playable) return;
+    
+    if (highlightedCard === cardId) {
+      setHighlightedCard(null);
+    } else {
+      setHighlightedCard(cardId);
+    }
+  };
+
+  // Handle drag start
+  const handleDragStart = (cardId: string, event: React.MouseEvent) => {
+    event.preventDefault(); // Prevent browser default drag behavior
+    
+    // Calculate initial offset from mouse to card position
+    const cardIndex = hearthstoneCards.findIndex(c => c.id === cardId);
+    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, isHandSpread);
+    const containerRect = handRef.current?.getBoundingClientRect();
+    
+    if (containerRect) {
+      // Current card screen position
+      const cardScreenX = containerRect.left + containerRect.width / 2 + cardPosition.x;
+      const cardScreenY = containerRect.bottom + cardPosition.y;
+      
+      // Store offset from mouse to card position
+      setDragOffset({
+        x: cardScreenX - event.clientX,
+        y: cardScreenY - event.clientY
+      });
+    }
+    
+    setDraggedCard(cardId);
+    setIsDragging(true);
+    setDragPosition({ x: event.clientX, y: event.clientY });
+    setHighlightedCard(null); // Clear highlight when dragging
+  };
+
+  // Handle drag move - using document mouse move for better performance
+  const handleDragMove = (event: MouseEvent) => {
+    if (!isDragging || !draggedCard) return;
+    setDragPosition({ x: event.clientX, y: event.clientY });
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setDraggedCard(null);
+    setIsDragging(false);
+    setDragPosition({ x: 0, y: 0 });
+    setDragOffset({ x: 0, y: 0 }); // Reset offset
+    setHighlightedCard(null); // Deselect card when released
+    setJustDragged(true);
+    
+    // Clear the justDragged flag after a short delay to allow clicks again
+    setTimeout(() => {
+      setJustDragged(false);
+    }, 100);
+  };
+
+  // Handle click outside to dismiss
+  const handleClickOutside = (event: React.MouseEvent) => {
+    if (handRef.current && !handRef.current.contains(event.target as Node)) {
+      setHighlightedCard(null);
+    }
+  };
+
+  // Add document event listeners for drag and click outside
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (handRef.current && !handRef.current.contains(event.target as Node)) {
+        setHighlightedCard(null);
+      }
+    };
+
+    const handleDocumentMouseMove = (event: MouseEvent) => {
+      if (isDragging && draggedCard) {
+        setDragPosition({ x: event.clientX, y: event.clientY });
+      }
+    };
+
+    const handleDocumentMouseUp = () => {
+      if (isDragging && draggedCard) {
+        handleDragEnd();
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    document.addEventListener('mousemove', handleDocumentMouseMove);
+    document.addEventListener('mouseup', handleDocumentMouseUp);
+    
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+      document.removeEventListener('mousemove', handleDocumentMouseMove);
+      document.removeEventListener('mouseup', handleDocumentMouseUp);
+    };
+  }, [isDragging, draggedCard]);
 
   return (
-    <div className="cards-hand-overlay">
-      {/* Hand Toggle Button */}
+    <div 
+      className="hearthstone-hand-overlay"
+    >
       <div 
-        className={`hand-toggle ${isExpanded ? 'expanded' : ''}`}
-        onClick={() => setIsExpanded(!isExpanded)}
+        className="card-hand-container"
+        ref={handRef}
+        onMouseEnter={() => setIsHandSpread(true)}
+        onMouseLeave={() => setIsHandSpread(false)}
       >
-        <div className="toggle-icon">🃏</div>
-        <div className="cards-count">{mockCards.length}</div>
-        <div className="playable-indicator">
-          {playableCards.length} playable
-        </div>
-      </div>
-
-      {/* Expanded Cards View */}
-      {isExpanded && (
-        <div className="cards-hand-expanded">
-          <div className="cards-header">
-            <div className="section-title">
-              Playable Cards ({playableCards.length})
-            </div>
-          </div>
+        {hearthstoneCards.map((card, index) => {
+          const position = calculateCardPosition(index, hearthstoneCards.length, isHandSpread);
+          const isHighlighted = highlightedCard === card.id;
+          const isDraggedCard = draggedCard === card.id;
           
-          <div className="cards-grid playable-cards">
-            {playableCards.map((card) => (
-              <div 
-                key={card.id}
-                className={`card-item playable ${selectedCard === card.id ? 'selected' : ''}`}
-                onClick={() => setSelectedCard(selectedCard === card.id ? null : card.id)}
-                style={{ '--card-color': getCardTypeColor(card.type) } as React.CSSProperties}
-              >
+          // Calculate final position and transform
+          let finalX = position.x;
+          let finalY = position.y;
+          let finalRotation = position.rotation;
+          let scale = 1;
+          let zIndex = index;
+          
+          if (isHighlighted && !isDragging) {
+            finalY -= 60; // Move up when highlighted/clicked
+            scale = 1.2;
+            zIndex = 1000;
+          }
+          
+          if (isDraggedCard) {
+            // Apply mouse position with offset to maintain relative position
+            const containerRect = handRef.current?.getBoundingClientRect();
+            if (containerRect) {
+              // Apply mouse position + stored offset, then convert to container coordinates
+              const targetScreenX = dragPosition.x + dragOffset.x;
+              const targetScreenY = dragPosition.y + dragOffset.y;
+              
+              finalX = targetScreenX - (containerRect.left + containerRect.width / 2);
+              finalY = targetScreenY - containerRect.bottom;
+            }
+            finalRotation = 0;
+            scale = 1.1;
+            zIndex = 1001;
+          }
+          
+          return (
+            <div
+              key={card.id}
+              className={`hearthstone-card ${isHighlighted ? 'highlighted' : ''} ${isDraggedCard ? 'dragged' : ''} ${!card.playable ? 'unplayable' : ''}`}
+              style={{
+                transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
+                zIndex: zIndex,
+                '--card-type-color': getCardTypeColor(card.type),
+                '--rarity-color': getRarityColor(card.rarity)
+              } as React.CSSProperties}
+              onClick={(e) => handleCardClick(card.id, e)}
+              onMouseDown={(e) => handleDragStart(card.id, e)}
+            >
+              <div className="card-inner">
                 <div className="card-cost">{card.cost}</div>
-                <div className="card-content">
-                  <div className="card-name">{card.name}</div>
-                  <div className="card-tags">
-                    {card.tags.slice(0, 2).map((tag, i) => (
-                      <span key={i} className="card-tag">{tag}</span>
-                    ))}
+                <div className="card-header">
+                  <div className="card-name" style={{ color: getRarityColor(card.rarity) }}>
+                    {card.name}
                   </div>
                 </div>
+                
+                {card.type === 'minion' && (
+                  <div className="card-stats">
+                    <div className="attack">{card.attack}</div>
+                    <div className="health">{card.health}</div>
+                  </div>
+                )}
+                
+                <div className="card-description">
+                  {card.description}
+                </div>
+                
                 <div className="card-type-indicator" />
               </div>
-            ))}
-          </div>
-
-          {unplayableCards.length > 0 && (
-            <>
-              <div className="cards-header">
-                <div className="section-title disabled">
-                  Unplayable Cards ({unplayableCards.length})
-                </div>
-              </div>
-              
-              <div className="cards-grid unplayable-cards">
-                {unplayableCards.map((card) => (
-                  <div 
-                    key={card.id}
-                    className="card-item unplayable"
-                    style={{ '--card-color': getCardTypeColor(card.type) } as React.CSSProperties}
-                  >
-                    <div className="card-cost">{card.cost}</div>
-                    <div className="card-content">
-                      <div className="card-name">{card.name}</div>
-                      <div className="card-tags">
-                        {card.tags.slice(0, 2).map((tag, i) => (
-                          <span key={i} className="card-tag">{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="card-type-indicator" />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Selected Card Details */}
-      {selectedCard && (
-        <div className="card-detail-popup">
-          {(() => {
-            const card = mockCards.find(c => c.id === selectedCard);
-            return card ? (
-              <div className="card-detail">
-                <div className="detail-header">
-                  <div className="detail-name">{card.name}</div>
-                  <div className="detail-cost">{card.cost} M€</div>
-                </div>
-                <div className="detail-tags">
-                  {card.tags.map((tag, i) => (
-                    <span key={i} className="detail-tag">{tag}</span>
-                  ))}
-                </div>
-                <div className="detail-description">{card.description}</div>
-                <div className="detail-actions">
-                  <button 
-                    className="play-card-btn"
-                    disabled={!card.playable}
-                  >
-                    Play Card
-                  </button>
-                  <button 
-                    className="close-detail-btn"
-                    onClick={() => setSelectedCard(null)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            ) : null;
-          })()}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
 
       <style jsx>{`
-        .cards-hand-overlay {
+        .hearthstone-hand-overlay {
           position: fixed;
-          bottom: 140px;
-          left: 50%;
-          transform: translateX(-50%);
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 100vh;
           z-index: 150;
-          pointer-events: auto;
+          pointer-events: none;
         }
 
-        .hand-toggle {
-          background: linear-gradient(
-            135deg,
-            rgba(60, 40, 90, 0.9) 0%,
-            rgba(40, 20, 70, 0.8) 100%
-          );
-          border: 2px solid rgba(150, 100, 255, 0.6);
-          border-radius: 20px;
-          padding: 15px 25px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          backdrop-filter: blur(10px);
-          box-shadow: 
-            0 4px 20px rgba(0, 0, 0, 0.4),
-            0 0 20px rgba(150, 100, 255, 0.3);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .hand-toggle:hover {
-          transform: translateY(-3px);
-          box-shadow: 
-            0 8px 30px rgba(0, 0, 0, 0.5),
-            0 0 30px rgba(150, 100, 255, 0.4);
-        }
-
-        .hand-toggle.expanded {
-          border-color: rgba(150, 100, 255, 0.9);
-          background: linear-gradient(
-            135deg,
-            rgba(60, 40, 90, 1) 0%,
-            rgba(40, 20, 70, 0.9) 100%
-          );
-        }
-
-        .toggle-icon {
-          font-size: 20px;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-        }
-
-        .cards-count {
-          font-size: 18px;
-          font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
-        .playable-indicator {
-          font-size: 12px;
-          color: rgba(150, 255, 150, 0.9);
-          font-weight: 500;
-        }
-
-        .cards-hand-expanded {
+        .card-hand-container {
           position: absolute;
-          bottom: 100%;
+          bottom: 100px;
           left: 50%;
           transform: translateX(-50%);
-          width: 800px;
-          max-width: 90vw;
-          max-height: 400px;
-          background: linear-gradient(
-            135deg,
-            rgba(10, 20, 40, 0.98) 0%,
-            rgba(20, 30, 50, 0.96) 100%
-          );
-          border: 2px solid rgba(150, 100, 255, 0.5);
-          border-radius: 15px;
-          padding: 20px;
-          margin-bottom: 15px;
-          backdrop-filter: blur(15px);
-          box-shadow: 
-            0 12px 40px rgba(0, 0, 0, 0.7),
-            0 0 30px rgba(150, 100, 255, 0.3);
-          overflow-y: auto;
-        }
-
-        .cards-header {
-          margin-bottom: 15px;
-        }
-
-        .section-title {
-          font-size: 16px;
-          font-weight: bold;
-          color: rgba(150, 255, 150, 1);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border-bottom: 1px solid rgba(150, 255, 150, 0.3);
-          padding-bottom: 5px;
-        }
-
-        .section-title.disabled {
-          color: rgba(255, 150, 150, 0.8);
-          border-bottom-color: rgba(255, 150, 150, 0.3);
-        }
-
-        .cards-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .card-item {
-          background: linear-gradient(
-            135deg,
-            rgba(30, 50, 80, 0.6) 0%,
-            rgba(20, 40, 70, 0.5) 100%
-          );
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          border-radius: 10px;
-          padding: 12px;
-          cursor: pointer;
+          width: 100%;
+          height: 200px;
+          pointer-events: auto;
           transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
         }
 
-        .card-item.playable {
-          border-color: rgba(150, 255, 150, 0.4);
+        .hearthstone-card {
+          position: absolute;
+          width: 120px;
+          height: 180px;
+          bottom: 0;
+          left: 50%;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          transform-origin: bottom center;
+          pointer-events: auto;
+          user-select: none;
         }
 
-        .card-item.playable:hover {
-          transform: translateY(-2px);
-          border-color: rgba(150, 255, 150, 0.8);
+        .hearthstone-card.highlighted {
           box-shadow: 
-            0 6px 20px rgba(0, 0, 0, 0.4),
-            0 0 15px rgba(150, 255, 150, 0.4);
+            0 0 20px var(--card-type-color),
+            0 8px 32px rgba(0, 0, 0, 0.6);
         }
 
-        .card-item.selected {
-          border-color: rgba(255, 200, 100, 0.9);
+        .hearthstone-card.dragged {
+          transition: none;
+          cursor: grabbing;
+        }
+
+        .hearthstone-card:not(.dragged) {
+          transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .hearthstone-card.unplayable {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .card-inner {
+          width: 100%;
+          height: 100%;
           background: linear-gradient(
             135deg,
-            rgba(60, 50, 30, 0.8) 0%,
-            rgba(40, 35, 20, 0.7) 100%
+            rgba(20, 25, 40, 0.95) 0%,
+            rgba(35, 40, 55, 0.9) 50%,
+            rgba(25, 30, 45, 0.95) 100%
           );
+          border: 3px solid var(--card-type-color);
+          border-radius: 12px;
+          padding: 8px;
+          position: relative;
           box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.5),
-            0 0 20px rgba(255, 200, 100, 0.5);
-        }
-
-        .card-item.unplayable {
-          opacity: 0.5;
-          border-color: rgba(255, 150, 150, 0.3);
-          cursor: not-allowed;
+            0 4px 12px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          display: flex;
+          flex-direction: column;
         }
 
         .card-cost {
           position: absolute;
-          top: 8px;
-          right: 8px;
-          background: rgba(241, 196, 15, 0.9);
-          color: #000;
-          font-size: 12px;
+          top: -2px;
+          left: -2px;
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+          color: white;
+          font-size: 16px;
           font-weight: bold;
-          padding: 4px 8px;
-          border-radius: 6px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
         }
 
-        .card-content {
-          margin-right: 40px;
+        .card-header {
+          margin-bottom: 8px;
         }
 
         .card-name {
-          font-size: 14px;
+          font-size: 11px;
           font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-          margin-bottom: 8px;
+          text-align: center;
           line-height: 1.2;
+          color: var(--rarity-color);
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
 
-        .card-tags {
+        .card-stats {
+          position: absolute;
+          bottom: 4px;
+          left: 4px;
+          right: 4px;
           display: flex;
-          flex-wrap: wrap;
-          gap: 4px;
+          justify-content: space-between;
         }
 
-        .card-tag {
-          font-size: 10px;
-          background: rgba(100, 150, 200, 0.3);
-          color: rgba(100, 150, 200, 1);
-          padding: 2px 6px;
+        .attack, .health {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          color: white;
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .attack {
+          background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .health {
+          background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .card-description {
+          flex: 1;
+          font-size: 8px;
+          color: rgba(255, 255, 255, 0.9);
+          text-align: center;
+          line-height: 1.3;
+          margin: 8px 0;
+          padding: 4px;
+          background: rgba(0, 0, 0, 0.2);
           border-radius: 4px;
-          text-transform: uppercase;
-          font-weight: 500;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 6;
+          -webkit-box-orient: vertical;
         }
 
         .card-type-indicator {
           position: absolute;
-          left: 0;
           top: 0;
-          bottom: 0;
-          width: 4px;
-          background: var(--card-color);
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--card-type-color);
+          border-radius: 8px 8px 0 0;
         }
 
-        .card-detail-popup {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: linear-gradient(
-            135deg,
-            rgba(15, 25, 45, 0.98) 0%,
-            rgba(25, 35, 55, 0.96) 100%
-          );
-          border: 2px solid rgba(255, 200, 100, 0.7);
-          border-radius: 15px;
-          padding: 25px;
-          width: 400px;
-          max-width: 90vw;
-          backdrop-filter: blur(20px);
-          box-shadow: 
-            0 20px 60px rgba(0, 0, 0, 0.8),
-            0 0 40px rgba(255, 200, 100, 0.3);
-          z-index: 300;
-        }
-
-        .detail-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .detail-name {
-          font-size: 20px;
-          font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
-        .detail-cost {
-          font-size: 16px;
-          font-weight: bold;
-          color: #f1c40f;
-          background: rgba(241, 196, 15, 0.2);
-          padding: 4px 8px;
-          border-radius: 6px;
-        }
-
-        .detail-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-bottom: 15px;
-        }
-
-        .detail-tag {
-          font-size: 12px;
-          background: rgba(100, 150, 200, 0.4);
-          color: rgba(150, 200, 255, 1);
-          padding: 4px 8px;
-          border-radius: 6px;
-          text-transform: uppercase;
-          font-weight: 500;
-        }
-
-        .detail-description {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.9);
-          line-height: 1.5;
-          margin-bottom: 20px;
-          background: rgba(0, 0, 0, 0.2);
-          padding: 12px;
-          border-radius: 8px;
-          border-left: 3px solid rgba(100, 150, 200, 0.5);
-        }
-
-        .detail-actions {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-        }
-
-        .play-card-btn,
-        .close-detail-btn {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 6px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .play-card-btn {
-          background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-          color: white;
-        }
-
-        .play-card-btn:disabled {
-          background: rgba(100, 100, 100, 0.5);
-          color: rgba(255, 255, 255, 0.5);
-          cursor: not-allowed;
-        }
-
-        .play-card-btn:hover:not(:disabled) {
-          background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
-          transform: translateY(-1px);
-        }
-
-        .close-detail-btn {
-          background: rgba(100, 100, 100, 0.6);
-          color: white;
-        }
-
-        .close-detail-btn:hover {
-          background: rgba(120, 120, 120, 0.8);
-        }
-
+        /* Responsive Design */
         @media (max-width: 1200px) {
-          .cards-hand-expanded {
-            width: 700px;
-            max-width: 85vw;
+          .hearthstone-card {
+            width: 100px;
+            height: 150px;
           }
 
-          .cards-grid {
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 10px;
-          }
-        }
-
-        @media (max-width: 900px) {
-          .cards-hand-expanded {
-            width: 95vw;
-            max-height: 350px;
+          .card-name {
+            font-size: 10px;
           }
 
-          .cards-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
+          .card-description {
+            font-size: 7px;
+            -webkit-line-clamp: 5;
           }
 
-          .card-detail-popup {
-            width: 350px;
-            max-width: 85vw;
+          .card-cost {
+            width: 28px;
+            height: 28px;
+            font-size: 14px;
           }
 
-          .detail-name {
-            font-size: 18px;
-          }
-
-          .detail-description {
-            font-size: 13px;
+          .attack, .health {
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
           }
         }
 
         @media (max-width: 768px) {
-          .cards-hand-overlay {
-            bottom: 120px;
+          .card-hand-container {
+            bottom: 80px;
           }
 
-          .hand-toggle {
-            padding: 12px 20px;
-            border-radius: 15px;
-          }
-
-          .toggle-icon {
-            font-size: 18px;
-          }
-
-          .cards-count {
-            font-size: 16px;
-          }
-
-          .playable-indicator {
-            font-size: 11px;
-          }
-
-          .cards-hand-expanded {
-            width: 95vw;
-            max-height: 300px;
-            padding: 15px;
-          }
-
-          .cards-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-          }
-
-          .card-item {
-            padding: 10px;
+          .hearthstone-card {
+            width: 80px;
+            height: 120px;
           }
 
           .card-name {
-            font-size: 12px;
+            font-size: 8px;
+          }
+
+          .card-description {
+            font-size: 6px;
+            -webkit-line-clamp: 4;
           }
 
           .card-cost {
-            font-size: 11px;
-            padding: 3px 6px;
-          }
-
-          .card-tag {
-            font-size: 9px;
-            padding: 1px 4px;
-          }
-
-          .card-detail-popup {
-            width: 90vw;
-            padding: 20px;
-          }
-
-          .detail-name {
-            font-size: 16px;
-          }
-
-          .detail-cost {
-            font-size: 14px;
-          }
-
-          .detail-description {
+            width: 24px;
+            height: 24px;
             font-size: 12px;
           }
 
-          .section-title {
-            font-size: 14px;
+          .attack, .health {
+            width: 18px;
+            height: 18px;
+            font-size: 9px;
           }
         }
 
         @media (max-width: 600px) {
-          .cards-hand-expanded {
-            padding: 10px;
-            max-height: 250px;
+          .hearthstone-card {
+            width: 70px;
+            height: 100px;
           }
 
-          .cards-grid {
-            grid-template-columns: 1fr;
+          .card-inner {
+            padding: 6px;
           }
 
-          .card-item {
-            padding: 8px;
-            min-height: 60px;
+          .card-name {
+            font-size: 7px;
           }
 
-          .card-content {
-            margin-right: 30px;
+          .card-description {
+            font-size: 5px;
+            -webkit-line-clamp: 3;
+            margin: 4px 0;
           }
 
           .card-cost {
-            top: 6px;
-            right: 6px;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+          }
+
+          .attack, .health {
+            width: 16px;
+            height: 16px;
+            font-size: 8px;
           }
         }
       `}</style>

@@ -144,6 +144,32 @@ Frontend uses `.tsx` extensions in imports due to mixed JS/TS setup from Create 
 - Victory condition checking
 - Game lobby and matchmaking
 
+## UI Component Standards
+
+### Resource Display Components
+When displaying game resources, ALWAYS use existing components instead of creating new ones:
+
+#### Megacredits (MC)
+```tsx
+import CostDisplay from '../display/CostDisplay.tsx';
+<CostDisplay cost={amount} size="medium" />
+```
+- **Component**: `src/components/ui/display/CostDisplay.tsx`
+- **Sizes**: 'small' (24px), 'medium' (32px), 'large' (40px)
+- **Asset**: Uses `/assets/resources/megacredit.png` with number overlay
+- **Usage**: Cards, resource panels, transaction displays, player boards
+
+#### Production
+When displaying production values, use the production asset:
+- **Asset**: `/assets/misc/production.png` 
+- **Pattern**: Icon background with number overlay (create ProductionDisplay component if needed)
+
+### UI Development Patterns
+- **Reuse over creation**: Always check for existing components before creating new ones
+- **Consistent styling**: Use established components to maintain visual consistency
+- **Asset integration**: Prefer official game assets over text/CSS styling
+- **Responsive sizing**: Components should support multiple sizes for different contexts
+
 ## Development Notes
 
 When working with this codebase:
@@ -154,3 +180,17 @@ When working with this codebase:
 - Card effects are composable - combine existing patterns rather than creating new ones
 - When creating mock. make sure to abstract it from the UI so it does not know, to ensure easier refactoring to real data later.
 - NEVER set a default value, if you expect something, crash if you dont have it.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+## Resource Display Instructions (UPDATED)
+- **Megacredits**: ALWAYS use the CostDisplay component instead of raw assets
+  ```tsx
+  import CostDisplay from '../display/CostDisplay.tsx';
+  <CostDisplay cost={amount} size="medium" />
+  ```
+- **Production**: When displaying production, use `/assets/misc/production.png` with number overlay (create ProductionDisplay component if needed)
