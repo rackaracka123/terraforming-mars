@@ -2,10 +2,12 @@ import React from 'react';
 import LeftSidebar from '../panels/LeftSidebar.tsx';
 import TopMenuBar from '../panels/TopMenuBar.tsx';
 import RightSidebar from '../panels/RightSidebar.tsx';
-import Game3DView from '../../game/view/Game3DView.tsx';
+import MainContentDisplay from '../../ui/display/MainContentDisplay.tsx';
 import BottomResourceBar from '../../ui/overlay/BottomResourceBar.tsx';
 import CardsHandOverlay from '../../ui/overlay/CardsHandOverlay.tsx';
 import PlayerOverlay from '../../ui/overlay/PlayerOverlay.tsx';
+import ActionPanel from '../../ui/overlay/ActionPanel.tsx';
+import { MainContentProvider } from '../../../contexts/MainContentContext.tsx';
 
 interface GameLayoutProps {
   gameState: any;
@@ -15,36 +17,39 @@ interface GameLayoutProps {
 
 const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socket }) => {
   return (
-    <div className="game-layout">
-      <TopMenuBar />
-      
-      <div className="game-content">
-        <LeftSidebar 
+    <MainContentProvider>
+      <div className="game-layout">
+        <TopMenuBar />
+        
+        <div className="game-content">
+          <LeftSidebar 
+            players={gameState?.players || []} 
+            currentPlayer={currentPlayer}
+            socket={socket}
+          />
+          
+          <MainContentDisplay gameState={gameState} />
+          
+          <RightSidebar 
+            globalParameters={gameState?.globalParameters}
+            generation={gameState?.generation}
+            currentPlayer={currentPlayer}
+          />
+        </div>
+
+        {/* Overlay Components */}
+        <PlayerOverlay 
           players={gameState?.players || []} 
           currentPlayer={currentPlayer}
-          socket={socket}
         />
         
-        <Game3DView gameState={gameState} />
+        <BottomResourceBar />
         
-        <RightSidebar 
-          globalParameters={gameState?.globalParameters}
-          generation={gameState?.generation}
-          currentPlayer={currentPlayer}
-        />
-      </div>
-
-      {/* Overlay Components */}
-      <PlayerOverlay 
-        players={gameState?.players || []} 
-        currentPlayer={currentPlayer}
-      />
-      
-      <BottomResourceBar />
-      
-      <CardsHandOverlay />
-      
-      <style jsx>{`
+        <CardsHandOverlay />
+        
+        <ActionPanel currentPlayer={currentPlayer} />
+        
+        <style jsx>{`
         .game-layout {
           display: grid;
           grid-template-rows: auto 1fr;
@@ -83,7 +88,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           }
         }
       `}</style>
-    </div>
+      </div>
+    </MainContentProvider>
   );
 };
 

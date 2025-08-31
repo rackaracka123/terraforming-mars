@@ -187,10 +187,29 @@ NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
 
+## UI Design Guidelines
+- Do not use emojis when building any design. Use assets instead. If you believe there are no assets matching what you need, ASK.
+- Always whenever possible use assets from `/frontend/public/assets/`
+- Always when working with MC (megacredits) display them using the `/frontend/public/assets/resources/megacredit.png` and add the number inside.
+- Always when working with Production display it using the `/frontend/public/assets/misc/production.png` and add the number inside.
+
 ## Resource Display Instructions (UPDATED)
 - **Megacredits**: ALWAYS use the CostDisplay component instead of raw assets
   ```tsx
   import CostDisplay from '../display/CostDisplay.tsx';
   <CostDisplay cost={amount} size="medium" />
   ```
-- **Production**: When displaying production, use `/assets/misc/production.png` with number overlay (create ProductionDisplay component if needed)
+- **Production**: When displaying production, use ProductionDisplay component
+  ```tsx
+  import ProductionDisplay from '../display/ProductionDisplay.tsx';
+  <ProductionDisplay amount={amount} resourceType="plants" size="medium" />
+  ```
+- When working with production of lets say plants. You need to add the plant icon inside the production icon, then the number next to it.
+
+## UI Components
+- **CorporationCard**: Use for displaying corporation options in selection screens
+  ```tsx
+  import CorporationCard from '../cards/CorporationCard.tsx';
+  <CorporationCard corporation={corp} isSelected={selected} onSelect={handler} />
+  ```
+- When working with energy, its refrenced using power.png

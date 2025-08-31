@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { GameState, Player, GlobalParameters, ResourceType, GamePhase } from './types';
+import { CORPORATION_DEFINITIONS, CorporationType } from './types/cards/corporations';
 
 const app = express();
 const httpServer = createServer(app);
@@ -77,6 +78,36 @@ const createDemoGame = (): GameState => ({
 // Create demo game
 games.set('demo', createDemoGame());
 
+// Get available corporations for game start
+const getAvailableCorporations = () => {
+  // For now, return a subset of base game corporations
+  const baseCorporations = [
+    CorporationType.CREDICOR,
+    CorporationType.ECOLINE,
+    CorporationType.HELION,
+    CorporationType.MINING_GUILD,
+    CorporationType.INVENTRIX,
+    CorporationType.THORGATE,
+    CorporationType.THARSIS_REPUBLIC,
+    CorporationType.PHOBOLOG
+  ];
+
+  return baseCorporations.map(corpType => {
+    const corp = CORPORATION_DEFINITIONS[corpType];
+    return {
+      ...corp,
+      logoPath: getCorpLogoPath(corp.id)
+    };
+  });
+};
+
+// Map corporation ID to logo path
+const getCorpLogoPath = (corpId: string): string => {
+  // For now, use the generic corporation card for all base game corporations
+  // Individual corporation logos can be added later when available
+  return '/assets/misc/corpCard.png';
+};
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('Player connected:', socket.id);
@@ -126,11 +157,76 @@ io.on('connection', (socket) => {
     }
 
     socket.join(data.gameId);
+    
+    // Send available corporations to the new player
+    socket.emit('corporations-available', getAvailableCorporations());
+    
     io.to(data.gameId).emit('game-updated', game);
     
     console.log(`${data.playerName} joined game ${data.gameId}`);
   });
 
+  socket.on('select-corporation', (data: { corporationId: string }) => {
+    // Find which game this player is in
+    let targetGame: GameState | null = null;
+    let gameId: string = '';
+    
+    for (const [id, game] of games.entries()) {
+      if (game.players.some(p => p.id === socket.id)) {
+        targetGame = game;
+        gameId = id;
+        break;
+      }
+    }
+
+    if (!targetGame) {
+      socket.emit('error', 'Player not in any game');
+      return;
+    }
+
+    const player = targetGame.players.find(p => p.id === socket.id);
+    if (!player) {
+      socket.emit('error', 'Player not found');
+      return;
+    }
+
+    // Validate corporation selection
+    const corporation = CORPORATION_DEFINITIONS[data.corporationId as CorporationType];
+    if (!corporation) {
+      socket.emit('error', 'Invalid corporation selected');
+      return;
+    }
+
+    // Apply corporation effects to player
+    player.corporation = data.corporationId;
+    player.resources.credits = corporation.startingMegaCredits;
+
+    // Apply starting production
+    if (corporation.startingProduction) {
+      Object.entries(corporation.startingProduction).forEach(([resource, amount]) => {
+        if (amount > 0) {
+          player.production[resource as ResourceType] += amount;
+        }
+      });
+    }
+
+    // Apply starting resources
+    if (corporation.startingResources) {
+      Object.entries(corporation.startingResources).forEach(([resource, amount]) => {
+        if (amount > 0) {
+          player.resources[resource as ResourceType] += amount;
+        }
+      });
+    }
+
+    // Apply starting TR bonus
+    if (corporation.startingTR) {
+      player.terraformRating += corporation.startingTR;
+    }
+
+    io.to(gameId).emit('game-updated', targetGame);
+    console.log(`Player ${player.name} selected corporation ${corporation.name}`);
+  });
 
   socket.on('raise-temperature', (data: { gameId: string }) => {
     const game = games.get(data.gameId);

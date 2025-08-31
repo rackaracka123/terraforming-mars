@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import { Z_INDEX } from '../../../constants/zIndex.ts';
 
 interface Player {
   id: string;
@@ -426,7 +427,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           align-items: center;
           gap: 10px;
           position: relative;
-          z-index: 1;
+          z-index: 110;
         }
         
         .player-content.player-card {
@@ -594,7 +595,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             0 12px 35px rgba(0, 0, 0, 0.8),
             0 0 25px rgba(255, 165, 0, 0.4),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          z-index: 10000;
+          z-index: 9000;
           backdrop-filter: blur(15px);
           animation: tooltipFadeIn 0.25s ease-out;
           pointer-events: none;

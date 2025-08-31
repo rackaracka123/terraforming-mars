@@ -1,4 +1,5 @@
 import React from 'react';
+import { Z_INDEX } from '../../../constants/zIndex.ts';
 
 interface GlobalParameters {
   temperature: number;
@@ -352,7 +353,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           align-items: center;
           justify-content: center;
           position: relative;
-          z-index: 2;
+          z-index: 110;
           margin-bottom: 5px;
         }
         
@@ -416,7 +417,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           align-items: center;
           justify-content: center;
           position: relative;
-          z-index: 2;
+          z-index: 110;
           margin-bottom: 5px;
         }
         

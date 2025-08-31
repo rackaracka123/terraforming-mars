@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import GameLayout from './GameLayout.tsx';
+import CorporationSelectionModal from '../../ui/overlay/CorporationSelectionModal.tsx';
 
 interface GameState {
   id: string;
@@ -39,6 +40,8 @@ export default function GameInterface() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [showCorporationModal, setShowCorporationModal] = useState(false);
+  const [availableCorporations, setAvailableCorporations] = useState<any[]>([]);
 
   useEffect(() => {
     const newSocket = io('http://localhost:3001');
@@ -55,6 +58,17 @@ export default function GameInterface() {
       setGameState(updatedGameState);
       const player = updatedGameState.players.find(p => p.id === newSocket.id);
       setCurrentPlayer(player || null);
+      
+      // Show corporation modal if player hasn't selected a corporation yet
+      if (player && !player.corporation) {
+        setShowCorporationModal(true);
+      } else {
+        setShowCorporationModal(false);
+      }
+    });
+
+    newSocket.on('corporations-available', (corporations: any[]) => {
+      setAvailableCorporations(corporations);
     });
 
     newSocket.on('disconnect', () => {
@@ -67,7 +81,12 @@ export default function GameInterface() {
     };
   }, []);
 
-
+  const handleCorporationSelection = (corporationId: string) => {
+    if (socket) {
+      socket.emit('select-corporation', { corporationId });
+      setShowCorporationModal(false);
+    }
+  };
 
   if (!isConnected || !gameState) {
     return (
@@ -78,10 +97,18 @@ export default function GameInterface() {
   }
 
   return (
-    <GameLayout 
-      gameState={gameState} 
-      currentPlayer={currentPlayer} 
-      socket={socket}
-    />
+    <>
+      <GameLayout 
+        gameState={gameState} 
+        currentPlayer={currentPlayer} 
+        socket={socket}
+      />
+      
+      <CorporationSelectionModal
+        corporations={availableCorporations}
+        onSelectCorporation={handleCorporationSelection}
+        isVisible={showCorporationModal}
+      />
+    </>
   );
 }

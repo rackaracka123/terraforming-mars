@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import ModalPopup from '../../ui/overlay/ModalPopup.tsx';
+import React from 'react';
+import { Z_INDEX } from '../../../constants/zIndex.ts';
+import { useMainContent } from '../../../contexts/MainContentContext.tsx';
 
 interface TopMenuBarProps {}
 
 const TopMenuBar: React.FC<TopMenuBarProps> = () => {
-  const [activeModal, setActiveModal] = useState<'milestones' | 'projects' | 'awards' | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { setContentType, setContentData } = useMainContent();
 
   const menuItems = [
     { id: 'milestones' as const, label: 'MILESTONES', color: '#ff6b35' },
@@ -13,39 +13,129 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
     { id: 'awards' as const, label: 'AWARDS', color: '#f39c12' }
   ];
 
+  // Mock data for different content types - normally this would come from game state
+  const getMockData = (type: 'milestones' | 'projects' | 'awards') => {
+    if (type === 'milestones') {
+      return {
+        milestones: [
+          {
+            id: 'terraformer',
+            name: 'Terraformer',
+            description: 'Have a terraform rating of at least 35',
+            reward: '5 VP',
+            cost: 8,
+            claimed: false,
+            available: true
+          },
+          {
+            id: 'mayor',
+            name: 'Mayor',
+            description: 'Own at least 3 city tiles',
+            reward: '5 VP',
+            cost: 8,
+            claimed: true,
+            claimedBy: 'Alice Chen',
+            available: false
+          },
+          {
+            id: 'gardener',
+            name: 'Gardener',
+            description: 'Own at least 3 greenery tiles',
+            reward: '5 VP',
+            cost: 8,
+            claimed: false,
+            available: true
+          }
+        ]
+      };
+    }
+    
+    if (type === 'projects') {
+      return {
+        projects: [
+          {
+            id: 'sell-patents',
+            name: 'Sell Patents',
+            cost: 0,
+            description: 'Discard any number of cards from hand and gain that many M€',
+            available: true,
+            effects: { immediate: [{ type: 'credits', amount: 1 }] },
+            icon: '/assets/resources/megacredit.png'
+          },
+          {
+            id: 'power-plant',
+            name: 'Power Plant',
+            cost: 11,
+            description: 'Increase your energy production 1 step',
+            available: true,
+            effects: { production: [{ type: 'energy', amount: 1 }] },
+            icon: '/assets/resources/power.png'
+          },
+          {
+            id: 'city',
+            name: 'City',
+            cost: 25,
+            description: 'Place a city tile',
+            available: true,
+            effects: { tiles: ['city'] },
+            icon: '/assets/tiles/city.png'
+          }
+        ]
+      };
+    }
+    
+    if (type === 'awards') {
+      return {
+        awards: [
+          {
+            id: 'landlord',
+            name: 'Landlord',
+            description: 'Most tiles on Mars',
+            fundingCost: 8,
+            funded: true,
+            fundedBy: 'Bob Martinez',
+            winner: 'Alice Chen',
+            available: false
+          },
+          {
+            id: 'banker',
+            name: 'Banker',
+            description: 'Highest M€ production',
+            fundingCost: 8,
+            funded: false,
+            available: true
+          },
+          {
+            id: 'scientist',
+            name: 'Scientist',
+            description: 'Most science tags',
+            fundingCost: 8,
+            funded: true,
+            fundedBy: 'Carol Kim',
+            available: false
+          }
+        ]
+      };
+    }
+    
+    return {};
+  };
+
   const handleTabClick = (tabId: 'milestones' | 'projects' | 'awards') => {
-    setActiveModal(tabId);
-  };
-
-  const handleCloseModal = () => {
-    setActiveModal(null);
-  };
-
-  const handleModalAction = (actionType: string, itemId: string) => {
-    console.log(`Modal Action: ${actionType} on ${itemId}`);
-    // Handle the action here - for now just log it
+    const data = getMockData(tabId);
+    setContentData(data);
+    setContentType(tabId);
   };
 
   return (
     <div className="top-menu-bar">
       <div className="menu-container">
-        {/* Mobile Menu Toggle */}
-        <button 
-          className="mobile-menu-toggle"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          ☰ Menu
-        </button>
-
-        <div className={`menu-items ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="menu-items">
           {menuItems.map((item) => (
             <button
               key={item.id}
               className="menu-item"
-              onClick={() => {
-                handleTabClick(item.id);
-                setMobileMenuOpen(false);
-              }}
+              onClick={() => handleTabClick(item.id)}
               style={{ '--item-color': item.color } as React.CSSProperties}
             >
               {item.label}
@@ -58,13 +148,6 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           <button className="action-btn">📊 Stats</button>
         </div>
       </div>
-      
-      {/* Modal Popup */}
-      <ModalPopup 
-        type={activeModal}
-        onClose={handleCloseModal}
-        onAction={handleModalAction}
-      />
       
       <style jsx>{`
         .top-menu-bar {
@@ -124,21 +207,6 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           background: rgba(255, 255, 255, 0.2);
         }
 
-        .mobile-menu-toggle {
-          display: none;
-          background: none;
-          border: 1px solid #333;
-          color: white;
-          padding: 8px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .mobile-menu-toggle:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
         @media (max-width: 1024px) {
           .menu-container {
             padding: 0 15px;
@@ -159,42 +227,18 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
         @media (max-width: 768px) {
           .menu-container {
             padding: 0 10px;
-            position: relative;
-          }
-
-          .mobile-menu-toggle {
-            display: block;
+            flex-wrap: wrap;
           }
 
           .menu-items {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.98);
-            border: 1px solid #333;
-            border-top: none;
-            flex-direction: column;
-            gap: 0;
-            z-index: 1000;
-          }
-
-          .menu-items.mobile-open {
-            display: flex;
+            order: 2;
+            flex-basis: 100%;
+            margin-top: 10px;
           }
 
           .menu-item {
-            width: 100%;
-            text-align: left;
-            border-bottom: 1px solid #333;
-            border-radius: 0;
-            padding: 12px 20px;
-            font-size: 14px;
-          }
-
-          .menu-item:last-child {
-            border-bottom: none;
+            padding: 8px 15px;
+            font-size: 12px;
           }
 
           .menu-actions {
@@ -218,14 +262,9 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
             font-size: 9px;
           }
 
-          .mobile-menu-toggle {
-            font-size: 12px;
-            padding: 6px 10px;
-          }
-
           .menu-item {
-            padding: 10px 15px;
-            font-size: 12px;
+            padding: 6px 12px;
+            font-size: 11px;
           }
         }
       `}</style>
