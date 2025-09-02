@@ -154,18 +154,143 @@ func GetBaseCorporations() []Corporation {
 
 // Milestone represents claimable milestones in the game
 type Milestone struct {
-	ID          string `json:"id" ts:"string"`
-	Name        string `json:"name" ts:"string"`
-	Description string `json:"description" ts:"string"`
-	Cost        int    `json:"cost" ts:"number"`
-	ClaimedBy   *string `json:"claimedBy,omitempty" ts:"string | undefined"`
+	ID              string           `json:"id" ts:"string"`
+	Name            string           `json:"name" ts:"string"`
+	Description     string           `json:"description" ts:"string"`
+	Cost            int              `json:"cost" ts:"number"`
+	ClaimedBy       *string          `json:"claimedBy,omitempty" ts:"string | undefined"`
+	AchievementType AchievementType  `json:"achievementType" ts:"AchievementType"`
+	RequiredValue   int              `json:"requiredValue" ts:"number"`
 }
 
 // Award represents fundable awards in the game
 type Award struct {
-	ID          string `json:"id" ts:"string"`
-	Name        string `json:"name" ts:"string"`
-	Description string `json:"description" ts:"string"`
-	Cost        int    `json:"cost" ts:"number"`
-	FundedBy    *string `json:"fundedBy,omitempty" ts:"string | undefined"`
+	ID              string          `json:"id" ts:"string"`
+	Name            string          `json:"name" ts:"string"`
+	Description     string          `json:"description" ts:"string"`
+	Cost            int             `json:"cost" ts:"number"`
+	FundedBy        *string         `json:"fundedBy,omitempty" ts:"string | undefined"`
+	CompetitionType CompetitionType `json:"competitionType" ts:"CompetitionType"`
+	Ranking         []AwardRanking  `json:"ranking" ts:"AwardRanking[]"`
+}
+
+// AchievementType defines what type of achievement is required for milestones
+type AchievementType string
+
+const (
+	AchievementTypeTerraformRating AchievementType = "terraform_rating" // Terraformer: TR 35
+	AchievementTypeCities          AchievementType = "cities"           // Mayor: 3 cities
+	AchievementTypeGreeneries      AchievementType = "greeneries"      // Gardener: 3 greeneries
+	AchievementTypeBuildings       AchievementType = "buildings"       // Builder: 8 building tags
+	AchievementTypeCards           AchievementType = "cards"           // Planner: 16 cards in hand
+)
+
+// CompetitionType defines what type of competition awards are based on
+type CompetitionType string
+
+const (
+	CompetitionTypeTileCount     CompetitionType = "tile_count"     // Landlord: most tiles
+	CompetitionTypeCredits       CompetitionType = "credits"       // Banker: most M€
+	CompetitionTypeScienceTags   CompetitionType = "science_tags"  // Scientist: most science tags
+	CompetitionTypeHeatResource  CompetitionType = "heat_resource" // Thermalist: most heat resource
+	CompetitionTypeSteelTitanium CompetitionType = "steel_titanium" // Miner: most steel and titanium
+)
+
+// AwardRanking represents a player's ranking in an award competition
+type AwardRanking struct {
+	PlayerID string `json:"playerId" ts:"string"`
+	Value    int    `json:"value" ts:"number"`
+	Rank     int    `json:"rank" ts:"number"`
+}
+
+// GetBaseMilestones returns the 5 base game milestones
+func GetBaseMilestones() []Milestone {
+	return []Milestone{
+		{
+			ID:              "terraformer",
+			Name:            "Terraformer",
+			Description:     "Have a terraform rating of at least 35",
+			Cost:            8,
+			AchievementType: AchievementTypeTerraformRating,
+			RequiredValue:   35,
+		},
+		{
+			ID:              "mayor",
+			Name:            "Mayor", 
+			Description:     "Own at least 3 city tiles",
+			Cost:            8,
+			AchievementType: AchievementTypeCities,
+			RequiredValue:   3,
+		},
+		{
+			ID:              "gardener",
+			Name:            "Gardener",
+			Description:     "Own at least 3 greenery tiles",
+			Cost:            8,
+			AchievementType: AchievementTypeGreeneries,
+			RequiredValue:   3,
+		},
+		{
+			ID:              "builder",
+			Name:            "Builder",
+			Description:     "Have at least 8 building tags in play",
+			Cost:            8,
+			AchievementType: AchievementTypeBuildings,
+			RequiredValue:   8,
+		},
+		{
+			ID:              "planner",
+			Name:            "Planner",
+			Description:     "Have at least 16 cards in hand",
+			Cost:            8,
+			AchievementType: AchievementTypeCards,
+			RequiredValue:   16,
+		},
+	}
+}
+
+// GetBaseAwards returns the 5 base game awards
+func GetBaseAwards() []Award {
+	return []Award{
+		{
+			ID:              "landlord",
+			Name:            "Landlord",
+			Description:     "Own the most tiles on Mars",
+			Cost:            8,
+			CompetitionType: CompetitionTypeTileCount,
+			Ranking:         []AwardRanking{},
+		},
+		{
+			ID:              "banker",
+			Name:            "Banker",
+			Description:     "Have the most M€",
+			Cost:            8,
+			CompetitionType: CompetitionTypeCredits,
+			Ranking:         []AwardRanking{},
+		},
+		{
+			ID:              "scientist",
+			Name:            "Scientist",
+			Description:     "Have the most science tags in play",
+			Cost:            8,
+			CompetitionType: CompetitionTypeScienceTags,
+			Ranking:         []AwardRanking{},
+		},
+		{
+			ID:              "thermalist",
+			Name:            "Thermalist",
+			Description:     "Have the most heat resource",
+			Cost:            8,
+			CompetitionType: CompetitionTypeHeatResource,
+			Ranking:         []AwardRanking{},
+		},
+		{
+			ID:              "miner",
+			Name:            "Miner",
+			Description:     "Have the most steel and titanium resource",
+			Cost:            8,
+			CompetitionType: CompetitionTypeSteelTitanium,
+			Ranking:         []AwardRanking{},
+		},
+	}
 }
