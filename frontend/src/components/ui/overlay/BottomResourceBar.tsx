@@ -253,15 +253,13 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       cardId: 'research',
       cardName: 'Research',
       cardType: CardType.ACTIVE,
-      effectType: 'activated' as const,
-      name: 'Draw Cards',
-      description: 'Spend 1 M€ to draw a card.',
+      effectType: 'triggered' as const,
+      name: 'Research Bonus',
+      description: 'Get bonus when drawing cards.',
       isActive: true,
-      category: 'conversion' as const,
+      category: 'bonus' as const,
       resource: 'cards',
-      value: 1,
-      cooldown: false,
-      usesRemaining: undefined
+      value: 1
     },
     {
       id: 'power-plant-effect',

@@ -7,7 +7,7 @@ interface CardEffect {
   cardId: string;
   cardName: string;
   cardType: CardType;
-  effectType: 'immediate' | 'ongoing' | 'triggered' | 'activated';
+  effectType: 'immediate' | 'ongoing' | 'triggered';
   name: string;
   description: string;
   isActive: boolean;
@@ -15,7 +15,6 @@ interface CardEffect {
   resource?: string;
   value?: number;
   condition?: string;
-  cooldown?: boolean; // For activated effects
   usesRemaining?: number;
 }
 
@@ -35,7 +34,7 @@ interface CardEffectsModalProps {
   onEffectActivate?: (effect: CardEffect) => void;
 }
 
-type FilterType = 'all' | 'active' | 'inactive' | 'immediate' | 'ongoing' | 'triggered' | 'activated';
+type FilterType = 'all' | 'active' | 'inactive' | 'immediate' | 'ongoing' | 'triggered';
 type CategoryType = 'all' | 'production' | 'discount' | 'bonus' | 'conversion' | 'protection' | 'trigger';
 type SortType = 'type' | 'card' | 'category' | 'name';
 
@@ -98,12 +97,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         glowColor: `rgba(255, 120, 120, ${0.4 * baseOpacity})`,
         badgeColor: '#ff7878'
       },
-      activated: {
-        background: `linear-gradient(145deg, rgba(0, 150, 255, ${0.2 * baseOpacity}) 0%, rgba(0, 100, 200, ${0.3 * baseOpacity}) 100%)`,
-        borderColor: `rgba(0, 180, 255, ${0.7 * baseOpacity})`,
-        glowColor: `rgba(0, 180, 255, ${0.4 * baseOpacity})`,
-        badgeColor: '#00b4ff'
-      }
     };
     return styles[effectType as keyof typeof styles] || styles.ongoing;
   };
@@ -152,7 +145,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
       immediate: 'Immediate',
       ongoing: 'Ongoing',
       triggered: 'Triggered',
-      activated: 'Activated'
     };
     return names[effectType as keyof typeof names] || 'Effect';
   };
@@ -167,7 +159,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
       case 'immediate': typeMatch = effect.effectType === 'immediate'; break;
       case 'ongoing': typeMatch = effect.effectType === 'ongoing'; break;
       case 'triggered': typeMatch = effect.effectType === 'triggered'; break;
-      case 'activated': typeMatch = effect.effectType === 'activated'; break;
       default: typeMatch = true;
     }
 
@@ -216,7 +207,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
       immediate: effects.filter(e => e.effectType === 'immediate').length,
       ongoing: effects.filter(e => e.effectType === 'ongoing').length,
       triggered: effects.filter(e => e.effectType === 'triggered').length,
-      activated: effects.filter(e => e.effectType === 'activated').length,
     },
     byCategory: {
       production: effects.filter(e => e.category === 'production').length,
@@ -229,11 +219,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
   };
 
   const handleEffectClick = (effect: CardEffect) => {
-    if (effect.effectType === 'activated' && effect.isActive && onEffectActivate) {
-      onEffectActivate(effect);
-    } else {
-      setSelectedEffect(effect);
-    }
+    setSelectedEffect(effect);
   };
 
   return (
@@ -274,7 +260,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                 <option value="immediate">Immediate ({effectStats.byType.immediate})</option>
                 <option value="ongoing">Ongoing ({effectStats.byType.ongoing})</option>
                 <option value="triggered">Triggered ({effectStats.byType.triggered})</option>
-                <option value="activated">Activated ({effectStats.byType.activated})</option>
               </select>
             </div>
 
@@ -333,7 +318,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           ) : (
             <>
               {/* Effects by Type */}
-              {['ongoing', 'triggered', 'activated', 'immediate'].map(effectType => {
+              {['ongoing', 'triggered', 'immediate'].map(effectType => {
                 const effectsOfType = filteredEffects.filter(e => e.effectType === effectType);
                 if (effectsOfType.length === 0) return null;
 
@@ -344,7 +329,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                       <span className="section-description">
                         {effectType === 'ongoing' && 'Passive effects that are always active'}
                         {effectType === 'triggered' && 'Effects that activate automatically when conditions are met'}
-                        {effectType === 'activated' && 'Effects that can be manually triggered'}
                         {effectType === 'immediate' && 'Effects that were applied when the card was played'}
                       </span>
                     </h2>
@@ -357,7 +341,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                         return (
                           <div 
                             key={effect.id}
-                            className={`effect-card ${effect.isActive ? 'active' : 'inactive'} ${effect.effectType === 'activated' && effect.isActive ? 'activatable' : ''}`}
+                            className={`effect-card ${effect.isActive ? 'active' : 'inactive'}`}
                             style={{
                               background: effectStyle.background,
                               borderColor: effectStyle.borderColor,
@@ -431,15 +415,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
 
                             {/* Effect Status */}
                             <div className="effect-status">
-                              {effect.effectType === 'activated' && effect.isActive ? (
-                                <div className="status-activatable">
-                                  <img src="/assets/misc/checkmark.png" alt="Can activate" className="status-icon" />
-                                  <span>Click to activate</span>
-                                  {effect.usesRemaining !== undefined && (
-                                    <span className="uses-remaining">{effect.usesRemaining} uses left</span>
-                                  )}
-                                </div>
-                              ) : effect.isActive ? (
+                              {effect.isActive ? (
                                 <div className="status-active">
                                   <img src="/assets/misc/checkmark.png" alt="Active" className="status-icon" />
                                   <span>Active</span>
@@ -448,13 +424,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                                 <div className="status-inactive">
                                   <img src="/assets/misc/minus.png" alt="Inactive" className="status-icon" />
                                   <span>Inactive</span>
-                                </div>
-                              )}
-                              
-                              {effect.cooldown && (
-                                <div className="cooldown-indicator">
-                                  <img src="/assets/misc/bar.png" alt="Cooldown" className="cooldown-icon" />
-                                  <span>On cooldown</span>
                                 </div>
                               )}
                             </div>
@@ -590,25 +559,6 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                 </div>
               </div>
 
-              {selectedEffect.effectType === 'activated' && selectedEffect.isActive && onEffectActivate && (
-                <div className="detail-actions">
-                  <button
-                    className="activate-effect-btn"
-                    onClick={() => {
-                      onEffectActivate(selectedEffect);
-                      setSelectedEffect(null);
-                    }}
-                    disabled={selectedEffect.cooldown}
-                  >
-                    {selectedEffect.cooldown ? 'On Cooldown' : 'Activate Effect'}
-                  </button>
-                  {selectedEffect.usesRemaining !== undefined && (
-                    <div className="uses-info">
-                      {selectedEffect.usesRemaining} uses remaining
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

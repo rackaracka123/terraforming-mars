@@ -185,12 +185,11 @@ export default function GameInterface() {
       cardId: 'card-3',
       cardName: 'Research',
       cardType: 'active' as const,
-      effectType: 'activated' as const,
-      name: 'Draw Card Action',
-      description: 'Spend 1 M€ to draw a card',
+      effectType: 'triggered' as const,
+      name: 'Research Bonus',
+      description: 'Get bonus cards when researching',
       isActive: true,
-      category: 'conversion' as const,
-      usesRemaining: 5
+      category: 'bonus' as const
     }
   ];
 
@@ -200,10 +199,6 @@ export default function GameInterface() {
     // In a real app, emit to server
   };
 
-  const handleEffectActivate = (effect: any) => {
-    console.log('Effect activated:', effect);
-    // In a real app, emit to server
-  };
 
   // Demo keyboard shortcuts
   useEffect(() => {
@@ -309,7 +304,6 @@ export default function GameInterface() {
         effects={demoEffects}
         cards={demoCards}
         playerName={currentPlayer?.name}
-        onEffectActivate={handleEffectActivate}
       />
 
     </>

@@ -15,7 +15,6 @@ export interface Effect {
 export enum EffectTrigger {
   IMMEDIATE = 'immediate',
   ONGOING = 'ongoing',
-  ACTIVATED = 'activated',
   ON_CARD_PLAYED = 'on_card_played',
   ON_TILE_PLACED = 'on_tile_placed',
   ON_PARAMETER_INCREASE = 'on_parameter_increase',
