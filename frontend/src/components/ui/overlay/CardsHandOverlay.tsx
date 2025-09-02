@@ -388,8 +388,8 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
           
           // Apply expanded state offset and scaling
           if (!cardsExpanded) {
-            finalY += 90; // Push cards down to show only top portion when collapsed
-            scale = 1.1; // Make collapsed cards slightly larger to indicate interactivity
+            finalY += 130; // Push cards down to show only top portion (halfway off-screen)
+            scale = 1.0; // Normal scale when collapsed
           } else {
             // When expanded, make cards larger and spread more
             scale = Math.max(scale, 1.5); // Minimum 1.5x scale when expanded

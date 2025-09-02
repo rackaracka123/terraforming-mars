@@ -4,36 +4,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Digital implementation of Terraforming Mars board game with real-time multiplayer and 3D game view. The game features drag-to-pan 3D Mars visualization, hexagonal tile system, comprehensive card effects engine, and Socket.io multiplayer.
+Digital implementation of Terraforming Mars board game with real-time multiplayer and 3D game view. The game features drag-to-pan 3D Mars visualization, hexagonal tile system, comprehensive card effects engine, and WebSocket multiplayer with a Go backend and React frontend.
 
 ## Development Commands
 
 ### Quick Start (Recommended)
 ```bash
-npm start        # Starts both backend and frontend servers concurrently
+npm start        # Starts both Go backend and React frontend concurrently
 npm run dev      # Alias for npm start
 ```
 
 ### Individual Servers
 ```bash
-npm run backend  # Backend only (port 3001)
-npm run frontend # Frontend only (port 3000)
+npm run backend  # Go backend only (port 3001)
+npm run frontend # React frontend only (port 3000)
 ```
 
-### Backend (Port 3001)
+### Backend (Go - Port 3001)
 ```bash
 cd backend
-npm run dev      # Development server with nodemon auto-reload
-npm run build    # Compile TypeScript to dist/
-npm start        # Run compiled production build
+go run cmd/server/main.go     # Run development server directly
+go build -o bin/server cmd/server/main.go  # Build production binary
+./bin/server                  # Run production binary
+go test ./...                 # Run all tests
+go generate                   # Generate TypeScript types and Swagger docs
 ```
 
-### Frontend (Port 3000) 
+### Frontend (React - Port 3000) 
 ```bash
 cd frontend  
 npm start        # React development server
 npm run build    # Production build for deployment
 npm test         # Run Jest tests
+```
+
+### Code Generation
+```bash
+npm run generate-types   # Generate TypeScript types from Go structs
+npm run generate-docs    # Generate Swagger API documentation
 ```
 
 ### Both Servers
@@ -42,19 +50,33 @@ Frontend connects to backend at http://localhost:3001. Use root-level `npm start
 
 ## Core Architecture
 
-### Three-Layer Game State System
-1. **UI Layer** (`GameInterface.tsx`): React components with Socket.io client
-2. **Network Layer** (`index.ts`): Socket.io server with event handlers  
-3. **Logic Layer** (`EffectEngine`): Pure game logic for card effects and state changes
+### Clean Architecture Backend (Go)
+The Go backend follows clean architecture principles with clear separation of concerns:
 
-### Card System Architecture
-The card system uses a compositional effect-based design:
+```
+backend/
+├── cmd/server/              # Application entry point with dependency injection
+├── internal/
+│   ├── domain/             # Core business entities (GameState, Player, Corporation)
+│   ├── usecase/            # Application business rules and game logic  
+│   ├── repository/         # Data access layer (in-memory game storage)
+│   └── delivery/           # HTTP handlers and WebSocket hub
+├── pkg/typegen/            # TypeScript type generation utilities
+├── tools/                  # Code generation tools
+└── docs/swagger/           # Auto-generated API documentation
+```
 
-- **Card Definitions** (`/data/cards/`): JSON-like TypeScript objects defining all cards
-- **Effect Engine** (`engine/effectEngine.ts`): Interprets and executes card effects
-- **Type System** (`types/cards.ts`): Complete TypeScript definitions for game entities
+### Full-Stack Communication Flow
+1. **Frontend (React)**: UI components with WebSocket client
+2. **WebSocket Hub**: Real-time game state synchronization via `gorilla/websocket`
+3. **Use Cases**: Game business logic in Go (join game, select corporation, etc.)
+4. **Domain Models**: Core game entities with automatic TypeScript generation
 
-Key insight: Every card ability is expressed as composable `Effect` objects with `trigger`, `condition`, and `action` properties. This allows complex interactions while maintaining type safety.
+### Type Safety Bridge
+Go structs automatically generate TypeScript interfaces via custom type generator:
+- **Go Domain**: Structs with `ts:` tags define frontend types
+- **Code Generation**: `go generate` creates TypeScript interfaces
+- **Frontend Import**: React components use generated types for full type safety
 
 ### 3D Rendering System
 - **Game3DView.tsx**: Main Three.js Canvas with React Three Fiber
@@ -64,41 +86,56 @@ Key insight: Every card ability is expressed as composable `Effect` objects with
 
 ## Game State Flow
 
-### Socket.io Event Architecture
+### WebSocket Event Architecture
 ```
-Client -> 'join-game' -> Server creates Player -> Broadcasts 'game-updated'
-Client -> 'play-card' -> EffectEngine.executeEffect -> Broadcasts updated state
-Client -> 'raise-temperature' -> Parameter change -> Visual feedback
+Client -> 'join-game' -> GameUseCase.JoinGame -> Broadcasts 'game-updated'
+Client -> 'select-corporation' -> GameUseCase.SelectCorporation -> Broadcasts updated state
+Client -> 'raise-temperature' -> GameUseCase.RaiseTemperature -> Visual feedback
+Client -> 'skip-action' -> GameUseCase.SkipAction -> Turn progression
 ```
 
-### Effect Engine Execution
-1. Card played -> Find CardDefinition -> Create Card instance
-2. EffectEngine.executeEffect() for each Effect in card
-3. Check conditions -> Execute actions -> Update game state
-4. Triggered effects processed via event system
+### Backend Request Flow
+1. WebSocket message received -> Hub.handleMessage() -> Client.handleMessage()
+2. Use case method called (e.g., JoinGame, SelectCorporation)  
+3. Domain logic executed -> Game state updated in repository
+4. Updated GameState broadcast to all game clients
+5. Frontend receives state update -> React components re-render
 
 ## Type System Overview
 
-### Core Entities
-- `GameState`: Root state containing players, parameters, cards
-- `Player`: Resources, production, played cards, terraform rating
-- `CardDefinition`: Static card data with effects array
-- `Effect`: Composable abilities (immediate/ongoing/triggered)
-- `GlobalParameters`: Temperature (-30 to +8°C), Oxygen (0-14%), Oceans (0-9)
+### Go Domain Entities (Backend)
+- **GameState**: Root state with players, parameters, deck, game settings
+- **Player**: Resources, production, corporation, terraform rating, played cards
+- **Corporation**: Asymmetric player powers and starting conditions
+- **GlobalParameters**: Temperature (-30 to +8°C), Oxygen (0-14%), Oceans (0-9)
+- **GamePhase**: Current game phase (setup, corporation_selection, action, production, etc.)
+
+### TypeScript Generation
+Go structs use `ts:` tags to specify TypeScript types:
+```go
+type Player struct {
+    ID       string `json:"id" ts:"string"`
+    Credits  int    `json:"credits" ts:"number"`
+    IsActive bool   `json:"isActive" ts:"boolean"`
+}
+```
 
 ### Resource System
-Six resource types with production tracks: Credits, Steel, Titanium, Plants, Energy, Heat. Heat converts to temperature raises (8 heat = 1 step).
+Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat converts to temperature raises (8 heat = 1 step). Production tracks for sustainable resource generation.
 
 ## Key Development Patterns
 
-### Adding New Cards
-1. Define in appropriate `/data/cards/*.ts` file
-2. Use existing Effect types or add custom functions
-3. Effects are automatically processed by EffectEngine
-4. Add to server's availableCards array
+### Adding New Game Features
+1. **Define domain entities** in `internal/domain/` with proper `ts:` tags
+2. **Implement use case logic** in `internal/usecase/`
+3. **Add WebSocket handlers** in `internal/delivery/websocket/`
+4. **Generate types**: Run `go generate` to update frontend types
+5. **Frontend integration**: Import generated types and implement UI
 
-### Custom Card Effects
-For unique abilities, use `customFunction` in Effect.action and implement in EffectEngine.executeCustomFunction().
+### Backend Development Flow
+1. Modify Go structs -> Add business logic -> Update handlers
+2. Run `go generate` for type sync
+3. Frontend automatically gets updated TypeScript interfaces
 
 ### 3D Scene Modifications
 - HexGrid positions calculated via hex-to-pixel coordinate conversion
@@ -111,38 +148,53 @@ For unique abilities, use `customFunction` in Effect.action and implement in Eff
 Uses cube coordinates (q, r, s) where q + r + s = 0. Utilities in `HexMath` class handle conversions and neighbor calculations for tile-based game mechanics.
 
 ### Multiplayer State Synchronization
-Game state is authoritative on server. Clients receive full state updates via 'game-updated' events. No client-side game logic to prevent desync.
+Game state is authoritative on Go backend. All clients receive full state updates via WebSocket 'game-updated' events. No client-side game logic to prevent desync.
 
-### Effect Timing and Triggers
-- `immediate`: Execute when card played
-- `ongoing`: Passive effects (discounts, bonuses)
-- `triggered`: Respond to game events ('card_played', 'turn_start', etc.)
+### WebSocket Message Types
+Current supported messages:
+- `join-game`: Player joins a game session
+- `select-corporation`: Choose starting corporation
+- `raise-temperature`: Spend heat to increase global temperature
+- `skip-action`: Pass current turn
 
-### TypeScript Import Patterns
-Frontend uses `.tsx` extensions in imports due to mixed JS/TS setup from Create React App template. Backend uses standard TypeScript imports.
+### Go Struct Tags for Type Generation
+Use both `json:` and `ts:` tags on all domain structs:
+```go
+type Resource struct {
+    Amount int `json:"amount" ts:"number"`
+    Production int `json:"production" ts:"number"`
+}
+```
 
 ## Current Implementation Status
 
 ### Working Systems
-- Real-time multiplayer with Socket.io
-- 3D game view with hexagonal Mars board
-- Card effect engine with 15+ test cards
-- Resource management and production
-- Global parameter tracking with visual feedback
-- Custom pan controls (no orbital rotation)
+- **Real-time WebSocket multiplayer** with Go backend
+- **3D game view** with hexagonal Mars board (React Three Fiber)
+- **Clean architecture backend** with clear separation of concerns
+- **Automatic type generation** from Go structs to TypeScript
+- **Resource management** and global parameter tracking
+- **Corporation selection** with WebSocket synchronization
+- **Custom pan controls** for 3D Mars view (no orbital rotation)
 
-### Architecture Ready for Extension
-- Card database (currently test cards, ready for full 200+ deck)
-- Tile placement system (hex grid implemented, placement logic partial)
-- Corporation asymmetry (type system ready, 10 corporations defined)
-- Turn phases (structure in place, needs state machine)
+### Backend Architecture Complete
+- **Domain models** with comprehensive game entities
+- **Use case layer** for game business logic
+- **WebSocket hub** for real-time communication
+- **HTTP API** with Swagger documentation
+- **In-memory repository** for fast game state access
+
+### Frontend Ready for Extension
+- **Generated TypeScript types** ensure backend/frontend sync
+- **3D rendering system** using Three.js and React Three Fiber
+- **Component architecture** for modular game UI development
 
 ### Key Missing Pieces
-- Milestones and awards system
-- Full tile placement with adjacency bonuses
-- Card drawing and hand management
-- Victory condition checking
-- Game lobby and matchmaking
+- **Full card system** implementation in Go backend
+- **Tile placement** logic and adjacency bonuses
+- **Turn phases** and action state machine
+- **Victory condition** checking
+- **Milestones and awards** game mechanics
 
 ## UI Component Standards
 
@@ -172,14 +224,26 @@ When displaying production values, use the production asset:
 
 ## Development Notes
 
-When working with this codebase:
-- Both servers must be running for full functionality
-- Backend TypeScript compiles to `dist/` directory
-- Frontend uses React 19 with Three.js for 3D rendering
-- Game state changes should go through EffectEngine for consistency
-- Card effects are composable - combine existing patterns rather than creating new ones
-- When creating mock. make sure to abstract it from the UI so it does not know, to ensure easier refactoring to real data later.
-- NEVER set a default value, if you expect something, crash if you dont have it.
+### Backend Development (Go)
+- **Clean Architecture**: Always implement new features following the domain -> usecase -> delivery pattern
+- **Type Tags**: Add both `json:` and `ts:` tags to all domain structs for frontend sync
+- **WebSocket Events**: Add new game actions in `internal/delivery/websocket/game_hub.go`
+- **Testing**: Use `go test ./...` to run all backend tests
+- **API Documentation**: Add Swagger comments to HTTP handlers for auto-generated docs
+
+### Frontend Development (React)
+- **Generated Types**: Always use types from `src/types/generated/api-types.ts`
+- **3D Rendering**: Uses React Three Fiber - modify scenes in `Game3DView.tsx`
+- **WebSocket Client**: Game state updates come via WebSocket, no local game state
+- **Component Architecture**: Follow existing patterns for new game UI components
+
+### Full-Stack Development
+- **Both servers** must be running for full functionality (`npm start`)
+- **Type Generation**: Run `npm run generate-types` after Go struct changes
+- **State Flow**: All game state changes originate from Go backend via WebSocket
+- **Development Workflow**: Go changes -> generate types -> React implementation
+- When creating mock data, abstract it from the UI to enable easier refactoring later
+- NEVER set default values - if you expect something, fail explicitly if it's missing
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
@@ -213,3 +277,4 @@ NEVER proactively create documentation files (*.md) or README files. Only create
   <CorporationCard corporation={corp} isSelected={selected} onSelect={handler} />
   ```
 - When working with energy, its refrenced using power.png
+- Use playwright to test UI components.

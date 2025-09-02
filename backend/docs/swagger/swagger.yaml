@@ -1,0 +1,447 @@
+basePath: /api/v1
+definitions:
+  domain.Award:
+    properties:
+      cost:
+        type: integer
+      description:
+        type: string
+      fundedBy:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.Corporation:
+    properties:
+      ability:
+        type: string
+      color:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      logoPath:
+        type: string
+      name:
+        type: string
+      startingCards:
+        items:
+          type: string
+        type: array
+      startingMegaCredits:
+        type: integer
+      startingProduction:
+        $ref: '#/definitions/domain.ResourcesMap'
+      startingResources:
+        $ref: '#/definitions/domain.ResourcesMap'
+      startingTR:
+        type: integer
+      tags:
+        items:
+          $ref: '#/definitions/domain.Tag'
+        type: array
+    type: object
+  domain.DraftDirection:
+    enum:
+    - clockwise
+    - counter_clockwise
+    type: string
+    x-enum-varnames:
+    - DraftDirectionClockwise
+    - DraftDirectionCounterClockwise
+  domain.GameExpansion:
+    enum:
+    - prelude
+    - venus
+    - colonies
+    - turmoil
+    - big_box
+    - ares
+    - moon
+    - pathfinders
+    - prelude2
+    - ceo
+    - promo
+    - community
+    - underworld
+    - escape_velocity
+    - star_wars
+    type: string
+    x-enum-varnames:
+    - GameExpansionPrelude
+    - GameExpansionVenus
+    - GameExpansionColonies
+    - GameExpansionTurmoil
+    - GameExpansionBigBox
+    - GameExpansionAres
+    - GameExpansionMoon
+    - GameExpansionPathfinders
+    - GameExpansionPrelude2
+    - GameExpansionCEO
+    - GameExpansionPromo
+    - GameExpansionCommunity
+    - GameExpansionUnderworld
+    - GameExpansionEscapeVelocity
+    - GameExpansionStarWars
+  domain.GamePhase:
+    enum:
+    - setup
+    - corporation_selection
+    - initial_research
+    - prelude
+    - research
+    - action
+    - production
+    - draft
+    - game_end
+    type: string
+    x-enum-varnames:
+    - GamePhaseSetup
+    - GamePhaseCorporationSelection
+    - GamePhaseInitialResearch
+    - GamePhasePrelude
+    - GamePhaseResearch
+    - GamePhaseAction
+    - GamePhaseProduction
+    - GamePhaseDraft
+    - GamePhaseGameEnd
+  domain.GameSettings:
+    properties:
+      altVenusBoard:
+        type: boolean
+      bannedCards:
+        items:
+          type: string
+        type: array
+      breakthrough:
+        type: boolean
+      coloniesExtension:
+        type: boolean
+      corporateEra:
+        type: boolean
+      customCorporationsList:
+        items:
+          type: string
+        type: array
+      draftVariant:
+        type: boolean
+      escapeVelocityExpansion:
+        type: boolean
+      escapeVelocityMode:
+        type: boolean
+      escapeVelocityPenalty:
+        type: integer
+      escapeVelocityPeriod:
+        type: integer
+      escapeVelocityThreshold:
+        type: integer
+      expansions:
+        items:
+          $ref: '#/definitions/domain.GameExpansion'
+        type: array
+      fast:
+        type: boolean
+      heatFor:
+        type: boolean
+      includeVenusMA:
+        type: boolean
+      includedCards:
+        items:
+          type: string
+        type: array
+      initialDraft:
+        type: boolean
+      moonExpansion:
+        type: boolean
+      moonStandardProjectVariant:
+        type: boolean
+      pathfindersExpansion:
+        type: boolean
+      preludeExtension:
+        type: boolean
+      randomFirstPlayer:
+        type: boolean
+      removeNegativeAttackCards:
+        type: boolean
+      requiresMoonTrackCompletion:
+        type: boolean
+      requiresVenusTrackCompletion:
+        type: boolean
+      showOtherPlayersVP:
+        type: boolean
+      soloTR:
+        type: boolean
+      turmoilExtension:
+        type: boolean
+      twoTempTerraformingThreshold:
+        type: boolean
+      underworldExpansion:
+        type: boolean
+      venusNextExtension:
+        type: boolean
+    type: object
+  domain.GameState:
+    properties:
+      awards:
+        items:
+          $ref: '#/definitions/domain.Award'
+        type: array
+      corporationDraft:
+        type: boolean
+      createdAt:
+        type: string
+      currentActionCount:
+        type: integer
+      currentPlayer:
+        type: string
+      deck:
+        items:
+          type: string
+        type: array
+      discardPile:
+        items:
+          type: string
+        type: array
+      draftDirection:
+        $ref: '#/definitions/domain.DraftDirection'
+      firstPlayer:
+        type: string
+      gameSettings:
+        $ref: '#/definitions/domain.GameSettings'
+      generation:
+        type: integer
+      globalParameters:
+        $ref: '#/definitions/domain.GlobalParameters'
+      id:
+        type: string
+      maxActionsPerTurn:
+        type: integer
+      milestones:
+        items:
+          $ref: '#/definitions/domain.Milestone'
+        type: array
+      phase:
+        $ref: '#/definitions/domain.GamePhase'
+      players:
+        items:
+          $ref: '#/definitions/domain.Player'
+        type: array
+      soloMode:
+        type: boolean
+      turn:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  domain.GlobalParameters:
+    properties:
+      oceans:
+        description: 0 to 9
+        type: integer
+      oxygen:
+        description: 0 to 14%
+        type: integer
+      temperature:
+        description: -30 to +8 (in steps of 2)
+        type: integer
+    type: object
+  domain.HexCoordinate:
+    properties:
+      q:
+        description: Column
+        type: integer
+      r:
+        description: Row
+        type: integer
+      s:
+        description: Diagonal (q + r + s = 0)
+        type: integer
+    type: object
+  domain.Milestone:
+    properties:
+      claimedBy:
+        type: string
+      cost:
+        type: integer
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.Player:
+    properties:
+      actionsRemaining:
+        type: integer
+      actionsTaken:
+        type: integer
+      availableActions:
+        type: integer
+      corporation:
+        type: string
+      hand:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      passed:
+        type: boolean
+      playedCards:
+        items:
+          type: string
+        type: array
+      production:
+        $ref: '#/definitions/domain.ResourcesMap'
+      reserved:
+        $ref: '#/definitions/domain.ResourcesMap'
+      resources:
+        $ref: '#/definitions/domain.ResourcesMap'
+      tags:
+        items:
+          $ref: '#/definitions/domain.Tag'
+        type: array
+      terraformRating:
+        type: integer
+      tilePositions:
+        items:
+          $ref: '#/definitions/domain.HexCoordinate'
+        type: array
+      victoryPoints:
+        type: integer
+    type: object
+  domain.ResourcesMap:
+    properties:
+      credits:
+        type: integer
+      energy:
+        type: integer
+      heat:
+        type: integer
+      plants:
+        type: integer
+      steel:
+        type: integer
+      titanium:
+        type: integer
+    type: object
+  domain.Tag:
+    enum:
+    - building
+    - space
+    - power
+    - science
+    - microbe
+    - animal
+    - plant
+    - earth
+    - jovian
+    - city
+    - event
+    - wild
+    - venus
+    - moon
+    - mars
+    - clone
+    type: string
+    x-enum-varnames:
+    - TagBuilding
+    - TagSpace
+    - TagPower
+    - TagScience
+    - TagMicrobe
+    - TagAnimal
+    - TagPlant
+    - TagEarth
+    - TagJovian
+    - TagCity
+    - TagEvent
+    - TagWild
+    - TagVenus
+    - TagMoon
+    - TagMars
+    - TagClone
+host: localhost:3001
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Digital implementation of Terraforming Mars board game backend API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Terraforming Mars API
+  version: "1.0"
+paths:
+  /corporations:
+    get:
+      consumes:
+      - application/json
+      description: Get the list of corporations available for selection
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Corporation'
+            type: array
+      summary: Get available corporations
+      tags:
+      - corporations
+  /games/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a game state by its ID
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GameState'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get game by ID
+      tags:
+      - games
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the server is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check endpoint
+      tags:
+      - health
+schemes:
+- http
+- https
+swagger: "2.0"
