@@ -6,7 +6,6 @@ import MainContentDisplay from '../../ui/display/MainContentDisplay.tsx';
 import BottomResourceBar from '../../ui/overlay/BottomResourceBar.tsx';
 import CardsHandOverlay from '../../ui/overlay/CardsHandOverlay.tsx';
 import PlayerOverlay from '../../ui/overlay/PlayerOverlay.tsx';
-import ActionPanel from '../../ui/overlay/ActionPanel.tsx';
 import { MainContentProvider } from '../../../contexts/MainContentContext.tsx';
 
 interface GameLayoutProps {
@@ -43,11 +42,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           currentPlayer={currentPlayer}
         />
         
-        <BottomResourceBar />
+        <BottomResourceBar currentPlayer={currentPlayer} />
         
         <CardsHandOverlay />
         
-        <ActionPanel currentPlayer={currentPlayer} />
         
         <style jsx>{`
         .game-layout {

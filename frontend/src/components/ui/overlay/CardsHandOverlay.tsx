@@ -561,6 +561,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
           display: flex;
           flex-direction: column;
+          pointer-events: none;
         }
 
         .card-cost {
@@ -579,10 +580,12 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           justify-content: center;
           border: 2px solid #ffffff;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+          pointer-events: none;
         }
 
         .card-header {
           margin-bottom: 8px;
+          pointer-events: none;
         }
 
         .card-name {
@@ -592,6 +595,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           line-height: 1.2;
           color: var(--rarity-color);
           text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+          pointer-events: none;
         }
 
         .card-stats {
@@ -601,6 +605,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           right: 4px;
           display: flex;
           justify-content: space-between;
+          pointer-events: none;
         }
 
         .attack, .health {
@@ -620,10 +625,12 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
 
         .attack {
           background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+          pointer-events: none;
         }
 
         .health {
           background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+          pointer-events: none;
         }
 
         .card-description {
@@ -640,6 +647,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           display: -webkit-box;
           -webkit-line-clamp: 6;
           -webkit-box-orient: vertical;
+          pointer-events: none;
         }
 
         .card-type-indicator {
@@ -650,6 +658,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           height: 3px;
           background: var(--card-type-color);
           border-radius: 8px 8px 0 0;
+          pointer-events: none;
         }
 
         /* Responsive Design */
