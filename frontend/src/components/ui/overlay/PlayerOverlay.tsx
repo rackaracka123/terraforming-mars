@@ -1,5 +1,5 @@
 import React from 'react';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
+// Z-index import removed - using natural DOM layering
 
 interface Player {
   id: string;
@@ -112,7 +112,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({ players, currentPlayer })
           top: 70px;
           left: 50%;
           transform: translateX(-50%);
-          z-index: 90;
+          /* z-index removed - natural DOM order provides correct layering */
           pointer-events: none;
         }
         

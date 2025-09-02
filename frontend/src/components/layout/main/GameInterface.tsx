@@ -246,12 +246,22 @@ export default function GameInterface() {
     );
   }
 
+  // Check if any modal is currently open
+  const isAnyModalOpen = showCorporationModal || showCardsPlayedModal || showTagsModal || 
+                        showVictoryPointsModal || showActionsModal || showCardEffectsModal;
+
   return (
     <>
       <GameLayout 
         gameState={gameState} 
         currentPlayer={currentPlayer} 
         socket={socket}
+        isAnyModalOpen={isAnyModalOpen}
+        onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
+        onOpenActionsModal={() => setShowActionsModal(true)}
+        onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
+        onOpenTagsModal={() => setShowTagsModal(true)}
+        onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
       />
       
       {/* Original Corporation Selection Modal */}

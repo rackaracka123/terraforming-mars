@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CardType, CardTag } from '../../../types/cards.ts';
-import ActionsModal from '../modals/ActionsModal.tsx';
-import CardEffectsModal from '../modals/CardEffectsModal.tsx';
-import CardsPlayedModal from '../modals/CardsPlayedModal.tsx';
-import TagsModal from '../modals/TagsModal.tsx';
-import VictoryPointsModal from '../modals/VictoryPointsModal.tsx';
+// Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
   id: string;
@@ -24,17 +20,22 @@ interface BottomResourceBarProps {
     playedCards: Array<{ type: CardType }> | any[];
     tags: any[];
   } | null;
+  onOpenCardEffectsModal?: () => void;
+  onOpenActionsModal?: () => void;
+  onOpenCardsPlayedModal?: () => void;
+  onOpenTagsModal?: () => void;
+  onOpenVictoryPointsModal?: () => void;
 }
 
-const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) => {
+const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ 
+  currentPlayer,
+  onOpenCardEffectsModal,
+  onOpenActionsModal,
+  onOpenCardsPlayedModal,
+  onOpenTagsModal,
+  onOpenVictoryPointsModal
+}) => {
   const [cardsExpanded, setCardsExpanded] = useState(false);
-
-  // Modal state management
-  const [showActionsModal, setShowActionsModal] = useState(false);
-  const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
-  const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
-  const [showTagsModal, setShowTagsModal] = useState(false);
-  const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
 
   // Helper function to create image with embedded number
   const createImageWithNumber = (imageSrc: string, number: number, className: string = '') => {
@@ -312,27 +313,27 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) 
   // Modal handlers
   const handleOpenCardsModal = () => {
     console.log('Opening cards modal');
-    setShowCardsPlayedModal(true);
+    onOpenCardsPlayedModal?.();
   };
 
   const handleOpenActionsModal = () => {
     console.log('Opening actions modal');
-    setShowActionsModal(true);
+    onOpenActionsModal?.();
   };
 
   const handleOpenTagsModal = () => {
     console.log('Opening tags modal');
-    setShowTagsModal(true);
+    onOpenTagsModal?.();
   };
 
   const handleOpenVictoryPointsModal = () => {
     console.log('Opening victory points modal');
-    setShowVictoryPointsModal(true);
+    onOpenVictoryPointsModal?.();
   };
 
   const handleOpenCardEffectsModal = () => {
     console.log('Opening card effects modal');
-    setShowCardEffectsModal(true);
+    onOpenCardEffectsModal?.();
   };
 
   // Use mock cards if current player doesn't have played cards, otherwise use their cards
@@ -351,23 +352,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) 
     }
   }) || [];
 
-  // Add escape key handler
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowActionsModal(false);
-        setShowCardEffectsModal(false);
-        setShowCardsPlayedModal(false);
-        setShowTagsModal(false);
-        setShowVictoryPointsModal(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, []);
+  // Modal escape handling is now managed in GameInterface
 
   return (
     <div className="bottom-resource-bar">
@@ -500,7 +485,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) 
           align-items: center;
           justify-content: space-between;
           padding: 15px 30px;
-          z-index: 100;
+          /* z-index removed - natural DOM order places this above game content */
           box-shadow: 
             0 -8px 32px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(100, 150, 255, 0.2);
@@ -730,7 +715,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) 
           box-shadow: 
             0 8px 25px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(150, 100, 255, 0.3);
-          z-index: 250;
+          /* z-index removed - isolation provides natural stacking */
+          isolation: isolate;
         }
 
         .cards-grid {
@@ -1118,57 +1104,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ currentPlayer }) 
         }
       `}</style>
 
-      {/* Modal Components */}
-      <ActionsModal
-        isVisible={showActionsModal}
-        onClose={() => {
-          console.log('Closing actions modal');
-          setShowActionsModal(false);
-        }}
-        actions={mockActions}
-        playerName={currentPlayer?.name || 'Player'}
-        onActionSelect={(action) => {
-          console.log('Action selected:', action);
-          setShowActionsModal(false);
-        }}
-      />
-
-      <CardEffectsModal
-        isVisible={showCardEffectsModal}
-        onClose={() => setShowCardEffectsModal(false)}
-        effects={mockCardEffects}
-        cards={fullCardsData}
-        playerName={currentPlayer?.name || 'Player'}
-        onEffectActivate={(effect) => {
-          console.log('Effect activated:', effect);
-        }}
-      />
-
-      <CardsPlayedModal
-        isVisible={showCardsPlayedModal}
-        onClose={() => setShowCardsPlayedModal(false)}
-        cards={fullCardsData}
-        playerName={currentPlayer?.name || 'Player'}
-      />
-
-      <TagsModal
-        isVisible={showTagsModal}
-        onClose={() => setShowTagsModal(false)}
-        cards={fullCardsData}
-        playerName={currentPlayer?.name || 'Player'}
-      />
-
-      <VictoryPointsModal
-        isVisible={showVictoryPointsModal}
-        onClose={() => setShowVictoryPointsModal(false)}
-        cards={fullCardsData}
-        milestones={mockMilestones}
-        awards={mockAwards}
-        terraformRating={20}
-        greeneryTiles={3}
-        cityTiles={2}
-        playerName={currentPlayer?.name || 'Player'}
-      />
+      {/* Modal components are now rendered in GameInterface */}
     </div>
   );
 };

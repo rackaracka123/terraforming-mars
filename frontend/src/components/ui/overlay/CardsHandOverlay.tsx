@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Z_INDEX, getZIndex } from '../../../constants/zIndex.ts';
+// Z-index imports removed - using DOM order and isolation for layering
 
 interface HearthstoneCard {
   id: string;
@@ -13,9 +13,11 @@ interface HearthstoneCard {
   playable: boolean;
 }
 
-interface CardsHandOverlayProps {}
+interface CardsHandOverlayProps {
+  hideWhenModalOpen?: boolean;
+}
 
-const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
+const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen = false }) => {
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 }); // Offset from initial click to card position
@@ -355,6 +357,11 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
     };
   }, [isDragging, draggedCard]);
 
+  // Hide the overlay when modals are open
+  if (hideWhenModalOpen) {
+    return null;
+  }
+
   return (
     <div 
       className="hearthstone-hand-overlay"
@@ -377,7 +384,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           let finalY = position.y;
           let finalRotation = getCardRotation(card.id, position.rotation); // Get the card's tracked rotation
           let scale = getCardScale(card.id); // Get the card's tracked scale
-          let zIndex = index;
+          // Card layering handled by DOM order and CSS isolation instead of z-index
           
           // Apply expanded state offset and scaling
           if (!cardsExpanded) {
@@ -391,13 +398,13 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           if (isHovered && !isDragging && !isHighlighted && cardsExpanded) {
             finalY -= 80; // Move up even more to show more of the card
             // Scale is managed by hover handlers
-            // Keep original zIndex to avoid covering other cards
+            // Card elevation handled by isolation and transform
           }
           
           if (isHighlighted && !isDragging && cardsExpanded) {
             finalY -= 100; // Pop out significantly from the fan
             // Scale is managed by click handlers
-            zIndex = Z_INDEX.CARD_HOVER; // High z-index for prominence
+            // Card prominence handled by CSS isolation
           }
           
           if (isDraggedCard) {
@@ -412,7 +419,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
               finalY = targetScreenY - containerRect.bottom;
             }
             // Keep the current rotation and scale (don't change them when dragging)
-            zIndex = getZIndex('CARD_HOVER', 1);
+            // Dragged card elevation handled by CSS isolation
           }
           
           return (
@@ -421,7 +428,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
               className={`hearthstone-card ${isHighlighted ? 'highlighted' : ''} ${isDraggedCard ? 'dragged' : ''} ${isHovered ? 'hovered' : ''} ${!card.playable ? 'unplayable' : ''}`}
               style={{
                 transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
-                zIndex: zIndex,
+                // z-index removed - using isolation for card layering
                 '--card-type-color': getCardTypeColor(card.type),
                 '--rarity-color': getRarityColor(card.rarity),
                 '--card-x': `${finalX}px`,
@@ -460,14 +467,15 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
         })}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .hearthstone-hand-overlay {
           position: fixed;
-          bottom: 0;
+          bottom: 120px; /* Position above BottomResourceBar (120px height) to avoid overlap */
           left: 0;
           right: 0;
-          height: 100vh;
-          z-index: 200;
+          height: 280px; /* Cards area height */
+          /* z-index removed - natural DOM order places this appropriately */
+          /* Positioned above BottomResourceBar so cards don't interfere with buttons */
           pointer-events: none;
         }
 
@@ -514,6 +522,8 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = () => {
           transform-origin: bottom center;
           pointer-events: auto;
           user-select: none;
+          /* Use isolation to create natural stacking contexts */
+          isolation: isolate;
         }
 
         .hearthstone-card.hovered {

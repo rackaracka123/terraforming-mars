@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import CorporationCard from '../cards/CorporationCard.tsx';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
 
 interface Corporation {
   id: string;
@@ -107,7 +106,9 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 5000;
+            /* z-index removed - natural DOM order places modal above other elements */
+            /* Use isolation to ensure proper stacking above all other content */
+            isolation: isolate;
             padding: 20px;
             transition: all 0.3s ease;
           }

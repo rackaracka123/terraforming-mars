@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { CardType, CardTag } from '../../../types/cards.ts';
-import CostDisplay from '../display/CostDisplay.tsx';
 import ProductionDisplay from '../display/ProductionDisplay.tsx';
 
 interface CardEffect {

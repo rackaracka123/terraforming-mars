@@ -12,9 +12,25 @@ interface GameLayoutProps {
   gameState: any;
   currentPlayer: any;
   socket: any;
+  isAnyModalOpen?: boolean;
+  onOpenCardEffectsModal?: () => void;
+  onOpenActionsModal?: () => void;
+  onOpenCardsPlayedModal?: () => void;
+  onOpenTagsModal?: () => void;
+  onOpenVictoryPointsModal?: () => void;
 }
 
-const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socket }) => {
+const GameLayout: React.FC<GameLayoutProps> = ({ 
+  gameState, 
+  currentPlayer, 
+  socket, 
+  isAnyModalOpen = false,
+  onOpenCardEffectsModal,
+  onOpenActionsModal,
+  onOpenCardsPlayedModal,
+  onOpenTagsModal,
+  onOpenVictoryPointsModal
+}) => {
   return (
     <MainContentProvider>
       <div className="game-layout">
@@ -42,9 +58,16 @@ const GameLayout: React.FC<GameLayoutProps> = ({ gameState, currentPlayer, socke
           currentPlayer={currentPlayer}
         />
         
-        <BottomResourceBar currentPlayer={currentPlayer} />
+        <BottomResourceBar 
+          currentPlayer={currentPlayer}
+          onOpenCardEffectsModal={onOpenCardEffectsModal}
+          onOpenActionsModal={onOpenActionsModal}
+          onOpenCardsPlayedModal={onOpenCardsPlayedModal}
+          onOpenTagsModal={onOpenTagsModal}
+          onOpenVictoryPointsModal={onOpenVictoryPointsModal}
+        />
         
-        <CardsHandOverlay />
+        <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
         
         
         <style jsx>{`

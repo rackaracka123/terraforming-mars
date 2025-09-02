@@ -128,7 +128,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         .board-background {
           position: absolute;
           inset: 0;
-          z-index: 0;
+          /* z-index removed - background naturally layers behind content */
         }
         
         .mars-atmosphere {
@@ -165,7 +165,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         
         .hex-grid-container {
           position: relative;
-          z-index: 1;
+          /* z-index removed - natural DOM order places this above background */
           padding: 50px;
         }
         
@@ -211,8 +211,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         
         .hex:hover {
           transform: scale(1.1);
-          z-index: 10;
           filter: brightness(1.2);
+          /* Use isolation instead of z-index for hover elevation */
+          isolation: isolate;
         }
         
         .hex-inner {
@@ -223,7 +224,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           align-items: center;
           justify-content: center;
           position: relative;
-          z-index: 1;
+          /* z-index removed - natural DOM order provides correct stacking */
         }
         
         .hex-content {
@@ -246,7 +247,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           position: absolute;
           top: 20px;
           left: 20px;
-          z-index: 5;
+          /* z-index removed - overlay positioned naturally above board content */
+          isolation: isolate;
         }
         
         .planet-info {
