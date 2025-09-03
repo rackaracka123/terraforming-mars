@@ -41,8 +41,8 @@ const GameLandingPage: React.FC = () => {
         }
 
         setIsLoading(false);
-      } catch (err) {
-        console.error("Failed to reconnect to saved game:", err);
+      } catch (err: any) {
+        void err;
         // Clear invalid saved game data
         localStorage.removeItem("terraforming-mars-game");
         setError("Unable to reconnect to previous game");

@@ -3,7 +3,7 @@ import Game3DView from "../../game/view/Game3DView.tsx";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 import { CardType } from "../../../types/cards.ts";
 import CostDisplay from "./CostDisplay.tsx";
-import { Game } from "../../../types/generated/domain";
+import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface Card {
   id: string;
@@ -79,7 +79,7 @@ interface Award {
 }
 
 interface MainContentDisplayProps {
-  gameState: Game;
+  gameState: GameDto;
 }
 
 const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
@@ -141,7 +141,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
           >
             ← Back to Game
           </button>
-          <h2>{playerName}'s Played Cards</h2>
+          <h2>Played Cards</h2>
           <div className="cards-count">{cards.length} Cards</div>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
-import { Player as BasePlayer } from "../../../types/generated/domain";
+import { PlayerDto as BasePlayer } from "../../../types/generated/api-types.ts";
 
 interface Player extends BasePlayer {
   passed?: boolean;

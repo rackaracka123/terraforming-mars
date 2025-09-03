@@ -7,7 +7,8 @@
  * ActionType represents different types of game actions
  */
 export type ActionType = string;
-export const ActionTypeStandardProjectAsteroid: ActionType = "standard-project-asteroid";
+export const ActionTypeStandardProjectAsteroid: ActionType =
+  "standard-project-asteroid";
 export const ActionTypeRaiseTemperature: ActionType = "raise-temperature";
 export const ActionTypeSelectCorporation: ActionType = "select-corporation";
 export const ActionTypeSkipAction: ActionType = "skip-action";

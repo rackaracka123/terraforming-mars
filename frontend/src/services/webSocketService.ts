@@ -1,18 +1,18 @@
 import { v4 as uuidv4 } from "uuid";
 import {
-  MessageType,
-  MessageTypePlayerConnect,
-  MessageTypePlayAction,
-  MessageTypeGameUpdated,
-  MessageTypePlayerConnected,
-  MessageTypeError,
-  MessageTypeFullState,
-  WebSocketMessage,
-  PlayerConnectedPayload,
-  GameUpdatedPayload,
   ErrorPayload,
   FullStatePayload,
-} from "../types/generated/websocket";
+  GameUpdatedPayload,
+  MessageType,
+  MessageTypeError,
+  MessageTypeFullState,
+  MessageTypeGameUpdated,
+  MessageTypePlayAction,
+  MessageTypePlayerConnect,
+  MessageTypePlayerConnected,
+  PlayerConnectedPayload,
+  WebSocketMessage,
+} from "../types/generated/api-types.ts";
 
 type EventCallback = (data: any) => void;
 
@@ -44,11 +44,17 @@ export class WebSocketService {
         };
 
         this.ws.onmessage = (event) => {
+          let message: any;
           try {
-            const message: WebSocketMessage = JSON.parse(event.data);
-            this.handleMessage(message);
+            message = JSON.parse(event.data);
           } catch (error) {
             console.error("Failed to parse WebSocket message:", error);
+          }
+
+          try {
+            this.handleMessage(message);
+          } catch (error) {
+            console.error("Error handling WebSocket message:", error);
           }
         };
 

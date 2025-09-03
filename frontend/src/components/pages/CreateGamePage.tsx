@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { webSocketService } from "../../services/webSocketService";
-import { GameSettings } from "../../types/generated/domain";
+import { GameSettingsDto } from "../../types/generated/api-types.ts";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const CreateGamePage: React.FC = () => {
 
     try {
       // Create game with default settings
-      const gameSettings: GameSettings = {
+      const gameSettings: GameSettingsDto = {
         maxPlayers: 4, // Default max players
       };
 
@@ -66,7 +66,6 @@ const CreateGamePage: React.FC = () => {
         },
       });
     } catch (err) {
-      console.error("Failed to create game:", err);
       setError(err instanceof Error ? err.message : "Failed to create game");
     } finally {
       setIsLoading(false);

@@ -1,8 +1,11 @@
-import { Game, GameSettings } from "../types/generated/domain";
-
-interface CreateGameRequest {
-  maxPlayers: number;
-}
+import {
+  CreateGameRequest,
+  CreateGameResponse,
+  GameDto,
+  GameSettingsDto,
+  GetGameResponse,
+  ListGamesResponse,
+} from "../types/generated/api-types.ts";
 
 export class ApiService {
   private baseUrl: string;
@@ -11,7 +14,7 @@ export class ApiService {
     this.baseUrl = baseUrl;
   }
 
-  async createGame(settings: GameSettings): Promise<Game> {
+  async createGame(settings: GameSettingsDto): Promise<GameDto> {
     try {
       const request: CreateGameRequest = {
         maxPlayers: settings.maxPlayers,
@@ -32,15 +35,15 @@ export class ApiService {
         );
       }
 
-      const game: Game = await response.json();
-      return game;
+      const gameResponse: CreateGameResponse = await response.json();
+      return gameResponse.game;
     } catch (error) {
       console.error("Failed to create game:", error);
       throw error;
     }
   }
 
-  async getGame(gameId: string): Promise<Game> {
+  async getGame(gameId: string): Promise<GameDto> {
     try {
       const response = await fetch(`${this.baseUrl}/games/${gameId}`);
 
@@ -51,15 +54,15 @@ export class ApiService {
         );
       }
 
-      const game: Game = await response.json();
-      return game;
+      const gameResponse: GetGameResponse = await response.json();
+      return gameResponse.game;
     } catch (error) {
       console.error("Failed to get game:", error);
       throw error;
     }
   }
 
-  async listGames(status?: string): Promise<Game[]> {
+  async listGames(status?: string): Promise<GameDto[]> {
     try {
       const url = new URL(`${this.baseUrl}/games`);
       if (status) {
@@ -75,7 +78,7 @@ export class ApiService {
         );
       }
 
-      const data = await response.json();
+      const data: ListGamesResponse = await response.json();
       return data.games || [];
     } catch (error) {
       console.error("Failed to list games:", error);

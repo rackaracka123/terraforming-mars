@@ -1,8 +1,8 @@
 import React from "react";
-import { Game } from "../../../types/generated/domain";
+import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface GameBoardProps {
-  gameState?: Game;
+  gameState?: GameDto;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {

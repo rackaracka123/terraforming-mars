@@ -2,10 +2,10 @@ import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
-import { Game } from "@/types/generated/domain.ts";
+import { GameDto } from "@/types/generated/api-types.ts";
 
 interface Game3DViewProps {
-  gameState: Game;
+  gameState: GameDto;
 }
 
 export default function Game3DView({ gameState }: Game3DViewProps) {

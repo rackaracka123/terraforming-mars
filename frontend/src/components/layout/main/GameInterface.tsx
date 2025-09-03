@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
-import CorporationSelectionModal from "../../ui/modals/CorporationSelectionModal.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
 import { webSocketService } from "../../../services/webSocketService.ts";
-import { Game, Player } from "../../../types/generated/domain.ts";
+import { GameDto, PlayerDto } from "../../../types/generated/api-types.ts";
 
 // Mock interface for GameLayout compatibility
 interface MockGameState {
@@ -53,7 +52,7 @@ interface MockPlayer {
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [game, setGame] = useState<Game | null>(null);
+  const [game, setGame] = useState<GameDto | null>(null);
   const [mockGameState, setMockGameState] = useState<MockGameState | null>(
     null,
   );
@@ -70,13 +69,13 @@ export default function GameInterface() {
 
   // Helper function to convert Game to MockGameState for compatibility
   const convertGameToMockState = (
-    gameData: Game,
+    gameData: GameDto,
     playerId: string,
   ): MockGameState => {
     return {
       id: gameData.id,
       players:
-        gameData.players?.map((p: Player) => ({
+        gameData.players?.map((p: PlayerDto) => ({
           id: p.id,
           name: p.name,
           resources: p.resources || {
@@ -115,7 +114,7 @@ export default function GameInterface() {
   useEffect(() => {
     // Check if we have real game state from routing
     const routeState = location.state as {
-      game?: Game;
+      game?: GameDto;
       playerId?: string;
       playerName?: string;
     } | null;
@@ -139,7 +138,7 @@ export default function GameInterface() {
     setCurrentPlayer(player || null);
 
     // Set up WebSocket listeners for real-time updates
-    const handleGameUpdated = (updatedGame: Game) => {
+    const handleGameUpdated = (updatedGame: GameDto) => {
       setGame(updatedGame);
 
       // Update mock state for compatibility
@@ -183,10 +182,10 @@ export default function GameInterface() {
     };
   }, [location.state, navigate]);
 
-  const handleCorporationSelection = (corporationId: string) => {
-    webSocketService.playAction("select-corporation", { corporationId });
-    setShowCorporationModal(false);
-  };
+  // const handleCorporationSelection = (corporationId: string) => {
+  //   webSocketService.playAction("select-corporation", { corporationId });
+  //   setShowCorporationModal(false);
+  // };
 
   // Demo data for the new modals (in a real app, this would come from game state)
   const demoCards = [
@@ -357,14 +356,12 @@ export default function GameInterface() {
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
       />
 
-      {/* Original Corporation Selection Modal */}
-      <CorporationSelectionModal
-        corporations={availableCorporations}
-        onSelectCorporation={handleCorporationSelection}
-        isVisible={showCorporationModal}
-      />
+      {/*<CorporationSelectionModal*/}
+      {/*  corporations={availableCorporations}*/}
+      {/*  onSelectCorporation={handleCorporationSelection}*/}
+      {/*  isVisible={showCorporationModal}*/}
+      {/*/>*/}
 
-      {/* New Enhanced Modals */}
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
