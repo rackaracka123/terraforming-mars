@@ -231,13 +231,13 @@ func TestGameService_ListGames(t *testing.T) {
 		},
 		{
 			name:       "list waiting games",
-			status:     "waiting",
+			status:     string(domain.GameStatusWaiting),
 			expectGame: true,
 			gameID:     game2.ID,
 		},
 		{
 			name:       "list completed games",
-			status:     "completed",
+			status:     string(domain.GameStatusCompleted),
 			expectGame: false,
 			gameID:     "",
 		},

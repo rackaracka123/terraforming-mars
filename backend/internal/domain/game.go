@@ -14,6 +14,15 @@ const (
 	GamePhaseComplete             GamePhase = "complete"
 )
 
+// GameStatus represents the current status of the game
+type GameStatus string
+
+const (
+	GameStatusWaiting   GameStatus = "waiting"
+	GameStatusActive    GameStatus = "active"
+	GameStatusCompleted GameStatus = "completed"
+)
+
 // GameSettings contains configurable game parameters
 type GameSettings struct {
 	MaxPlayers int `json:"maxPlayers" ts:"number"`
@@ -63,7 +72,7 @@ type Game struct {
 	ID               string           `json:"id" ts:"string"`
 	CreatedAt        time.Time        `json:"createdAt" ts:"string"`
 	UpdatedAt        time.Time        `json:"updatedAt" ts:"string"`
-	Status           string           `json:"status" ts:"string"` // "waiting", "active", "completed"
+	Status           GameStatus       `json:"status" ts:"GameStatus"`
 	Settings         GameSettings     `json:"settings" ts:"GameSettings"`
 	Players          []Player         `json:"players" ts:"Player[]"`
 	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
@@ -81,7 +90,7 @@ func NewGame(id string, settings GameSettings) *Game {
 		ID:           id,
 		CreatedAt:    now,
 		UpdatedAt:    now,
-		Status:       "waiting",
+		Status:       GameStatusWaiting,
 		Settings:     settings,
 		Players:      make([]Player, 0),
 		CurrentPhase: GamePhaseSetup,

@@ -97,7 +97,7 @@ func (r *GameRepository) GetGamesByStatus(status string) ([]*domain.Game, error)
 
 	games := make([]*domain.Game, 0)
 	for _, game := range r.games {
-		if game.Status == status {
+		if string(game.Status) == status {
 			games = append(games, game)
 		}
 	}

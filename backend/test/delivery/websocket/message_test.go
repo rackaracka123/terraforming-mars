@@ -220,7 +220,7 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 		Settings: domain.GameSettings{
 			MaxPlayers: 4,
 		},
-		Status: "waiting",
+		Status: domain.GameStatusWaiting,
 		Players: []domain.Player{
 			{
 				ID:   "player-1",
@@ -348,7 +348,7 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 		Settings: domain.GameSettings{
 			MaxPlayers: 2,
 		},
-		Status: "in-progress",
+		Status: domain.GameStatusActive,
 		Players: []domain.Player{
 			{
 				ID:              "player-1",
