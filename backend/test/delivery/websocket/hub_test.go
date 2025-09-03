@@ -1,0 +1,159 @@
+package websocket_test
+
+import (
+	"encoding/json"
+	"sync"
+	"testing"
+	"time"
+
+	"terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/service"
+
+)
+
+// mockClient implements basic client functionality for testing
+type mockClient struct {
+	ID       string
+	PlayerID string
+	GameID   string
+	send     chan []byte
+	hub      *websocket.Hub
+	messages []websocket.WebSocketMessage
+	mutex    sync.Mutex
+}
+
+func newMockClient(hub *websocket.Hub) *mockClient {
+	return &mockClient{
+		ID:       "test-client-" + time.Now().Format("20060102150405"),
+		send:     make(chan []byte, 256),
+		hub:      hub,
+		messages: make([]websocket.WebSocketMessage, 0),
+	}
+}
+
+func (c *mockClient) SetPlayerInfo(playerID, gameID string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.PlayerID = playerID
+	c.GameID = gameID
+}
+
+func (c *mockClient) GetPlayerInfo() (string, string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.PlayerID, c.GameID
+}
+
+func (c *mockClient) SendMessage(msg *websocket.WebSocketMessage) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.messages = append(c.messages, *msg)
+}
+
+func (c *mockClient) GetMessages() []websocket.WebSocketMessage {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return append([]websocket.WebSocketMessage(nil), c.messages...)
+}
+
+func (c *mockClient) ClearMessages() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.messages = make([]websocket.WebSocketMessage, 0)
+}
+
+func TestNewHub(t *testing.T) {
+	gameRepo := repository.NewGameRepository()
+	gameService := service.NewGameService(gameRepo)
+	hub := websocket.NewHub(gameService)
+
+	if hub == nil {
+		t.Fatal("Expected hub to be non-nil")
+	}
+}
+
+func TestHub_BroadcastToGame(t *testing.T) {
+	gameRepo := repository.NewGameRepository()
+	gameService := service.NewGameService(gameRepo)
+
+	// Create a test game
+	settings := domain.GameSettings{MaxPlayers: 4}
+	game, err := gameService.CreateGame(settings)
+	if err != nil {
+		t.Fatalf("Failed to create game: %v", err)
+	}
+
+	hub := websocket.NewHub(gameService)
+
+	// Test broadcasting to non-existent game
+	message := &websocket.WebSocketMessage{
+		Type: websocket.MessageTypeGameUpdated,
+		Payload: websocket.GameUpdatedPayload{
+			Game: game,
+		},
+		GameID: "non-existent-game",
+	}
+
+	// This should not panic
+	hub.BroadcastToGame("non-existent-game", message)
+}
+
+func TestHub_PayloadParsing(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload interface{}
+		target  interface{}
+		wantErr bool
+	}{
+		{
+			name: "valid payload parsing",
+			payload: map[string]interface{}{
+				"gameId":     "test-game",
+				"playerName": "TestPlayer",
+			},
+			target:  &websocket.PlayerConnectPayload{},
+			wantErr: false,
+		},
+		{
+			name: "valid action payload parsing",
+			payload: map[string]interface{}{
+				"action": "skip-action",
+				"data":   nil,
+			},
+			target:  &websocket.PlayActionPayload{},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Convert payload to JSON and back to simulate WebSocket message parsing
+			data, err := json.Marshal(tt.payload)
+			if err != nil {
+				t.Fatalf("Failed to marshal test payload: %v", err)
+			}
+
+			err = json.Unmarshal(data, tt.target)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parsePayload() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				// Verify the parsing worked correctly
+				switch target := tt.target.(type) {
+				case *websocket.PlayerConnectPayload:
+					if target.GameID != "test-game" || target.PlayerName != "TestPlayer" {
+						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
+					}
+				case *websocket.PlayActionPayload:
+					if target.Action != "skip-action" {
+						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
+					}
+				}
+			}
+		})
+	}
+}
