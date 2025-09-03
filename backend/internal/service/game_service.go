@@ -92,6 +92,11 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, 
 		return nil, fmt.Errorf("failed to add player to game")
 	}
 
+	// Set the first player as host if no host is set
+	if game.HostPlayerID == "" {
+		game.HostPlayerID = player.ID
+	}
+
 	// Update game in repository
 	if err := s.gameRepo.UpdateGame(game); err != nil {
 		return nil, fmt.Errorf("failed to update game: %w", err)
@@ -134,8 +139,8 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 		return nil, fmt.Errorf("player not found in game")
 	}
 
-	// Validate that it's the player's turn (basic validation)
-	if game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
+	// Validate that it's the player's turn (except for start game action)
+	if actionPayload.Type != dto.ActionTypeStartGame && game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
 		return nil, fmt.Errorf("not your turn")
 	}
 
@@ -149,6 +154,8 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 		err = s.actionHandlers.SelectCorporation.Handle(game, player, actionPayload)
 	case dto.ActionTypeSkipAction:
 		err = s.actionHandlers.SkipAction.Handle(game, player, actionPayload)
+	case dto.ActionTypeStartGame:
+		err = s.actionHandlers.StartGame.Handle(game, player, actionPayload)
 	default:
 		return nil, fmt.Errorf("unknown action type: %s", actionPayload.Type)
 	}

@@ -75,6 +75,7 @@ type Game struct {
 	Status           GameStatus       `json:"status" ts:"GameStatus"`
 	Settings         GameSettings     `json:"settings" ts:"GameSettings"`
 	Players          []Player         `json:"players" ts:"Player[]"`
+	HostPlayerID     string           `json:"hostPlayerId" ts:"string"`
 	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
 	GlobalParameters GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
 	CurrentPlayerID  string           `json:"currentPlayerId" ts:"string"`
@@ -129,4 +130,9 @@ func (g *Game) GetPlayer(playerID string) (*Player, bool) {
 // IsGameFull returns true if the game has reached maximum players
 func (g *Game) IsGameFull() bool {
 	return len(g.Players) >= g.Settings.MaxPlayers
+}
+
+// IsHost returns true if the given player ID is the host of the game
+func (g *Game) IsHost(playerID string) bool {
+	return g.HostPlayerID == playerID
 }

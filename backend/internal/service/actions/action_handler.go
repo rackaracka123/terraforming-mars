@@ -16,6 +16,7 @@ type ActionHandlers struct {
 	RaiseTemperature       *RaiseTemperatureHandler
 	SelectCorporation      *SelectCorporationHandler
 	SkipAction            *SkipActionHandler
+	StartGame             *StartGameHandler
 }
 
 // NewActionHandlers creates a new instance of action handlers
@@ -25,5 +26,6 @@ func NewActionHandlers() *ActionHandlers {
 		RaiseTemperature:       &RaiseTemperatureHandler{},
 		SelectCorporation:      &SelectCorporationHandler{},
 		SkipAction:            &SkipActionHandler{},
+		StartGame:             &StartGameHandler{},
 	}
 }

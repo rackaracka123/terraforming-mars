@@ -71,6 +71,7 @@ type GameDto struct {
 	Status           GameStatus            `json:"status" ts:"GameStatus"`
 	Settings         GameSettingsDto       `json:"settings" ts:"GameSettingsDto"`
 	Players          []PlayerDto           `json:"players" ts:"PlayerDto[]"`
+	HostPlayerID     string                `json:"hostPlayerId" ts:"string"`
 	CurrentPhase     GamePhase             `json:"currentPhase" ts:"GamePhase"`
 	GlobalParameters GlobalParametersDto   `json:"globalParameters" ts:"GlobalParametersDto"`
 	CurrentPlayerID  string                `json:"currentPlayerId" ts:"string"`

@@ -8,6 +8,7 @@ const (
 	ActionTypeRaiseTemperature        ActionType = "raise-temperature"
 	ActionTypeSelectCorporation       ActionType = "select-corporation"
 	ActionTypeSkipAction              ActionType = "skip-action"
+	ActionTypeStartGame               ActionType = "start-game"
 )
 
 // ActionRequest is the base interface for all action requests
@@ -53,6 +54,15 @@ func (a SkipActionAction) GetActionType() ActionType {
 	return ActionTypeSkipAction
 }
 
+// StartGameAction represents starting the game (host only)
+type StartGameAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+func (a StartGameAction) GetActionType() ActionType {
+	return ActionTypeStartGame
+}
+
 // ActionPayload contains the action data for WebSocket messages
 type ActionPayload struct {
 	Type            ActionType `json:"type" ts:"ActionType"`
@@ -77,6 +87,8 @@ func (ap *ActionPayload) GetAction() ActionRequest {
 		return nil
 	case ActionTypeSkipAction:
 		return &SkipActionAction{Type: ap.Type}
+	case ActionTypeStartGame:
+		return &StartGameAction{Type: ap.Type}
 	default:
 		return nil
 	}
