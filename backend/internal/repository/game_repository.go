@@ -3,7 +3,7 @@ package repository
 import (
 	"fmt"
 	"sync"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/google/uuid"
 )

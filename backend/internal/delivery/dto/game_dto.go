@@ -1,0 +1,79 @@
+package dto
+
+// GamePhase represents the current phase of the game
+type GamePhase string
+
+const (
+	GamePhaseSetup                GamePhase = "setup"
+	GamePhaseCorporationSelection GamePhase = "corporation_selection"
+	GamePhaseAction               GamePhase = "action"
+	GamePhaseProduction           GamePhase = "production"
+	GamePhaseResearch             GamePhase = "research"
+	GamePhaseComplete             GamePhase = "complete"
+)
+
+// GameStatus represents the current status of the game
+type GameStatus string
+
+const (
+	GameStatusWaiting   GameStatus = "waiting"
+	GameStatusActive    GameStatus = "active"
+	GameStatusCompleted GameStatus = "completed"
+)
+
+// GameSettingsDto contains configurable game parameters
+type GameSettingsDto struct {
+	MaxPlayers int `json:"maxPlayers" ts:"number"`
+}
+
+// GlobalParametersDto represents the terraforming progress
+type GlobalParametersDto struct {
+	Temperature int `json:"temperature" ts:"number"` // Range: -30 to +8°C
+	Oxygen      int `json:"oxygen" ts:"number"`      // Range: 0-14%
+	Oceans      int `json:"oceans" ts:"number"`      // Range: 0-9
+}
+
+// ResourcesDto represents a player's resources
+type ResourcesDto struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// ProductionDto represents a player's production values
+type ProductionDto struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// PlayerDto represents a player in the game for client consumption
+type PlayerDto struct {
+	ID              string        `json:"id" ts:"string"`
+	Name            string        `json:"name" ts:"string"`
+	Corporation     string        `json:"corporation" ts:"string"`
+	Resources       ResourcesDto  `json:"resources" ts:"ResourcesDto"`
+	Production      ProductionDto `json:"production" ts:"ProductionDto"`
+	TerraformRating int           `json:"terraformRating" ts:"number"`
+	IsActive        bool          `json:"isActive" ts:"boolean"`
+	PlayedCards     []string      `json:"playedCards" ts:"string[]"`
+}
+
+// GameDto represents a game for client consumption
+type GameDto struct {
+	ID               string                `json:"id" ts:"string"`
+	Status           GameStatus            `json:"status" ts:"GameStatus"`
+	Settings         GameSettingsDto       `json:"settings" ts:"GameSettingsDto"`
+	Players          []PlayerDto           `json:"players" ts:"PlayerDto[]"`
+	CurrentPhase     GamePhase             `json:"currentPhase" ts:"GamePhase"`
+	GlobalParameters GlobalParametersDto   `json:"globalParameters" ts:"GlobalParametersDto"`
+	CurrentPlayerID  string                `json:"currentPlayerId" ts:"string"`
+	Generation       int                   `json:"generation" ts:"number"`
+	RemainingActions int                   `json:"remainingActions" ts:"number"`
+}

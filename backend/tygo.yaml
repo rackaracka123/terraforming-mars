@@ -1,10 +1,6 @@
 packages:
-  - path: "terraforming-mars-backend/internal/domain"
+  # Client-facing DTOs - the primary interface for frontend communication
+  - path: "terraforming-mars-backend/internal/delivery/dto"
     type_mappings:
       time.Time: "string"
-    output_path: "../frontend/src/types/generated/domain.ts"
-
-  - path: "terraforming-mars-backend/internal/delivery/websocket"
-    type_mappings:
-      time.Time: "string"
-    output_path: "../frontend/src/types/generated/websocket.ts"
+    output_path: "../frontend/src/types/generated/api-types.ts"

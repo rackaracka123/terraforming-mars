@@ -3,8 +3,9 @@ package websocket_test
 import (
 	"encoding/json"
 	"reflect"
+	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"testing"
 )
 
@@ -244,7 +245,7 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 	}
 
 	payload := websocket.GameUpdatedPayload{
-		Game: game,
+		Game: dto.ToGameDto(game),
 	}
 
 	data, err := json.Marshal(payload)
@@ -259,8 +260,8 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 	}
 
 	// Verify game data is preserved
-	if deserializedPayload.Game == nil {
-		t.Fatal("Game is nil after deserialization")
+	if deserializedPayload.Game.ID == "" {
+		t.Fatal("Game ID is empty after deserialization")
 	}
 
 	if deserializedPayload.Game.ID != game.ID {
@@ -369,7 +370,7 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 	}
 
 	payload := websocket.FullStatePayload{
-		Game:     game,
+		Game:     dto.ToGameDto(game),
 		PlayerID: "player-1",
 	}
 
@@ -391,8 +392,8 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 	}
 
 	// Verify game data is preserved
-	if deserializedPayload.Game == nil {
-		t.Fatal("Game is nil after deserialization")
+	if deserializedPayload.Game.ID == "" {
+		t.Fatal("Game ID is empty after deserialization")
 	}
 
 	if deserializedPayload.Game.ID != game.ID {
