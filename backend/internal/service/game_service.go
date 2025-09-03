@@ -60,7 +60,7 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, 
 	}
 
 	// Check if game is joinable
-	if game.Status == "completed" {
+	if game.Status == domain.GameStatusCompleted {
 		return nil, fmt.Errorf("cannot join completed game")
 	}
 
