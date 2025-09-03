@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
@@ -24,7 +24,7 @@ type mockClient struct {
 	GameID   string
 	send     chan []byte
 	hub      *websocket.Hub
-	messages []websocket.WebSocketMessage
+	messages []dto.WebSocketMessage
 	mutex    sync.Mutex
 }
 
@@ -33,7 +33,7 @@ func newMockClient(hub *websocket.Hub) *mockClient {
 		ID:       "test-client-" + time.Now().Format("20060102150405"),
 		send:     make(chan []byte, 256),
 		hub:      hub,
-		messages: make([]websocket.WebSocketMessage, 0),
+		messages: make([]dto.WebSocketMessage, 0),
 	}
 }
 
@@ -50,22 +50,22 @@ func (c *mockClient) GetPlayerInfo() (string, string) {
 	return c.PlayerID, c.GameID
 }
 
-func (c *mockClient) SendMessage(msg *websocket.WebSocketMessage) {
+func (c *mockClient) SendMessage(msg *dto.WebSocketMessage) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.messages = append(c.messages, *msg)
 }
 
-func (c *mockClient) GetMessages() []websocket.WebSocketMessage {
+func (c *mockClient) GetMessages() []dto.WebSocketMessage {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	return append([]websocket.WebSocketMessage(nil), c.messages...)
+	return append([]dto.WebSocketMessage(nil), c.messages...)
 }
 
 func (c *mockClient) ClearMessages() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.messages = make([]websocket.WebSocketMessage, 0)
+	c.messages = make([]dto.WebSocketMessage, 0)
 }
 
 func TestNewHub(t *testing.T) {
@@ -83,7 +83,7 @@ func TestHub_BroadcastToGame(t *testing.T) {
 	gameService := service.NewGameService(gameRepo)
 
 	// Create a test game
-	settings := domain.GameSettings{MaxPlayers: 4}
+	settings := model.GameSettings{MaxPlayers: 4}
 	game, err := gameService.CreateGame(settings)
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
@@ -92,9 +92,9 @@ func TestHub_BroadcastToGame(t *testing.T) {
 	hub := websocket.NewHub(gameService)
 
 	// Test broadcasting to non-existent game
-	message := &websocket.WebSocketMessage{
-		Type: websocket.MessageTypeGameUpdated,
-		Payload: websocket.GameUpdatedPayload{
+	message := &dto.WebSocketMessage{
+		Type: dto.MessageTypeGameUpdated,
+		Payload: dto.GameUpdatedPayload{
 			Game: dto.ToGameDto(game),
 		},
 		GameID: "non-existent-game",
@@ -117,7 +117,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 				"gameId":     "test-game",
 				"playerName": "TestPlayer",
 			},
-			target:  &websocket.PlayerConnectPayload{},
+			target:  &dto.PlayerConnectPayload{},
 			wantErr: false,
 		},
 		{
@@ -127,7 +127,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 					"type": "skip-action",
 				},
 			},
-			target:  &websocket.PlayActionPayload{},
+			target:  &dto.PlayActionPayload{},
 			wantErr: false,
 		},
 	}
@@ -149,11 +149,11 @@ func TestHub_PayloadParsing(t *testing.T) {
 			if !tt.wantErr {
 				// Verify the parsing worked correctly
 				switch target := tt.target.(type) {
-				case *websocket.PlayerConnectPayload:
+				case *dto.PlayerConnectPayload:
 					if target.GameID != "test-game" || target.PlayerName != "TestPlayer" {
 						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
 					}
-				case *websocket.PlayActionPayload:
+				case *dto.PlayActionPayload:
 					if target.ActionPayload.Type != dto.ActionTypeSkipAction {
 						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
 					}

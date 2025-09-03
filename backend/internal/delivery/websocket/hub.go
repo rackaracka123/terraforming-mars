@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 )
 
@@ -128,7 +128,7 @@ func (h *Hub) broadcastMessage(message []byte) {
 }
 
 // BroadcastToGame sends a message to all clients in a specific game
-func (h *Hub) BroadcastToGame(gameID string, message *WebSocketMessage) {
+func (h *Hub) BroadcastToGame(gameID string, message *dto.WebSocketMessage) {
 	h.mutex.RLock()
 	clients, exists := h.gameClients[gameID]
 	if !exists {
@@ -158,8 +158,8 @@ func (h *Hub) BroadcastToGame(gameID string, message *WebSocketMessage) {
 }
 
 // handlePlayerConnect processes player connection messages
-func (h *Hub) handlePlayerConnect(client *Client, msg *WebSocketMessage) {
-	var payload PlayerConnectPayload
+func (h *Hub) handlePlayerConnect(client *Client, msg *dto.WebSocketMessage) {
+	var payload dto.PlayerConnectPayload
 	if err := parsePayload(msg.Payload, &payload); err != nil {
 		client.sendError("Invalid player connect payload")
 		return
@@ -210,9 +210,9 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *WebSocketMessage) {
 	h.mutex.Unlock()
 
 	// Send full state to the connecting player
-	fullStateMsg := &WebSocketMessage{
-		Type: MessageTypeFullState,
-		Payload: FullStatePayload{
+	fullStateMsg := &dto.WebSocketMessage{
+		Type: dto.MessageTypeFullState,
+		Payload: dto.FullStatePayload{
 			Game:     dto.ToGameDto(game),
 			PlayerID: playerID,
 		},
@@ -221,9 +221,9 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *WebSocketMessage) {
 	client.SendMessage(fullStateMsg)
 
 	// Broadcast player connected to other clients in the game
-	connectedMsg := &WebSocketMessage{
-		Type: MessageTypePlayerConnected,
-		Payload: PlayerConnectedPayload{
+	connectedMsg := &dto.WebSocketMessage{
+		Type: dto.MessageTypePlayerConnected,
+		Payload: dto.PlayerConnectedPayload{
 			PlayerID:   playerID,
 			PlayerName: payload.PlayerName,
 		},
@@ -235,8 +235,8 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *WebSocketMessage) {
 }
 
 // handlePlayAction processes game action messages
-func (h *Hub) handlePlayAction(client *Client, msg *WebSocketMessage) {
-	var payload PlayActionPayload
+func (h *Hub) handlePlayAction(client *Client, msg *dto.WebSocketMessage) {
+	var payload dto.PlayActionPayload
 	if err := parsePayload(msg.Payload, &payload); err != nil {
 		client.sendError("Invalid play action payload")
 		return
@@ -260,10 +260,10 @@ func (h *Hub) handlePlayAction(client *Client, msg *WebSocketMessage) {
 }
 
 // broadcastGameUpdate broadcasts a game state update to all clients in the game
-func (h *Hub) broadcastGameUpdate(gameID string, game *domain.Game) {
-	message := &WebSocketMessage{
-		Type: MessageTypeGameUpdated,
-		Payload: GameUpdatedPayload{
+func (h *Hub) broadcastGameUpdate(gameID string, game *model.Game) {
+	message := &dto.WebSocketMessage{
+		Type: dto.MessageTypeGameUpdated,
+		Payload: dto.GameUpdatedPayload{
 			Game: dto.ToGameDto(game),
 		},
 		GameID: gameID,

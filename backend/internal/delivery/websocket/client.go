@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"terraforming-mars-backend/internal/delivery/dto"
 )
 
 const (
@@ -101,7 +102,7 @@ func (c *Client) readPump() {
 		}
 
 		// Parse the message
-		var msg WebSocketMessage
+		var msg dto.WebSocketMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("Error parsing message: %v", err)
 			c.sendError("Invalid message format")
@@ -158,11 +159,11 @@ func (c *Client) writePump() {
 }
 
 // handleMessage processes incoming WebSocket messages
-func (c *Client) handleMessage(msg *WebSocketMessage) {
+func (c *Client) handleMessage(msg *dto.WebSocketMessage) {
 	switch msg.Type {
-	case MessageTypePlayerConnect:
+	case dto.MessageTypePlayerConnect:
 		c.hub.handlePlayerConnect(c, msg)
-	case MessageTypePlayAction:
+	case dto.MessageTypePlayAction:
 		c.hub.handlePlayAction(c, msg)
 	default:
 		log.Printf("Unknown message type: %s", msg.Type)
@@ -171,7 +172,7 @@ func (c *Client) handleMessage(msg *WebSocketMessage) {
 }
 
 // SendMessage sends a message to the client
-func (c *Client) SendMessage(msg *WebSocketMessage) {
+func (c *Client) SendMessage(msg *dto.WebSocketMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		log.Printf("Error marshaling message: %v", err)
@@ -188,9 +189,9 @@ func (c *Client) SendMessage(msg *WebSocketMessage) {
 
 // sendError sends an error message to the client
 func (c *Client) sendError(message string) {
-	errorMsg := &WebSocketMessage{
-		Type: MessageTypeError,
-		Payload: ErrorPayload{
+	errorMsg := &dto.WebSocketMessage{
+		Type: dto.MessageTypeError,
+		Payload: dto.ErrorPayload{
 			Message: message,
 		},
 	}

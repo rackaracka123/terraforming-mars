@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/model"
 	"testing"
 )
 
@@ -13,37 +12,37 @@ import (
 func TestMessageType_Constants(t *testing.T) {
 	tests := []struct {
 		name     string
-		msgType  websocket.MessageType
+		msgType  dto.MessageType
 		expected string
 	}{
 		{
 			name:     "player connect message type",
-			msgType:  websocket.MessageTypePlayerConnect,
+			msgType:  dto.MessageTypePlayerConnect,
 			expected: "player-connect",
 		},
 		{
 			name:     "play action message type",
-			msgType:  websocket.MessageTypePlayAction,
+			msgType:  dto.MessageTypePlayAction,
 			expected: "play-action",
 		},
 		{
 			name:     "game updated message type",
-			msgType:  websocket.MessageTypeGameUpdated,
+			msgType:  dto.MessageTypeGameUpdated,
 			expected: "game-updated",
 		},
 		{
 			name:     "player connected message type",
-			msgType:  websocket.MessageTypePlayerConnected,
+			msgType:  dto.MessageTypePlayerConnected,
 			expected: "player-connected",
 		},
 		{
 			name:     "error message type",
-			msgType:  websocket.MessageTypeError,
+			msgType:  dto.MessageTypeError,
 			expected: "error",
 		},
 		{
 			name:     "full state message type",
-			msgType:  websocket.MessageTypeFullState,
+			msgType:  dto.MessageTypeFullState,
 			expected: "full-state",
 		},
 	}
@@ -60,13 +59,13 @@ func TestMessageType_Constants(t *testing.T) {
 func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 	tests := []struct {
 		name    string
-		message websocket.WebSocketMessage
+		message dto.WebSocketMessage
 	}{
 		{
 			name: "player connect message",
-			message: websocket.WebSocketMessage{
-				Type: websocket.MessageTypePlayerConnect,
-				Payload: websocket.PlayerConnectPayload{
+			message: dto.WebSocketMessage{
+				Type: dto.MessageTypePlayerConnect,
+				Payload: dto.PlayerConnectPayload{
 					PlayerName: "TestPlayer",
 					GameID:     "test-game-123",
 				},
@@ -75,9 +74,9 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 		},
 		{
 			name: "play action message",
-			message: websocket.WebSocketMessage{
-				Type: websocket.MessageTypePlayAction,
-				Payload: websocket.PlayActionPayload{
+			message: dto.WebSocketMessage{
+				Type: dto.MessageTypePlayAction,
+				Payload: dto.PlayActionPayload{
 					ActionPayload: dto.ActionPayload{
 						Type: dto.ActionTypeSkipAction,
 					},
@@ -86,9 +85,9 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 		},
 		{
 			name: "error message",
-			message: websocket.WebSocketMessage{
-				Type: websocket.MessageTypeError,
-				Payload: websocket.ErrorPayload{
+			message: dto.WebSocketMessage{
+				Type: dto.MessageTypeError,
+				Payload: dto.ErrorPayload{
 					Message: "Test error message",
 					Code:    "TEST_ERROR",
 				},
@@ -105,7 +104,7 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 			}
 
 			// Deserialize from JSON
-			var deserializedMessage websocket.WebSocketMessage
+			var deserializedMessage dto.WebSocketMessage
 			err = json.Unmarshal(data, &deserializedMessage)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal message: %v", err)
@@ -133,7 +132,7 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 }
 
 func TestPlayerConnectPayload_JSONSerialization(t *testing.T) {
-	payload := websocket.PlayerConnectPayload{
+	payload := dto.PlayerConnectPayload{
 		PlayerName: "TestPlayer",
 		GameID:     "test-game-123",
 	}
@@ -143,7 +142,7 @@ func TestPlayerConnectPayload_JSONSerialization(t *testing.T) {
 		t.Fatalf("Failed to marshal PlayerConnectPayload: %v", err)
 	}
 
-	var deserializedPayload websocket.PlayerConnectPayload
+	var deserializedPayload dto.PlayerConnectPayload
 	err = json.Unmarshal(data, &deserializedPayload)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal PlayerConnectPayload: %v", err)
@@ -158,11 +157,11 @@ func TestPlayerConnectPayload_JSONSerialization(t *testing.T) {
 func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 	tests := []struct {
 		name    string
-		payload websocket.PlayActionPayload
+		payload dto.PlayActionPayload
 	}{
 		{
 			name: "action without data",
-			payload: websocket.PlayActionPayload{
+			payload: dto.PlayActionPayload{
 				ActionPayload: dto.ActionPayload{
 					Type: dto.ActionTypeSkipAction,
 				},
@@ -170,7 +169,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		},
 		{
 			name: "action with data",
-			payload: websocket.PlayActionPayload{
+			payload: dto.PlayActionPayload{
 				ActionPayload: dto.ActionPayload{
 					Type:       dto.ActionTypeRaiseTemperature,
 					HeatAmount: intPtr(8),
@@ -179,7 +178,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		},
 		{
 			name: "corporation selection action",
-			payload: websocket.PlayActionPayload{
+			payload: dto.PlayActionPayload{
 				ActionPayload: dto.ActionPayload{
 					Type:            dto.ActionTypeSelectCorporation,
 					CorporationName: stringPtr("TestCorp"),
@@ -195,7 +194,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 				t.Fatalf("Failed to marshal PlayActionPayload: %v", err)
 			}
 
-			var deserializedPayload websocket.PlayActionPayload
+			var deserializedPayload dto.PlayActionPayload
 			err = json.Unmarshal(data, &deserializedPayload)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal PlayActionPayload: %v", err)
@@ -217,20 +216,20 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 
 func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 	// Create a test game
-	game := &domain.Game{
+	game := &model.Game{
 		ID: "test-game-123",
-		Settings: domain.GameSettings{
+		Settings: model.GameSettings{
 			MaxPlayers: 4,
 		},
-		Status: domain.GameStatusWaiting,
-		Players: []domain.Player{
+		Status: model.GameStatusWaiting,
+		Players: []model.Player{
 			{
 				ID:   "player-1",
 				Name: "Player 1",
-				Resources: domain.Resources{
+				Resources: model.Resources{
 					Credits: 10,
 				},
-				Production: domain.Production{
+				Production: model.Production{
 					Credits: 1,
 				},
 				TerraformRating: 20,
@@ -238,14 +237,14 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 				PlayedCards:     []string{},
 			},
 		},
-		GlobalParameters: domain.GlobalParameters{
+		GlobalParameters: model.GlobalParameters{
 			Temperature: -30,
 			Oxygen:      0,
 			Oceans:      0,
 		},
 	}
 
-	payload := websocket.GameUpdatedPayload{
+	payload := dto.GameUpdatedPayload{
 		Game: dto.ToGameDto(game),
 	}
 
@@ -254,7 +253,7 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 		t.Fatalf("Failed to marshal GameUpdatedPayload: %v", err)
 	}
 
-	var deserializedPayload websocket.GameUpdatedPayload
+	var deserializedPayload dto.GameUpdatedPayload
 	err = json.Unmarshal(data, &deserializedPayload)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal GameUpdatedPayload: %v", err)
@@ -279,7 +278,7 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 }
 
 func TestPlayerConnectedPayload_JSONSerialization(t *testing.T) {
-	payload := websocket.PlayerConnectedPayload{
+	payload := dto.PlayerConnectedPayload{
 		PlayerID:   "player-123",
 		PlayerName: "TestPlayer",
 	}
@@ -289,7 +288,7 @@ func TestPlayerConnectedPayload_JSONSerialization(t *testing.T) {
 		t.Fatalf("Failed to marshal PlayerConnectedPayload: %v", err)
 	}
 
-	var deserializedPayload websocket.PlayerConnectedPayload
+	var deserializedPayload dto.PlayerConnectedPayload
 	err = json.Unmarshal(data, &deserializedPayload)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal PlayerConnectedPayload: %v", err)
@@ -304,18 +303,18 @@ func TestPlayerConnectedPayload_JSONSerialization(t *testing.T) {
 func TestErrorPayload_JSONSerialization(t *testing.T) {
 	tests := []struct {
 		name    string
-		payload websocket.ErrorPayload
+		payload dto.ErrorPayload
 	}{
 		{
 			name: "error with code",
-			payload: websocket.ErrorPayload{
+			payload: dto.ErrorPayload{
 				Message: "Test error message",
 				Code:    "TEST_ERROR",
 			},
 		},
 		{
 			name: "error without code",
-			payload: websocket.ErrorPayload{
+			payload: dto.ErrorPayload{
 				Message: "Test error message without code",
 				Code:    "",
 			},
@@ -329,7 +328,7 @@ func TestErrorPayload_JSONSerialization(t *testing.T) {
 				t.Fatalf("Failed to marshal ErrorPayload: %v", err)
 			}
 
-			var deserializedPayload websocket.ErrorPayload
+			var deserializedPayload dto.ErrorPayload
 			err = json.Unmarshal(data, &deserializedPayload)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal ErrorPayload: %v", err)
@@ -345,32 +344,32 @@ func TestErrorPayload_JSONSerialization(t *testing.T) {
 
 func TestFullStatePayload_JSONSerialization(t *testing.T) {
 	// Create a test game
-	game := &domain.Game{
+	game := &model.Game{
 		ID: "test-game-123",
-		Settings: domain.GameSettings{
+		Settings: model.GameSettings{
 			MaxPlayers: 2,
 		},
-		Status: domain.GameStatusActive,
-		Players: []domain.Player{
+		Status: model.GameStatusActive,
+		Players: []model.Player{
 			{
 				ID:              "player-1",
 				Name:            "Player 1",
 				Corporation:     "TestCorp",
-				Resources:       domain.Resources{Credits: 25},
-				Production:      domain.Production{Credits: 2},
+				Resources:       model.Resources{Credits: 25},
+				Production:      model.Production{Credits: 2},
 				TerraformRating: 22,
 				IsActive:        true,
 				PlayedCards:     []string{"card-1", "card-2"},
 			},
 		},
-		GlobalParameters: domain.GlobalParameters{
+		GlobalParameters: model.GlobalParameters{
 			Temperature: -26,
 			Oxygen:      2,
 			Oceans:      1,
 		},
 	}
 
-	payload := websocket.FullStatePayload{
+	payload := dto.FullStatePayload{
 		Game:     dto.ToGameDto(game),
 		PlayerID: "player-1",
 	}
@@ -380,7 +379,7 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 		t.Fatalf("Failed to marshal FullStatePayload: %v", err)
 	}
 
-	var deserializedPayload websocket.FullStatePayload
+	var deserializedPayload dto.FullStatePayload
 	err = json.Unmarshal(data, &deserializedPayload)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal FullStatePayload: %v", err)
@@ -425,7 +424,7 @@ func TestMessage_PayloadParsing(t *testing.T) {
 	tests := []struct {
 		name        string
 		messageJSON string
-		messageType websocket.MessageType
+		messageType dto.MessageType
 	}{
 		{
 			name: "player connect message parsing",
@@ -437,7 +436,7 @@ func TestMessage_PayloadParsing(t *testing.T) {
 				},
 				"gameId": "test-game-123"
 			}`,
-			messageType: websocket.MessageTypePlayerConnect,
+			messageType: dto.MessageTypePlayerConnect,
 		},
 		{
 			name: "play action message parsing",
@@ -450,13 +449,13 @@ func TestMessage_PayloadParsing(t *testing.T) {
 					}
 				}
 			}`,
-			messageType: websocket.MessageTypePlayAction,
+			messageType: dto.MessageTypePlayAction,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var message websocket.WebSocketMessage
+			var message dto.WebSocketMessage
 			err := json.Unmarshal([]byte(tt.messageJSON), &message)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal message JSON: %v", err)
@@ -478,8 +477,8 @@ func TestMessage_PayloadParsing(t *testing.T) {
 			}
 
 			switch tt.messageType {
-			case websocket.MessageTypePlayerConnect:
-				var payload websocket.PlayerConnectPayload
+			case dto.MessageTypePlayerConnect:
+				var payload dto.PlayerConnectPayload
 				err = json.Unmarshal(payloadData, &payload)
 				if err != nil {
 					t.Fatalf("Failed to parse PlayerConnectPayload: %v", err)
@@ -488,8 +487,8 @@ func TestMessage_PayloadParsing(t *testing.T) {
 					t.Errorf("PlayerName not parsed correctly: got %s", payload.PlayerName)
 				}
 
-			case websocket.MessageTypePlayAction:
-				var payload websocket.PlayActionPayload
+			case dto.MessageTypePlayAction:
+				var payload dto.PlayActionPayload
 				err = json.Unmarshal(payloadData, &payload)
 				if err != nil {
 					t.Fatalf("Failed to parse PlayActionPayload: %v", err)
