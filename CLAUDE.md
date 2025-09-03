@@ -58,7 +58,7 @@ backend/
 ├── cmd/server/              # Application entry point with dependency injection
 ├── internal/
 │   ├── domain/             # Core business entities (GameState, Player, Corporation)
-│   ├── usecase/            # Application business rules and game logic  
+│   ├── service/            # Application business rules and game logic  
 │   ├── repository/         # Data access layer (in-memory game storage)
 │   └── delivery/           # HTTP handlers and WebSocket hub
 ├── pkg/typegen/            # TypeScript type generation utilities
@@ -88,9 +88,9 @@ Go structs automatically generate TypeScript interfaces via custom type generato
 
 ### WebSocket Event Architecture
 ```
-Client -> 'join-game' -> GameUseCase.JoinGame -> Broadcasts 'game-updated'
-Client -> 'select-corporation' -> GameUseCase.SelectCorporation -> Broadcasts updated state
-Client -> 'raise-temperature' -> GameUseCase.RaiseTemperature -> Visual feedback
+Client -> 'join-game' -> GameService.JoinGame -> Broadcasts 'game-updated'
+Client -> 'select-corporation' -> GameService.SelectCorporation -> Broadcasts updated state
+Client -> 'raise-temperature' -> GameService.RaiseTemperature -> Visual feedback
 Client -> 'skip-action' -> GameUseCase.SkipAction -> Turn progression
 ```
 
@@ -127,7 +127,7 @@ Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat convert
 
 ### Adding New Game Features
 1. **Define domain entities** in `internal/domain/` with proper `ts:` tags
-2. **Implement use case logic** in `internal/usecase/`
+2. **Implement service logic** in `internal/service/`
 3. **Add WebSocket handlers** in `internal/delivery/websocket/`
 4. **Generate types**: Run `go generate` to update frontend types
 5. **Frontend integration**: Import generated types and implement UI
@@ -225,7 +225,7 @@ When displaying production values, use the production asset:
 ## Development Notes
 
 ### Backend Development (Go)
-- **Clean Architecture**: Always implement new features following the domain -> usecase -> delivery pattern
+- **Clean Architecture**: Always implement new features following the domain -> service -> delivery pattern
 - **Type Tags**: Add both `json:` and `ts:` tags to all domain structs for frontend sync
 - **WebSocket Events**: Add new game actions in `internal/delivery/websocket/game_hub.go`
 - **Testing**: Use `go test ./...` to run all backend tests
