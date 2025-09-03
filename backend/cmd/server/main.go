@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
-	"terraforming-mars-backend/internal/delivery/websocket"
+	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 
@@ -15,17 +15,17 @@ import (
 
 func main() {
 	// Initialize repositories
-	helloRepo := repository.NewHelloRepository()
+	gameRepo := repository.NewGameRepository()
 
 	// Initialize services
-	helloService := service.NewHelloService(helloRepo)
+	gameService := service.NewGameService(gameRepo)
 
 	// Initialize handlers
-	helloHandler := httpHandler.NewHelloHandler(helloService)
+	gameHandler := httpHandler.NewGameHandler(gameService)
 
 	// Initialize WebSocket hub
-	hub := websocket.NewHub(helloService)
-	go hub.Run()
+	wsHub := wsHandler.NewHub(gameService)
+	go wsHub.Run() // Start hub in a goroutine
 
 	// Initialize Gin router
 	r := gin.Default()
@@ -38,14 +38,19 @@ func main() {
 	r.Use(cors.New(config))
 
 	// Health check endpoint
-	r.GET("/health", helloHandler.HealthCheck)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-	// Hello endpoint
-	r.GET("/hello", helloHandler.GetHello)
+	// Game endpoints
+	r.POST("/games", gameHandler.CreateGame)
+	r.GET("/games", gameHandler.ListGames)
+	r.GET("/games/:id", gameHandler.GetGame)
+	r.POST("/games/:id/join", gameHandler.JoinGame)
 
 	// WebSocket endpoint
 	r.GET("/ws", func(c *gin.Context) {
-		hub.ServeWS(c.Writer, c.Request)
+		wsHandler.ServeWS(wsHub, c.Writer, c.Request)
 	})
 
 	// Get port from environment or default to 3001
@@ -54,9 +59,9 @@ func main() {
 		port = "3001"
 	}
 
-	log.Printf("Hello World backend server starting on port %s", port)
+	log.Printf("Terraforming Mars backend server starting on port %s", port)
 	log.Printf("Health check available at: http://localhost:%s/health", port)
-	log.Printf("Hello endpoint available at: http://localhost:%s/hello", port)
+	log.Printf("Game endpoints available at: http://localhost:%s/games", port)
 	log.Printf("WebSocket endpoint available at: ws://localhost:%s/ws", port)
 
 	// Start server
