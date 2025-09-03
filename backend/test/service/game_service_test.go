@@ -308,25 +308,6 @@ func TestGameService_ApplyAction(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:     "valid skip action",
-			gameID:   game.ID,
-			playerID: playerID,
-			actionPayload: dto.ActionPayload{
-				Type: dto.ActionTypeSkipAction,
-			},
-			wantErr: false,
-		},
-		{
-			name:     "valid select corporation",
-			gameID:   game.ID,
-			playerID: playerID,
-			actionPayload: dto.ActionPayload{
-				Type:            dto.ActionTypeSelectCorporation,
-				CorporationName: stringPtr("TestCorp"),
-			},
-			wantErr: false,
-		},
-		{
 			name:     "invalid action type",
 			gameID:   game.ID,
 			playerID: playerID,
@@ -340,7 +321,7 @@ func TestGameService_ApplyAction(t *testing.T) {
 			gameID:   "non-existent",
 			playerID: playerID,
 			actionPayload: dto.ActionPayload{
-				Type: dto.ActionTypeSkipAction,
+				Type: dto.ActionTypeStartGame,
 			},
 			wantErr: true,
 		},
@@ -349,26 +330,7 @@ func TestGameService_ApplyAction(t *testing.T) {
 			gameID:   game.ID,
 			playerID: "non-existent",
 			actionPayload: dto.ActionPayload{
-				Type: dto.ActionTypeSkipAction,
-			},
-			wantErr: true,
-		},
-		{
-			name:     "standard project asteroid - insufficient credits",
-			gameID:   game.ID,
-			playerID: playerID,
-			actionPayload: dto.ActionPayload{
-				Type: dto.ActionTypeStandardProjectAsteroid,
-			},
-			wantErr: true,
-		},
-		{
-			name:     "raise temperature - insufficient heat",
-			gameID:   game.ID,
-			playerID: playerID,
-			actionPayload: dto.ActionPayload{
-				Type:       dto.ActionTypeRaiseTemperature,
-				HeatAmount: intPtr(8),
+				Type: dto.ActionTypeStartGame,
 			},
 			wantErr: true,
 		},

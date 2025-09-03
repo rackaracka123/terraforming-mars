@@ -154,7 +154,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
 					}
 				case *dto.PlayActionPayload:
-					if target.ActionPayload.Type != dto.ActionTypeSkipAction {
+					if target.ActionPayload.Type != dto.ActionTypeStartGame {
 						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
 					}
 				}

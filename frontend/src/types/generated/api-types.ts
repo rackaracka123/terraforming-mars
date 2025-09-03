@@ -7,42 +7,12 @@
  * ActionType represents different types of game actions
  */
 export type ActionType = string;
-export const ActionTypeStandardProjectAsteroid: ActionType = "standard-project-asteroid";
-export const ActionTypeRaiseTemperature: ActionType = "raise-temperature";
-export const ActionTypeSelectCorporation: ActionType = "select-corporation";
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
-export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypeStartGame: ActionType = "start-game";
 /**
  * ActionRequest is the base interface for all action requests
  */
 export type ActionRequest = any;
-/**
- * StandardProjectAsteroidAction represents the asteroid standard project action
- */
-export interface StandardProjectAsteroidAction {
-  type: ActionType;
-}
-/**
- * RaiseTemperatureAction represents the raise temperature action using heat
- */
-export interface RaiseTemperatureAction {
-  type: ActionType;
-  heatAmount: number /* int */;
-}
-/**
- * SelectCorporationAction represents selecting a corporation
- */
-export interface SelectCorporationAction {
-  type: ActionType;
-  corporationName: string;
-}
-/**
- * SkipActionAction represents skipping the current action
- */
-export interface SkipActionAction {
-  type: ActionType;
-}
 /**
  * SelectStartingCardAction represents selecting starting cards
  */
@@ -61,8 +31,6 @@ export interface StartGameAction {
  */
 export interface ActionPayload {
   type: ActionType;
-  heatAmount?: number /* int */;
-  corporationName?: string;
   cardIds?: string[];
 }
 

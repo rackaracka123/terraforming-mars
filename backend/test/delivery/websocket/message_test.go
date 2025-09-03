@@ -78,7 +78,7 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 				Type: dto.MessageTypePlayAction,
 				Payload: dto.PlayActionPayload{
 					ActionPayload: dto.ActionPayload{
-						Type: dto.ActionTypeSkipAction,
+						Type: dto.ActionTypeStartGame,
 					},
 				},
 			},
@@ -160,28 +160,19 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		payload dto.PlayActionPayload
 	}{
 		{
-			name: "action without data",
+			name: "start game action",
 			payload: dto.PlayActionPayload{
 				ActionPayload: dto.ActionPayload{
-					Type: dto.ActionTypeSkipAction,
+					Type: dto.ActionTypeStartGame,
 				},
 			},
 		},
 		{
-			name: "action with data",
+			name: "select starting cards action",
 			payload: dto.PlayActionPayload{
 				ActionPayload: dto.ActionPayload{
-					Type:       dto.ActionTypeRaiseTemperature,
-					HeatAmount: intPtr(8),
-				},
-			},
-		},
-		{
-			name: "corporation selection action",
-			payload: dto.PlayActionPayload{
-				ActionPayload: dto.ActionPayload{
-					Type:            dto.ActionTypeSelectCorporation,
-					CorporationName: stringPtr("TestCorp"),
+					Type:    dto.ActionTypeSelectStartingCard,
+					CardIDs: []string{"card1", "card2"},
 				},
 			},
 		},
@@ -493,7 +484,7 @@ func TestMessage_PayloadParsing(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to parse PlayActionPayload: %v", err)
 				}
-				if payload.ActionPayload.Type != dto.ActionTypeRaiseTemperature {
+				if payload.ActionPayload.Type != dto.ActionTypeStartGame {
 					t.Errorf("Action type not parsed correctly: got %s", payload.ActionPayload.Type)
 				}
 			}
