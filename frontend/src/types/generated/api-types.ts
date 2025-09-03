@@ -10,6 +10,7 @@ export type ActionType = string;
 export const ActionTypeStandardProjectAsteroid: ActionType = "standard-project-asteroid";
 export const ActionTypeRaiseTemperature: ActionType = "raise-temperature";
 export const ActionTypeSelectCorporation: ActionType = "select-corporation";
+export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypeStartGame: ActionType = "start-game";
 /**
@@ -43,6 +44,13 @@ export interface SkipActionAction {
   type: ActionType;
 }
 /**
+ * SelectStartingCardAction represents selecting starting cards
+ */
+export interface SelectStartingCardAction {
+  type: ActionType;
+  cardIds: string[];
+}
+/**
  * StartGameAction represents starting the game (host only)
  */
 export interface StartGameAction {
@@ -55,6 +63,7 @@ export interface ActionPayload {
   type: ActionType;
   heatAmount?: number /* int */;
   corporationName?: string;
+  cardIds?: string[];
 }
 
 //////////
@@ -65,10 +74,10 @@ export interface ActionPayload {
  */
 export type GamePhase = string;
 export const GamePhaseSetup: GamePhase = "setup";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseCorporationSelection: GamePhase = "corporation_selection";
 export const GamePhaseAction: GamePhase = "action";
 export const GamePhaseProduction: GamePhase = "production";
-export const GamePhaseResearch: GamePhase = "research";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -77,6 +86,24 @@ export type GameStatus = string;
 export const GameStatusLobby: GameStatus = "lobby";
 export const GameStatusActive: GameStatus = "active";
 export const GameStatusCompleted: GameStatus = "completed";
+/**
+ * CardType represents different types of cards
+ */
+export type CardType = string;
+export const CardTypeEffect: CardType = "effect";
+export const CardTypeActive: CardType = "active";
+export const CardTypeEvent: CardType = "event";
+export const CardTypeCorporation: CardType = "corporation";
+/**
+ * CardDto represents a card for client consumption
+ */
+export interface CardDto {
+  id: string;
+  name: string;
+  type: CardType;
+  cost: number /* int */;
+  description: string;
+}
 /**
  * GameSettingsDto contains configurable game parameters
  */
@@ -120,6 +147,7 @@ export interface PlayerDto {
   id: string;
   name: string;
   corporation: string;
+  cards: string[];
   resources: ResourcesDto;
   production: ProductionDto;
   terraformRating: number /* int */;
@@ -210,6 +238,7 @@ export const MessageTypeGameUpdated: MessageType = "game-updated";
 export const MessageTypePlayerConnected: MessageType = "player-connected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
+export const MessageTypeAvailableCards: MessageType = "available-cards";
 /**
  * WebSocketMessage represents a WebSocket message
  */
@@ -257,4 +286,10 @@ export interface ErrorPayload {
 export interface FullStatePayload {
   game: GameDto;
   playerId: string;
+}
+/**
+ * AvailableCardsPayload contains available starting cards
+ */
+export interface AvailableCardsPayload {
+  cards: CardDto[];
 }

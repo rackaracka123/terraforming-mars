@@ -7,6 +7,7 @@ const (
 	ActionTypeStandardProjectAsteroid ActionType = "standard-project-asteroid"
 	ActionTypeRaiseTemperature        ActionType = "raise-temperature"
 	ActionTypeSelectCorporation       ActionType = "select-corporation"
+	ActionTypeSelectStartingCard      ActionType = "select-starting-card"
 	ActionTypeSkipAction              ActionType = "skip-action"
 	ActionTypeStartGame               ActionType = "start-game"
 )
@@ -54,6 +55,16 @@ func (a SkipActionAction) GetActionType() ActionType {
 	return ActionTypeSkipAction
 }
 
+// SelectStartingCardAction represents selecting starting cards
+type SelectStartingCardAction struct {
+	Type    ActionType `json:"type" ts:"ActionType"`
+	CardIDs []string   `json:"cardIds" ts:"string[]"`
+}
+
+func (a SelectStartingCardAction) GetActionType() ActionType {
+	return ActionTypeSelectStartingCard
+}
+
 // StartGameAction represents starting the game (host only)
 type StartGameAction struct {
 	Type ActionType `json:"type" ts:"ActionType"`
@@ -68,6 +79,7 @@ type ActionPayload struct {
 	Type            ActionType `json:"type" ts:"ActionType"`
 	HeatAmount      *int       `json:"heatAmount,omitempty" ts:"number"`
 	CorporationName *string    `json:"corporationName,omitempty" ts:"string"`
+	CardIDs         []string   `json:"cardIds,omitempty" ts:"string[]"`
 }
 
 // GetAction returns the specific action based on the type
@@ -83,6 +95,11 @@ func (ap *ActionPayload) GetAction() ActionRequest {
 	case ActionTypeSelectCorporation:
 		if ap.CorporationName != nil {
 			return &SelectCorporationAction{Type: ap.Type, CorporationName: *ap.CorporationName}
+		}
+		return nil
+	case ActionTypeSelectStartingCard:
+		if ap.CardIDs != nil {
+			return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
 		}
 		return nil
 	case ActionTypeSkipAction:

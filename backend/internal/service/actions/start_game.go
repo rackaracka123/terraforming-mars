@@ -33,7 +33,7 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 
 	// Start the game
 	game.Status = domain.GameStatusActive
-	game.CurrentPhase = domain.GamePhaseCorporationSelection
+	game.CurrentPhase = domain.GamePhaseStartingCardSelection
 
 	// Set first player as active
 	if len(game.Players) > 0 {

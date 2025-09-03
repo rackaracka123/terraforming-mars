@@ -9,10 +9,11 @@ const (
 	MessageTypePlayAction    MessageType = "play-action"
 
 	// Server -> Client messages
-	MessageTypeGameUpdated     MessageType = "game-updated"
-	MessageTypePlayerConnected MessageType = "player-connected"
-	MessageTypeError           MessageType = "error"
-	MessageTypeFullState       MessageType = "full-state"
+	MessageTypeGameUpdated        MessageType = "game-updated"
+	MessageTypePlayerConnected    MessageType = "player-connected"
+	MessageTypeError              MessageType = "error"
+	MessageTypeFullState          MessageType = "full-state"
+	MessageTypeAvailableCards     MessageType = "available-cards"
 )
 
 // WebSocketMessage represents a WebSocket message
@@ -54,4 +55,9 @@ type ErrorPayload struct {
 type FullStatePayload struct {
 	Game     GameDto `json:"game" ts:"GameDto"`
 	PlayerID string  `json:"playerId" ts:"string"`
+}
+
+// AvailableCardsPayload contains available starting cards
+type AvailableCardsPayload struct {
+	Cards []CardDto `json:"cards" ts:"CardDto[]"`
 }

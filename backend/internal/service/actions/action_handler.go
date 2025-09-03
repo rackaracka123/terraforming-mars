@@ -15,6 +15,7 @@ type ActionHandlers struct {
 	StandardProjectAsteroid *StandardProjectAsteroidHandler
 	RaiseTemperature       *RaiseTemperatureHandler
 	SelectCorporation      *SelectCorporationHandler
+	SelectStartingCards    *SelectStartingCardsHandler
 	SkipAction            *SkipActionHandler
 	StartGame             *StartGameHandler
 }
@@ -25,6 +26,7 @@ func NewActionHandlers() *ActionHandlers {
 		StandardProjectAsteroid: &StandardProjectAsteroidHandler{},
 		RaiseTemperature:       &RaiseTemperatureHandler{},
 		SelectCorporation:      &SelectCorporationHandler{},
+		SelectStartingCards:    &SelectStartingCardsHandler{},
 		SkipAction:            &SkipActionHandler{},
 		StartGame:             &StartGameHandler{},
 	}

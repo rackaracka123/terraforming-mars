@@ -4,12 +4,12 @@ package dto
 type GamePhase string
 
 const (
-	GamePhaseSetup                GamePhase = "setup"
-	GamePhaseCorporationSelection GamePhase = "corporation_selection"
-	GamePhaseAction               GamePhase = "action"
-	GamePhaseProduction           GamePhase = "production"
-	GamePhaseResearch             GamePhase = "research"
-	GamePhaseComplete             GamePhase = "complete"
+	GamePhaseSetup                    GamePhase = "setup"
+	GamePhaseStartingCardSelection    GamePhase = "starting_card_selection"
+	GamePhaseCorporationSelection     GamePhase = "corporation_selection"
+	GamePhaseAction                   GamePhase = "action"
+	GamePhaseProduction               GamePhase = "production"
+	GamePhaseComplete                 GamePhase = "complete"
 )
 
 // GameStatus represents the current status of the game
@@ -20,6 +20,25 @@ const (
 	GameStatusActive    GameStatus = "active"
 	GameStatusCompleted GameStatus = "completed"
 )
+
+// CardType represents different types of cards
+type CardType string
+
+const (
+	CardTypeEffect      CardType = "effect"
+	CardTypeActive      CardType = "active"
+	CardTypeEvent       CardType = "event"
+	CardTypeCorporation CardType = "corporation"
+)
+
+// CardDto represents a card for client consumption
+type CardDto struct {
+	ID          string   `json:"id" ts:"string"`
+	Name        string   `json:"name" ts:"string"`
+	Type        CardType `json:"type" ts:"CardType"`
+	Cost        int      `json:"cost" ts:"number"`
+	Description string   `json:"description" ts:"string"`
+}
 
 // GameSettingsDto contains configurable game parameters
 type GameSettingsDto struct {
@@ -58,6 +77,7 @@ type PlayerDto struct {
 	ID              string        `json:"id" ts:"string"`
 	Name            string        `json:"name" ts:"string"`
 	Corporation     string        `json:"corporation" ts:"string"`
+	Cards           []string      `json:"cards" ts:"string[]"`
 	Resources       ResourcesDto  `json:"resources" ts:"ResourcesDto"`
 	Production      ProductionDto `json:"production" ts:"ProductionDto"`
 	TerraformRating int           `json:"terraformRating" ts:"number"`

@@ -202,6 +202,8 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 		err = s.actionHandlers.RaiseTemperature.Handle(game, player, actionPayload)
 	case dto.ActionTypeSelectCorporation:
 		err = s.actionHandlers.SelectCorporation.Handle(game, player, actionPayload)
+	case dto.ActionTypeSelectStartingCard:
+		err = s.actionHandlers.SelectStartingCards.Handle(game, player, actionPayload)
 	case dto.ActionTypeSkipAction:
 		err = s.actionHandlers.SkipAction.Handle(game, player, actionPayload)
 	case dto.ActionTypeStartGame:

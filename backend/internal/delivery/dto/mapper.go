@@ -33,6 +33,7 @@ func ToPlayerDto(player domain.Player) PlayerDto {
 		ID:              player.ID,
 		Name:            player.Name,
 		Corporation:     player.Corporation,
+		Cards:           player.Cards,
 		Resources:       ToResourcesDto(player.Resources),
 		Production:      ToProductionDto(player.Production),
 		TerraformRating: player.TerraformRating,
@@ -79,6 +80,26 @@ func ToGameSettingsDto(settings domain.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
 		MaxPlayers: settings.MaxPlayers,
 	}
+}
+
+// ToCardDto converts a model Card to CardDto
+func ToCardDto(card domain.Card) CardDto {
+	return CardDto{
+		ID:          card.ID,
+		Name:        card.Name,
+		Type:        CardType(card.Type),
+		Cost:        card.Cost,
+		Description: card.Description,
+	}
+}
+
+// ToCardDtoSlice converts a slice of model Cards to CardDto slice
+func ToCardDtoSlice(cards []domain.Card) []CardDto {
+	dtos := make([]CardDto, len(cards))
+	for i, card := range cards {
+		dtos[i] = ToCardDto(card)
+	}
+	return dtos
 }
 
 // ToGameDtoSlice converts a slice of model Games to GameDto slice
