@@ -5,6 +5,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/service/actions"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,13 +13,15 @@ import (
 
 // GameService handles game business logic
 type GameService struct {
-	gameRepo *repository.GameRepository
+	gameRepo       *repository.GameRepository
+	actionHandlers *actions.ActionHandlers
 }
 
 // NewGameService creates a new game service
 func NewGameService(gameRepo *repository.GameRepository) *GameService {
 	return &GameService{
-		gameRepo: gameRepo,
+		gameRepo:       gameRepo,
+		actionHandlers: actions.NewActionHandlers(),
 	}
 }
 
@@ -139,25 +142,13 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 	// Apply the action based on DTO type
 	switch actionPayload.Type {
 	case dto.ActionTypeStandardProjectAsteroid:
-		err = s.applyStandardProjectAsteroid(game, player, dto.StandardProjectAsteroidAction{Type: actionPayload.Type})
+		err = s.actionHandlers.StandardProjectAsteroid.Handle(game, player, actionPayload)
 	case dto.ActionTypeRaiseTemperature:
-		if actionPayload.HeatAmount == nil {
-			return nil, fmt.Errorf("heat amount is required for raise temperature action")
-		}
-		err = s.applyRaiseTemperature(game, player, dto.RaiseTemperatureAction{
-			Type:       actionPayload.Type,
-			HeatAmount: *actionPayload.HeatAmount,
-		})
+		err = s.actionHandlers.RaiseTemperature.Handle(game, player, actionPayload)
 	case dto.ActionTypeSelectCorporation:
-		if actionPayload.CorporationName == nil {
-			return nil, fmt.Errorf("corporation name is required for select corporation action")
-		}
-		err = s.applySelectCorporation(game, player, dto.SelectCorporationAction{
-			Type:            actionPayload.Type,
-			CorporationName: *actionPayload.CorporationName,
-		})
+		err = s.actionHandlers.SelectCorporation.Handle(game, player, actionPayload)
 	case dto.ActionTypeSkipAction:
-		err = s.applySkipAction(game, player, dto.SkipActionAction{Type: actionPayload.Type})
+		err = s.actionHandlers.SkipAction.Handle(game, player, actionPayload)
 	default:
 		return nil, fmt.Errorf("unknown action type: %s", actionPayload.Type)
 	}
@@ -174,80 +165,6 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 	return game, nil
 }
 
-// applyStandardProjectAsteroid applies the standard project asteroid action
-func (s *GameService) applyStandardProjectAsteroid(game *domain.Game, player *domain.Player, action dto.StandardProjectAsteroidAction) error {
-	// Cost: 14 MC, Effect: Raise temperature 1 step
-	if player.Resources.Credits < 14 {
-		return fmt.Errorf("insufficient credits (need 14, have %d)", player.Resources.Credits)
-	}
-
-	if game.GlobalParameters.Temperature >= 8 {
-		return fmt.Errorf("temperature already at maximum")
-	}
-
-	// Deduct cost
-	player.Resources.Credits -= 14
-
-	// Apply effect
-	game.GlobalParameters.Temperature += 2 // Each step is 2 degrees
-
-	// Player gains terraform rating
-	player.TerraformRating += 1
-
-	return nil
-}
-
-// applyRaiseTemperature applies heat to raise temperature
-func (s *GameService) applyRaiseTemperature(game *domain.Game, player *domain.Player, action dto.RaiseTemperatureAction) error {
-	if action.HeatAmount < 8 {
-		return fmt.Errorf("need at least 8 heat to raise temperature")
-	}
-
-	if player.Resources.Heat < action.HeatAmount {
-		return fmt.Errorf("insufficient heat (need %d, have %d)", action.HeatAmount, player.Resources.Heat)
-	}
-
-	if game.GlobalParameters.Temperature >= 8 {
-		return fmt.Errorf("temperature already at maximum")
-	}
-
-	// Spend 8 heat to raise temperature 1 step
-	steps := action.HeatAmount / 8
-	player.Resources.Heat -= steps * 8
-	game.GlobalParameters.Temperature += steps * 2
-
-	// Cap at maximum
-	if game.GlobalParameters.Temperature > 8 {
-		game.GlobalParameters.Temperature = 8
-	}
-
-	// Player gains terraform rating for each step
-	player.TerraformRating += steps
-
-	return nil
-}
-
-// applySelectCorporation applies corporation selection
-func (s *GameService) applySelectCorporation(game *domain.Game, player *domain.Player, action dto.SelectCorporationAction) error {
-	if player.Corporation != "" {
-		return fmt.Errorf("player already has a corporation")
-	}
-
-	if action.CorporationName == "" {
-		return fmt.Errorf("corporation name cannot be empty")
-	}
-
-	// TODO: Validate corporation exists and apply starting resources/production
-	player.Corporation = action.CorporationName
-
-	return nil
-}
-
-// applySkipAction applies skip action
-func (s *GameService) applySkipAction(game *domain.Game, player *domain.Player, action dto.SkipActionAction) error {
-	// TODO: Implement turn system and move to next player
-	return nil
-}
 
 // validateGameSettings validates game settings
 func (s *GameService) validateGameSettings(settings domain.GameSettings) error {
