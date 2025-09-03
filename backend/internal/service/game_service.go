@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"time"
 

@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 )
 
@@ -212,7 +213,7 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *WebSocketMessage) {
 	fullStateMsg := &WebSocketMessage{
 		Type: MessageTypeFullState,
 		Payload: FullStatePayload{
-			Game:     game,
+			Game:     dto.ToGameDto(game),
 			PlayerID: playerID,
 		},
 		GameID: payload.GameID,
@@ -263,7 +264,7 @@ func (h *Hub) broadcastGameUpdate(gameID string, game *domain.Game) {
 	message := &WebSocketMessage{
 		Type: MessageTypeGameUpdated,
 		Payload: GameUpdatedPayload{
-			Game: game,
+			Game: dto.ToGameDto(game),
 		},
 		GameID: gameID,
 	}

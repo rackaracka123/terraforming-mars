@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
@@ -90,7 +91,7 @@ func TestHub_BroadcastToGame(t *testing.T) {
 	message := &websocket.WebSocketMessage{
 		Type: websocket.MessageTypeGameUpdated,
 		Payload: websocket.GameUpdatedPayload{
-			Game: game,
+			Game: dto.ToGameDto(game),
 		},
 		GameID: "non-existent-game",
 	}

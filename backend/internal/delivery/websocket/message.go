@@ -1,62 +1,25 @@
 package websocket
 
 import (
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/delivery/dto"
 )
 
-// MessageType represents different types of WebSocket messages
-type MessageType string
+// Re-export DTO types for backward compatibility and cleaner imports
+type MessageType = dto.MessageType
+type WebSocketMessage = dto.WebSocketMessage
+type PlayerConnectPayload = dto.PlayerConnectPayload
+type PlayActionPayload = dto.PlayActionPayload
+type GameUpdatedPayload = dto.GameUpdatedPayload
+type PlayerConnectedPayload = dto.PlayerConnectedPayload
+type ErrorPayload = dto.ErrorPayload
+type FullStatePayload = dto.FullStatePayload
 
+// Re-export message type constants
 const (
-	// Client -> Server messages
-	MessageTypePlayerConnect MessageType = "player-connect"
-	MessageTypePlayAction    MessageType = "play-action"
-
-	// Server -> Client messages
-	MessageTypeGameUpdated     MessageType = "game-updated"
-	MessageTypePlayerConnected MessageType = "player-connected"
-	MessageTypeError           MessageType = "error"
-	MessageTypeFullState       MessageType = "full-state"
+	MessageTypePlayerConnect   = dto.MessageTypePlayerConnect
+	MessageTypePlayAction      = dto.MessageTypePlayAction
+	MessageTypeGameUpdated     = dto.MessageTypeGameUpdated
+	MessageTypePlayerConnected = dto.MessageTypePlayerConnected
+	MessageTypeError           = dto.MessageTypeError
+	MessageTypeFullState       = dto.MessageTypeFullState
 )
-
-// WebSocketMessage represents a WebSocket message
-type WebSocketMessage struct {
-	Type    MessageType `json:"type" ts:"MessageType"`
-	Payload interface{} `json:"payload" ts:"any"`
-	GameID  string      `json:"gameId,omitempty" ts:"string"`
-}
-
-// PlayerConnectPayload contains player connection data
-type PlayerConnectPayload struct {
-	PlayerName string `json:"playerName" ts:"string"`
-	GameID     string `json:"gameId" ts:"string"`
-}
-
-// PlayActionPayload contains game action data
-type PlayActionPayload struct {
-	Action string                 `json:"action" ts:"string"`
-	Data   map[string]interface{} `json:"data,omitempty" ts:"Record<string, any>"`
-}
-
-// GameUpdatedPayload contains updated game state
-type GameUpdatedPayload struct {
-	Game *domain.Game `json:"game" ts:"Game"`
-}
-
-// PlayerConnectedPayload contains data about a newly connected player
-type PlayerConnectedPayload struct {
-	PlayerID   string `json:"playerId" ts:"string"`
-	PlayerName string `json:"playerName" ts:"string"`
-}
-
-// ErrorPayload contains error information
-type ErrorPayload struct {
-	Message string `json:"message" ts:"string"`
-	Code    string `json:"code,omitempty" ts:"string"`
-}
-
-// FullStatePayload contains the complete game state
-type FullStatePayload struct {
-	Game     *domain.Game `json:"game" ts:"Game"`
-	PlayerID string       `json:"playerId" ts:"string"`
-}
