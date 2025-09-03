@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface Corporation {
   id: string;
@@ -31,33 +31,45 @@ interface CorporationCardProps {
   onSelect: (corporationId: string) => void;
 }
 
-const CorporationCard: React.FC<CorporationCardProps> = ({ 
-  corporation, 
-  isSelected, 
-  onSelect 
+const CorporationCard: React.FC<CorporationCardProps> = ({
+  corporation,
+  isSelected,
+  onSelect,
 }) => {
-  const renderResourceIcon = (type: string, amount: number, isProduction: boolean = false) => {
+  const renderResourceIcon = (
+    type: string,
+    amount: number,
+    isProduction: boolean = false,
+  ) => {
     const iconMap: { [key: string]: string } = {
-      credits: '/assets/resources/megacredit.png',
-      steel: '/assets/resources/steel.png',
-      titanium: '/assets/resources/titanium.png',
-      plants: '/assets/resources/plant.png',
-      energy: '/assets/resources/energy.png',
-      heat: '/assets/resources/heat.png'
+      credits: "/assets/resources/megacredit.png",
+      steel: "/assets/resources/steel.png",
+      titanium: "/assets/resources/titanium.png",
+      plants: "/assets/resources/plant.png",
+      energy: "/assets/resources/energy.png",
+      heat: "/assets/resources/heat.png",
     };
 
     const icon = iconMap[type];
     if (!icon) return null;
 
     // For credits, use larger custom display
-    if (type === 'credits') {
+    if (type === "credits") {
       return (
         <div className="resource-item-large">
           {isProduction && (
             <div className="production-display-custom">
               <div className="production-icon-container">
-                <img src="/assets/misc/production.png" alt="Production" className="production-icon-xlarge" />
-                <img src={icon} alt={type} className="resource-icon-in-production" />
+                <img
+                  src="/assets/misc/production.png"
+                  alt="Production"
+                  className="production-icon-xlarge"
+                />
+                <img
+                  src={icon}
+                  alt={type}
+                  className="resource-icon-in-production"
+                />
               </div>
               <span className="resource-amount-xlarge">{amount}</span>
             </div>
@@ -77,28 +89,40 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         {isProduction && (
           <div className="production-display-custom">
             <div className="production-icon-container">
-              <img src="/assets/misc/production.png" alt="Production" className="production-icon-xlarge" />
-              <img src={icon} alt={type} className="resource-icon-in-production" />
+              <img
+                src="/assets/misc/production.png"
+                alt="Production"
+                className="production-icon-xlarge"
+              />
+              <img
+                src={icon}
+                alt={type}
+                className="resource-icon-in-production"
+              />
             </div>
             <span className="resource-amount-xlarge">{amount}</span>
           </div>
         )}
-        {!isProduction && <img src={icon} alt={type} className="resource-icon-xlarge" />}
-        {!isProduction && <span className="resource-amount-xlarge">{amount}</span>}
+        {!isProduction && (
+          <img src={icon} alt={type} className="resource-icon-xlarge" />
+        )}
+        {!isProduction && (
+          <span className="resource-amount-xlarge">{amount}</span>
+        )}
       </div>
     );
   };
 
   return (
     <div
-      className={`corporation-card ${isSelected ? 'selected' : ''}`}
+      className={`corporation-card ${isSelected ? "selected" : ""}`}
       onClick={() => onSelect(corporation.id)}
     >
       <div className="corporation-header">
         {corporation.logoPath && (
-          <img 
-            src={corporation.logoPath} 
-            alt={corporation.name} 
+          <img
+            src={corporation.logoPath}
+            alt={corporation.name}
             className="corporation-logo"
           />
         )}
@@ -106,16 +130,20 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
           <h3 className="corporation-name">{corporation.name}</h3>
           <div className="starting-credits">
             <div className="mega-credits-display">
-              <img src="/assets/resources/megacredit.png" alt="Megacredits" className="mega-credits-icon" />
-              <span className="mega-credits-amount">{corporation.startingMegaCredits}</span>
+              <img
+                src="/assets/resources/megacredit.png"
+                alt="Megacredits"
+                className="mega-credits-icon"
+              />
+              <span className="mega-credits-amount">
+                {corporation.startingMegaCredits}
+              </span>
             </div>
           </div>
         </div>
       </div>
-      
-      <div className="corporation-description">
-        {corporation.description}
-      </div>
+
+      <div className="corporation-description">{corporation.description}</div>
 
       {(corporation.startingProduction || corporation.startingResources) && (
         <div className="starting-resources">
@@ -123,19 +151,21 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
             <div className="production-resources">
               <h4>Starting Production:</h4>
               <div className="resources-list">
-                {Object.entries(corporation.startingProduction).map(([type, amount]) => 
-                  amount > 0 ? renderResourceIcon(type, amount, true) : null
+                {Object.entries(corporation.startingProduction).map(
+                  ([type, amount]) =>
+                    amount > 0 ? renderResourceIcon(type, amount, true) : null,
                 )}
               </div>
             </div>
           )}
-          
+
           {corporation.startingResources && (
             <div className="initial-resources">
               <h4>Starting Resources:</h4>
               <div className="resources-list">
-                {Object.entries(corporation.startingResources).map(([type, amount]) => 
-                  amount > 0 ? renderResourceIcon(type, amount, false) : null
+                {Object.entries(corporation.startingResources).map(
+                  ([type, amount]) =>
+                    amount > 0 ? renderResourceIcon(type, amount, false) : null,
                 )}
               </div>
             </div>
@@ -144,9 +174,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       )}
 
       {corporation.expansion && (
-        <div className="expansion-badge">
-          {corporation.expansion}
-        </div>
+        <div className="expansion-badge">{corporation.expansion}</div>
       )}
 
       <style jsx>{`
@@ -166,7 +194,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
         .corporation-card:hover {
           transform: translateY(-2px);
-          box-shadow: 
+          box-shadow:
             0 8px 25px rgba(0, 0, 0, 0.4),
             0 0 20px rgba(100, 150, 255, 0.3);
           border-color: rgba(100, 150, 255, 0.5);
@@ -174,7 +202,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
         .corporation-card.selected {
           border-color: rgba(150, 255, 150, 0.8);
-          box-shadow: 
+          box-shadow:
             0 8px 25px rgba(0, 0, 0, 0.4),
             0 0 30px rgba(150, 255, 150, 0.4);
           background: linear-gradient(

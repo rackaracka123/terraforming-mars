@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import CorporationCard from '../cards/CorporationCard.tsx';
+import React, { useState, useRef } from "react";
+import CorporationCard from "../cards/CorporationCard.tsx";
 
 interface Corporation {
   id: string;
@@ -32,12 +32,14 @@ interface CorporationSelectionModalProps {
   isVisible: boolean;
 }
 
-const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({ 
-  corporations, 
-  onSelectCorporation, 
-  isVisible 
+const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
+  corporations,
+  onSelectCorporation,
+  isVisible,
 }) => {
-  const [selectedCorporation, setSelectedCorporation] = useState<string | null>(null);
+  const [selectedCorporation, setSelectedCorporation] = useState<string | null>(
+    null,
+  );
   const [isFlashing, setIsFlashing] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +50,7 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
     if (modalRef.current && modalRef.current.contains(e.target as Node)) {
       return;
     }
-    
+
     // Flash animation when trying to dismiss
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 600);
@@ -64,15 +66,17 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
     }
   };
 
-
   return (
-    <div className={`modal-overlay ${isFlashing ? 'flashing' : ''}`} onClick={handleOverlayClick}>
+    <div
+      className={`modal-overlay ${isFlashing ? "flashing" : ""}`}
+      onClick={handleOverlayClick}
+    >
       <div className="modal-content" ref={modalRef}>
         <div className="modal-header">
           <h2>Choose Your Corporation</h2>
           <p>Select a corporation to begin your Mars terraforming journey</p>
         </div>
-        
+
         <div className="corporations-grid">
           {corporations.map((corp) => (
             <CorporationCard
@@ -118,10 +122,19 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
           }
 
           @keyframes flashBorder {
-            0%, 100% { box-shadow: inset 0 0 0 0px rgba(255, 0, 0, 0); }
-            25% { box-shadow: inset 0 0 0 8px rgba(255, 0, 0, 0.8); }
-            50% { box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.6); }
-            75% { box-shadow: inset 0 0 0 6px rgba(255, 0, 0, 0.4); }
+            0%,
+            100% {
+              box-shadow: inset 0 0 0 0px rgba(255, 0, 0, 0);
+            }
+            25% {
+              box-shadow: inset 0 0 0 8px rgba(255, 0, 0, 0.8);
+            }
+            50% {
+              box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.6);
+            }
+            75% {
+              box-shadow: inset 0 0 0 6px rgba(255, 0, 0, 0.4);
+            }
           }
 
           .modal-content {
@@ -138,22 +151,23 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
             width: 100%;
             overflow-y: auto;
             backdrop-filter: blur(20px);
-            box-shadow: 
+            box-shadow:
               0 20px 60px rgba(0, 0, 0, 0.8),
               0 0 40px rgba(100, 150, 255, 0.3);
             animation: modalPulse 2s ease-in-out infinite;
           }
 
           @keyframes modalPulse {
-            0%, 100% { 
+            0%,
+            100% {
               border-color: rgba(100, 150, 255, 0.5);
-              box-shadow: 
+              box-shadow:
                 0 20px 60px rgba(0, 0, 0, 0.8),
                 0 0 40px rgba(100, 150, 255, 0.3);
             }
-            50% { 
+            50% {
               border-color: rgba(255, 200, 100, 0.8);
-              box-shadow: 
+              box-shadow:
                 0 20px 60px rgba(0, 0, 0, 0.8),
                 0 0 60px rgba(255, 200, 100, 0.5),
                 0 0 100px rgba(255, 200, 100, 0.2);
@@ -175,13 +189,14 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
           }
 
           @keyframes headerPulse {
-            0%, 100% { 
+            0%,
+            100% {
               color: #ffffff;
               text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
             }
-            50% { 
+            50% {
               color: #ffcc66;
-              text-shadow: 
+              text-shadow:
                 0 2px 4px rgba(0, 0, 0, 0.8),
                 0 0 20px rgba(255, 204, 102, 0.6);
             }
@@ -199,7 +214,6 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
             gap: 20px;
             padding: 30px;
           }
-
 
           .modal-actions {
             padding: 20px 30px 30px 30px;
@@ -226,13 +240,14 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
           }
 
           @keyframes buttonPulse {
-            0%, 100% { 
+            0%,
+            100% {
               transform: scale(1);
               box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
             }
-            50% { 
+            50% {
               transform: scale(1.05);
-              box-shadow: 
+              box-shadow:
                 0 6px 20px rgba(74, 144, 226, 0.5),
                 0 0 30px rgba(91, 160, 242, 0.4);
             }
@@ -255,7 +270,7 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
               grid-template-columns: 1fr;
               padding: 20px;
             }
-            
+
             .modal-header h2 {
               font-size: 24px;
             }

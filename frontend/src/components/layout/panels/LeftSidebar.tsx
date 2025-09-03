@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
+import React, { useState } from "react";
+import ReactDOM from "react-dom";
+import { Z_INDEX } from "../../../constants/zIndex.ts";
 
 interface Player {
   id: string;
@@ -28,15 +28,20 @@ interface LeftSidebarProps {
   onPass?: () => void;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socket, onPass }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({
+  players,
+  currentPlayer,
+  socket,
+  onPass,
+}) => {
   // Player color system - 6 distinct colors for up to 6 players
   const playerColors = [
-    '#ff4757', // Red
-    '#3742fa', // Blue  
-    '#5fb85f', // Green
-    '#ffa502', // Orange
-    '#a55eea', // Purple
-    '#26d0ce', // Cyan
+    "#ff4757", // Red
+    "#3742fa", // Blue
+    "#5fb85f", // Green
+    "#ffa502", // Orange
+    "#a55eea", // Purple
+    "#26d0ce", // Cyan
   ];
 
   const getPlayerColor = (index: number) => {
@@ -47,139 +52,148 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
     if (onPass) {
       onPass();
     } else if (socket) {
-      socket.emit('pass-turn');
+      socket.emit("pass-turn");
     }
   };
 
   // Milestone information for tooltips
-  const milestoneInfo: { [key: string]: { name: string; description: string; requirement: string } } = {
-    'banker': {
-      name: 'Banker',
-      description: 'Awarded for having the highest M€ production.',
-      requirement: 'Achieve highest M€ production among all players.'
+  const milestoneInfo: {
+    [key: string]: { name: string; description: string; requirement: string };
+  } = {
+    banker: {
+      name: "Banker",
+      description: "Awarded for having the highest M€ production.",
+      requirement: "Achieve highest M€ production among all players.",
     },
-    'mayor': {
-      name: 'Mayor',
-      description: 'Awarded for placing the most city tiles.',
-      requirement: 'Build at least 3 city tiles.'
+    mayor: {
+      name: "Mayor",
+      description: "Awarded for placing the most city tiles.",
+      requirement: "Build at least 3 city tiles.",
     },
-    'builder': {
-      name: 'Builder',
-      description: 'Awarded for having the most building tags.',
-      requirement: 'Have at least 8 building tags in play.'
+    builder: {
+      name: "Builder",
+      description: "Awarded for having the most building tags.",
+      requirement: "Have at least 8 building tags in play.",
     },
-    'gardener': {
-      name: 'Gardener',
-      description: 'Awarded for placing the most greenery tiles.',
-      requirement: 'Place at least 3 greenery tiles.'
+    gardener: {
+      name: "Gardener",
+      description: "Awarded for placing the most greenery tiles.",
+      requirement: "Place at least 3 greenery tiles.",
     },
-    'diversifier': {
-      name: 'Diversifier',
-      description: 'Awarded for having the most different types of tags.',
-      requirement: 'Have at least 8 different tag types.'
-    }
+    diversifier: {
+      name: "Diversifier",
+      description: "Awarded for having the most different types of tags.",
+      requirement: "Have at least 8 different tag types.",
+    },
   };
   // Mock milestone achievements with proper icons
   const mockPlayers = [
-    { 
-      id: '1', 
-      name: 'Alice Chen', 
-      score: 76, 
+    {
+      id: "1",
+      name: "Alice Chen",
+      score: 76,
       passed: true,
-      milestoneIcon: 'banker',
+      milestoneIcon: "banker",
       terraformRating: 35,
       victoryPoints: 76,
-      availableActions: 0
+      availableActions: 0,
     },
-    { 
-      id: '2', 
-      name: 'Bird Martinet', 
-      score: 62, 
+    {
+      id: "2",
+      name: "Bird Martinet",
+      score: 62,
       passed: false,
-      milestoneIcon: 'mayor',
+      milestoneIcon: "mayor",
       terraformRating: 31,
       victoryPoints: 62,
-      availableActions: 1
+      availableActions: 1,
     },
-    { 
-      id: '3', 
-      name: 'Cryo King', 
-      score: 58, 
+    {
+      id: "3",
+      name: "Cryo King",
+      score: 58,
       passed: false,
-      milestoneIcon: 'builder',
+      milestoneIcon: "builder",
       terraformRating: 28,
       victoryPoints: 58,
-      availableActions: 2
+      availableActions: 2,
     },
-    { 
-      id: '4', 
-      name: 'David Lee', 
-      score: 44, 
+    {
+      id: "4",
+      name: "David Lee",
+      score: 44,
       passed: true,
-      milestoneIcon: 'gardener',
+      milestoneIcon: "gardener",
       terraformRating: 22,
       victoryPoints: 44,
-      availableActions: 0
+      availableActions: 0,
     },
-    { 
-      id: '5', 
-      name: 'Eva Thompson', 
-      score: 41, 
+    {
+      id: "5",
+      name: "Eva Thompson",
+      score: 41,
       passed: false,
-      milestoneIcon: 'diversifier',
+      milestoneIcon: "diversifier",
       terraformRating: 20,
       victoryPoints: 41,
-      availableActions: 1
-    }
+      availableActions: 1,
+    },
   ];
 
   const playersToShow = mockPlayers;
-  
+
   // For demo purposes, simulate Carol Kim as the current player
-  const mockCurrentPlayer = { id: '3', name: 'Carol Kim' };
-  
+  const mockCurrentPlayer = { id: "3", name: "Carol Kim" };
+
   // State for tooltip management
   const [hoveredCorp, setHoveredCorp] = useState<string | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
 
-  const handleMilestoneHover = (playerId: string, milestoneIcon: string, event: React.MouseEvent) => {
+  const handleMilestoneHover = (
+    playerId: string,
+    milestoneIcon: string,
+    event: React.MouseEvent,
+  ) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const tooltipWidth = 280; // Width of the tooltip as defined in CSS
     const tooltipHeight = 120; // Approximate height of tooltip
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const margin = 15;
-    
+
     // Calculate preferred position (to the right of the logo)
     let left = rect.right + margin;
     let top = rect.top + window.scrollY - 10;
-    
+
     // Check if tooltip would overflow right edge of viewport
     if (left + tooltipWidth > viewportWidth) {
       // Position to the left of the logo instead
       left = rect.left - tooltipWidth - margin;
     }
-    
+
     // Ensure tooltip doesn't go off the left edge
     if (left < margin) {
       left = margin;
     }
-    
+
     // Check vertical positioning and adjust if necessary
     if (top + tooltipHeight > window.scrollY + viewportHeight) {
       top = rect.bottom + window.scrollY + 10;
-      
+
       // If still doesn't fit, position above the logo
       if (top + tooltipHeight > window.scrollY + viewportHeight) {
         top = rect.top + window.scrollY - tooltipHeight - 10;
       }
     }
-    
+
     // Ensure tooltip doesn't go above viewport
     if (top < window.scrollY + margin) {
       top = window.scrollY + margin;
     }
-    
+
     setTooltipPosition({ top, left });
     setHoveredCorp(`${playerId}-${milestoneIcon}`);
   };
@@ -188,45 +202,55 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
     <div className="left-sidebar">
       <div className="players-list">
         {playersToShow.map((player, index) => {
-          const score = player.score || player.victoryPoints || player.terraformRating || 20;
+          const score =
+            player.score ||
+            player.victoryPoints ||
+            player.terraformRating ||
+            20;
           const isPassed = player.passed;
           const isCurrentPlayer = player.id === mockCurrentPlayer.id;
-          const milestoneIcon = player.milestoneIcon || 'banker';
+          const milestoneIcon = player.milestoneIcon || "banker";
           const playerColor = getPlayerColor(index);
-          
+
           if (isCurrentPlayer) {
             return (
-              <div 
-                key={player.id || index} 
-                className={`player-entry current ${isPassed ? 'passed' : ''}`}
-                style={{ '--player-color': playerColor } as React.CSSProperties}
+              <div
+                key={player.id || index}
+                className={`player-entry current ${isPassed ? "passed" : ""}`}
+                style={{ "--player-color": playerColor } as React.CSSProperties}
               >
                 <div className="player-content player-card">
-                <div className="player-avatar">
-                  <img 
-                    src={`/assets/ma/${milestoneIcon}.png`} 
-                    alt={`${player.name} Milestone`}
-                    className="milestone-icon-img"
-                    onMouseEnter={(e) => handleMilestoneHover(player.id, milestoneIcon, e)}
-                    onMouseLeave={() => setHoveredCorp(null)}
-                  />
+                  <div className="player-avatar">
+                    <img
+                      src={`/assets/ma/${milestoneIcon}.png`}
+                      alt={`${player.name} Milestone`}
+                      className="milestone-icon-img"
+                      onMouseEnter={(e) =>
+                        handleMilestoneHover(player.id, milestoneIcon, e)
+                      }
+                      onMouseLeave={() => setHoveredCorp(null)}
+                    />
+                  </div>
+                  <div className="player-info-section">
+                    <div className="player-name">{player.name}</div>
+                    <div className="player-score">{score}</div>
+                    {isCurrentPlayer && (
+                      <div className="you-indicator">YOU</div>
+                    )}
+                    {isPassed && <div className="passed-indicator">PASSED</div>}
+                  </div>
                 </div>
-                <div className="player-info-section">
-                  <div className="player-name">{player.name}</div>
-                  <div className="player-score">{score}</div>
-                  {isCurrentPlayer && <div className="you-indicator">YOU</div>}
-                  {isPassed && <div className="passed-indicator">PASSED</div>}
-                </div>
-              </div>
                 <div className="player-actions">
                   <div className="actions-remaining">
                     <span className="action-label">
                       {currentPlayer?.actionsRemaining || 1} ACTIONS LEFT
                     </span>
                   </div>
-                  <button 
+                  <button
                     className="skip-btn"
-                    onClick={() => socket?.emit('skip-action', { gameId: 'demo' })}
+                    onClick={() =>
+                      socket?.emit("skip-action", { gameId: "demo" })
+                    }
                     disabled={currentPlayer?.passed}
                   >
                     SKIP
@@ -235,20 +259,22 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
               </div>
             );
           }
-          
+
           return (
-            <div 
-              key={player.id || index} 
-              className={`player-entry ${isPassed ? 'passed' : ''}`}
-              style={{ '--player-color': playerColor } as React.CSSProperties}
+            <div
+              key={player.id || index}
+              className={`player-entry ${isPassed ? "passed" : ""}`}
+              style={{ "--player-color": playerColor } as React.CSSProperties}
             >
               <div className="player-content">
                 <div className="player-avatar">
-                  <img 
-                    src={`/assets/ma/${milestoneIcon}.png`} 
+                  <img
+                    src={`/assets/ma/${milestoneIcon}.png`}
                     alt={`${player.name} Milestone`}
                     className="milestone-icon-img"
-                    onMouseEnter={(e) => handleMilestoneHover(player.id, milestoneIcon, e)}
+                    onMouseEnter={(e) =>
+                      handleMilestoneHover(player.id, milestoneIcon, e)
+                    }
                     onMouseLeave={() => setHoveredCorp(null)}
                   />
                 </div>
@@ -262,46 +288,48 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           );
         })}
       </div>
-      
+
       {/* Global tooltip rendered as a portal to document body */}
-      {hoveredCorp && ReactDOM.createPortal(
-        <div 
-          className="milestone-tooltip"
-          style={{
-            top: tooltipPosition.top,
-            left: tooltipPosition.left
-          }}
-        >
-          {(() => {
-            const [, milestoneIcon] = hoveredCorp.split('-');
-            const milestoneData = milestoneInfo[milestoneIcon];
-            return milestoneData ? (
-              <>
-                <div className="milestone-tooltip-header">
-                  <strong>{milestoneData.name}</strong>
-                </div>
-                <div className="milestone-tooltip-description">
-                  {milestoneData.description}
-                </div>
-                <div className="milestone-tooltip-requirement">
-                  <strong>Requirement:</strong> {milestoneData.requirement}
-                </div>
-              </>
-            ) : null;
-          })()}
-        </div>,
-        document.body
-      )}
-      
+      {hoveredCorp &&
+        ReactDOM.createPortal(
+          <div
+            className="milestone-tooltip"
+            style={{
+              top: tooltipPosition.top,
+              left: tooltipPosition.left,
+            }}
+          >
+            {(() => {
+              const [, milestoneIcon] = hoveredCorp.split("-");
+              const milestoneData = milestoneInfo[milestoneIcon];
+              return milestoneData ? (
+                <>
+                  <div className="milestone-tooltip-header">
+                    <strong>{milestoneData.name}</strong>
+                  </div>
+                  <div className="milestone-tooltip-description">
+                    {milestoneData.description}
+                  </div>
+                  <div className="milestone-tooltip-requirement">
+                    <strong>Requirement:</strong> {milestoneData.requirement}
+                  </div>
+                </>
+              ) : null;
+            })()}
+          </div>,
+          document.body,
+        )}
+
       <style jsx global>{`
         .left-sidebar {
           width: 100%;
           max-width: 320px;
           min-width: 280px;
           height: calc(100vh - 120px);
-          background: linear-gradient(180deg, 
-            rgba(0, 20, 40, 0.95) 0%, 
-            rgba(0, 10, 30, 0.95) 50%, 
+          background: linear-gradient(
+            180deg,
+            rgba(0, 20, 40, 0.95) 0%,
+            rgba(0, 10, 30, 0.95) 50%,
             rgba(0, 5, 20, 0.95) 100%
           );
           backdrop-filter: blur(10px);
@@ -312,9 +340,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           position: relative;
           overflow: visible;
         }
-        
+
         .left-sidebar::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -328,7 +356,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           );
           pointer-events: none;
         }
-        
+
         .players-list {
           display: flex;
           flex-direction: column;
@@ -338,7 +366,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           height: 100%;
           justify-content: flex-start;
         }
-        
+
         .player-entry {
           position: relative;
           background: var(--player-color, rgba(30, 60, 90, 0.8));
@@ -348,11 +376,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
           min-height: 80px;
           flex: 0 0 auto;
-          box-shadow: 
+          box-shadow:
             0 4px 15px rgba(0, 0, 0, 0.4),
             0 0 15px var(--player-color, rgba(100, 150, 200, 0.3));
         }
-        
+
         .player-entry.current {
           display: flex;
           align-items: stretch;
@@ -363,9 +391,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           clip-path: none;
           overflow: visible;
         }
-        
+
         .player-entry::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -375,28 +403,28 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           transition: opacity 0.3s ease;
           clip-path: inherit;
         }
-        
+
         .player-entry:hover::before {
           opacity: 1;
         }
-        
+
         .player-entry:hover {
           border-color: var(--player-color, rgba(150, 200, 255, 0.5));
           transform: translateX(3px);
-          box-shadow: 
+          box-shadow:
             0 6px 25px rgba(0, 0, 0, 0.4),
             0 0 25px var(--player-color, rgba(100, 150, 255, 0.3)),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
-        
+
         .player-entry.current .player-card {
           border: 3px solid rgba(255, 255, 255, 0.9);
-          box-shadow: 
+          box-shadow:
             0 0 20px rgba(255, 255, 255, 0.4),
             0 0 40px rgba(255, 255, 255, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
-        
+
         .player-entry.passed {
           opacity: 0.5;
           background: linear-gradient(
@@ -407,21 +435,21 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           );
           border-color: rgba(100, 100, 100, 0.3);
         }
-        
+
         .player-entry.passed:hover {
           opacity: 0.7;
           border-color: rgba(120, 120, 120, 0.4);
           transform: translateX(1px);
         }
-        
+
         .player-entry.passed .player-score {
           color: rgba(255, 255, 255, 0.6);
         }
-        
+
         .player-entry.passed .milestone-icon-img {
           filter: grayscale(100%) brightness(0.7);
         }
-        
+
         .player-content {
           display: flex;
           align-items: center;
@@ -429,18 +457,18 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           position: relative;
           z-index: 110;
         }
-        
+
         .player-content.player-card {
           background: var(--player-color, rgba(30, 60, 90, 0.8));
           border: 2px solid rgba(255, 255, 255, 0.2);
           padding: 16px;
           clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 100%, 0 100%);
           min-height: 80px;
-          box-shadow: 
+          box-shadow:
             0 4px 15px rgba(0, 0, 0, 0.4),
             0 0 15px var(--player-color, rgba(100, 150, 200, 0.3));
         }
-        
+
         .player-actions {
           display: flex;
           align-items: center;
@@ -456,13 +484,19 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           border-left: none;
           margin-left: -1px;
           margin-right: 10px;
-          clip-path: polygon(0 0, calc(100% - 2px) 0, 100% 50%, calc(100% - 2px) 100%, 0 100%);
-          box-shadow: 
+          clip-path: polygon(
+            0 0,
+            calc(100% - 2px) 0,
+            100% 50%,
+            calc(100% - 2px) 100%,
+            0 100%
+          );
+          box-shadow:
             0 2px 8px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
           overflow: visible;
         }
-        
+
         @keyframes slideIn {
           from {
             opacity: 0;
@@ -473,7 +507,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             transform: translateY(-50%) translateX(0);
           }
         }
-        
+
         .actions-remaining {
           display: flex;
           align-items: center;
@@ -481,21 +515,21 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           padding: 0 8px;
           border-right: 1px solid rgba(60, 60, 60, 0.5);
         }
-        
+
         .action-label {
           font-size: 10px;
           font-weight: 600;
           color: rgba(150, 150, 150, 0.8);
           letter-spacing: 0.5px;
         }
-        
+
         .action-counter {
           font-size: 11px;
           font-weight: bold;
           color: rgba(200, 200, 200, 0.9);
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
-        
+
         .skip-btn {
           background: linear-gradient(
             135deg,
@@ -511,12 +545,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           cursor: pointer;
           transition: all 0.2s ease;
           letter-spacing: 0.5px;
-          box-shadow: 
+          box-shadow:
             0 1px 4px rgba(0, 0, 0, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
           white-space: nowrap;
         }
-        
+
         .skip-btn:hover:not(:disabled) {
           background: linear-gradient(
             135deg,
@@ -525,15 +559,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           );
           color: rgba(220, 220, 220, 1);
           border-color: rgba(120, 120, 120, 0.5);
-          box-shadow: 
+          box-shadow:
             0 2px 6px rgba(0, 0, 0, 0.3),
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
-        
+
         .skip-btn:active:not(:disabled) {
           transform: scale(0.98);
         }
-        
+
         .skip-btn:disabled {
           opacity: 0.3;
           cursor: not-allowed;
@@ -545,7 +579,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           border-color: rgba(60, 60, 60, 0.3);
           color: rgba(120, 120, 120, 0.6);
         }
-        
+
         .player-avatar {
           display: flex;
           align-items: center;
@@ -555,7 +589,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           flex-shrink: 0;
           position: relative;
         }
-        
+
         .milestone-icon-img {
           width: 44px;
           height: 44px;
@@ -568,14 +602,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           max-width: 100%;
           max-height: 100%;
         }
-        
+
         .milestone-icon-img:hover {
           border-color: rgba(255, 255, 255, 0.9);
           transform: scale(1.05);
           cursor: pointer;
           box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
         }
-        
+
         .milestone-tooltip {
           position: fixed;
           background: linear-gradient(
@@ -591,7 +625,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           max-width: calc(100vw - 30px);
           font-size: 12px;
           color: white;
-          box-shadow: 
+          box-shadow:
             0 12px 35px rgba(0, 0, 0, 0.8),
             0 0 25px rgba(255, 165, 0, 0.4),
             inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -602,9 +636,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           word-wrap: break-word;
           overflow-wrap: break-word;
         }
-        
+
         .milestone-tooltip::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -619,7 +653,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           border-radius: inherit;
           pointer-events: none;
         }
-        
+
         @keyframes tooltipFadeIn {
           from {
             opacity: 0;
@@ -630,7 +664,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             transform: translateY(0) scale(1);
           }
         }
-        
+
         .milestone-tooltip-header {
           font-size: 15px;
           font-weight: 600;
@@ -639,14 +673,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
           letter-spacing: 0.3px;
         }
-        
+
         .milestone-tooltip-description {
           line-height: 1.5;
           margin-bottom: 10px;
           color: rgba(255, 255, 255, 0.92);
           font-size: 12px;
         }
-        
+
         .milestone-tooltip-requirement {
           font-size: 11px;
           color: rgba(255, 210, 120, 0.95);
@@ -654,12 +688,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           padding-top: 8px;
           border-top: 1px solid rgba(255, 165, 0, 0.4);
         }
-        
+
         .milestone-tooltip-requirement strong {
           color: rgba(255, 220, 140, 1);
           font-weight: 600;
         }
-        
+
         .player-info-section {
           display: flex;
           flex-direction: column;
@@ -668,7 +702,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           margin-left: auto;
           padding-right: 10px;
         }
-        
+
         .player-info-section .player-name {
           font-size: 12px !important;
           font-weight: bold;
@@ -677,17 +711,17 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           margin-bottom: 2px;
           text-align: right;
         }
-        
+
         .player-score {
           font-size: 28px;
           font-weight: bold;
           color: #ffffff;
-          text-shadow: 
+          text-shadow:
             0 1px 2px rgba(0, 0, 0, 0.9),
             0 0 10px rgba(0, 0, 0, 0.8);
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
-        
+
         .you-indicator {
           font-size: 10px;
           font-weight: bold;
@@ -700,7 +734,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
           letter-spacing: 0.5px;
           margin-bottom: 2px;
         }
-        
+
         .passed-indicator {
           font-size: 10px;
           font-weight: bold;
@@ -718,21 +752,21 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             min-width: 250px;
             max-width: 280px;
           }
-          
+
           .player-entry {
             min-height: 70px;
             padding: 12px;
           }
-          
+
           .milestone-icon-img {
             width: 38px;
             height: 38px;
           }
-          
+
           .player-info-section .player-name {
             font-size: 11px !important;
           }
-          
+
           .player-score {
             font-size: 24px;
           }
@@ -743,29 +777,29 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             min-width: 200px;
             max-width: 240px;
           }
-          
+
           .player-entry {
             min-height: 60px;
             padding: 10px;
           }
-          
+
           .milestone-icon-img {
             width: 32px;
             height: 32px;
           }
-          
+
           .player-info-section .player-name {
             font-size: 10px !important;
           }
-          
+
           .player-score {
             font-size: 20px;
           }
-          
+
           .action-label {
             font-size: 9px;
           }
-          
+
           .skip-btn {
             font-size: 9px;
             padding: 4px 8px;
@@ -780,7 +814,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             border-bottom: 1px solid rgba(100, 150, 200, 0.2);
             padding: 10px 0;
           }
-          
+
           .players-list {
             flex-direction: row;
             overflow-x: auto;
@@ -788,12 +822,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ players, currentPlayer, socke
             padding: 10px;
             gap: 8px;
           }
-          
+
           .player-entry {
             min-width: 200px;
             flex-shrink: 0;
           }
-          
+
           .player-entry.current {
             min-width: 250px;
           }

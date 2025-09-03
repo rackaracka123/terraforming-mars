@@ -1,6 +1,6 @@
-import React from 'react';
-import CostDisplay from '../display/CostDisplay.tsx';
-import ProductionDisplay from '../display/ProductionDisplay.tsx';
+import React from "react";
+import CostDisplay from "../display/CostDisplay.tsx";
+import ProductionDisplay from "../display/ProductionDisplay.tsx";
 
 interface Milestone {
   id: string;
@@ -39,92 +39,93 @@ interface Award {
 }
 
 interface DeclarativeModalPopupProps {
-  type: 'milestones' | 'projects' | 'awards';
+  type: "milestones" | "projects" | "awards";
   onClose: () => void;
   onAction?: (actionType: string, itemId: string) => void;
 }
 
 /**
  * Refactored modal using declarative patterns without z-index
- * 
+ *
  * This modal demonstrates the new approach:
  * - No z-index values in CSS
  * - Uses isolation for stacking contexts
  * - Designed to work with ModalProvider for proper DOM ordering
  * - Self-contained styling that doesn't interfere with other components
  */
-const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({ 
-  type, 
-  onClose, 
-  onAction 
+const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
+  type,
+  onClose,
+  onAction,
 }) => {
   // Mock data (same as original)
   const mockMilestones: Milestone[] = [
     {
-      id: 'terraformer',
-      name: 'Terraformer',
-      description: 'Have a terraform rating of at least 35',
-      reward: '5 VP',
+      id: "terraformer",
+      name: "Terraformer",
+      description: "Have a terraform rating of at least 35",
+      reward: "5 VP",
       cost: 8,
       claimed: false,
-      available: true
+      available: true,
     },
     {
-      id: 'mayor',
-      name: 'Mayor',
-      description: 'Own at least 3 city tiles',
-      reward: '5 VP',
+      id: "mayor",
+      name: "Mayor",
+      description: "Own at least 3 city tiles",
+      reward: "5 VP",
       cost: 8,
       claimed: true,
-      claimedBy: 'Alice Chen',
-      available: false
-    }
+      claimedBy: "Alice Chen",
+      available: false,
+    },
   ];
 
   const mockProjects: StandardProject[] = [
     {
-      id: 'sell-patents',
-      name: 'Sell Patents',
+      id: "sell-patents",
+      name: "Sell Patents",
       cost: 0,
-      description: 'Discard any number of cards from hand and gain that many M€',
+      description:
+        "Discard any number of cards from hand and gain that many M€",
       available: true,
       effects: {
-        immediate: [{ type: 'credits', amount: 1 }]
+        immediate: [{ type: "credits", amount: 1 }],
       },
-      icon: '/assets/resources/megacredit.png'
+      icon: "/assets/resources/megacredit.png",
     },
     {
-      id: 'power-plant',
-      name: 'Power Plant',
+      id: "power-plant",
+      name: "Power Plant",
       cost: 11,
-      description: 'Increase your energy production 1 step',
+      description: "Increase your energy production 1 step",
       available: true,
       effects: {
-        production: [{ type: 'energy', amount: 1 }]
+        production: [{ type: "energy", amount: 1 }],
       },
-      icon: '/assets/resources/power.png'
-    }
+      icon: "/assets/resources/power.png",
+    },
   ];
 
   const mockAwards: Award[] = [
     {
-      id: 'landlord',
-      name: 'Landlord',
-      description: 'Most tiles on Mars',
+      id: "landlord",
+      name: "Landlord",
+      description: "Most tiles on Mars",
       fundingCost: 8,
       funded: true,
-      fundedBy: 'Bob Martinez',
-      winner: 'Alice Chen',
-      available: false
+      fundedBy: "Bob Martinez",
+      winner: "Alice Chen",
+      available: false,
     },
     {
-      id: 'banker',
-      name: 'Banker',
-      description: 'Highest M€ production',
+      id: "banker",
+      name: "Banker",
+      description: "Highest M€ production",
       fundingCost: 8,
       funded: false,
-      available: true
-    }
+      available: true,
+    },
   ];
 
   const handleAction = (actionType: string, itemId: string) => {
@@ -132,38 +133,42 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
     console.log(`Action: ${actionType} on ${itemId}`);
   };
 
-  const renderEffects = (effects: StandardProject['effects']) => {
+  const renderEffects = (effects: StandardProject["effects"]) => {
     const elements = [];
-    
+
     if (effects.production) {
       effects.production.forEach((prod, idx) => {
         elements.push(
           <div key={`prod-${idx}`} className="effect-item">
-            <ProductionDisplay amount={prod.amount} resourceType={prod.type} size="small" />
-          </div>
+            <ProductionDisplay
+              amount={prod.amount}
+              resourceType={prod.type}
+              size="small"
+            />
+          </div>,
         );
       });
     }
-    
+
     if (effects.immediate) {
       effects.immediate.forEach((imm, idx) => {
-        if (imm.type === 'credits') {
+        if (imm.type === "credits") {
           elements.push(
             <div key={`imm-${idx}`} className="effect-item">
               <CostDisplay cost={imm.amount} size="small" />
               <span className="effect-label">per card</span>
-            </div>
+            </div>,
           );
         }
       });
     }
-    
+
     return elements;
   };
 
   const renderContent = () => {
     switch (type) {
-      case 'milestones':
+      case "milestones":
         return (
           <>
             <div className="modal-header">
@@ -172,26 +177,32 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
             </div>
             <div className="items-grid">
               {mockMilestones.map((milestone) => (
-                <div 
-                  key={milestone.id} 
-                  className={`item-card milestone-card ${milestone.claimed ? 'claimed' : ''}`}
+                <div
+                  key={milestone.id}
+                  className={`item-card milestone-card ${milestone.claimed ? "claimed" : ""}`}
                 >
                   <div className="item-header">
                     <div className="item-name">{milestone.name}</div>
                     <CostDisplay cost={milestone.cost} size="small" />
                   </div>
-                  <div className="item-description">{milestone.description}</div>
+                  <div className="item-description">
+                    {milestone.description}
+                  </div>
                   <div className="item-reward">Reward: {milestone.reward}</div>
                   {milestone.claimed && milestone.claimedBy && (
-                    <div className="claimed-by">Claimed by {milestone.claimedBy}</div>
+                    <div className="claimed-by">
+                      Claimed by {milestone.claimedBy}
+                    </div>
                   )}
                   <div className="item-actions">
                     <button
                       className="action-btn claim-btn"
                       disabled={milestone.claimed || !milestone.available}
-                      onClick={() => handleAction('claim-milestone', milestone.id)}
+                      onClick={() =>
+                        handleAction("claim-milestone", milestone.id)
+                      }
                     >
-                      {milestone.claimed ? 'Claimed' : 'Claim'}
+                      {milestone.claimed ? "Claimed" : "Claim"}
                     </button>
                   </div>
                 </div>
@@ -200,7 +211,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
           </>
         );
 
-      case 'projects':
+      case "projects":
         return (
           <>
             <div className="modal-header">
@@ -213,7 +224,11 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
                   <div className="project-header">
                     <div className="project-icon-name">
                       {project.icon && (
-                        <img src={project.icon} alt={project.name} className="project-icon" />
+                        <img
+                          src={project.icon}
+                          alt={project.name}
+                          className="project-icon"
+                        />
                       )}
                       <div className="item-name">{project.name}</div>
                     </div>
@@ -226,7 +241,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
                   <div className="item-actions">
                     <button
                       className="action-btn play-btn"
-                      onClick={() => handleAction('play-project', project.id)}
+                      onClick={() => handleAction("play-project", project.id)}
                     >
                       Play
                     </button>
@@ -237,7 +252,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
           </>
         );
 
-      case 'awards':
+      case "awards":
         return (
           <>
             <div className="modal-header">
@@ -253,18 +268,22 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
                   </div>
                   <div className="item-description">{award.description}</div>
                   <div className="award-info">
-                    <div className="award-rewards">1st place: 5 VP, 2nd place: 2 VP</div>
+                    <div className="award-rewards">
+                      1st place: 5 VP, 2nd place: 2 VP
+                    </div>
                     {award.funded && award.fundedBy && (
-                      <div className="funded-by">Funded by {award.fundedBy}</div>
+                      <div className="funded-by">
+                        Funded by {award.fundedBy}
+                      </div>
                     )}
                   </div>
                   <div className="item-actions">
                     <button
                       className="action-btn fund-btn"
                       disabled={award.funded}
-                      onClick={() => handleAction('fund-award', award.id)}
+                      onClick={() => handleAction("fund-award", award.id)}
                     >
-                      {award.funded ? 'Funded' : 'Fund'}
+                      {award.funded ? "Funded" : "Fund"}
                     </button>
                   </div>
                 </div>
@@ -277,10 +296,10 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
 
   return (
     <div className="modal-popup">
-      <button className="close-btn" onClick={onClose}>×</button>
-      <div className="modal-content">
-        {renderContent()}
-      </div>
+      <button className="close-btn" onClick={onClose}>
+        ×
+      </button>
+      <div className="modal-content">{renderContent()}</div>
 
       <style jsx>{`
         .modal-popup {
@@ -297,7 +316,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
           width: 100%;
           overflow-y: auto;
           backdrop-filter: blur(20px);
-          box-shadow: 
+          box-shadow:
             0 20px 60px rgba(0, 0, 0, 0.8),
             0 0 40px rgba(100, 150, 255, 0.3);
           position: relative;
@@ -375,7 +394,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
 
         .item-card:hover {
           transform: translateY(-2px);
-          box-shadow: 
+          box-shadow:
             0 8px 25px rgba(0, 0, 0, 0.4),
             0 0 20px rgba(100, 150, 255, 0.3);
         }

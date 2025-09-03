@@ -1,17 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { CardType, CardTag } from '../../../types/cards.ts';
-import ProductionDisplay from '../display/ProductionDisplay.tsx';
+import React, { useEffect, useState } from "react";
+import { CardType, CardTag } from "../../../types/cards.ts";
+import ProductionDisplay from "../display/ProductionDisplay.tsx";
 
 interface CardEffect {
   id: string;
   cardId: string;
   cardName: string;
   cardType: CardType;
-  effectType: 'immediate' | 'ongoing' | 'triggered';
+  effectType: "immediate" | "ongoing" | "triggered";
   name: string;
   description: string;
   isActive: boolean;
-  category: 'production' | 'discount' | 'bonus' | 'conversion' | 'protection' | 'trigger';
+  category:
+    | "production"
+    | "discount"
+    | "bonus"
+    | "conversion"
+    | "protection"
+    | "trigger";
   resource?: string;
   value?: number;
   condition?: string;
@@ -34,27 +40,40 @@ interface CardEffectsModalProps {
   onEffectActivate?: (effect: CardEffect) => void;
 }
 
-type FilterType = 'all' | 'active' | 'inactive' | 'immediate' | 'ongoing' | 'triggered';
-type CategoryType = 'all' | 'production' | 'discount' | 'bonus' | 'conversion' | 'protection' | 'trigger';
-type SortType = 'type' | 'card' | 'category' | 'name';
+type FilterType =
+  | "all"
+  | "active"
+  | "inactive"
+  | "immediate"
+  | "ongoing"
+  | "triggered";
+type CategoryType =
+  | "all"
+  | "production"
+  | "discount"
+  | "bonus"
+  | "conversion"
+  | "protection"
+  | "trigger";
+type SortType = "type" | "card" | "category" | "name";
 
-const CardEffectsModal: React.FC<CardEffectsModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  effects, 
+const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
+  isVisible,
+  onClose,
+  effects,
   cards,
   playerName = "Player",
-  onEffectActivate
+  onEffectActivate,
 }) => {
   const [selectedEffect, setSelectedEffect] = useState<CardEffect | null>(null);
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [categoryFilter, setCategoryFilter] = useState<CategoryType>('all');
-  const [sortType, setSortType] = useState<SortType>('type');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryType>("all");
+  const [sortType, setSortType] = useState<SortType>("type");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         if (selectedEffect) {
           setSelectedEffect(null);
         } else {
@@ -64,13 +83,13 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
     };
 
     if (isVisible) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isVisible, onClose, selectedEffect]);
 
@@ -83,19 +102,19 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         background: `linear-gradient(145deg, rgba(255, 215, 0, ${0.2 * baseOpacity}) 0%, rgba(255, 165, 0, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(255, 215, 0, ${0.7 * baseOpacity})`,
         glowColor: `rgba(255, 215, 0, ${0.4 * baseOpacity})`,
-        badgeColor: '#ffd700'
+        badgeColor: "#ffd700",
       },
       ongoing: {
         background: `linear-gradient(145deg, rgba(0, 255, 120, ${0.2 * baseOpacity}) 0%, rgba(0, 200, 100, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(0, 255, 120, ${0.7 * baseOpacity})`,
         glowColor: `rgba(0, 255, 120, ${0.4 * baseOpacity})`,
-        badgeColor: '#00ff78'
+        badgeColor: "#00ff78",
       },
       triggered: {
         background: `linear-gradient(145deg, rgba(255, 80, 80, ${0.2 * baseOpacity}) 0%, rgba(200, 50, 50, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(255, 120, 120, ${0.7 * baseOpacity})`,
         glowColor: `rgba(255, 120, 120, ${0.4 * baseOpacity})`,
-        badgeColor: '#ff7878'
+        badgeColor: "#ff7878",
       },
     };
     return styles[effectType as keyof typeof styles] || styles.ongoing;
@@ -103,119 +122,132 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
 
   const getCategoryIcon = (category: string): string => {
     const icons = {
-      production: '/assets/misc/production.png',
-      discount: '/assets/misc/minus.png',
-      bonus: '/assets/misc/plus.png',
-      conversion: '/assets/misc/arrow.png',
-      protection: '/assets/misc/shield-icon.png',
-      trigger: '/assets/misc/asterisc.png'
+      production: "/assets/misc/production.png",
+      discount: "/assets/misc/minus.png",
+      bonus: "/assets/misc/plus.png",
+      conversion: "/assets/misc/arrow.png",
+      protection: "/assets/misc/shield-icon.png",
+      trigger: "/assets/misc/asterisc.png",
     };
-    return icons[category as keyof typeof icons] || '/assets/misc/asterisc.png';
+    return icons[category as keyof typeof icons] || "/assets/misc/asterisc.png";
   };
 
   const getCategoryColor = (category: string): string => {
     const colors = {
-      production: '#00ff78',
-      discount: '#ff7878',
-      bonus: '#ffd700',
-      conversion: '#00b4ff',
-      protection: '#dc78ff',
-      trigger: '#ffb400'
+      production: "#00ff78",
+      discount: "#ff7878",
+      bonus: "#ffd700",
+      conversion: "#00b4ff",
+      protection: "#dc78ff",
+      trigger: "#ffb400",
     };
-    return colors[category as keyof typeof colors] || '#ffffff';
+    return colors[category as keyof typeof colors] || "#ffffff";
   };
 
   const getResourceIcon = (resource?: string): string => {
-    if (!resource) return '/assets/misc/asterisc.png';
+    if (!resource) return "/assets/misc/asterisc.png";
     const resourceIcons: Record<string, string> = {
-      credits: '/assets/resources/megacredit.png',
-      steel: '/assets/resources/steel.png',
-      titanium: '/assets/resources/titanium.png',
-      plants: '/assets/resources/plant.png',
-      energy: '/assets/resources/power.png',
-      heat: '/assets/resources/heat.png',
-      cards: '/assets/misc/corpCard.png',
-      tr: '/assets/resources/tr.png'
+      credits: "/assets/resources/megacredit.png",
+      steel: "/assets/resources/steel.png",
+      titanium: "/assets/resources/titanium.png",
+      plants: "/assets/resources/plant.png",
+      energy: "/assets/resources/power.png",
+      heat: "/assets/resources/heat.png",
+      cards: "/assets/misc/corpCard.png",
+      tr: "/assets/resources/tr.png",
     };
-    return resourceIcons[resource] || '/assets/misc/asterisc.png';
+    return resourceIcons[resource] || "/assets/misc/asterisc.png";
   };
 
   const getEffectTypeName = (effectType: string): string => {
     const names = {
-      immediate: 'Immediate',
-      ongoing: 'Ongoing',
-      triggered: 'Triggered',
+      immediate: "Immediate",
+      ongoing: "Ongoing",
+      triggered: "Triggered",
     };
-    return names[effectType as keyof typeof names] || 'Effect';
+    return names[effectType as keyof typeof names] || "Effect";
   };
 
   // Filter and sort effects
-  const filteredEffects = effects.filter(effect => {
-    // Type filter
-    let typeMatch = true;
-    switch (filterType) {
-      case 'active': typeMatch = effect.isActive; break;
-      case 'inactive': typeMatch = !effect.isActive; break;
-      case 'immediate': typeMatch = effect.effectType === 'immediate'; break;
-      case 'ongoing': typeMatch = effect.effectType === 'ongoing'; break;
-      case 'triggered': typeMatch = effect.effectType === 'triggered'; break;
-      default: typeMatch = true;
-    }
+  const filteredEffects = effects
+    .filter((effect) => {
+      // Type filter
+      let typeMatch = true;
+      switch (filterType) {
+        case "active":
+          typeMatch = effect.isActive;
+          break;
+        case "inactive":
+          typeMatch = !effect.isActive;
+          break;
+        case "immediate":
+          typeMatch = effect.effectType === "immediate";
+          break;
+        case "ongoing":
+          typeMatch = effect.effectType === "ongoing";
+          break;
+        case "triggered":
+          typeMatch = effect.effectType === "triggered";
+          break;
+        default:
+          typeMatch = true;
+      }
 
-    // Category filter
-    let categoryMatch = true;
-    if (categoryFilter !== 'all') {
-      categoryMatch = effect.category === categoryFilter;
-    }
+      // Category filter
+      let categoryMatch = true;
+      if (categoryFilter !== "all") {
+        categoryMatch = effect.category === categoryFilter;
+      }
 
-    return typeMatch && categoryMatch;
-  }).sort((a, b) => {
-    let aValue, bValue;
-    
-    switch (sortType) {
-      case 'type':
-        aValue = a.effectType;
-        bValue = b.effectType;
-        break;
-      case 'card':
-        aValue = a.cardName.toLowerCase();
-        bValue = b.cardName.toLowerCase();
-        break;
-      case 'category':
-        aValue = a.category;
-        bValue = b.category;
-        break;
-      case 'name':
-        aValue = a.name.toLowerCase();
-        bValue = b.name.toLowerCase();
-        break;
-      default:
-        return 0;
-    }
-    
-    if (sortOrder === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
+      return typeMatch && categoryMatch;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortType) {
+        case "type":
+          aValue = a.effectType;
+          bValue = b.effectType;
+          break;
+        case "card":
+          aValue = a.cardName.toLowerCase();
+          bValue = b.cardName.toLowerCase();
+          break;
+        case "category":
+          aValue = a.category;
+          bValue = b.category;
+          break;
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
 
   const effectStats = {
     total: effects.length,
-    active: effects.filter(e => e.isActive).length,
+    active: effects.filter((e) => e.isActive).length,
     byType: {
-      immediate: effects.filter(e => e.effectType === 'immediate').length,
-      ongoing: effects.filter(e => e.effectType === 'ongoing').length,
-      triggered: effects.filter(e => e.effectType === 'triggered').length,
+      immediate: effects.filter((e) => e.effectType === "immediate").length,
+      ongoing: effects.filter((e) => e.effectType === "ongoing").length,
+      triggered: effects.filter((e) => e.effectType === "triggered").length,
     },
     byCategory: {
-      production: effects.filter(e => e.category === 'production').length,
-      discount: effects.filter(e => e.category === 'discount').length,
-      bonus: effects.filter(e => e.category === 'bonus').length,
-      conversion: effects.filter(e => e.category === 'conversion').length,
-      protection: effects.filter(e => e.category === 'protection').length,
-      trigger: effects.filter(e => e.category === 'trigger').length,
-    }
+      production: effects.filter((e) => e.category === "production").length,
+      discount: effects.filter((e) => e.category === "discount").length,
+      bonus: effects.filter((e) => e.category === "bonus").length,
+      conversion: effects.filter((e) => e.category === "conversion").length,
+      protection: effects.filter((e) => e.category === "protection").length,
+      trigger: effects.filter((e) => e.category === "trigger").length,
+    },
   };
 
   const handleEffectClick = (effect: CardEffect) => {
@@ -225,7 +257,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
   return (
     <div className="card-effects-modal">
       <div className="backdrop" onClick={onClose} />
-      
+
       <div className="modal-container">
         {/* Header */}
         <div className="modal-header">
@@ -237,52 +269,78 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                 <span className="summary-label">Total Effects</span>
               </div>
               <div className="summary-item">
-                <span className="summary-value active">{effectStats.active}</span>
+                <span className="summary-value active">
+                  {effectStats.active}
+                </span>
                 <span className="summary-label">Active</span>
               </div>
               <div className="summary-item">
-                <span className="summary-value inactive">{effectStats.total - effectStats.active}</span>
+                <span className="summary-value inactive">
+                  {effectStats.total - effectStats.active}
+                </span>
                 <span className="summary-label">Inactive</span>
               </div>
             </div>
           </div>
-          
+
           <div className="header-controls">
             <div className="filter-controls">
               <label>Type:</label>
-              <select 
-                value={filterType} 
+              <select
+                value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
               >
                 <option value="all">All Effects</option>
                 <option value="active">Active ({effectStats.active})</option>
-                <option value="inactive">Inactive ({effectStats.total - effectStats.active})</option>
-                <option value="immediate">Immediate ({effectStats.byType.immediate})</option>
-                <option value="ongoing">Ongoing ({effectStats.byType.ongoing})</option>
-                <option value="triggered">Triggered ({effectStats.byType.triggered})</option>
+                <option value="inactive">
+                  Inactive ({effectStats.total - effectStats.active})
+                </option>
+                <option value="immediate">
+                  Immediate ({effectStats.byType.immediate})
+                </option>
+                <option value="ongoing">
+                  Ongoing ({effectStats.byType.ongoing})
+                </option>
+                <option value="triggered">
+                  Triggered ({effectStats.byType.triggered})
+                </option>
               </select>
             </div>
 
             <div className="filter-controls">
               <label>Category:</label>
-              <select 
-                value={categoryFilter} 
-                onChange={(e) => setCategoryFilter(e.target.value as CategoryType)}
+              <select
+                value={categoryFilter}
+                onChange={(e) =>
+                  setCategoryFilter(e.target.value as CategoryType)
+                }
               >
                 <option value="all">All Categories</option>
-                <option value="production">Production ({effectStats.byCategory.production})</option>
-                <option value="discount">Discounts ({effectStats.byCategory.discount})</option>
-                <option value="bonus">Bonuses ({effectStats.byCategory.bonus})</option>
-                <option value="conversion">Conversions ({effectStats.byCategory.conversion})</option>
-                <option value="protection">Protection ({effectStats.byCategory.protection})</option>
-                <option value="trigger">Triggers ({effectStats.byCategory.trigger})</option>
+                <option value="production">
+                  Production ({effectStats.byCategory.production})
+                </option>
+                <option value="discount">
+                  Discounts ({effectStats.byCategory.discount})
+                </option>
+                <option value="bonus">
+                  Bonuses ({effectStats.byCategory.bonus})
+                </option>
+                <option value="conversion">
+                  Conversions ({effectStats.byCategory.conversion})
+                </option>
+                <option value="protection">
+                  Protection ({effectStats.byCategory.protection})
+                </option>
+                <option value="trigger">
+                  Triggers ({effectStats.byCategory.trigger})
+                </option>
               </select>
             </div>
 
             <div className="sort-controls">
               <label>Sort:</label>
-              <select 
-                value={sortType} 
+              <select
+                value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
               >
                 <option value="type">Effect Type</option>
@@ -292,77 +350,100 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
               </select>
               <button
                 className="sort-order-btn"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
               >
-                {sortOrder === 'asc' ? '↑' : '↓'}
+                {sortOrder === "asc" ? "↑" : "↓"}
               </button>
             </div>
           </div>
 
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         {/* Effects Content */}
         <div className="effects-content">
           {filteredEffects.length === 0 ? (
             <div className="empty-state">
-              <img src="/assets/misc/asterisc.png" alt="No effects" className="empty-icon" />
+              <img
+                src="/assets/misc/asterisc.png"
+                alt="No effects"
+                className="empty-icon"
+              />
               <h3>No Effects Found</h3>
               <p>
-                {filterType === 'all' && categoryFilter === 'all'
-                  ? 'No card effects are available' 
-                  : 'No effects match the current filters'}
+                {filterType === "all" && categoryFilter === "all"
+                  ? "No card effects are available"
+                  : "No effects match the current filters"}
               </p>
             </div>
           ) : (
             <>
               {/* Effects by Type */}
-              {['ongoing', 'triggered', 'immediate'].map(effectType => {
-                const effectsOfType = filteredEffects.filter(e => e.effectType === effectType);
+              {["ongoing", "triggered", "immediate"].map((effectType) => {
+                const effectsOfType = filteredEffects.filter(
+                  (e) => e.effectType === effectType,
+                );
                 if (effectsOfType.length === 0) return null;
 
                 return (
                   <div key={effectType} className="effects-section">
                     <h2 className="section-title">
-                      {getEffectTypeName(effectType)} Effects ({effectsOfType.length})
+                      {getEffectTypeName(effectType)} Effects (
+                      {effectsOfType.length})
                       <span className="section-description">
-                        {effectType === 'ongoing' && 'Passive effects that are always active'}
-                        {effectType === 'triggered' && 'Effects that activate automatically when conditions are met'}
-                        {effectType === 'immediate' && 'Effects that were applied when the card was played'}
+                        {effectType === "ongoing" &&
+                          "Passive effects that are always active"}
+                        {effectType === "triggered" &&
+                          "Effects that activate automatically when conditions are met"}
+                        {effectType === "immediate" &&
+                          "Effects that were applied when the card was played"}
                       </span>
                     </h2>
-                    
+
                     <div className="effects-grid">
                       {effectsOfType.map((effect, index) => {
-                        const effectStyle = getEffectTypeStyle(effect.effectType, effect.isActive);
+                        const effectStyle = getEffectTypeStyle(
+                          effect.effectType,
+                          effect.isActive,
+                        );
                         const categoryColor = getCategoryColor(effect.category);
-                        
+
                         return (
-                          <div 
+                          <div
                             key={effect.id}
-                            className={`effect-card ${effect.isActive ? 'active' : 'inactive'}`}
+                            className={`effect-card ${effect.isActive ? "active" : "inactive"}`}
                             style={{
                               background: effectStyle.background,
                               borderColor: effectStyle.borderColor,
-                              boxShadow: effect.isActive 
+                              boxShadow: effect.isActive
                                 ? `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 30px ${effectStyle.glowColor}`
                                 : `0 2px 10px rgba(0, 0, 0, 0.2)`,
-                              animationDelay: `${index * 0.05}s`
+                              animationDelay: `${index * 0.05}s`,
                             }}
                             onClick={() => handleEffectClick(effect)}
                           >
                             {/* Effect Header */}
                             <div className="effect-header">
-                              <div className="effect-type-badge" 
-                                   style={{ backgroundColor: effectStyle.badgeColor }}>
+                              <div
+                                className="effect-type-badge"
+                                style={{
+                                  backgroundColor: effectStyle.badgeColor,
+                                }}
+                              >
                                 {getEffectTypeName(effect.effectType)}
                               </div>
-                              
-                              <div className="effect-category"
-                                   style={{ borderColor: categoryColor }}>
-                                <img 
-                                  src={getCategoryIcon(effect.category)} 
+
+                              <div
+                                className="effect-category"
+                                style={{ borderColor: categoryColor }}
+                              >
+                                <img
+                                  src={getCategoryIcon(effect.category)}
                                   alt={effect.category}
                                   className="category-icon"
                                 />
@@ -378,37 +459,48 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                             </div>
 
                             {/* Effect Resource/Value */}
-                            {(effect.resource || effect.value !== undefined) && (
+                            {(effect.resource ||
+                              effect.value !== undefined) && (
                               <div className="effect-values">
                                 {effect.resource && (
                                   <div className="resource-display">
-                                    <img 
-                                      src={getResourceIcon(effect.resource)} 
+                                    <img
+                                      src={getResourceIcon(effect.resource)}
                                       alt={effect.resource}
                                       className="resource-icon"
                                     />
                                     {effect.value !== undefined && (
-                                      <span className="resource-value">{effect.value}</span>
+                                      <span className="resource-value">
+                                        {effect.value}
+                                      </span>
                                     )}
                                   </div>
                                 )}
-                                {effect.category === 'production' && effect.resource && effect.value && (
-                                  <ProductionDisplay 
-                                    amount={effect.value} 
-                                    resourceType={effect.resource} 
-                                    size="small" 
-                                  />
-                                )}
+                                {effect.category === "production" &&
+                                  effect.resource &&
+                                  effect.value && (
+                                    <ProductionDisplay
+                                      amount={effect.value}
+                                      resourceType={effect.resource}
+                                      size="small"
+                                    />
+                                  )}
                               </div>
                             )}
 
                             {/* Effect Description */}
-                            <p className="effect-description">{effect.description}</p>
+                            <p className="effect-description">
+                              {effect.description}
+                            </p>
 
                             {/* Effect Condition */}
                             {effect.condition && (
                               <div className="effect-condition">
-                                <img src="/assets/misc/minus.png" alt="Condition" className="condition-icon" />
+                                <img
+                                  src="/assets/misc/minus.png"
+                                  alt="Condition"
+                                  className="condition-icon"
+                                />
                                 <span>{effect.condition}</span>
                               </div>
                             )}
@@ -417,12 +509,20 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                             <div className="effect-status">
                               {effect.isActive ? (
                                 <div className="status-active">
-                                  <img src="/assets/misc/checkmark.png" alt="Active" className="status-icon" />
+                                  <img
+                                    src="/assets/misc/checkmark.png"
+                                    alt="Active"
+                                    className="status-icon"
+                                  />
                                   <span>Active</span>
                                 </div>
                               ) : (
                                 <div className="status-inactive">
-                                  <img src="/assets/misc/minus.png" alt="Inactive" className="status-icon" />
+                                  <img
+                                    src="/assets/misc/minus.png"
+                                    alt="Inactive"
+                                    className="status-icon"
+                                  />
                                   <span>Inactive</span>
                                 </div>
                               )}
@@ -443,17 +543,18 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           {Object.entries(effectStats.byCategory).map(([category, count]) => {
             if (count === 0) return null;
             const color = getCategoryColor(category);
-            const isActive = categoryFilter === category || categoryFilter === 'all';
-            
+            const isActive =
+              categoryFilter === category || categoryFilter === "all";
+
             return (
-              <div 
+              <div
                 key={category}
-                className={`category-stat ${isActive ? 'active' : ''}`}
+                className={`category-stat ${isActive ? "active" : ""}`}
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
                 onClick={() => setCategoryFilter(category as CategoryType)}
               >
-                <img 
-                  src={getCategoryIcon(category)} 
+                <img
+                  src={getCategoryIcon(category)}
                   alt={category}
                   className="category-stat-icon"
                 />
@@ -464,13 +565,20 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
               </div>
             );
           })}
-          
-          <div 
-            className={`category-stat ${categoryFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setCategoryFilter('all')}
-            style={{ borderColor: '#ffffff', backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+
+          <div
+            className={`category-stat ${categoryFilter === "all" ? "active" : ""}`}
+            onClick={() => setCategoryFilter("all")}
+            style={{
+              borderColor: "#ffffff",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+            }}
           >
-            <img src="/assets/misc/asterisc.png" alt="All" className="category-stat-icon" />
+            <img
+              src="/assets/misc/asterisc.png"
+              alt="All"
+              className="category-stat-icon"
+            />
             <div className="category-info">
               <span className="category-count">{effectStats.total}</span>
               <span className="category-name">All</span>
@@ -481,32 +589,45 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
 
       {/* Effect Detail Modal */}
       {selectedEffect && (
-        <div className="effect-detail-overlay" onClick={() => setSelectedEffect(null)}>
-          <div className="effect-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="effect-detail-overlay"
+          onClick={() => setSelectedEffect(null)}
+        >
+          <div
+            className="effect-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="effect-detail-header">
               <div className="detail-title">
-                <img 
-                  src={getCategoryIcon(selectedEffect.category)} 
+                <img
+                  src={getCategoryIcon(selectedEffect.category)}
                   alt={selectedEffect.category}
                   className="detail-icon"
                 />
                 <div>
                   <h2>{selectedEffect.name}</h2>
                   <span className="detail-type">
-                    {getEffectTypeName(selectedEffect.effectType)} • {selectedEffect.category}
+                    {getEffectTypeName(selectedEffect.effectType)} •{" "}
+                    {selectedEffect.category}
                   </span>
                 </div>
               </div>
-              <button className="close-detail-btn" onClick={() => setSelectedEffect(null)}>×</button>
+              <button
+                className="close-detail-btn"
+                onClick={() => setSelectedEffect(null)}
+              >
+                ×
+              </button>
             </div>
-            
+
             <div className="effect-detail-content">
               <div className="detail-card-info">
                 <h4>Source Card:</h4>
                 <div className="card-info">
                   <span className="card-name">{selectedEffect.cardName}</span>
                   <span className="card-type">
-                    {selectedEffect.cardType.charAt(0).toUpperCase() + selectedEffect.cardType.slice(1)}
+                    {selectedEffect.cardType.charAt(0).toUpperCase() +
+                      selectedEffect.cardType.slice(1)}
                   </span>
                 </div>
               </div>
@@ -520,20 +641,25 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
                 <div className="detail-condition">
                   <h4>Condition:</h4>
                   <div className="condition-text">
-                    <img src="/assets/misc/minus.png" alt="Condition" className="condition-icon" />
+                    <img
+                      src="/assets/misc/minus.png"
+                      alt="Condition"
+                      className="condition-icon"
+                    />
                     <span>{selectedEffect.condition}</span>
                   </div>
                 </div>
               )}
 
-              {(selectedEffect.resource || selectedEffect.value !== undefined) && (
+              {(selectedEffect.resource ||
+                selectedEffect.value !== undefined) && (
                 <div className="detail-values">
                   <h4>Effect Value:</h4>
                   <div className="values-display">
                     {selectedEffect.resource && (
                       <div className="resource-display">
-                        <img 
-                          src={getResourceIcon(selectedEffect.resource)} 
+                        <img
+                          src={getResourceIcon(selectedEffect.resource)}
                           alt={selectedEffect.resource}
                           className="resource-icon"
                         />
@@ -549,16 +675,21 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
 
               <div className="detail-status">
                 <h4>Current Status:</h4>
-                <div className={`status-display ${selectedEffect.isActive ? 'active' : 'inactive'}`}>
-                  <img 
-                    src={selectedEffect.isActive ? '/assets/misc/checkmark.png' : '/assets/misc/minus.png'} 
-                    alt={selectedEffect.isActive ? 'Active' : 'Inactive'}
+                <div
+                  className={`status-display ${selectedEffect.isActive ? "active" : "inactive"}`}
+                >
+                  <img
+                    src={
+                      selectedEffect.isActive
+                        ? "/assets/misc/checkmark.png"
+                        : "/assets/misc/minus.png"
+                    }
+                    alt={selectedEffect.isActive ? "Active" : "Inactive"}
                     className="status-icon"
                   />
-                  <span>{selectedEffect.isActive ? 'Active' : 'Inactive'}</span>
+                  <span>{selectedEffect.isActive ? "Active" : "Inactive"}</span>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -595,11 +726,17 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           width: 100%;
           max-width: 1400px;
           max-height: 90vh;
-          background: linear-gradient(145deg, rgba(20, 30, 45, 0.98) 0%, rgba(30, 40, 60, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(20, 30, 45, 0.98) 0%,
+            rgba(30, 40, 60, 0.95) 100%
+          );
           border: 3px solid rgba(255, 150, 0, 0.4);
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(255, 150, 0, 0.4);
+          box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.8),
+            0 0 60px rgba(255, 150, 0, 0.4);
           backdrop-filter: blur(20px);
           animation: modalSlideIn 0.4s ease-out;
           display: flex;
@@ -611,7 +748,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 25px 30px;
-          background: linear-gradient(90deg, rgba(40, 30, 20, 0.9) 0%, rgba(50, 40, 30, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(40, 30, 20, 0.9) 0%,
+            rgba(50, 40, 30, 0.7) 100%
+          );
           border-bottom: 2px solid rgba(255, 150, 0, 0.3);
           flex-shrink: 0;
         }
@@ -646,7 +787,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         .summary-value {
           font-size: 18px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           color: #ffffff;
         }
 
@@ -671,7 +812,8 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           align-items: center;
         }
 
-        .filter-controls, .sort-controls {
+        .filter-controls,
+        .sort-controls {
           display: flex;
           gap: 8px;
           align-items: center;
@@ -679,7 +821,8 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           font-size: 14px;
         }
 
-        .filter-controls select, .sort-controls select {
+        .filter-controls select,
+        .sort-controls select {
           background: rgba(0, 0, 0, 0.5);
           border: 1px solid rgba(255, 150, 0, 0.4);
           border-radius: 6px;
@@ -705,7 +848,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         }
 
         .close-button {
-          background: linear-gradient(135deg, rgba(255, 80, 80, 0.8) 0%, rgba(200, 40, 40, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 80, 80, 0.8) 0%,
+            rgba(200, 40, 40, 0.9) 100%
+          );
           border: 2px solid rgba(255, 120, 120, 0.6);
           border-radius: 50%;
           width: 45px;
@@ -902,7 +1049,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         .resource-value {
           color: #ffffff;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .effect-description {
@@ -938,7 +1085,9 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           gap: 8px;
         }
 
-        .status-activatable, .status-active, .status-inactive {
+        .status-activatable,
+        .status-active,
+        .status-inactive {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -996,7 +1145,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           display: flex;
           gap: 10px;
           padding: 20px 30px;
-          background: linear-gradient(90deg, rgba(15, 20, 35, 0.9) 0%, rgba(25, 30, 45, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(15, 20, 35, 0.9) 0%,
+            rgba(25, 30, 45, 0.7) 100%
+          );
           border-top: 1px solid rgba(255, 150, 0, 0.2);
           flex-shrink: 0;
           flex-wrap: wrap;
@@ -1014,7 +1167,8 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           min-width: 100px;
         }
 
-        .category-stat:hover, .category-stat.active {
+        .category-stat:hover,
+        .category-stat.active {
           transform: scale(1.05);
         }
 
@@ -1036,7 +1190,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           color: #ffffff;
           font-size: 14px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .category-name {
@@ -1063,7 +1217,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         }
 
         .effect-detail-modal {
-          background: linear-gradient(145deg, rgba(25, 35, 50, 0.98) 0%, rgba(35, 45, 65, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(25, 35, 50, 0.98) 0%,
+            rgba(35, 45, 65, 0.95) 100%
+          );
           border: 3px solid rgba(255, 150, 0, 0.5);
           border-radius: 15px;
           max-width: 600px;
@@ -1079,7 +1237,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           align-items: center;
           padding: 20px 25px;
           border-bottom: 2px solid rgba(255, 150, 0, 0.3);
-          background: linear-gradient(90deg, rgba(40, 30, 20, 0.9) 0%, rgba(50, 40, 30, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(40, 30, 20, 0.9) 0%,
+            rgba(50, 40, 30, 0.7) 100%
+          );
         }
 
         .detail-title {
@@ -1125,11 +1287,19 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
           padding: 25px;
         }
 
-        .detail-card-info, .detail-description, .detail-condition, .detail-values, .detail-status {
+        .detail-card-info,
+        .detail-description,
+        .detail-condition,
+        .detail-values,
+        .detail-status {
           margin-bottom: 20px;
         }
 
-        .detail-card-info h4, .detail-description h4, .detail-condition h4, .detail-values h4, .detail-status h4 {
+        .detail-card-info h4,
+        .detail-description h4,
+        .detail-condition h4,
+        .detail-values h4,
+        .detail-status h4 {
           color: #ffffff;
           margin: 0 0 10px 0;
           font-size: 16px;
@@ -1192,7 +1362,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         .value {
           color: #ffb400;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .status-display {
@@ -1225,7 +1395,11 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
 
         .activate-effect-btn {
           width: 100%;
-          background: linear-gradient(135deg, rgba(255, 150, 0, 0.8) 0%, rgba(255, 100, 0, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 150, 0, 0.8) 0%,
+            rgba(255, 100, 0, 0.9) 100%
+          );
           border: 2px solid rgba(255, 150, 0, 0.6);
           border-radius: 10px;
           color: #ffffff;
@@ -1254,8 +1428,12 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         }
 
         @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         @keyframes modalSlideIn {

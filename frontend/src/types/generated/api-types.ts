@@ -1,8 +1,7 @@
 // Generated TypeScript interfaces from Go structs
 // DO NOT EDIT - This file is auto-generated
 
-export interface GameAggregate {
-}
+export interface GameAggregate {}
 
 export interface BoardSpace {
   position: HexCoordinate;
@@ -318,8 +317,7 @@ export interface GameEndedData {
   generations: number;
 }
 
-export interface EventFactory {
-}
+export interface EventFactory {}
 
 export interface GameState {
   id: string;
@@ -537,4 +535,3 @@ export interface EndGameCondition {
   currentValue: number;
   isCompleted: boolean;
 }
-

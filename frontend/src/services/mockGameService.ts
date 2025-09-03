@@ -64,90 +64,119 @@ export interface Corporation {
 // Mock corporations
 const mockCorporations: Corporation[] = [
   {
-    id: 'mining-guild',
-    name: 'Mining Guild',
-    description: 'You start with 30 M€, 5 steel, and 1 steel production. Increase steel production 1 step for each steel and titanium resource on the board.',
+    id: "mining-guild",
+    name: "Mining Guild",
+    description:
+      "You start with 30 M€, 5 steel, and 1 steel production. Increase steel production 1 step for each steel and titanium resource on the board.",
     startingResources: { credits: 30, steel: 5 },
     startingProduction: { steel: 1 },
-    tags: ['building', 'space']
+    tags: ["building", "space"],
   },
   {
-    id: 'ecoline',
-    name: 'Ecoline',
-    description: 'You start with 36 M€, 3 plants, and 2 plant production.',
+    id: "ecoline",
+    name: "Ecoline",
+    description: "You start with 36 M€, 3 plants, and 2 plant production.",
     startingResources: { credits: 36, plants: 3 },
     startingProduction: { plants: 2 },
-    tags: ['plant']
+    tags: ["plant"],
   },
   {
-    id: 'helion',
-    name: 'Helion',
-    description: 'You start with 42 M€ and 3 heat production.',
+    id: "helion",
+    name: "Helion",
+    description: "You start with 42 M€ and 3 heat production.",
     startingResources: { credits: 42 },
     startingProduction: { heat: 3 },
-    tags: ['space']
+    tags: ["space"],
   },
   {
-    id: 'credicor',
-    name: 'Credicor',
-    description: 'You start with 57 M€.',
+    id: "credicor",
+    name: "Credicor",
+    description: "You start with 57 M€.",
     startingResources: { credits: 57 },
-    tags: []
-  }
+    tags: [],
+  },
 ];
 
 // Mock game state
 const createMockGameState = (): GameState => ({
-  id: 'demo-game',
+  id: "demo-game",
   players: [
     {
-      id: 'player-1',
-      name: 'Player 1',
-      resources: { credits: 42, steel: 3, titanium: 1, plants: 4, energy: 2, heat: 6 },
-      production: { credits: 24, steel: 2, titanium: 0, plants: 1, energy: 3, heat: 1 },
+      id: "player-1",
+      name: "Player 1",
+      resources: {
+        credits: 42,
+        steel: 3,
+        titanium: 1,
+        plants: 4,
+        energy: 2,
+        heat: 6,
+      },
+      production: {
+        credits: 24,
+        steel: 2,
+        titanium: 0,
+        plants: 1,
+        energy: 3,
+        heat: 1,
+      },
       terraformRating: 20,
       victoryPoints: 15,
-      corporation: 'mining-guild',
+      corporation: "mining-guild",
       passed: false,
-      availableActions: 2
+      availableActions: 2,
     },
     {
-      id: 'player-2', 
-      name: 'Player 2',
-      resources: { credits: 38, steel: 1, titanium: 2, plants: 2, energy: 4, heat: 3 },
-      production: { credits: 22, steel: 0, titanium: 1, plants: 2, energy: 2, heat: 2 },
+      id: "player-2",
+      name: "Player 2",
+      resources: {
+        credits: 38,
+        steel: 1,
+        titanium: 2,
+        plants: 2,
+        energy: 4,
+        heat: 3,
+      },
+      production: {
+        credits: 22,
+        steel: 0,
+        titanium: 1,
+        plants: 2,
+        energy: 2,
+        heat: 2,
+      },
       terraformRating: 18,
       victoryPoints: 12,
-      corporation: 'ecoline',
+      corporation: "ecoline",
       passed: false,
-      availableActions: 1
-    }
+      availableActions: 1,
+    },
   ],
-  currentPlayer: 'player-1',
+  currentPlayer: "player-1",
   generation: 3,
-  phase: 'action',
+  phase: "action",
   globalParameters: {
     temperature: -18,
     oxygen: 8,
-    oceans: 4
-  }
+    oceans: 4,
+  },
 });
 
 export class MockWebSocketService {
   private gameState: GameState;
   private listeners: { [event: string]: Function[] } = {};
   private isConnected = false;
-  private playerId = 'player-1';
+  private playerId = "player-1";
 
   constructor() {
     this.gameState = createMockGameState();
-    
+
     // Simulate connection after a brief delay
     setTimeout(() => {
       this.isConnected = true;
-      this.emit('connect');
-      this.emit('game-updated', this.gameState);
-      this.emit('corporations-available', mockCorporations);
+      this.emit("connect");
+      this.emit("game-updated", this.gameState);
+      this.emit("corporations-available", mockCorporations);
     }, 100);
   }
 
@@ -160,59 +189,65 @@ export class MockWebSocketService {
   }
 
   emit(event: string, data?: any) {
-    if (event === 'join-game') {
+    if (event === "join-game") {
       // Handle join game request
       setTimeout(() => {
-        this.emit('game-updated', this.gameState);
-        this.emit('corporations-available', mockCorporations);
+        this.emit("game-updated", this.gameState);
+        this.emit("corporations-available", mockCorporations);
       }, 50);
       return;
     }
 
-    if (event === 'select-corporation') {
+    if (event === "select-corporation") {
       // Handle corporation selection
-      const player = this.gameState.players.find(p => p.id === this.playerId);
+      const player = this.gameState.players.find((p) => p.id === this.playerId);
       if (player && data?.corporationId) {
         player.corporation = data.corporationId;
-        
+
         // Apply corporation starting bonuses
-        const corp = mockCorporations.find(c => c.id === data.corporationId);
+        const corp = mockCorporations.find((c) => c.id === data.corporationId);
         if (corp) {
           // Apply starting resources
-          Object.entries(corp.startingResources).forEach(([resource, amount]) => {
-            if (resource in player.resources) {
-              (player.resources as any)[resource] = amount;
-            }
-          });
-          
+          Object.entries(corp.startingResources).forEach(
+            ([resource, amount]) => {
+              if (resource in player.resources) {
+                (player.resources as any)[resource] = amount;
+              }
+            },
+          );
+
           // Apply starting production
           if (corp.startingProduction) {
-            Object.entries(corp.startingProduction).forEach(([resource, amount]) => {
-              if (resource in player.production) {
-                (player.production as any)[resource] += amount;
-              }
-            });
+            Object.entries(corp.startingProduction).forEach(
+              ([resource, amount]) => {
+                if (resource in player.production) {
+                  (player.production as any)[resource] += amount;
+                }
+              },
+            );
           }
         }
-        
+
         setTimeout(() => {
-          this.emit('game-updated', this.gameState);
+          this.emit("game-updated", this.gameState);
         }, 50);
       }
       return;
     }
 
-    if (event === 'raise-temperature') {
+    if (event === "raise-temperature") {
       // Handle temperature raise
       if (this.gameState.globalParameters.temperature < 8) {
         this.gameState.globalParameters.temperature += 2;
-        const player = this.gameState.players.find(p => p.id === this.playerId);
+        const player = this.gameState.players.find(
+          (p) => p.id === this.playerId,
+        );
         if (player) {
           player.resources.heat = Math.max(0, player.resources.heat - 8);
           player.terraformRating += 1;
         }
         setTimeout(() => {
-          this.emit('game-updated', this.gameState);
+          this.emit("game-updated", this.gameState);
         }, 50);
       }
       return;
@@ -220,13 +255,13 @@ export class MockWebSocketService {
 
     // Emit to listeners
     if (this.listeners[event]) {
-      this.listeners[event].forEach(callback => callback(data));
+      this.listeners[event].forEach((callback) => callback(data));
     }
   }
 
   disconnect() {
     this.isConnected = false;
-    this.emit('disconnect');
+    this.emit("disconnect");
   }
 
   get id() {

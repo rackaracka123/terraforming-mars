@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import CostDisplay from '../display/CostDisplay.tsx';
-import ProductionDisplay from '../display/ProductionDisplay.tsx';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
+import React, { useEffect } from "react";
+import CostDisplay from "../display/CostDisplay.tsx";
+import ProductionDisplay from "../display/ProductionDisplay.tsx";
+import { Z_INDEX } from "../../../constants/zIndex.ts";
 
 interface Milestone {
   id: string;
@@ -40,7 +40,7 @@ interface Award {
 }
 
 interface ModalPopupProps {
-  type: 'milestones' | 'projects' | 'awards' | null;
+  type: "milestones" | "projects" | "awards" | null;
   onClose: () => void;
   onAction?: (actionType: string, itemId: string) => void;
 }
@@ -49,180 +49,181 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
   // Mock data for different modal types
   const mockMilestones: Milestone[] = [
     {
-      id: 'terraformer',
-      name: 'Terraformer',
-      description: 'Have a terraform rating of at least 35',
-      reward: '5 VP',
+      id: "terraformer",
+      name: "Terraformer",
+      description: "Have a terraform rating of at least 35",
+      reward: "5 VP",
       cost: 8,
       claimed: false,
-      available: true
+      available: true,
     },
     {
-      id: 'mayor',
-      name: 'Mayor',
-      description: 'Own at least 3 city tiles',
-      reward: '5 VP',
+      id: "mayor",
+      name: "Mayor",
+      description: "Own at least 3 city tiles",
+      reward: "5 VP",
       cost: 8,
       claimed: true,
-      claimedBy: 'Alice Chen',
-      available: false
+      claimedBy: "Alice Chen",
+      available: false,
     },
     {
-      id: 'gardener',
-      name: 'Gardener',
-      description: 'Own at least 3 greenery tiles',
-      reward: '5 VP',
+      id: "gardener",
+      name: "Gardener",
+      description: "Own at least 3 greenery tiles",
+      reward: "5 VP",
       cost: 8,
       claimed: false,
-      available: true
+      available: true,
     },
     {
-      id: 'builder',
-      name: 'Builder',
-      description: 'Have at least 8 building tags in play',
-      reward: '5 VP',
+      id: "builder",
+      name: "Builder",
+      description: "Have at least 8 building tags in play",
+      reward: "5 VP",
       cost: 8,
       claimed: false,
-      available: false
+      available: false,
     },
     {
-      id: 'planner',
-      name: 'Planner',
-      description: 'Have at least 16 cards in hand',
-      reward: '5 VP',
+      id: "planner",
+      name: "Planner",
+      description: "Have at least 16 cards in hand",
+      reward: "5 VP",
       cost: 8,
       claimed: false,
-      available: false
-    }
+      available: false,
+    },
   ];
 
   const mockProjects: StandardProject[] = [
     {
-      id: 'sell-patents',
-      name: 'Sell Patents',
+      id: "sell-patents",
+      name: "Sell Patents",
       cost: 0,
-      description: 'Discard any number of cards from hand and gain that many M€',
+      description:
+        "Discard any number of cards from hand and gain that many M€",
       available: true,
       effects: {
-        immediate: [{ type: 'credits', amount: 1 }]
+        immediate: [{ type: "credits", amount: 1 }],
       },
-      icon: '/assets/resources/megacredit.png'
+      icon: "/assets/resources/megacredit.png",
     },
     {
-      id: 'power-plant',
-      name: 'Power Plant',
+      id: "power-plant",
+      name: "Power Plant",
       cost: 11,
-      description: 'Increase your energy production 1 step',
+      description: "Increase your energy production 1 step",
       available: true,
       effects: {
-        production: [{ type: 'energy', amount: 1 }]
+        production: [{ type: "energy", amount: 1 }],
       },
-      icon: '/assets/resources/power.png'
+      icon: "/assets/resources/power.png",
     },
     {
-      id: 'asteroid',
-      name: 'Asteroid',
+      id: "asteroid",
+      name: "Asteroid",
       cost: 14,
-      description: 'Raise temperature 1 step',
+      description: "Raise temperature 1 step",
       available: true,
       effects: {
-        immediate: [{ type: 'temperature', amount: 1 }]
+        immediate: [{ type: "temperature", amount: 1 }],
       },
-      icon: '/assets/resources/asteroid.png'
+      icon: "/assets/resources/asteroid.png",
     },
     {
-      id: 'aquifer',
-      name: 'Aquifer',
+      id: "aquifer",
+      name: "Aquifer",
       cost: 18,
-      description: 'Place an ocean tile',
+      description: "Place an ocean tile",
       available: true,
       effects: {
-        tiles: ['ocean']
+        tiles: ["ocean"],
       },
-      icon: '/assets/tiles/ocean.png'
+      icon: "/assets/tiles/ocean.png",
     },
     {
-      id: 'greenery',
-      name: 'Greenery',
+      id: "greenery",
+      name: "Greenery",
       cost: 23,
-      description: 'Place a greenery tile and raise oxygen 1 step',
+      description: "Place a greenery tile and raise oxygen 1 step",
       available: true,
       effects: {
-        tiles: ['greenery'],
-        immediate: [{ type: 'oxygen', amount: 1 }]
+        tiles: ["greenery"],
+        immediate: [{ type: "oxygen", amount: 1 }],
       },
-      icon: '/assets/tiles/greenery.png'
+      icon: "/assets/tiles/greenery.png",
     },
     {
-      id: 'city',
-      name: 'City',
+      id: "city",
+      name: "City",
       cost: 25,
-      description: 'Place a city tile',
+      description: "Place a city tile",
       available: true,
       effects: {
-        tiles: ['city']
+        tiles: ["city"],
       },
-      icon: '/assets/tiles/city.png'
-    }
+      icon: "/assets/tiles/city.png",
+    },
   ];
 
   const mockAwards: Award[] = [
     {
-      id: 'landlord',
-      name: 'Landlord',
-      description: 'Most tiles on Mars',
+      id: "landlord",
+      name: "Landlord",
+      description: "Most tiles on Mars",
       fundingCost: 8,
       funded: true,
-      fundedBy: 'Bob Martinez',
-      winner: 'Alice Chen',
-      available: false
+      fundedBy: "Bob Martinez",
+      winner: "Alice Chen",
+      available: false,
     },
     {
-      id: 'banker',
-      name: 'Banker',
-      description: 'Highest M€ production',
+      id: "banker",
+      name: "Banker",
+      description: "Highest M€ production",
       fundingCost: 8,
       funded: false,
-      available: true
+      available: true,
     },
     {
-      id: 'scientist',
-      name: 'Scientist',
-      description: 'Most science tags',
+      id: "scientist",
+      name: "Scientist",
+      description: "Most science tags",
       fundingCost: 8,
       funded: true,
-      fundedBy: 'Carol Kim',
-      available: false
+      fundedBy: "Carol Kim",
+      available: false,
     },
     {
-      id: 'thermalist',
-      name: 'Thermalist',
-      description: 'Most heat resource cubes',
+      id: "thermalist",
+      name: "Thermalist",
+      description: "Most heat resource cubes",
       fundingCost: 8,
       funded: false,
-      available: true
+      available: true,
     },
     {
-      id: 'miner',
-      name: 'Miner',
-      description: 'Most steel and titanium resource cubes',
+      id: "miner",
+      name: "Miner",
+      description: "Most steel and titanium resource cubes",
       fundingCost: 8,
       funded: false,
-      available: true
-    }
+      available: true,
+    },
   ];
 
   // Handle ESC key to close modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
 
     if (type) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
     }
   }, [type, onClose]);
 
@@ -242,9 +243,9 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       </div>
       <div className="items-grid">
         {mockMilestones.map((milestone) => (
-          <div 
-            key={milestone.id} 
-            className={`item-card milestone-card ${milestone.claimed ? 'claimed' : ''} ${!milestone.available ? 'unavailable' : ''}`}
+          <div
+            key={milestone.id}
+            className={`item-card milestone-card ${milestone.claimed ? "claimed" : ""} ${!milestone.available ? "unavailable" : ""}`}
           >
             <div className="item-header">
               <div className="item-name">{milestone.name}</div>
@@ -259,9 +260,9 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
               <button
                 className="action-btn claim-btn"
                 disabled={milestone.claimed || !milestone.available}
-                onClick={() => handleAction('claim-milestone', milestone.id)}
+                onClick={() => handleAction("claim-milestone", milestone.id)}
               >
-                {milestone.claimed ? 'Claimed' : 'Claim'}
+                {milestone.claimed ? "Claimed" : "Claim"}
               </button>
             </div>
           </div>
@@ -270,61 +271,69 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
     </div>
   );
 
-  const renderEffects = (effects: StandardProject['effects']) => {
+  const renderEffects = (effects: StandardProject["effects"]) => {
     const elements = [];
-    
+
     if (effects.production) {
       effects.production.forEach((prod, idx) => {
         elements.push(
           <div key={`prod-${idx}`} className="effect-item">
-            <ProductionDisplay amount={prod.amount} resourceType={prod.type} size="small" />
-          </div>
+            <ProductionDisplay
+              amount={prod.amount}
+              resourceType={prod.type}
+              size="small"
+            />
+          </div>,
         );
       });
     }
-    
+
     if (effects.immediate) {
       effects.immediate.forEach((imm, idx) => {
-        if (imm.type === 'credits') {
+        if (imm.type === "credits") {
           elements.push(
             <div key={`imm-${idx}`} className="effect-item">
               <CostDisplay cost={imm.amount} size="small" />
               <span className="effect-label">per card</span>
-            </div>
+            </div>,
           );
-        } else if (imm.type === 'temperature') {
+        } else if (imm.type === "temperature") {
           elements.push(
             <div key={`imm-${idx}`} className="effect-item">
-              <img src="/assets/resources/heat.png" alt="Temperature" className="effect-icon" />
+              <img
+                src="/assets/resources/heat.png"
+                alt="Temperature"
+                className="effect-icon"
+              />
               <span className="effect-amount">+{imm.amount}°</span>
-            </div>
+            </div>,
           );
-        } else if (imm.type === 'oxygen') {
+        } else if (imm.type === "oxygen") {
           elements.push(
             <div key={`imm-${idx}`} className="effect-item">
               <span className="oxygen-symbol">O₂</span>
               <span className="effect-amount">+{imm.amount}%</span>
-            </div>
+            </div>,
           );
         }
       });
     }
-    
+
     if (effects.tiles) {
       effects.tiles.forEach((tile, idx) => {
         const tileIcons: { [key: string]: string } = {
-          ocean: '/assets/tiles/ocean.png',
-          greenery: '/assets/tiles/greenery.png',
-          city: '/assets/tiles/city.png'
+          ocean: "/assets/tiles/ocean.png",
+          greenery: "/assets/tiles/greenery.png",
+          city: "/assets/tiles/city.png",
         };
         elements.push(
           <div key={`tile-${idx}`} className="effect-item">
             <img src={tileIcons[tile]} alt={tile} className="effect-tile" />
-          </div>
+          </div>,
         );
       });
     }
-    
+
     return elements;
   };
 
@@ -336,14 +345,18 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       </div>
       <div className="items-grid">
         {mockProjects.map((project) => (
-          <div 
-            key={project.id} 
-            className={`item-card project-card ${!project.available ? 'unavailable' : ''}`}
+          <div
+            key={project.id}
+            className={`item-card project-card ${!project.available ? "unavailable" : ""}`}
           >
             <div className="project-header">
               <div className="project-icon-name">
                 {project.icon && (
-                  <img src={project.icon} alt={project.name} className="project-icon" />
+                  <img
+                    src={project.icon}
+                    alt={project.name}
+                    className="project-icon"
+                  />
                 )}
                 <div className="item-name">{project.name}</div>
               </div>
@@ -357,7 +370,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
               <button
                 className="action-btn play-btn"
                 disabled={!project.available}
-                onClick={() => handleAction('play-project', project.id)}
+                onClick={() => handleAction("play-project", project.id)}
               >
                 Play
               </button>
@@ -376,9 +389,9 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       </div>
       <div className="items-grid">
         {mockAwards.map((award) => (
-          <div 
-            key={award.id} 
-            className={`item-card award-card ${award.funded ? 'funded' : ''} ${!award.available ? 'unavailable' : ''}`}
+          <div
+            key={award.id}
+            className={`item-card award-card ${award.funded ? "funded" : ""} ${!award.available ? "unavailable" : ""}`}
           >
             <div className="item-header">
               <div className="item-name">{award.name}</div>
@@ -386,7 +399,9 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             </div>
             <div className="item-description">{award.description}</div>
             <div className="award-info">
-              <div className="award-rewards">1st place: 5 VP, 2nd place: 2 VP</div>
+              <div className="award-rewards">
+                1st place: 5 VP, 2nd place: 2 VP
+              </div>
               {award.funded && award.fundedBy && (
                 <div className="funded-by">Funded by {award.fundedBy}</div>
               )}
@@ -398,9 +413,9 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
               <button
                 className="action-btn fund-btn"
                 disabled={award.funded || !award.available}
-                onClick={() => handleAction('fund-award', award.id)}
+                onClick={() => handleAction("fund-award", award.id)}
               >
-                {award.funded ? 'Funded' : 'Fund'}
+                {award.funded ? "Funded" : "Fund"}
               </button>
             </div>
           </div>
@@ -412,11 +427,13 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-popup" onClick={(e) => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose}>×</button>
-        
-        {type === 'milestones' && renderMilestones()}
-        {type === 'projects' && renderProjects()}
-        {type === 'awards' && renderAwards()}
+        <button className="close-btn" onClick={onClose}>
+          ×
+        </button>
+
+        {type === "milestones" && renderMilestones()}
+        {type === "projects" && renderProjects()}
+        {type === "awards" && renderAwards()}
 
         <style jsx>{`
           .modal-overlay {
@@ -448,7 +465,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             width: 100%;
             overflow-y: auto;
             backdrop-filter: blur(20px);
-            box-shadow: 
+            box-shadow:
               0 20px 60px rgba(0, 0, 0, 0.8),
               0 0 40px rgba(100, 150, 255, 0.3);
             position: relative;
@@ -535,7 +552,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
 
           .item-card:hover:not(.unavailable) {
             transform: translateY(-2px);
-            box-shadow: 
+            box-shadow:
               0 8px 25px rgba(0, 0, 0, 0.4),
               0 0 20px rgba(100, 150, 255, 0.3);
           }
@@ -561,26 +578,26 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             align-items: center;
             margin-bottom: 15px;
           }
-          
+
           .project-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
           }
-          
+
           .project-icon-name {
             display: flex;
             align-items: center;
             gap: 10px;
           }
-          
+
           .project-icon {
             width: 24px;
             height: 24px;
             filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
           }
-          
+
           .project-effects {
             display: flex;
             flex-wrap: wrap;
@@ -591,37 +608,37 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
           }
-          
+
           .effect-item {
             display: flex;
             align-items: center;
             gap: 4px;
           }
-          
+
           .effect-icon {
             width: 18px;
             height: 18px;
           }
-          
+
           .effect-tile {
             width: 20px;
             height: 20px;
             border-radius: 3px;
           }
-          
+
           .effect-amount {
             color: #ffffff;
             font-size: 12px;
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
           }
-          
+
           .effect-label {
             color: rgba(255, 255, 255, 0.7);
             font-size: 10px;
             font-style: italic;
           }
-          
+
           .oxygen-symbol {
             color: #7dd3fc;
             font-size: 14px;

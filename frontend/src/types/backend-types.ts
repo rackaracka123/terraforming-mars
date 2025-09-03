@@ -3,7 +3,13 @@
 // Run 'make generate-types' or 'tygo generate' from the backend directory to regenerate
 
 // Resource types
-export type ResourceType = "credits" | "steel" | "titanium" | "plants" | "energy" | "heat";
+export type ResourceType =
+  | "credits"
+  | "steel"
+  | "titanium"
+  | "plants"
+  | "energy"
+  | "heat";
 
 export type GlobalParameter = "temperature" | "oxygen" | "oceans";
 
@@ -27,8 +33,8 @@ export interface PlayerProduction {
 
 export interface GlobalParameters {
   temperature: number; // -30 to +8
-  oxygen: number;      // 0 to 14
-  oceans: number;      // 0 to 9
+  oxygen: number; // 0 to 14
+  oceans: number; // 0 to 9
 }
 
 export interface ResourceCost {
@@ -59,9 +65,30 @@ export interface ProductionChange {
 }
 
 // Card types
-export type CardType = "automated" | "active" | "event" | "corporation" | "prelude";
+export type CardType =
+  | "automated"
+  | "active"
+  | "event"
+  | "corporation"
+  | "prelude";
 
-export type CardTag = "building" | "space" | "power" | "science" | "microbe" | "animal" | "plant" | "earth" | "jovian" | "city" | "venus" | "mars" | "moon" | "wild" | "event" | "clone";
+export type CardTag =
+  | "building"
+  | "space"
+  | "power"
+  | "science"
+  | "microbe"
+  | "animal"
+  | "plant"
+  | "earth"
+  | "jovian"
+  | "city"
+  | "venus"
+  | "mars"
+  | "moon"
+  | "wild"
+  | "event"
+  | "clone";
 
 export interface CardRequirement {
   type: string;
@@ -125,7 +152,13 @@ export interface Player {
   actionsRemaining?: number;
 }
 
-export type PlayerPhase = "waiting" | "drafting" | "research" | "action" | "production" | "passed";
+export type PlayerPhase =
+  | "waiting"
+  | "drafting"
+  | "research"
+  | "action"
+  | "production"
+  | "passed";
 
 export interface PlayerAction {
   type: PlayerActionType;
@@ -133,7 +166,15 @@ export interface PlayerAction {
   data?: any;
 }
 
-export type PlayerActionType = "play_card" | "standard_project" | "pass" | "claim_milestone" | "fund_award" | "use_effect" | "place_tile" | "raise_parameter";
+export type PlayerActionType =
+  | "play_card"
+  | "standard_project"
+  | "pass"
+  | "claim_milestone"
+  | "fund_award"
+  | "use_effect"
+  | "place_tile"
+  | "raise_parameter";
 
 // Game types
 export interface GameState {
@@ -157,7 +198,16 @@ export interface GameState {
   maxActionsPerTurn?: number;
 }
 
-export type GamePhase = "setup" | "corporation_selection" | "initial_research" | "prelude" | "research" | "action" | "production" | "draft" | "game_end";
+export type GamePhase =
+  | "setup"
+  | "corporation_selection"
+  | "initial_research"
+  | "prelude"
+  | "research"
+  | "action"
+  | "production"
+  | "draft"
+  | "game_end";
 
 export type DraftDirection = "clockwise" | "counter_clockwise";
 
@@ -196,7 +246,22 @@ export interface GameSettings {
   breakthrough: boolean;
 }
 
-export type GameExpansion = "prelude" | "venus" | "colonies" | "turmoil" | "big_box" | "ares" | "moon" | "pathfinders" | "prelude2" | "ceo" | "promo" | "community" | "underworld" | "escape_velocity" | "star_wars";
+export type GameExpansion =
+  | "prelude"
+  | "venus"
+  | "colonies"
+  | "turmoil"
+  | "big_box"
+  | "ares"
+  | "moon"
+  | "pathfinders"
+  | "prelude2"
+  | "ceo"
+  | "promo"
+  | "community"
+  | "underworld"
+  | "escape_velocity"
+  | "star_wars";
 
 export interface GameEvent {
   id: string;
@@ -206,7 +271,19 @@ export interface GameEvent {
   timestamp: number;
 }
 
-export type GameEventType = "game_started" | "player_joined" | "player_left" | "card_played" | "tile_placed" | "parameter_increased" | "milestone_claimed" | "award_funded" | "generation_end" | "game_end" | "production_phase" | "research_phase";
+export type GameEventType =
+  | "game_started"
+  | "player_joined"
+  | "player_left"
+  | "card_played"
+  | "tile_placed"
+  | "parameter_increased"
+  | "milestone_claimed"
+  | "award_funded"
+  | "generation_end"
+  | "game_end"
+  | "production_phase"
+  | "research_phase";
 
 export interface StandardProject {
   id: string;
@@ -215,7 +292,15 @@ export interface StandardProject {
   description: string;
 }
 
-export type StandardProjectType = "sell_patents" | "power_plant" | "asteroid" | "aquifer" | "greenery" | "city" | "air_scrapping" | "buffer_gas";
+export type StandardProjectType =
+  | "sell_patents"
+  | "power_plant"
+  | "asteroid"
+  | "aquifer"
+  | "greenery"
+  | "city"
+  | "air_scrapping"
+  | "buffer_gas";
 
 // Milestone types
 export interface Milestone {
@@ -226,7 +311,12 @@ export interface Milestone {
   cost: number;
 }
 
-export type MilestoneType = "terraformer" | "mayor" | "gardener" | "builder" | "planner";
+export type MilestoneType =
+  | "terraformer"
+  | "mayor"
+  | "gardener"
+  | "builder"
+  | "planner";
 
 // Award types
 export interface Award {
@@ -237,4 +327,9 @@ export interface Award {
   cost: number;
 }
 
-export type AwardType = "landlord" | "banker" | "scientist" | "thermalist" | "miner";
+export type AwardType =
+  | "landlord"
+  | "banker"
+  | "scientist"
+  | "thermalist"
+  | "miner";

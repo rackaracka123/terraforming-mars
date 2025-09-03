@@ -1,5 +1,5 @@
-import React from 'react';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
+import React from "react";
+import { Z_INDEX } from "../../../constants/zIndex.ts";
 
 interface GlobalParameters {
   temperature: number;
@@ -22,28 +22,46 @@ interface RightSidebarProps {
   oxygenMilestones?: Milestone[];
 }
 
-const RightSidebar: React.FC<RightSidebarProps> = ({ 
-  globalParameters, 
-  generation, 
+const RightSidebar: React.FC<RightSidebarProps> = ({
+  globalParameters,
+  generation,
   currentPlayer,
   temperatureMilestones,
-  oxygenMilestones
+  oxygenMilestones,
 }) => {
   // Set default values
-  const defaultTemperatureMilestones = temperatureMilestones || [{ value: -8, icon: '/assets/global-parameters/temperature.png', tooltip: '-8°C: +1 TR', reward: '+1 TR' }];
-  const defaultOxygenMilestones = oxygenMilestones || [{ value: 8, icon: '/assets/global-parameters/oxygen.png', tooltip: '8%: +1 TR', reward: '+1 TR' }];
+  const defaultTemperatureMilestones = temperatureMilestones || [
+    {
+      value: -8,
+      icon: "/assets/global-parameters/temperature.png",
+      tooltip: "-8°C: +1 TR",
+      reward: "+1 TR",
+    },
+  ];
+  const defaultOxygenMilestones = oxygenMilestones || [
+    {
+      value: 8,
+      icon: "/assets/global-parameters/oxygen.png",
+      tooltip: "8%: +1 TR",
+      reward: "+1 TR",
+    },
+  ];
   // Helper function to create milestone objects easily
-  const createMilestone = (value: number, icon: string, reward: string = '+1 TR'): Milestone => ({
+  const createMilestone = (
+    value: number,
+    icon: string,
+    reward: string = "+1 TR",
+  ): Milestone => ({
     value,
     icon,
-    tooltip: `${value}${value < 0 || value > 20 ? '°C' : '%'}: ${reward}`,
-    reward
+    tooltip: `${value}${value < 0 || value > 20 ? "°C" : "%"}: ${reward}`,
+    reward,
   });
 
   // Example usage for multiple milestones:
   // temperatureMilestones = [
   //   createMilestone(-24, '❄️', '+1 TR'),
-  //   createMilestone(-8, '🌡️', '+1 TR'), 
+  //   createMilestone(-8, '🌡️', '+1 TR'),
   //   createMilestone(0, '🔥', '+1 TR')
   // ]
   // oxygenMilestones = [
@@ -55,19 +73,43 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   const getGlobalParameterRewards = () => {
     const rewards: { [key: string]: string[] } = {
       temperature: [
-        '-24°C: +1 TR', '-20°C: +1 TR', '-16°C: +1 TR', '-12°C: +1 TR', 
-        '-8°C: +1 TR', '-4°C: +1 TR', '0°C: +1 TR', '+4°C: +1 TR', '+8°C: +2 TR'
+        "-24°C: +1 TR",
+        "-20°C: +1 TR",
+        "-16°C: +1 TR",
+        "-12°C: +1 TR",
+        "-8°C: +1 TR",
+        "-4°C: +1 TR",
+        "0°C: +1 TR",
+        "+4°C: +1 TR",
+        "+8°C: +2 TR",
       ],
       oxygen: [
-        '1%: +1 TR', '2%: +1 TR', '3%: +1 TR', '4%: +1 TR', '5%: +1 TR',
-        '6%: +1 TR', '7%: +1 TR', '8%: +1 TR', '9%: +1 TR', '10%: +1 TR',
-        '11%: +1 TR', '12%: +1 TR', '13%: +1 TR', '14%: +2 TR'
+        "1%: +1 TR",
+        "2%: +1 TR",
+        "3%: +1 TR",
+        "4%: +1 TR",
+        "5%: +1 TR",
+        "6%: +1 TR",
+        "7%: +1 TR",
+        "8%: +1 TR",
+        "9%: +1 TR",
+        "10%: +1 TR",
+        "11%: +1 TR",
+        "12%: +1 TR",
+        "13%: +1 TR",
+        "14%: +2 TR",
       ],
       oceans: [
-        '1st Ocean: +1 TR', '2nd Ocean: +1 TR', '3rd Ocean: +1 TR',
-        '4th Ocean: +1 TR', '5th Ocean: +1 TR', '6th Ocean: +1 TR',
-        '7th Ocean: +1 TR', '8th Ocean: +1 TR', '9th Ocean: +2 TR'
-      ]
+        "1st Ocean: +1 TR",
+        "2nd Ocean: +1 TR",
+        "3rd Ocean: +1 TR",
+        "4th Ocean: +1 TR",
+        "5th Ocean: +1 TR",
+        "6th Ocean: +1 TR",
+        "7th Ocean: +1 TR",
+        "8th Ocean: +1 TR",
+        "9th Ocean: +2 TR",
+      ],
     };
     return rewards;
   };
@@ -81,8 +123,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     return markings;
   };
 
-
-
   return (
     <div className="right-sidebar">
       {/* Generation Counter - matching reference design */}
@@ -92,7 +132,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           <div className="gen-number">{generation || 1}</div>
         </div>
       </div>
-      
+
       {/* Separate Meters */}
       <div className="global-parameters">
         <div className="meters-container">
@@ -101,112 +141,136 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             <div className="oxygen-bulb">
               <div className="bulb-inner oxygen-bulb-inner"></div>
             </div>
-            
+
             <div className="oxygen-tube">
-              <div className="oxygen-fill" style={{
-                height: `${Math.max(0, (globalParameters?.oxygen || 0) / 14 * 100)}%`
-              }}></div>
-              
+              <div
+                className="oxygen-fill"
+                style={{
+                  height: `${Math.max(0, ((globalParameters?.oxygen || 0) / 14) * 100)}%`,
+                }}
+              ></div>
+
               {/* Internal step markings for oxygen - every single step */}
               <div className="oxygen-steps">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
-                  <div 
-                    key={oxygen}
-                    className="oxygen-step-mark"
-                    style={{
-                      bottom: `${(oxygen / 14 * 90)}%`
-                    }}
-                  ></div>
-                ))}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(
+                  (oxygen) => (
+                    <div
+                      key={oxygen}
+                      className="oxygen-step-mark"
+                      style={{
+                        bottom: `${(oxygen / 14) * 90}%`,
+                      }}
+                    ></div>
+                  ),
+                )}
               </div>
-              
+
               {/* Oxygen Milestone Indicators */}
               <div className="oxygen-milestones">
                 {defaultOxygenMilestones.map((milestone, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="milestone-indicator oxygen-milestone"
-                    style={{ bottom: `${(milestone.value / 14 * 90)}%` }}
+                    style={{ bottom: `${(milestone.value / 14) * 90}%` }}
                     title={`Oxygen Milestone: ${milestone.tooltip}`}
                   >
                     <div className="milestone-icon">
-                      <img src={milestone.icon} alt="Oxygen" className="milestone-icon-img" />
+                      <img
+                        src={milestone.icon}
+                        alt="Oxygen"
+                        className="milestone-icon-img"
+                      />
                     </div>
                     <div className="milestone-tooltip">{milestone.tooltip}</div>
                   </div>
                 ))}
               </div>
-              
+
               {/* Internal oxygen numbers */}
               <div className="oxygen-internal-numbers">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((oxygen) => (
-                  <div 
-                    key={oxygen}
-                    className="oxygen-internal-number"
-                    style={{
-                      bottom: `${(oxygen / 14 * 90)}%`,
-                      opacity: (globalParameters?.oxygen || 0) > oxygen ? 0 : 1
-                    }}
-                  >
-                    {oxygen}
-                  </div>
-                ))}
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(
+                  (oxygen) => (
+                    <div
+                      key={oxygen}
+                      className="oxygen-internal-number"
+                      style={{
+                        bottom: `${(oxygen / 14) * 90}%`,
+                        opacity:
+                          (globalParameters?.oxygen || 0) > oxygen ? 0 : 1,
+                      }}
+                    >
+                      {oxygen}
+                    </div>
+                  ),
+                )}
               </div>
             </div>
-            
-            <div className="current-oxygen">{globalParameters?.oxygen || 0}%</div>
+
+            <div className="current-oxygen">
+              {globalParameters?.oxygen || 0}%
+            </div>
           </div>
-          
+
           {/* Temperature Meter (Right) */}
           <div className="temperature-meter">
             <div className="temperature-bulb">
               <div className="bulb-inner temperature-bulb-inner"></div>
             </div>
-            
+
             <div className="thermometer-tube">
-              <div className="temperature-fill" style={{
-                height: `${Math.max(0, ((globalParameters?.temperature || -30) + 30) / 38 * 100)}%`
-              }}></div>
-              
+              <div
+                className="temperature-fill"
+                style={{
+                  height: `${Math.max(0, (((globalParameters?.temperature || -30) + 30) / 38) * 100)}%`,
+                }}
+              ></div>
+
               {/* Internal step markings for temperature */}
               <div className="temperature-steps">
-                {getTemperatureMarkings().filter(temp => temp !== -30).map((temp) => (
-                  <div 
-                    key={temp}
-                    className="temperature-step-mark"
-                    style={{
-                      bottom: `${((temp + 30) / 38 * 90)}%`
-                    }}
-                  ></div>
-                ))}
+                {getTemperatureMarkings()
+                  .filter((temp) => temp !== -30)
+                  .map((temp) => (
+                    <div
+                      key={temp}
+                      className="temperature-step-mark"
+                      style={{
+                        bottom: `${((temp + 30) / 38) * 90}%`,
+                      }}
+                    ></div>
+                  ))}
               </div>
-              
+
               {/* Temperature Milestone Indicators */}
               <div className="temperature-milestones">
                 {defaultTemperatureMilestones.map((milestone, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="milestone-indicator temperature-milestone"
-                    style={{ bottom: `${((milestone.value + 30) / 38 * 90)}%` }}
+                    style={{ bottom: `${((milestone.value + 30) / 38) * 90}%` }}
                     title={`Temperature Milestone: ${milestone.tooltip}`}
                   >
                     <div className="milestone-icon">
-                      <img src={milestone.icon} alt="Temperature" className="milestone-icon-img" />
+                      <img
+                        src={milestone.icon}
+                        alt="Temperature"
+                        className="milestone-icon-img"
+                      />
                     </div>
                     <div className="milestone-tooltip">{milestone.tooltip}</div>
                   </div>
                 ))}
               </div>
-              
+
               {/* Internal temperature numbers */}
               <div className="temperature-internal-numbers">
                 {[-30, ...getTemperatureMarkings()].map((temp) => (
-                  <div 
+                  <div
                     key={temp}
                     className="temperature-internal-number"
                     style={{
-                      bottom: `${((temp + 30) / 38 * 90)}%`,
-                      opacity: (globalParameters?.temperature || -30) > temp ? 0 : 1
+                      bottom: `${((temp + 30) / 38) * 90}%`,
+                      opacity:
+                        (globalParameters?.temperature || -30) > temp ? 0 : 1,
                     }}
                   >
                     {temp}
@@ -214,38 +278,47 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 ))}
               </div>
             </div>
-            
-            <div className="current-temp">{globalParameters?.temperature || -30}°C</div>
+
+            <div className="current-temp">
+              {globalParameters?.temperature || -30}°C
+            </div>
           </div>
         </div>
-        
+
         {/* Ocean Counter */}
         <div className="ocean-counter">
           <div className="ocean-icon">
-            <img src="/assets/hex_blue.png" alt="Ocean" className="ocean-icon-img" />
+            <img
+              src="/assets/hex_blue.png"
+              alt="Ocean"
+              className="ocean-icon-img"
+            />
           </div>
           <div className="ocean-label">OCEANS</div>
           <div className="ocean-count">
-            <span className="current-oceans">{globalParameters?.oceans || 0}</span>
+            <span className="current-oceans">
+              {globalParameters?.oceans || 0}
+            </span>
             <span className="ocean-separator"> / </span>
             <span className="max-oceans">9</span>
           </div>
         </div>
       </div>
 
-
       {/* Player Score Section */}
       <div className="player-score-section">
         {currentPlayer && (
           <div className="score-hex-container">
             <div className="score-hex">
-              <div className="score-value">{currentPlayer.terraformRating || 20}</div>
+              <div className="score-value">
+                {currentPlayer.terraformRating || 20}
+              </div>
             </div>
             <div className="player-name">{currentPlayer.name}</div>
           </div>
         )}
       </div>
-      
+
       <style>{`
         .right-sidebar {
           width: 100%;
