@@ -655,42 +655,7 @@ func (uc *GameReplayUseCase) summarizeChanges(before, after *domain.GameState) s
 	return fmt.Sprintf("%d changes: %v", len(changes), changes)
 }
 
-// Helper function to apply event to state (imported from aggregate.go)
+// Helper function to apply event to state (delegates to domain layer)
 func applyEventToState(event domain.GameEvent, state *domain.GameState) error {
-	switch event.Type {
-	case domain.EventTypeGameCreated:
-		return applyGameCreated(event, state)
-	case domain.EventTypePlayerJoined:
-		return applyPlayerJoined(event, state)
-	case domain.EventTypeCorporationSelected:
-		return applyCorporationSelected(event, state)
-	case domain.EventTypeCardPlayed:
-		return applyCardPlayed(event, state)
-	case domain.EventTypeTilePlaced:
-		return applyTilePlaced(event, state)
-	case domain.EventTypeResourcesGained:
-		return applyResourcesChanged(event, state, true)
-	case domain.EventTypeResourcesLost:
-		return applyResourcesChanged(event, state, false)
-	case domain.EventTypeProductionChanged:
-		return applyProductionChanged(event, state)
-	case domain.EventTypeParameterIncreased:
-		return applyParameterIncreased(event, state)
-	case domain.EventTypeMilestoneClaimed:
-		return applyMilestoneClaimed(event, state)
-	case domain.EventTypeAwardFunded:
-		return applyAwardFunded(event, state)
-	case domain.EventTypePhaseChanged:
-		return applyPhaseChanged(event, state)
-	case domain.EventTypeGenerationStarted:
-		return applyGenerationStarted(event, state)
-	case domain.EventTypeTurnStarted:
-		return applyTurnStarted(event, state)
-	case domain.EventTypeVictoryPointsAwarded:
-		return applyVictoryPointsAwarded(event, state)
-	case domain.EventTypeGameEnded:
-		return applyGameEnded(event, state)
-	default:
-		return fmt.Errorf("unknown event type: %s", event.Type)
-	}
+	return domain.ApplyEventToState(event, state)
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CardType, CardTag } from '../../../types/cards.ts';
 // Modal components are now imported and managed in GameInterface
 
@@ -35,7 +35,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   onOpenTagsModal,
   onOpenVictoryPointsModal
 }) => {
-  const [cardsExpanded, setCardsExpanded] = useState(false);
 
   // Helper function to create image with embedded number
   const createImageWithNumber = (imageSrc: string, number: number, className: string = '') => {
@@ -84,8 +83,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         console.log(`${resource.name} resource info displayed`);
     }
   };
-
-  const mockCardCount = 12;
 
   // Add mock played cards for demonstration
   const mockPlayedCards = [
@@ -151,87 +148,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     }
   ];
 
-  // Mock actions data compatible with ActionsModal
-  const mockActions = [
-    {
-      id: 'research-action',
-      name: 'Research',
-      type: 'card' as const,
-      cost: 1,
-      description: 'Spend 1 M€ to draw a card.',
-      requirement: undefined,
-      available: true,
-      source: 'Research Card',
-      sourceType: CardType.ACTIVE,
-      resourceType: 'cards',
-      immediate: true
-    },
-    {
-      id: 'mining-guild-action',
-      name: 'Mining Guild Production',
-      type: 'corporation' as const,
-      cost: 0,
-      description: 'Gain 1 steel for each steel and titanium resource on the board.',
-      requirement: undefined,
-      available: true,
-      source: 'Mining Guild',
-      sourceType: CardType.CORPORATION,
-      resourceType: 'steel',
-      immediate: true
-    },
-    {
-      id: 'power-generation-action',
-      name: 'Power Generation',
-      type: 'card' as const,
-      cost: 0,
-      description: 'Convert 2 energy to 2 heat.',
-      requirement: 'Must have at least 2 energy',
-      available: true,
-      source: 'Power Plant Card',
-      sourceType: CardType.AUTOMATED,
-      resourceType: 'heat',
-      immediate: true
-    },
-    {
-      id: 'tree-planting-action',
-      name: 'Tree Planting',
-      type: 'standard' as const,
-      cost: 23,
-      description: 'Spend 23 M€ to place a greenery tile and increase oxygen 1 step.',
-      requirement: 'Must have available greenery space',
-      available: false,
-      source: 'Standard Project',
-      sourceType: undefined,
-      resourceType: undefined,
-      immediate: true
-    },
-    {
-      id: 'water-import-action',
-      name: 'Aquifer Pumping',
-      type: 'standard' as const,
-      cost: 18,
-      description: 'Spend 18 M€ to place an ocean tile.',
-      requirement: 'Must have available ocean space',
-      available: true,
-      source: 'Standard Project',
-      sourceType: undefined,
-      resourceType: undefined,
-      immediate: true
-    },
-    {
-      id: 'development-action',
-      name: 'Energy to Heat',
-      type: 'card' as const,
-      cost: 0,
-      description: 'Convert plants to energy efficiently.',
-      requirement: undefined,
-      available: true,
-      source: 'Development Card',
-      sourceType: CardType.ACTIVE,
-      resourceType: 'energy',
-      immediate: true
-    }
-  ];
 
   // Mock card effects data
   const mockCardEffects = [
@@ -276,34 +192,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     }
   ];
 
-  // Mock milestones data
-  const mockMilestones = [
-    {
-      id: 'terraformer',
-      name: 'Terraformer',
-      description: 'Having a terraform rating of at least 35',
-      points: 5,
-      claimed: true
-    },
-    {
-      id: 'mayor',
-      name: 'Mayor',
-      description: 'Having at least 3 cities',
-      points: 5,
-      claimed: false
-    }
-  ];
-
-  // Mock awards data
-  const mockAwards = [
-    {
-      id: 'landlord',
-      name: 'Landlord',
-      description: 'Most tiles in play',
-      points: 5,
-      position: 1
-    }
-  ];
 
   const playedCardsToShow = currentPlayer?.playedCards?.length ? currentPlayer.playedCards : mockPlayedCards;
   const availableEffects = playedCardsToShow?.filter((card: any) => card.type === CardType.ACTIVE)?.length || 0;
@@ -334,21 +222,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     onOpenCardEffectsModal?.();
   };
 
-  // Use mock cards if current player doesn't have played cards, otherwise use their cards
-  const fullCardsData = playedCardsToShow?.map((card, index) => {
-    if ('name' in card) {
-      return card;
-    } else {
-      // Create mock card data
-      return {
-        id: `card-${index}`,
-        name: `${card.type.charAt(0).toUpperCase() + card.type.slice(1)} Card`,
-        type: card.type,
-        cost: Math.floor(Math.random() * 20) + 1,
-        description: `This is a ${card.type} card with various effects and abilities.`
-      };
-    }
-  }) || [];
 
   // Modal escape handling is now managed in GameInterface
 
@@ -385,31 +258,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </div>
       </div>
 
-      {/* Cards Section */}
-      <div className="cards-section">
-        <div 
-          className={`cards-indicator ${cardsExpanded ? 'expanded' : ''}`}
-          onClick={() => setCardsExpanded(!cardsExpanded)}
-        >
-          <div className="cards-icon">🃏</div>
-          <div className="cards-count">{mockCardCount}</div>
-        </div>
-        
-        {cardsExpanded && (
-          <div className="cards-preview">
-            <div className="cards-grid">
-              {/* Mock cards preview */}
-              {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className="card-thumbnail">
-                  <div className="card-cost">{Math.floor(Math.random() * 20) + 5}</div>
-                  <div className="card-name">Card {i + 1}</div>
-                </div>
-              ))}
-              <div className="more-cards">+{mockCardCount - 6} more</div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Action Buttons Section */}
       <div className="action-buttons-section">
@@ -638,128 +486,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           font-weight: 900;
         }
 
-        .cards-section {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 15px;
-          position: relative;
-        }
-
-        .cards-indicator {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          background: linear-gradient(
-            135deg,
-            rgba(60, 40, 90, 0.6) 0%,
-            rgba(40, 20, 70, 0.5) 100%
-          );
-          border: 2px solid rgba(150, 100, 255, 0.6);
-          border-radius: 15px;
-          padding: 15px 20px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(150, 100, 255, 0.3);
-        }
-
-        .cards-indicator:hover {
-          transform: translateY(-3px);
-          box-shadow: 
-            0 8px 25px rgba(0, 0, 0, 0.4),
-            0 0 25px rgba(150, 100, 255, 0.4);
-        }
-
-        .cards-indicator.expanded {
-          border-color: rgba(150, 100, 255, 0.9);
-          background: linear-gradient(
-            135deg,
-            rgba(60, 40, 90, 0.8) 0%,
-            rgba(40, 20, 70, 0.7) 100%
-          );
-        }
-
-        .cards-icon {
-          font-size: 24px;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-        }
-
-        .cards-count {
-          font-size: 20px;
-          font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
-        .cards-preview {
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          background: linear-gradient(
-            135deg,
-            rgba(10, 20, 40, 0.95) 0%,
-            rgba(20, 30, 50, 0.95) 100%
-          );
-          border: 2px solid rgba(150, 100, 255, 0.5);
-          border-radius: 12px;
-          padding: 15px;
-          margin-bottom: 10px;
-          backdrop-filter: blur(10px);
-          box-shadow: 
-            0 8px 25px rgba(0, 0, 0, 0.6),
-            0 0 20px rgba(150, 100, 255, 0.3);
-          /* z-index removed - isolation provides natural stacking */
-          isolation: isolate;
-        }
-
-        .cards-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-          width: 300px;
-        }
-
-        .card-thumbnail {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          padding: 8px;
-          text-align: center;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .card-thumbnail:hover {
-          background: rgba(255, 255, 255, 0.2);
-          transform: scale(1.05);
-        }
-
-        .card-cost {
-          font-size: 12px;
-          color: #f1c40f;
-          font-weight: bold;
-        }
-
-        .card-name {
-          font-size: 10px;
-          color: #ffffff;
-          margin-top: 4px;
-        }
-
-        .more-cards {
-          grid-column: 1 / -1;
-          text-align: center;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.7);
-          padding: 8px;
-          border-top: 1px solid rgba(255, 255, 255, 0.2);
-          margin-top: 5px;
-        }
 
         .action-buttons-section {
           flex: 1;
@@ -997,9 +723,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             width: 100%;
           }
 
-          .cards-section,
-          .action-buttons-section,
-          .game-info-section {
+          .action-buttons-section {
             width: 100%;
             align-items: center;
           }
@@ -1026,17 +750,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             font-size: 8px;
           }
 
-          .cards-preview {
-            position: static;
-            transform: none;
-            margin-bottom: 0;
-            margin-top: 10px;
-          }
-
-          .cards-grid {
-            grid-template-columns: repeat(2, 1fr);
-            width: 100%;
-          }
         }
 
         @media (max-width: 600px) {
@@ -1067,9 +780,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             font-size: 11px;
           }
 
-          .cards-indicator {
-            padding: 10px 15px;
-          }
 
           .phase-label {
             font-size: 10px;

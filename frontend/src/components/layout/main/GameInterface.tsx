@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
 import GameLayout from './GameLayout.tsx';
 import CorporationSelectionModal from '../../ui/modals/CorporationSelectionModal.tsx';
 import CardsPlayedModal from '../../ui/modals/CardsPlayedModal.tsx';
@@ -7,41 +6,11 @@ import TagsModal from '../../ui/modals/TagsModal.tsx';
 import VictoryPointsModal from '../../ui/modals/VictoryPointsModal.tsx';
 import ActionsModal from '../../ui/modals/ActionsModal.tsx';
 import CardEffectsModal from '../../ui/modals/CardEffectsModal.tsx';
+import { mockSocketService, GameState, Player } from '../../../services/mockGameService.ts';
 
-interface GameState {
-  id: string;
-  players: Player[];
-  currentPlayer: string;
-  generation: number;
-  phase: string;
-  globalParameters: {
-    temperature: number;
-    oxygen: number;
-    oceans: number;
-  };
-}
-
-interface Player {
-  id: string;
-  name: string;
-  resources: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-  production: any;
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  availableActions?: number;
-}
+// Types imported from mockGameService
 
 export default function GameInterface() {
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
@@ -56,19 +25,17 @@ export default function GameInterface() {
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
-    setSocket(newSocket);
-
-    newSocket.on('connect', () => {
+    // Set up mock service listeners
+    mockSocketService.on('connect', () => {
       setIsConnected(true);
-      console.log('Connected to server');
+      console.log('Connected to mock service');
       // Auto-join with a default name
-      newSocket.emit('join-game', { gameId: 'demo', playerName: 'Player' });
+      mockSocketService.emit('join-game', { gameId: 'demo', playerName: 'Player' });
     });
 
-    newSocket.on('game-updated', (updatedGameState: GameState) => {
+    mockSocketService.on('game-updated', (updatedGameState: GameState) => {
       setGameState(updatedGameState);
-      const player = updatedGameState.players.find(p => p.id === newSocket.id);
+      const player = updatedGameState.players.find(p => p.id === mockSocketService.id);
       setCurrentPlayer(player || null);
       
       // Show corporation modal if player hasn't selected a corporation yet
@@ -79,25 +46,23 @@ export default function GameInterface() {
       }
     });
 
-    newSocket.on('corporations-available', (corporations: any[]) => {
+    mockSocketService.on('corporations-available', (corporations: any[]) => {
       setAvailableCorporations(corporations);
     });
 
-    newSocket.on('disconnect', () => {
+    mockSocketService.on('disconnect', () => {
       setIsConnected(false);
-      console.log('Disconnected from server');
+      console.log('Disconnected from mock service');
     });
 
     return () => {
-      newSocket.disconnect();
+      mockSocketService.disconnect();
     };
   }, []);
 
   const handleCorporationSelection = (corporationId: string) => {
-    if (socket) {
-      socket.emit('select-corporation', { corporationId });
-      setShowCorporationModal(false);
-    }
+    mockSocketService.emit('select-corporation', { corporationId });
+    setShowCorporationModal(false);
   };
 
   // Demo data for the new modals (in a real app, this would come from game state)
@@ -236,7 +201,8 @@ export default function GameInterface() {
   if (!isConnected || !gameState) {
     return (
       <div style={{ padding: '20px', color: 'white', background: '#000011', minHeight: '100vh' }}>
-        <h2>Connecting to Terraforming Mars server...</h2>
+        <h2>Loading Terraforming Mars...</h2>
+        <p>Setting up mock game data...</p>
       </div>
     );
   }
@@ -250,7 +216,7 @@ export default function GameInterface() {
       <GameLayout 
         gameState={gameState} 
         currentPlayer={currentPlayer} 
-        socket={socket}
+        socket={mockSocketService}
         isAnyModalOpen={isAnyModalOpen}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}

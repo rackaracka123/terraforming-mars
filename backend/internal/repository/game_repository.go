@@ -82,7 +82,7 @@ func createDemoGame() *domain.GameState {
 		Players:       []domain.Player{},
 		CurrentPlayer: "",
 		Generation:    1,
-		Phase:         domain.GamePhaseResearch,
+		Phase:         domain.GamePhaseInitialResearch,
 		GlobalParameters: domain.GlobalParameters{
 			Temperature: 2,
 			Oxygen:      7,

@@ -76,7 +76,7 @@ func (ga *GameAggregate) GetStateAtVersion(version int64) (*GameState, error) {
 		if event.Version > version {
 			break
 		}
-		if err := applyEventToState(event, state); err != nil {
+		if err := ApplyEventToState(event, state); err != nil {
 			return nil, fmt.Errorf("failed to apply event %s at version %d: %w", event.ID, version, err)
 		}
 	}
@@ -86,11 +86,11 @@ func (ga *GameAggregate) GetStateAtVersion(version int64) (*GameState, error) {
 
 // applyEvent applies an event to the current state
 func (ga *GameAggregate) applyEvent(event GameEvent) error {
-	return applyEventToState(event, ga.state)
+	return ApplyEventToState(event, ga.state)
 }
 
-// applyEventToState applies an event to a given state
-func applyEventToState(event GameEvent, state *GameState) error {
+// ApplyEventToState applies an event to a given state
+func ApplyEventToState(event GameEvent, state *GameState) error {
 	switch event.Type {
 	case EventTypeGameCreated:
 		return applyGameCreated(event, state)

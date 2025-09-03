@@ -177,32 +177,6 @@ const (
 	GameExpansionStarWars       GameExpansion = "star_wars"
 )
 
-// GameEvent represents events that occur during the game
-type GameEvent struct {
-	ID          string        `json:"id" ts:"string"`
-	Type        GameEventType `json:"type" ts:"GameEventType"`
-	TriggeredBy *string       `json:"triggeredBy,omitempty" ts:"string | undefined"`
-	Data        interface{}   `json:"data,omitempty" ts:"any"`
-	Timestamp   int64         `json:"timestamp" ts:"number"`
-}
-
-// GameEventType represents the type of game event
-type GameEventType string
-
-const (
-	GameEventTypeGameStarted        GameEventType = "game_started"
-	GameEventTypePlayerJoined       GameEventType = "player_joined"
-	GameEventTypePlayerLeft         GameEventType = "player_left"
-	GameEventTypeCardPlayed         GameEventType = "card_played"
-	GameEventTypeTilePlaced         GameEventType = "tile_placed"
-	GameEventTypeParameterIncreased GameEventType = "parameter_increased"
-	GameEventTypeMilestoneClaimed   GameEventType = "milestone_claimed"
-	GameEventTypeAwardFunded        GameEventType = "award_funded"
-	GameEventTypeGenerationEnd      GameEventType = "generation_end"
-	GameEventTypeGameEnd            GameEventType = "game_end"
-	GameEventTypeProductionPhase    GameEventType = "production_phase"
-	GameEventTypeResearchPhase      GameEventType = "research_phase"
-)
 
 // Action represents a player action that can be taken during the game
 type Action struct {

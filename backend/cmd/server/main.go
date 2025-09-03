@@ -20,7 +20,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"terraforming-mars-backend/internal/delivery/http"
+	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	"terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/usecase"
@@ -39,7 +39,7 @@ func main() {
 	gameUC := usecase.NewGameUseCase(gameRepo)
 
 	// Initialize handlers
-	gameHandler := http.NewGameHandler(gameUC)
+	gameHandler := httpHandler.NewGameHandler(gameUC)
 
 	// Initialize WebSocket hub
 	hub := websocket.NewHub(gameUC)
