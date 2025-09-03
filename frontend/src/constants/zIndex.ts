@@ -1,6 +1,6 @@
 /**
  * Centralized z-index values for consistent layering across the application
- * 
+ *
  * Organized in logical groups with clear separation between layers:
  * - Base layer (0-9): Game board, background elements
  * - UI layer (10-99): Basic UI components, overlays
@@ -51,9 +51,12 @@ export const Z_INDEX = {
 } as const;
 
 // Type for z-index values
-export type ZIndexValue = typeof Z_INDEX[keyof typeof Z_INDEX];
+export type ZIndexValue = (typeof Z_INDEX)[keyof typeof Z_INDEX];
 
 // Helper function to get z-index with optional offset
-export const getZIndex = (level: keyof typeof Z_INDEX, offset: number = 0): number => {
+export const getZIndex = (
+  level: keyof typeof Z_INDEX,
+  offset: number = 0,
+): number => {
   return Z_INDEX[level] + offset;
 };

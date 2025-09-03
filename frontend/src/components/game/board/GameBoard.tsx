@@ -1,5 +1,5 @@
-import React from 'react';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
+import React from "react";
+import { Z_INDEX } from "../../../constants/zIndex.ts";
 
 interface GameBoardProps {
   gameState?: any;
@@ -11,18 +11,18 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     const hexes = [];
     const rows = 6;
     const maxCols = 7;
-    
+
     for (let row = 0; row < rows; row++) {
       const cols = row < 3 ? maxCols - row : row - 2;
       const offset = row < 3 ? row * 0.5 : (5 - row) * 0.5;
-      
+
       for (let col = 0; col < cols; col++) {
         const hexId = `${row}-${col}`;
-        const type = Math.random() > 0.7 ? 'special' : 'normal';
+        const type = Math.random() > 0.7 ? "special" : "normal";
         const hasOcean = Math.random() > 0.85;
         const hasForest = Math.random() > 0.8 && !hasOcean;
         const hasCity = Math.random() > 0.9 && !hasOcean && !hasForest;
-        
+
         hexes.push({
           id: hexId,
           row,
@@ -33,35 +33,35 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           hasOcean,
           hasForest,
           hasCity,
-          temperature: gameState?.globalParameters?.temperature || -30
+          temperature: gameState?.globalParameters?.temperature || -30,
         });
       }
     }
-    
+
     return hexes;
   };
 
   const hexGrid = generateHexGrid();
 
   const getHexColor = (hex: any) => {
-    if (hex.hasOcean) return '#3498db';
-    if (hex.hasForest) return '#27ae60';
-    if (hex.hasCity) return '#f39c12';
-    if (hex.type === 'special') return '#e74c3c';
-    
+    if (hex.hasOcean) return "#3498db";
+    if (hex.hasForest) return "#27ae60";
+    if (hex.hasCity) return "#f39c12";
+    if (hex.type === "special") return "#e74c3c";
+
     // Temperature-based coloring for Mars surface
     const temp = hex.temperature;
-    if (temp < -20) return '#8b4513';  // Cold brown
-    if (temp < 0) return '#cd853f';    // Warmer brown
-    return '#daa520';                  // Desert gold
+    if (temp < -20) return "#8b4513"; // Cold brown
+    if (temp < 0) return "#cd853f"; // Warmer brown
+    return "#daa520"; // Desert gold
   };
 
   const getHexIcon = (hex: any) => {
-    if (hex.hasOcean) return '🌊';
-    if (hex.hasForest) return '🌲';
-    if (hex.hasCity) return '🏙️';
-    if (hex.type === 'special') return '⭐';
-    return '';
+    if (hex.hasOcean) return "🌊";
+    if (hex.hasForest) return "🌲";
+    if (hex.hasCity) return "🏙️";
+    if (hex.type === "special") return "⭐";
+    return "";
   };
 
   return (
@@ -76,7 +76,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           <div className="star star-5"></div>
         </div>
       </div>
-      
+
       <div className="hex-grid-container">
         <div className="hex-grid">
           {hexGrid.map((hex) => (
@@ -86,9 +86,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
               style={{
                 left: `${hex.x}px`,
                 top: `${hex.y}px`,
-                backgroundColor: getHexColor(hex)
+                backgroundColor: getHexColor(hex),
               }}
-              onClick={() => console.log('Clicked hex:', hex.id)}
+              onClick={() => console.log("Clicked hex:", hex.id)}
             >
               <div className="hex-inner">
                 <div className="hex-content">
@@ -101,19 +101,21 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             </div>
           ))}
         </div>
-        
+
         <div className="board-overlay">
           <div className="planet-info">
             <h3>🪐 Mars</h3>
             <div className="planet-status">
-              <div>Temperature: {gameState?.globalParameters?.temperature || -30}°C</div>
+              <div>
+                Temperature: {gameState?.globalParameters?.temperature || -30}°C
+              </div>
               <div>Oxygen: {gameState?.globalParameters?.oxygen || 0}%</div>
               <div>Oceans: {gameState?.globalParameters?.oceans || 0}/9</div>
             </div>
           </div>
         </div>
       </div>
-      
+
       <style jsx>{`
         .game-board {
           flex: 1;
@@ -122,15 +124,20 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: radial-gradient(circle at center, #1a1a2e, #16213e, #0f0f23);
+          background: radial-gradient(
+            circle at center,
+            #1a1a2e,
+            #16213e,
+            #0f0f23
+          );
         }
-        
+
         .board-background {
           position: absolute;
           inset: 0;
           /* z-index removed - background naturally layers behind content */
         }
-        
+
         .mars-atmosphere {
           position: absolute;
           inset: 0;
@@ -142,12 +149,12 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           );
           animation: atmosphereGlow 4s ease-in-out infinite alternate;
         }
-        
+
         .space-bg {
           position: absolute;
           inset: 0;
         }
-        
+
         .star {
           position: absolute;
           width: 2px;
@@ -156,25 +163,45 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           border-radius: 50%;
           animation: twinkle 3s infinite;
         }
-        
-        .star-1 { top: 20%; left: 10%; animation-delay: 0s; }
-        .star-2 { top: 30%; right: 15%; animation-delay: 1s; }
-        .star-3 { top: 60%; left: 20%; animation-delay: 2s; }
-        .star-4 { bottom: 30%; right: 25%; animation-delay: 0.5s; }
-        .star-5 { bottom: 20%; left: 80%; animation-delay: 1.5s; }
-        
+
+        .star-1 {
+          top: 20%;
+          left: 10%;
+          animation-delay: 0s;
+        }
+        .star-2 {
+          top: 30%;
+          right: 15%;
+          animation-delay: 1s;
+        }
+        .star-3 {
+          top: 60%;
+          left: 20%;
+          animation-delay: 2s;
+        }
+        .star-4 {
+          bottom: 30%;
+          right: 25%;
+          animation-delay: 0.5s;
+        }
+        .star-5 {
+          bottom: 20%;
+          left: 80%;
+          animation-delay: 1.5s;
+        }
+
         .hex-grid-container {
           position: relative;
           /* z-index removed - natural DOM order places this above background */
           padding: 50px;
         }
-        
+
         .hex-grid {
           position: relative;
           width: 500px;
           height: 400px;
         }
-        
+
         .hex {
           position: absolute;
           width: 50px;
@@ -182,9 +209,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        
+
         .hex:before {
-          content: '';
+          content: "";
           position: absolute;
           top: -12.5px;
           left: 0;
@@ -195,9 +222,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           border-bottom: 12.5px solid;
           border-bottom-color: inherit;
         }
-        
+
         .hex:after {
-          content: '';
+          content: "";
           position: absolute;
           bottom: -12.5px;
           left: 0;
@@ -208,14 +235,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           border-top: 12.5px solid;
           border-top-color: inherit;
         }
-        
+
         .hex:hover {
           transform: scale(1.1);
           filter: brightness(1.2);
           /* Use isolation instead of z-index for hover elevation */
           isolation: isolate;
         }
-        
+
         .hex-inner {
           width: 100%;
           height: 100%;
@@ -226,23 +253,23 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           position: relative;
           /* z-index removed - natural DOM order provides correct stacking */
         }
-        
+
         .hex-content {
           text-align: center;
           color: white;
           font-size: 10px;
         }
-        
+
         .hex-icon {
           font-size: 16px;
           margin-bottom: 2px;
         }
-        
+
         .hex-coords {
           font-size: 8px;
           opacity: 0.7;
         }
-        
+
         .board-overlay {
           position: absolute;
           top: 20px;
@@ -250,7 +277,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           /* z-index removed - overlay positioned naturally above board content */
           isolation: isolate;
         }
-        
+
         .planet-info {
           background: rgba(0, 0, 0, 0.8);
           border-radius: 8px;
@@ -258,19 +285,19 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           color: white;
           border: 1px solid #333;
         }
-        
+
         .planet-info h3 {
           margin: 0 0 10px 0;
           color: #cd853f;
         }
-        
+
         .planet-status {
           font-size: 12px;
           display: flex;
           flex-direction: column;
           gap: 4px;
         }
-        
+
         @keyframes atmosphereGlow {
           from {
             opacity: 0.3;
@@ -279,9 +306,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             opacity: 0.6;
           }
         }
-        
+
         @keyframes twinkle {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 0.3;
           }
           50% {

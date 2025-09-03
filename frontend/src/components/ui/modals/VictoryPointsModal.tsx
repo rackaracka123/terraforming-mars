@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { CardType } from '../../../types/cards.ts';
-import VictoryPointsDisplay from '../display/VictoryPointsDisplay.tsx';
+import React, { useEffect, useState } from "react";
+import { CardType } from "../../../types/cards.ts";
+import VictoryPointsDisplay from "../display/VictoryPointsDisplay.tsx";
 
 interface VPSource {
   id: string;
-  source: 'card' | 'milestone' | 'award' | 'terraformRating' | 'greenery' | 'city';
+  source:
+    | "card"
+    | "milestone"
+    | "award"
+    | "terraformRating"
+    | "greenery"
+    | "city";
   name: string;
   points: number;
   description?: string;
@@ -47,28 +53,34 @@ interface VictoryPointsModalProps {
   playerName?: string;
 }
 
-type FilterType = 'all' | 'cards' | 'milestones' | 'awards' | 'terraforming' | 'tiles';
-type SortType = 'points' | 'name' | 'source';
+type FilterType =
+  | "all"
+  | "cards"
+  | "milestones"
+  | "awards"
+  | "terraforming"
+  | "tiles";
+type SortType = "points" | "name" | "source";
 
-const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  cards, 
+const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
+  isVisible,
+  onClose,
+  cards,
   milestones = [],
   awards = [],
   terraformRating = 20,
   greeneryTiles = 0,
   cityTiles = 0,
-  playerName = "Player" 
+  playerName = "Player",
 }) => {
   const [selectedSource, setSelectedSource] = useState<VPSource | null>(null);
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [sortType, setSortType] = useState<SortType>('points');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [sortType, setSortType] = useState<SortType>("points");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         if (selectedSource) {
           setSelectedSource(null);
         } else {
@@ -78,13 +90,13 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
     };
 
     if (isVisible) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isVisible, onClose, selectedSource]);
 
@@ -94,60 +106,60 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   const vpSources: VPSource[] = [];
 
   // Cards with VP
-  cards.forEach(card => {
+  cards.forEach((card) => {
     if (card.victoryPoints && card.victoryPoints > 0) {
       vpSources.push({
         id: `card-${card.id}`,
-        source: 'card',
+        source: "card",
         name: card.name,
         points: card.victoryPoints,
         description: card.description,
-        cardType: card.type
+        cardType: card.type,
       });
     }
   });
 
   // Claimed milestones
-  milestones.forEach(milestone => {
+  milestones.forEach((milestone) => {
     if (milestone.claimed) {
       vpSources.push({
         id: `milestone-${milestone.id}`,
-        source: 'milestone',
+        source: "milestone",
         name: milestone.name,
         points: milestone.points,
-        description: milestone.description
+        description: milestone.description,
       });
     }
   });
 
   // Awards
-  awards.forEach(award => {
+  awards.forEach((award) => {
     vpSources.push({
       id: `award-${award.id}`,
-      source: 'award',
+      source: "award",
       name: award.name,
       points: award.points,
-      description: `${award.position === 1 ? '1st' : '2nd'} place: ${award.description}`
+      description: `${award.position === 1 ? "1st" : "2nd"} place: ${award.description}`,
     });
   });
 
   // Terraform Rating
   vpSources.push({
-    id: 'terraform-rating',
-    source: 'terraformRating',
-    name: 'Terraform Rating',
+    id: "terraform-rating",
+    source: "terraformRating",
+    name: "Terraform Rating",
     points: terraformRating,
-    description: 'Each point of Terraform Rating gives 1 Victory Point'
+    description: "Each point of Terraform Rating gives 1 Victory Point",
   });
 
   // Greenery tiles
   if (greeneryTiles > 0) {
     vpSources.push({
-      id: 'greenery-tiles',
-      source: 'greenery',
-      name: 'Greenery Tiles',
+      id: "greenery-tiles",
+      source: "greenery",
+      name: "Greenery Tiles",
       points: greeneryTiles,
-      description: 'Each Greenery tile gives 1 Victory Point'
+      description: "Each Greenery tile gives 1 Victory Point",
     });
   }
 
@@ -155,101 +167,118 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   if (cityTiles > 0) {
     const cityVP = cityTiles * 1; // Simplified - in real game this would be calculated from adjacency
     vpSources.push({
-      id: 'city-tiles',
-      source: 'city',
-      name: 'City Placement',
+      id: "city-tiles",
+      source: "city",
+      name: "City Placement",
       points: cityVP,
-      description: 'Victory Points from city tile placement and adjacency bonuses'
+      description:
+        "Victory Points from city tile placement and adjacency bonuses",
     });
   }
 
   // Filter and sort sources
-  const filteredSources = vpSources.filter(source => {
-    switch (filterType) {
-      case 'cards': return source.source === 'card';
-      case 'milestones': return source.source === 'milestone';
-      case 'awards': return source.source === 'award';
-      case 'terraforming': return source.source === 'terraformRating';
-      case 'tiles': return source.source === 'greenery' || source.source === 'city';
-      default: return true;
-    }
-  }).sort((a, b) => {
-    let aValue, bValue;
-    
-    switch (sortType) {
-      case 'points':
-        aValue = a.points;
-        bValue = b.points;
-        break;
-      case 'name':
-        aValue = a.name.toLowerCase();
-        bValue = b.name.toLowerCase();
-        break;
-      case 'source':
-        aValue = a.source;
-        bValue = b.source;
-        break;
-      default:
-        return 0;
-    }
-    
-    if (sortOrder === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
+  const filteredSources = vpSources
+    .filter((source) => {
+      switch (filterType) {
+        case "cards":
+          return source.source === "card";
+        case "milestones":
+          return source.source === "milestone";
+        case "awards":
+          return source.source === "award";
+        case "terraforming":
+          return source.source === "terraformRating";
+        case "tiles":
+          return source.source === "greenery" || source.source === "city";
+        default:
+          return true;
+      }
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortType) {
+        case "points":
+          aValue = a.points;
+          bValue = b.points;
+          break;
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "source":
+          aValue = a.source;
+          bValue = b.source;
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
 
   const totalVP = vpSources.reduce((sum, source) => sum + source.points, 0);
-  
+
   const vpBreakdown = {
-    cards: vpSources.filter(s => s.source === 'card').reduce((sum, s) => sum + s.points, 0),
-    milestones: vpSources.filter(s => s.source === 'milestone').reduce((sum, s) => sum + s.points, 0),
-    awards: vpSources.filter(s => s.source === 'award').reduce((sum, s) => sum + s.points, 0),
+    cards: vpSources
+      .filter((s) => s.source === "card")
+      .reduce((sum, s) => sum + s.points, 0),
+    milestones: vpSources
+      .filter((s) => s.source === "milestone")
+      .reduce((sum, s) => sum + s.points, 0),
+    awards: vpSources
+      .filter((s) => s.source === "award")
+      .reduce((sum, s) => sum + s.points, 0),
     terraformRating: terraformRating,
-    tiles: vpSources.filter(s => s.source === 'greenery' || s.source === 'city').reduce((sum, s) => sum + s.points, 0)
+    tiles: vpSources
+      .filter((s) => s.source === "greenery" || s.source === "city")
+      .reduce((sum, s) => sum + s.points, 0),
   };
 
-  const getSourceIcon = (source: VPSource['source']) => {
+  const getSourceIcon = (source: VPSource["source"]) => {
     const icons = {
-      card: '/assets/misc/corpCard.png',
-      milestone: '/assets/misc/checkmark.png',
-      award: '/assets/misc/first-player.png',
-      terraformRating: '/assets/resources/tr.png',
-      greenery: '/assets/tiles/greenery.png',
-      city: '/assets/tiles/city.png'
+      card: "/assets/misc/corpCard.png",
+      milestone: "/assets/misc/checkmark.png",
+      award: "/assets/misc/first-player.png",
+      terraformRating: "/assets/resources/tr.png",
+      greenery: "/assets/tiles/greenery.png",
+      city: "/assets/tiles/city.png",
     };
-    return icons[source] || '/assets/misc/checkmark.png';
+    return icons[source] || "/assets/misc/checkmark.png";
   };
 
-  const getSourceColor = (source: VPSource['source']) => {
+  const getSourceColor = (source: VPSource["source"]) => {
     const colors = {
-      card: '#4169E1',
-      milestone: '#32CD32',
-      award: '#FFD700',
-      terraformRating: '#FF6347',
-      greenery: '#228B22',
-      city: '#696969'
+      card: "#4169E1",
+      milestone: "#32CD32",
+      award: "#FFD700",
+      terraformRating: "#FF6347",
+      greenery: "#228B22",
+      city: "#696969",
     };
-    return colors[source] || '#666666';
+    return colors[source] || "#666666";
   };
 
-  const getSourceLabel = (source: VPSource['source']) => {
+  const getSourceLabel = (source: VPSource["source"]) => {
     const labels = {
-      card: 'Cards',
-      milestone: 'Milestones',
-      award: 'Awards',
-      terraformRating: 'TR',
-      greenery: 'Greenery',
-      city: 'Cities'
+      card: "Cards",
+      milestone: "Milestones",
+      award: "Awards",
+      terraformRating: "TR",
+      greenery: "Greenery",
+      city: "Cities",
     };
-    return labels[source] || 'Other';
+    return labels[source] || "Other";
   };
 
   return (
     <div className="victory-points-modal">
       <div className="backdrop" onClick={onClose} />
-      
+
       <div className="modal-container">
         {/* Header */}
         <div className="modal-header">
@@ -259,27 +288,31 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
               <VictoryPointsDisplay victoryPoints={totalVP} size="large" />
             </div>
           </div>
-          
+
           <div className="header-controls">
             <div className="filter-controls">
               <label>Filter:</label>
-              <select 
-                value={filterType} 
+              <select
+                value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
               >
                 <option value="all">All Sources</option>
                 <option value="cards">Cards ({vpBreakdown.cards} VP)</option>
-                <option value="milestones">Milestones ({vpBreakdown.milestones} VP)</option>
+                <option value="milestones">
+                  Milestones ({vpBreakdown.milestones} VP)
+                </option>
                 <option value="awards">Awards ({vpBreakdown.awards} VP)</option>
-                <option value="terraforming">Terraform Rating ({vpBreakdown.terraformRating} VP)</option>
+                <option value="terraforming">
+                  Terraform Rating ({vpBreakdown.terraformRating} VP)
+                </option>
                 <option value="tiles">Tiles ({vpBreakdown.tiles} VP)</option>
               </select>
             </div>
 
             <div className="sort-controls">
               <label>Sort by:</label>
-              <select 
-                value={sortType} 
+              <select
+                value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
               >
                 <option value="points">Victory Points</option>
@@ -288,15 +321,19 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
               </select>
               <button
                 className="sort-order-btn"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
               >
-                {sortOrder === 'asc' ? '↑' : '↓'}
+                {sortOrder === "asc" ? "↑" : "↓"}
               </button>
             </div>
           </div>
 
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         {/* VP Breakdown Chart */}
@@ -306,28 +343,35 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
             {Object.entries(vpBreakdown).map(([source, points]) => {
               if (points === 0) return null;
               const percentage = (points / totalVP) * 100;
-              const color = getSourceColor(source as VPSource['source']);
-              
+              const color = getSourceColor(source as VPSource["source"]);
+
               return (
                 <div key={source} className="breakdown-item">
                   <div className="breakdown-info">
                     <div className="breakdown-label">
-                      <img 
-                        src={getSourceIcon(source as VPSource['source'])} 
+                      <img
+                        src={getSourceIcon(source as VPSource["source"])}
                         alt={source}
                         className="breakdown-icon"
                       />
-                      <span>{getSourceLabel(source as VPSource['source'])}</span>
+                      <span>
+                        {getSourceLabel(source as VPSource["source"])}
+                      </span>
                     </div>
                     <div className="breakdown-values">
                       <span className="breakdown-points">{points} VP</span>
-                      <span className="breakdown-percentage">({percentage.toFixed(1)}%)</span>
+                      <span className="breakdown-percentage">
+                        ({percentage.toFixed(1)}%)
+                      </span>
                     </div>
                   </div>
                   <div className="breakdown-bar">
-                    <div 
+                    <div
                       className="breakdown-fill"
-                      style={{ width: `${percentage}%`, backgroundColor: color }}
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: color,
+                      }}
                     />
                   </div>
                 </div>
@@ -339,17 +383,23 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         {/* VP Sources List */}
         <div className="vp-content">
           <h2 className="section-title">
-            Victory Point Sources 
-            <span className="sources-count">({filteredSources.length} sources)</span>
+            Victory Point Sources
+            <span className="sources-count">
+              ({filteredSources.length} sources)
+            </span>
           </h2>
-          
+
           {filteredSources.length === 0 ? (
             <div className="empty-state">
-              <img src="/assets/resources/tr.png" alt="No VP sources" className="empty-icon" />
+              <img
+                src="/assets/resources/tr.png"
+                alt="No VP sources"
+                className="empty-icon"
+              />
               <h3>No Victory Point Sources</h3>
               <p>
-                {filterType === 'all' 
-                  ? 'No victory point sources found' 
+                {filterType === "all"
+                  ? "No victory point sources found"
                   : `No ${filterType} victory point sources found`}
               </p>
             </div>
@@ -357,35 +407,40 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
             <div className="vp-sources-list">
               {filteredSources.map((source, index) => {
                 const sourceColor = getSourceColor(source.source);
-                
+
                 return (
-                  <div 
+                  <div
                     key={source.id}
                     className="vp-source-item"
-                    style={{ 
+                    style={{
                       borderLeftColor: sourceColor,
-                      animationDelay: `${index * 0.05}s`
+                      animationDelay: `${index * 0.05}s`,
                     }}
                     onClick={() => setSelectedSource(source)}
                   >
                     <div className="source-header">
                       <div className="source-info">
-                        <img 
-                          src={getSourceIcon(source.source)} 
+                        <img
+                          src={getSourceIcon(source.source)}
                           alt={source.source}
                           className="source-icon"
                         />
                         <div className="source-details">
                           <h3 className="source-name">{source.name}</h3>
-                          <span className="source-type">{getSourceLabel(source.source)}</span>
+                          <span className="source-type">
+                            {getSourceLabel(source.source)}
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="source-points">
-                        <VictoryPointsDisplay victoryPoints={source.points} size="small" />
+                        <VictoryPointsDisplay
+                          victoryPoints={source.points}
+                          size="small"
+                        />
                       </div>
                     </div>
-                    
+
                     {source.description && (
                       <p className="source-description">{source.description}</p>
                     )}
@@ -400,35 +455,44 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         <div className="source-stats-bar">
           {Object.entries(vpBreakdown).map(([source, points]) => {
             if (points === 0) return null;
-            const color = getSourceColor(source as VPSource['source']);
-            const isActive = filterType === source || filterType === 'all';
-            
+            const color = getSourceColor(source as VPSource["source"]);
+            const isActive = filterType === source || filterType === "all";
+
             return (
-              <div 
+              <div
                 key={source}
-                className={`source-stat ${isActive ? 'active' : ''}`}
+                className={`source-stat ${isActive ? "active" : ""}`}
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
                 onClick={() => setFilterType(source as FilterType)}
               >
-                <img 
-                  src={getSourceIcon(source as VPSource['source'])} 
+                <img
+                  src={getSourceIcon(source as VPSource["source"])}
                   alt={source}
                   className="stat-icon"
                 />
                 <div className="stat-info">
                   <span className="stat-points">{points}</span>
-                  <span className="stat-label">{getSourceLabel(source as VPSource['source'])}</span>
+                  <span className="stat-label">
+                    {getSourceLabel(source as VPSource["source"])}
+                  </span>
                 </div>
               </div>
             );
           })}
-          
-          <div 
-            className={`source-stat ${filterType === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterType('all')}
-            style={{ borderColor: '#ffffff', backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+
+          <div
+            className={`source-stat ${filterType === "all" ? "active" : ""}`}
+            onClick={() => setFilterType("all")}
+            style={{
+              borderColor: "#ffffff",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+            }}
           >
-            <img src="/assets/resources/tr.png" alt="Total" className="stat-icon" />
+            <img
+              src="/assets/resources/tr.png"
+              alt="Total"
+              className="stat-icon"
+            />
             <div className="stat-info">
               <span className="stat-points">{totalVP}</span>
               <span className="stat-label">Total</span>
@@ -439,12 +503,18 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
 
       {/* Source Detail Modal */}
       {selectedSource && (
-        <div className="source-detail-overlay" onClick={() => setSelectedSource(null)}>
-          <div className="source-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="source-detail-overlay"
+          onClick={() => setSelectedSource(null)}
+        >
+          <div
+            className="source-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="source-detail-header">
               <div className="detail-title">
-                <img 
-                  src={getSourceIcon(selectedSource.source)} 
+                <img
+                  src={getSourceIcon(selectedSource.source)}
                   alt={selectedSource.source}
                   className="detail-icon"
                 />
@@ -455,15 +525,23 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                   </span>
                 </div>
               </div>
-              <button className="close-detail-btn" onClick={() => setSelectedSource(null)}>×</button>
+              <button
+                className="close-detail-btn"
+                onClick={() => setSelectedSource(null)}
+              >
+                ×
+              </button>
             </div>
-            
+
             <div className="source-detail-content">
               <div className="detail-vp">
-                <VictoryPointsDisplay victoryPoints={selectedSource.points} size="medium" />
+                <VictoryPointsDisplay
+                  victoryPoints={selectedSource.points}
+                  size="medium"
+                />
                 <span className="vp-label">Victory Points</span>
               </div>
-              
+
               {selectedSource.description && (
                 <div className="detail-description">
                   <h4>Description:</h4>
@@ -471,11 +549,12 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 </div>
               )}
 
-              {selectedSource.source === 'card' && selectedSource.cardType && (
+              {selectedSource.source === "card" && selectedSource.cardType && (
                 <div className="detail-card-type">
                   <h4>Card Type:</h4>
                   <span className="card-type-badge">
-                    {selectedSource.cardType.charAt(0).toUpperCase() + selectedSource.cardType.slice(1)}
+                    {selectedSource.cardType.charAt(0).toUpperCase() +
+                      selectedSource.cardType.slice(1)}
                   </span>
                 </div>
               )}
@@ -515,11 +594,17 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           width: 100%;
           max-width: 1200px;
           max-height: 90vh;
-          background: linear-gradient(145deg, rgba(20, 30, 45, 0.98) 0%, rgba(30, 40, 60, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(20, 30, 45, 0.98) 0%,
+            rgba(30, 40, 60, 0.95) 100%
+          );
           border: 3px solid rgba(255, 215, 0, 0.4);
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+          box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.8),
+            0 0 60px rgba(255, 215, 0, 0.4);
           backdrop-filter: blur(20px);
           animation: modalSlideIn 0.4s ease-out;
           display: flex;
@@ -531,7 +616,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 25px 30px;
-          background: linear-gradient(90deg, rgba(40, 30, 20, 0.9) 0%, rgba(50, 40, 30, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(40, 30, 20, 0.9) 0%,
+            rgba(50, 40, 30, 0.7) 100%
+          );
           border-bottom: 2px solid rgba(255, 215, 0, 0.3);
           flex-shrink: 0;
         }
@@ -561,7 +650,8 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           align-items: center;
         }
 
-        .filter-controls, .sort-controls {
+        .filter-controls,
+        .sort-controls {
           display: flex;
           gap: 8px;
           align-items: center;
@@ -569,7 +659,8 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           font-size: 14px;
         }
 
-        .filter-controls select, .sort-controls select {
+        .filter-controls select,
+        .sort-controls select {
           background: rgba(0, 0, 0, 0.5);
           border: 1px solid rgba(255, 215, 0, 0.4);
           border-radius: 6px;
@@ -595,7 +686,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         }
 
         .close-button {
-          background: linear-gradient(135deg, rgba(255, 80, 80, 0.8) 0%, rgba(200, 40, 40, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 80, 80, 0.8) 0%,
+            rgba(200, 40, 40, 0.9) 100%
+          );
           border: 2px solid rgba(255, 120, 120, 0.6);
           border-radius: 50%;
           width: 45px;
@@ -679,7 +774,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         .breakdown-points {
           color: #ffffff;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .breakdown-percentage {
@@ -814,7 +909,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           display: flex;
           gap: 10px;
           padding: 20px 30px;
-          background: linear-gradient(90deg, rgba(15, 20, 35, 0.9) 0%, rgba(25, 30, 45, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(15, 20, 35, 0.9) 0%,
+            rgba(25, 30, 45, 0.7) 100%
+          );
           border-top: 1px solid rgba(255, 215, 0, 0.2);
           flex-shrink: 0;
           flex-wrap: wrap;
@@ -832,7 +931,8 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           min-width: 100px;
         }
 
-        .source-stat:hover, .source-stat.active {
+        .source-stat:hover,
+        .source-stat.active {
           transform: scale(1.05);
         }
 
@@ -855,7 +955,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           color: #ffffff;
           font-size: 16px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .stat-label {
@@ -882,7 +982,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         }
 
         .source-detail-modal {
-          background: linear-gradient(145deg, rgba(25, 35, 50, 0.98) 0%, rgba(35, 45, 65, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(25, 35, 50, 0.98) 0%,
+            rgba(35, 45, 65, 0.95) 100%
+          );
           border: 3px solid rgba(255, 215, 0, 0.5);
           border-radius: 15px;
           max-width: 500px;
@@ -896,7 +1000,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           align-items: center;
           padding: 20px 25px;
           border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-          background: linear-gradient(90deg, rgba(40, 30, 20, 0.9) 0%, rgba(50, 40, 30, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(40, 30, 20, 0.9) 0%,
+            rgba(50, 40, 30, 0.7) 100%
+          );
         }
 
         .detail-title {
@@ -960,11 +1068,13 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           letter-spacing: 0.5px;
         }
 
-        .detail-description, .detail-card-type {
+        .detail-description,
+        .detail-card-type {
           margin-bottom: 20px;
         }
 
-        .detail-description h4, .detail-card-type h4 {
+        .detail-description h4,
+        .detail-card-type h4 {
           color: #ffffff;
           margin: 0 0 10px 0;
           font-size: 16px;
@@ -977,7 +1087,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         }
 
         .card-type-badge {
-          background: linear-gradient(135deg, rgba(100, 150, 255, 0.8) 0%, rgba(50, 100, 200, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(100, 150, 255, 0.8) 0%,
+            rgba(50, 100, 200, 0.9) 100%
+          );
           color: #ffffff;
           padding: 6px 12px;
           border-radius: 6px;
@@ -986,8 +1100,12 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         }
 
         @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         @keyframes modalSlideIn {

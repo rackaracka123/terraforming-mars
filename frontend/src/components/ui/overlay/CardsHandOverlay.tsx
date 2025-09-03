@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 // Z-index imports removed - using DOM order and isolation for layering
 
 interface HearthstoneCard {
   id: string;
   name: string;
   cost: number;
-  type: 'spell' | 'minion' | 'weapon';
+  type: "spell" | "minion" | "weapon";
   attack?: number;
   health?: number;
   description: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity: "common" | "rare" | "epic" | "legendary";
   playable: boolean;
 }
 
@@ -17,7 +17,9 @@ interface CardsHandOverlayProps {
   hideWhenModalOpen?: boolean;
 }
 
-const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen = false }) => {
+const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
+  hideWhenModalOpen = false,
+}) => {
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 }); // Offset from initial click to card position
@@ -26,96 +28,106 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
   const [justDragged, setJustDragged] = useState(false); // Track if we just finished dragging
   const [hoveredCard, setHoveredCard] = useState<string | null>(null); // Track which card is hovered for neighbor spreading
   const [cardScales, setCardScales] = useState<Record<string, number>>({}); // Track each card's scale
-  const [cardRotations, setCardRotations] = useState<Record<string, number>>({}); // Track each card's rotation
+  const [cardRotations, setCardRotations] = useState<Record<string, number>>(
+    {},
+  ); // Track each card's rotation
   const [cardsExpanded, setCardsExpanded] = useState(false); // Track if cards are expanded/popped up
   const handRef = useRef<HTMLDivElement>(null);
 
   // Mock Hearthstone cards data
   const hearthstoneCards: HearthstoneCard[] = [
     {
-      id: '1',
-      name: 'Fireball',
+      id: "1",
+      name: "Fireball",
       cost: 4,
-      type: 'spell',
-      description: 'Deal 6 damage.',
-      rarity: 'common',
-      playable: true
+      type: "spell",
+      description: "Deal 6 damage.",
+      rarity: "common",
+      playable: true,
     },
     {
-      id: '2',
-      name: 'Chillwind Yeti',
+      id: "2",
+      name: "Chillwind Yeti",
       cost: 4,
-      type: 'minion',
+      type: "minion",
       attack: 4,
       health: 5,
-      description: 'A solid minion.',
-      rarity: 'common',
-      playable: true
+      description: "A solid minion.",
+      rarity: "common",
+      playable: true,
     },
     {
-      id: '3',
-      name: 'Archmage Antonidas',
+      id: "3",
+      name: "Archmage Antonidas",
       cost: 7,
-      type: 'minion',
+      type: "minion",
       attack: 5,
       health: 7,
-      description: 'Whenever you cast a spell, add a Fireball to your hand.',
-      rarity: 'legendary',
-      playable: false
+      description: "Whenever you cast a spell, add a Fireball to your hand.",
+      rarity: "legendary",
+      playable: false,
     },
     {
-      id: '4',
-      name: 'Lightning Bolt',
+      id: "4",
+      name: "Lightning Bolt",
       cost: 1,
-      type: 'spell',
-      description: 'Deal 3 damage. Overload: (1)',
-      rarity: 'common',
-      playable: true
+      type: "spell",
+      description: "Deal 3 damage. Overload: (1)",
+      rarity: "common",
+      playable: true,
     },
     {
-      id: '5',
-      name: 'Boulderfist Ogre',
+      id: "5",
+      name: "Boulderfist Ogre",
       cost: 6,
-      type: 'minion',
+      type: "minion",
       attack: 6,
       health: 7,
-      description: 'A big, dumb creature.',
-      rarity: 'common',
-      playable: true
+      description: "A big, dumb creature.",
+      rarity: "common",
+      playable: true,
     },
     {
-      id: '6',
-      name: 'Polymorph',
+      id: "6",
+      name: "Polymorph",
       cost: 4,
-      type: 'spell',
-      description: 'Transform a minion into a 1/1 Sheep.',
-      rarity: 'common',
-      playable: true
+      type: "spell",
+      description: "Transform a minion into a 1/1 Sheep.",
+      rarity: "common",
+      playable: true,
     },
     {
-      id: '7',
-      name: 'Ysera',
+      id: "7",
+      name: "Ysera",
       cost: 9,
-      type: 'minion',
+      type: "minion",
       attack: 4,
       health: 12,
-      description: 'At the end of your turn, add a Dream Card to your hand.',
-      rarity: 'legendary',
-      playable: false
-    }
+      description: "At the end of your turn, add a Dream Card to your hand.",
+      rarity: "legendary",
+      playable: false,
+    },
   ];
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
-  const calculateCardPosition = (index: number, totalCards: number, spreadIndex: number | null = null, expanded: boolean = false) => {
+  const calculateCardPosition = (
+    index: number,
+    totalCards: number,
+    spreadIndex: number | null = null,
+    expanded: boolean = false,
+  ) => {
     const handWidth = expanded ? 800 : 400; // Much wider spread when expanded
     const handCurve = expanded ? 0.15 : 0.3; // Even less curve when expanded for better visibility
     const cardWidth = 120;
     const baseY = -20; // Base Y position
-    
+
     // Base spacing - much wider when expanded
     const baseSpacing = expanded ? cardWidth * 1.2 : cardWidth * 0.4;
-    const spacing = Math.min(baseSpacing, handWidth / Math.max(totalCards - 1, 1));
-    
+    const spacing = Math.min(
+      baseSpacing,
+      handWidth / Math.max(totalCards - 1, 1),
+    );
+
     // Calculate neighbor spreading offset
     let spreadOffset = 0;
     if (spreadIndex !== null) {
@@ -134,39 +146,48 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
         spreadOffset = direction * 10; // Slight spread for third neighbors
       }
     }
-    
+
     // Center the hand
     const totalWidth = spacing * (totalCards - 1);
     const startX = -totalWidth / 2;
-    const x = startX + (index * spacing) + spreadOffset;
-    
+    const x = startX + index * spacing + spreadOffset;
+
     // Create arc curve
     const normalizedX = x / (handWidth / 2); // -1 to 1
     const curveY = Math.pow(Math.abs(normalizedX), 2) * handCurve * 60;
     const y = baseY + curveY;
-    
+
     // Compact rotation
     const rotation = normalizedX * 8; // Max 8 degrees
-    
+
     return { x, y, rotation };
   };
 
   const getCardTypeColor = (type: string) => {
     switch (type) {
-      case 'spell': return '#8B5BFF';
-      case 'minion': return '#FFB800';
-      case 'weapon': return '#FF6B6B';
-      default: return '#95a5a6';
+      case "spell":
+        return "#8B5BFF";
+      case "minion":
+        return "#FFB800";
+      case "weapon":
+        return "#FF6B6B";
+      default:
+        return "#95a5a6";
     }
   };
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-      case 'common': return '#ffffff';
-      case 'rare': return '#0099cc';
-      case 'epic': return '#cc00ff';
-      case 'legendary': return '#ff8000';
-      default: return '#ffffff';
+      case "common":
+        return "#ffffff";
+      case "rare":
+        return "#0099cc";
+      case "epic":
+        return "#cc00ff";
+      case "legendary":
+        return "#ff8000";
+      default:
+        return "#ffffff";
     }
   };
 
@@ -176,11 +197,11 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
   };
 
   const setCardScale = (cardId: string, scale: number) => {
-    setCardScales(prev => ({ ...prev, [cardId]: scale }));
+    setCardScales((prev) => ({ ...prev, [cardId]: scale }));
   };
 
   const resetCardScale = (cardId: string) => {
-    setCardScales(prev => {
+    setCardScales((prev) => {
       const newScales = { ...prev };
       delete newScales[cardId];
       return newScales;
@@ -189,15 +210,17 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
 
   // Helper functions to manage card rotations
   const getCardRotation = (cardId: string, defaultRotation: number) => {
-    return cardRotations[cardId] !== undefined ? cardRotations[cardId] : defaultRotation;
+    return cardRotations[cardId] !== undefined
+      ? cardRotations[cardId]
+      : defaultRotation;
   };
 
   const setCardRotation = (cardId: string, rotation: number) => {
-    setCardRotations(prev => ({ ...prev, [cardId]: rotation }));
+    setCardRotations((prev) => ({ ...prev, [cardId]: rotation }));
   };
 
   const resetCardRotation = (cardId: string) => {
-    setCardRotations(prev => {
+    setCardRotations((prev) => {
       const newRotations = { ...prev };
       delete newRotations[cardId];
       return newRotations;
@@ -225,17 +248,17 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
   const handleCardClick = (cardId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (isDragging || justDragged) return; // Ignore clicks right after dragging
-    
+
     // Don't allow interaction with unplayable cards
-    const card = hearthstoneCards.find(c => c.id === cardId);
+    const card = hearthstoneCards.find((c) => c.id === cardId);
     if (card && !card.playable) return;
-    
+
     // If cards are collapsed, just expand them without selecting a specific card
     if (!cardsExpanded) {
       setCardsExpanded(true);
       return; // Don't proceed to card selection when expanding
     }
-    
+
     // Handle card selection when expanded
     if (highlightedCard === cardId) {
       setHighlightedCard(null);
@@ -251,37 +274,45 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
   // Handle drag start
   const handleDragStart = (cardId: string, event: React.MouseEvent) => {
     event.preventDefault(); // Prevent browser default drag behavior
-    
+
     // Expand cards when drag starts if not already expanded
     if (!cardsExpanded) {
       setCardsExpanded(true);
     }
-    
+
     // Calculate initial offset from mouse to card position
-    const cardIndex = hearthstoneCards.findIndex(c => c.id === cardId);
+    const cardIndex = hearthstoneCards.findIndex((c) => c.id === cardId);
     const spreadCard = highlightedCard || hoveredCard;
-    const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
-    const cardPosition = calculateCardPosition(cardIndex, hearthstoneCards.length, spreadIndex, cardsExpanded);
+    const spreadIndex = spreadCard
+      ? hearthstoneCards.findIndex((c) => c.id === spreadCard)
+      : null;
+    const cardPosition = calculateCardPosition(
+      cardIndex,
+      hearthstoneCards.length,
+      spreadIndex,
+      cardsExpanded,
+    );
     const containerRect = handRef.current?.getBoundingClientRect();
-    
+
     if (containerRect) {
       // Adjust for collapsed state - if cards were collapsed, we need to account for the offset
       let adjustedY = cardPosition.y;
       if (!cardsExpanded) {
         adjustedY += 90; // Account for collapsed offset
       }
-      
+
       // Current card screen position
-      const cardScreenX = containerRect.left + containerRect.width / 2 + cardPosition.x;
+      const cardScreenX =
+        containerRect.left + containerRect.width / 2 + cardPosition.x;
       const cardScreenY = containerRect.bottom + adjustedY;
-      
+
       // Store offset from mouse to card position
       setDragOffset({
         x: cardScreenX - event.clientX,
-        y: cardScreenY - event.clientY
+        y: cardScreenY - event.clientY,
       });
     }
-    
+
     setDraggedCard(cardId);
     setIsDragging(true);
     setDragPosition({ x: event.clientX, y: event.clientY });
@@ -302,15 +333,15 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
     setDragPosition({ x: 0, y: 0 });
     setDragOffset({ x: 0, y: 0 }); // Reset offset
     setHighlightedCard(null); // Deselect card when released
-    
+
     // Reset the dragged card's scale and rotation
     if (draggedCardId) {
       resetCardScale(draggedCardId);
       resetCardRotation(draggedCardId);
     }
-    
+
     setJustDragged(true);
-    
+
     // Clear the justDragged flag after a short delay to allow clicks again
     setTimeout(() => {
       setJustDragged(false);
@@ -346,14 +377,14 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
       }
     };
 
-    document.addEventListener('click', handleDocumentClick);
-    document.addEventListener('mousemove', handleDocumentMouseMove);
-    document.addEventListener('mouseup', handleDocumentMouseUp);
-    
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("mousemove", handleDocumentMouseMove);
+    document.addEventListener("mouseup", handleDocumentMouseUp);
+
     return () => {
-      document.removeEventListener('click', handleDocumentClick);
-      document.removeEventListener('mousemove', handleDocumentMouseMove);
-      document.removeEventListener('mouseup', handleDocumentMouseUp);
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("mousemove", handleDocumentMouseMove);
+      document.removeEventListener("mouseup", handleDocumentMouseUp);
     };
   }, [isDragging, draggedCard]);
 
@@ -363,29 +394,34 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
   }
 
   return (
-    <div 
-      className="hearthstone-hand-overlay"
-    >
-      <div 
-        className={`card-hand-container ${cardsExpanded ? 'expanded' : ''}`}
+    <div className="hearthstone-hand-overlay">
+      <div
+        className={`card-hand-container ${cardsExpanded ? "expanded" : ""}`}
         ref={handRef}
       >
         {hearthstoneCards.map((card, index) => {
           // Determine which card should cause spreading (highlighted takes priority over hovered)
           const spreadCard = highlightedCard || hoveredCard;
-          const spreadIndex = spreadCard ? hearthstoneCards.findIndex(c => c.id === spreadCard) : null;
-          const position = calculateCardPosition(index, hearthstoneCards.length, spreadIndex, cardsExpanded);
+          const spreadIndex = spreadCard
+            ? hearthstoneCards.findIndex((c) => c.id === spreadCard)
+            : null;
+          const position = calculateCardPosition(
+            index,
+            hearthstoneCards.length,
+            spreadIndex,
+            cardsExpanded,
+          );
           const isHighlighted = highlightedCard === card.id;
           const isDraggedCard = draggedCard === card.id;
           const isHovered = hoveredCard === card.id;
-          
+
           // Calculate final position and transform
           let finalX = position.x;
           let finalY = position.y;
           let finalRotation = getCardRotation(card.id, position.rotation); // Get the card's tracked rotation
           let scale = getCardScale(card.id); // Get the card's tracked scale
           // Card layering handled by DOM order and CSS isolation instead of z-index
-          
+
           // Apply expanded state offset and scaling
           if (!cardsExpanded) {
             finalY += 130; // Push cards down to show only top portion (halfway off-screen)
@@ -394,19 +430,19 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
             // When expanded, make cards larger and spread more
             scale = Math.max(scale, 1.5); // Minimum 1.5x scale when expanded
           }
-          
+
           if (isHovered && !isDragging && !isHighlighted && cardsExpanded) {
             finalY -= 80; // Move up even more to show more of the card
             // Scale is managed by hover handlers
             // Card elevation handled by isolation and transform
           }
-          
+
           if (isHighlighted && !isDragging && cardsExpanded) {
             finalY -= 100; // Pop out significantly from the fan
             // Scale is managed by click handlers
             // Card prominence handled by CSS isolation
           }
-          
+
           if (isDraggedCard) {
             // Apply mouse position with offset to maintain relative position
             const containerRect = handRef.current?.getBoundingClientRect();
@@ -414,28 +450,31 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
               // Apply mouse position + stored offset, then convert to container coordinates
               const targetScreenX = dragPosition.x + dragOffset.x;
               const targetScreenY = dragPosition.y + dragOffset.y;
-              
-              finalX = targetScreenX - (containerRect.left + containerRect.width / 2);
+
+              finalX =
+                targetScreenX - (containerRect.left + containerRect.width / 2);
               finalY = targetScreenY - containerRect.bottom;
             }
             // Keep the current rotation and scale (don't change them when dragging)
             // Dragged card elevation handled by CSS isolation
           }
-          
+
           return (
             <div
               key={card.id}
-              className={`hearthstone-card ${isHighlighted ? 'highlighted' : ''} ${isDraggedCard ? 'dragged' : ''} ${isHovered ? 'hovered' : ''} ${!card.playable ? 'unplayable' : ''}`}
-              style={{
-                transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
-                // z-index removed - using isolation for card layering
-                '--card-type-color': getCardTypeColor(card.type),
-                '--rarity-color': getRarityColor(card.rarity),
-                '--card-x': `${finalX}px`,
-                '--card-y': `${finalY}px`,
-                '--card-rotation': `${finalRotation}deg`,
-                '--card-scale': scale
-              } as React.CSSProperties}
+              className={`hearthstone-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${!card.playable ? "unplayable" : ""}`}
+              style={
+                {
+                  transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
+                  // z-index removed - using isolation for card layering
+                  "--card-type-color": getCardTypeColor(card.type),
+                  "--rarity-color": getRarityColor(card.rarity),
+                  "--card-x": `${finalX}px`,
+                  "--card-y": `${finalY}px`,
+                  "--card-rotation": `${finalRotation}deg`,
+                  "--card-scale": scale,
+                } as React.CSSProperties
+              }
               onClick={(e) => handleCardClick(card.id, e)}
               onMouseDown={(e) => handleDragStart(card.id, e)}
               onMouseEnter={() => handleCardHover(card.id)}
@@ -444,22 +483,23 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({ hideWhenModalOpen =
               <div className="card-inner">
                 <div className="card-cost">{card.cost}</div>
                 <div className="card-header">
-                  <div className="card-name" style={{ color: getRarityColor(card.rarity) }}>
+                  <div
+                    className="card-name"
+                    style={{ color: getRarityColor(card.rarity) }}
+                  >
                     {card.name}
                   </div>
                 </div>
-                
-                {card.type === 'minion' && (
+
+                {card.type === "minion" && (
                   <div className="card-stats">
                     <div className="attack">{card.attack}</div>
                     <div className="health">{card.health}</div>
                   </div>
                 )}
-                
-                <div className="card-description">
-                  {card.description}
-                </div>
-                
+
+                <div className="card-description">{card.description}</div>
+
                 <div className="card-type-indicator" />
               </div>
             </div>

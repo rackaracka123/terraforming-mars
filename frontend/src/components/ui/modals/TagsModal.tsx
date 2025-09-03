@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CardTag } from '../../../types/cards.ts';
+import React, { useEffect, useState } from "react";
+import { CardTag } from "../../../types/cards.ts";
 
 interface TagData {
   tag: CardTag;
@@ -20,21 +20,21 @@ interface TagsModalProps {
   playerName?: string;
 }
 
-type SortType = 'count' | 'alphabetical' | 'type';
+type SortType = "count" | "alphabetical" | "type";
 
-const TagsModal: React.FC<TagsModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  cards, 
-  playerName = "Player" 
+const TagsModal: React.FC<TagsModalProps> = ({
+  isVisible,
+  onClose,
+  cards,
+  playerName = "Player",
 }) => {
   const [selectedTag, setSelectedTag] = useState<TagData | null>(null);
-  const [sortType, setSortType] = useState<SortType>('count');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortType, setSortType] = useState<SortType>("count");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         if (selectedTag) {
           setSelectedTag(null);
         } else {
@@ -44,35 +44,115 @@ const TagsModal: React.FC<TagsModalProps> = ({
     };
 
     if (isVisible) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isVisible, onClose, selectedTag]);
 
   if (!isVisible) return null;
 
   const tagTypeInfo = [
-    { type: CardTag.BUILDING, icon: '/assets/tags/building.png', label: 'Building', color: '#8B4513' },
-    { type: CardTag.SPACE, icon: '/assets/tags/space.png', label: 'Space', color: '#4B0082' },
-    { type: CardTag.POWER, icon: '/assets/tags/power.png', label: 'Power', color: '#FFD700' },
-    { type: CardTag.SCIENCE, icon: '/assets/tags/science.png', label: 'Science', color: '#00CED1' },
-    { type: CardTag.MICROBE, icon: '/assets/tags/microbe.png', label: 'Microbe', color: '#32CD32' },
-    { type: CardTag.ANIMAL, icon: '/assets/tags/animal.png', label: 'Animal', color: '#DC143C' },
-    { type: CardTag.PLANT, icon: '/assets/tags/plant.png', label: 'Plant', color: '#228B22' },
-    { type: CardTag.EARTH, icon: '/assets/tags/earth.png', label: 'Earth', color: '#4169E1' },
-    { type: CardTag.JOVIAN, icon: '/assets/tags/jovian.png', label: 'Jovian', color: '#FF6347' },
-    { type: CardTag.CITY, icon: '/assets/tags/city.png', label: 'City', color: '#696969' },
-    { type: CardTag.VENUS, icon: '/assets/tags/venus.png', label: 'Venus', color: '#FF1493' },
-    { type: CardTag.MARS, icon: '/assets/tags/mars.png', label: 'Mars', color: '#CD853F' },
-    { type: CardTag.MOON, icon: '/assets/tags/moon.png', label: 'Moon', color: '#C0C0C0' },
-    { type: CardTag.WILD, icon: '/assets/tags/wild.png', label: 'Wild', color: '#9370DB' },
-    { type: CardTag.EVENT, icon: '/assets/tags/event.png', label: 'Event', color: '#FF4500' },
-    { type: CardTag.CLONE, icon: '/assets/tags/clone.png', label: 'Clone', color: '#20B2AA' },
+    {
+      type: CardTag.BUILDING,
+      icon: "/assets/tags/building.png",
+      label: "Building",
+      color: "#8B4513",
+    },
+    {
+      type: CardTag.SPACE,
+      icon: "/assets/tags/space.png",
+      label: "Space",
+      color: "#4B0082",
+    },
+    {
+      type: CardTag.POWER,
+      icon: "/assets/tags/power.png",
+      label: "Power",
+      color: "#FFD700",
+    },
+    {
+      type: CardTag.SCIENCE,
+      icon: "/assets/tags/science.png",
+      label: "Science",
+      color: "#00CED1",
+    },
+    {
+      type: CardTag.MICROBE,
+      icon: "/assets/tags/microbe.png",
+      label: "Microbe",
+      color: "#32CD32",
+    },
+    {
+      type: CardTag.ANIMAL,
+      icon: "/assets/tags/animal.png",
+      label: "Animal",
+      color: "#DC143C",
+    },
+    {
+      type: CardTag.PLANT,
+      icon: "/assets/tags/plant.png",
+      label: "Plant",
+      color: "#228B22",
+    },
+    {
+      type: CardTag.EARTH,
+      icon: "/assets/tags/earth.png",
+      label: "Earth",
+      color: "#4169E1",
+    },
+    {
+      type: CardTag.JOVIAN,
+      icon: "/assets/tags/jovian.png",
+      label: "Jovian",
+      color: "#FF6347",
+    },
+    {
+      type: CardTag.CITY,
+      icon: "/assets/tags/city.png",
+      label: "City",
+      color: "#696969",
+    },
+    {
+      type: CardTag.VENUS,
+      icon: "/assets/tags/venus.png",
+      label: "Venus",
+      color: "#FF1493",
+    },
+    {
+      type: CardTag.MARS,
+      icon: "/assets/tags/mars.png",
+      label: "Mars",
+      color: "#CD853F",
+    },
+    {
+      type: CardTag.MOON,
+      icon: "/assets/tags/moon.png",
+      label: "Moon",
+      color: "#C0C0C0",
+    },
+    {
+      type: CardTag.WILD,
+      icon: "/assets/tags/wild.png",
+      label: "Wild",
+      color: "#9370DB",
+    },
+    {
+      type: CardTag.EVENT,
+      icon: "/assets/tags/event.png",
+      label: "Event",
+      color: "#FF4500",
+    },
+    {
+      type: CardTag.CLONE,
+      icon: "/assets/tags/clone.png",
+      label: "Clone",
+      color: "#20B2AA",
+    },
   ];
 
   // Process tags data
@@ -80,9 +160,9 @@ const TagsModal: React.FC<TagsModalProps> = ({
   const tagCounts: Record<string, { count: number; cardNames: string[] }> = {};
 
   // Count all tags
-  cards.forEach(card => {
+  cards.forEach((card) => {
     if (card.tags) {
-      card.tags.forEach(tag => {
+      card.tags.forEach((tag) => {
         if (!tagCounts[tag]) {
           tagCounts[tag] = { count: 0, cardNames: [] };
         }
@@ -99,34 +179,34 @@ const TagsModal: React.FC<TagsModalProps> = ({
     tagData.push({
       tag: tag as CardTag,
       count: data.count,
-      cardNames: data.cardNames
+      cardNames: data.cardNames,
     });
   });
 
   // Sort tag data
   const sortedTagData = tagData.sort((a, b) => {
     let aValue, bValue;
-    
+
     switch (sortType) {
-      case 'count':
+      case "count":
         aValue = a.count;
         bValue = b.count;
         break;
-      case 'alphabetical':
+      case "alphabetical":
         aValue = a.tag.toLowerCase();
         bValue = b.tag.toLowerCase();
         break;
-      case 'type':
-        const aTypeIndex = tagTypeInfo.findIndex(info => info.type === a.tag);
-        const bTypeIndex = tagTypeInfo.findIndex(info => info.type === b.tag);
+      case "type":
+        const aTypeIndex = tagTypeInfo.findIndex((info) => info.type === a.tag);
+        const bTypeIndex = tagTypeInfo.findIndex((info) => info.type === b.tag);
         aValue = aTypeIndex === -1 ? 999 : aTypeIndex;
         bValue = bTypeIndex === -1 ? 999 : bTypeIndex;
         break;
       default:
         return 0;
     }
-    
-    if (sortOrder === 'asc') {
+
+    if (sortOrder === "asc") {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
     } else {
       return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
@@ -135,16 +215,18 @@ const TagsModal: React.FC<TagsModalProps> = ({
 
   const totalTags = tagData.reduce((sum, tag) => sum + tag.count, 0);
   const uniqueTags = tagData.length;
-  const mostCommonTag = sortedTagData.find(tag => tag.count > 0);
-  const maxCount = Math.max(...tagData.map(tag => tag.count));
+  const mostCommonTag = sortedTagData.find((tag) => tag.count > 0);
+  const maxCount = Math.max(...tagData.map((tag) => tag.count));
 
   const getTagInfo = (tag: CardTag) => {
-    return tagTypeInfo.find(info => info.type === tag) || {
-      type: tag,
-      icon: '/assets/tags/empty.png',
-      label: tag.charAt(0).toUpperCase() + tag.slice(1),
-      color: '#666666'
-    };
+    return (
+      tagTypeInfo.find((info) => info.type === tag) || {
+        type: tag,
+        icon: "/assets/tags/empty.png",
+        label: tag.charAt(0).toUpperCase() + tag.slice(1),
+        color: "#666666",
+      }
+    );
   };
 
   const getBarWidth = (count: number) => {
@@ -154,7 +236,7 @@ const TagsModal: React.FC<TagsModalProps> = ({
   return (
     <div className="steam-tags-modal">
       <div className="backdrop" onClick={onClose} />
-      
+
       <div className="modal-container">
         {/* Header */}
         <div className="modal-header">
@@ -172,8 +254,8 @@ const TagsModal: React.FC<TagsModalProps> = ({
               {mostCommonTag && (
                 <div className="summary-item">
                   <div className="most-common-tag">
-                    <img 
-                      src={getTagInfo(mostCommonTag.tag).icon} 
+                    <img
+                      src={getTagInfo(mostCommonTag.tag).icon}
                       alt={mostCommonTag.tag}
                       className="summary-tag-icon"
                     />
@@ -184,12 +266,12 @@ const TagsModal: React.FC<TagsModalProps> = ({
               )}
             </div>
           </div>
-          
+
           <div className="header-controls">
             <div className="sort-controls">
               <label>Sort by:</label>
-              <select 
-                value={sortType} 
+              <select
+                value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
               >
                 <option value="count">Count</option>
@@ -198,22 +280,30 @@ const TagsModal: React.FC<TagsModalProps> = ({
               </select>
               <button
                 className="sort-order-btn"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
               >
-                {sortOrder === 'asc' ? '↑' : '↓'}
+                {sortOrder === "asc" ? "↑" : "↓"}
               </button>
             </div>
           </div>
 
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         {/* Tags Content */}
         <div className="tags-content">
           {sortedTagData.length === 0 ? (
             <div className="empty-state">
-              <img src="/assets/tags/empty.png" alt="No tags" className="empty-icon" />
+              <img
+                src="/assets/tags/empty.png"
+                alt="No tags"
+                className="empty-icon"
+              />
               <h3>No Tags Found</h3>
               <p>Cards with tags will show their tag distribution here</p>
             </div>
@@ -226,30 +316,32 @@ const TagsModal: React.FC<TagsModalProps> = ({
                   {sortedTagData.map((tagItem) => {
                     const tagInfo = getTagInfo(tagItem.tag);
                     const barWidth = getBarWidth(tagItem.count);
-                    
+
                     return (
-                      <div 
+                      <div
                         key={tagItem.tag}
                         className="chart-bar"
                         onClick={() => setSelectedTag(tagItem)}
                       >
                         <div className="bar-info">
                           <div className="bar-tag">
-                            <img 
-                              src={tagInfo.icon} 
+                            <img
+                              src={tagInfo.icon}
                               alt={tagInfo.label}
                               className="bar-tag-icon"
                             />
-                            <span className="bar-tag-name">{tagInfo.label}</span>
+                            <span className="bar-tag-name">
+                              {tagInfo.label}
+                            </span>
                           </div>
                           <span className="bar-count">{tagItem.count}</span>
                         </div>
                         <div className="bar-container">
-                          <div 
+                          <div
                             className="bar-fill"
-                            style={{ 
+                            style={{
                               width: `${barWidth}%`,
-                              backgroundColor: tagInfo.color
+                              backgroundColor: tagInfo.color,
                             }}
                           />
                         </div>
@@ -268,36 +360,42 @@ const TagsModal: React.FC<TagsModalProps> = ({
                 <div className="tag-grid">
                   {sortedTagData.map((tagItem) => {
                     const tagInfo = getTagInfo(tagItem.tag);
-                    
+
                     return (
-                      <div 
+                      <div
                         key={tagItem.tag}
                         className="tag-card"
                         style={{ borderColor: tagInfo.color }}
                         onClick={() => setSelectedTag(tagItem)}
                       >
                         <div className="tag-card-header">
-                          <img 
-                            src={tagInfo.icon} 
+                          <img
+                            src={tagInfo.icon}
                             alt={tagInfo.label}
                             className="tag-card-icon"
                           />
                           <div className="tag-card-info">
                             <h3 className="tag-name">{tagInfo.label}</h3>
                             <div className="tag-stats">
-                              <span className="tag-count">{tagItem.count} tags</span>
-                              <span className="tag-cards">{tagItem.cardNames.length} cards</span>
+                              <span className="tag-count">
+                                {tagItem.count} tags
+                              </span>
+                              <span className="tag-cards">
+                                {tagItem.cardNames.length} cards
+                              </span>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="tag-preview">
                           <div className="preview-cards">
-                            {tagItem.cardNames.slice(0, 3).map((cardName, index) => (
-                              <div key={index} className="preview-card">
-                                {cardName}
-                              </div>
-                            ))}
+                            {tagItem.cardNames
+                              .slice(0, 3)
+                              .map((cardName, index) => (
+                                <div key={index} className="preview-card">
+                                  {cardName}
+                                </div>
+                              ))}
                             {tagItem.cardNames.length > 3 && (
                               <div className="preview-more">
                                 +{tagItem.cardNames.length - 3} more
@@ -317,26 +415,43 @@ const TagsModal: React.FC<TagsModalProps> = ({
 
       {/* Tag Detail Modal */}
       {selectedTag && (
-        <div className="tag-detail-overlay" onClick={() => setSelectedTag(null)}>
-          <div className="tag-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="tag-detail-overlay"
+          onClick={() => setSelectedTag(null)}
+        >
+          <div
+            className="tag-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="tag-detail-header">
               <div className="tag-detail-title">
-                <img 
-                  src={getTagInfo(selectedTag.tag).icon} 
+                <img
+                  src={getTagInfo(selectedTag.tag).icon}
                   alt={selectedTag.tag}
                   className="detail-tag-icon"
                 />
                 <div>
                   <h2>{getTagInfo(selectedTag.tag).label} Tags</h2>
                   <div className="tag-detail-stats">
-                    <span>{selectedTag.count} tags from {selectedTag.cardNames.length} cards</span>
-                    <span>{((selectedTag.count / totalTags) * 100).toFixed(1)}% of all tags</span>
+                    <span>
+                      {selectedTag.count} tags from{" "}
+                      {selectedTag.cardNames.length} cards
+                    </span>
+                    <span>
+                      {((selectedTag.count / totalTags) * 100).toFixed(1)}% of
+                      all tags
+                    </span>
                   </div>
                 </div>
               </div>
-              <button className="close-detail-btn" onClick={() => setSelectedTag(null)}>×</button>
+              <button
+                className="close-detail-btn"
+                onClick={() => setSelectedTag(null)}
+              >
+                ×
+              </button>
             </div>
-            
+
             <div className="tag-detail-content">
               <h3>Cards with {getTagInfo(selectedTag.tag).label} tags:</h3>
               <div className="cards-list">
@@ -344,8 +459,16 @@ const TagsModal: React.FC<TagsModalProps> = ({
                   <div key={index} className="card-item">
                     <span className="card-name">{cardName}</span>
                     <span className="card-tag-count">
-                      {cards.find(c => c.name === cardName)?.tags?.filter(t => t === selectedTag.tag).length || 1} 
-                      {cards.find(c => c.name === cardName)?.tags?.filter(t => t === selectedTag.tag).length === 1 ? ' tag' : ' tags'}
+                      {cards
+                        .find((c) => c.name === cardName)
+                        ?.tags?.filter((t) => t === selectedTag.tag).length ||
+                        1}
+                      {cards
+                        .find((c) => c.name === cardName)
+                        ?.tags?.filter((t) => t === selectedTag.tag).length ===
+                      1
+                        ? " tag"
+                        : " tags"}
                     </span>
                   </div>
                 ))}
@@ -386,11 +509,17 @@ const TagsModal: React.FC<TagsModalProps> = ({
           width: 100%;
           max-width: 1200px;
           max-height: 90vh;
-          background: linear-gradient(145deg, rgba(20, 30, 45, 0.98) 0%, rgba(30, 40, 60, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(20, 30, 45, 0.98) 0%,
+            rgba(30, 40, 60, 0.95) 100%
+          );
           border: 3px solid rgba(200, 100, 255, 0.4);
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(200, 100, 255, 0.4);
+          box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.8),
+            0 0 60px rgba(200, 100, 255, 0.4);
           backdrop-filter: blur(20px);
           animation: modalSlideIn 0.4s ease-out;
           display: flex;
@@ -402,7 +531,11 @@ const TagsModal: React.FC<TagsModalProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 25px 30px;
-          background: linear-gradient(90deg, rgba(60, 40, 80, 0.9) 0%, rgba(50, 30, 70, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(60, 40, 80, 0.9) 0%,
+            rgba(50, 30, 70, 0.7) 100%
+          );
           border-bottom: 2px solid rgba(200, 100, 255, 0.3);
           flex-shrink: 0;
         }
@@ -438,7 +571,7 @@ const TagsModal: React.FC<TagsModalProps> = ({
           color: #ffffff;
           font-size: 18px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .summary-label {
@@ -498,7 +631,11 @@ const TagsModal: React.FC<TagsModalProps> = ({
         }
 
         .close-button {
-          background: linear-gradient(135deg, rgba(255, 80, 80, 0.8) 0%, rgba(200, 40, 40, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 80, 80, 0.8) 0%,
+            rgba(200, 40, 40, 0.9) 100%
+          );
           border: 2px solid rgba(255, 120, 120, 0.6);
           border-radius: 50%;
           width: 45px;
@@ -621,7 +758,7 @@ const TagsModal: React.FC<TagsModalProps> = ({
         .bar-count {
           color: #ffffff;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           font-size: 16px;
         }
 
@@ -660,7 +797,11 @@ const TagsModal: React.FC<TagsModalProps> = ({
         }
 
         .tag-card {
-          background: linear-gradient(145deg, rgba(0, 0, 0, 0.4) 0%, rgba(20, 20, 30, 0.6) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(0, 0, 0, 0.4) 0%,
+            rgba(20, 20, 30, 0.6) 100%
+          );
           border: 2px solid;
           border-radius: 12px;
           padding: 20px;
@@ -702,7 +843,8 @@ const TagsModal: React.FC<TagsModalProps> = ({
           gap: 10px;
         }
 
-        .tag-count, .tag-cards {
+        .tag-count,
+        .tag-cards {
           color: rgba(255, 255, 255, 0.8);
           font-size: 12px;
           background: rgba(0, 0, 0, 0.3);
@@ -754,7 +896,11 @@ const TagsModal: React.FC<TagsModalProps> = ({
         }
 
         .tag-detail-modal {
-          background: linear-gradient(145deg, rgba(25, 35, 50, 0.98) 0%, rgba(35, 45, 65, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(25, 35, 50, 0.98) 0%,
+            rgba(35, 45, 65, 0.95) 100%
+          );
           border: 3px solid rgba(200, 100, 255, 0.5);
           border-radius: 15px;
           max-width: 600px;
@@ -770,7 +916,11 @@ const TagsModal: React.FC<TagsModalProps> = ({
           align-items: center;
           padding: 20px 25px;
           border-bottom: 2px solid rgba(200, 100, 255, 0.3);
-          background: linear-gradient(90deg, rgba(60, 40, 80, 0.9) 0%, rgba(50, 30, 70, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(60, 40, 80, 0.9) 0%,
+            rgba(50, 30, 70, 0.7) 100%
+          );
         }
 
         .tag-detail-title {
@@ -857,8 +1007,12 @@ const TagsModal: React.FC<TagsModalProps> = ({
         }
 
         @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         @keyframes modalSlideIn {

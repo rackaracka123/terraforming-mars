@@ -1,9 +1,9 @@
-import React from 'react';
-import Game3DView from '../../game/view/Game3DView.tsx';
-import { useMainContent } from '../../../contexts/MainContentContext.tsx';
-import { CardType } from '../../../types/cards.ts';
-import CostDisplay from './CostDisplay.tsx';
-import ProductionDisplay from './ProductionDisplay.tsx';
+import React from "react";
+import Game3DView from "../../game/view/Game3DView.tsx";
+import { useMainContent } from "../../../contexts/MainContentContext.tsx";
+import { CardType } from "../../../types/cards.ts";
+import CostDisplay from "./CostDisplay.tsx";
+import ProductionDisplay from "./ProductionDisplay.tsx";
 
 interface Card {
   id: string;
@@ -16,7 +16,7 @@ interface Card {
 interface GameAction {
   id: string;
   name: string;
-  type: 'standard' | 'card' | 'milestone' | 'award';
+  type: "standard" | "card" | "milestone" | "award";
   cost?: number;
   description: string;
   requirement?: string;
@@ -82,56 +82,63 @@ interface MainContentDisplayProps {
   gameState: any;
 }
 
-const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) => {
+const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
+  gameState,
+}) => {
   const { contentType, contentData, setContentType } = useMainContent();
 
   const getCardTypeStyle = (type: CardType) => {
     const styles = {
       [CardType.CORPORATION]: {
-        background: 'linear-gradient(145deg, rgba(0, 200, 100, 0.15) 0%, rgba(0, 150, 80, 0.25) 100%)',
-        borderColor: 'rgba(0, 255, 120, 0.6)',
+        background:
+          "linear-gradient(145deg, rgba(0, 200, 100, 0.15) 0%, rgba(0, 150, 80, 0.25) 100%)",
+        borderColor: "rgba(0, 255, 120, 0.6)",
       },
       [CardType.AUTOMATED]: {
-        background: 'linear-gradient(145deg, rgba(0, 150, 255, 0.15) 0%, rgba(0, 100, 200, 0.25) 100%)',
-        borderColor: 'rgba(0, 180, 255, 0.6)',
+        background:
+          "linear-gradient(145deg, rgba(0, 150, 255, 0.15) 0%, rgba(0, 100, 200, 0.25) 100%)",
+        borderColor: "rgba(0, 180, 255, 0.6)",
       },
       [CardType.ACTIVE]: {
-        background: 'linear-gradient(145deg, rgba(255, 150, 0, 0.15) 0%, rgba(200, 100, 0, 0.25) 100%)',
-        borderColor: 'rgba(255, 180, 0, 0.6)',
+        background:
+          "linear-gradient(145deg, rgba(255, 150, 0, 0.15) 0%, rgba(200, 100, 0, 0.25) 100%)",
+        borderColor: "rgba(255, 180, 0, 0.6)",
       },
       [CardType.EVENT]: {
-        background: 'linear-gradient(145deg, rgba(255, 80, 80, 0.15) 0%, rgba(200, 50, 50, 0.25) 100%)',
-        borderColor: 'rgba(255, 120, 120, 0.6)',
+        background:
+          "linear-gradient(145deg, rgba(255, 80, 80, 0.15) 0%, rgba(200, 50, 50, 0.25) 100%)",
+        borderColor: "rgba(255, 120, 120, 0.6)",
       },
       [CardType.PRELUDE]: {
-        background: 'linear-gradient(145deg, rgba(200, 100, 255, 0.15) 0%, rgba(150, 50, 200, 0.25) 100%)',
-        borderColor: 'rgba(220, 120, 255, 0.6)',
-      }
+        background:
+          "linear-gradient(145deg, rgba(200, 100, 255, 0.15) 0%, rgba(150, 50, 200, 0.25) 100%)",
+        borderColor: "rgba(220, 120, 255, 0.6)",
+      },
     };
     return styles[type] || styles[CardType.AUTOMATED];
   };
 
   const getCardTypeName = (type: CardType) => {
     const names = {
-      [CardType.CORPORATION]: 'Corporation',
-      [CardType.AUTOMATED]: 'Automated',
-      [CardType.ACTIVE]: 'Active', 
-      [CardType.EVENT]: 'Event',
-      [CardType.PRELUDE]: 'Prelude'
+      [CardType.CORPORATION]: "Corporation",
+      [CardType.AUTOMATED]: "Automated",
+      [CardType.ACTIVE]: "Active",
+      [CardType.EVENT]: "Event",
+      [CardType.PRELUDE]: "Prelude",
     };
-    return names[type] || 'Card';
+    return names[type] || "Card";
   };
 
   const renderPlayedCards = () => {
     const cards: Card[] = contentData?.cards || [];
-    const playerName = contentData?.playerName || 'Player';
+    const playerName = contentData?.playerName || "Player";
 
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button 
+          <button
             className="back-button"
-            onClick={() => setContentType('game')}
+            onClick={() => setContentType("game")}
           >
             ← Back to Game
           </button>
@@ -150,13 +157,13 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
             cards.map((card, index) => {
               const cardStyle = getCardTypeStyle(card.type);
               return (
-                <div 
-                  key={card.id} 
+                <div
+                  key={card.id}
                   className="card"
                   style={{
                     background: cardStyle.background,
                     borderColor: cardStyle.borderColor,
-                    animationDelay: `${index * 0.1}s`
+                    animationDelay: `${index * 0.1}s`,
                   }}
                 >
                   <div className="card-type-badge">
@@ -183,22 +190,26 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
     const getResourceIcon = (resourceType: string) => {
       const icons: { [key: string]: string } = {
-        credits: '/assets/resources/megacredit.png',
-        energy: '/assets/resources/power.png',
-        heat: '/assets/resources/heat.png',
-        steel: '/assets/resources/steel.png',
-        titanium: '/assets/resources/titanium.png',
-        plants: '/assets/resources/plant.png',
-        cards: '/assets/resources/card.png',
-        tr: '/assets/resources/tr.png'
+        credits: "/assets/resources/megacredit.png",
+        energy: "/assets/resources/power.png",
+        heat: "/assets/resources/heat.png",
+        steel: "/assets/resources/steel.png",
+        titanium: "/assets/resources/titanium.png",
+        plants: "/assets/resources/plant.png",
+        cards: "/assets/resources/card.png",
+        tr: "/assets/resources/tr.png",
       };
-      return icons[resourceType] || '/assets/resources/megacredit.png';
+      return icons[resourceType] || "/assets/resources/megacredit.png";
     };
 
     const renderResourceGroup = (resources: any, isReward = false) => {
       return Object.entries(resources).map(([type, amount]) => (
         <div key={type} className="resource-item">
-          <img src={getResourceIcon(type)} alt={type} className="resource-icon" />
+          <img
+            src={getResourceIcon(type)}
+            alt={type}
+            className="resource-icon"
+          />
           <span className="resource-amount">{amount}</span>
         </div>
       ));
@@ -211,13 +222,13 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
             {renderResourceGroup(action.actionCost, false)}
           </div>
         )}
-        
+
         {action.actionCost && action.actionReward && (
           <div className="arrow-section">
             <img src="/assets/misc/arrow.png" alt="→" className="arrow-icon" />
           </div>
         )}
-        
+
         {action.actionReward && (
           <div className="reward-section">
             {renderResourceGroup(action.actionReward, true)}
@@ -229,34 +240,38 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
   const renderAvailableActions = () => {
     const actions: GameAction[] = contentData?.actions || [];
-    const playerName = contentData?.playerName || 'Player';
-    const availableActions = actions.filter(action => action.available);
-    const unavailableActions = actions.filter(action => !action.available);
+    const playerName = contentData?.playerName || "Player";
+    const availableActions = actions.filter((action) => action.available);
+    const unavailableActions = actions.filter((action) => !action.available);
 
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button 
+          <button
             className="back-button"
-            onClick={() => setContentType('game')}
+            onClick={() => setContentType("game")}
           >
             ← Back to Game
           </button>
           <h2>Available Actions</h2>
-          <div className="actions-count">{availableActions.length} Available</div>
+          <div className="actions-count">
+            {availableActions.length} Available
+          </div>
         </div>
 
         <div className="actions-content">
           {availableActions.length > 0 && (
             <div className="actions-section">
-              <h3 className="section-title">Available Actions ({availableActions.length})</h3>
+              <h3 className="section-title">
+                Available Actions ({availableActions.length})
+              </h3>
               <div className="actions-grid">
                 {availableActions.map((action, index) => (
-                  <div 
-                    key={action.id} 
+                  <div
+                    key={action.id}
                     className="action-card available"
                     style={{
-                      animationDelay: `${index * 0.1}s`
+                      animationDelay: `${index * 0.1}s`,
                     }}
                   >
                     <div className="action-type-badge">
@@ -270,7 +285,9 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
                     <div className="action-content">
                       <h4 className="action-name">{action.name}</h4>
                       {action.source && (
-                        <div className="action-source">Source: {action.source}</div>
+                        <div className="action-source">
+                          Source: {action.source}
+                        </div>
                       )}
                       {renderActionCostReward(action)}
                       <p className="action-description">{action.description}</p>
@@ -280,9 +297,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
                         </div>
                       )}
                     </div>
-                    <button className="action-button">
-                      Execute Action
-                    </button>
+                    <button className="action-button">Execute Action</button>
                   </div>
                 ))}
               </div>
@@ -291,14 +306,16 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
           {unavailableActions.length > 0 && (
             <div className="actions-section">
-              <h3 className="section-title">Unavailable Actions ({unavailableActions.length})</h3>
+              <h3 className="section-title">
+                Unavailable Actions ({unavailableActions.length})
+              </h3>
               <div className="actions-grid">
                 {unavailableActions.map((action, index) => (
-                  <div 
-                    key={action.id} 
+                  <div
+                    key={action.id}
                     className="action-card unavailable"
                     style={{
-                      animationDelay: `${(availableActions.length + index) * 0.1}s`
+                      animationDelay: `${(availableActions.length + index) * 0.1}s`,
                     }}
                   >
                     <div className="action-type-badge">
@@ -312,7 +329,9 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
                     <div className="action-content">
                       <h4 className="action-name">{action.name}</h4>
                       {action.source && (
-                        <div className="action-source">Source: {action.source}</div>
+                        <div className="action-source">
+                          Source: {action.source}
+                        </div>
                       )}
                       {renderActionCostReward(action)}
                       <p className="action-description">{action.description}</p>
@@ -338,21 +357,23 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button 
+          <button
             className="back-button"
-            onClick={() => setContentType('game')}
+            onClick={() => setContentType("game")}
           >
             ← Back to Game
           </button>
           <h2>Milestones</h2>
-          <div className="subtitle">Claim milestones to earn victory points</div>
+          <div className="subtitle">
+            Claim milestones to earn victory points
+          </div>
         </div>
 
         <div className="items-grid">
           {milestones.map((milestone) => (
-            <div 
-              key={milestone.id} 
-              className={`item-card milestone-card ${milestone.claimed ? 'claimed' : ''} ${!milestone.available ? 'unavailable' : ''}`}
+            <div
+              key={milestone.id}
+              className={`item-card milestone-card ${milestone.claimed ? "claimed" : ""} ${!milestone.available ? "unavailable" : ""}`}
             >
               <div className="item-header">
                 <div className="item-name">{milestone.name}</div>
@@ -363,14 +384,16 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
               <div className="item-description">{milestone.description}</div>
               <div className="item-reward">Reward: {milestone.reward}</div>
               {milestone.claimed && milestone.claimedBy && (
-                <div className="claimed-by">Claimed by {milestone.claimedBy}</div>
+                <div className="claimed-by">
+                  Claimed by {milestone.claimedBy}
+                </div>
               )}
               <div className="item-actions">
                 <button
                   className="action-btn claim-btn"
                   disabled={milestone.claimed || !milestone.available}
                 >
-                  {milestone.claimed ? 'Claimed' : 'Claim'}
+                  {milestone.claimed ? "Claimed" : "Claim"}
                 </button>
               </div>
             </div>
@@ -386,9 +409,9 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button 
+          <button
             className="back-button"
-            onClick={() => setContentType('game')}
+            onClick={() => setContentType("game")}
           >
             ← Back to Game
           </button>
@@ -398,14 +421,18 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
         <div className="items-grid">
           {projects.map((project) => (
-            <div 
-              key={project.id} 
-              className={`item-card project-card ${!project.available ? 'unavailable' : ''}`}
+            <div
+              key={project.id}
+              className={`item-card project-card ${!project.available ? "unavailable" : ""}`}
             >
               <div className="project-header">
                 <div className="project-icon-name">
                   {project.icon && (
-                    <img src={project.icon} alt={project.name} className="project-icon" />
+                    <img
+                      src={project.icon}
+                      alt={project.name}
+                      className="project-icon"
+                    />
                   )}
                   <div className="item-name">{project.name}</div>
                 </div>
@@ -433,21 +460,23 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
     return (
       <div className="main-content-container">
         <div className="content-header">
-          <button 
+          <button
             className="back-button"
-            onClick={() => setContentType('game')}
+            onClick={() => setContentType("game")}
           >
             ← Back to Game
           </button>
           <h2>Awards</h2>
-          <div className="subtitle">Fund awards and compete for victory points</div>
+          <div className="subtitle">
+            Fund awards and compete for victory points
+          </div>
         </div>
 
         <div className="items-grid">
           {awards.map((award) => (
-            <div 
-              key={award.id} 
-              className={`item-card award-card ${award.funded ? 'funded' : ''} ${!award.available ? 'unavailable' : ''}`}
+            <div
+              key={award.id}
+              className={`item-card award-card ${award.funded ? "funded" : ""} ${!award.available ? "unavailable" : ""}`}
             >
               <div className="item-header">
                 <div className="item-name">{award.name}</div>
@@ -457,7 +486,9 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
               </div>
               <div className="item-description">{award.description}</div>
               <div className="award-info">
-                <div className="award-rewards">1st place: 5 VP, 2nd place: 2 VP</div>
+                <div className="award-rewards">
+                  1st place: 5 VP, 2nd place: 2 VP
+                </div>
                 {award.funded && award.fundedBy && (
                   <div className="funded-by">Funded by {award.fundedBy}</div>
                 )}
@@ -470,7 +501,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
                   className="action-btn fund-btn"
                   disabled={award.funded || !award.available}
                 >
-                  {award.funded ? 'Funded' : 'Fund'}
+                  {award.funded ? "Funded" : "Fund"}
                 </button>
               </div>
             </div>
@@ -480,23 +511,28 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
     );
   };
 
-  if (contentType === 'game') {
+  if (contentType === "game") {
     return <Game3DView gameState={gameState} />;
   }
 
   return (
     <div className="main-content-wrapper">
-      {contentType === 'played-cards' && renderPlayedCards()}
-      {contentType === 'available-actions' && renderAvailableActions()}
-      {contentType === 'milestones' && renderMilestones()}
-      {contentType === 'projects' && renderProjects()}
-      {contentType === 'awards' && renderAwards()}
+      {contentType === "played-cards" && renderPlayedCards()}
+      {contentType === "available-actions" && renderAvailableActions()}
+      {contentType === "milestones" && renderMilestones()}
+      {contentType === "projects" && renderProjects()}
+      {contentType === "awards" && renderAwards()}
 
       <style jsx>{`
         .main-content-wrapper {
           width: 100%;
           height: 100%;
-          background: linear-gradient(135deg, rgba(5, 10, 25, 0.95) 0%, rgba(10, 20, 35, 0.9) 50%, rgba(5, 15, 30, 0.95) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(5, 10, 25, 0.95) 0%,
+            rgba(10, 20, 35, 0.9) 50%,
+            rgba(5, 15, 30, 0.95) 100%
+          );
           overflow-y: auto;
           position: relative;
         }
@@ -520,7 +556,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
         }
 
         .back-button {
-          background: linear-gradient(135deg, rgba(100, 150, 255, 0.8) 0%, rgba(50, 100, 200, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(100, 150, 255, 0.8) 0%,
+            rgba(50, 100, 200, 0.9) 100%
+          );
           border: 2px solid rgba(100, 150, 255, 0.6);
           border-radius: 8px;
           color: #ffffff;
@@ -706,7 +746,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
           width: 100%;
           max-width: 320px;
           min-height: 200px;
-          background: linear-gradient(145deg, rgba(30, 50, 80, 0.6) 0%, rgba(20, 40, 70, 0.5) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(30, 50, 80, 0.6) 0%,
+            rgba(20, 40, 70, 0.5) 100%
+          );
           border: 2px solid rgba(100, 150, 255, 0.3);
           border-radius: 15px;
           padding: 20px;
@@ -722,7 +766,9 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
         .action-card.available:hover {
           transform: translateY(-8px) scale(1.02);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 50px rgba(100, 150, 255, 0.4);
+          box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.4),
+            0 0 50px rgba(100, 150, 255, 0.4);
         }
 
         .action-card.unavailable {
@@ -854,7 +900,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
         .action-button {
           width: 100%;
-          background: linear-gradient(135deg, rgba(100, 150, 255, 0.8) 0%, rgba(50, 100, 200, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(100, 150, 255, 0.8) 0%,
+            rgba(50, 100, 200, 0.9) 100%
+          );
           border: 2px solid rgba(100, 150, 255, 0.6);
           border-radius: 8px;
           color: #ffffff;
@@ -878,7 +928,11 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
         }
 
         .item-card {
-          background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(20, 40, 70, 0.5) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(30, 50, 80, 0.6) 0%,
+            rgba(20, 40, 70, 0.5) 100%
+          );
           border: 2px solid rgba(255, 255, 255, 0.2);
           border-radius: 12px;
           padding: 20px;
@@ -900,13 +954,19 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
 
         .item-card:hover:not(.unavailable) {
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 20px rgba(100, 150, 255, 0.3);
+          box-shadow:
+            0 8px 25px rgba(0, 0, 0, 0.4),
+            0 0 20px rgba(100, 150, 255, 0.3);
         }
 
         .item-card.claimed,
         .item-card.funded {
           border-color: rgba(150, 255, 150, 0.5);
-          background: linear-gradient(135deg, rgba(30, 60, 30, 0.6) 0%, rgba(20, 50, 20, 0.5) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(30, 60, 30, 0.6) 0%,
+            rgba(20, 50, 20, 0.5) 100%
+          );
         }
 
         .item-card.unavailable {
@@ -920,20 +980,20 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({ gameState }) =>
           align-items: center;
           margin-bottom: 15px;
         }
-        
+
         .project-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 15px;
         }
-        
+
         .project-icon-name {
           display: flex;
           align-items: center;
           gap: 10px;
         }
-        
+
         .project-icon {
           width: 24px;
           height: 24px;

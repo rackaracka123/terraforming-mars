@@ -1,13 +1,13 @@
-import React, { createContext, useContext } from 'react';
-import { createPortal } from 'react-dom';
-import useModalStack, { ModalLevel } from '../../../hooks/useModalStack.ts';
+import React, { createContext, useContext } from "react";
+import { createPortal } from "react-dom";
+import useModalStack, { ModalLevel } from "../../../hooks/useModalStack.ts";
 
 interface ModalContextValue {
   openModal: (
-    id: string, 
-    component: React.ComponentType<any>, 
+    id: string,
+    component: React.ComponentType<any>,
     props?: any,
-    level?: ModalLevel
+    level?: ModalLevel,
   ) => void;
   closeModal: (id: string) => void;
   closeTopModal: () => void;
@@ -19,19 +19,21 @@ const ModalContext = createContext<ModalContextValue | null>(null);
 
 /**
  * Context provider for the modal system
- * 
+ *
  * This provider manages all modals in the application using DOM ordering
  * instead of z-index values. Modals are rendered in separate portal containers
  * that are organized by level in the DOM hierarchy.
  */
-export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const modalStack = useModalStack();
 
   // Ensure portal containers exist and are properly ordered
   React.useEffect(() => {
     const createPortalContainer = (id: string, className: string) => {
       if (!document.getElementById(id)) {
-        const container = document.createElement('div');
+        const container = document.createElement("div");
         container.id = id;
         container.className = className;
         document.body.appendChild(container);
@@ -39,12 +41,12 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     // Create containers in DOM order (stacking order)
-    createPortalContainer('modal-primary', 'modal-container primary');
-    createPortalContainer('modal-secondary', 'modal-container secondary'); 
-    createPortalContainer('modal-system', 'modal-container system');
+    createPortalContainer("modal-primary", "modal-container primary");
+    createPortalContainer("modal-secondary", "modal-container secondary");
+    createPortalContainer("modal-system", "modal-container system");
 
     // Add global styles for modal containers
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       .modal-container {
         position: relative;
@@ -73,18 +75,24 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const renderModalsByLevel = (level: ModalLevel) => {
     const modals = modalStack.getModalsByLevel(level);
     const container = document.getElementById(`modal-${level}`);
-    
+
     if (!container || modals.length === 0) return null;
 
     return createPortal(
       <div className={`modal-level-container ${level}`}>
-        {modals.map(modal => {
+        {modals.map((modal) => {
           const ModalComponent = modal.component;
           return (
             <div key={modal.id} className="modal-overlay">
-              <div className="modal-backdrop" onClick={() => modalStack.closeModal(modal.id)}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <ModalComponent 
+              <div
+                className="modal-backdrop"
+                onClick={() => modalStack.closeModal(modal.id)}
+              >
+                <div
+                  className="modal-content"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ModalComponent
                     {...modal.props}
                     onClose={() => modalStack.closeModal(modal.id)}
                     modalId={modal.id}
@@ -99,7 +107,7 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           .modal-level-container {
             position: relative;
           }
-          
+
           .modal-overlay {
             position: fixed;
             top: 0;
@@ -143,7 +151,7 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         `}</style>
       </div>,
-      container
+      container,
     );
   };
 
@@ -152,15 +160,15 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     closeModal: modalStack.closeModal,
     closeTopModal: modalStack.closeTopModal,
     closeAllModals: modalStack.closeAllModals,
-    hasModals: modalStack.hasModals
+    hasModals: modalStack.hasModals,
   };
 
   return (
     <ModalContext.Provider value={contextValue}>
       {children}
-      {renderModalsByLevel('primary')}
-      {renderModalsByLevel('secondary')}
-      {renderModalsByLevel('system')}
+      {renderModalsByLevel("primary")}
+      {renderModalsByLevel("secondary")}
+      {renderModalsByLevel("system")}
     </ModalContext.Provider>
   );
 };
@@ -171,7 +179,7 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 export const useModal = () => {
   const context = useContext(ModalContext);
   if (!context) {
-    throw new Error('useModal must be used within a ModalProvider');
+    throw new Error("useModal must be used within a ModalProvider");
   }
   return context;
 };

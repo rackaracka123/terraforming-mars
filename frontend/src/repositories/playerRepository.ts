@@ -13,60 +13,60 @@ interface Player {
 
 // Mock data storage - in a real app this would be API calls, database queries, etc.
 const mockPlayersData: Player[] = [
-  { 
-    id: '1', 
-    name: 'Alice Chen', 
-    score: 76, 
+  {
+    id: "1",
+    name: "Alice Chen",
+    score: 76,
     passed: true,
-    corporation: 'mars-direct',
+    corporation: "mars-direct",
     terraformRating: 35,
-    victoryPoints: 76
+    victoryPoints: 76,
   },
-  { 
-    id: '2', 
-    name: 'Bob Martinez', 
-    score: 76, 
+  {
+    id: "2",
+    name: "Bob Martinez",
+    score: 76,
     passed: true,
-    corporation: 'habitat-marte', 
+    corporation: "habitat-marte",
     terraformRating: 34,
-    victoryPoints: 76
+    victoryPoints: 76,
   },
-  { 
-    id: '3', 
-    name: 'Carol Kim', 
-    score: 28, 
+  {
+    id: "3",
+    name: "Carol Kim",
+    score: 28,
     passed: false,
-    corporation: 'aurorai',
+    corporation: "aurorai",
     terraformRating: 28,
-    victoryPoints: 28
+    victoryPoints: 28,
   },
-  { 
-    id: '4', 
-    name: 'David Singh', 
-    score: 24, 
+  {
+    id: "4",
+    name: "David Singh",
+    score: 24,
     passed: false,
-    corporation: 'bio-sol',
+    corporation: "bio-sol",
     terraformRating: 24,
-    victoryPoints: 24
+    victoryPoints: 24,
   },
-  { 
-    id: '5', 
-    name: 'Emma Wilson', 
-    score: 27, 
+  {
+    id: "5",
+    name: "Emma Wilson",
+    score: 27,
     passed: false,
-    corporation: 'chimera',
+    corporation: "chimera",
     terraformRating: 27,
-    victoryPoints: 27
+    victoryPoints: 27,
   },
-  { 
-    id: '6', 
-    name: 'Frank Lee', 
-    score: 19, 
+  {
+    id: "6",
+    name: "Frank Lee",
+    score: 19,
     passed: true,
-    corporation: 'odyssey',
+    corporation: "odyssey",
     terraformRating: 19,
-    victoryPoints: 19
-  }
+    victoryPoints: 19,
+  },
 ];
 
 // Repository interface - defines the contract for data access
@@ -84,15 +84,15 @@ export class MockPlayerRepository implements PlayerRepository {
   }
 
   getPlayerById(id: string): Player | undefined {
-    return mockPlayersData.find(player => player.id === id);
+    return mockPlayersData.find((player) => player.id === id);
   }
 
   getPassedPlayers(): Player[] {
-    return mockPlayersData.filter(player => player.passed);
+    return mockPlayersData.filter((player) => player.passed);
   }
 
   getActivePlayers(): Player[] {
-    return mockPlayersData.filter(player => !player.passed);
+    return mockPlayersData.filter((player) => !player.passed);
   }
 }
 

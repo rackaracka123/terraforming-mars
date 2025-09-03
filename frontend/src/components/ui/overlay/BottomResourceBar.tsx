@@ -1,5 +1,5 @@
-import React from 'react';
-import { CardType, CardTag } from '../../../types/cards.ts';
+import React from "react";
+import { CardType, CardTag } from "../../../types/cards.ts";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -27,17 +27,20 @@ interface BottomResourceBarProps {
   onOpenVictoryPointsModal?: () => void;
 }
 
-const BottomResourceBar: React.FC<BottomResourceBarProps> = ({ 
+const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   onOpenCardEffectsModal,
   onOpenActionsModal,
   onOpenCardsPlayedModal,
   onOpenTagsModal,
-  onOpenVictoryPointsModal
+  onOpenVictoryPointsModal,
 }) => {
-
   // Helper function to create image with embedded number
-  const createImageWithNumber = (imageSrc: string, number: number, className: string = '') => {
+  const createImageWithNumber = (
+    imageSrc: string,
+    number: number,
+    className: string = "",
+  ) => {
     return (
       <div className={`image-with-number ${className}`}>
         <img src={imageSrc} alt="" className="base-image" />
@@ -48,36 +51,82 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
   // Mock resource data with dedicated asset paths
   const mockResources: ResourceData[] = [
-    { id: 'credits', name: 'Credits', current: 45, production: 12, icon: '/assets/resources/megacredit.png', color: '#f1c40f' },
-    { id: 'steel', name: 'Steel', current: 8, production: 3, icon: '/assets/resources/steel.png', color: '#95a5a6' },
-    { id: 'titanium', name: 'Titanium', current: 4, production: 1, icon: '/assets/resources/titanium.png', color: '#e74c3c' },
-    { id: 'plants', name: 'Plants', current: 12, production: 5, icon: '/assets/resources/plant.png', color: '#27ae60' },
-    { id: 'energy', name: 'Energy', current: 6, production: 2, icon: '/assets/resources/power.png', color: '#3498db' },
-    { id: 'heat', name: 'Heat', current: 9, production: 1, icon: '/assets/resources/heat.png', color: '#e67e22' }
+    {
+      id: "credits",
+      name: "Credits",
+      current: 45,
+      production: 12,
+      icon: "/assets/resources/megacredit.png",
+      color: "#f1c40f",
+    },
+    {
+      id: "steel",
+      name: "Steel",
+      current: 8,
+      production: 3,
+      icon: "/assets/resources/steel.png",
+      color: "#95a5a6",
+    },
+    {
+      id: "titanium",
+      name: "Titanium",
+      current: 4,
+      production: 1,
+      icon: "/assets/resources/titanium.png",
+      color: "#e74c3c",
+    },
+    {
+      id: "plants",
+      name: "Plants",
+      current: 12,
+      production: 5,
+      icon: "/assets/resources/plant.png",
+      color: "#27ae60",
+    },
+    {
+      id: "energy",
+      name: "Energy",
+      current: 6,
+      production: 2,
+      icon: "/assets/resources/power.png",
+      color: "#3498db",
+    },
+    {
+      id: "heat",
+      name: "Heat",
+      current: 9,
+      production: 1,
+      icon: "/assets/resources/heat.png",
+      color: "#e67e22",
+    },
   ];
 
   // Resource click handlers
   const handleResourceClick = (resource: ResourceData) => {
-    console.log(`Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`);
-    alert(`Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`);
-    
+    console.log(
+      `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
+    );
+    alert(
+      `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
+    );
+
     // Special handling for different resources
     switch (resource.id) {
-      case 'plants':
+      case "plants":
         if (resource.current >= 8) {
-          console.log('Can convert plants to greenery tile');
-          alert('Can convert plants to greenery tile!');
+          console.log("Can convert plants to greenery tile");
+          alert("Can convert plants to greenery tile!");
         }
         break;
-      case 'heat':
+      case "heat":
         if (resource.current >= 8) {
-          console.log('Can convert heat to raise temperature');
-          alert('Can convert heat to raise temperature!');
+          console.log("Can convert heat to raise temperature");
+          alert("Can convert heat to raise temperature!");
         }
         break;
-      case 'energy':
-        console.log('Energy converts to heat at end of turn');
-        alert('Energy converts to heat at end of turn');
+      case "energy":
+        console.log("Energy converts to heat at end of turn");
+        alert("Energy converts to heat at end of turn");
         break;
       default:
         console.log(`${resource.name} resource info displayed`);
@@ -87,141 +136,147 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Add mock played cards for demonstration
   const mockPlayedCards = [
     {
-      id: 'mining-guild',
-      name: 'Mining Guild',
+      id: "mining-guild",
+      name: "Mining Guild",
       type: CardType.CORPORATION,
       cost: 0,
-      description: 'You start with 30 M€, 5 steel production, and 1 steel. Each steel and titanium resource on the board gives you 1 M€ production.',
+      description:
+        "You start with 30 M€, 5 steel production, and 1 steel. Each steel and titanium resource on the board gives you 1 M€ production.",
       tags: [CardTag.BUILDING, CardTag.SCIENCE],
       victoryPoints: 0,
-      playOrder: 1
+      playOrder: 1,
     },
     {
-      id: 'power-plant',
-      name: 'Power Plant',
+      id: "power-plant",
+      name: "Power Plant",
       type: CardType.AUTOMATED,
       cost: 4,
-      description: 'Increase your energy production 1 step.',
+      description: "Increase your energy production 1 step.",
       tags: [CardTag.POWER, CardTag.BUILDING],
       victoryPoints: 1,
-      playOrder: 2
+      playOrder: 2,
     },
     {
-      id: 'research',
-      name: 'Research',
+      id: "research",
+      name: "Research",
       type: CardType.ACTIVE,
       cost: 11,
-      description: 'Action: Spend 1 M€ to draw a card.',
+      description: "Action: Spend 1 M€ to draw a card.",
       tags: [CardTag.SCIENCE],
       victoryPoints: 1,
-      playOrder: 3
+      playOrder: 3,
     },
     {
-      id: 'asteroid',
-      name: 'Asteroid',
+      id: "asteroid",
+      name: "Asteroid",
       type: CardType.EVENT,
       cost: 14,
-      description: 'Raise temperature 1 step and gain 2 titanium. Remove up to 2 plants from any player.',
+      description:
+        "Raise temperature 1 step and gain 2 titanium. Remove up to 2 plants from any player.",
       tags: [CardTag.SPACE, CardTag.EVENT],
       victoryPoints: 0,
-      playOrder: 4
+      playOrder: 4,
     },
     {
-      id: 'mining-rights',
-      name: 'Mining Rights',
+      id: "mining-rights",
+      name: "Mining Rights",
       type: CardType.AUTOMATED,
       cost: 9,
-      description: 'Place a tile on an area with a steel or titanium bonus, adjacent to one of your tiles. Increase steel or titanium production 1 step.',
+      description:
+        "Place a tile on an area with a steel or titanium bonus, adjacent to one of your tiles. Increase steel or titanium production 1 step.",
       tags: [CardTag.BUILDING, CardTag.MARS],
       victoryPoints: 1,
-      playOrder: 5
+      playOrder: 5,
     },
     {
-      id: 'solar-wind-power',
-      name: 'Solar Wind Power',
+      id: "solar-wind-power",
+      name: "Solar Wind Power",
       type: CardType.AUTOMATED,
       cost: 11,
-      description: 'Increase your energy production 1 step and gain 2 titanium.',
+      description:
+        "Increase your energy production 1 step and gain 2 titanium.",
       tags: [CardTag.SPACE, CardTag.POWER, CardTag.SCIENCE],
       victoryPoints: 1,
-      playOrder: 6
-    }
+      playOrder: 6,
+    },
   ];
-
 
   // Mock card effects data
   const mockCardEffects = [
     {
-      id: 'mining-guild-effect',
-      cardId: 'mining-guild',
-      cardName: 'Mining Guild',
+      id: "mining-guild-effect",
+      cardId: "mining-guild",
+      cardName: "Mining Guild",
       cardType: CardType.CORPORATION,
-      effectType: 'ongoing' as const,
-      name: 'Steel and Titanium Bonus',
-      description: 'Gain 1 M€ production for each steel and titanium resource on the board.',
+      effectType: "ongoing" as const,
+      name: "Steel and Titanium Bonus",
+      description:
+        "Gain 1 M€ production for each steel and titanium resource on the board.",
       isActive: true,
-      category: 'production' as const,
-      resource: 'credits',
-      value: 5
+      category: "production" as const,
+      resource: "credits",
+      value: 5,
     },
     {
-      id: 'research-effect',
-      cardId: 'research',
-      cardName: 'Research',
+      id: "research-effect",
+      cardId: "research",
+      cardName: "Research",
       cardType: CardType.ACTIVE,
-      effectType: 'triggered' as const,
-      name: 'Research Bonus',
-      description: 'Get bonus when drawing cards.',
+      effectType: "triggered" as const,
+      name: "Research Bonus",
+      description: "Get bonus when drawing cards.",
       isActive: true,
-      category: 'bonus' as const,
-      resource: 'cards',
-      value: 1
+      category: "bonus" as const,
+      resource: "cards",
+      value: 1,
     },
     {
-      id: 'power-plant-effect',
-      cardId: 'power-plant',
-      cardName: 'Power Plant',
+      id: "power-plant-effect",
+      cardId: "power-plant",
+      cardName: "Power Plant",
       cardType: CardType.AUTOMATED,
-      effectType: 'immediate' as const,
-      name: 'Energy Production',
-      description: 'Increased energy production by 1 step.',
+      effectType: "immediate" as const,
+      name: "Energy Production",
+      description: "Increased energy production by 1 step.",
       isActive: false,
-      category: 'production' as const,
-      resource: 'energy',
-      value: 1
-    }
+      category: "production" as const,
+      resource: "energy",
+      value: 1,
+    },
   ];
 
-
-  const playedCardsToShow = currentPlayer?.playedCards?.length ? currentPlayer.playedCards : mockPlayedCards;
-  const availableEffects = playedCardsToShow?.filter((card: any) => card.type === CardType.ACTIVE)?.length || 0;
+  const playedCardsToShow = currentPlayer?.playedCards?.length
+    ? currentPlayer.playedCards
+    : mockPlayedCards;
+  const availableEffects =
+    playedCardsToShow?.filter((card: any) => card.type === CardType.ACTIVE)
+      ?.length || 0;
 
   // Modal handlers
   const handleOpenCardsModal = () => {
-    console.log('Opening cards modal');
+    console.log("Opening cards modal");
     onOpenCardsPlayedModal?.();
   };
 
   const handleOpenActionsModal = () => {
-    console.log('Opening actions modal');
+    console.log("Opening actions modal");
     onOpenActionsModal?.();
   };
 
   const handleOpenTagsModal = () => {
-    console.log('Opening tags modal');
+    console.log("Opening tags modal");
     onOpenTagsModal?.();
   };
 
   const handleOpenVictoryPointsModal = () => {
-    console.log('Opening victory points modal');
+    console.log("Opening victory points modal");
     onOpenVictoryPointsModal?.();
   };
 
   const handleOpenCardEffectsModal = () => {
-    console.log('Opening card effects modal');
+    console.log("Opening card effects modal");
     onOpenCardEffectsModal?.();
   };
-
 
   // Modal escape handling is now managed in GameInterface
 
@@ -231,25 +286,40 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       <div className="resources-section">
         <div className="resources-grid">
           {mockResources.map((resource) => (
-            <div 
+            <div
               key={resource.id}
               className="resource-item"
-              style={{ '--resource-color': resource.color } as React.CSSProperties}
+              style={
+                { "--resource-color": resource.color } as React.CSSProperties
+              }
               onClick={() => handleResourceClick(resource)}
               title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
               <div className="resource-production">
-                {createImageWithNumber('/assets/misc/production.png', resource.production, 'production-display')}
+                {createImageWithNumber(
+                  "/assets/misc/production.png",
+                  resource.production,
+                  "production-display",
+                )}
               </div>
-              
+
               <div className="resource-main">
                 <div className="resource-icon">
-                  {resource.id === 'credits' ? 
-                    createImageWithNumber(resource.icon, resource.current, 'credits-display') :
-                    <img src={resource.icon} alt={resource.name} className="resource-icon-img" />
-                  }
+                  {resource.id === "credits" ? (
+                    createImageWithNumber(
+                      resource.icon,
+                      resource.current,
+                      "credits-display",
+                    )
+                  ) : (
+                    <img
+                      src={resource.icon}
+                      alt={resource.name}
+                      className="resource-icon-img"
+                    />
+                  )}
                 </div>
-                {resource.id !== 'credits' && (
+                {resource.id !== "credits" && (
                   <div className="resource-current">{resource.current}</div>
                 )}
               </div>
@@ -258,10 +328,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </div>
       </div>
 
-
       {/* Action Buttons Section */}
       <div className="action-buttons-section">
-        <button 
+        <button
           className="action-button cards-button"
           onClick={handleOpenCardsModal}
           title="View Played Cards"
@@ -271,7 +340,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           <div className="button-label">Played</div>
         </button>
 
-        <button 
+        <button
           className="action-button tags-button"
           onClick={handleOpenTagsModal}
           title="View Tags"
@@ -281,17 +350,19 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           <div className="button-label">Tags</div>
         </button>
 
-        <button 
+        <button
           className="action-button vp-button"
           onClick={handleOpenVictoryPointsModal}
           title="View Victory Points"
         >
           <div className="button-icon">🏆</div>
-          <div className="button-count">{currentPlayer?.victoryPoints || 0}</div>
+          <div className="button-count">
+            {currentPlayer?.victoryPoints || 0}
+          </div>
           <div className="button-label">VP</div>
         </button>
 
-        <button 
+        <button
           className="action-button actions-button"
           onClick={handleOpenActionsModal}
           title="View Available Actions"
@@ -301,7 +372,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           <div className="button-label">Actions</div>
         </button>
 
-        <button 
+        <button
           className="action-button effects-button"
           onClick={handleOpenCardEffectsModal}
           title="View Card Effects"

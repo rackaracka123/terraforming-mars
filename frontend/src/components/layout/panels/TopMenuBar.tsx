@@ -1,6 +1,6 @@
-import React from 'react';
-import { Z_INDEX } from '../../../constants/zIndex.ts';
-import { useMainContent } from '../../../contexts/MainContentContext.tsx';
+import React from "react";
+import { Z_INDEX } from "../../../constants/zIndex.ts";
+import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 
 interface TopMenuBarProps {}
 
@@ -8,120 +8,121 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
   const { setContentType, setContentData } = useMainContent();
 
   const menuItems = [
-    { id: 'milestones' as const, label: 'MILESTONES', color: '#ff6b35' },
-    { id: 'projects' as const, label: 'STANDARD PROJECTS', color: '#4a90e2' },
-    { id: 'awards' as const, label: 'AWARDS', color: '#f39c12' }
+    { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
+    { id: "projects" as const, label: "STANDARD PROJECTS", color: "#4a90e2" },
+    { id: "awards" as const, label: "AWARDS", color: "#f39c12" },
   ];
 
   // Mock data for different content types - normally this would come from game state
-  const getMockData = (type: 'milestones' | 'projects' | 'awards') => {
-    if (type === 'milestones') {
+  const getMockData = (type: "milestones" | "projects" | "awards") => {
+    if (type === "milestones") {
       return {
         milestones: [
           {
-            id: 'terraformer',
-            name: 'Terraformer',
-            description: 'Have a terraform rating of at least 35',
-            reward: '5 VP',
+            id: "terraformer",
+            name: "Terraformer",
+            description: "Have a terraform rating of at least 35",
+            reward: "5 VP",
             cost: 8,
             claimed: false,
-            available: true
+            available: true,
           },
           {
-            id: 'mayor',
-            name: 'Mayor',
-            description: 'Own at least 3 city tiles',
-            reward: '5 VP',
+            id: "mayor",
+            name: "Mayor",
+            description: "Own at least 3 city tiles",
+            reward: "5 VP",
             cost: 8,
             claimed: true,
-            claimedBy: 'Alice Chen',
-            available: false
+            claimedBy: "Alice Chen",
+            available: false,
           },
           {
-            id: 'gardener',
-            name: 'Gardener',
-            description: 'Own at least 3 greenery tiles',
-            reward: '5 VP',
+            id: "gardener",
+            name: "Gardener",
+            description: "Own at least 3 greenery tiles",
+            reward: "5 VP",
             cost: 8,
             claimed: false,
-            available: true
-          }
-        ]
+            available: true,
+          },
+        ],
       };
     }
-    
-    if (type === 'projects') {
+
+    if (type === "projects") {
       return {
         projects: [
           {
-            id: 'sell-patents',
-            name: 'Sell Patents',
+            id: "sell-patents",
+            name: "Sell Patents",
             cost: 0,
-            description: 'Discard any number of cards from hand and gain that many M€',
+            description:
+              "Discard any number of cards from hand and gain that many M€",
             available: true,
-            effects: { immediate: [{ type: 'credits', amount: 1 }] },
-            icon: '/assets/resources/megacredit.png'
+            effects: { immediate: [{ type: "credits", amount: 1 }] },
+            icon: "/assets/resources/megacredit.png",
           },
           {
-            id: 'power-plant',
-            name: 'Power Plant',
+            id: "power-plant",
+            name: "Power Plant",
             cost: 11,
-            description: 'Increase your energy production 1 step',
+            description: "Increase your energy production 1 step",
             available: true,
-            effects: { production: [{ type: 'energy', amount: 1 }] },
-            icon: '/assets/resources/power.png'
+            effects: { production: [{ type: "energy", amount: 1 }] },
+            icon: "/assets/resources/power.png",
           },
           {
-            id: 'city',
-            name: 'City',
+            id: "city",
+            name: "City",
             cost: 25,
-            description: 'Place a city tile',
+            description: "Place a city tile",
             available: true,
-            effects: { tiles: ['city'] },
-            icon: '/assets/tiles/city.png'
-          }
-        ]
+            effects: { tiles: ["city"] },
+            icon: "/assets/tiles/city.png",
+          },
+        ],
       };
     }
-    
-    if (type === 'awards') {
+
+    if (type === "awards") {
       return {
         awards: [
           {
-            id: 'landlord',
-            name: 'Landlord',
-            description: 'Most tiles on Mars',
+            id: "landlord",
+            name: "Landlord",
+            description: "Most tiles on Mars",
             fundingCost: 8,
             funded: true,
-            fundedBy: 'Bob Martinez',
-            winner: 'Alice Chen',
-            available: false
+            fundedBy: "Bob Martinez",
+            winner: "Alice Chen",
+            available: false,
           },
           {
-            id: 'banker',
-            name: 'Banker',
-            description: 'Highest M€ production',
+            id: "banker",
+            name: "Banker",
+            description: "Highest M€ production",
             fundingCost: 8,
             funded: false,
-            available: true
+            available: true,
           },
           {
-            id: 'scientist',
-            name: 'Scientist',
-            description: 'Most science tags',
+            id: "scientist",
+            name: "Scientist",
+            description: "Most science tags",
             fundingCost: 8,
             funded: true,
-            fundedBy: 'Carol Kim',
-            available: false
-          }
-        ]
+            fundedBy: "Carol Kim",
+            available: false,
+          },
+        ],
       };
     }
-    
+
     return {};
   };
 
-  const handleTabClick = (tabId: 'milestones' | 'projects' | 'awards') => {
+  const handleTabClick = (tabId: "milestones" | "projects" | "awards") => {
     const data = getMockData(tabId);
     setContentData(data);
     setContentType(tabId);
@@ -136,19 +137,19 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
               key={item.id}
               className="menu-item"
               onClick={() => handleTabClick(item.id)}
-              style={{ '--item-color': item.color } as React.CSSProperties}
+              style={{ "--item-color": item.color } as React.CSSProperties}
             >
               {item.label}
             </button>
           ))}
         </div>
-        
+
         <div className="menu-actions">
           <button className="action-btn">⚙️ Settings</button>
           <button className="action-btn">📊 Stats</button>
         </div>
       </div>
-      
+
       <style jsx>{`
         .top-menu-bar {
           background: rgba(0, 0, 0, 0.95);
@@ -156,7 +157,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           position: relative;
           z-index: 100;
         }
-        
+
         .menu-container {
           display: flex;
           justify-content: space-between;
@@ -164,12 +165,12 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           padding: 0 20px;
           height: 60px;
         }
-        
+
         .menu-items {
           display: flex;
           gap: 20px;
         }
-        
+
         .menu-item {
           background: none;
           border: none;
@@ -182,17 +183,17 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           transition: all 0.2s ease;
           border: 2px solid transparent;
         }
-        
+
         .menu-item:hover {
           background: rgba(255, 255, 255, 0.1);
           border-color: var(--item-color);
         }
-        
+
         .menu-actions {
           display: flex;
           gap: 10px;
         }
-        
+
         .action-btn {
           background: rgba(255, 255, 255, 0.1);
           border: 1px solid #333;
@@ -202,7 +203,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = () => {
           cursor: pointer;
           font-size: 12px;
         }
-        
+
         .action-btn:hover {
           background: rgba(255, 255, 255, 0.2);
         }

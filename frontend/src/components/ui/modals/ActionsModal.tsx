@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { CardType } from '../../../types/cards.ts';
-import CostDisplay from '../display/CostDisplay.tsx';
+import React, { useEffect, useState } from "react";
+import { CardType } from "../../../types/cards.ts";
+import CostDisplay from "../display/CostDisplay.tsx";
 
 interface GameAction {
   id: string;
   name: string;
-  type: 'standard' | 'card' | 'milestone' | 'award' | 'corporation';
+  type: "standard" | "card" | "milestone" | "award" | "corporation";
   cost?: number;
   description: string;
   requirement?: string;
@@ -24,24 +24,32 @@ interface ActionsModalProps {
   onActionSelect?: (action: GameAction) => void;
 }
 
-type FilterType = 'all' | 'available' | 'unavailable' | 'standard' | 'card' | 'milestone' | 'award' | 'corporation';
-type SortType = 'availability' | 'cost' | 'name' | 'type' | 'source';
+type FilterType =
+  | "all"
+  | "available"
+  | "unavailable"
+  | "standard"
+  | "card"
+  | "milestone"
+  | "award"
+  | "corporation";
+type SortType = "availability" | "cost" | "name" | "type" | "source";
 
-const ActionsModal: React.FC<ActionsModalProps> = ({ 
-  isVisible, 
-  onClose, 
-  actions, 
+const ActionsModal: React.FC<ActionsModalProps> = ({
+  isVisible,
+  onClose,
+  actions,
   playerName = "Player",
-  onActionSelect
+  onActionSelect,
 }) => {
   const [selectedAction, setSelectedAction] = useState<GameAction | null>(null);
-  const [filterType, setFilterType] = useState<FilterType>('all');
-  const [sortType, setSortType] = useState<SortType>('availability');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [sortType, setSortType] = useState<SortType>("availability");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         if (selectedAction) {
           setSelectedAction(null);
         } else {
@@ -51,13 +59,13 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
     };
 
     if (isVisible) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscape);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
     };
   }, [isVisible, onClose, selectedAction]);
 
@@ -70,129 +78,143 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         background: `linear-gradient(145deg, rgba(0, 150, 255, ${0.2 * baseOpacity}) 0%, rgba(0, 100, 200, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(0, 180, 255, ${0.7 * baseOpacity})`,
         glowColor: `rgba(0, 180, 255, ${0.4 * baseOpacity})`,
-        badgeColor: '#00b4ff'
+        badgeColor: "#00b4ff",
       },
       card: {
         background: `linear-gradient(145deg, rgba(255, 150, 0, ${0.2 * baseOpacity}) 0%, rgba(200, 100, 0, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(255, 180, 0, ${0.7 * baseOpacity})`,
         glowColor: `rgba(255, 180, 0, ${0.4 * baseOpacity})`,
-        badgeColor: '#ffb400'
+        badgeColor: "#ffb400",
       },
       milestone: {
         background: `linear-gradient(145deg, rgba(0, 200, 100, ${0.2 * baseOpacity}) 0%, rgba(0, 150, 80, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(0, 255, 120, ${0.7 * baseOpacity})`,
         glowColor: `rgba(0, 255, 120, ${0.4 * baseOpacity})`,
-        badgeColor: '#00ff78'
+        badgeColor: "#00ff78",
       },
       award: {
         background: `linear-gradient(145deg, rgba(200, 100, 255, ${0.2 * baseOpacity}) 0%, rgba(150, 50, 200, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(220, 120, 255, ${0.7 * baseOpacity})`,
         glowColor: `rgba(220, 120, 255, ${0.4 * baseOpacity})`,
-        badgeColor: '#dc78ff'
+        badgeColor: "#dc78ff",
       },
       corporation: {
         background: `linear-gradient(145deg, rgba(255, 80, 80, ${0.2 * baseOpacity}) 0%, rgba(200, 50, 50, ${0.3 * baseOpacity}) 100%)`,
         borderColor: `rgba(255, 120, 120, ${0.7 * baseOpacity})`,
         glowColor: `rgba(255, 120, 120, ${0.4 * baseOpacity})`,
-        badgeColor: '#ff7878'
-      }
+        badgeColor: "#ff7878",
+      },
     };
     return styles[type as keyof typeof styles] || styles.standard;
   };
 
   const getActionTypeName = (type: string) => {
     const names = {
-      standard: 'Standard Project',
-      card: 'Card Action',
-      milestone: 'Milestone',
-      award: 'Award',
-      corporation: 'Corporation'
+      standard: "Standard Project",
+      card: "Card Action",
+      milestone: "Milestone",
+      award: "Award",
+      corporation: "Corporation",
     };
-    return names[type as keyof typeof names] || 'Action';
+    return names[type as keyof typeof names] || "Action";
   };
 
   const getActionIcon = (action: GameAction): string => {
     const typeIcons = {
-      standard: '/assets/misc/standard_projects.png',
-      card: '/assets/misc/corpCard.png',
-      milestone: '/assets/misc/checkmark.png',
-      award: '/assets/misc/first-player.png',
-      corporation: '/assets/misc/chairman.png'
+      standard: "/assets/misc/standard_projects.png",
+      card: "/assets/misc/corpCard.png",
+      milestone: "/assets/misc/checkmark.png",
+      award: "/assets/misc/first-player.png",
+      corporation: "/assets/misc/chairman.png",
     };
 
     // Use resource-specific icons for certain actions
     if (action.resourceType) {
       const resourceIcons: Record<string, string> = {
-        heat: '/assets/resources/heat.png',
-        plants: '/assets/resources/plant.png',
-        energy: '/assets/resources/power.png',
-        steel: '/assets/resources/steel.png',
-        titanium: '/assets/resources/titanium.png'
+        heat: "/assets/resources/heat.png",
+        plants: "/assets/resources/plant.png",
+        energy: "/assets/resources/power.png",
+        steel: "/assets/resources/steel.png",
+        titanium: "/assets/resources/titanium.png",
       };
-      return resourceIcons[action.resourceType] || typeIcons[action.type] || typeIcons.standard;
+      return (
+        resourceIcons[action.resourceType] ||
+        typeIcons[action.type] ||
+        typeIcons.standard
+      );
     }
 
     return typeIcons[action.type] || typeIcons.standard;
   };
 
   // Filter and sort actions
-  const filteredActions = actions.filter(action => {
-    switch (filterType) {
-      case 'available': return action.available;
-      case 'unavailable': return !action.available;
-      case 'standard': return action.type === 'standard';
-      case 'card': return action.type === 'card';
-      case 'milestone': return action.type === 'milestone';
-      case 'award': return action.type === 'award';
-      case 'corporation': return action.type === 'corporation';
-      default: return true;
-    }
-  }).sort((a, b) => {
-    let aValue, bValue;
-    
-    switch (sortType) {
-      case 'availability':
-        aValue = a.available ? 1 : 0;
-        bValue = b.available ? 1 : 0;
-        break;
-      case 'cost':
-        aValue = a.cost || 0;
-        bValue = b.cost || 0;
-        break;
-      case 'name':
-        aValue = a.name.toLowerCase();
-        bValue = b.name.toLowerCase();
-        break;
-      case 'type':
-        aValue = a.type;
-        bValue = b.type;
-        break;
-      case 'source':
-        aValue = a.source?.toLowerCase() || '';
-        bValue = b.source?.toLowerCase() || '';
-        break;
-      default:
-        return 0;
-    }
-    
-    if (sortOrder === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
+  const filteredActions = actions
+    .filter((action) => {
+      switch (filterType) {
+        case "available":
+          return action.available;
+        case "unavailable":
+          return !action.available;
+        case "standard":
+          return action.type === "standard";
+        case "card":
+          return action.type === "card";
+        case "milestone":
+          return action.type === "milestone";
+        case "award":
+          return action.type === "award";
+        case "corporation":
+          return action.type === "corporation";
+        default:
+          return true;
+      }
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortType) {
+        case "availability":
+          aValue = a.available ? 1 : 0;
+          bValue = b.available ? 1 : 0;
+          break;
+        case "cost":
+          aValue = a.cost || 0;
+          bValue = b.cost || 0;
+          break;
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "type":
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case "source":
+          aValue = a.source?.toLowerCase() || "";
+          bValue = b.source?.toLowerCase() || "";
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
 
   const actionStats = {
     total: actions.length,
-    available: actions.filter(a => a.available).length,
-    unavailable: actions.filter(a => !a.available).length,
+    available: actions.filter((a) => a.available).length,
+    unavailable: actions.filter((a) => !a.available).length,
     byType: {
-      standard: actions.filter(a => a.type === 'standard').length,
-      card: actions.filter(a => a.type === 'card').length,
-      milestone: actions.filter(a => a.type === 'milestone').length,
-      award: actions.filter(a => a.type === 'award').length,
-      corporation: actions.filter(a => a.type === 'corporation').length,
-    }
+      standard: actions.filter((a) => a.type === "standard").length,
+      card: actions.filter((a) => a.type === "card").length,
+      milestone: actions.filter((a) => a.type === "milestone").length,
+      award: actions.filter((a) => a.type === "award").length,
+      corporation: actions.filter((a) => a.type === "corporation").length,
+    },
   };
 
   const handleActionClick = (action: GameAction) => {
@@ -207,7 +229,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   return (
     <div className="actions-modal">
       <div className="backdrop" onClick={onClose} />
-      
+
       <div className="modal-container">
         {/* Header */}
         <div className="modal-header">
@@ -228,29 +250,43 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="header-controls">
             <div className="filter-controls">
               <label>Filter:</label>
-              <select 
-                value={filterType} 
+              <select
+                value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
               >
                 <option value="all">All Actions</option>
-                <option value="available">Available ({actionStats.available})</option>
-                <option value="unavailable">Blocked ({actionStats.unavailable})</option>
-                <option value="standard">Standard Projects ({actionStats.byType.standard})</option>
-                <option value="card">Card Actions ({actionStats.byType.card})</option>
-                <option value="milestone">Milestones ({actionStats.byType.milestone})</option>
-                <option value="award">Awards ({actionStats.byType.award})</option>
-                <option value="corporation">Corporation ({actionStats.byType.corporation})</option>
+                <option value="available">
+                  Available ({actionStats.available})
+                </option>
+                <option value="unavailable">
+                  Blocked ({actionStats.unavailable})
+                </option>
+                <option value="standard">
+                  Standard Projects ({actionStats.byType.standard})
+                </option>
+                <option value="card">
+                  Card Actions ({actionStats.byType.card})
+                </option>
+                <option value="milestone">
+                  Milestones ({actionStats.byType.milestone})
+                </option>
+                <option value="award">
+                  Awards ({actionStats.byType.award})
+                </option>
+                <option value="corporation">
+                  Corporation ({actionStats.byType.corporation})
+                </option>
               </select>
             </div>
 
             <div className="sort-controls">
               <label>Sort by:</label>
-              <select 
-                value={sortType} 
+              <select
+                value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
               >
                 <option value="availability">Availability</option>
@@ -261,26 +297,34 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
               </select>
               <button
                 className="sort-order-btn"
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
               >
-                {sortOrder === 'asc' ? '↑' : '↓'}
+                {sortOrder === "asc" ? "↑" : "↓"}
               </button>
             </div>
           </div>
 
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         {/* Actions Content */}
         <div className="actions-content">
           {filteredActions.length === 0 ? (
             <div className="empty-state">
-              <img src="/assets/misc/standard_projects.png" alt="No actions" className="empty-icon" />
+              <img
+                src="/assets/misc/standard_projects.png"
+                alt="No actions"
+                className="empty-icon"
+              />
               <h3>No Actions Found</h3>
               <p>
-                {filterType === 'all' 
-                  ? 'No actions are currently available' 
+                {filterType === "all"
+                  ? "No actions are currently available"
                   : `No ${filterType} actions found`}
               </p>
             </div>
@@ -292,22 +336,25 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                   <h2 className="section-title">Quick Actions</h2>
                   <div className="quick-actions">
                     {filteredActions
-                      .filter(action => action.available && action.immediate)
+                      .filter((action) => action.available && action.immediate)
                       .slice(0, 4)
                       .map((action) => {
-                        const actionStyle = getActionTypeStyle(action.type, true);
+                        const actionStyle = getActionTypeStyle(
+                          action.type,
+                          true,
+                        );
                         return (
                           <button
                             key={`quick-${action.id}`}
                             className="quick-action-btn"
                             style={{
                               borderColor: actionStyle.borderColor,
-                              background: actionStyle.background
+                              background: actionStyle.background,
                             }}
                             onClick={() => handleActionClick(action)}
                           >
-                            <img 
-                              src={getActionIcon(action)} 
+                            <img
+                              src={getActionIcon(action)}
                               alt={action.type}
                               className="quick-action-icon"
                             />
@@ -329,35 +376,42 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                 </h2>
                 <div className="actions-grid">
                   {filteredActions.map((action, index) => {
-                    const actionStyle = getActionTypeStyle(action.type, action.available);
-                    
+                    const actionStyle = getActionTypeStyle(
+                      action.type,
+                      action.available,
+                    );
+
                     return (
-                      <div 
-                        key={action.id} 
-                        className={`action-card ${action.available ? 'available' : 'unavailable'}`}
+                      <div
+                        key={action.id}
+                        className={`action-card ${action.available ? "available" : "unavailable"}`}
                         style={{
                           background: actionStyle.background,
                           borderColor: actionStyle.borderColor,
-                          boxShadow: action.available 
+                          boxShadow: action.available
                             ? `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 30px ${actionStyle.glowColor}`
                             : `0 2px 10px rgba(0, 0, 0, 0.2)`,
-                          animationDelay: `${index * 0.05}s`
+                          animationDelay: `${index * 0.05}s`,
                         }}
                         onClick={() => handleActionClick(action)}
                       >
                         {/* Action Header */}
                         <div className="action-header">
-                          <div className="action-type-badge" 
-                               style={{ backgroundColor: actionStyle.badgeColor }}>
+                          <div
+                            className="action-type-badge"
+                            style={{ backgroundColor: actionStyle.badgeColor }}
+                          >
                             {getActionTypeName(action.type)}
                           </div>
-                          
+
                           {action.cost !== undefined && (
                             <div className="action-cost">
-                              <CostDisplay 
-                                cost={action.cost} 
-                                size="small" 
-                                className={!action.available ? 'unavailable-cost' : ''}
+                              <CostDisplay
+                                cost={action.cost}
+                                size="small"
+                                className={
+                                  !action.available ? "unavailable-cost" : ""
+                                }
                               />
                             </div>
                           )}
@@ -365,8 +419,8 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
                         {/* Action Icon and Name */}
                         <div className="action-main">
-                          <img 
-                            src={getActionIcon(action)} 
+                          <img
+                            src={getActionIcon(action)}
                             alt={action.type}
                             className="action-icon"
                           />
@@ -381,12 +435,18 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         )}
 
                         {/* Action Description */}
-                        <p className="action-description">{action.description}</p>
+                        <p className="action-description">
+                          {action.description}
+                        </p>
 
                         {/* Action Requirement */}
                         {action.requirement && (
                           <div className="action-requirement">
-                            <img src="/assets/misc/minus.png" alt="Requirement" className="req-icon" />
+                            <img
+                              src="/assets/misc/minus.png"
+                              alt="Requirement"
+                              className="req-icon"
+                            />
                             <span>{action.requirement}</span>
                           </div>
                         )}
@@ -395,12 +455,20 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         <div className="action-status">
                           {action.available ? (
                             <div className="status-available">
-                              <img src="/assets/misc/checkmark.png" alt="Available" className="status-icon" />
+                              <img
+                                src="/assets/misc/checkmark.png"
+                                alt="Available"
+                                className="status-icon"
+                              />
                               <span>Ready to use</span>
                             </div>
                           ) : (
                             <div className="status-blocked">
-                              <img src="/assets/misc/minus.png" alt="Blocked" className="status-icon" />
+                              <img
+                                src="/assets/misc/minus.png"
+                                alt="Blocked"
+                                className="status-icon"
+                              />
                               <span>Requirements not met</span>
                             </div>
                           )}
@@ -419,32 +487,52 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           {Object.entries(actionStats.byType).map(([type, count]) => {
             if (count === 0) return null;
             const style = getActionTypeStyle(type, true);
-            const availableOfType = actions.filter(a => a.type === type && a.available).length;
-            
+            const availableOfType = actions.filter(
+              (a) => a.type === type && a.available,
+            ).length;
+
             return (
-              <div 
+              <div
                 key={type}
-                className={`type-stat ${filterType === type ? 'active' : ''}`}
-                style={{ borderColor: style.borderColor, backgroundColor: style.background }}
+                className={`type-stat ${filterType === type ? "active" : ""}`}
+                style={{
+                  borderColor: style.borderColor,
+                  backgroundColor: style.background,
+                }}
                 onClick={() => setFilterType(type as FilterType)}
               >
-                <img src={getActionIcon({ type } as GameAction)} alt={type} className="type-icon" />
+                <img
+                  src={getActionIcon({ type } as GameAction)}
+                  alt={type}
+                  className="type-icon"
+                />
                 <div className="type-info">
-                  <span className="type-count">{availableOfType}/{count}</span>
+                  <span className="type-count">
+                    {availableOfType}/{count}
+                  </span>
                   <span className="type-name">{getActionTypeName(type)}</span>
                 </div>
               </div>
             );
           })}
-          
-          <div 
-            className={`type-stat ${filterType === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterType('all')}
-            style={{ borderColor: '#ffffff', backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+
+          <div
+            className={`type-stat ${filterType === "all" ? "active" : ""}`}
+            onClick={() => setFilterType("all")}
+            style={{
+              borderColor: "#ffffff",
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+            }}
           >
-            <img src="/assets/misc/standard_projects.png" alt="All" className="type-icon" />
+            <img
+              src="/assets/misc/standard_projects.png"
+              alt="All"
+              className="type-icon"
+            />
             <div className="type-info">
-              <span className="type-count">{actionStats.available}/{actionStats.total}</span>
+              <span className="type-count">
+                {actionStats.available}/{actionStats.total}
+              </span>
               <span className="type-name">All</span>
             </div>
           </div>
@@ -453,23 +541,36 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
       {/* Action Detail Modal */}
       {selectedAction && (
-        <div className="action-detail-overlay" onClick={() => setSelectedAction(null)}>
-          <div className="action-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="action-detail-overlay"
+          onClick={() => setSelectedAction(null)}
+        >
+          <div
+            className="action-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="action-detail-header">
               <div className="detail-title">
-                <img 
-                  src={getActionIcon(selectedAction)} 
+                <img
+                  src={getActionIcon(selectedAction)}
                   alt={selectedAction.type}
                   className="detail-icon"
                 />
                 <div>
                   <h2>{selectedAction.name}</h2>
-                  <span className="detail-type">{getActionTypeName(selectedAction.type)}</span>
+                  <span className="detail-type">
+                    {getActionTypeName(selectedAction.type)}
+                  </span>
                 </div>
               </div>
-              <button className="close-detail-btn" onClick={() => setSelectedAction(null)}>×</button>
+              <button
+                className="close-detail-btn"
+                onClick={() => setSelectedAction(null)}
+              >
+                ×
+              </button>
             </div>
-            
+
             <div className="action-detail-content">
               <div className="detail-info">
                 {selectedAction.cost !== undefined && (
@@ -488,13 +589,21 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
                 <div className="detail-status">
                   <h4>Status:</h4>
-                  <div className={`status-badge ${selectedAction.available ? 'available' : 'unavailable'}`}>
-                    <img 
-                      src={selectedAction.available ? '/assets/misc/checkmark.png' : '/assets/misc/minus.png'} 
-                      alt={selectedAction.available ? 'Available' : 'Blocked'}
+                  <div
+                    className={`status-badge ${selectedAction.available ? "available" : "unavailable"}`}
+                  >
+                    <img
+                      src={
+                        selectedAction.available
+                          ? "/assets/misc/checkmark.png"
+                          : "/assets/misc/minus.png"
+                      }
+                      alt={selectedAction.available ? "Available" : "Blocked"}
                       className="status-icon"
                     />
-                    <span>{selectedAction.available ? 'Available' : 'Blocked'}</span>
+                    <span>
+                      {selectedAction.available ? "Available" : "Blocked"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -508,7 +617,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                 <div className="detail-requirement">
                   <h4>Requirements:</h4>
                   <div className="requirement-text">
-                    <img src="/assets/misc/minus.png" alt="Requirement" className="req-icon" />
+                    <img
+                      src="/assets/misc/minus.png"
+                      alt="Requirement"
+                      className="req-icon"
+                    />
                     <span>{selectedAction.requirement}</span>
                   </div>
                 </div>
@@ -564,11 +677,17 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           width: 100%;
           max-width: 1400px;
           max-height: 90vh;
-          background: linear-gradient(145deg, rgba(20, 30, 45, 0.98) 0%, rgba(30, 40, 60, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(20, 30, 45, 0.98) 0%,
+            rgba(30, 40, 60, 0.95) 100%
+          );
           border: 3px solid rgba(0, 255, 120, 0.4);
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(0, 255, 120, 0.4);
+          box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.8),
+            0 0 60px rgba(0, 255, 120, 0.4);
           backdrop-filter: blur(20px);
           animation: modalSlideIn 0.4s ease-out;
           display: flex;
@@ -580,7 +699,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           align-items: center;
           justify-content: space-between;
           padding: 25px 30px;
-          background: linear-gradient(90deg, rgba(20, 50, 30, 0.9) 0%, rgba(30, 60, 40, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(20, 50, 30, 0.9) 0%,
+            rgba(30, 60, 40, 0.7) 100%
+          );
           border-bottom: 2px solid rgba(0, 255, 120, 0.3);
           flex-shrink: 0;
         }
@@ -627,7 +750,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         .summary-value {
           font-size: 18px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .summary-label {
@@ -643,7 +766,8 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           align-items: center;
         }
 
-        .filter-controls, .sort-controls {
+        .filter-controls,
+        .sort-controls {
           display: flex;
           gap: 8px;
           align-items: center;
@@ -651,7 +775,8 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           font-size: 14px;
         }
 
-        .filter-controls select, .sort-controls select {
+        .filter-controls select,
+        .sort-controls select {
           background: rgba(0, 0, 0, 0.5);
           border: 1px solid rgba(0, 255, 120, 0.4);
           border-radius: 6px;
@@ -677,7 +802,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         }
 
         .close-button {
-          background: linear-gradient(135deg, rgba(255, 80, 80, 0.8) 0%, rgba(200, 40, 40, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 80, 80, 0.8) 0%,
+            rgba(200, 40, 40, 0.9) 100%
+          );
           border: 2px solid rgba(255, 120, 120, 0.6);
           border-radius: 50%;
           width: 45px;
@@ -895,7 +1024,8 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           margin-top: auto;
         }
 
-        .status-available, .status-blocked {
+        .status-available,
+        .status-blocked {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -926,7 +1056,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           display: flex;
           gap: 10px;
           padding: 20px 30px;
-          background: linear-gradient(90deg, rgba(15, 20, 35, 0.9) 0%, rgba(25, 30, 45, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(15, 20, 35, 0.9) 0%,
+            rgba(25, 30, 45, 0.7) 100%
+          );
           border-top: 1px solid rgba(0, 255, 120, 0.2);
           flex-shrink: 0;
           flex-wrap: wrap;
@@ -944,7 +1078,8 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           min-width: 120px;
         }
 
-        .type-stat:hover, .type-stat.active {
+        .type-stat:hover,
+        .type-stat.active {
           transform: scale(1.05);
         }
 
@@ -966,7 +1101,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           color: #ffffff;
           font-size: 14px;
           font-weight: bold;
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .type-name {
@@ -993,7 +1128,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         }
 
         .action-detail-modal {
-          background: linear-gradient(145deg, rgba(25, 35, 50, 0.98) 0%, rgba(35, 45, 65, 0.95) 100%);
+          background: linear-gradient(
+            145deg,
+            rgba(25, 35, 50, 0.98) 0%,
+            rgba(35, 45, 65, 0.95) 100%
+          );
           border: 3px solid rgba(0, 255, 120, 0.5);
           border-radius: 15px;
           max-width: 600px;
@@ -1009,7 +1148,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           align-items: center;
           padding: 20px 25px;
           border-bottom: 2px solid rgba(0, 255, 120, 0.3);
-          background: linear-gradient(90deg, rgba(20, 50, 30, 0.9) 0%, rgba(30, 60, 40, 0.7) 100%);
+          background: linear-gradient(
+            90deg,
+            rgba(20, 50, 30, 0.9) 0%,
+            rgba(30, 60, 40, 0.7) 100%
+          );
         }
 
         .detail-title {
@@ -1062,7 +1205,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           margin-bottom: 25px;
         }
 
-        .detail-cost, .detail-source, .detail-status {
+        .detail-cost,
+        .detail-source,
+        .detail-status {
           display: flex;
           flex-direction: column;
           gap: 8px;
@@ -1103,11 +1248,13 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
           border: 1px solid rgba(255, 120, 120, 0.3);
         }
 
-        .detail-description, .detail-requirement {
+        .detail-description,
+        .detail-requirement {
           margin-bottom: 20px;
         }
 
-        .detail-description h4, .detail-requirement h4 {
+        .detail-description h4,
+        .detail-requirement h4 {
           color: #ffffff;
           margin: 0 0 10px 0;
           font-size: 16px;
@@ -1138,7 +1285,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
         .execute-action-btn {
           width: 100%;
-          background: linear-gradient(135deg, rgba(0, 255, 120, 0.8) 0%, rgba(0, 200, 100, 0.9) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(0, 255, 120, 0.8) 0%,
+            rgba(0, 200, 100, 0.9) 100%
+          );
           border: 2px solid rgba(0, 255, 120, 0.6);
           border-radius: 10px;
           color: #000000;
@@ -1155,8 +1306,12 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         }
 
         @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         @keyframes modalSlideIn {

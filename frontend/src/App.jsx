@@ -1,5 +1,5 @@
-import GameInterface from './components/layout/main/GameInterface.tsx';
-import './App.css';
+import GameInterface from "./components/layout/main/GameInterface.tsx";
+import "./App.css";
 
 function App() {
   return (

@@ -1,61 +1,61 @@
-import React from 'react';
-import { createPortal } from 'react-dom';
+import React from "react";
+import { createPortal } from "react-dom";
 
 interface ModalPortalProps {
   children: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
-  level?: 'primary' | 'secondary' | 'system';
+  level?: "primary" | "secondary" | "system";
 }
 
 /**
  * Portal-based modal system that uses DOM ordering instead of z-index
- * 
+ *
  * Modals are rendered in separate DOM nodes in order:
  * - #modal-primary: Main modals (game actions, card details)
  * - #modal-secondary: Confirmation dialogs, sub-modals
  * - #modal-system: Critical system messages, errors
- * 
+ *
  * This eliminates the need for z-index management while maintaining
  * proper stacking order through DOM hierarchy.
  */
-const ModalPortal: React.FC<ModalPortalProps> = ({ 
-  children, 
-  isOpen, 
+const ModalPortal: React.FC<ModalPortalProps> = ({
+  children,
+  isOpen,
   onClose,
-  level = 'primary' 
+  level = "primary",
 }) => {
   // Ensure portal containers exist
   React.useEffect(() => {
     const createPortalContainer = (id: string) => {
       if (!document.getElementById(id)) {
-        const container = document.createElement('div');
+        const container = document.createElement("div");
         container.id = id;
         document.body.appendChild(container);
       }
     };
 
-    createPortalContainer('modal-primary');
-    createPortalContainer('modal-secondary');
-    createPortalContainer('modal-system');
+    createPortalContainer("modal-primary");
+    createPortalContainer("modal-secondary");
+    createPortalContainer("modal-system");
   }, []);
 
   // Handle ESC key
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("keydown", handleKeyDown);
       // Prevent body scroll
-      document.body.style.overflow = 'hidden';
-      
+      document.body.style.overflow = "hidden";
+
       return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = '';
+        document.removeEventListener("keydown", handleKeyDown);
+        document.body.style.overflow = "";
       };
     }
   }, [isOpen, onClose]);
@@ -64,7 +64,7 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
 
   const portalId = `modal-${level}`;
   const container = document.getElementById(portalId);
-  
+
   if (!container) return null;
 
   return createPortal(
@@ -72,7 +72,7 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
-      
+
       <style jsx>{`
         .modal-overlay {
           position: fixed;
@@ -103,7 +103,7 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
           width: 100%;
           overflow-y: auto;
           backdrop-filter: blur(20px);
-          box-shadow: 
+          box-shadow:
             0 20px 60px rgba(0, 0, 0, 0.8),
             0 0 40px rgba(100, 150, 255, 0.3);
           position: relative;
@@ -115,14 +115,14 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
           .modal-overlay {
             padding: 10px;
           }
-          
+
           .modal-container {
             max-height: 90vh;
           }
         }
       `}</style>
     </div>,
-    container
+    container,
   );
 };
 

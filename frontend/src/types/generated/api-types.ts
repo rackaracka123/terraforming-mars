@@ -1,8 +1,7 @@
 // Generated TypeScript interfaces from Go structs
 // DO NOT EDIT - This file is auto-generated
 
-export interface GameAggregate {
-}
+export interface GameAggregate {}
 
 export interface BoardSpace {
   position: HexCoordinate;
@@ -198,7 +197,7 @@ export interface EventMetadata {
   tags: string[];
   userAgent?: string;
   ipAddress?: string;
-  extra: Record<string,;
+  extra: Record<string, any>;
 }
 
 export type GameEventType = string;
@@ -312,14 +311,13 @@ export interface VictoryPointsAwardedData {
 
 export interface GameEndedData {
   winnerId: string;
-  finalScores: Record<string,;
+  finalScores: Record<string, number>;
   endCondition: string;
   duration: number;
   generations: number;
 }
 
-export interface EventFactory {
-}
+export interface EventFactory {}
 
 export interface GameState {
   id: string;
@@ -460,12 +458,12 @@ export interface Player {
   hand: string[];
   availableActions: number;
   tags: Tag[];
-  tagCounts: Record<Tag,;
+  tagCounts: Record<Tag, number>;
   actionsTaken: number;
   actionsRemaining: number;
   passed?: boolean;
   tilePositions: HexCoordinate[];
-  tileCounts: Record<TileType,;
+  tileCounts: Record<TileType, number>;
   reserved: ResourcesMap;
   claimedMilestones: string[];
   fundedAwards: string[];
@@ -537,4 +535,3 @@ export interface EndGameCondition {
   currentValue: number;
   isCompleted: boolean;
 }
-
