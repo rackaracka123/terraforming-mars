@@ -16,7 +16,7 @@ const (
 type GameStatus string
 
 const (
-	GameStatusWaiting   GameStatus = "waiting"
+	GameStatusLobby     GameStatus = "lobby"
 	GameStatusActive    GameStatus = "active"
 	GameStatusCompleted GameStatus = "completed"
 )

@@ -18,7 +18,7 @@ const (
 type GameStatus string
 
 const (
-	GameStatusWaiting   GameStatus = "waiting"
+	GameStatusLobby     GameStatus = "lobby"
 	GameStatusActive    GameStatus = "active"
 	GameStatusCompleted GameStatus = "completed"
 )
@@ -91,7 +91,7 @@ func NewGame(id string, settings GameSettings) *Game {
 		ID:           id,
 		CreatedAt:    now,
 		UpdatedAt:    now,
-		Status:       GameStatusWaiting,
+		Status:       GameStatusLobby,
 		Settings:     settings,
 		Players:      make([]Player, 0),
 		CurrentPhase: GamePhaseSetup,

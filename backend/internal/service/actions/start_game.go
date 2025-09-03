@@ -23,8 +23,8 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 	}
 
 	// Validate game can be started
-	if game.Status != domain.GameStatusWaiting {
-		return fmt.Errorf("game is not in waiting status")
+	if game.Status != domain.GameStatusLobby {
+		return fmt.Errorf("game is not in lobby status")
 	}
 
 	if len(game.Players) < 1 {

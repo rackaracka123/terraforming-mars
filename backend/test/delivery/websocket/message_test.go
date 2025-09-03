@@ -221,7 +221,7 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 		Settings: model.GameSettings{
 			MaxPlayers: 4,
 		},
-		Status: model.GameStatusWaiting,
+		Status: model.GameStatusLobby,
 		Players: []model.Player{
 			{
 				ID:   "player-1",

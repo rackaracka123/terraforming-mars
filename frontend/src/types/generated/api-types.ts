@@ -74,7 +74,7 @@ export const GamePhaseComplete: GamePhase = "complete";
  * GameStatus represents the current status of the game
  */
 export type GameStatus = string;
-export const GameStatusWaiting: GameStatus = "waiting";
+export const GameStatusLobby: GameStatus = "lobby";
 export const GameStatusActive: GameStatus = "active";
 export const GameStatusCompleted: GameStatus = "completed";
 /**

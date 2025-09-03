@@ -235,8 +235,8 @@ func TestGameService_ListGames(t *testing.T) {
 			gameID:     game1.ID,
 		},
 		{
-			name:       "list waiting games",
-			status:     string(domain.GameStatusWaiting),
+			name:       "list lobby games",
+			status:     string(domain.GameStatusLobby),
 			expectGame: true,
 			gameID:     game2.ID,
 		},
