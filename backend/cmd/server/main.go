@@ -1,34 +1,60 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/middleware"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func main() {
+	// Initialize logger
+	if err := logger.Init(); err != nil {
+		panic("Failed to initialize logger: " + err.Error())
+	}
+	defer logger.Shutdown()
+
+	log := logger.Get()
+	log.Info("Starting Terraforming Mars backend server")
+
+	// Setup graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
 	// Initialize repositories
 	gameRepo := repository.NewGameRepository()
+	log.Info("Game repository initialized")
 
 	// Initialize services
 	gameService := service.NewGameService(gameRepo)
+	log.Info("Game service initialized")
 
 	// Initialize handlers
 	gameHandler := httpHandler.NewGameHandler(gameService)
+	log.Info("HTTP handlers initialized")
 
 	// Initialize WebSocket hub
 	wsHub := wsHandler.NewHub(gameService)
 	go wsHub.Run() // Start hub in a goroutine
+	log.Info("WebSocket hub started")
 
 	// Initialize Gin router
-	r := gin.Default()
+	r := gin.New() // Use gin.New() instead of gin.Default() to have full control
+
+	// Add middleware
+	r.Use(middleware.RequestID())
+	r.Use(middleware.ZapLogger())
+	r.Use(middleware.ZapRecovery())
 
 	// Configure CORS
 	config := cors.DefaultConfig()
@@ -59,13 +85,23 @@ func main() {
 		port = "3001"
 	}
 
-	log.Printf("Terraforming Mars backend server starting on port %s", port)
-	log.Printf("Health check available at: http://localhost:%s/health", port)
-	log.Printf("Game endpoints available at: http://localhost:%s/games", port)
-	log.Printf("WebSocket endpoint available at: ws://localhost:%s/ws", port)
+	log.Info("Server configuration",
+		zap.String("port", port),
+		zap.String("health_endpoint", "http://localhost:"+port+"/health"),
+		zap.String("games_endpoint", "http://localhost:"+port+"/games"),
+		zap.String("websocket_endpoint", "ws://localhost:"+port+"/ws"),
+	)
 
-	// Start server
-	if err := r.Run(":" + port); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Server failed to start: %v", err)
-	}
+	// Start server in a goroutine
+	go func() {
+		log.Info("Starting HTTP server", zap.String("port", port))
+		if err := r.Run(":" + port); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Server failed to start", zap.Error(err))
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-quit
+	log.Info("Shutting down server gracefully...")
+	log.Info("Server stopped")
 }

@@ -2,11 +2,13 @@ package websocket
 
 import (
 	"encoding/json"
-	"log"
 	"sync"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 	model "terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
+
+	"go.uber.org/zap"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to clients
@@ -65,7 +67,7 @@ func (h *Hub) registerClient(client *Client) {
 	defer h.mutex.Unlock()
 
 	h.clients[client] = true
-	log.Printf("Client connected: %s", client.ID)
+	logger.WithClientContext(client.ID, "", "").Info("Client connected")
 }
 
 // unregisterClient removes a client from the hub
@@ -83,7 +85,7 @@ func (h *Hub) unregisterClient(client *Client) {
 			h.removeClientFromGame(client, gameID)
 		}
 
-		log.Printf("Client disconnected: %s (PlayerID: %s, GameID: %s)", client.ID, playerID, gameID)
+		logger.WithClientContext(client.ID, playerID, gameID).Info("Client disconnected")
 	}
 }
 
@@ -143,7 +145,7 @@ func (h *Hub) BroadcastToGame(gameID string, message *dto.WebSocketMessage) {
 
 	data, err := json.Marshal(message)
 	if err != nil {
-		log.Printf("Error marshaling broadcast message: %v", err)
+		logger.WithGameContext(gameID, "").Error("Error marshaling broadcast message", zap.Error(err))
 		return
 	}
 
@@ -231,7 +233,8 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *dto.WebSocketMessage) {
 	}
 	h.BroadcastToGame(payload.GameID, connectedMsg)
 
-	log.Printf("Player %s connected to game %s", payload.PlayerName, payload.GameID)
+	logger.WithGameContext(payload.GameID, playerID).Info("Player connected",
+		zap.String("player_name", payload.PlayerName))
 }
 
 // handlePlayAction processes game action messages

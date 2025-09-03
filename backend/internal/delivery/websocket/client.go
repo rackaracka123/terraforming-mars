@@ -2,13 +2,14 @@ package websocket
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 )
 
 const (
@@ -96,7 +97,8 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				playerID, gameID := c.GetPlayerInfo()
+				logger.WithClientContext(c.ID, playerID, gameID).Error("Unexpected WebSocket close", zap.Error(err))
 			}
 			break
 		}
@@ -104,7 +106,8 @@ func (c *Client) readPump() {
 		// Parse the message
 		var msg dto.WebSocketMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Printf("Error parsing message: %v", err)
+			playerID, gameID := c.GetPlayerInfo()
+			logger.WithClientContext(c.ID, playerID, gameID).Error("Error parsing WebSocket message", zap.Error(err))
 			c.sendError("Invalid message format")
 			continue
 		}
@@ -160,13 +163,18 @@ func (c *Client) writePump() {
 
 // handleMessage processes incoming WebSocket messages
 func (c *Client) handleMessage(msg *dto.WebSocketMessage) {
+	playerID, gameID := c.GetPlayerInfo()
+	log := logger.WithClientContext(c.ID, playerID, gameID)
+	
+	log.Debug("Received WebSocket message", zap.String("message_type", string(msg.Type)))
+	
 	switch msg.Type {
 	case dto.MessageTypePlayerConnect:
 		c.hub.handlePlayerConnect(c, msg)
 	case dto.MessageTypePlayAction:
 		c.hub.handlePlayAction(c, msg)
 	default:
-		log.Printf("Unknown message type: %s", msg.Type)
+		log.Warn("Unknown message type", zap.String("message_type", string(msg.Type)))
 		c.sendError("Unknown message type")
 	}
 }
@@ -175,7 +183,8 @@ func (c *Client) handleMessage(msg *dto.WebSocketMessage) {
 func (c *Client) SendMessage(msg *dto.WebSocketMessage) {
 	data, err := json.Marshal(msg)
 	if err != nil {
-		log.Printf("Error marshaling message: %v", err)
+		playerID, gameID := c.GetPlayerInfo()
+		logger.WithClientContext(c.ID, playerID, gameID).Error("Error marshaling message", zap.Error(err))
 		return
 	}
 
@@ -202,7 +211,11 @@ func (c *Client) sendError(message string) {
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("WebSocket upgrade error: %v", err)
+		logger.Get().Error("WebSocket upgrade error", 
+			zap.Error(err),
+			zap.String("remote_addr", r.RemoteAddr),
+			zap.String("user_agent", r.UserAgent()),
+		)
 		return
 	}
 
