@@ -5,8 +5,8 @@ export type ModalLevel = "primary" | "secondary" | "system";
 interface ModalState {
   id: string;
   level: ModalLevel;
-  component: React.ComponentType<any>;
-  props?: any;
+  component: React.ComponentType<Record<string, unknown>>;
+  props?: Record<string, unknown>;
 }
 
 /**
@@ -34,8 +34,8 @@ export const useModalStack = () => {
   const openModal = useCallback(
     (
       id: string,
-      component: React.ComponentType<any>,
-      props: any = {},
+      component: React.ComponentType<Record<string, unknown>>,
+      props: Record<string, unknown> = {},
       level: ModalLevel = "primary",
     ) => {
       setModals((prev) => {

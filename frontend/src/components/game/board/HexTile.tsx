@@ -17,12 +17,10 @@ interface HexTileProps {
 
 export default function HexTile({
   position,
-  coordinate,
   tileType,
   isOceanSpace,
   bonuses,
   ownerId,
-  specialType,
   onClick,
 }: HexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);

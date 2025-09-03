@@ -1,10 +1,7 @@
 import React from "react";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 
-interface TopMenuBarProps {}
-
-const TopMenuBar: React.FC<TopMenuBarProps> = () => {
+const TopMenuBar: React.FC = () => {
   const { setContentType, setContentData } = useMainContent();
 
   const menuItems = [

@@ -164,7 +164,7 @@ const createMockGameState = (): GameState => ({
 
 export class MockWebSocketService {
   private gameState: GameState;
-  private listeners: { [event: string]: Function[] } = {};
+  private listeners: { [event: string]: ((...args: any[]) => void)[] } = {};
   private isConnected = false;
   private playerId = "player-1";
 
@@ -181,7 +181,7 @@ export class MockWebSocketService {
   }
 
   // WebSocket-like API
-  on(event: string, callback: Function) {
+  on(event: string, callback: (...args: any[]) => void) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }

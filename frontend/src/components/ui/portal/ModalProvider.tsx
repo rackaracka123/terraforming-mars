@@ -5,8 +5,8 @@ import useModalStack, { ModalLevel } from "../../../hooks/useModalStack.ts";
 interface ModalContextValue {
   openModal: (
     id: string,
-    component: React.ComponentType<any>,
-    props?: any,
+    component: React.ComponentType<Record<string, unknown>>,
+    props?: Record<string, unknown>,
     level?: ModalLevel,
   ) => void;
   closeModal: (id: string) => void;

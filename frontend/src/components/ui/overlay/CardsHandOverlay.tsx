@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 // Z-index imports removed - using DOM order and isolation for layering
 
 interface HearthstoneCard {
@@ -200,13 +200,13 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
     setCardScales((prev) => ({ ...prev, [cardId]: scale }));
   };
 
-  const resetCardScale = (cardId: string) => {
+  const resetCardScale = useCallback((cardId: string) => {
     setCardScales((prev) => {
       const newScales = { ...prev };
       delete newScales[cardId];
       return newScales;
     });
-  };
+  }, []);
 
   // Helper functions to manage card rotations
   const getCardRotation = (cardId: string, defaultRotation: number) => {
@@ -219,13 +219,13 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
     setCardRotations((prev) => ({ ...prev, [cardId]: rotation }));
   };
 
-  const resetCardRotation = (cardId: string) => {
+  const resetCardRotation = useCallback((cardId: string) => {
     setCardRotations((prev) => {
       const newRotations = { ...prev };
       delete newRotations[cardId];
       return newRotations;
     });
-  };
+  }, []);
 
   // Handle card hover scale and rotation changes
   const handleCardHover = (cardId: string) => {
@@ -319,45 +319,31 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
     setHighlightedCard(null); // Clear highlight when dragging
   };
 
-  // Handle drag move - using document mouse move for better performance
-  const handleDragMove = (event: MouseEvent) => {
-    if (!isDragging || !draggedCard) return;
-    setDragPosition({ x: event.clientX, y: event.clientY });
-  };
-
-  // Handle drag end
-  const handleDragEnd = () => {
-    const draggedCardId = draggedCard;
-    setDraggedCard(null);
-    setIsDragging(false);
-    setDragPosition({ x: 0, y: 0 });
-    setDragOffset({ x: 0, y: 0 }); // Reset offset
-    setHighlightedCard(null); // Deselect card when released
-
-    // Reset the dragged card's scale and rotation
-    if (draggedCardId) {
-      resetCardScale(draggedCardId);
-      resetCardRotation(draggedCardId);
-    }
-
-    setJustDragged(true);
-
-    // Clear the justDragged flag after a short delay to allow clicks again
-    setTimeout(() => {
-      setJustDragged(false);
-    }, 100);
-  };
-
-  // Handle click outside to dismiss and collapse cards
-  const handleClickOutside = (event: React.MouseEvent) => {
-    if (handRef.current && !handRef.current.contains(event.target as Node)) {
-      setHighlightedCard(null);
-      setCardsExpanded(false);
-    }
-  };
-
   // Add document event listeners for drag and click outside
   useEffect(() => {
+    // Handle drag end - moved inside useEffect to avoid dependency warning
+    const handleDragEnd = () => {
+      const draggedCardId = draggedCard;
+      setDraggedCard(null);
+      setIsDragging(false);
+      setDragPosition({ x: 0, y: 0 });
+      setDragOffset({ x: 0, y: 0 }); // Reset offset
+      setHighlightedCard(null); // Deselect card when released
+
+      // Reset the dragged card's scale and rotation
+      if (draggedCardId) {
+        resetCardScale(draggedCardId);
+        resetCardRotation(draggedCardId);
+      }
+
+      setJustDragged(true);
+
+      // Clear the justDragged flag after a short delay to allow clicks again
+      setTimeout(() => {
+        setJustDragged(false);
+      }, 100);
+    };
+
     const handleDocumentClick = (event: MouseEvent) => {
       if (handRef.current && !handRef.current.contains(event.target as Node)) {
         setHighlightedCard(null);
@@ -386,7 +372,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
       document.removeEventListener("mousemove", handleDocumentMouseMove);
       document.removeEventListener("mouseup", handleDocumentMouseUp);
     };
-  }, [isDragging, draggedCard]);
+  }, [isDragging, draggedCard, resetCardScale, resetCardRotation]);
 
   // Hide the overlay when modals are open
   if (hideWhenModalOpen) {
@@ -418,7 +404,7 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
           // Calculate final position and transform
           let finalX = position.x;
           let finalY = position.y;
-          let finalRotation = getCardRotation(card.id, position.rotation); // Get the card's tracked rotation
+          const finalRotation = getCardRotation(card.id, position.rotation); // Get the card's tracked rotation
           let scale = getCardScale(card.id); // Get the card's tracked scale
           // Card layering handled by DOM order and CSS isolation instead of z-index
 

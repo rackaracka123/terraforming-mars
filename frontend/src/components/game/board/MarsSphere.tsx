@@ -2,10 +2,11 @@ import React, { useRef, useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import HexagonalGrid from "./HexagonalGrid.tsx";
+import { Game } from "../../../types/generated/domain";
 
 interface MarsSphereProps {
-  gameState?: any;
-  onHexClick?: (hex: any) => void;
+  gameState?: Game;
+  onHexClick?: (hex: string) => void;
 }
 
 export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {

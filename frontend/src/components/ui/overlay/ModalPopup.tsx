@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import CostDisplay from "../display/CostDisplay.tsx";
 import ProductionDisplay from "../display/ProductionDisplay.tsx";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
 
 interface Milestone {
   id: string;
@@ -232,7 +231,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
   const handleAction = (actionType: string, itemId: string) => {
     onAction?.(actionType, itemId);
     // For demo purposes, just log the action
-    console.log(`Action: ${actionType} on ${itemId}`);
+    // Action performed: ${actionType} on ${itemId}
   };
 
   const renderMilestones = () => (

@@ -8,10 +8,50 @@ import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 
+// Mock interfaces for compatibility
+interface MockGameState {
+  id: string;
+  players: MockPlayer[];
+  currentPlayer: string;
+  generation: number;
+  phase: string;
+  globalParameters: {
+    temperature: number;
+    oxygen: number;
+    oceans: number;
+  };
+}
+
+interface MockPlayer {
+  id: string;
+  name: string;
+  resources: {
+    credits: number;
+    steel: number;
+    titanium: number;
+    plants: number;
+    energy: number;
+    heat: number;
+  };
+  production: {
+    credits: number;
+    steel: number;
+    titanium: number;
+    plants: number;
+    energy: number;
+    heat: number;
+  };
+  terraformRating: number;
+  victoryPoints: number;
+  corporation?: string;
+  passed?: boolean;
+  availableActions?: number;
+}
+
 interface GameLayoutProps {
-  gameState: any;
-  currentPlayer: any;
-  socket: any;
+  gameState: MockGameState;
+  currentPlayer: MockPlayer | null;
+  socket: WebSocket | null;
   isAnyModalOpen?: boolean;
   onOpenCardEffectsModal?: () => void;
   onOpenActionsModal?: () => void;

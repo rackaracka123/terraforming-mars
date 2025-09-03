@@ -1,39 +1,23 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
+import { Player as BasePlayer } from "../../../types/generated/domain";
 
-interface Player {
-  id: string;
-  name: string;
-  terraformRating: number;
-  victoryPoints: number;
+interface Player extends BasePlayer {
   passed?: boolean;
   availableActions?: number;
   actionsTaken?: number;
   actionsRemaining?: number;
-  resources: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
+  victoryPoints?: number;
 }
 
 interface LeftSidebarProps {
   players: Player[];
   currentPlayer: Player | null;
-  socket?: any;
+  socket?: WebSocket | null;
   onPass?: () => void;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({
-  players,
-  currentPlayer,
-  socket,
-  onPass,
-}) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ currentPlayer, socket }) => {
   // Player color system - 6 distinct colors for up to 6 players
   const playerColors = [
     "#ff4757", // Red
@@ -48,13 +32,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     return playerColors[index % playerColors.length];
   };
 
-  const handlePass = () => {
-    if (onPass) {
-      onPass();
-    } else if (socket) {
-      socket.emit("pass-turn");
-    }
-  };
+  // TODO: Connect pass functionality to UI
+  // const handlePass = () => {
+  //   if (onPass) {
+  //     onPass();
+  //   } else if (socket) {
+  //     socket.emit("pass-turn");
+  //   }
+  // };
 
   // Milestone information for tooltips
   const milestoneInfo: {

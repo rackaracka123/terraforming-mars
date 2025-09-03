@@ -17,8 +17,8 @@ interface BottomResourceBarProps {
     name: string;
     victoryPoints: number;
     availableActions: number;
-    playedCards: Array<{ type: CardType }> | any[];
-    tags: any[];
+    playedCards: Array<{ type: CardType }>;
+    tags: Array<{ tag: CardTag; count: number }>;
   } | null;
   onOpenCardEffectsModal?: () => void;
   onOpenActionsModal?: () => void;
@@ -103,9 +103,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
   // Resource click handlers
   const handleResourceClick = (resource: ResourceData) => {
-    console.log(
-      `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
-    );
+    // Show resource information
     alert(
       `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
     );
@@ -114,22 +112,20 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     switch (resource.id) {
       case "plants":
         if (resource.current >= 8) {
-          console.log("Can convert plants to greenery tile");
           alert("Can convert plants to greenery tile!");
         }
         break;
       case "heat":
         if (resource.current >= 8) {
-          console.log("Can convert heat to raise temperature");
           alert("Can convert heat to raise temperature!");
         }
         break;
       case "energy":
-        console.log("Energy converts to heat at end of turn");
         alert("Energy converts to heat at end of turn");
         break;
       default:
-        console.log(`${resource.name} resource info displayed`);
+        // Resource info displayed
+        break;
     }
   };
 
@@ -249,32 +245,32 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     ? currentPlayer.playedCards
     : mockPlayedCards;
   const availableEffects =
-    playedCardsToShow?.filter((card: any) => card.type === CardType.ACTIVE)
+    playedCardsToShow?.filter((card) => card.type === CardType.ACTIVE)
       ?.length || 0;
 
   // Modal handlers
   const handleOpenCardsModal = () => {
-    console.log("Opening cards modal");
+    // Opening cards modal
     onOpenCardsPlayedModal?.();
   };
 
   const handleOpenActionsModal = () => {
-    console.log("Opening actions modal");
+    // Opening actions modal
     onOpenActionsModal?.();
   };
 
   const handleOpenTagsModal = () => {
-    console.log("Opening tags modal");
+    // Opening tags modal
     onOpenTagsModal?.();
   };
 
   const handleOpenVictoryPointsModal = () => {
-    console.log("Opening victory points modal");
+    // Opening victory points modal
     onOpenVictoryPointsModal?.();
   };
 
   const handleOpenCardEffectsModal = () => {
-    console.log("Opening card effects modal");
+    // Opening card effects modal
     onOpenCardEffectsModal?.();
   };
 

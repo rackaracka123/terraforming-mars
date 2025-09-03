@@ -1,70 +1,183 @@
-# Getting Started with Create React App
+# Terraforming Mars Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React frontend for the digital implementation of Terraforming Mars board game with 3D game view and real-time multiplayer functionality.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **3D Mars Visualization**: Interactive 3D Mars sphere using React Three Fiber
+- **Hexagonal Grid System**: 42-hex Mars board with tile placement mechanics
+- **Real-time Multiplayer**: WebSocket integration with Go backend
+- **Create/Join Game Flow**: Complete game lobby system with localStorage persistence
+- **Corporation Selection**: Choose from multiple corporations with unique abilities
+- **Resource Management**: Visual resource tracking with production displays
+- **Card System**: Comprehensive card engine with effects and actions
+- **Responsive UI**: Adaptive design for different screen sizes
 
-### `npm start`
+## Quick Start
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Development Mode
+```bash
+npm start
+```
+Runs the app in development mode. Opens [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Production Build
+```bash
+npm run build
+```
+Builds the app for production to the `build` folder with optimizations.
 
-### `npm test`
+### Testing
+```bash
+npm test
+```
+Launches the test runner in interactive watch mode.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Code Quality
+```bash
+npm run lint          # Check for ESLint errors
+npm run format:write  # Format code with Prettier
+```
 
-### `npm run build`
+## Architecture
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Component Structure
+```
+src/
+├── components/
+│   ├── game/              # 3D game view components
+│   │   ├── board/         # Mars board, hex tiles, sphere
+│   │   └── view/          # Game3DView with Three.js
+│   ├── layout/            # Main layout components
+│   │   ├── main/          # GameInterface, GameLayout
+│   │   └── panels/        # Sidebars, menu bar
+│   ├── pages/             # Route pages (Create, Landing)
+│   └── ui/                # Reusable UI components
+│       ├── display/       # Cost, production displays
+│       ├── modals/        # Game modals and popups
+│       └── overlay/       # Resource bar, card hand
+├── services/              # API and WebSocket services
+├── types/
+│   ├── generated/         # Auto-generated from Go backend
+│   └── ...               # Frontend-specific types
+└── contexts/             # React contexts for state
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Key Technologies
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **React 18** with TypeScript for robust component development
+- **React Three Fiber** for 3D Mars visualization and hex grid
+- **React Router** for client-side routing (Create/Join/Game)
+- **WebSocket** for real-time multiplayer communication
+- **Generated Types** from Go backend for type safety
 
-### `npm run eject`
+### Services Architecture
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+#### API Service (`apiService.ts`)
+- **REST API**: Game creation, retrieval, joining
+- **Type Safety**: Uses generated `Game` and `GameSettings` types
+- **Error Handling**: Comprehensive error handling and logging
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+#### WebSocket Service (`webSocketService.ts`)  
+- **Real-time Communication**: Bidirectional game state updates
+- **Event System**: Flexible event listener pattern
+- **Auto-reconnection**: Handles connection drops gracefully
+- **Message Types**: Uses generated WebSocket message types
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### State Management
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **Generated Types**: Full type safety via Go struct generation
+- **React Context**: MainContentContext for UI state
+- **localStorage**: Game persistence for reconnection
+- **WebSocket State**: Real-time game state synchronization
 
-## Learn More
+## Development Workflow
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Type Generation
+The frontend uses types automatically generated from the Go backend:
+```bash
+# In backend directory
+go generate
+```
+This updates `src/types/generated/` with latest backend types.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Code Quality Standards
+- **ESLint**: Enforces code quality and consistency
+- **Prettier**: Automatic code formatting
+- **TypeScript**: Strict typing with generated backend types
+- **No Console Logs**: Use `console.warn` or `console.error` only
 
-### Code Splitting
+### 3D Development
+- **React Three Fiber**: Declarative Three.js in React
+- **Hex Coordinates**: Cube coordinate system (q, r, s)
+- **Custom Controls**: Pan/zoom only (no orbit rotation)
+- **Performance**: Optimized for smooth 60fps gameplay
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Game Features
 
-### Analyzing the Bundle Size
+### Lobby System
+- **Create Game**: Name input with validation and error handling
+- **Join Game**: Game code entry with validation
+- **Auto-reconnect**: localStorage persistence across page reloads
+- **Landing Page**: Clean interface for game creation/joining
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 3D Game View
+- **Mars Sphere**: Realistic Mars terrain with hex overlay
+- **Hex Grid**: 42 interactive hexagonal tiles
+- **Pan Controls**: Mouse/touch controls for view manipulation  
+- **Visual Feedback**: Tile highlighting and selection states
 
-### Making a Progressive Web App
+### Real-time Multiplayer
+- **WebSocket Integration**: Instant game state updates
+- **Player Synchronization**: All players see consistent game state
+- **Corporation Selection**: Real-time corporation choice updates
+- **Turn Management**: Synchronized turn-based gameplay
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### UI Components
 
-### Advanced Configuration
+#### Resource Displays
+- **CostDisplay**: Megacredit amounts with official assets
+- **ProductionDisplay**: Production values with resource icons
+- **Resource Bar**: Live resource tracking with click interactions
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+#### Card System
+- **Hand Overlay**: Hearthstone-style card fan with animations
+- **Card Effects**: Visual effects system for card abilities
+- **Drag & Drop**: Card interaction with smooth animations
 
-### Deployment
+## Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Environment Setup
+- **Development**: Auto-connects to `ws://localhost:3001`
+- **Backend Integration**: Go server on port 3001
+- **Type Sync**: Automatic TypeScript generation from Go structs
 
-### `npm run build` fails to minify
+### Build Configuration
+- **Vite**: Fast development server and build tool
+- **TypeScript**: Strict mode with generated type checking
+- **Asset Optimization**: Automatic image and bundle optimization
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Contributing
+
+1. **Follow TypeScript patterns**: Use generated types from backend
+2. **Maintain 3D performance**: Keep 60fps in 3D views
+3. **Test WebSocket integration**: Verify real-time functionality
+4. **Use existing UI components**: Leverage CostDisplay, ProductionDisplay
+5. **Run quality checks**: `npm run lint` and `npm run format:write`
+
+## Troubleshooting
+
+### WebSocket Connection Issues
+- Ensure Go backend is running on port 3001
+- Check browser console for connection errors
+- Verify WebSocket URL in service configuration
+
+### Type Errors
+- Run `go generate` in backend directory
+- Check that generated types are imported correctly
+- Ensure backend and frontend type versions match
+
+### 3D Performance Issues
+- Check browser WebGL support
+- Monitor frame rate in development tools
+- Optimize Three.js scene complexity if needed

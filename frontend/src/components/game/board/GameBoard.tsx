@@ -1,8 +1,8 @@
 import React from "react";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
+import { Game } from "../../../types/generated/domain";
 
 interface GameBoardProps {
-  gameState?: any;
+  gameState?: Game;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
@@ -43,7 +43,12 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
   const hexGrid = generateHexGrid();
 
-  const getHexColor = (hex: any) => {
+  const getHexColor = (hex: {
+    hasOcean: boolean;
+    hasForest: boolean;
+    hasCity: boolean;
+    type: string;
+  }) => {
     if (hex.hasOcean) return "#3498db";
     if (hex.hasForest) return "#27ae60";
     if (hex.hasCity) return "#f39c12";
@@ -56,7 +61,12 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     return "#daa520"; // Desert gold
   };
 
-  const getHexIcon = (hex: any) => {
+  const getHexIcon = (hex: {
+    hasOcean: boolean;
+    hasForest: boolean;
+    hasCity: boolean;
+    type: string;
+  }) => {
     if (hex.hasOcean) return "🌊";
     if (hex.hasForest) return "🌲";
     if (hex.hasCity) return "🏙️";
@@ -88,7 +98,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
                 top: `${hex.y}px`,
                 backgroundColor: getHexColor(hex),
               }}
-              onClick={() => console.log("Clicked hex:", hex.id)}
+              onClick={() => console.warn("Clicked hex:", hex.id)}
             >
               <div className="hex-inner">
                 <div className="hex-content">

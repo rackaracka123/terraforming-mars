@@ -1,5 +1,5 @@
 import React from "react";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
+import { Player } from "../../../types/generated/domain";
 
 interface GlobalParameters {
   temperature: number;
@@ -17,7 +17,7 @@ interface Milestone {
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
-  currentPlayer?: any;
+  currentPlayer?: Player;
   temperatureMilestones?: Milestone[];
   oxygenMilestones?: Milestone[];
 }
@@ -47,16 +47,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
     },
   ];
   // Helper function to create milestone objects easily
-  const createMilestone = (
-    value: number,
-    icon: string,
-    reward: string = "+1 TR",
-  ): Milestone => ({
-    value,
-    icon,
-    tooltip: `${value}${value < 0 || value > 20 ? "°C" : "%"}: ${reward}`,
-    reward,
-  });
+  // const createMilestone = (
+  //   value: number,
+  //   icon: string,
+  //   reward: string = "+1 TR",
+  // ): Milestone => ({
+  //   value,
+  //   icon,
+  //   tooltip: `${value}${value < 0 || value > 20 ? "°C" : "%"}: ${reward}`,
+  //   reward,
+  // });
 
   // Example usage for multiple milestones:
   // temperatureMilestones = [
@@ -70,49 +70,49 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
   // ]
 
   // Mock global parameter milestone rewards
-  const getGlobalParameterRewards = () => {
-    const rewards: { [key: string]: string[] } = {
-      temperature: [
-        "-24°C: +1 TR",
-        "-20°C: +1 TR",
-        "-16°C: +1 TR",
-        "-12°C: +1 TR",
-        "-8°C: +1 TR",
-        "-4°C: +1 TR",
-        "0°C: +1 TR",
-        "+4°C: +1 TR",
-        "+8°C: +2 TR",
-      ],
-      oxygen: [
-        "1%: +1 TR",
-        "2%: +1 TR",
-        "3%: +1 TR",
-        "4%: +1 TR",
-        "5%: +1 TR",
-        "6%: +1 TR",
-        "7%: +1 TR",
-        "8%: +1 TR",
-        "9%: +1 TR",
-        "10%: +1 TR",
-        "11%: +1 TR",
-        "12%: +1 TR",
-        "13%: +1 TR",
-        "14%: +2 TR",
-      ],
-      oceans: [
-        "1st Ocean: +1 TR",
-        "2nd Ocean: +1 TR",
-        "3rd Ocean: +1 TR",
-        "4th Ocean: +1 TR",
-        "5th Ocean: +1 TR",
-        "6th Ocean: +1 TR",
-        "7th Ocean: +1 TR",
-        "8th Ocean: +1 TR",
-        "9th Ocean: +2 TR",
-      ],
-    };
-    return rewards;
-  };
+  // const getGlobalParameterRewards = () => {
+  //   const rewards: { [key: string]: string[] } = {
+  //     temperature: [
+  //       "-24°C: +1 TR",
+  //       "-20°C: +1 TR",
+  //       "-16°C: +1 TR",
+  //       "-12°C: +1 TR",
+  //       "-8°C: +1 TR",
+  //       "-4°C: +1 TR",
+  //       "0°C: +1 TR",
+  //       "+4°C: +1 TR",
+  //       "+8°C: +2 TR",
+  //     ],
+  //     oxygen: [
+  //       "1%: +1 TR",
+  //       "2%: +1 TR",
+  //       "3%: +1 TR",
+  //       "4%: +1 TR",
+  //       "5%: +1 TR",
+  //       "6%: +1 TR",
+  //       "7%: +1 TR",
+  //       "8%: +1 TR",
+  //       "9%: +1 TR",
+  //       "10%: +1 TR",
+  //       "11%: +1 TR",
+  //       "12%: +1 TR",
+  //       "13%: +1 TR",
+  //       "14%: +2 TR",
+  //     ],
+  //     oceans: [
+  //       "1st Ocean: +1 TR",
+  //       "2nd Ocean: +1 TR",
+  //       "3rd Ocean: +1 TR",
+  //       "4th Ocean: +1 TR",
+  //       "5th Ocean: +1 TR",
+  //       "6th Ocean: +1 TR",
+  //       "7th Ocean: +1 TR",
+  //       "8th Ocean: +1 TR",
+  //       "9th Ocean: +2 TR",
+  //     ],
+  //   };
+  //   return rewards;
+  // };
 
   // Get temperature scale markings (every 2 degrees)
   const getTemperatureMarkings = () => {
