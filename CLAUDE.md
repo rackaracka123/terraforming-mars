@@ -40,7 +40,6 @@ npm test         # Run Jest tests
 
 ### Code Generation
 ```bash
-npm run generate-types   # Generate TypeScript types from Go structs
 npm run generate-docs    # Generate Swagger API documentation
 ```
 
