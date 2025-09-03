@@ -1,10 +1,10 @@
 package service_test
 
 import (
-	"testing"
 	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"testing"
 )
 
 func TestNewGameService(t *testing.T) {

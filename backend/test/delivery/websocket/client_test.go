@@ -9,15 +9,15 @@ func TestClientIDGeneration(t *testing.T) {
 	// Test that client ID generation works
 	id1 := generateTestClientID()
 	id2 := generateTestClientID()
-	
+
 	if len(id1) == 0 {
 		t.Error("Expected non-empty client ID")
 	}
-	
+
 	if len(id2) == 0 {
 		t.Error("Expected non-empty client ID")
 	}
-	
+
 	// IDs should be different (very likely but not guaranteed in same millisecond)
 	if id1 == id2 {
 		t.Logf("Generated IDs are the same (possible but unlikely): %s", id1)
@@ -26,12 +26,12 @@ func TestClientIDGeneration(t *testing.T) {
 
 func TestClientIDFormat(t *testing.T) {
 	id := generateTestClientID()
-	
+
 	// Should be in format YYYYMMDDHHMMSS-mmm
 	if len(id) < 17 { // minimum expected length
 		t.Errorf("Client ID too short: %s", id)
 	}
-	
+
 	// Should contain a dash
 	found := false
 	for _, char := range id {
@@ -40,7 +40,7 @@ func TestClientIDFormat(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !found {
 		t.Errorf("Client ID should contain a dash: %s", id)
 	}

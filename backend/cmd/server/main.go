@@ -22,7 +22,7 @@ func main() {
 
 	// Initialize handlers
 	gameHandler := httpHandler.NewGameHandler(gameService)
-	
+
 	// Initialize WebSocket hub
 	wsHub := wsHandler.NewHub(gameService)
 	go wsHub.Run() // Start hub in a goroutine
@@ -47,7 +47,7 @@ func main() {
 	r.GET("/games", gameHandler.ListGames)
 	r.GET("/games/:id", gameHandler.GetGame)
 	r.POST("/games/:id/join", gameHandler.JoinGame)
-	
+
 	// WebSocket endpoint
 	r.GET("/ws", func(c *gin.Context) {
 		wsHandler.ServeWS(wsHub, c.Writer, c.Request)

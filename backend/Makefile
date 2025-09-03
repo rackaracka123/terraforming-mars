@@ -1,6 +1,6 @@
 # Terraforming Mars Backend Makefile
 
-.PHONY: test test-verbose test-service test-websocket test-coverage clean build run help
+.PHONY: test test-verbose test-service test-websocket test-coverage clean build run help format
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "  build         - Build the server binary"
 	@echo "  run           - Run the development server"
 	@echo "  clean         - Clean build artifacts"
+	@echo "  format        - Format Go code with gofmt"
 
 # Run all tests
 test:
@@ -87,3 +88,9 @@ test-quick:
 test-watch:
 	@echo "Watching for changes and running tests..."
 	find . -name "*.go" | entr -c make test-quick
+
+# Format Go code
+format:
+	@echo "Formatting Go code..."
+	@find . -name "*.go" -exec gofmt -s -w {} \;
+	@echo "Done formatting Go code"

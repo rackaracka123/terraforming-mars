@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/repository"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -115,7 +116,6 @@ func (s *GameService) UpdateGame(game *domain.Game) error {
 	return s.gameRepo.UpdateGame(game)
 }
 
-
 // ApplyAction validates and applies a game action
 func (s *GameService) ApplyAction(gameID, playerID, action string, data map[string]interface{}) (*domain.Game, error) {
 	// Get the game
@@ -123,18 +123,18 @@ func (s *GameService) ApplyAction(gameID, playerID, action string, data map[stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to get game: %w", err)
 	}
-	
+
 	// Find the player
 	player, found := game.GetPlayer(playerID)
 	if !found {
 		return nil, fmt.Errorf("player not found in game")
 	}
-	
+
 	// Validate that it's the player's turn (basic validation)
 	if game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
 		return nil, fmt.Errorf("not your turn")
 	}
-	
+
 	// Apply the action based on type
 	switch action {
 	case "standard-project-asteroid":
@@ -148,16 +148,16 @@ func (s *GameService) ApplyAction(gameID, playerID, action string, data map[stri
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to apply action %s: %w", action, err)
 	}
-	
+
 	// Update the game in repository
 	if err := s.gameRepo.UpdateGame(game); err != nil {
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
-	
+
 	return game, nil
 }
 
@@ -167,20 +167,20 @@ func (s *GameService) applyStandardProjectAsteroid(game *domain.Game, player *do
 	if player.Resources.Credits < 14 {
 		return fmt.Errorf("insufficient credits (need 14, have %d)", player.Resources.Credits)
 	}
-	
+
 	if game.GlobalParameters.Temperature >= 8 {
 		return fmt.Errorf("temperature already at maximum")
 	}
-	
+
 	// Deduct cost
 	player.Resources.Credits -= 14
-	
+
 	// Apply effect
 	game.GlobalParameters.Temperature += 2 // Each step is 2 degrees
-	
+
 	// Player gains terraform rating
 	player.TerraformRating += 1
-	
+
 	return nil
 }
 
@@ -190,33 +190,33 @@ func (s *GameService) applyRaiseTemperature(game *domain.Game, player *domain.Pl
 	if !ok {
 		return fmt.Errorf("invalid heat amount")
 	}
-	
+
 	heatAmountInt := int(heatAmount)
 	if heatAmountInt < 8 {
 		return fmt.Errorf("need at least 8 heat to raise temperature")
 	}
-	
+
 	if player.Resources.Heat < heatAmountInt {
 		return fmt.Errorf("insufficient heat (need %d, have %d)", heatAmountInt, player.Resources.Heat)
 	}
-	
+
 	if game.GlobalParameters.Temperature >= 8 {
 		return fmt.Errorf("temperature already at maximum")
 	}
-	
+
 	// Spend 8 heat to raise temperature 1 step
 	steps := heatAmountInt / 8
 	player.Resources.Heat -= steps * 8
 	game.GlobalParameters.Temperature += steps * 2
-	
+
 	// Cap at maximum
 	if game.GlobalParameters.Temperature > 8 {
 		game.GlobalParameters.Temperature = 8
 	}
-	
+
 	// Player gains terraform rating for each step
 	player.TerraformRating += steps
-	
+
 	return nil
 }
 
@@ -226,14 +226,14 @@ func (s *GameService) applySelectCorporation(game *domain.Game, player *domain.P
 	if !ok {
 		return fmt.Errorf("invalid corporation name")
 	}
-	
+
 	if player.Corporation != "" {
 		return fmt.Errorf("player already has a corporation")
 	}
-	
+
 	// TODO: Validate corporation exists and apply starting resources/production
 	player.Corporation = corpName
-	
+
 	return nil
 }
 

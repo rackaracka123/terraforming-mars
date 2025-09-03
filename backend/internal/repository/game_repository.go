@@ -28,13 +28,13 @@ func (r *GameRepository) CreateGame(settings domain.GameSettings) (*domain.Game,
 
 	// Generate unique game ID
 	gameID := uuid.New().String()
-	
+
 	// Create the game
 	game := domain.NewGame(gameID, settings)
-	
+
 	// Store in repository
 	r.games[gameID] = game
-	
+
 	return game, nil
 }
 
@@ -47,7 +47,7 @@ func (r *GameRepository) GetGame(gameID string) (*domain.Game, error) {
 	if !exists {
 		return nil, fmt.Errorf("game with ID %s not found", gameID)
 	}
-	
+
 	return game, nil
 }
 
@@ -59,7 +59,7 @@ func (r *GameRepository) UpdateGame(game *domain.Game) error {
 	if _, exists := r.games[game.ID]; !exists {
 		return fmt.Errorf("game with ID %s not found", game.ID)
 	}
-	
+
 	r.games[game.ID] = game
 	return nil
 }
@@ -73,7 +73,7 @@ func (r *GameRepository) ListGames() ([]*domain.Game, error) {
 	for _, game := range r.games {
 		games = append(games, game)
 	}
-	
+
 	return games, nil
 }
 
@@ -85,7 +85,7 @@ func (r *GameRepository) DeleteGame(gameID string) error {
 	if _, exists := r.games[gameID]; !exists {
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
-	
+
 	delete(r.games, gameID)
 	return nil
 }
@@ -101,6 +101,6 @@ func (r *GameRepository) GetGamesByStatus(status string) ([]*domain.Game, error)
 			games = append(games, game)
 		}
 	}
-	
+
 	return games, nil
 }

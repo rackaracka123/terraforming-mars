@@ -105,4 +105,3 @@ func (h *GameHandler) ListGames(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"games": games})
 }
-

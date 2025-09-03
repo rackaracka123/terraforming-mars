@@ -3,9 +3,9 @@ package websocket_test
 import (
 	"encoding/json"
 	"reflect"
-	"testing"
 	"terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/domain"
+	"testing"
 )
 
 func TestMessageType_Constants(t *testing.T) {
@@ -110,13 +110,13 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 
 			// Check that message type is preserved
 			if deserializedMessage.Type != tt.message.Type {
-				t.Errorf("Message type not preserved: expected %s, got %s", 
+				t.Errorf("Message type not preserved: expected %s, got %s",
 					tt.message.Type, deserializedMessage.Type)
 			}
 
 			// Check that GameID is preserved
 			if deserializedMessage.GameID != tt.message.GameID {
-				t.Errorf("GameID not preserved: expected %s, got %s", 
+				t.Errorf("GameID not preserved: expected %s, got %s",
 					tt.message.GameID, deserializedMessage.GameID)
 			}
 
@@ -147,7 +147,7 @@ func TestPlayerConnectPayload_JSONSerialization(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(payload, deserializedPayload) {
-		t.Errorf("PlayerConnectPayload not preserved: expected %+v, got %+v", 
+		t.Errorf("PlayerConnectPayload not preserved: expected %+v, got %+v",
 			payload, deserializedPayload)
 	}
 }
@@ -198,7 +198,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 			}
 
 			if deserializedPayload.Action != tt.payload.Action {
-				t.Errorf("Action not preserved: expected %s, got %s", 
+				t.Errorf("Action not preserved: expected %s, got %s",
 					tt.payload.Action, deserializedPayload.Action)
 			}
 
@@ -216,7 +216,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 	// Create a test game
 	game := &domain.Game{
-		ID:   "test-game-123",
+		ID: "test-game-123",
 		Settings: domain.GameSettings{
 			MaxPlayers: 4,
 		},
@@ -264,14 +264,14 @@ func TestGameUpdatedPayload_JSONSerialization(t *testing.T) {
 	}
 
 	if deserializedPayload.Game.ID != game.ID {
-		t.Errorf("Game ID not preserved: expected %s, got %s", 
+		t.Errorf("Game ID not preserved: expected %s, got %s",
 			game.ID, deserializedPayload.Game.ID)
 	}
 
 	// Note: Game struct doesn't have Name field in domain model
 
 	if len(deserializedPayload.Game.Players) != len(game.Players) {
-		t.Errorf("Player count not preserved: expected %d, got %d", 
+		t.Errorf("Player count not preserved: expected %d, got %d",
 			len(game.Players), len(deserializedPayload.Game.Players))
 	}
 }
@@ -294,7 +294,7 @@ func TestPlayerConnectedPayload_JSONSerialization(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(payload, deserializedPayload) {
-		t.Errorf("PlayerConnectedPayload not preserved: expected %+v, got %+v", 
+		t.Errorf("PlayerConnectedPayload not preserved: expected %+v, got %+v",
 			payload, deserializedPayload)
 	}
 }
@@ -334,7 +334,7 @@ func TestErrorPayload_JSONSerialization(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(tt.payload, deserializedPayload) {
-				t.Errorf("ErrorPayload not preserved: expected %+v, got %+v", 
+				t.Errorf("ErrorPayload not preserved: expected %+v, got %+v",
 					tt.payload, deserializedPayload)
 			}
 		})
@@ -344,7 +344,7 @@ func TestErrorPayload_JSONSerialization(t *testing.T) {
 func TestFullStatePayload_JSONSerialization(t *testing.T) {
 	// Create a test game
 	game := &domain.Game{
-		ID:   "test-game-123",
+		ID: "test-game-123",
 		Settings: domain.GameSettings{
 			MaxPlayers: 2,
 		},
@@ -386,7 +386,7 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 
 	// Verify player ID is preserved
 	if deserializedPayload.PlayerID != payload.PlayerID {
-		t.Errorf("PlayerID not preserved: expected %s, got %s", 
+		t.Errorf("PlayerID not preserved: expected %s, got %s",
 			payload.PlayerID, deserializedPayload.PlayerID)
 	}
 
@@ -396,7 +396,7 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 	}
 
 	if deserializedPayload.Game.ID != game.ID {
-		t.Errorf("Game ID not preserved: expected %s, got %s", 
+		t.Errorf("Game ID not preserved: expected %s, got %s",
 			game.ID, deserializedPayload.Game.ID)
 	}
 
@@ -407,12 +407,12 @@ func TestFullStatePayload_JSONSerialization(t *testing.T) {
 
 	player := deserializedPayload.Game.Players[0]
 	if player.Corporation != "TestCorp" {
-		t.Errorf("Player corporation not preserved: expected %s, got %s", 
+		t.Errorf("Player corporation not preserved: expected %s, got %s",
 			"TestCorp", player.Corporation)
 	}
 
 	if len(player.PlayedCards) != 2 {
-		t.Errorf("Played cards not preserved: expected 2 cards, got %d", 
+		t.Errorf("Played cards not preserved: expected 2 cards, got %d",
 			len(player.PlayedCards))
 	}
 }
@@ -461,7 +461,7 @@ func TestMessage_PayloadParsing(t *testing.T) {
 			}
 
 			if message.Type != tt.messageType {
-				t.Errorf("Message type not parsed correctly: expected %s, got %s", 
+				t.Errorf("Message type not parsed correctly: expected %s, got %s",
 					tt.messageType, message.Type)
 			}
 
