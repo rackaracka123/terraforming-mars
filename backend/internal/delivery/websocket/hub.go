@@ -249,7 +249,7 @@ func (h *Hub) handlePlayAction(client *Client, msg *WebSocketMessage) {
 	}
 
 	// Apply the action through the service
-	game, err := h.gameService.ApplyAction(gameID, playerID, payload.Action, payload.Data)
+	game, err := h.gameService.ApplyAction(gameID, playerID, payload.ActionPayload)
 	if err != nil {
 		client.sendError("Failed to apply action: " + err.Error())
 		return

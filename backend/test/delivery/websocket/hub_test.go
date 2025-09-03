@@ -13,6 +13,10 @@ import (
 	"terraforming-mars-backend/internal/service"
 )
 
+// Helper functions for creating pointers
+func stringPtr(s string) *string { return &s }
+func intPtr(i int) *int         { return &i }
+
 // mockClient implements basic client functionality for testing
 type mockClient struct {
 	ID       string
@@ -119,8 +123,9 @@ func TestHub_PayloadParsing(t *testing.T) {
 		{
 			name: "valid action payload parsing",
 			payload: map[string]interface{}{
-				"action": "skip-action",
-				"data":   nil,
+				"actionPayload": map[string]interface{}{
+					"type": "skip-action",
+				},
 			},
 			target:  &websocket.PlayActionPayload{},
 			wantErr: false,
@@ -149,7 +154,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
 					}
 				case *websocket.PlayActionPayload:
-					if target.Action != "skip-action" {
+					if target.ActionPayload.Type != dto.ActionTypeSkipAction {
 						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
 					}
 				}
