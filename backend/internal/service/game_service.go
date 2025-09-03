@@ -104,22 +104,17 @@ func (s *GameService) ListGames(status string) ([]*domain.Game, error) {
 	return s.gameRepo.GetGamesByStatus(status)
 }
 
-// GetAvailableGames returns games that can be joined
-func (s *GameService) GetAvailableGames() ([]*domain.Game, error) {
-	allGames, err := s.gameRepo.ListGames()
-	if err != nil {
-		return nil, err
+// UpdateGame updates a game
+func (s *GameService) UpdateGame(game *domain.Game) error {
+	if game == nil {
+		return fmt.Errorf("game cannot be nil")
 	}
 
-	availableGames := make([]*domain.Game, 0)
-	for _, game := range allGames {
-		if game.Status == domain.GameStatusWaiting && !game.IsGameFull() {
-			availableGames = append(availableGames, game)
-		}
-	}
+	game.UpdatedAt = time.Now()
 
-	return availableGames, nil
+	return s.gameRepo.UpdateGame(game)
 }
+
 
 // ApplyAction validates and applies a game action
 func (s *GameService) ApplyAction(gameID, playerID, action string, data map[string]interface{}) (*domain.Game, error) {

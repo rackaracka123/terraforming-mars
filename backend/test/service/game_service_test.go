@@ -277,55 +277,6 @@ func TestGameService_ListGames(t *testing.T) {
 	}
 }
 
-func TestGameService_GetAvailableGames(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
-
-	// Create a game that can be joined
-	settings := domain.GameSettings{MaxPlayers: 2}
-	availableGame, err := gameService.CreateGame(settings)
-	if err != nil {
-		t.Fatalf("Failed to create available game: %v", err)
-	}
-
-	// Create a full game
-	fullGameSettings := domain.GameSettings{MaxPlayers: 1}
-	fullGame, err := gameService.CreateGame(fullGameSettings)
-	if err != nil {
-		t.Fatalf("Failed to create full game: %v", err)
-	}
-	// Fill the game
-	_, err = gameService.JoinGame(fullGame.ID, "Player1")
-	if err != nil {
-		t.Fatalf("Failed to join full game: %v", err)
-	}
-
-	games, err := gameService.GetAvailableGames()
-	if err != nil {
-		t.Errorf("GetAvailableGames() error = %v", err)
-		return
-	}
-
-	// Should only return the available game, not the full one
-	foundAvailable := false
-	foundFull := false
-	for _, g := range games {
-		if g.ID == availableGame.ID {
-			foundAvailable = true
-		}
-		if g.ID == fullGame.ID {
-			foundFull = true
-		}
-	}
-
-	if !foundAvailable {
-		t.Error("Expected to find available game")
-	}
-	if foundFull {
-		t.Error("Should not find full game in available games")
-	}
-}
-
 func TestGameService_ApplyAction(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
 	gameService := service.NewGameService(gameRepo)

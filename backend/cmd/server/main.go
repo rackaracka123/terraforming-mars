@@ -45,7 +45,6 @@ func main() {
 	// Game endpoints
 	r.POST("/games", gameHandler.CreateGame)
 	r.GET("/games", gameHandler.ListGames)
-	r.GET("/games/available", gameHandler.GetAvailableGames)
 	r.GET("/games/:id", gameHandler.GetGame)
 	r.POST("/games/:id/join", gameHandler.JoinGame)
 	

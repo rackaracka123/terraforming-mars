@@ -106,13 +106,3 @@ func (h *GameHandler) ListGames(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"games": games})
 }
 
-// GetAvailableGames handles GET /games/available
-func (h *GameHandler) GetAvailableGames(c *gin.Context) {
-	games, err := h.gameService.GetAvailableGames()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"games": games})
-}
