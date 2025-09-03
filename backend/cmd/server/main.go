@@ -1,19 +1,3 @@
-// @title Terraforming Mars API
-// @version 1.0
-// @description Digital implementation of Terraforming Mars board game backend API
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
-
-// @host localhost:3001
-// @BasePath /api/v1
-
-// @schemes http https
 package main
 
 import (
@@ -23,26 +7,24 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	"terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/usecase"
+	"terraforming-mars-backend/internal/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
 	// Initialize repositories
-	gameRepo := repository.NewGameRepository()
+	helloRepo := repository.NewHelloRepository()
 
-	// Initialize use cases
-	gameUC := usecase.NewGameUseCase(gameRepo)
+	// Initialize services
+	helloService := service.NewHelloService(helloRepo)
 
 	// Initialize handlers
-	gameHandler := httpHandler.NewGameHandler(gameUC)
+	helloHandler := httpHandler.NewHelloHandler(helloService)
 
 	// Initialize WebSocket hub
-	hub := websocket.NewHub(gameUC)
+	hub := websocket.NewHub(helloService)
 	go hub.Run()
 
 	// Initialize Gin router
@@ -56,25 +38,15 @@ func main() {
 	r.Use(cors.New(config))
 
 	// Health check endpoint
-	r.GET("/health", gameHandler.HealthCheck)
+	r.GET("/health", helloHandler.HealthCheck)
 
-	// API v1 routes
-	api := r.Group("/api/v1")
-	{
-		// Game routes
-		api.GET("/games/:id", gameHandler.GetGame)
-		
-		// Corporation routes
-		api.GET("/corporations", gameHandler.GetAvailableCorporations)
-	}
+	// Hello endpoint
+	r.GET("/hello", helloHandler.GetHello)
 
 	// WebSocket endpoint
 	r.GET("/ws", func(c *gin.Context) {
 		hub.ServeWS(c.Writer, c.Request)
 	})
-
-	// Swagger documentation
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Get port from environment or default to 3001
 	port := os.Getenv("PORT")
@@ -82,9 +54,9 @@ func main() {
 		port = "3001"
 	}
 
-	log.Printf("Terraforming Mars backend server starting on port %s", port)
+	log.Printf("Hello World backend server starting on port %s", port)
 	log.Printf("Health check available at: http://localhost:%s/health", port)
-	log.Printf("API documentation available at: http://localhost:%s/swagger/index.html", port)
+	log.Printf("Hello endpoint available at: http://localhost:%s/hello", port)
 	log.Printf("WebSocket endpoint available at: ws://localhost:%s/ws", port)
 
 	// Start server
