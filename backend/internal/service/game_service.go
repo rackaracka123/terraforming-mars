@@ -125,7 +125,7 @@ func (s *GameService) GetAvailableGames() ([]*domain.Game, error) {
 
 	availableGames := make([]*domain.Game, 0)
 	for _, game := range allGames {
-		if game.Status == "waiting" && !game.IsGameFull() {
+		if game.Status == domain.GameStatusWaiting && !game.IsGameFull() {
 			availableGames = append(availableGames, game)
 		}
 	}
