@@ -1,6 +1,6 @@
 package dto
 
-import "terraforming-mars-backend/internal/model"
+import "terraforming-mars-backend/internal/domain"
 
 // ToGameDto converts a model Game to GameDto
 func ToGameDto(game *domain.Game) GameDto {

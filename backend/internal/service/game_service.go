@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service/actions"
 	"time"

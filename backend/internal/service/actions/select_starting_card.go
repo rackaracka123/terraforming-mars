@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/domain"
 )
 
 // SelectStartingCardsHandler handles starting card selection actions

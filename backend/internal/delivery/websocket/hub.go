@@ -5,7 +5,7 @@ import (
 	"sync"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-	model "terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"

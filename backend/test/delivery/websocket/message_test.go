@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"terraforming-mars-backend/internal/delivery/dto"
-	model "terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/domain"
 	"testing"
 )
 

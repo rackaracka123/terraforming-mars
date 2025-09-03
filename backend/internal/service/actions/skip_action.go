@@ -2,7 +2,7 @@ package actions
 
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/domain"
 )
 
 // SkipActionHandler handles skip actions

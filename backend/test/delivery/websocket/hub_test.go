@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
-	model "terraforming-mars-backend/internal/model"
+	model "terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
