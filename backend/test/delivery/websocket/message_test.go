@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+
 func TestMessageType_Constants(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -77,8 +78,9 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 			message: websocket.WebSocketMessage{
 				Type: websocket.MessageTypePlayAction,
 				Payload: websocket.PlayActionPayload{
-					Action: "skip-action",
-					Data:   map[string]interface{}{"test": "value"},
+					ActionPayload: dto.ActionPayload{
+						Type: dto.ActionTypeSkipAction,
+					},
 				},
 			},
 		},
@@ -161,25 +163,26 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		{
 			name: "action without data",
 			payload: websocket.PlayActionPayload{
-				Action: "skip-action",
-				Data:   nil,
+				ActionPayload: dto.ActionPayload{
+					Type: dto.ActionTypeSkipAction,
+				},
 			},
 		},
 		{
 			name: "action with data",
 			payload: websocket.PlayActionPayload{
-				Action: "raise-temperature",
-				Data: map[string]interface{}{
-					"heatAmount": 8.0,
+				ActionPayload: dto.ActionPayload{
+					Type:       dto.ActionTypeRaiseTemperature,
+					HeatAmount: intPtr(8),
 				},
 			},
 		},
 		{
 			name: "corporation selection action",
 			payload: websocket.PlayActionPayload{
-				Action: "select-corporation",
-				Data: map[string]interface{}{
-					"corporationName": "TestCorp",
+				ActionPayload: dto.ActionPayload{
+					Type:            dto.ActionTypeSelectCorporation,
+					CorporationName: stringPtr("TestCorp"),
 				},
 			},
 		},
@@ -198,17 +201,15 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 				t.Fatalf("Failed to unmarshal PlayActionPayload: %v", err)
 			}
 
-			if deserializedPayload.Action != tt.payload.Action {
-				t.Errorf("Action not preserved: expected %s, got %s",
-					tt.payload.Action, deserializedPayload.Action)
+			if deserializedPayload.ActionPayload.Type != tt.payload.ActionPayload.Type {
+				t.Errorf("Action type not preserved: expected %s, got %s",
+					tt.payload.ActionPayload.Type, deserializedPayload.ActionPayload.Type)
 			}
 
-			// For data comparison, we need to handle the interface{} type carefully
-			if tt.payload.Data == nil && deserializedPayload.Data != nil {
-				t.Error("Expected nil data, but got non-nil")
-			}
-			if tt.payload.Data != nil && deserializedPayload.Data == nil {
-				t.Error("Expected non-nil data, but got nil")
+			// Compare the actual action data based on type
+			if !reflect.DeepEqual(deserializedPayload.ActionPayload, tt.payload.ActionPayload) {
+				t.Errorf("ActionPayload not preserved: expected %+v, got %+v",
+					tt.payload.ActionPayload, deserializedPayload.ActionPayload)
 			}
 		})
 	}
@@ -443,8 +444,8 @@ func TestMessage_PayloadParsing(t *testing.T) {
 			messageJSON: `{
 				"type": "play-action",
 				"payload": {
-					"action": "raise-temperature",
-					"data": {
+					"actionPayload": {
+						"type": "raise-temperature",
 						"heatAmount": 16
 					}
 				}
@@ -493,8 +494,8 @@ func TestMessage_PayloadParsing(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to parse PlayActionPayload: %v", err)
 				}
-				if payload.Action != "raise-temperature" {
-					t.Errorf("Action not parsed correctly: got %s", payload.Action)
+				if payload.ActionPayload.Type != dto.ActionTypeRaiseTemperature {
+					t.Errorf("Action type not parsed correctly: got %s", payload.ActionPayload.Type)
 				}
 			}
 		})

@@ -30,8 +30,7 @@ type PlayerConnectPayload struct {
 
 // PlayActionPayload contains game action data
 type PlayActionPayload struct {
-	Action string                 `json:"action" ts:"string"`
-	Data   map[string]interface{} `json:"data,omitempty" ts:"Record<string, any>"`
+	ActionPayload ActionPayload `json:"actionPayload" ts:"ActionPayload"`
 }
 
 // GameUpdatedPayload contains updated game state

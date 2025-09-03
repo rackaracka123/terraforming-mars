@@ -1,11 +1,16 @@
 package service_test
 
 import (
+	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"testing"
 )
+
+// Helper functions for creating pointers
+func stringPtr(s string) *string { return &s }
+func intPtr(i int) *int         { return &i }
 
 func TestNewGameService(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
@@ -296,74 +301,82 @@ func TestGameService_ApplyAction(t *testing.T) {
 	playerID := game.Players[0].ID
 
 	tests := []struct {
-		name     string
-		gameID   string
-		playerID string
-		action   string
-		data     map[string]interface{}
-		wantErr  bool
+		name          string
+		gameID        string
+		playerID      string
+		actionPayload dto.ActionPayload
+		wantErr       bool
 	}{
 		{
 			name:     "valid skip action",
 			gameID:   game.ID,
 			playerID: playerID,
-			action:   "skip-action",
-			data:     nil,
-			wantErr:  false,
+			actionPayload: dto.ActionPayload{
+				Type: dto.ActionTypeSkipAction,
+			},
+			wantErr: false,
 		},
 		{
 			name:     "valid select corporation",
 			gameID:   game.ID,
 			playerID: playerID,
-			action:   "select-corporation",
-			data:     map[string]interface{}{"corporationName": "TestCorp"},
-			wantErr:  false,
+			actionPayload: dto.ActionPayload{
+				Type:            dto.ActionTypeSelectCorporation,
+				CorporationName: stringPtr("TestCorp"),
+			},
+			wantErr: false,
 		},
 		{
-			name:     "invalid action",
+			name:     "invalid action type",
 			gameID:   game.ID,
 			playerID: playerID,
-			action:   "invalid-action",
-			data:     nil,
-			wantErr:  true,
+			actionPayload: dto.ActionPayload{
+				Type: "invalid-action",
+			},
+			wantErr: true,
 		},
 		{
 			name:     "non-existent game",
 			gameID:   "non-existent",
 			playerID: playerID,
-			action:   "skip-action",
-			data:     nil,
-			wantErr:  true,
+			actionPayload: dto.ActionPayload{
+				Type: dto.ActionTypeSkipAction,
+			},
+			wantErr: true,
 		},
 		{
 			name:     "non-existent player",
 			gameID:   game.ID,
 			playerID: "non-existent",
-			action:   "skip-action",
-			data:     nil,
-			wantErr:  true,
+			actionPayload: dto.ActionPayload{
+				Type: dto.ActionTypeSkipAction,
+			},
+			wantErr: true,
 		},
 		{
 			name:     "standard project asteroid - insufficient credits",
 			gameID:   game.ID,
 			playerID: playerID,
-			action:   "standard-project-asteroid",
-			data:     nil,
-			wantErr:  true,
+			actionPayload: dto.ActionPayload{
+				Type: dto.ActionTypeStandardProjectAsteroid,
+			},
+			wantErr: true,
 		},
 		{
 			name:     "raise temperature - insufficient heat",
 			gameID:   game.ID,
 			playerID: playerID,
-			action:   "raise-temperature",
-			data:     map[string]interface{}{"heatAmount": 8.0},
-			wantErr:  true,
+			actionPayload: dto.ActionPayload{
+				Type:       dto.ActionTypeRaiseTemperature,
+				HeatAmount: intPtr(8),
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updatedGame, err := gameService.ApplyAction(tt.gameID, tt.playerID, tt.action, tt.data)
+			updatedGame, err := gameService.ApplyAction(tt.gameID, tt.playerID, tt.actionPayload)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ApplyAction() error = %v, wantErr %v", err, tt.wantErr)
 				return
