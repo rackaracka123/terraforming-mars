@@ -4,6 +4,7 @@ package events
 const (
 	EventTypeGameStarted                = "game.started"
 	EventTypePlayerStartingCardOptions  = "player.starting_card_options"
+	EventTypeCardPlayed                 = "card.played"
 )
 
 // GameStartedEvent represents when a game transitions from lobby to active
@@ -51,5 +52,30 @@ func NewPlayerStartingCardOptionsEvent(gameID, playerID string, cardOptions []st
 
 	return &PlayerStartingCardOptionsEvent{
 		BaseEvent: NewBaseEvent(EventTypePlayerStartingCardOptions, gameID, payload),
+	}
+}
+
+// CardPlayedEvent represents when a player plays a card
+type CardPlayedEvent struct {
+	BaseEvent
+}
+
+// CardPlayedPayload contains the data for a card played event
+type CardPlayedPayload struct {
+	GameID   string `json:"gameId"`
+	PlayerID string `json:"playerId"`
+	CardID   string `json:"cardId"`
+}
+
+// NewCardPlayedEvent creates a new card played event
+func NewCardPlayedEvent(gameID, playerID, cardID string) *CardPlayedEvent {
+	payload := CardPlayedPayload{
+		GameID:   gameID,
+		PlayerID: playerID,
+		CardID:   cardID,
+	}
+
+	return &CardPlayedEvent{
+		BaseEvent: NewBaseEvent(EventTypeCardPlayed, gameID, payload),
 	}
 }

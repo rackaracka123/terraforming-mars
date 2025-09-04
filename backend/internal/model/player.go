@@ -1,4 +1,4 @@
-package domain
+package model
 
 // Player represents a player in the game
 type Player struct {

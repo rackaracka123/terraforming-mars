@@ -2,7 +2,7 @@ package actions_test
 
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service/actions/select_starting_card"
 	"testing"
 )
@@ -12,7 +12,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		gamePhase      domain.GamePhase
+		gamePhase      model.GamePhase
 		playerCredits  int
 		playerCards    []string
 		selectedCards  []string
@@ -22,7 +22,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 	}{
 		{
 			name:           "valid selection - single card costs 3 MC",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  10,
 			playerCards:    []string{},
 			selectedCards:  []string{"investment"},
@@ -32,7 +32,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "valid selection - multiple cards cost 3 MC each",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  20,
 			playerCards:    []string{},
 			selectedCards:  []string{"investment", "early-settlement", "research-grant"},
@@ -42,7 +42,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "insufficient credits",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  2,
 			playerCards:    []string{},
 			selectedCards:  []string{"investment"},
@@ -52,7 +52,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "wrong game phase",
-			gamePhase:      domain.GamePhaseCorporationSelection,
+			gamePhase:      model.GamePhaseCorporationSelection,
 			playerCredits:  10,
 			playerCards:    []string{},
 			selectedCards:  []string{"investment"},
@@ -62,7 +62,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "cards already selected",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  10,
 			playerCards:    []string{"some-card"},
 			selectedCards:  []string{"investment"},
@@ -72,7 +72,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "invalid card ID",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  10,
 			playerCards:    []string{},
 			selectedCards:  []string{"non-existent-card"},
@@ -82,7 +82,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "expensive card still costs 3 MC (not original cost)",
-			gamePhase:      domain.GamePhaseStartingCardSelection,
+			gamePhase:      model.GamePhaseStartingCardSelection,
 			playerCredits:  15,
 			playerCards:    []string{},
 			selectedCards:  []string{"water-import"}, // This card costs 12 MC in game, but should cost 3 MC for starting selection
@@ -95,14 +95,14 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create game with the specified phase
-			game := &domain.Game{
+			game := &model.Game{
 				ID:           "test-game",
 				CurrentPhase: tt.gamePhase,
-				Players: []domain.Player{
+				Players: []model.Player{
 					{
 						ID:   "player-1",
 						Name: "Test Player",
-						Resources: domain.Resources{
+						Resources: model.Resources{
 							Credits: tt.playerCredits,
 						},
 						Cards: tt.playerCards,
@@ -151,14 +151,14 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 	handler := &select_starting_card.SelectStartingCardsHandler{}
 
 	// Create game with 2 players, one has already selected cards
-	game := &domain.Game{
+	game := &model.Game{
 		ID:           "test-game",
-		CurrentPhase: domain.GamePhaseStartingCardSelection,
-		Players: []domain.Player{
+		CurrentPhase: model.GamePhaseStartingCardSelection,
+		Players: []model.Player{
 			{
 				ID:   "player-1",
 				Name: "Player 1",
-				Resources: domain.Resources{
+				Resources: model.Resources{
 					Credits: 10,
 				},
 				Cards: []string{"investment"}, // already selected
@@ -166,7 +166,7 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 			{
 				ID:   "player-2",
 				Name: "Player 2",
-				Resources: domain.Resources{
+				Resources: model.Resources{
 					Credits: 10,
 				},
 				Cards: []string{}, // hasn't selected yet
@@ -186,8 +186,8 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 	}
 
 	// Check that game phase advanced to corporation selection
-	if game.CurrentPhase != domain.GamePhaseCorporationSelection {
-		t.Errorf("Expected game phase to advance to %s, got %s", domain.GamePhaseCorporationSelection, game.CurrentPhase)
+	if game.CurrentPhase != model.GamePhaseCorporationSelection {
+		t.Errorf("Expected game phase to advance to %s, got %s", model.GamePhaseCorporationSelection, game.CurrentPhase)
 	}
 
 	// Check that player 2 paid correctly
@@ -206,21 +206,21 @@ func TestSelectStartingCards_PaymentLogic(t *testing.T) {
 	handler := &select_starting_card.SelectStartingCardsHandler{}
 
 	// Get all available starting cards to test
-	availableCards := domain.GetStartingCards()
+	availableCards := model.GetStartingCards()
 	if len(availableCards) == 0 {
 		t.Fatal("Expected at least one starting card")
 	}
 
 	for _, card := range availableCards {
 		t.Run("card_"+card.ID+"_costs_3_MC", func(t *testing.T) {
-			game := &domain.Game{
+			game := &model.Game{
 				ID:           "test-game",
-				CurrentPhase: domain.GamePhaseStartingCardSelection,
-				Players: []domain.Player{
+				CurrentPhase: model.GamePhaseStartingCardSelection,
+				Players: []model.Player{
 					{
 						ID:   "player-1",
 						Name: "Test Player",
-						Resources: domain.Resources{
+						Resources: model.Resources{
 							Credits: 10,
 						},
 						Cards: []string{},

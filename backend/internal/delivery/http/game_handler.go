@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +41,7 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 	}
 
 	// Convert request to domain settings
-	settings := domain.GameSettings{
+	settings := model.GameSettings{
 		MaxPlayers: req.MaxPlayers,
 	}
 

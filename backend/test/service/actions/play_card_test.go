@@ -2,7 +2,7 @@ package actions_test
 
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service/actions/play_card"
 	"testing"
 )
@@ -11,15 +11,15 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 	handler := &play_card.PlayCardHandler{}
 	
 	// Get available cards to use in tests
-	availableCards := domain.GetStartingCards()
-	cardMap := make(map[string]domain.Card)
+	availableCards := model.GetStartingCards()
+	cardMap := make(map[string]model.Card)
 	for _, card := range availableCards {
 		cardMap[card.ID] = card
 	}
 
 	tests := []struct {
 		name           string
-		gamePhase      domain.GamePhase
+		gamePhase      model.GamePhase
 		playerCredits  int
 		playerCards    []string
 		selectedCard   string
@@ -30,7 +30,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 	}{
 		{
 			name:           "valid card play - early settlement",
-			gamePhase:      domain.GamePhaseAction,
+			gamePhase:      model.GamePhaseAction,
 			playerCredits:  10,
 			playerCards:    []string{"early-settlement"},
 			selectedCard:   "early-settlement",
@@ -41,7 +41,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "valid card play - power plant",
-			gamePhase:      domain.GamePhaseAction,
+			gamePhase:      model.GamePhaseAction,
 			playerCredits:  15,
 			playerCards:    []string{"power-plant", "heat-generators"},
 			selectedCard:   "power-plant",
@@ -52,7 +52,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "insufficient credits",
-			gamePhase:      domain.GamePhaseAction,
+			gamePhase:      model.GamePhaseAction,
 			playerCredits:  5,
 			playerCards:    []string{"early-settlement"},
 			selectedCard:   "early-settlement",
@@ -63,7 +63,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "wrong game phase",
-			gamePhase:      domain.GamePhaseCorporationSelection,
+			gamePhase:      model.GamePhaseCorporationSelection,
 			playerCredits:  10,
 			playerCards:    []string{"early-settlement"},
 			selectedCard:   "early-settlement",
@@ -74,7 +74,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "card not in hand",
-			gamePhase:      domain.GamePhaseAction,
+			gamePhase:      model.GamePhaseAction,
 			playerCredits:  10,
 			playerCards:    []string{"power-plant"},
 			selectedCard:   "early-settlement",
@@ -85,7 +85,7 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 		},
 		{
 			name:           "invalid card ID",
-			gamePhase:      domain.GamePhaseAction,
+			gamePhase:      model.GamePhaseAction,
 			playerCredits:  10,
 			playerCards:    []string{"non-existent-card"},
 			selectedCard:   "non-existent-card",
@@ -99,24 +99,24 @@ func TestPlayCardHandler_Handle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create game with the specified phase
-			game := &domain.Game{
+			game := &model.Game{
 				ID:           "test-game",
 				CurrentPhase: tt.gamePhase,
-				Players: []domain.Player{
+				Players: []model.Player{
 					{
 						ID:   "player-1",
 						Name: "Test Player",
-						Resources: domain.Resources{
+						Resources: model.Resources{
 							Credits: tt.playerCredits,
 						},
-						Production: domain.Production{
+						Production: model.Production{
 							Credits: 1,
 						},
 						Cards:       tt.playerCards,
 						PlayedCards: []string{},
 					},
 				},
-				GlobalParameters: domain.GlobalParameters{
+				GlobalParameters: model.GlobalParameters{
 					Temperature: -30,
 					Oxygen:      0,
 					Oceans:      0,
@@ -167,76 +167,76 @@ func TestPlayCardHandler_CardEffects(t *testing.T) {
 	handler := &play_card.PlayCardHandler{}
 	
 	// Get available cards from domain
-	availableCards := domain.GetStartingCards()
+	availableCards := model.GetStartingCards()
 	implementedCards := []string{"early-settlement", "power-plant", "heat-generators", "mining-operation", "space-mirrors", "water-import", "nitrogen-plants", "atmospheric-processors"}
 	
 	// Create a map of implemented cards with their expected effects
 	cardEffects := map[string]struct {
-		expectedProduction domain.Production
-		expectedResources  func(startCredits, cardCost int) domain.Resources
-		expectedGlobal     domain.GlobalParameters
+		expectedProduction model.Production
+		expectedResources  func(startCredits, cardCost int) model.Resources
+		expectedGlobal     model.GlobalParameters
 	}{
 		"early-settlement": {
-			expectedProduction: domain.Production{Credits: 2}, // base 1 + 1 from card
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 2}, // base 1 + 1 from card
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"power-plant": {
-			expectedProduction: domain.Production{Credits: 1, Energy: 1}, // +1 energy production
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1, Energy: 1}, // +1 energy production
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"heat-generators": {
-			expectedProduction: domain.Production{Credits: 1, Heat: 1}, // +1 heat production
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1, Heat: 1}, // +1 heat production
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"mining-operation": {
-			expectedProduction: domain.Production{Credits: 1}, // no production change
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost, Steel: 2} // +2 steel
+			expectedProduction: model.Production{Credits: 1}, // no production change
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost, Steel: 2} // +2 steel
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"space-mirrors": {
-			expectedProduction: domain.Production{Credits: 1}, // no immediate effect
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1}, // no immediate effect
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"water-import": {
-			expectedProduction: domain.Production{Credits: 1}, // no production change
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1}, // no production change
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 1}, // +1 ocean
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 1}, // +1 ocean
 		},
 		"nitrogen-plants": {
-			expectedProduction: domain.Production{Credits: 1, Plants: 1}, // +1 plant production
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1, Plants: 1}, // +1 plant production
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 0, Oceans: 0},
 		},
 		"atmospheric-processors": {
-			expectedProduction: domain.Production{Credits: 1}, // no production change
-			expectedResources: func(startCredits, cardCost int) domain.Resources {
-				return domain.Resources{Credits: startCredits - cardCost}
+			expectedProduction: model.Production{Credits: 1}, // no production change
+			expectedResources: func(startCredits, cardCost int) model.Resources {
+				return model.Resources{Credits: startCredits - cardCost}
 			},
-			expectedGlobal: domain.GlobalParameters{Temperature: -30, Oxygen: 1, Oceans: 0}, // +1 oxygen
+			expectedGlobal: model.GlobalParameters{Temperature: -30, Oxygen: 1, Oceans: 0}, // +1 oxygen
 		},
 	}
 
 	for _, cardID := range implementedCards {
 		// Find the card in available cards
-		var card domain.Card
+		var card model.Card
 		found := false
 		for _, c := range availableCards {
 			if c.ID == cardID {
@@ -259,24 +259,24 @@ func TestPlayCardHandler_CardEffects(t *testing.T) {
 			startCredits := 20 // Enough for any card
 			
 			// Create game with action phase and player with enough credits
-			game := &domain.Game{
+			game := &model.Game{
 				ID:           "test-game",
-				CurrentPhase: domain.GamePhaseAction,
-				Players: []domain.Player{
+				CurrentPhase: model.GamePhaseAction,
+				Players: []model.Player{
 					{
 						ID:   "player-1",
 						Name: "Test Player",
-						Resources: domain.Resources{
+						Resources: model.Resources{
 							Credits: startCredits,
 						},
-						Production: domain.Production{
+						Production: model.Production{
 							Credits: 1, // Base production
 						},
 						Cards:       []string{cardID},
 						PlayedCards: []string{},
 					},
 				},
-				GlobalParameters: domain.GlobalParameters{
+				GlobalParameters: model.GlobalParameters{
 					Temperature: -30,
 					Oxygen:      0,
 					Oceans:      0,
@@ -328,7 +328,7 @@ func TestPlayCardHandler_UnimplementedCards(t *testing.T) {
 	handler := &play_card.PlayCardHandler{}
 	
 	// Get all available cards and find unimplemented ones
-	availableCards := domain.GetStartingCards()
+	availableCards := model.GetStartingCards()
 	implementedCards := map[string]bool{
 		"early-settlement": true,
 		"power-plant": true,
@@ -340,7 +340,7 @@ func TestPlayCardHandler_UnimplementedCards(t *testing.T) {
 		"atmospheric-processors": true,
 	}
 	
-	var unimplementedCards []domain.Card
+	var unimplementedCards []model.Card
 	for _, card := range availableCards {
 		if !implementedCards[card.ID] {
 			unimplementedCards = append(unimplementedCards, card)
@@ -349,14 +349,14 @@ func TestPlayCardHandler_UnimplementedCards(t *testing.T) {
 
 	for _, card := range unimplementedCards {
 		t.Run("card_"+card.ID+"_not_implemented", func(t *testing.T) {
-			game := &domain.Game{
+			game := &model.Game{
 				ID:           "test-game",
-				CurrentPhase: domain.GamePhaseAction,
-				Players: []domain.Player{
+				CurrentPhase: model.GamePhaseAction,
+				Players: []model.Player{
 					{
 						ID:   "player-1",
 						Name: "Test Player",
-						Resources: domain.Resources{
+						Resources: model.Resources{
 							Credits: 20,
 						},
 						Cards: []string{card.ID},

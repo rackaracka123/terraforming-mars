@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/listeners"
 	"terraforming-mars-backend/internal/repository"
@@ -19,10 +19,10 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus)
+	gameService := service.NewGameService(gameRepo, eventBus, nil)
 	
 	// Register event listeners
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
+	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, nil)
 	listenerRegistry.RegisterAllListeners()
 
 	// Track events for assertions
@@ -33,7 +33,7 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	})
 
 	// Create a test game
-	gameSettings := domain.GameSettings{
+	gameSettings := model.GameSettings{
 		MaxPlayers: 4,
 	}
 	game, err := gameService.CreateGame(gameSettings)
@@ -52,8 +52,8 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	player2ID := updatedGame.Players[1].ID
 
 	// Verify initial game state
-	assert.Equal(t, domain.GameStatusLobby, updatedGame.Status)
-	assert.Equal(t, domain.GamePhaseSetup, updatedGame.CurrentPhase)
+	assert.Equal(t, model.GameStatusLobby, updatedGame.Status)
+	assert.Equal(t, model.GamePhaseSetup, updatedGame.CurrentPhase)
 
 	// Start the game (this should trigger the event-driven flow)
 	startGameRequest := dto.ActionStartGameRequest{
@@ -65,8 +65,8 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	require.NotNil(t, gameAfterStart)
 
 	// Verify game state changes
-	assert.Equal(t, domain.GameStatusActive, gameAfterStart.Status)
-	assert.Equal(t, domain.GamePhaseStartingCardSelection, gameAfterStart.CurrentPhase)
+	assert.Equal(t, model.GameStatusActive, gameAfterStart.Status)
+	assert.Equal(t, model.GamePhaseStartingCardSelection, gameAfterStart.CurrentPhase)
 	assert.Equal(t, player1ID, gameAfterStart.CurrentPlayerID)
 
 	// Wait for async event processing
@@ -86,7 +86,7 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 		assert.Len(t, payload.CardOptions, 5, "Each player should receive exactly 5 starting card options")
 		
 		// Verify all card options are valid
-		availableCards := domain.GetStartingCards()
+		availableCards := model.GetStartingCards()
 		availableCardIDs := make(map[string]bool)
 		for _, card := range availableCards {
 			availableCardIDs[card.ID] = true
@@ -107,8 +107,8 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus)
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
+	gameService := service.NewGameService(gameRepo, eventBus, nil)
+	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, nil)
 	listenerRegistry.RegisterAllListeners()
 
 	// Track events per player to verify security isolation
@@ -129,7 +129,7 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	})
 
 	// Create game and add players
-	gameSettings := domain.GameSettings{MaxPlayers: 2}
+	gameSettings := model.GameSettings{MaxPlayers: 2}
 	game, err := gameService.CreateGame(gameSettings)
 	require.NoError(t, err)
 

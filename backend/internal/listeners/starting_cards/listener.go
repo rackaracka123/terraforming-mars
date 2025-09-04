@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/repository"
@@ -42,7 +42,7 @@ func (l *Listener) OnGameStarted(ctx context.Context, event events.Event) error 
 	}
 
 	// Validate game state
-	if game.CurrentPhase != domain.GamePhaseStartingCardSelection {
+	if game.CurrentPhase != model.GamePhaseStartingCardSelection {
 		log.Warn("Game is not in starting card selection phase", 
 			zap.String("current_phase", string(game.CurrentPhase)),
 		)
@@ -50,7 +50,7 @@ func (l *Listener) OnGameStarted(ctx context.Context, event events.Event) error 
 	}
 
 	// Get available starting cards
-	availableCards := domain.GetStartingCards()
+	availableCards := model.GetStartingCards()
 	if len(availableCards) < 5 {
 		log.Error("Not enough starting cards available", 
 			zap.Int("available", len(availableCards)),
@@ -92,7 +92,7 @@ func (l *Listener) OnGameStarted(ctx context.Context, event events.Event) error 
 }
 
 // selectRandomCards selects n random cards from the available cards
-func (l *Listener) selectRandomCards(availableCards []domain.Card, count int) []string {
+func (l *Listener) selectRandomCards(availableCards []model.Card, count int) []string {
 	if count > len(availableCards) {
 		count = len(availableCards)
 	}

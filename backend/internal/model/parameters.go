@@ -1,4 +1,4 @@
-package domain
+package model
 
 // GamePhase represents the current phase of the game
 type GamePhase string

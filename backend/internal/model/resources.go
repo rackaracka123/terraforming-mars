@@ -1,4 +1,4 @@
-package domain
+package model
 
 // Resources represents a player's resources
 type Resources struct {

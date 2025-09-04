@@ -5,7 +5,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service/actions"
 	"time"
@@ -19,19 +20,21 @@ type GameService struct {
 	gameRepo       *repository.GameRepository
 	actionHandlers *actions.ActionHandlers
 	eventBus       events.EventBus
+	cardRegistry   *cards.CardHandlerRegistry
 }
 
 // NewGameService creates a new game service
-func NewGameService(gameRepo *repository.GameRepository, eventBus events.EventBus) *GameService {
+func NewGameService(gameRepo *repository.GameRepository, eventBus events.EventBus, cardRegistry *cards.CardHandlerRegistry) *GameService {
 	return &GameService{
 		gameRepo:       gameRepo,
-		actionHandlers: actions.NewActionHandlers(eventBus),
+		actionHandlers: actions.NewActionHandlers(eventBus, cardRegistry),
 		eventBus:       eventBus,
+		cardRegistry:   cardRegistry,
 	}
 }
 
 // CreateGame creates a new game with the given settings
-func (s *GameService) CreateGame(settings domain.GameSettings) (*domain.Game, error) {
+func (s *GameService) CreateGame(settings model.GameSettings) (*model.Game, error) {
 	log := logger.Get()
 	
 	log.Info("Creating game", zap.Int("max_players", settings.MaxPlayers))
@@ -58,7 +61,7 @@ func (s *GameService) CreateGame(settings domain.GameSettings) (*domain.Game, er
 }
 
 // GetGame retrieves a game by ID
-func (s *GameService) GetGame(gameID string) (*domain.Game, error) {
+func (s *GameService) GetGame(gameID string) (*model.Game, error) {
 	if gameID == "" {
 		return nil, fmt.Errorf("game ID cannot be empty")
 	}
@@ -72,7 +75,7 @@ func (s *GameService) GetGame(gameID string) (*domain.Game, error) {
 }
 
 // JoinGame adds a player to a game
-func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, error) {
+func (s *GameService) JoinGame(gameID string, playerName string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
 	
 	log.Info("Player attempting to join game", zap.String("player_name", playerName))
@@ -85,7 +88,7 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, 
 	}
 
 	// Check if game is joinable
-	if game.Status == domain.GameStatusCompleted {
+	if game.Status == model.GameStatusCompleted {
 		log.Warn("Player attempted to join completed game", zap.String("player_name", playerName))
 		return nil, fmt.Errorf("cannot join completed game")
 	}
@@ -100,13 +103,13 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, 
 
 	// Create new player
 	playerID := uuid.New().String()
-	player := domain.Player{
+	player := model.Player{
 		ID:   playerID,
 		Name: playerName,
-		Resources: domain.Resources{
+		Resources: model.Resources{
 			Credits: 0,
 		},
-		Production: domain.Production{
+		Production: model.Production{
 			Credits: 1, // Base production
 		},
 		TerraformRating: 20, // Starting terraform rating
@@ -148,7 +151,7 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*domain.Game, 
 }
 
 // ListGames returns all games, optionally filtered by status
-func (s *GameService) ListGames(status string) ([]*domain.Game, error) {
+func (s *GameService) ListGames(status string) ([]*model.Game, error) {
 	if status == "" {
 		return s.gameRepo.ListGames()
 	}
@@ -157,7 +160,7 @@ func (s *GameService) ListGames(status string) ([]*domain.Game, error) {
 }
 
 // UpdateGame updates a game
-func (s *GameService) UpdateGame(game *domain.Game) error {
+func (s *GameService) UpdateGame(game *model.Game) error {
 	if game == nil {
 		return fmt.Errorf("game cannot be nil")
 	}
@@ -168,7 +171,7 @@ func (s *GameService) UpdateGame(game *domain.Game) error {
 }
 
 // ApplyAction validates and applies a game action using DTO types
-func (s *GameService) ApplyAction(gameID, playerID string, actionRequest interface{}) (*domain.Game, error) {
+func (s *GameService) ApplyAction(gameID, playerID string, actionRequest interface{}) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, playerID)
 	
 	// Get the game
@@ -229,7 +232,7 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionRequest interfa
 
 
 // validateGameSettings validates game settings
-func (s *GameService) validateGameSettings(settings domain.GameSettings) error {
+func (s *GameService) validateGameSettings(settings model.GameSettings) error {
 	if settings.MaxPlayers < 1 || settings.MaxPlayers > 5 {
 		return fmt.Errorf("max players must be between 1 and 5")
 	}

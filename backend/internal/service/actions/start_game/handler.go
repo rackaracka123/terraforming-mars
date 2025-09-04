@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	
@@ -17,13 +17,13 @@ type StartGameHandler struct{
 }
 
 // Handle applies the start game action
-func (h *StartGameHandler) Handle(game *domain.Game, player *domain.Player, actionRequest dto.ActionStartGameRequest) error {
+func (h *StartGameHandler) Handle(game *model.Game, player *model.Player, actionRequest dto.ActionStartGameRequest) error {
 	action := actionRequest.GetAction()
 	return h.applyStartGame(game, player, *action)
 }
 
 // applyStartGame applies start game action
-func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Player, action dto.StartGameAction) error {
+func (h *StartGameHandler) applyStartGame(game *model.Game, player *model.Player, action dto.StartGameAction) error {
 	log := logger.WithGameContext(game.ID, player.ID)
 	
 	// Validate that the player is the host
@@ -32,7 +32,7 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 	}
 
 	// Validate game can be started
-	if game.Status != domain.GameStatusLobby {
+	if game.Status != model.GameStatusLobby {
 		return fmt.Errorf("game is not in lobby status")
 	}
 
@@ -41,8 +41,8 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 	}
 
 	// Start the game
-	game.Status = domain.GameStatusActive
-	game.CurrentPhase = domain.GamePhaseStartingCardSelection
+	game.Status = model.GameStatusActive
+	game.CurrentPhase = model.GamePhaseStartingCardSelection
 
 	// Set first player as active
 	if len(game.Players) > 0 {

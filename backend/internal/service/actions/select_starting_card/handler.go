@@ -3,22 +3,22 @@ package select_starting_card
 import (
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 )
 
 // SelectStartingCardsHandler handles starting card selection actions
 type SelectStartingCardsHandler struct{}
 
 // Handle applies the select starting card action
-func (h *SelectStartingCardsHandler) Handle(game *domain.Game, player *domain.Player, actionRequest dto.ActionSelectStartingCardRequest) error {
+func (h *SelectStartingCardsHandler) Handle(game *model.Game, player *model.Player, actionRequest dto.ActionSelectStartingCardRequest) error {
 	action := actionRequest.GetAction()
 	return h.applySelectStartingCard(game, player, *action)
 }
 
 // applySelectStartingCard applies starting card selection
-func (h *SelectStartingCardsHandler) applySelectStartingCard(game *domain.Game, player *domain.Player, action dto.SelectStartingCardAction) error {
+func (h *SelectStartingCardsHandler) applySelectStartingCard(game *model.Game, player *model.Player, action dto.SelectStartingCardAction) error {
 	// Validate game phase
-	if game.CurrentPhase != domain.GamePhaseStartingCardSelection {
+	if game.CurrentPhase != model.GamePhaseStartingCardSelection {
 		return fmt.Errorf("not in starting card selection phase")
 	}
 
@@ -28,8 +28,8 @@ func (h *SelectStartingCardsHandler) applySelectStartingCard(game *domain.Game, 
 	}
 
 	// Get available starting cards
-	availableCards := domain.GetStartingCards()
-	availableCardMap := make(map[string]domain.Card)
+	availableCards := model.GetStartingCards()
+	availableCardMap := make(map[string]model.Card)
 	for _, card := range availableCards {
 		availableCardMap[card.ID] = card
 	}
@@ -68,7 +68,7 @@ func (h *SelectStartingCardsHandler) applySelectStartingCard(game *domain.Game, 
 
 	// If all players have selected, move to next phase
 	if allSelected {
-		game.CurrentPhase = domain.GamePhaseCorporationSelection
+		game.CurrentPhase = model.GamePhaseCorporationSelection
 	}
 
 	return nil

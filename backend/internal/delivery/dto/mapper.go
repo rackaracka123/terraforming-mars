@@ -1,9 +1,9 @@
 package dto
 
-import "terraforming-mars-backend/internal/domain"
+import "terraforming-mars-backend/internal/model"
 
 // ToGameDto converts a model Game to GameDto
-func ToGameDto(game *domain.Game) GameDto {
+func ToGameDto(game *model.Game) GameDto {
 	if game == nil {
 		return GameDto{}
 	}
@@ -28,7 +28,7 @@ func ToGameDto(game *domain.Game) GameDto {
 }
 
 // ToPlayerDto converts a model Player to PlayerDto
-func ToPlayerDto(player domain.Player) PlayerDto {
+func ToPlayerDto(player model.Player) PlayerDto {
 	return PlayerDto{
 		ID:              player.ID,
 		Name:            player.Name,
@@ -43,7 +43,7 @@ func ToPlayerDto(player domain.Player) PlayerDto {
 }
 
 // ToResourcesDto converts model Resources to ResourcesDto
-func ToResourcesDto(resources domain.Resources) ResourcesDto {
+func ToResourcesDto(resources model.Resources) ResourcesDto {
 	return ResourcesDto{
 		Credits:  resources.Credits,
 		Steel:    resources.Steel,
@@ -55,7 +55,7 @@ func ToResourcesDto(resources domain.Resources) ResourcesDto {
 }
 
 // ToProductionDto converts model Production to ProductionDto
-func ToProductionDto(production domain.Production) ProductionDto {
+func ToProductionDto(production model.Production) ProductionDto {
 	return ProductionDto{
 		Credits:  production.Credits,
 		Steel:    production.Steel,
@@ -67,7 +67,7 @@ func ToProductionDto(production domain.Production) ProductionDto {
 }
 
 // ToGlobalParametersDto converts model GlobalParameters to GlobalParametersDto
-func ToGlobalParametersDto(params domain.GlobalParameters) GlobalParametersDto {
+func ToGlobalParametersDto(params model.GlobalParameters) GlobalParametersDto {
 	return GlobalParametersDto{
 		Temperature: params.Temperature,
 		Oxygen:      params.Oxygen,
@@ -76,14 +76,14 @@ func ToGlobalParametersDto(params domain.GlobalParameters) GlobalParametersDto {
 }
 
 // ToGameSettingsDto converts model GameSettings to GameSettingsDto
-func ToGameSettingsDto(settings domain.GameSettings) GameSettingsDto {
+func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
 		MaxPlayers: settings.MaxPlayers,
 	}
 }
 
 // ToCardDto converts a model Card to CardDto
-func ToCardDto(card domain.Card) CardDto {
+func ToCardDto(card model.Card) CardDto {
 	return CardDto{
 		ID:          card.ID,
 		Name:        card.Name,
@@ -94,7 +94,7 @@ func ToCardDto(card domain.Card) CardDto {
 }
 
 // ToCardDtoSlice converts a slice of model Cards to CardDto slice
-func ToCardDtoSlice(cards []domain.Card) []CardDto {
+func ToCardDtoSlice(cards []model.Card) []CardDto {
 	dtos := make([]CardDto, len(cards))
 	for i, card := range cards {
 		dtos[i] = ToCardDto(card)
@@ -103,7 +103,7 @@ func ToCardDtoSlice(cards []domain.Card) []CardDto {
 }
 
 // ToGameDtoSlice converts a slice of model Games to GameDto slice
-func ToGameDtoSlice(games []*domain.Game) []GameDto {
+func ToGameDtoSlice(games []*model.Game) []GameDto {
 	dtos := make([]GameDto, len(games))
 	for i, game := range games {
 		dtos[i] = ToGameDto(game)

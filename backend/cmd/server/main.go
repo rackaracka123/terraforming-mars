@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/initialization"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
@@ -41,14 +43,27 @@ func main() {
 	eventBus := events.NewInMemoryEventBus()
 	log.Info("Event bus initialized")
 
+	// Initialize card registry
+	cardRegistry := cards.NewCardHandlerRegistry()
+	if err := initialization.RegisterCardsWithRegistry(cardRegistry); err != nil {
+		log.Fatal("Failed to register card handlers", zap.Error(err))
+	}
+	log.Info("Card registry initialized with handlers", zap.Int("handlers", len(cardRegistry.GetAllRegisteredCards())))
+
 	// Initialize services
-	gameService := service.NewGameService(gameRepo, eventBus)
+	gameService := service.NewGameService(gameRepo, eventBus, cardRegistry)
 	log.Info("Game service initialized")
 
 	// Register event listeners
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
+	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, cardRegistry)
 	listenerRegistry.RegisterAllListeners()
 	log.Info("Event listeners registered")
+	
+	// Register card-specific listeners
+	if err := initialization.RegisterCardListeners(eventBus); err != nil {
+		log.Fatal("Failed to register card listeners", zap.Error(err))
+	}
+	log.Info("Card listeners registered")
 
 	// Initialize handlers
 	gameHandler := httpHandler.NewGameHandler(gameService)

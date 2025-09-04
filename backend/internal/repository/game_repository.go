@@ -3,26 +3,26 @@ package repository
 import (
 	"fmt"
 	"sync"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/google/uuid"
 )
 
 // GameRepository handles game storage and retrieval
 type GameRepository struct {
-	games map[string]*domain.Game
+	games map[string]*model.Game
 	mutex sync.RWMutex
 }
 
 // NewGameRepository creates a new game repository
 func NewGameRepository() *GameRepository {
 	return &GameRepository{
-		games: make(map[string]*domain.Game),
+		games: make(map[string]*model.Game),
 	}
 }
 
 // CreateGame creates a new game with the given settings
-func (r *GameRepository) CreateGame(settings domain.GameSettings) (*domain.Game, error) {
+func (r *GameRepository) CreateGame(settings model.GameSettings) (*model.Game, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -30,7 +30,7 @@ func (r *GameRepository) CreateGame(settings domain.GameSettings) (*domain.Game,
 	gameID := uuid.New().String()
 
 	// Create the game
-	game := domain.NewGame(gameID, settings)
+	game := model.NewGame(gameID, settings)
 
 	// Store in repository
 	r.games[gameID] = game
@@ -39,7 +39,7 @@ func (r *GameRepository) CreateGame(settings domain.GameSettings) (*domain.Game,
 }
 
 // GetGame retrieves a game by ID
-func (r *GameRepository) GetGame(gameID string) (*domain.Game, error) {
+func (r *GameRepository) GetGame(gameID string) (*model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -52,7 +52,7 @@ func (r *GameRepository) GetGame(gameID string) (*domain.Game, error) {
 }
 
 // UpdateGame updates a game in the repository
-func (r *GameRepository) UpdateGame(game *domain.Game) error {
+func (r *GameRepository) UpdateGame(game *model.Game) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -65,11 +65,11 @@ func (r *GameRepository) UpdateGame(game *domain.Game) error {
 }
 
 // ListGames returns all games in the repository
-func (r *GameRepository) ListGames() ([]*domain.Game, error) {
+func (r *GameRepository) ListGames() ([]*model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	games := make([]*domain.Game, 0, len(r.games))
+	games := make([]*model.Game, 0, len(r.games))
 	for _, game := range r.games {
 		games = append(games, game)
 	}
@@ -91,11 +91,11 @@ func (r *GameRepository) DeleteGame(gameID string) error {
 }
 
 // GetGamesByStatus returns games with a specific status
-func (r *GameRepository) GetGamesByStatus(status string) ([]*domain.Game, error) {
+func (r *GameRepository) GetGamesByStatus(status string) ([]*model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	games := make([]*domain.Game, 0)
+	games := make([]*model.Game, 0)
 	for _, game := range r.games {
 		if string(game.Status) == status {
 			games = append(games, game)

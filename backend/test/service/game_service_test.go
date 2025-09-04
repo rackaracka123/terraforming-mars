@@ -2,7 +2,7 @@ package service_test
 
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -16,7 +16,7 @@ func intPtr(i int) *int         { return &i }
 func TestNewGameService(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus)
+	gameService := service.NewGameService(gameRepo, eventBus, nil)
 
 	if gameService == nil {
 		t.Fatal("Expected service to be non-nil")
@@ -25,30 +25,30 @@ func TestNewGameService(t *testing.T) {
 
 func TestGameService_CreateGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
 
 	tests := []struct {
 		name     string
-		settings domain.GameSettings
+		settings model.GameSettings
 		wantErr  bool
 	}{
 		{
 			name: "valid game settings",
-			settings: domain.GameSettings{
+			settings: model.GameSettings{
 				MaxPlayers: 4,
 			},
 			wantErr: false,
 		},
 		{
 			name: "max players too high",
-			settings: domain.GameSettings{
+			settings: model.GameSettings{
 				MaxPlayers: 6,
 			},
 			wantErr: true,
 		},
 		{
 			name: "max players too low",
-			settings: domain.GameSettings{
+			settings: model.GameSettings{
 				MaxPlayers: 0,
 			},
 			wantErr: true,
@@ -76,10 +76,10 @@ func TestGameService_CreateGame(t *testing.T) {
 
 func TestGameService_GetGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
 
 	// Create a game first
-	settings := domain.GameSettings{MaxPlayers: 4}
+	settings := model.GameSettings{MaxPlayers: 4}
 	game, err := gameService.CreateGame(settings)
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
@@ -128,10 +128,10 @@ func TestGameService_GetGame(t *testing.T) {
 
 func TestGameService_JoinGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
 
 	// Create a game first
-	settings := domain.GameSettings{MaxPlayers: 2}
+	settings := model.GameSettings{MaxPlayers: 2}
 	game, err := gameService.CreateGame(settings)
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
@@ -209,16 +209,16 @@ func TestGameService_JoinGame(t *testing.T) {
 
 func TestGameService_ListGames(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
 
 	// Create test games
-	settings1 := domain.GameSettings{MaxPlayers: 4}
+	settings1 := model.GameSettings{MaxPlayers: 4}
 	game1, err := gameService.CreateGame(settings1)
 	if err != nil {
 		t.Fatalf("Failed to create game1: %v", err)
 	}
 
-	settings2 := domain.GameSettings{MaxPlayers: 3}
+	settings2 := model.GameSettings{MaxPlayers: 3}
 	game2, err := gameService.CreateGame(settings2)
 	if err != nil {
 		t.Fatalf("Failed to create game2: %v", err)
@@ -238,13 +238,13 @@ func TestGameService_ListGames(t *testing.T) {
 		},
 		{
 			name:       "list lobby games",
-			status:     string(domain.GameStatusLobby),
+			status:     string(model.GameStatusLobby),
 			expectGame: true,
 			gameID:     game2.ID,
 		},
 		{
 			name:       "list completed games",
-			status:     string(domain.GameStatusCompleted),
+			status:     string(model.GameStatusCompleted),
 			expectGame: false,
 			gameID:     "",
 		},
@@ -286,10 +286,10 @@ func TestGameService_ListGames(t *testing.T) {
 
 func TestGameService_ApplyAction(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
 
 	// Create a game and add a player
-	settings := domain.GameSettings{MaxPlayers: 4}
+	settings := model.GameSettings{MaxPlayers: 4}
 	game, err := gameService.CreateGame(settings)
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
