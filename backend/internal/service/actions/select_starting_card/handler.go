@@ -1,4 +1,4 @@
-package actions
+package select_starting_card
 
 import (
 	"fmt"
@@ -10,12 +10,9 @@ import (
 type SelectStartingCardsHandler struct{}
 
 // Handle applies the select starting card action
-func (h *SelectStartingCardsHandler) Handle(game *domain.Game, player *domain.Player, actionPayload dto.ActionPayload) error {
-	action := dto.SelectStartingCardAction{
-		Type:    actionPayload.Type,
-		CardIDs: actionPayload.CardIDs,
-	}
-	return h.applySelectStartingCard(game, player, action)
+func (h *SelectStartingCardsHandler) Handle(game *domain.Game, player *domain.Player, actionRequest dto.ActionSelectStartingCardRequest) error {
+	action := actionRequest.GetAction()
+	return h.applySelectStartingCard(game, player, *action)
 }
 
 // applySelectStartingCard applies starting card selection

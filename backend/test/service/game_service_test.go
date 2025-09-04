@@ -306,23 +306,21 @@ func TestGameService_ApplyAction(t *testing.T) {
 		name          string
 		gameID        string
 		playerID      string
-		actionPayload dto.ActionPayload
+		actionRequest interface{}
 		wantErr       bool
 	}{
 		{
-			name:     "invalid action type",
+			name:     "invalid action request type",
 			gameID:   game.ID,
 			playerID: playerID,
-			actionPayload: dto.ActionPayload{
-				Type: "invalid-action",
-			},
+			actionRequest: "invalid-request",
 			wantErr: true,
 		},
 		{
 			name:     "non-existent game",
 			gameID:   "non-existent",
 			playerID: playerID,
-			actionPayload: dto.ActionPayload{
+			actionRequest: dto.ActionStartGameRequest{
 				Type: dto.ActionTypeStartGame,
 			},
 			wantErr: true,
@@ -331,7 +329,7 @@ func TestGameService_ApplyAction(t *testing.T) {
 			name:     "non-existent player",
 			gameID:   game.ID,
 			playerID: "non-existent",
-			actionPayload: dto.ActionPayload{
+			actionRequest: dto.ActionStartGameRequest{
 				Type: dto.ActionTypeStartGame,
 			},
 			wantErr: true,
@@ -340,7 +338,7 @@ func TestGameService_ApplyAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updatedGame, err := gameService.ApplyAction(tt.gameID, tt.playerID, tt.actionPayload)
+			updatedGame, err := gameService.ApplyAction(tt.gameID, tt.playerID, tt.actionRequest)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ApplyAction() error = %v, wantErr %v", err, tt.wantErr)
 				return

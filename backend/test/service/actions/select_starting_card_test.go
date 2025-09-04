@@ -3,12 +3,12 @@ package actions_test
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/domain"
-	"terraforming-mars-backend/internal/service/actions"
+	"terraforming-mars-backend/internal/service/actions/select_starting_card"
 	"testing"
 )
 
 func TestSelectStartingCardsHandler_Handle(t *testing.T) {
-	handler := &actions.SelectStartingCardsHandler{}
+	handler := &select_starting_card.SelectStartingCardsHandler{}
 
 	tests := []struct {
 		name           string
@@ -110,14 +110,14 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 				},
 			}
 
-			// Create action payload
-			actionPayload := dto.ActionPayload{
+			// Create action request
+			actionRequest := dto.ActionSelectStartingCardRequest{
 				Type:    dto.ActionTypeSelectStartingCard,
 				CardIDs: tt.selectedCards,
 			}
 
 			// Apply the action
-			err := handler.Handle(game, &game.Players[0], actionPayload)
+			err := handler.Handle(game, &game.Players[0], actionRequest)
 
 			// Check error expectation
 			if (err != nil) != tt.wantErr {
@@ -148,7 +148,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 }
 
 func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
-	handler := &actions.SelectStartingCardsHandler{}
+	handler := &select_starting_card.SelectStartingCardsHandler{}
 
 	// Create game with 2 players, one has already selected cards
 	game := &domain.Game{
@@ -175,12 +175,12 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 	}
 
 	// Player 2 selects cards
-	actionPayload := dto.ActionPayload{
+	actionRequest := dto.ActionSelectStartingCardRequest{
 		Type:    dto.ActionTypeSelectStartingCard,
 		CardIDs: []string{"research-grant"},
 	}
 
-	err := handler.Handle(game, &game.Players[1], actionPayload)
+	err := handler.Handle(game, &game.Players[1], actionRequest)
 	if err != nil {
 		t.Fatalf("Handle() unexpected error = %v", err)
 	}
@@ -203,7 +203,7 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 
 func TestSelectStartingCards_PaymentLogic(t *testing.T) {
 	// This test specifically verifies that all cards cost 3 MC regardless of their actual cost
-	handler := &actions.SelectStartingCardsHandler{}
+	handler := &select_starting_card.SelectStartingCardsHandler{}
 
 	// Get all available starting cards to test
 	availableCards := domain.GetStartingCards()
@@ -228,12 +228,12 @@ func TestSelectStartingCards_PaymentLogic(t *testing.T) {
 				},
 			}
 
-			actionPayload := dto.ActionPayload{
+			actionRequest := dto.ActionSelectStartingCardRequest{
 				Type:    dto.ActionTypeSelectStartingCard,
 				CardIDs: []string{card.ID},
 			}
 
-			err := handler.Handle(game, &game.Players[0], actionPayload)
+			err := handler.Handle(game, &game.Players[0], actionRequest)
 			if err != nil {
 				t.Fatalf("Handle() unexpected error for card %s: %v", card.Name, err)
 			}

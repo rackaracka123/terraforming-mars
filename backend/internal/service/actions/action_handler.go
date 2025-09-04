@@ -1,26 +1,27 @@
 package actions
 
 import (
-	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/service/actions/play_card"
+	"terraforming-mars-backend/internal/service/actions/select_starting_card"
+	"terraforming-mars-backend/internal/service/actions/start_game"
 )
 
 // ActionHandler defines the interface for handling game actions
-type ActionHandler interface {
-	Handle(game *domain.Game, player *domain.Player, actionPayload dto.ActionPayload) error
-}
+// Note: Individual handlers now use specific request types
 
 // ActionHandlers contains all action handlers
 type ActionHandlers struct {
-	SelectStartingCards *SelectStartingCardsHandler
-	StartGame          *StartGameHandler
+	SelectStartingCards *select_starting_card.SelectStartingCardsHandler
+	StartGame          *start_game.StartGameHandler
+	PlayCard           *play_card.PlayCardHandler
 }
 
 // NewActionHandlers creates a new instance of action handlers
 func NewActionHandlers(eventBus events.EventBus) *ActionHandlers {
 	return &ActionHandlers{
-		SelectStartingCards: &SelectStartingCardsHandler{},
-		StartGame:          &StartGameHandler{eventBus: eventBus},
+		SelectStartingCards: &select_starting_card.SelectStartingCardsHandler{},
+		StartGame:          &start_game.StartGameHandler{EventBus: eventBus},
+		PlayCard:           &play_card.PlayCardHandler{},
 	}
 }

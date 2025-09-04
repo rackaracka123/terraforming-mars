@@ -124,7 +124,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 		{
 			name: "valid action payload parsing",
 			payload: map[string]interface{}{
-				"actionPayload": map[string]interface{}{
+				"actionRequest": map[string]interface{}{
 					"type": "start-game",
 				},
 			},
@@ -155,8 +155,12 @@ func TestHub_PayloadParsing(t *testing.T) {
 						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
 					}
 				case *dto.PlayActionPayload:
-					if target.ActionPayload.Type != dto.ActionTypeStartGame {
-						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
+					if requestMap, ok := target.ActionRequest.(map[string]interface{}); ok {
+						if actionType, exists := requestMap["type"]; !exists || actionType != "start-game" {
+							t.Errorf("PlayActionPayload action type not parsed correctly: %+v", target)
+						}
+					} else {
+						t.Errorf("PlayActionPayload ActionRequest not parsed as map: %+v", target)
 					}
 				}
 			}

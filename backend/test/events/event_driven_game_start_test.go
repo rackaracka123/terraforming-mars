@@ -56,11 +56,11 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	assert.Equal(t, domain.GamePhaseSetup, updatedGame.CurrentPhase)
 
 	// Start the game (this should trigger the event-driven flow)
-	startGamePayload := dto.ActionPayload{
+	startGameRequest := dto.ActionStartGameRequest{
 		Type: dto.ActionTypeStartGame,
 	}
 
-	gameAfterStart, err := gameService.ApplyAction(game.ID, player1ID, startGamePayload)
+	gameAfterStart, err := gameService.ApplyAction(game.ID, player1ID, startGameRequest)
 	require.NoError(t, err)
 	require.NotNil(t, gameAfterStart)
 
@@ -145,8 +145,8 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	gameRepo.UpdateGame(game)
 
 	// Start the game 
-	startGamePayload := dto.ActionPayload{Type: dto.ActionTypeStartGame}
-	_, err = gameService.ApplyAction(game.ID, "player1", startGamePayload)
+	startGameRequest := dto.ActionStartGameRequest{Type: dto.ActionTypeStartGame}
+	_, err = gameService.ApplyAction(game.ID, "player1", startGameRequest)
 	require.NoError(t, err)
 
 	// Wait for event processing

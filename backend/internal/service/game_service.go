@@ -168,12 +168,8 @@ func (s *GameService) UpdateGame(game *domain.Game) error {
 }
 
 // ApplyAction validates and applies a game action using DTO types
-func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.ActionPayload) (*domain.Game, error) {
+func (s *GameService) ApplyAction(gameID, playerID string, actionRequest interface{}) (*domain.Game, error) {
 	log := logger.WithGameContext(gameID, playerID)
-	
-	log.Info("Applying game action", 
-		zap.String("action_type", string(actionPayload.Type)),
-	)
 	
 	// Get the game
 	game, err := s.gameRepo.GetGame(gameID)
@@ -189,31 +185,36 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 		return nil, fmt.Errorf("player not found in game")
 	}
 
-	// Validate that it's the player's turn (except for start game action)
-	if actionPayload.Type != dto.ActionTypeStartGame && game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
-		log.Warn("Player attempted action out of turn", 
-			zap.String("current_player", game.CurrentPlayerID),
-		)
-		return nil, fmt.Errorf("not your turn")
-	}
-
-	// Apply the action based on DTO type
-	switch actionPayload.Type {
-	case dto.ActionTypeSelectStartingCard:
-		err = s.actionHandlers.SelectStartingCards.Handle(game, player, actionPayload)
-	case dto.ActionTypeStartGame:
-		err = s.actionHandlers.StartGame.Handle(game, player, actionPayload)
+	// Apply the action based on the request type
+	switch request := actionRequest.(type) {
+	case dto.ActionSelectStartingCardRequest:
+		log.Info("Applying select starting card action")
+		err = s.actionHandlers.SelectStartingCards.Handle(game, player, request)
+	case dto.ActionStartGameRequest:
+		log.Info("Applying start game action")
+		// Validate that it's the host for start game action
+		if !game.IsHost(playerID) {
+			return nil, fmt.Errorf("only the host can start the game")
+		}
+		err = s.actionHandlers.StartGame.Handle(game, player, request)
+	case dto.ActionPlayCardRequest:
+		log.Info("Applying play card action")
+		// Validate that it's the player's turn for play card action
+		if game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
+			log.Warn("Player attempted action out of turn", 
+				zap.String("current_player", game.CurrentPlayerID),
+			)
+			return nil, fmt.Errorf("not your turn")
+		}
+		err = s.actionHandlers.PlayCard.Handle(game, player, request)
 	default:
-		log.Error("Unknown action type", zap.String("action_type", string(actionPayload.Type)))
-		return nil, fmt.Errorf("unknown action type: %s", actionPayload.Type)
+		log.Error("Unknown action request type", zap.Any("request_type", request))
+		return nil, fmt.Errorf("unknown action request type")
 	}
 
 	if err != nil {
-		log.Error("Failed to apply action", 
-			zap.Error(err),
-			zap.String("action_type", string(actionPayload.Type)),
-		)
-		return nil, fmt.Errorf("failed to apply action %s: %w", actionPayload.Type, err)
+		log.Error("Failed to apply action", zap.Error(err))
+		return nil, fmt.Errorf("failed to apply action: %w", err)
 	}
 
 	// Update the game in repository
@@ -222,10 +223,7 @@ func (s *GameService) ApplyAction(gameID, playerID string, actionPayload dto.Act
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Game action applied successfully", 
-		zap.String("action_type", string(actionPayload.Type)),
-	)
-
+	log.Info("Game action applied successfully")
 	return game, nil
 }
 

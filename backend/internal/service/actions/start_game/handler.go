@@ -1,4 +1,4 @@
-package actions
+package start_game
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 
 // StartGameHandler handles start game actions
 type StartGameHandler struct{
-	eventBus events.EventBus
+	EventBus events.EventBus
 }
 
 // Handle applies the start game action
-func (h *StartGameHandler) Handle(game *domain.Game, player *domain.Player, actionPayload dto.ActionPayload) error {
-	action := dto.StartGameAction{Type: actionPayload.Type}
-	return h.applyStartGame(game, player, action)
+func (h *StartGameHandler) Handle(game *domain.Game, player *domain.Player, actionRequest dto.ActionStartGameRequest) error {
+	action := actionRequest.GetAction()
+	return h.applyStartGame(game, player, *action)
 }
 
 // applyStartGame applies start game action
@@ -57,7 +57,7 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 
 	// Publish GameStarted event to trigger starting card selection
 	gameStartedEvent := events.NewGameStartedEvent(game.ID, playerIDs)
-	if err := h.eventBus.Publish(context.Background(), gameStartedEvent); err != nil {
+	if err := h.EventBus.Publish(context.Background(), gameStartedEvent); err != nil {
 		log.Error("Failed to publish game started event", zap.Error(err))
 		return fmt.Errorf("failed to publish game started event: %w", err)
 	}
