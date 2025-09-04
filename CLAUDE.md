@@ -26,8 +26,8 @@ cd backend
 go run cmd/server/main.go     # Run development server directly
 go build -o bin/server cmd/server/main.go  # Build production binary
 ./bin/server                  # Run production binary
-go test ./...                 # Run all tests
-go generate                   # Generate TypeScript types and Swagger docs
+make test                     # Run all tests
+tygo generate                 # Generate TypeScript types and Swagger docs
 ```
 
 ### Frontend (React - Port 3000) 
@@ -278,4 +278,3 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - When working with energy, its refrenced using power.png
 - Use playwright to test UI components.
 - Whenever you create a new feature in backend. Write a test for it.
-- When you make an update to delivery/dto, do a cd backend && tygo generate.
