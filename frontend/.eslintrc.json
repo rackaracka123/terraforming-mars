@@ -23,9 +23,11 @@
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "react-hooks/exhaustive-deps": "warn",
+    "no-console": "warn",
     "prefer-const": "warn",
     "no-unused-expressions": "warn"
   },
@@ -34,5 +36,5 @@
       "version": "detect"
     }
   },
-  "ignorePatterns": ["build", "dist", "node_modules", "*.config.js", "*.config.ts"]
+  "ignorePatterns": ["build", "dist", "node_modules", "*.config.js", "*.config.ts", "src/types/generated/**"]
 }

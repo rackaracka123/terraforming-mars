@@ -80,22 +80,6 @@ export class GeodesicGrid {
   }
 
   /**
-   * Determine if a row should be offset for proper hex grid alignment
-   */
-  private static shouldOffsetRow(
-    row: number,
-    hexesInRow: number,
-    pattern: number[],
-  ): boolean {
-    // For Terraforming Mars pattern [5, 6, 6, 8, 8, 7, 6, 5]
-    // The middle rows with 8 hexes (rows 3 and 4) should be offset 0.5 tile width to the right
-    const centerRowIndex = Math.floor(pattern.length / 2);
-
-    // Offset the middle rows with maximum hex count (8 hexes)
-    return hexesInRow === 8;
-  }
-
-  /**
    * Create hexagonal grid positions on sphere surface
    * Based on the Terraforming Mars board layout - covers ~80% of one hemisphere
    */

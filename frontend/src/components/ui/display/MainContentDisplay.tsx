@@ -3,7 +3,7 @@ import Game3DView from "../../game/view/Game3DView.tsx";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 import { CardType } from "../../../types/cards.ts";
 import CostDisplay from "./CostDisplay.tsx";
-import ProductionDisplay from "./ProductionDisplay.tsx";
+import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface Card {
   id: string;
@@ -79,7 +79,7 @@ interface Award {
 }
 
 interface MainContentDisplayProps {
-  gameState: any;
+  gameState: GameDto;
 }
 
 const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
@@ -131,7 +131,6 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
 
   const renderPlayedCards = () => {
     const cards: Card[] = contentData?.cards || [];
-    const playerName = contentData?.playerName || "Player";
 
     return (
       <div className="main-content-container">
@@ -142,7 +141,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
           >
             ← Back to Game
           </button>
-          <h2>{playerName}'s Played Cards</h2>
+          <h2>Played Cards</h2>
           <div className="cards-count">{cards.length} Cards</div>
         </div>
 
@@ -202,7 +201,10 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
       return icons[resourceType] || "/assets/resources/megacredit.png";
     };
 
-    const renderResourceGroup = (resources: any, isReward = false) => {
+    const renderResourceGroup = (
+      resources: Record<string, number>,
+      _isReward = false,
+    ) => {
       return Object.entries(resources).map(([type, amount]) => (
         <div key={type} className="resource-item">
           <img
@@ -240,7 +242,6 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
 
   const renderAvailableActions = () => {
     const actions: GameAction[] = contentData?.actions || [];
-    const playerName = contentData?.playerName || "Player";
     const availableActions = actions.filter((action) => action.available);
     const unavailableActions = actions.filter((action) => !action.available);
 

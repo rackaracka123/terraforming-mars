@@ -61,9 +61,9 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
   isVisible,
   onClose,
   effects,
-  cards,
-  playerName = "Player",
-  onEffectActivate,
+  cards: _cards,
+  playerName: _playerName = "Player",
+  onEffectActivate: _onEffectActivate,
 }) => {
   const [selectedEffect, setSelectedEffect] = useState<CardEffect | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");

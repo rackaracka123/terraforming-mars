@@ -11,8 +11,8 @@ export type MainContentType =
 interface MainContentContextType {
   contentType: MainContentType;
   setContentType: (type: MainContentType) => void;
-  contentData: any;
-  setContentData: (data: any) => void;
+  contentData: Record<string, unknown>;
+  setContentData: (data: Record<string, unknown>) => void;
 }
 
 const MainContentContext = createContext<MainContentContextType | undefined>(
@@ -23,7 +23,7 @@ export const MainContentProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [contentType, setContentType] = useState<MainContentType>("game");
-  const [contentData, setContentData] = useState<any>(null);
+  const [contentData, setContentData] = useState<Record<string, unknown>>(null);
 
   return (
     <MainContentContext.Provider

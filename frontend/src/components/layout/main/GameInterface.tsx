@@ -1,25 +1,64 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
-import CorporationSelectionModal from "../../ui/modals/CorporationSelectionModal.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
-import {
-  mockSocketService,
-  GameState,
-  Player,
-} from "../../../services/mockGameService.ts";
+import { webSocketService } from "../../../services/webSocketService.ts";
+import { GameDto, PlayerDto } from "../../../types/generated/api-types.ts";
 
-// Types imported from mockGameService
+// Mock interface for GameLayout compatibility
+interface MockGameState {
+  id: string;
+  players: MockPlayer[];
+  currentPlayer: string;
+  generation: number;
+  phase: string;
+  globalParameters: {
+    temperature: number;
+    oxygen: number;
+    oceans: number;
+  };
+}
+
+interface MockPlayer {
+  id: string;
+  name: string;
+  resources: {
+    credits: number;
+    steel: number;
+    titanium: number;
+    plants: number;
+    energy: number;
+    heat: number;
+  };
+  production: {
+    credits: number;
+    steel: number;
+    titanium: number;
+    plants: number;
+    energy: number;
+    heat: number;
+  };
+  terraformRating: number;
+  victoryPoints: number;
+  corporation?: string;
+  passed?: boolean;
+  availableActions?: number;
+}
 
 export default function GameInterface() {
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [game, setGame] = useState<GameDto | null>(null);
+  const [mockGameState, setMockGameState] = useState<MockGameState | null>(
+    null,
+  );
   const [isConnected, setIsConnected] = useState(false);
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<MockPlayer | null>(null);
   const [showCorporationModal, setShowCorporationModal] = useState(false);
-  const [availableCorporations, setAvailableCorporations] = useState<any[]>([]);
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
@@ -28,51 +67,125 @@ export default function GameInterface() {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
 
-  useEffect(() => {
-    // Set up mock service listeners
-    mockSocketService.on("connect", () => {
-      setIsConnected(true);
-      console.log("Connected to mock service");
-      // Auto-join with a default name
-      mockSocketService.emit("join-game", {
-        gameId: "demo",
-        playerName: "Player",
-      });
-    });
+  // Helper function to convert Game to MockGameState for compatibility
+  const convertGameToMockState = (
+    gameData: GameDto,
+    playerId: string,
+  ): MockGameState => {
+    return {
+      id: gameData.id,
+      players:
+        gameData.players?.map((p: PlayerDto) => ({
+          id: p.id,
+          name: p.name,
+          resources: p.resources || {
+            credits: 0,
+            steel: 0,
+            titanium: 0,
+            plants: 0,
+            energy: 0,
+            heat: 0,
+          },
+          production: p.production || {
+            credits: 0,
+            steel: 0,
+            titanium: 0,
+            plants: 0,
+            energy: 0,
+            heat: 0,
+          },
+          terraformRating: p.terraformRating || 20,
+          victoryPoints: 0,
+          corporation: p.corporation,
+          passed: false,
+          availableActions: 2,
+        })) || [],
+      currentPlayer: playerId,
+      generation: gameData.generation || 1,
+      phase: gameData.currentPhase || "setup",
+      globalParameters: {
+        temperature: gameData.globalParameters?.temperature || -30,
+        oxygen: gameData.globalParameters?.oxygen || 0,
+        oceans: gameData.globalParameters?.oceans || 0,
+      },
+    };
+  };
 
-    mockSocketService.on("game-updated", (updatedGameState: GameState) => {
-      setGameState(updatedGameState);
-      const player = updatedGameState.players.find(
-        (p) => p.id === mockSocketService.id,
+  useEffect(() => {
+    // Check if we have real game state from routing
+    const routeState = location.state as {
+      game?: GameDto;
+      playerId?: string;
+      playerName?: string;
+    } | null;
+    if (!routeState?.game || !routeState?.playerId) {
+      // No game data, redirect back to landing page
+      navigate("/");
+      return;
+    }
+
+    setGame(routeState.game);
+    setIsConnected(true);
+
+    // Convert real game to mock format for GameLayout compatibility
+    const mockState = convertGameToMockState(
+      routeState.game,
+      routeState.playerId,
+    );
+    setMockGameState(mockState);
+
+    const player = mockState.players.find((p) => p.id === routeState.playerId);
+    setCurrentPlayer(player || null);
+
+    // Set up WebSocket listeners for real-time updates
+    const handleGameUpdated = (updatedGame: GameDto) => {
+      setGame(updatedGame);
+
+      // Update mock state for compatibility
+      const updatedMockState = convertGameToMockState(
+        updatedGame,
+        routeState.playerId,
       );
-      setCurrentPlayer(player || null);
+      setMockGameState(updatedMockState);
+
+      const updatedPlayer = updatedMockState.players.find(
+        (p) => p.id === routeState.playerId,
+      );
+      setCurrentPlayer(updatedPlayer || null);
 
       // Show corporation modal if player hasn't selected a corporation yet
-      if (player && !player.corporation) {
+      if (updatedPlayer && !updatedPlayer.corporation) {
         setShowCorporationModal(true);
       } else {
         setShowCorporationModal(false);
       }
-    });
+    };
 
-    mockSocketService.on("corporations-available", (corporations: any[]) => {
-      setAvailableCorporations(corporations);
-    });
+    const handleError = () => {
+      // Could show error modal
+    };
 
-    mockSocketService.on("disconnect", () => {
+    const handleDisconnect = () => {
       setIsConnected(false);
-      console.log("Disconnected from mock service");
-    });
+      // Could redirect back to landing page
+      navigate("/");
+    };
+
+    webSocketService.on("game-updated", handleGameUpdated);
+    webSocketService.on("error", handleError);
+    webSocketService.on("disconnect", handleDisconnect);
 
     return () => {
-      mockSocketService.disconnect();
+      webSocketService.off("game-updated", handleGameUpdated);
+      webSocketService.off("error", handleError);
+      webSocketService.off("disconnect", handleDisconnect);
     };
-  }, []);
+  }, [location.state, navigate]);
 
-  const handleCorporationSelection = (corporationId: string) => {
-    mockSocketService.emit("select-corporation", { corporationId });
-    setShowCorporationModal(false);
-  };
+  // const handleCorporationSelection = (corporationId: string) => {
+  //   webSocketService.playAction("select-corporation", { corporationId });
+  //   setShowCorporationModal(false);
+  // };
 
   // Demo data for the new modals (in a real app, this would come from game state)
   const demoCards = [
@@ -167,8 +280,7 @@ export default function GameInterface() {
     },
   ];
 
-  const handleActionSelect = (action: any) => {
-    console.log("Action selected:", action);
+  const handleActionSelect = () => {
     // In a real app, emit to server
   };
 
@@ -205,7 +317,7 @@ export default function GameInterface() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
 
-  if (!isConnected || !gameState) {
+  if (!isConnected || !mockGameState || !game) {
     return (
       <div
         style={{
@@ -216,7 +328,7 @@ export default function GameInterface() {
         }}
       >
         <h2>Loading Terraforming Mars...</h2>
-        <p>Setting up mock game data...</p>
+        <p>Connecting to game...</p>
       </div>
     );
   }
@@ -233,9 +345,9 @@ export default function GameInterface() {
   return (
     <>
       <GameLayout
-        gameState={gameState}
+        gameState={mockGameState}
         currentPlayer={currentPlayer}
-        socket={mockSocketService}
+        socket={webSocketService}
         isAnyModalOpen={isAnyModalOpen}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
@@ -244,14 +356,12 @@ export default function GameInterface() {
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
       />
 
-      {/* Original Corporation Selection Modal */}
-      <CorporationSelectionModal
-        corporations={availableCorporations}
-        onSelectCorporation={handleCorporationSelection}
-        isVisible={showCorporationModal}
-      />
+      {/*<CorporationSelectionModal*/}
+      {/*  corporations={availableCorporations}*/}
+      {/*  onSelectCorporation={handleCorporationSelection}*/}
+      {/*  isVisible={showCorporationModal}*/}
+      {/*/>*/}
 
-      {/* New Enhanced Modals */}
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}

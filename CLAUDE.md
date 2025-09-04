@@ -221,6 +221,21 @@ When displaying production values, use the production asset:
 - **Asset integration**: Prefer official game assets over text/CSS styling
 - **Responsive sizing**: Components should support multiple sizes for different contexts
 
+## Code Quality Requirements
+
+**CRITICAL**: Always run these commands before completing any feature or pushing code:
+
+```bash
+npm run format:write    # Format code with Prettier  
+npm run lint           # Check for ESLint errors
+```
+
+**Lint Error Policy**: 
+- All lint ERRORS must be fixed immediately - no exceptions
+- Lint warnings should be addressed when practical
+- Never commit code with lint errors
+- Run these commands after any significant code changes
+
 ## Development Notes
 
 ### Backend Development (Go)

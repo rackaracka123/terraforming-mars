@@ -1,10 +1,11 @@
-import React, { Suspense, useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
+import { GameDto } from "@/types/generated/api-types.ts";
 
 interface Game3DViewProps {
-  gameState: any;
+  gameState: GameDto;
 }
 
 export default function Game3DView({ gameState }: Game3DViewProps) {
@@ -37,7 +38,7 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
   }, []);
 
   const handleHexClick = (hexCoordinate: string) => {
-    console.log("Hex clicked:", hexCoordinate);
+    console.warn("Hex clicked:", hexCoordinate);
 
     // TODO: Implement proper tile placement validation
     // For now, just show the coordinate that was clicked

@@ -39,7 +39,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   isVisible,
   onClose,
   actions,
-  playerName = "Player",
+  _playerName = "Player",
   onActionSelect,
 }) => {
   const [selectedAction, setSelectedAction] = useState<GameAction | null>(null);

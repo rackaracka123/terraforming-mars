@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"sync"
+	"time"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
 	model "terraforming-mars-backend/internal/domain"
@@ -143,18 +144,30 @@ func (h *Hub) BroadcastToGame(gameID string, message *dto.WebSocketMessage) {
 	copy(clientsCopy, clients)
 	h.mutex.RUnlock()
 
-	data, err := json.Marshal(message)
-	if err != nil {
-		logger.WithGameContext(gameID, "").Error("Error marshaling broadcast message", zap.Error(err))
+	// Send message to all clients in the game
+	for _, client := range clientsCopy {
+		client.SendMessage(message)
+	}
+}
+
+// BroadcastToGameExcept sends a message to all clients in a specific game except the excluded client
+func (h *Hub) BroadcastToGameExcept(gameID string, message *dto.WebSocketMessage, excludeClient *Client) {
+	h.mutex.RLock()
+	clients, exists := h.gameClients[gameID]
+	if !exists {
+		h.mutex.RUnlock()
 		return
 	}
 
+	// Make a copy of the clients slice to avoid holding the lock during message sending
+	clientsCopy := make([]*Client, len(clients))
+	copy(clientsCopy, clients)
+	h.mutex.RUnlock()
+
+	// Send message to all clients in the game except the excluded one
 	for _, client := range clientsCopy {
-		select {
-		case client.send <- data:
-		default:
-			// Client is disconnected, clean up
-			h.unregister <- client
+		if client != excludeClient {
+			client.SendMessage(message)
 		}
 	}
 }
@@ -222,7 +235,10 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *dto.WebSocketMessage) {
 	}
 	client.SendMessage(fullStateMsg)
 
-	// Broadcast player connected to other clients in the game
+	// Small delay to ensure messages are sent as separate WebSocket frames
+	time.Sleep(10 * time.Millisecond)
+
+	// Send player connected confirmation to the connecting client
 	connectedMsg := &dto.WebSocketMessage{
 		Type: dto.MessageTypePlayerConnected,
 		Payload: dto.PlayerConnectedPayload{
@@ -231,7 +247,10 @@ func (h *Hub) handlePlayerConnect(client *Client, msg *dto.WebSocketMessage) {
 		},
 		GameID: payload.GameID,
 	}
-	h.BroadcastToGame(payload.GameID, connectedMsg)
+	client.SendMessage(connectedMsg)
+
+	// Broadcast player connected to other clients in the game (excluding the connecting client)
+	h.BroadcastToGameExcept(payload.GameID, connectedMsg, client)
 
 	logger.WithGameContext(payload.GameID, playerID).Info("Player connected",
 		zap.String("player_name", payload.PlayerName))

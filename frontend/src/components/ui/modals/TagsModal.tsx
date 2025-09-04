@@ -196,12 +196,13 @@ const TagsModal: React.FC<TagsModalProps> = ({
         aValue = a.tag.toLowerCase();
         bValue = b.tag.toLowerCase();
         break;
-      case "type":
+      case "type": {
         const aTypeIndex = tagTypeInfo.findIndex((info) => info.type === a.tag);
         const bTypeIndex = tagTypeInfo.findIndex((info) => info.type === b.tag);
         aValue = aTypeIndex === -1 ? 999 : aTypeIndex;
         bValue = bTypeIndex === -1 ? 999 : bTypeIndex;
         break;
+      }
       default:
         return 0;
     }

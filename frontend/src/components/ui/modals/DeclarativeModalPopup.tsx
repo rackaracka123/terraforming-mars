@@ -130,7 +130,6 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
 
   const handleAction = (actionType: string, itemId: string) => {
     onAction?.(actionType, itemId);
-    console.log(`Action: ${actionType} on ${itemId}`);
   };
 
   const renderEffects = (effects: StandardProject["effects"]) => {

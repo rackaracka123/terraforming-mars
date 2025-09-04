@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { GeodesicGrid } from "../../../utils/geodesic.ts";
 import HexTile from "./HexTile.tsx";
+import { GameDto } from "../../../types/generated/api-types.ts";
 
 // Backend tile types (should match backend/src/types/tiles.ts)
 enum TileType {
@@ -12,7 +13,7 @@ enum TileType {
 }
 
 interface HexagonalGridProps {
-  gameState?: any;
+  gameState?: GameDto;
   onHexClick?: (hexCoordinate: string) => void;
 }
 
@@ -51,7 +52,7 @@ export default function HexagonalGrid({
 
   return (
     <>
-      {hexGrid.map((hex, index) => {
+      {hexGrid.map((hex) => {
         const hexKey = GeodesicGrid.coordinateToKey(hex.coordinate);
         const tileData = getTileData(hexKey);
 
