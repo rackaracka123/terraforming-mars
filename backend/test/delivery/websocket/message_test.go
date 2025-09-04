@@ -435,8 +435,7 @@ func TestMessage_PayloadParsing(t *testing.T) {
 				"type": "play-action",
 				"payload": {
 					"actionPayload": {
-						"type": "raise-temperature",
-						"heatAmount": 16
+						"type": "start-game"
 					}
 				}
 			}`,

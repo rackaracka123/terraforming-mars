@@ -125,7 +125,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 			name: "valid action payload parsing",
 			payload: map[string]interface{}{
 				"actionPayload": map[string]interface{}{
-					"type": "skip-action",
+					"type": "start-game",
 				},
 			},
 			target:  &dto.PlayActionPayload{},
