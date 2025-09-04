@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"terraforming-mars-backend/internal/delivery/dto"
-	model "terraforming-mars-backend/internal/domain"
+	model "terraforming-mars-backend/internal/model"
 	"testing"
 )
 
@@ -23,7 +23,7 @@ func TestMessageType_Constants(t *testing.T) {
 		{
 			name:     "play action message type",
 			msgType:  dto.MessageTypePlayAction,
-			expected: "play-action",
+			expected: "do-action",
 		},
 		{
 			name:     "game updated message type",
@@ -77,7 +77,7 @@ func TestWebSocketMessage_JSONSerialization(t *testing.T) {
 			message: dto.WebSocketMessage{
 				Type: dto.MessageTypePlayAction,
 				Payload: dto.PlayActionPayload{
-					ActionPayload: dto.ActionPayload{
+					ActionRequest: dto.ActionStartGameRequest{
 						Type: dto.ActionTypeStartGame,
 					},
 				},
@@ -162,7 +162,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		{
 			name: "start game action",
 			payload: dto.PlayActionPayload{
-				ActionPayload: dto.ActionPayload{
+				ActionRequest: dto.ActionStartGameRequest{
 					Type: dto.ActionTypeStartGame,
 				},
 			},
@@ -170,7 +170,7 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 		{
 			name: "select starting cards action",
 			payload: dto.PlayActionPayload{
-				ActionPayload: dto.ActionPayload{
+				ActionRequest: dto.ActionSelectStartingCardRequest{
 					Type:    dto.ActionTypeSelectStartingCard,
 					CardIDs: []string{"card1", "card2"},
 				},
@@ -191,15 +191,18 @@ func TestPlayActionPayload_JSONSerialization(t *testing.T) {
 				t.Fatalf("Failed to unmarshal PlayActionPayload: %v", err)
 			}
 
-			if deserializedPayload.ActionPayload.Type != tt.payload.ActionPayload.Type {
-				t.Errorf("Action type not preserved: expected %s, got %s",
-					tt.payload.ActionPayload.Type, deserializedPayload.ActionPayload.Type)
-			}
-
-			// Compare the actual action data based on type
-			if !reflect.DeepEqual(deserializedPayload.ActionPayload, tt.payload.ActionPayload) {
-				t.Errorf("ActionPayload not preserved: expected %+v, got %+v",
-					tt.payload.ActionPayload, deserializedPayload.ActionPayload)
+			// Since ActionRequest is interface{}, when unmarshaled from JSON it becomes map[string]interface{}
+			// We need to verify the key data is preserved by converting both to maps and comparing
+			var originalMap map[string]interface{}
+			originalData, _ := json.Marshal(tt.payload.ActionRequest)
+			json.Unmarshal(originalData, &originalMap)
+			
+			deserializedMap, ok := deserializedPayload.ActionRequest.(map[string]interface{})
+			if !ok {
+				t.Errorf("ActionRequest not unmarshaled as map: got %T", deserializedPayload.ActionRequest)
+			} else if !reflect.DeepEqual(originalMap, deserializedMap) {
+				t.Errorf("ActionRequest data not preserved: expected %+v, got %+v",
+					originalMap, deserializedMap)
 			}
 		})
 	}
@@ -432,9 +435,9 @@ func TestMessage_PayloadParsing(t *testing.T) {
 		{
 			name: "play action message parsing",
 			messageJSON: `{
-				"type": "play-action",
+				"type": "do-action",
 				"payload": {
-					"actionPayload": {
+					"actionRequest": {
 						"type": "start-game"
 					}
 				}
@@ -483,8 +486,13 @@ func TestMessage_PayloadParsing(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to parse PlayActionPayload: %v", err)
 				}
-				if payload.ActionPayload.Type != dto.ActionTypeStartGame {
-					t.Errorf("Action type not parsed correctly: got %s", payload.ActionPayload.Type)
+				// When unmarshaling JSON into interface{}, it becomes map[string]interface{}
+				if requestMap, ok := payload.ActionRequest.(map[string]interface{}); ok {
+					if actionType, exists := requestMap["type"]; !exists || actionType != "start-game" {
+						t.Errorf("Action request type not parsed correctly: got %+v", requestMap)
+					}
+				} else {
+					t.Errorf("Action request not parsed as map: got %T", payload.ActionRequest)
 				}
 			}
 		})

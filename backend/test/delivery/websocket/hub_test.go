@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
-	model "terraforming-mars-backend/internal/domain"
+	model "terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -17,6 +17,17 @@ import (
 // Helper functions for creating pointers
 func stringPtr(s string) *string { return &s }
 func intPtr(i int) *int         { return &i }
+
+// Helper function to create GameService with all dependencies for testing
+func createTestGameService() *service.GameService {
+	gameRepo := repository.NewGameRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventBus := events.NewInMemoryEventBus()
+	eventRepository := events.NewEventRepository(eventBus)
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	
+	return service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
+}
 
 // mockClient implements basic client functionality for testing
 type mockClient struct {
@@ -70,8 +81,7 @@ func (c *mockClient) ClearMessages() {
 }
 
 func TestNewHub(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := createTestGameService()
 	hub := websocket.NewHub(gameService)
 
 	if hub == nil {
@@ -80,8 +90,7 @@ func TestNewHub(t *testing.T) {
 }
 
 func TestHub_BroadcastToGame(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
+	gameService := createTestGameService()
 
 	// Create a test game
 	settings := model.GameSettings{MaxPlayers: 4}
@@ -124,7 +133,7 @@ func TestHub_PayloadParsing(t *testing.T) {
 		{
 			name: "valid action payload parsing",
 			payload: map[string]interface{}{
-				"actionPayload": map[string]interface{}{
+				"actionRequest": map[string]interface{}{
 					"type": "start-game",
 				},
 			},
@@ -155,8 +164,12 @@ func TestHub_PayloadParsing(t *testing.T) {
 						t.Errorf("PlayerConnectPayload not parsed correctly: %+v", target)
 					}
 				case *dto.PlayActionPayload:
-					if target.ActionPayload.Type != dto.ActionTypeStartGame {
-						t.Errorf("PlayActionPayload not parsed correctly: %+v", target)
+					if requestMap, ok := target.ActionRequest.(map[string]interface{}); ok {
+						if actionType, exists := requestMap["type"]; !exists || actionType != "start-game" {
+							t.Errorf("PlayActionPayload action type not parsed correctly: %+v", target)
+						}
+					} else {
+						t.Errorf("PlayActionPayload ActionRequest not parsed as map: %+v", target)
 					}
 				}
 			}

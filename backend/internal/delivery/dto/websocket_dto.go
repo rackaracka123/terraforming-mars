@@ -6,14 +6,14 @@ type MessageType string
 const (
 	// Client -> Server messages
 	MessageTypePlayerConnect MessageType = "player-connect"
-	MessageTypePlayAction    MessageType = "play-action"
+	MessageTypePlayAction    MessageType = "do-action"
 
 	// Server -> Client messages
-	MessageTypeGameUpdated        MessageType = "game-updated"
-	MessageTypePlayerConnected    MessageType = "player-connected"
-	MessageTypeError              MessageType = "error"
-	MessageTypeFullState          MessageType = "full-state"
-	MessageTypeAvailableCards     MessageType = "available-cards"
+	MessageTypeGameUpdated     MessageType = "game-updated"
+	MessageTypePlayerConnected MessageType = "player-connected"
+	MessageTypeError           MessageType = "error"
+	MessageTypeFullState       MessageType = "full-state"
+	MessageTypeAvailableCards  MessageType = "available-cards"
 )
 
 // WebSocketMessage represents a WebSocket message
@@ -31,7 +31,7 @@ type PlayerConnectPayload struct {
 
 // PlayActionPayload contains game action data
 type PlayActionPayload struct {
-	ActionPayload ActionPayload `json:"actionPayload" ts:"ActionPayload"`
+	ActionRequest interface{} `json:"actionRequest" ts:"any"`
 }
 
 // GameUpdatedPayload contains updated game state

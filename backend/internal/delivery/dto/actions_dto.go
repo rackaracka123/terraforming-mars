@@ -6,12 +6,8 @@ type ActionType string
 const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
 	ActionTypeStartGame          ActionType = "start-game"
+	ActionTypePlayCard           ActionType = "play-card"
 )
-
-// ActionRequest is the base interface for all action requests
-type ActionRequest interface {
-	GetActionType() ActionType
-}
 
 // SelectStartingCardAction represents selecting starting cards
 type SelectStartingCardAction struct {
@@ -19,37 +15,46 @@ type SelectStartingCardAction struct {
 	CardIDs []string   `json:"cardIds" ts:"string[]"`
 }
 
-func (a SelectStartingCardAction) GetActionType() ActionType {
-	return ActionTypeSelectStartingCard
-}
-
 // StartGameAction represents starting the game (host only)
 type StartGameAction struct {
 	Type ActionType `json:"type" ts:"ActionType"`
 }
 
-func (a StartGameAction) GetActionType() ActionType {
-	return ActionTypeStartGame
+// PlayCardAction represents playing a card from hand
+type PlayCardAction struct {
+	CardID string `json:"cardId" ts:"string"`
 }
 
 
-// ActionPayload contains the action data for WebSocket messages
-type ActionPayload struct {
+// ActionSelectStartingCardRequest contains the action data for select starting card actions
+type ActionSelectStartingCardRequest struct {
 	Type    ActionType `json:"type" ts:"ActionType"`
-	CardIDs []string   `json:"cardIds,omitempty" ts:"string[]"`
+	CardIDs []string   `json:"cardIds" ts:"string[]"`
 }
 
-// GetAction returns the specific action based on the type
-func (ap *ActionPayload) GetAction() ActionRequest {
-	switch ap.Type {
-	case ActionTypeSelectStartingCard:
-		if ap.CardIDs != nil {
-			return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
-		}
-		return nil
-	case ActionTypeStartGame:
-		return &StartGameAction{Type: ap.Type}
-	default:
-		return nil
-	}
+// GetAction returns the select starting card action
+func (ap *ActionSelectStartingCardRequest) GetAction() *SelectStartingCardAction {
+	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
 }
+
+// ActionStartGameRequest contains the action data for start game actions
+type ActionStartGameRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the start game action
+func (ap *ActionStartGameRequest) GetAction() *StartGameAction {
+	return &StartGameAction{Type: ap.Type}
+}
+
+// ActionPlayCardRequest contains the action data for play card actions
+type ActionPlayCardRequest struct {
+	Type   ActionType `json:"type" ts:"ActionType"`
+	CardID string     `json:"cardId" ts:"string"`
+}
+
+// GetAction returns the play card action
+func (ap *ActionPlayCardRequest) GetAction() *PlayCardAction {
+	return &PlayCardAction{CardID: ap.CardID}
+}
+

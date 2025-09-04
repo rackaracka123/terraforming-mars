@@ -9,10 +9,7 @@
 export type ActionType = string;
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
 export const ActionTypeStartGame: ActionType = "start-game";
-/**
- * ActionRequest is the base interface for all action requests
- */
-export type ActionRequest = any;
+export const ActionTypePlayCard: ActionType = "play-card";
 /**
  * SelectStartingCardAction represents selecting starting cards
  */
@@ -27,11 +24,30 @@ export interface StartGameAction {
   type: ActionType;
 }
 /**
- * ActionPayload contains the action data for WebSocket messages
+ * PlayCardAction represents playing a card from hand
  */
-export interface ActionPayload {
+export interface PlayCardAction {
+  cardId: string;
+}
+/**
+ * ActionSelectStartingCardRequest contains the action data for select starting card actions
+ */
+export interface ActionSelectStartingCardRequest {
   type: ActionType;
-  cardIds?: string[];
+  cardIds: string[];
+}
+/**
+ * ActionStartGameRequest contains the action data for start game actions
+ */
+export interface ActionStartGameRequest {
+  type: ActionType;
+}
+/**
+ * ActionPlayCardRequest contains the action data for play card actions
+ */
+export interface ActionPlayCardRequest {
+  type: ActionType;
+  cardId: string;
 }
 
 //////////
@@ -198,7 +214,7 @@ export type MessageType = string;
  * Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
-export const MessageTypePlayAction: MessageType = "play-action";
+export const MessageTypePlayAction: MessageType = "do-action";
 /**
  * Server -> Client messages
  */
@@ -226,7 +242,7 @@ export interface PlayerConnectPayload {
  * PlayActionPayload contains game action data
  */
 export interface PlayActionPayload {
-  actionPayload: ActionPayload;
+  actionRequest: any;
 }
 /**
  * GameUpdatedPayload contains updated game state

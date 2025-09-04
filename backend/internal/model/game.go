@@ -1,4 +1,4 @@
-package domain
+package model
 
 import "time"
 
@@ -17,6 +17,7 @@ type Game struct {
 	Generation       int              `json:"generation" ts:"number"`
 	RemainingActions int              `json:"remainingActions" ts:"number"`
 }
+
 
 // NewGame creates a new game with the given settings
 func NewGame(id string, settings GameSettings) *Game {

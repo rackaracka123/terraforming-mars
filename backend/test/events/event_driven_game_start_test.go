@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/listeners"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"time"
@@ -19,21 +18,22 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus)
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	// Register event repository
+	eventRepository := events.NewEventRepository(eventBus)
 	
-	// Register event listeners
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
-	listenerRegistry.RegisterAllListeners()
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
 
 	// Track events for assertions
 	var capturedEvents []events.Event
-	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
+	eventBus.Subscribe(model.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
 		capturedEvents = append(capturedEvents, event)
 		return nil
 	})
 
 	// Create a test game
-	gameSettings := domain.GameSettings{
+	gameSettings := model.GameSettings{
 		MaxPlayers: 4,
 	}
 	game, err := gameService.CreateGame(gameSettings)
@@ -52,21 +52,21 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	player2ID := updatedGame.Players[1].ID
 
 	// Verify initial game state
-	assert.Equal(t, domain.GameStatusLobby, updatedGame.Status)
-	assert.Equal(t, domain.GamePhaseSetup, updatedGame.CurrentPhase)
+	assert.Equal(t, model.GameStatusLobby, updatedGame.Status)
+	assert.Equal(t, model.GamePhaseSetup, updatedGame.CurrentPhase)
 
 	// Start the game (this should trigger the event-driven flow)
-	startGamePayload := dto.ActionPayload{
+	startGameRequest := dto.ActionStartGameRequest{
 		Type: dto.ActionTypeStartGame,
 	}
 
-	gameAfterStart, err := gameService.ApplyAction(game.ID, player1ID, startGamePayload)
+	gameAfterStart, err := gameService.ApplyAction(game.ID, player1ID, startGameRequest)
 	require.NoError(t, err)
 	require.NotNil(t, gameAfterStart)
 
 	// Verify game state changes
-	assert.Equal(t, domain.GameStatusActive, gameAfterStart.Status)
-	assert.Equal(t, domain.GamePhaseStartingCardSelection, gameAfterStart.CurrentPhase)
+	assert.Equal(t, model.GameStatusActive, gameAfterStart.Status)
+	assert.Equal(t, model.GamePhaseStartingCardSelection, gameAfterStart.CurrentPhase)
 	assert.Equal(t, player1ID, gameAfterStart.CurrentPlayerID)
 
 	// Wait for async event processing
@@ -77,16 +77,16 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 
 	// Verify each player received their card options
 	for _, event := range capturedEvents {
-		assert.Equal(t, events.EventTypePlayerStartingCardOptions, event.GetType())
+		assert.Equal(t, model.EventTypePlayerStartingCardOptions, event.GetType())
 		assert.Equal(t, game.ID, event.GetGameID())
 
-		payload, ok := event.GetPayload().(events.PlayerStartingCardOptionsPayload)
+		payload, ok := event.GetPayload().(model.PlayerStartingCardOptionsEvent)
 		require.True(t, ok, "Event payload should be PlayerStartingCardOptionsPayload")
 		assert.Contains(t, []string{player1ID, player2ID}, payload.PlayerID, "Player ID should be one of the game players")
 		assert.Len(t, payload.CardOptions, 5, "Each player should receive exactly 5 starting card options")
 		
 		// Verify all card options are valid
-		availableCards := domain.GetStartingCards()
+		availableCards := model.GetStartingCards()
 		availableCardIDs := make(map[string]bool)
 		for _, card := range availableCards {
 			availableCardIDs[card.ID] = true
@@ -107,16 +107,17 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus)
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
-	listenerRegistry.RegisterAllListeners()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventRepository := events.NewEventRepository(eventBus)
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
 
 	// Track events per player to verify security isolation
 	player1Events := make([]events.Event, 0)
 	player2Events := make([]events.Event, 0)
 
-	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
-		payload := event.GetPayload().(events.PlayerStartingCardOptionsPayload)
+	eventBus.Subscribe(model.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
+		payload := event.GetPayload().(model.PlayerStartingCardOptionsEvent)
 		
 		// Route events to player-specific collections (simulating client filtering)
 		switch payload.PlayerID {
@@ -129,7 +130,7 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	})
 
 	// Create game and add players
-	gameSettings := domain.GameSettings{MaxPlayers: 2}
+	gameSettings := model.GameSettings{MaxPlayers: 2}
 	game, err := gameService.CreateGame(gameSettings)
 	require.NoError(t, err)
 
@@ -145,8 +146,8 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	gameRepo.UpdateGame(game)
 
 	// Start the game 
-	startGamePayload := dto.ActionPayload{Type: dto.ActionTypeStartGame}
-	_, err = gameService.ApplyAction(game.ID, "player1", startGamePayload)
+	startGameRequest := dto.ActionStartGameRequest{Type: dto.ActionTypeStartGame}
+	_, err = gameService.ApplyAction(game.ID, "player1", startGameRequest)
 	require.NoError(t, err)
 
 	// Wait for event processing
@@ -157,12 +158,12 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	require.Len(t, player2Events, 1, "Player2 should receive exactly 1 card options event")
 
 	// Verify player1 event contains only player1's data
-	p1Payload := player1Events[0].GetPayload().(events.PlayerStartingCardOptionsPayload)
+	p1Payload := player1Events[0].GetPayload().(model.PlayerStartingCardOptionsEvent)
 	assert.Equal(t, "player1", p1Payload.PlayerID)
 	assert.Len(t, p1Payload.CardOptions, 5)
 
 	// Verify player2 event contains only player2's data
-	p2Payload := player2Events[0].GetPayload().(events.PlayerStartingCardOptionsPayload)
+	p2Payload := player2Events[0].GetPayload().(model.PlayerStartingCardOptionsEvent)
 	assert.Equal(t, "player2", p2Payload.PlayerID)
 	assert.Len(t, p2Payload.CardOptions, 5)
 
