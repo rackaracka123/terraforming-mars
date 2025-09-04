@@ -37,16 +37,17 @@ func (h *SelectStartingCardsHandler) applySelectStartingCard(game *domain.Game, 
 		availableCardMap[card.ID] = card
 	}
 	
-	// Validate all selected cards exist and calculate total cost
-	totalCost := 0
+	// Validate all selected cards exist and calculate total cost (3 MC per card)
+	const costPerCard = 3
 	
 	for _, cardID := range action.CardIDs {
-		card, exists := availableCardMap[cardID]
+		_, exists := availableCardMap[cardID]
 		if !exists {
 			return fmt.Errorf("invalid starting card ID: %s", cardID)
 		}
-		totalCost += card.Cost
 	}
+	
+	totalCost := len(action.CardIDs) * costPerCard
 
 	// Check if player has enough credits
 	if player.Resources.Credits < totalCost {

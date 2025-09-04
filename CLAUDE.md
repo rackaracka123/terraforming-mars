@@ -24,7 +24,7 @@ npm run frontend # React frontend only (port 3000)
 ```bash
 cd backend
 go run cmd/server/main.go     # Run development server directly
-go test ./...                 # Run all tests
+make test                     # Run all tests
 go generate                   # Generate TypeScript types and Swagger docs
 ```
 
