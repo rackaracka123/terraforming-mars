@@ -26,8 +26,8 @@ cd backend
 go run cmd/server/main.go     # Run development server directly
 go build -o bin/server cmd/server/main.go  # Build production binary
 ./bin/server                  # Run production binary
-make test                     # Run all tests
-tygo generate                 # Generate TypeScript types and Swagger docs
+go test ./...                 # Run all tests
+go generate                   # Generate TypeScript types and Swagger docs
 ```
 
 ### Frontend (React - Port 3000) 
