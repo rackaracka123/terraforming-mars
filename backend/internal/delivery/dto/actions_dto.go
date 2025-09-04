@@ -32,6 +32,7 @@ func (a StartGameAction) GetActionType() ActionType {
 	return ActionTypeStartGame
 }
 
+
 // ActionPayload contains the action data for WebSocket messages
 type ActionPayload struct {
 	Type    ActionType `json:"type" ts:"ActionType"`

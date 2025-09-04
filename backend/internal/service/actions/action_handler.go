@@ -12,22 +12,14 @@ type ActionHandler interface {
 
 // ActionHandlers contains all action handlers
 type ActionHandlers struct {
-	StandardProjectAsteroid *StandardProjectAsteroidHandler
-	RaiseTemperature       *RaiseTemperatureHandler
-	SelectCorporation      *SelectCorporationHandler
-	SelectStartingCards    *SelectStartingCardsHandler
-	SkipAction            *SkipActionHandler
-	StartGame             *StartGameHandler
+	SelectStartingCards *SelectStartingCardsHandler
+	StartGame          *StartGameHandler
 }
 
 // NewActionHandlers creates a new instance of action handlers
 func NewActionHandlers() *ActionHandlers {
 	return &ActionHandlers{
-		StandardProjectAsteroid: &StandardProjectAsteroidHandler{},
-		RaiseTemperature:       &RaiseTemperatureHandler{},
-		SelectCorporation:      &SelectCorporationHandler{},
-		SelectStartingCards:    &SelectStartingCardsHandler{},
-		SkipAction:            &SkipActionHandler{},
-		StartGame:             &StartGameHandler{},
+		SelectStartingCards: &SelectStartingCardsHandler{},
+		StartGame:          &StartGameHandler{},
 	}
 }
