@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/repository"
@@ -17,13 +18,15 @@ import (
 type GameService struct {
 	gameRepo       *repository.GameRepository
 	actionHandlers *actions.ActionHandlers
+	eventBus       events.EventBus
 }
 
 // NewGameService creates a new game service
-func NewGameService(gameRepo *repository.GameRepository) *GameService {
+func NewGameService(gameRepo *repository.GameRepository, eventBus events.EventBus) *GameService {
 	return &GameService{
 		gameRepo:       gameRepo,
-		actionHandlers: actions.NewActionHandlers(),
+		actionHandlers: actions.NewActionHandlers(eventBus),
+		eventBus:       eventBus,
 	}
 }
 

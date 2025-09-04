@@ -7,6 +7,8 @@ import (
 	"syscall"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/listeners"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/middleware"
 	"terraforming-mars-backend/internal/repository"
@@ -35,9 +37,18 @@ func main() {
 	gameRepo := repository.NewGameRepository()
 	log.Info("Game repository initialized")
 
+	// Initialize event system
+	eventBus := events.NewInMemoryEventBus()
+	log.Info("Event bus initialized")
+
 	// Initialize services
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, eventBus)
 	log.Info("Game service initialized")
+
+	// Register event listeners
+	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo)
+	listenerRegistry.RegisterAllListeners()
+	log.Info("Event listeners registered")
 
 	// Initialize handlers
 	gameHandler := httpHandler.NewGameHandler(gameService)

@@ -3,6 +3,7 @@ package service_test
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"testing"
@@ -14,7 +15,8 @@ func intPtr(i int) *int         { return &i }
 
 func TestNewGameService(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	eventBus := events.NewInMemoryEventBus()
+	gameService := service.NewGameService(gameRepo, eventBus)
 
 	if gameService == nil {
 		t.Fatal("Expected service to be non-nil")
@@ -23,7 +25,7 @@ func TestNewGameService(t *testing.T) {
 
 func TestGameService_CreateGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	tests := []struct {
 		name     string
@@ -74,7 +76,7 @@ func TestGameService_CreateGame(t *testing.T) {
 
 func TestGameService_GetGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	// Create a game first
 	settings := domain.GameSettings{MaxPlayers: 4}
@@ -126,7 +128,7 @@ func TestGameService_GetGame(t *testing.T) {
 
 func TestGameService_JoinGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	// Create a game first
 	settings := domain.GameSettings{MaxPlayers: 2}
@@ -207,7 +209,7 @@ func TestGameService_JoinGame(t *testing.T) {
 
 func TestGameService_ListGames(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	// Create test games
 	settings1 := domain.GameSettings{MaxPlayers: 4}
@@ -284,7 +286,7 @@ func TestGameService_ListGames(t *testing.T) {
 
 func TestGameService_ApplyAction(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	// Create a game and add a player
 	settings := domain.GameSettings{MaxPlayers: 4}

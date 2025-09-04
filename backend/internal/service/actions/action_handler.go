@@ -3,6 +3,7 @@ package actions
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/events"
 )
 
 // ActionHandler defines the interface for handling game actions
@@ -17,9 +18,9 @@ type ActionHandlers struct {
 }
 
 // NewActionHandlers creates a new instance of action handlers
-func NewActionHandlers() *ActionHandlers {
+func NewActionHandlers(eventBus events.EventBus) *ActionHandlers {
 	return &ActionHandlers{
 		SelectStartingCards: &SelectStartingCardsHandler{},
-		StartGame:          &StartGameHandler{},
+		StartGame:          &StartGameHandler{eventBus: eventBus},
 	}
 }

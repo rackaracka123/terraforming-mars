@@ -1,13 +1,20 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/logger"
+	
+	"go.uber.org/zap"
 )
 
 // StartGameHandler handles start game actions
-type StartGameHandler struct{}
+type StartGameHandler struct{
+	eventBus events.EventBus
+}
 
 // Handle applies the start game action
 func (h *StartGameHandler) Handle(game *domain.Game, player *domain.Player, actionPayload dto.ActionPayload) error {
@@ -17,6 +24,8 @@ func (h *StartGameHandler) Handle(game *domain.Game, player *domain.Player, acti
 
 // applyStartGame applies start game action
 func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Player, action dto.StartGameAction) error {
+	log := logger.WithGameContext(game.ID, player.ID)
+	
 	// Validate that the player is the host
 	if !game.IsHost(player.ID) {
 		return fmt.Errorf("only the host can start the game")
@@ -39,6 +48,23 @@ func (h *StartGameHandler) applyStartGame(game *domain.Game, player *domain.Play
 	if len(game.Players) > 0 {
 		game.CurrentPlayerID = game.Players[0].ID
 	}
+
+	// Collect player IDs for the event
+	playerIDs := make([]string, len(game.Players))
+	for i, p := range game.Players {
+		playerIDs[i] = p.ID
+	}
+
+	// Publish GameStarted event to trigger starting card selection
+	gameStartedEvent := events.NewGameStartedEvent(game.ID, playerIDs)
+	if err := h.eventBus.Publish(context.Background(), gameStartedEvent); err != nil {
+		log.Error("Failed to publish game started event", zap.Error(err))
+		return fmt.Errorf("failed to publish game started event: %w", err)
+	}
+
+	log.Info("Game started and event published", 
+		zap.Int("player_count", len(game.Players)),
+	)
 
 	return nil
 }

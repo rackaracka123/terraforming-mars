@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket"
 	model "terraforming-mars-backend/internal/domain"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
@@ -70,7 +71,7 @@ func (c *mockClient) ClearMessages() {
 
 func TestNewHub(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 	hub := websocket.NewHub(gameService)
 
 	if hub == nil {
@@ -80,7 +81,7 @@ func TestNewHub(t *testing.T) {
 
 func TestHub_BroadcastToGame(t *testing.T) {
 	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo)
+	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus())
 
 	// Create a test game
 	settings := model.GameSettings{MaxPlayers: 4}
