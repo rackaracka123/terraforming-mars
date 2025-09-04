@@ -13,10 +13,19 @@ import (
 func stringPtr(s string) *string { return &s }
 func intPtr(i int) *int         { return &i }
 
-func TestNewGameService(t *testing.T) {
+// Helper function to create GameService with all dependencies for testing
+func createTestGameService() *service.GameService {
 	gameRepo := repository.NewGameRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus, nil)
+	eventRepository := events.NewEventRepository(eventBus)
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	
+	return service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
+}
+
+func TestNewGameService(t *testing.T) {
+	gameService := createTestGameService()
 
 	if gameService == nil {
 		t.Fatal("Expected service to be non-nil")
@@ -24,8 +33,7 @@ func TestNewGameService(t *testing.T) {
 }
 
 func TestGameService_CreateGame(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	tests := []struct {
 		name     string
@@ -75,8 +83,7 @@ func TestGameService_CreateGame(t *testing.T) {
 }
 
 func TestGameService_GetGame(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	// Create a game first
 	settings := model.GameSettings{MaxPlayers: 4}
@@ -127,8 +134,7 @@ func TestGameService_GetGame(t *testing.T) {
 }
 
 func TestGameService_JoinGame(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	// Create a game first
 	settings := model.GameSettings{MaxPlayers: 2}
@@ -208,8 +214,7 @@ func TestGameService_JoinGame(t *testing.T) {
 }
 
 func TestGameService_ListGames(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	// Create test games
 	settings1 := model.GameSettings{MaxPlayers: 4}
@@ -285,8 +290,7 @@ func TestGameService_ListGames(t *testing.T) {
 }
 
 func TestGameService_ApplyAction(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	// Create a game and add a player
 	settings := model.GameSettings{MaxPlayers: 4}

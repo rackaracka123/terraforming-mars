@@ -1,16 +1,19 @@
 package cards
 
 import (
+	"context"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 )
 
 // CardHandlerContext provides the context needed for card handlers to execute
 type CardHandlerContext struct {
-	Game      *model.Game
-	Player    *model.Player
-	Card      *model.Card
-	EventBus  events.EventBus
+	Context       context.Context
+	Game          *model.Game
+	PlayerID      string
+	Card          *model.Card
+	EventBus      events.EventBus
+	PlayerService PlayerService
 }
 
 // CardHandler defines the interface that all card implementations must satisfy
@@ -62,7 +65,7 @@ func (b *BaseCardHandler) GetRequirements() model.CardRequirements {
 
 // CanPlay performs basic requirement checking that all cards need
 func (b *BaseCardHandler) CanPlay(ctx *CardHandlerContext) error {
-	return ValidateCardRequirements(ctx.Game, ctx.Player, b.Requirements)
+	return ValidateCardRequirements(ctx.Context, ctx.Game, ctx.PlayerID, ctx.PlayerService, b.Requirements)
 }
 
 // RegisterListeners provides a default implementation that does nothing
@@ -99,7 +102,7 @@ type ActiveCardHandler struct {
 // CanActivate checks if the active card can be used this turn
 func (a *ActiveCardHandler) CanActivate(ctx *CardHandlerContext) error {
 	if a.ActivationCost != nil {
-		return ValidateResourceCost(ctx.Player, *a.ActivationCost)
+		return ctx.PlayerService.ValidateResourceCost(ctx.Context, ctx.Game.ID, ctx.PlayerID, *a.ActivationCost)
 	}
 	return nil
 }

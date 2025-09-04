@@ -25,9 +25,7 @@ func NewEarlySettlementHandler() *EarlySettlementHandler {
 // Play executes the Early Settlement card effect
 func (h *EarlySettlementHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 1 MC production
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Credits: 1,
 	})
-	
-	return nil
 }

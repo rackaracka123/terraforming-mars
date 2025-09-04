@@ -1,6 +1,8 @@
 package model_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/cards"
@@ -28,6 +30,60 @@ func NewMockCardHandler(cardID string, playError error) *MockCardHandler {
 func (m *MockCardHandler) Play(ctx *cards.CardHandlerContext) error {
 	m.playExecuted = true
 	return m.playError
+}
+
+// ValidatingMockPlayerService actually validates resource costs for testing
+type ValidatingMockPlayerService struct {
+	game *model.Game
+}
+
+func (m *ValidatingMockPlayerService) PayResourceCost(ctx context.Context, gameID, playerID string, cost model.ResourceSet) error {
+	return m.ValidateResourceCost(ctx, gameID, playerID, cost)
+}
+
+func (m *ValidatingMockPlayerService) AddResources(ctx context.Context, gameID, playerID string, resources model.ResourceSet) error {
+	return nil
+}
+
+func (m *ValidatingMockPlayerService) ValidateResourceCost(ctx context.Context, gameID, playerID string, cost model.ResourceSet) error {
+	// Find the player
+	for _, player := range m.game.Players {
+		if player.ID == playerID {
+			// Check if player has sufficient resources
+			if player.Resources.Credits < cost.Credits {
+				return errors.New("insufficient credits")
+			}
+			if player.Resources.Steel < cost.Steel {
+				return errors.New("insufficient steel")
+			}
+			if player.Resources.Titanium < cost.Titanium {
+				return errors.New("insufficient titanium")
+			}
+			if player.Resources.Plants < cost.Plants {
+				return errors.New("insufficient plants")
+			}
+			if player.Resources.Energy < cost.Energy {
+				return errors.New("insufficient energy")
+			}
+			if player.Resources.Heat < cost.Heat {
+				return errors.New("insufficient heat")
+			}
+			return nil
+		}
+	}
+	return errors.New("player not found")
+}
+
+func (m *ValidatingMockPlayerService) AddProduction(ctx context.Context, gameID, playerID string, production model.ResourceSet) error {
+	return nil
+}
+
+func (m *ValidatingMockPlayerService) RemoveProduction(ctx context.Context, gameID, playerID string, production model.ResourceSet) error {
+	return nil
+}
+
+func (m *ValidatingMockPlayerService) ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error {
+	return nil
 }
 
 func TestCardHandlerRegistry(t *testing.T) {
@@ -157,12 +213,15 @@ func TestBaseCardHandler(t *testing.T) {
 	t.Run("can play - requirements met", func(t *testing.T) {
 		game := createTestGame()
 		game.GlobalParameters.Temperature = -15 // Meets min -20 requirement
-		player := &game.Players[0]
+		playerID := game.Players[0].ID
+		mockPlayerService := &MockPlayerService{}
 		
 		ctx := &cards.CardHandlerContext{
-			Game:   game,
-			Player: player,
-			Card:   &model.Card{ID: "test-base-card"},
+			Context:       context.Background(),
+			Game:          game,
+			PlayerID:      playerID,
+			Card:          &model.Card{ID: "test-base-card"},
+			PlayerService: mockPlayerService,
 		}
 		
 		err := handler.CanPlay(ctx)
@@ -172,12 +231,15 @@ func TestBaseCardHandler(t *testing.T) {
 	t.Run("can play - requirements not met", func(t *testing.T) {
 		game := createTestGame()
 		game.GlobalParameters.Temperature = -25 // Does not meet min -20 requirement
-		player := &game.Players[0]
+		playerID := game.Players[0].ID
+		mockPlayerService := &MockPlayerService{}
 		
 		ctx := &cards.CardHandlerContext{
-			Game:   game,
-			Player: player,
-			Card:   &model.Card{ID: "test-base-card"},
+			Context:       context.Background(),
+			Game:          game,
+			PlayerID:      playerID,
+			Card:          &model.Card{ID: "test-base-card"},
+			PlayerService: mockPlayerService,
 		}
 		
 		err := handler.CanPlay(ctx)
@@ -203,9 +265,15 @@ func TestActiveCardHandler(t *testing.T) {
 		player := createTestPlayer()
 		player.Resources.Credits = 10
 		player.Resources.Steel = 5
+		game := createTestGame()
+		game.Players[0] = player
+		mockPlayerService := &MockPlayerService{}
 		
 		ctx := &cards.CardHandlerContext{
-			Player: &player,
+			Context:       context.Background(),
+			Game:          game,
+			PlayerID:      player.ID,
+			PlayerService: mockPlayerService,
 		}
 		
 		err := handler.CanActivate(ctx)
@@ -213,12 +281,29 @@ func TestActiveCardHandler(t *testing.T) {
 	})
 	
 	t.Run("can activate - insufficient resources", func(t *testing.T) {
-		player := createTestPlayer()
-		player.Resources.Credits = 3
-		player.Resources.Steel = 1
+		player := &model.Player{
+			ID:   "test-player",
+			Name: "Test Player",
+			Resources: model.Resources{
+				Credits: 3, // Less than required 5
+				Steel:   1, // Less than required 2
+			},
+		}
+		game := &model.Game{
+			ID:           "test-game",
+			Status:       model.GameStatusActive,
+			CurrentPhase: model.GamePhaseAction,
+			Players: []model.Player{*player},
+		}
+		
+		// Create a mock that actually validates resource costs
+		mockPlayerService := &ValidatingMockPlayerService{game: game}
 		
 		ctx := &cards.CardHandlerContext{
-			Player: &player,
+			Context:       context.Background(),
+			Game:          game,
+			PlayerID:      player.ID,
+			PlayerService: mockPlayerService,
 		}
 		
 		err := handler.CanActivate(ctx)
@@ -235,8 +320,15 @@ func TestActiveCardHandler(t *testing.T) {
 		}
 		
 		player := createTestPlayer()
+		game := createTestGame()
+		game.Players[0] = player
+		mockPlayerService := &MockPlayerService{}
+		
 		ctx := &cards.CardHandlerContext{
-			Player: &player,
+			Context:       context.Background(),
+			Game:          game,
+			PlayerID:      player.ID,
+			PlayerService: mockPlayerService,
 		}
 		
 		err := handlerNoCost.CanActivate(ctx)

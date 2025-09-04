@@ -7,19 +7,22 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/interfaces"
 )
 
 // RegistryBasedPlayCardHandler uses the card handler registry for scalable card management
 type RegistryBasedPlayCardHandler struct {
-	cardRegistry *cards.CardHandlerRegistry
-	eventBus     events.EventBus
+	cardRegistry  *cards.CardHandlerRegistry
+	eventBus      events.EventBus
+	playerService interfaces.PlayerService
 }
 
 // NewRegistryBasedPlayCardHandler creates a new registry-based card handler
-func NewRegistryBasedPlayCardHandler(cardRegistry *cards.CardHandlerRegistry, eventBus events.EventBus) *RegistryBasedPlayCardHandler {
+func NewRegistryBasedPlayCardHandler(cardRegistry *cards.CardHandlerRegistry, eventBus events.EventBus, playerService interfaces.PlayerService) *RegistryBasedPlayCardHandler {
 	return &RegistryBasedPlayCardHandler{
-		cardRegistry: cardRegistry,
-		eventBus:     eventBus,
+		cardRegistry:  cardRegistry,
+		eventBus:      eventBus,
+		playerService: playerService,
 	}
 }
 
@@ -64,8 +67,9 @@ func (h *RegistryBasedPlayCardHandler) applyPlayCard(game *model.Game, player *m
 	}
 
 	// Check if player has enough credits for base cost
-	if player.Resources.Credits < cardToPlay.Cost {
-		return fmt.Errorf("insufficient credits: need %d, have %d", cardToPlay.Cost, player.Resources.Credits)
+	resourceCost := model.ResourceSet{Credits: cardToPlay.Cost}
+	if err := h.playerService.ValidateResourceCost(context.Background(), game.ID, player.ID, resourceCost); err != nil {
+		return fmt.Errorf("insufficient credits: %w", err)
 	}
 
 	// Get the card handler from registry
@@ -76,10 +80,12 @@ func (h *RegistryBasedPlayCardHandler) applyPlayCard(game *model.Game, player *m
 
 	// Create context for card handler
 	ctx := &cards.CardHandlerContext{
-		Game:     game,
-		Player:   player,
-		Card:     cardToPlay,
-		EventBus: h.eventBus,
+		Context:       context.Background(),
+		Game:          game,
+		PlayerID:      player.ID,
+		Card:          cardToPlay,
+		EventBus:      h.eventBus,
+		PlayerService: h.playerService,
 	}
 
 	// Check if card requirements are met and can be played
@@ -88,12 +94,17 @@ func (h *RegistryBasedPlayCardHandler) applyPlayCard(game *model.Game, player *m
 	}
 
 	// Pay for the card
-	player.Resources.Credits -= cardToPlay.Cost
+	if err := h.playerService.PayResourceCost(context.Background(), game.ID, player.ID, resourceCost); err != nil {
+		return fmt.Errorf("failed to pay card cost: %w", err)
+	}
 
 	// Apply card effects through the handler
 	if err := cardHandler.Play(ctx); err != nil {
 		// Refund the cost if effect application fails
-		player.Resources.Credits += cardToPlay.Cost
+		if refundErr := h.playerService.AddResources(context.Background(), game.ID, player.ID, resourceCost); refundErr != nil {
+			// Log the refund error but return the original play error
+			fmt.Printf("Failed to refund card cost: %v\n", refundErr)
+		}
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}
 

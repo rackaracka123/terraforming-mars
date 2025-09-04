@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
@@ -17,19 +18,25 @@ import (
 
 // GameService handles game business logic
 type GameService struct {
-	gameRepo       *repository.GameRepository
-	actionHandlers *actions.ActionHandlers
-	eventBus       events.EventBus
-	cardRegistry   *cards.CardHandlerRegistry
+	gameRepo           *repository.GameRepository
+	cardSelectionRepo  *repository.CardSelectionRepository
+	actionHandlers     *actions.ActionHandlers
+	eventBus           events.EventBus
+	eventRepository    *events.EventRepository
+	cardRegistry       *cards.CardHandlerRegistry
+	playerService      *PlayerService
 }
 
 // NewGameService creates a new game service
-func NewGameService(gameRepo *repository.GameRepository, eventBus events.EventBus, cardRegistry *cards.CardHandlerRegistry) *GameService {
+func NewGameService(gameRepo *repository.GameRepository, cardSelectionRepo *repository.CardSelectionRepository, eventBus events.EventBus, eventRepository *events.EventRepository, cardRegistry *cards.CardHandlerRegistry, playerService *PlayerService) *GameService {
 	return &GameService{
-		gameRepo:       gameRepo,
-		actionHandlers: actions.NewActionHandlers(eventBus, cardRegistry),
-		eventBus:       eventBus,
-		cardRegistry:   cardRegistry,
+		gameRepo:          gameRepo,
+		cardSelectionRepo: cardSelectionRepo,
+		actionHandlers:    actions.NewActionHandlers(eventBus, eventRepository, cardRegistry, cardSelectionRepo, playerService),
+		eventBus:          eventBus,
+		eventRepository:   eventRepository,
+		cardRegistry:      cardRegistry,
+		playerService:     playerService,
 	}
 }
 
@@ -56,6 +63,14 @@ func (s *GameService) CreateGame(settings model.GameSettings) (*model.Game, erro
 		zap.String("game_id", game.ID),
 		zap.Int("max_players", settings.MaxPlayers),
 	)
+
+	// Publish game created event
+	if s.eventRepository != nil {
+		gameCreatedEvent := events.NewGameCreatedEvent(game.ID, settings.MaxPlayers)
+		if err := s.eventRepository.Publish(context.Background(), gameCreatedEvent); err != nil {
+			log.Warn("Failed to publish game created event", zap.Error(err))
+		}
+	}
 
 	return game, nil
 }
@@ -147,6 +162,14 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*model.Game, e
 		zap.Int("total_players", len(game.Players)),
 	)
 
+	// Publish player joined event
+	if s.eventRepository != nil {
+		playerJoinedEvent := events.NewPlayerJoinedEvent(gameID, playerID, playerName)
+		if err := s.eventRepository.Publish(context.Background(), playerJoinedEvent); err != nil {
+			log.Warn("Failed to publish player joined event", zap.Error(err))
+		}
+	}
+
 	return game, nil
 }
 
@@ -167,7 +190,20 @@ func (s *GameService) UpdateGame(game *model.Game) error {
 
 	game.UpdatedAt = time.Now()
 
-	return s.gameRepo.UpdateGame(game)
+	if err := s.gameRepo.UpdateGame(game); err != nil {
+		return err
+	}
+
+	// Publish game updated event
+	if s.eventRepository != nil {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(game.ID)
+		if err := s.eventRepository.Publish(context.Background(), gameUpdatedEvent); err != nil {
+			log := logger.WithGameContext(game.ID, "")
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
+
+	return nil
 }
 
 // ApplyAction validates and applies a game action using DTO types

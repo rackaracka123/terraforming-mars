@@ -18,6 +18,7 @@ type Game struct {
 	RemainingActions int              `json:"remainingActions" ts:"number"`
 }
 
+
 // NewGame creates a new game with the given settings
 func NewGame(id string, settings GameSettings) *Game {
 	now := time.Now()

@@ -25,9 +25,7 @@ func NewNitrogenPlantsHandler() *NitrogenPlantsHandler {
 // Play executes the Nitrogen-Rich Plants card effect
 func (h *NitrogenPlantsHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 1 Plant production
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Plants: 1,
 	})
-	
-	return nil
 }

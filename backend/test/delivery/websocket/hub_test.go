@@ -18,6 +18,17 @@ import (
 func stringPtr(s string) *string { return &s }
 func intPtr(i int) *int         { return &i }
 
+// Helper function to create GameService with all dependencies for testing
+func createTestGameService() *service.GameService {
+	gameRepo := repository.NewGameRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventBus := events.NewInMemoryEventBus()
+	eventRepository := events.NewEventRepository(eventBus)
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	
+	return service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
+}
+
 // mockClient implements basic client functionality for testing
 type mockClient struct {
 	ID       string
@@ -70,8 +81,7 @@ func (c *mockClient) ClearMessages() {
 }
 
 func TestNewHub(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 	hub := websocket.NewHub(gameService)
 
 	if hub == nil {
@@ -80,8 +90,7 @@ func TestNewHub(t *testing.T) {
 }
 
 func TestHub_BroadcastToGame(t *testing.T) {
-	gameRepo := repository.NewGameRepository()
-	gameService := service.NewGameService(gameRepo, events.NewInMemoryEventBus(), nil)
+	gameService := createTestGameService()
 
 	// Create a test game
 	settings := model.GameSettings{MaxPlayers: 4}

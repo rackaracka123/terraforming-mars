@@ -34,18 +34,13 @@ func (h *SpaceMirrorsHandler) Play(ctx *cards.CardHandlerContext) error {
 
 // Activate executes the Space Mirrors repeatable action
 func (h *SpaceMirrorsHandler) Activate(ctx *cards.CardHandlerContext) error {
-	// Check if player can afford the activation cost
-	if err := cards.ValidateResourceCost(ctx.Player, *h.ActivationCost); err != nil {
+	// Pay the activation cost and gain energy production
+	if err := ctx.PlayerService.PayResourceCost(ctx.Context, ctx.Game.ID, ctx.PlayerID, *h.ActivationCost); err != nil {
 		return err
 	}
 	
-	// Pay the activation cost
-	cards.PayResourceCost(ctx.Player, *h.ActivationCost)
-	
 	// Gain 1 Energy production
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Energy: 1,
 	})
-	
-	return nil
 }

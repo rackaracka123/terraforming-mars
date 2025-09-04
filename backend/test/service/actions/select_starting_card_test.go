@@ -2,13 +2,19 @@ package actions_test
 
 import (
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/model/card_selection"
+	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service/actions/select_starting_card"
 	"testing"
 )
 
 func TestSelectStartingCardsHandler_Handle(t *testing.T) {
-	handler := &select_starting_card.SelectStartingCardsHandler{}
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventBus := events.NewInMemoryEventBus()
+	eventRepository := events.NewEventRepository(eventBus)
+	handler := select_starting_card.NewSelectStartingCardsHandler(cardSelectionRepo, eventRepository)
 
 	tests := []struct {
 		name           string
@@ -110,6 +116,18 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 				},
 			}
 
+			// Set up starting card options for the player
+			playerCardOptions := []card_selection.PlayerCardOptions{
+				{
+					PlayerID:    "player-1",
+					CardOptions: []string{"investment", "early-settlement", "research-grant", "water-import", "extra-card"}, // Include all cards that might be selected
+				},
+			}
+			err := cardSelectionRepo.CreateStartingCardSelection("test-game", playerCardOptions)
+			if err != nil {
+				t.Fatalf("Failed to create starting card selection: %v", err)
+			}
+
 			// Create action request
 			actionRequest := dto.ActionSelectStartingCardRequest{
 				Type:    dto.ActionTypeSelectStartingCard,
@@ -117,7 +135,7 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 			}
 
 			// Apply the action
-			err := handler.Handle(game, &game.Players[0], actionRequest)
+			err = handler.Handle(game, &game.Players[0], actionRequest)
 
 			// Check error expectation
 			if (err != nil) != tt.wantErr {
@@ -148,7 +166,10 @@ func TestSelectStartingCardsHandler_Handle(t *testing.T) {
 }
 
 func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
-	handler := &select_starting_card.SelectStartingCardsHandler{}
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventBus := events.NewInMemoryEventBus()
+	eventRepository := events.NewEventRepository(eventBus)
+	handler := select_starting_card.NewSelectStartingCardsHandler(cardSelectionRepo, eventRepository)
 
 	// Create game with 2 players, one has already selected cards
 	game := &model.Game{
@@ -174,13 +195,35 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 		},
 	}
 
+	// Set up starting card options for both players
+	playerCardOptions := []card_selection.PlayerCardOptions{
+		{
+			PlayerID:    "player-1",
+			CardOptions: []string{"investment", "early-settlement", "research-grant", "water-import", "extra-card"},
+		},
+		{
+			PlayerID:    "player-2", 
+			CardOptions: []string{"investment", "early-settlement", "research-grant", "water-import", "extra-card"},
+		},
+	}
+	err := cardSelectionRepo.CreateStartingCardSelection("test-game", playerCardOptions)
+	if err != nil {
+		t.Fatalf("Failed to create starting card selection: %v", err)
+	}
+
+	// Mark player-1 as already completed (since they already have cards)
+	err = cardSelectionRepo.MarkPlayerCompletedStartingCardSelection("test-game", "player-1")
+	if err != nil {
+		t.Fatalf("Failed to mark player-1 as completed: %v", err)
+	}
+
 	// Player 2 selects cards
 	actionRequest := dto.ActionSelectStartingCardRequest{
 		Type:    dto.ActionTypeSelectStartingCard,
 		CardIDs: []string{"research-grant"},
 	}
 
-	err := handler.Handle(game, &game.Players[1], actionRequest)
+	err = handler.Handle(game, &game.Players[1], actionRequest)
 	if err != nil {
 		t.Fatalf("Handle() unexpected error = %v", err)
 	}
@@ -203,7 +246,10 @@ func TestSelectStartingCardsHandler_AllPlayersSelected(t *testing.T) {
 
 func TestSelectStartingCards_PaymentLogic(t *testing.T) {
 	// This test specifically verifies that all cards cost 3 MC regardless of their actual cost
-	handler := &select_starting_card.SelectStartingCardsHandler{}
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventBus := events.NewInMemoryEventBus()
+	eventRepository := events.NewEventRepository(eventBus)
+	handler := select_starting_card.NewSelectStartingCardsHandler(cardSelectionRepo, eventRepository)
 
 	// Get all available starting cards to test
 	availableCards := model.GetStartingCards()
@@ -228,12 +274,24 @@ func TestSelectStartingCards_PaymentLogic(t *testing.T) {
 				},
 			}
 
+			// Set up starting card options including the current card
+			playerCardOptions := []card_selection.PlayerCardOptions{
+				{
+					PlayerID:    "player-1",
+					CardOptions: []string{card.ID}, // Just include the card being tested
+				},
+			}
+			err := cardSelectionRepo.CreateStartingCardSelection("test-game", playerCardOptions)
+			if err != nil {
+				t.Fatalf("Failed to create starting card selection: %v", err)
+			}
+
 			actionRequest := dto.ActionSelectStartingCardRequest{
 				Type:    dto.ActionTypeSelectStartingCard,
 				CardIDs: []string{card.ID},
 			}
 
-			err := handler.Handle(game, &game.Players[0], actionRequest)
+			err = handler.Handle(game, &game.Players[0], actionRequest)
 			if err != nil {
 				t.Fatalf("Handle() unexpected error for card %s: %v", card.Name, err)
 			}

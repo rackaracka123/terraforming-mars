@@ -25,9 +25,7 @@ func NewPowerPlantHandler() *PowerPlantHandler {
 // Play executes the Power Plant card effect
 func (h *PowerPlantHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 1 Energy production
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Energy: 1,
 	})
-	
-	return nil
 }

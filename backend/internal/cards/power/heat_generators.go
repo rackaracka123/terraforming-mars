@@ -25,9 +25,7 @@ func NewHeatGeneratorsHandler() *HeatGeneratorsHandler {
 // Play executes the Heat Generators card effect
 func (h *HeatGeneratorsHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 1 Heat production
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Heat: 1,
 	})
-	
-	return nil
 }

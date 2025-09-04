@@ -28,13 +28,12 @@ func NewMiningGuildHandler() *MiningGuildHandler {
 // Play executes the Mining Guild card effect
 func (h *MiningGuildHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 1 Steel production (immediate effect)
-	cards.AddProduction(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Steel: 1,
 	})
 	
 	// The ongoing effect (gain resources when steel/titanium is produced) 
 	// is handled by the listener system
-	return nil
 }
 
 // RegisterListeners registers event listeners for Mining Guild

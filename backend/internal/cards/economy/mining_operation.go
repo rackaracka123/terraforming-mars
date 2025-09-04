@@ -25,9 +25,7 @@ func NewMiningOperationHandler() *MiningOperationHandler {
 // Play executes the Mining Operation card effect
 func (h *MiningOperationHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Gain 2 Steel
-	cards.AddResources(ctx.Player, model.ResourceSet{
+	return ctx.PlayerService.AddResources(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Steel: 2,
 	})
-	
-	return nil
 }

@@ -10,7 +10,6 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/listeners"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/middleware"
 	"terraforming-mars-backend/internal/repository"
@@ -38,6 +37,9 @@ func main() {
 	// Initialize repositories
 	gameRepo := repository.NewGameRepository()
 	log.Info("Game repository initialized")
+	
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	log.Info("Card selection repository initialized")
 
 	// Initialize event system
 	eventBus := events.NewInMemoryEventBus()
@@ -50,14 +52,16 @@ func main() {
 	}
 	log.Info("Card registry initialized with handlers", zap.Int("handlers", len(cardRegistry.GetAllRegisteredCards())))
 
-	// Initialize services
-	gameService := service.NewGameService(gameRepo, eventBus, cardRegistry)
-	log.Info("Game service initialized")
+	// Register event repository
+	eventRepository := events.NewEventRepository(eventBus)
+	log.Info("Event repository initialized")
 
-	// Register event listeners
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, cardRegistry)
-	listenerRegistry.RegisterAllListeners()
-	log.Info("Event listeners registered")
+	// Initialize services
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	log.Info("Player service initialized")
+	
+	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, cardRegistry, playerService)
+	log.Info("Game service initialized")
 	
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {

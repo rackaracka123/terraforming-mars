@@ -6,7 +6,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/listeners"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"time"
@@ -19,15 +18,16 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus, nil)
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	// Register event repository
+	eventRepository := events.NewEventRepository(eventBus)
 	
-	// Register event listeners
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, nil)
-	listenerRegistry.RegisterAllListeners()
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
 
 	// Track events for assertions
 	var capturedEvents []events.Event
-	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
+	eventBus.Subscribe(model.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
 		capturedEvents = append(capturedEvents, event)
 		return nil
 	})
@@ -77,10 +77,10 @@ func TestEventDrivenGameStart_IntegrationFlow(t *testing.T) {
 
 	// Verify each player received their card options
 	for _, event := range capturedEvents {
-		assert.Equal(t, events.EventTypePlayerStartingCardOptions, event.GetType())
+		assert.Equal(t, model.EventTypePlayerStartingCardOptions, event.GetType())
 		assert.Equal(t, game.ID, event.GetGameID())
 
-		payload, ok := event.GetPayload().(events.PlayerStartingCardOptionsPayload)
+		payload, ok := event.GetPayload().(model.PlayerStartingCardOptionsEvent)
 		require.True(t, ok, "Event payload should be PlayerStartingCardOptionsPayload")
 		assert.Contains(t, []string{player1ID, player2ID}, payload.PlayerID, "Player ID should be one of the game players")
 		assert.Len(t, payload.CardOptions, 5, "Each player should receive exactly 5 starting card options")
@@ -107,16 +107,17 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	// Setup dependencies
 	gameRepo := repository.NewGameRepository()
 	eventBus := events.NewInMemoryEventBus()
-	gameService := service.NewGameService(gameRepo, eventBus, nil)
-	listenerRegistry := listeners.NewRegistry(eventBus, gameRepo, nil)
-	listenerRegistry.RegisterAllListeners()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	eventRepository := events.NewEventRepository(eventBus)
+	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
+	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, nil, playerService)
 
 	// Track events per player to verify security isolation
 	player1Events := make([]events.Event, 0)
 	player2Events := make([]events.Event, 0)
 
-	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
-		payload := event.GetPayload().(events.PlayerStartingCardOptionsPayload)
+	eventBus.Subscribe(model.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
+		payload := event.GetPayload().(model.PlayerStartingCardOptionsEvent)
 		
 		// Route events to player-specific collections (simulating client filtering)
 		switch payload.PlayerID {
@@ -157,12 +158,12 @@ func TestEventDrivenGameStart_SecurityIsolation(t *testing.T) {
 	require.Len(t, player2Events, 1, "Player2 should receive exactly 1 card options event")
 
 	// Verify player1 event contains only player1's data
-	p1Payload := player1Events[0].GetPayload().(events.PlayerStartingCardOptionsPayload)
+	p1Payload := player1Events[0].GetPayload().(model.PlayerStartingCardOptionsEvent)
 	assert.Equal(t, "player1", p1Payload.PlayerID)
 	assert.Len(t, p1Payload.CardOptions, 5)
 
 	// Verify player2 event contains only player2's data
-	p2Payload := player2Events[0].GetPayload().(events.PlayerStartingCardOptionsPayload)
+	p2Payload := player2Events[0].GetPayload().(model.PlayerStartingCardOptionsEvent)
 	assert.Equal(t, "player2", p2Payload.PlayerID)
 	assert.Len(t, p2Payload.CardOptions, 5)
 

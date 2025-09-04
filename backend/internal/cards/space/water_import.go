@@ -33,7 +33,11 @@ func (h *WaterImportHandler) Play(ctx *cards.CardHandlerContext) error {
 		}
 		
 		// Player gains TR when raising global parameters
-		ctx.Player.TerraformRating += 1
+		player, found := ctx.Game.GetPlayer(ctx.PlayerID)
+		if !found {
+			return fmt.Errorf("player not found in game")
+		}
+		player.TerraformRating += 1
 	} else {
 		return fmt.Errorf("maximum number of ocean tiles already placed")
 	}
