@@ -53,3 +53,39 @@ type HexPosition struct {
 func (h HexPosition) IsValid() bool {
 	return h.Q+h.R+h.S == 0
 }
+
+// Distance calculates the distance between two hex positions
+func (h HexPosition) Distance(other HexPosition) int {
+	return (abs(h.Q-other.Q) + abs(h.R-other.R) + abs(h.S-other.S)) / 2
+}
+
+// GetNeighbors returns all adjacent hex positions
+func (h HexPosition) GetNeighbors() []HexPosition {
+	directions := []HexPosition{
+		{1, -1, 0},  // East
+		{1, 0, -1},  // Southeast
+		{0, 1, -1},  // Southwest
+		{-1, 1, 0},  // West
+		{-1, 0, 1},  // Northwest
+		{0, -1, 1},  // Northeast
+	}
+	
+	neighbors := make([]HexPosition, 6)
+	for i, dir := range directions {
+		neighbors[i] = HexPosition{
+			Q: h.Q + dir.Q,
+			R: h.R + dir.R,
+			S: h.S + dir.S,
+		}
+	}
+	
+	return neighbors
+}
+
+// abs returns the absolute value of an integer
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
