@@ -37,6 +37,7 @@ type Hub struct {
 	gameService             service.GameService
 	playerService          service.PlayerService
 	globalParametersService service.GlobalParametersService
+	standardProjectService  service.StandardProjectService
 	
 	// Synchronization
 	mu     sync.RWMutex
@@ -44,7 +45,7 @@ type Hub struct {
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService) *Hub {
+func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService, standardProjectService service.StandardProjectService) *Hub {
 	return &Hub{
 		connections:             make(map[*Connection]bool),
 		gameConnections:         make(map[string]map[*Connection]bool),
@@ -54,6 +55,7 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 		gameService:             gameService,
 		playerService:          playerService,
 		globalParametersService: globalParametersService,
+		standardProjectService:  standardProjectService,
 		logger:                  logger.Get(),
 	}
 }

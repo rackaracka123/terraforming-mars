@@ -51,6 +51,7 @@ func main() {
 	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
 	playerService := service.NewPlayerService(gameRepo, playerRepo) 
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
 	log.Info("Services initialized with new architecture")
 	
 	// Log service initialization
@@ -76,7 +77,7 @@ func main() {
 	}
 
 	// Initialize WebSocket hub
-	hub := wsHandler.NewHub(gameService, playerService, globalParametersService)
+	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService)
 	wsHandlerInstance := wsHandler.NewHandler(hub)
 	
 	// Start WebSocket hub in background

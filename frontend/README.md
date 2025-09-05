@@ -97,7 +97,7 @@ src/
 The frontend uses types automatically generated from the Go backend:
 ```bash
 # In backend directory
-go generate
+tygo generate
 ```
 This updates `src/types/generated/` with latest backend types.
 

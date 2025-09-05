@@ -3,7 +3,9 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/model"
 
 	"go.uber.org/zap"
 )
@@ -113,19 +115,34 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		return
 	}
 	
-	// TODO: Delegate to appropriate service based on action type
-	// For now, just log the action
-	h.logger.Info("Action received via WebSocket",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.Any("action", payload.ActionRequest))
+	// Handle different action types
+	if err := h.processAction(ctx, gameID, playerID, payload.ActionRequest); err != nil {
+		h.logger.Error("Failed to process action",
+			zap.Error(err),
+			zap.String("connection_id", connection.ID),
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID))
+		h.sendErrorToConnection(connection, fmt.Sprintf("Action failed: %v", err))
+		return
+	}
 	
-	// Send acknowledgment back to the player
-	h.sendToConnection(connection, dto.WebSocketMessage{
-		Type:    dto.MessageTypeError,
-		Payload: dto.ErrorPayload{Message: "Action processing not yet implemented"},
-		GameID:  gameID,
+	// Broadcast updated game state to all players in the game
+	game, err := h.gameService.GetGame(ctx, gameID)
+	if err != nil {
+		h.logger.Error("Failed to get updated game state after action",
+			zap.Error(err),
+			zap.String("game_id", gameID))
+		h.sendErrorToConnection(connection, "Failed to get updated game state")
+		return
+	}
+	
+	h.broadcastToGame(gameID, dto.WebSocketMessage{
+		Type: dto.MessageTypeFullState,
+		Payload: dto.FullStatePayload{
+			Game:     dto.ToGameDto(game),
+			PlayerID: playerID,
+		},
+		GameID: gameID,
 	})
 }
 
@@ -153,4 +170,123 @@ func (h *Hub) sendErrorToConnection(connection *Connection, message string) {
 	}
 	
 	h.sendToConnection(connection, errorMessage)
+}
+
+// processAction processes different types of game actions
+func (h *Hub) processAction(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	// Parse action request into a map to extract action type
+	actionBytes, err := json.Marshal(actionRequest)
+	if err != nil {
+		return fmt.Errorf("failed to marshal action request: %w", err)
+	}
+	
+	var actionMap map[string]interface{}
+	if err := json.Unmarshal(actionBytes, &actionMap); err != nil {
+		return fmt.Errorf("failed to unmarshal action request: %w", err)
+	}
+	
+	actionType, ok := actionMap["type"].(string)
+	if !ok {
+		return fmt.Errorf("action type not found or invalid")
+	}
+	
+	// Handle different action types
+	switch dto.ActionType(actionType) {
+	case dto.ActionTypeSellPatents:
+		return h.handleSellPatents(ctx, gameID, playerID, actionRequest)
+	case dto.ActionTypeBuildPowerPlant:
+		return h.handleBuildPowerPlant(ctx, gameID, playerID)
+	case dto.ActionTypeLaunchAsteroid:
+		return h.handleLaunchAsteroid(ctx, gameID, playerID)
+	case dto.ActionTypeBuildAquifer:
+		return h.handleBuildAquifer(ctx, gameID, playerID, actionRequest)
+	case dto.ActionTypePlantGreenery:
+		return h.handlePlantGreenery(ctx, gameID, playerID, actionRequest)
+	case dto.ActionTypeBuildCity:
+		return h.handleBuildCity(ctx, gameID, playerID, actionRequest)
+	default:
+		return fmt.Errorf("unsupported action type: %s", actionType)
+	}
+}
+
+// handleSellPatents handles sell patents standard project
+func (h *Hub) handleSellPatents(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionSellPatentsRequest
+	if err := h.parseActionRequest(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid sell patents request: %w", err)
+	}
+	
+	return h.standardProjectService.SellPatents(ctx, gameID, playerID, request.CardCount)
+}
+
+// handleBuildPowerPlant handles build power plant standard project
+func (h *Hub) handleBuildPowerPlant(ctx context.Context, gameID, playerID string) error {
+	return h.standardProjectService.BuildPowerPlant(ctx, gameID, playerID)
+}
+
+// handleLaunchAsteroid handles launch asteroid standard project
+func (h *Hub) handleLaunchAsteroid(ctx context.Context, gameID, playerID string) error {
+	return h.standardProjectService.LaunchAsteroid(ctx, gameID, playerID)
+}
+
+// handleBuildAquifer handles build aquifer standard project
+func (h *Hub) handleBuildAquifer(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionBuildAquiferRequest
+	if err := h.parseActionRequest(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid build aquifer request: %w", err)
+	}
+	
+	hexPosition := model.HexPosition{
+		Q: request.HexPosition.Q,
+		R: request.HexPosition.R,
+		S: request.HexPosition.S,
+	}
+	
+	return h.standardProjectService.BuildAquifer(ctx, gameID, playerID, hexPosition)
+}
+
+// handlePlantGreenery handles plant greenery standard project
+func (h *Hub) handlePlantGreenery(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionPlantGreeneryRequest
+	if err := h.parseActionRequest(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid plant greenery request: %w", err)
+	}
+	
+	hexPosition := model.HexPosition{
+		Q: request.HexPosition.Q,
+		R: request.HexPosition.R,
+		S: request.HexPosition.S,
+	}
+	
+	return h.standardProjectService.PlantGreenery(ctx, gameID, playerID, hexPosition)
+}
+
+// handleBuildCity handles build city standard project
+func (h *Hub) handleBuildCity(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionBuildCityRequest
+	if err := h.parseActionRequest(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid build city request: %w", err)
+	}
+	
+	hexPosition := model.HexPosition{
+		Q: request.HexPosition.Q,
+		R: request.HexPosition.R,
+		S: request.HexPosition.S,
+	}
+	
+	return h.standardProjectService.BuildCity(ctx, gameID, playerID, hexPosition)
+}
+
+// parseActionRequest parses an action request into the given destination
+func (h *Hub) parseActionRequest(actionRequest interface{}, dest interface{}) error {
+	actionBytes, err := json.Marshal(actionRequest)
+	if err != nil {
+		return fmt.Errorf("failed to marshal action request: %w", err)
+	}
+	
+	if err := json.Unmarshal(actionBytes, dest); err != nil {
+		return fmt.Errorf("failed to unmarshal action request: %w", err)
+	}
+	
+	return nil
 }

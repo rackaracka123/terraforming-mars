@@ -26,7 +26,7 @@ go run cmd/server/main.go     # Run development server directly
 go build -o bin/server cmd/server/main.go  # Build production binary
 ./bin/server                  # Run production binary
 make test                     # Run all tests
-tygo generate                 # Generate TypeScript types and Swagger docs
+tygo generate                 # Generate TypeScript types
 ```
 
 ### Frontend (React - Port 3000) 
@@ -73,7 +73,7 @@ backend/
 ### Type Safety Bridge
 Go structs automatically generate TypeScript interfaces via custom type generator:
 - **Go Domain**: Structs with `ts:` tags define frontend types
-- **Code Generation**: `go generate` creates TypeScript interfaces
+- **Code Generation**: `tygo generate` creates TypeScript interfaces
 - **Frontend Import**: React components use generated types for full type safety
 
 ### 3D Rendering System
@@ -132,7 +132,7 @@ Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat convert
 
 ### Backend Development Flow
 1. Modify Go structs -> Add business logic -> Update handlers
-2. Run `go generate` for type sync
+2. Run `tygo generate` for type sync
 3. Frontend automatically gets updated TypeScript interfaces
 
 ### 3D Scene Modifications

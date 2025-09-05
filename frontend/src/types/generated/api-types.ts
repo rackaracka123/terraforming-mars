@@ -11,6 +11,15 @@ export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypePlayCard: ActionType = "play-card";
 /**
+ * Standard Projects
+ */
+export const ActionTypeSellPatents: ActionType = "sell-patents";
+export const ActionTypeBuildPowerPlant: ActionType = "build-power-plant";
+export const ActionTypeLaunchAsteroid: ActionType = "launch-asteroid";
+export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
+export const ActionTypePlantGreenery: ActionType = "plant-greenery";
+export const ActionTypeBuildCity: ActionType = "build-city";
+/**
  * SelectStartingCardAction represents selecting starting cards
  */
 export interface SelectStartingCardAction {
@@ -28,6 +37,54 @@ export interface StartGameAction {
  */
 export interface PlayCardAction {
   cardId: string;
+}
+/**
+ * HexPositionDto represents a position on the Mars board
+ */
+export interface HexPositionDto {
+  q: number /* int */;
+  r: number /* int */;
+  s: number /* int */;
+}
+/**
+ * SellPatentsAction represents selling patent cards for megacredits
+ */
+export interface SellPatentsAction {
+  type: ActionType;
+  cardCount: number /* int */;
+}
+/**
+ * BuildPowerPlantAction represents building a power plant
+ */
+export interface BuildPowerPlantAction {
+  type: ActionType;
+}
+/**
+ * LaunchAsteroidAction represents launching an asteroid
+ */
+export interface LaunchAsteroidAction {
+  type: ActionType;
+}
+/**
+ * BuildAquiferAction represents building an aquifer
+ */
+export interface BuildAquiferAction {
+  type: ActionType;
+  hexPosition: HexPositionDto;
+}
+/**
+ * PlantGreeneryAction represents planting greenery
+ */
+export interface PlantGreeneryAction {
+  type: ActionType;
+  hexPosition: HexPositionDto;
+}
+/**
+ * BuildCityAction represents building a city
+ */
+export interface BuildCityAction {
+  type: ActionType;
+  hexPosition: HexPositionDto;
 }
 /**
  * ActionSelectStartingCardRequest contains the action data for select starting card actions
@@ -48,6 +105,46 @@ export interface ActionStartGameRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+}
+/**
+ * ActionSellPatentsRequest contains the action data for sell patents actions
+ */
+export interface ActionSellPatentsRequest {
+  type: ActionType;
+  cardCount: number /* int */;
+}
+/**
+ * ActionBuildPowerPlantRequest contains the action data for build power plant actions
+ */
+export interface ActionBuildPowerPlantRequest {
+  type: ActionType;
+}
+/**
+ * ActionLaunchAsteroidRequest contains the action data for launch asteroid actions
+ */
+export interface ActionLaunchAsteroidRequest {
+  type: ActionType;
+}
+/**
+ * ActionBuildAquiferRequest contains the action data for build aquifer actions
+ */
+export interface ActionBuildAquiferRequest {
+  type: ActionType;
+  hexPosition: HexPositionDto;
+}
+/**
+ * ActionPlantGreeneryRequest contains the action data for plant greenery actions
+ */
+export interface ActionPlantGreeneryRequest {
+  type: ActionType;
+  hexPosition: HexPositionDto;
+}
+/**
+ * ActionBuildCityRequest contains the action data for build city actions
+ */
+export interface ActionBuildCityRequest {
+  type: ActionType;
+  hexPosition: HexPositionDto;
 }
 
 //////////
