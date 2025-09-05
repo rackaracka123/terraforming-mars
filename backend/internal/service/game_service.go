@@ -3,100 +3,122 @@ package service
 import (
 	"context"
 	"fmt"
-	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service/actions"
-	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-// GameService handles game business logic
-type GameService struct {
-	gameRepo           *repository.GameRepository
-	cardSelectionRepo  *repository.CardSelectionRepository
-	actionHandlers     *actions.ActionHandlers
-	eventBus           events.EventBus
-	eventRepository    *events.EventRepository
-	cardRegistry       *cards.CardHandlerRegistry
-	playerService      *PlayerService
+// GameService handles all game lifecycle operations including creation, player management, and state updates
+type GameService interface {
+	// Create a new game with specified settings
+	CreateGame(ctx context.Context, settings model.GameSettings) (*model.Game, error)
+
+	// Get game by ID
+	GetGame(ctx context.Context, gameID string) (*model.Game, error)
+
+	// List games by status
+	ListGames(ctx context.Context, status string) ([]*model.Game, error)
+
+	// Update game state (internal use for synchronization)
+	UpdateGame(ctx context.Context, game *model.Game) error
+
+	// Add player to game (join game flow)
+	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
+
+	// Update player resources in a game
+	UpdatePlayerResources(ctx context.Context, gameID, playerID string, newResources model.Resources) error
+
+	// Update global parameters for a game
+	UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error
 }
 
-// NewGameService creates a new game service
-func NewGameService(gameRepo *repository.GameRepository, cardSelectionRepo *repository.CardSelectionRepository, eventBus events.EventBus, eventRepository *events.EventRepository, cardRegistry *cards.CardHandlerRegistry, playerService *PlayerService) *GameService {
-	return &GameService{
-		gameRepo:          gameRepo,
-		cardSelectionRepo: cardSelectionRepo,
-		actionHandlers:    actions.NewActionHandlers(eventBus, eventRepository, cardRegistry, cardSelectionRepo, playerService),
-		eventBus:          eventBus,
-		eventRepository:   eventRepository,
-		cardRegistry:      cardRegistry,
-		playerService:     playerService,
+// GameServiceImpl implements GameService interface
+type GameServiceImpl struct {
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	parametersRepo repository.GlobalParametersRepository
+}
+
+// NewGameService creates a new GameService instance
+func NewGameService(
+	gameRepo repository.GameRepository,
+	playerRepo repository.PlayerRepository,
+	parametersRepo repository.GlobalParametersRepository,
+) GameService {
+	return &GameServiceImpl{
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		parametersRepo: parametersRepo,
 	}
 }
 
-// CreateGame creates a new game with the given settings
-func (s *GameService) CreateGame(settings model.GameSettings) (*model.Game, error) {
-	log := logger.Get()
-	
-	log.Info("Creating game", zap.Int("max_players", settings.MaxPlayers))
-	
+// CreateGame creates a new game with specified settings
+func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSettings) (*model.Game, error) {
+	log := logger.WithContext()
+
 	// Validate settings
 	if err := s.validateGameSettings(settings); err != nil {
-		log.Error("Invalid game settings", zap.Error(err), zap.Int("max_players", settings.MaxPlayers))
+		log.Error("Invalid game settings", zap.Error(err))
 		return nil, fmt.Errorf("invalid game settings: %w", err)
 	}
 
+	log.Info("Creating game via GameService", zap.Int("max_players", settings.MaxPlayers))
+
 	// Create game through repository
-	game, err := s.gameRepo.CreateGame(settings)
+	game, err := s.gameRepo.Create(ctx, settings)
 	if err != nil {
-		log.Error("Failed to create game in repository", zap.Error(err))
+		log.Error("Failed to create game", zap.Error(err))
 		return nil, fmt.Errorf("failed to create game: %w", err)
 	}
 
-	log.Info("Game created successfully", 
-		zap.String("game_id", game.ID),
-		zap.Int("max_players", settings.MaxPlayers),
-	)
-
-	// Publish game created event
-	if s.eventRepository != nil {
-		gameCreatedEvent := events.NewGameCreatedEvent(game.ID, settings.MaxPlayers)
-		if err := s.eventRepository.Publish(context.Background(), gameCreatedEvent); err != nil {
-			log.Warn("Failed to publish game created event", zap.Error(err))
-		}
+	// Initialize global parameters
+	initialParams := model.GlobalParameters{
+		Temperature: -30, // Mars starting temperature
+		Oxygen:      0,   // Starting oxygen level
+		Oceans:      0,   // Starting ocean tiles
 	}
 
+	if err := s.parametersRepo.Update(ctx, game.ID, &initialParams); err != nil {
+		log.Error("Failed to initialize global parameters", zap.Error(err))
+		return nil, fmt.Errorf("failed to initialize parameters: %w", err)
+	}
+
+	// Update game with initial parameters
+	game.GlobalParameters = initialParams
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game with initial parameters", zap.Error(err))
+		return nil, fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Game created successfully via GameService", zap.String("game_id", game.ID))
 	return game, nil
 }
 
 // GetGame retrieves a game by ID
-func (s *GameService) GetGame(gameID string) (*model.Game, error) {
-	if gameID == "" {
-		return nil, fmt.Errorf("game ID cannot be empty")
-	}
-
-	game, err := s.gameRepo.GetGame(gameID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get game: %w", err)
-	}
-
-	return game, nil
+func (s *GameServiceImpl) GetGame(ctx context.Context, gameID string) (*model.Game, error) {
+	return s.gameRepo.Get(ctx, gameID)
 }
 
-// JoinGame adds a player to a game
-func (s *GameService) JoinGame(gameID string, playerName string) (*model.Game, error) {
+// ListGames lists games by status
+func (s *GameServiceImpl) ListGames(ctx context.Context, status string) ([]*model.Game, error) {
+	return s.gameRepo.List(ctx, status)
+}
+
+// UpdateGame updates game state
+func (s *GameServiceImpl) UpdateGame(ctx context.Context, game *model.Game) error {
+	return s.gameRepo.Update(ctx, game)
+}
+
+// JoinGame adds a player to a game using both GameState and Player repositories
+func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
-	
-	log.Info("Player attempting to join game", zap.String("player_name", playerName))
-	
-	// Get the game
-	game, err := s.gameRepo.GetGame(gameID)
+	log.Info("Player joining game via GameService", zap.String("player_name", playerName))
+
+	// Get the current game state
+	game, err := s.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for join", zap.Error(err))
 		return nil, fmt.Errorf("failed to get game: %w", err)
@@ -104,12 +126,12 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*model.Game, e
 
 	// Check if game is joinable
 	if game.Status == model.GameStatusCompleted {
-		log.Warn("Player attempted to join completed game", zap.String("player_name", playerName))
+		log.Warn("Attempted to join completed game", zap.String("player_name", playerName))
 		return nil, fmt.Errorf("cannot join completed game")
 	}
 
 	if game.IsGameFull() {
-		log.Warn("Player attempted to join full game", 
+		log.Warn("Attempted to join full game", 
 			zap.String("player_name", playerName),
 			zap.Int("current_players", len(game.Players)),
 		)
@@ -132,146 +154,121 @@ func (s *GameService) JoinGame(gameID string, playerName string) (*model.Game, e
 		PlayedCards:     make([]string, 0),
 	}
 
-	// Add player to game
+	// Add player through PlayerRepository
+	if err := s.playerRepo.AddPlayer(ctx, gameID, player); err != nil {
+		log.Error("Failed to add player", zap.Error(err))
+		return nil, fmt.Errorf("failed to add player: %w", err)
+	}
+
+	// Update game state to include the new player
 	if !game.AddPlayer(player) {
-		log.Error("Failed to add player to game", 
-			zap.String("player_name", playerName),
-			zap.String("player_id", playerID),
-		)
+		log.Error("Failed to add player to game state")
 		return nil, fmt.Errorf("failed to add player to game")
 	}
 
 	// Set the first player as host if no host is set
 	if game.HostPlayerID == "" {
 		game.HostPlayerID = player.ID
-		log.Info("Player set as host", 
-			zap.String("player_name", playerName),
-			zap.String("player_id", playerID),
-		)
+		log.Info("Player set as host", zap.String("player_id", playerID))
 	}
 
-	// Update game in repository
-	if err := s.gameRepo.UpdateGame(game); err != nil {
+	// Update game through GameStateRepository
+	if err := s.gameRepo.Update(ctx, game); err != nil {
 		log.Error("Failed to update game after player join", zap.Error(err))
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
 	log.Info("Player joined game successfully", 
-		zap.String("player_name", playerName),
 		zap.String("player_id", playerID),
 		zap.Int("total_players", len(game.Players)),
 	)
 
-	// Publish player joined event
-	if s.eventRepository != nil {
-		playerJoinedEvent := events.NewPlayerJoinedEvent(gameID, playerID, playerName)
-		if err := s.eventRepository.Publish(context.Background(), playerJoinedEvent); err != nil {
-			log.Warn("Failed to publish player joined event", zap.Error(err))
-		}
-	}
-
 	return game, nil
 }
 
-// ListGames returns all games, optionally filtered by status
-func (s *GameService) ListGames(status string) ([]*model.Game, error) {
-	if status == "" {
-		return s.gameRepo.ListGames()
+// UpdatePlayerResources updates a player's resources and publishes events
+func (s *GameServiceImpl) UpdatePlayerResources(ctx context.Context, gameID, playerID string, newResources model.Resources) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player
+	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	return s.gameRepo.GetGamesByStatus(status)
-}
+	// Create a copy of the player to avoid modifying the stored one
+	updatedPlayer := *player
+	updatedPlayer.Resources = newResources
 
-// UpdateGame updates a game
-func (s *GameService) UpdateGame(game *model.Game) error {
-	if game == nil {
-		return fmt.Errorf("game cannot be nil")
+	// Update through PlayerRepository (this will publish events)
+	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player: %w", err)
 	}
 
-	game.UpdatedAt = time.Now()
-
-	if err := s.gameRepo.UpdateGame(game); err != nil {
-		return err
+	// Also need to update the game state to keep the main Game entity in sync
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for player update", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
 	}
 
-	// Publish game updated event
-	if s.eventRepository != nil {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(game.ID)
-		if err := s.eventRepository.Publish(context.Background(), gameUpdatedEvent); err != nil {
-			log := logger.WithGameContext(game.ID, "")
-			log.Warn("Failed to publish game updated event", zap.Error(err))
+	// Find and update player in game
+	for i, p := range game.Players {
+		if p.ID == playerID {
+			game.Players[i] = updatedPlayer
+			break
 		}
 	}
+
+	// Update game state
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game after player resource change", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Player resources updated successfully")
+	return nil
+}
+
+// UpdateGlobalParameters updates the global terraforming parameters
+func (s *GameServiceImpl) UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error {
+	log := logger.WithGameContext(gameID, "")
+
+	// Update through GlobalParametersRepository (this will publish events)
+	if err := s.parametersRepo.Update(ctx, gameID, &newParams); err != nil {
+		log.Error("Failed to update global parameters", zap.Error(err))
+		return fmt.Errorf("failed to update global parameters: %w", err)
+	}
+
+	// Also update the game state to keep the main Game entity in sync
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for parameter update", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	game.GlobalParameters = newParams
+
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game after parameter change", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Global parameters updated successfully",
+		zap.Int("temperature", newParams.Temperature),
+		zap.Int("oxygen", newParams.Oxygen),
+		zap.Int("oceans", newParams.Oceans),
+	)
 
 	return nil
 }
 
-// ApplyAction validates and applies a game action using DTO types
-func (s *GameService) ApplyAction(gameID, playerID string, actionRequest interface{}) (*model.Game, error) {
-	log := logger.WithGameContext(gameID, playerID)
-	
-	// Get the game
-	game, err := s.gameRepo.GetGame(gameID)
-	if err != nil {
-		log.Error("Failed to get game for action", zap.Error(err))
-		return nil, fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Find the player
-	player, found := game.GetPlayer(playerID)
-	if !found {
-		log.Error("Player not found in game")
-		return nil, fmt.Errorf("player not found in game")
-	}
-
-	// Apply the action based on the request type
-	switch request := actionRequest.(type) {
-	case dto.ActionSelectStartingCardRequest:
-		log.Info("Applying select starting card action")
-		err = s.actionHandlers.SelectStartingCards.Handle(game, player, request)
-	case dto.ActionStartGameRequest:
-		log.Info("Applying start game action")
-		// Validate that it's the host for start game action
-		if !game.IsHost(playerID) {
-			return nil, fmt.Errorf("only the host can start the game")
-		}
-		err = s.actionHandlers.StartGame.Handle(game, player, request)
-	case dto.ActionPlayCardRequest:
-		log.Info("Applying play card action")
-		// Validate that it's the player's turn for play card action
-		if game.CurrentPlayerID != "" && game.CurrentPlayerID != playerID {
-			log.Warn("Player attempted action out of turn", 
-				zap.String("current_player", game.CurrentPlayerID),
-			)
-			return nil, fmt.Errorf("not your turn")
-		}
-		err = s.actionHandlers.PlayCard.Handle(game, player, request)
-	default:
-		log.Error("Unknown action request type", zap.Any("request_type", request))
-		return nil, fmt.Errorf("unknown action request type")
-	}
-
-	if err != nil {
-		log.Error("Failed to apply action", zap.Error(err))
-		return nil, fmt.Errorf("failed to apply action: %w", err)
-	}
-
-	// Update the game in repository
-	if err := s.gameRepo.UpdateGame(game); err != nil {
-		log.Error("Failed to update game after action", zap.Error(err))
-		return nil, fmt.Errorf("failed to update game: %w", err)
-	}
-
-	log.Info("Game action applied successfully")
-	return game, nil
-}
-
-
-// validateGameSettings validates game settings
-func (s *GameService) validateGameSettings(settings model.GameSettings) error {
+// validateGameSettings validates game creation settings
+func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) error {
 	if settings.MaxPlayers < 1 || settings.MaxPlayers > 5 {
-		return fmt.Errorf("max players must be between 1 and 5")
+		return fmt.Errorf("max players must be between 1 and 5, got %d", settings.MaxPlayers)
 	}
-
 	return nil
 }

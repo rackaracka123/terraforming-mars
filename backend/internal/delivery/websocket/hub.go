@@ -1,304 +1,172 @@
 package websocket
 
 import (
-	"encoding/json"
+	"context"
 	"sync"
-	"time"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-	model "terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
-// Hub maintains the set of active clients and broadcasts messages to clients
+// HubMessage represents a message received from a connection
+type HubMessage struct {
+	Connection *Connection
+	Message    dto.WebSocketMessage
+}
+
+// Hub maintains active WebSocket connections and handles message routing
 type Hub struct {
-	// Registered clients
-	clients map[*Client]bool
-
-	// Clients grouped by game ID for efficient broadcasting
-	gameClients map[string][]*Client
-
-	// Inbound messages from the clients
-	broadcast chan []byte
-
-	// Register requests from the clients
-	register chan *Client
-
-	// Unregister requests from clients
-	unregister chan *Client
-
-	// Mutex for thread-safe access to client maps
-	mutex sync.RWMutex
-
-	// Game service for handling game logic
-	gameService *service.GameService
+	// Registered connections
+	connections map[*Connection]bool
+	
+	// Connections grouped by game ID for efficient broadcasting
+	gameConnections map[string]map[*Connection]bool
+	
+	// Register requests from connections
+	Register chan *Connection
+	
+	// Unregister requests from connections
+	Unregister chan *Connection
+	
+	// Broadcast messages to connections
+	Broadcast chan HubMessage
+	
+	// Services for handling business logic
+	gameService             service.GameService
+	playerService          service.PlayerService
+	globalParametersService service.GlobalParametersService
+	
+	// Synchronization
+	mu     sync.RWMutex
+	logger *zap.Logger
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub(gameService *service.GameService) *Hub {
+func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService) *Hub {
 	return &Hub{
-		clients:     make(map[*Client]bool),
-		gameClients: make(map[string][]*Client),
-		broadcast:   make(chan []byte),
-		register:    make(chan *Client),
-		unregister:  make(chan *Client),
-		gameService: gameService,
+		connections:             make(map[*Connection]bool),
+		gameConnections:         make(map[string]map[*Connection]bool),
+		Register:                make(chan *Connection),
+		Unregister:              make(chan *Connection),
+		Broadcast:               make(chan HubMessage),
+		gameService:             gameService,
+		playerService:          playerService,
+		globalParametersService: globalParametersService,
+		logger:                  logger.Get(),
 	}
 }
 
-// Run starts the hub and handles client connections
-func (h *Hub) Run() {
+// Run starts the hub and handles connection management
+func (h *Hub) Run(ctx context.Context) {
+	h.logger.Info("Starting WebSocket hub")
+	
 	for {
 		select {
-		case client := <-h.register:
-			h.registerClient(client)
-		case client := <-h.unregister:
-			h.unregisterClient(client)
-		case message := <-h.broadcast:
-			h.broadcastMessage(message)
-		}
-	}
-}
-
-// registerClient adds a client to the hub
-func (h *Hub) registerClient(client *Client) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	h.clients[client] = true
-	logger.WithClientContext(client.ID, "", "").Info("Client connected")
-}
-
-// unregisterClient removes a client from the hub
-func (h *Hub) unregisterClient(client *Client) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	if _, ok := h.clients[client]; ok {
-		delete(h.clients, client)
-		close(client.send)
-
-		// Remove from game clients
-		playerID, gameID := client.GetPlayerInfo()
-		if gameID != "" {
-			h.removeClientFromGame(client, gameID)
-		}
-
-		logger.WithClientContext(client.ID, playerID, gameID).Info("Client disconnected")
-	}
-}
-
-// removeClientFromGame removes a client from a game's client list
-func (h *Hub) removeClientFromGame(client *Client, gameID string) {
-	if clients, exists := h.gameClients[gameID]; exists {
-		for i, c := range clients {
-			if c == client {
-				h.gameClients[gameID] = append(clients[:i], clients[i+1:]...)
-				break
-			}
-		}
-
-		// Clean up empty game client lists
-		if len(h.gameClients[gameID]) == 0 {
-			delete(h.gameClients, gameID)
-		}
-	}
-}
-
-// addClientToGame adds a client to a game's client list
-func (h *Hub) addClientToGame(client *Client, gameID string) {
-	if _, exists := h.gameClients[gameID]; !exists {
-		h.gameClients[gameID] = make([]*Client, 0)
-	}
-	h.gameClients[gameID] = append(h.gameClients[gameID], client)
-}
-
-// broadcastMessage sends a message to all connected clients
-func (h *Hub) broadcastMessage(message []byte) {
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-
-	for client := range h.clients {
-		select {
-		case client.send <- message:
-		default:
-			close(client.send)
-			delete(h.clients, client)
-		}
-	}
-}
-
-// BroadcastToGame sends a message to all clients in a specific game
-func (h *Hub) BroadcastToGame(gameID string, message *dto.WebSocketMessage) {
-	h.mutex.RLock()
-	clients, exists := h.gameClients[gameID]
-	if !exists {
-		h.mutex.RUnlock()
-		return
-	}
-
-	// Make a copy of the clients slice to avoid holding the lock during message sending
-	clientsCopy := make([]*Client, len(clients))
-	copy(clientsCopy, clients)
-	h.mutex.RUnlock()
-
-	// Send message to all clients in the game
-	for _, client := range clientsCopy {
-		client.SendMessage(message)
-	}
-}
-
-// BroadcastToGameExcept sends a message to all clients in a specific game except the excluded client
-func (h *Hub) BroadcastToGameExcept(gameID string, message *dto.WebSocketMessage, excludeClient *Client) {
-	h.mutex.RLock()
-	clients, exists := h.gameClients[gameID]
-	if !exists {
-		h.mutex.RUnlock()
-		return
-	}
-
-	// Make a copy of the clients slice to avoid holding the lock during message sending
-	clientsCopy := make([]*Client, len(clients))
-	copy(clientsCopy, clients)
-	h.mutex.RUnlock()
-
-	// Send message to all clients in the game except the excluded one
-	for _, client := range clientsCopy {
-		if client != excludeClient {
-			client.SendMessage(message)
-		}
-	}
-}
-
-// handlePlayerConnect processes player connection messages
-func (h *Hub) handlePlayerConnect(client *Client, msg *dto.WebSocketMessage) {
-	var payload dto.PlayerConnectPayload
-	if err := parsePayload(msg.Payload, &payload); err != nil {
-		client.sendError("Invalid player connect payload")
-		return
-	}
-
-	// Get the game
-	game, err := h.gameService.GetGame(payload.GameID)
-	if err != nil {
-		client.sendError("Game not found")
-		return
-	}
-
-	// Check if player already exists in the game
-	var playerID string
-	playerExists := false
-	for _, player := range game.Players {
-		if player.Name == payload.PlayerName {
-			playerID = player.ID
-			playerExists = true
-			break
-		}
-	}
-
-	// If player doesn't exist, create them
-	if !playerExists {
-		updatedGame, err := h.gameService.JoinGame(payload.GameID, payload.PlayerName)
-		if err != nil {
-			client.sendError("Failed to join game: " + err.Error())
+		case <-ctx.Done():
+			h.logger.Info("WebSocket hub stopping due to context cancellation")
+			h.closeAllConnections()
 			return
+			
+		case connection := <-h.Register:
+			h.registerConnection(connection)
+			
+		case connection := <-h.Unregister:
+			h.unregisterConnection(connection)
+			
+		case hubMessage := <-h.Broadcast:
+			h.handleMessage(ctx, hubMessage)
 		}
+	}
+}
 
-		// Find the newly created player
-		for _, player := range updatedGame.Players {
-			if player.Name == payload.PlayerName {
-				playerID = player.ID
-				break
+// registerConnection registers a new connection
+func (h *Hub) registerConnection(connection *Connection) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	
+	h.connections[connection] = true
+	h.logger.Info("Connection registered", zap.String("connection_id", connection.ID))
+}
+
+// unregisterConnection unregisters a connection
+func (h *Hub) unregisterConnection(connection *Connection) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	
+	if _, ok := h.connections[connection]; ok {
+		// Remove from connections
+		delete(h.connections, connection)
+		close(connection.Send)
+		
+		// Remove from game connections if assigned
+		playerID, gameID := connection.GetPlayer()
+		if gameID != "" {
+			if gameConns, exists := h.gameConnections[gameID]; exists {
+				delete(gameConns, connection)
+				if len(gameConns) == 0 {
+					delete(h.gameConnections, gameID)
+				}
 			}
 		}
-		game = updatedGame
+		
+		h.logger.Info("Connection unregistered",
+			zap.String("connection_id", connection.ID),
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID))
 	}
-
-	// Set client info
-	client.SetPlayerInfo(playerID, payload.GameID)
-
-	// Add client to game clients
-	h.mutex.Lock()
-	h.addClientToGame(client, payload.GameID)
-	h.mutex.Unlock()
-
-	// Send full state to the connecting player
-	fullStateMsg := &dto.WebSocketMessage{
-		Type: dto.MessageTypeFullState,
-		Payload: dto.FullStatePayload{
-			Game:     dto.ToGameDto(game),
-			PlayerID: playerID,
-		},
-		GameID: payload.GameID,
-	}
-	client.SendMessage(fullStateMsg)
-
-	// Small delay to ensure messages are sent as separate WebSocket frames
-	time.Sleep(10 * time.Millisecond)
-
-	// Send player connected confirmation to the connecting client
-	connectedMsg := &dto.WebSocketMessage{
-		Type: dto.MessageTypePlayerConnected,
-		Payload: dto.PlayerConnectedPayload{
-			PlayerID:   playerID,
-			PlayerName: payload.PlayerName,
-		},
-		GameID: payload.GameID,
-	}
-	client.SendMessage(connectedMsg)
-
-	// Broadcast player connected to other clients in the game (excluding the connecting client)
-	h.BroadcastToGameExcept(payload.GameID, connectedMsg, client)
-
-	logger.WithGameContext(payload.GameID, playerID).Info("Player connected",
-		zap.String("player_name", payload.PlayerName))
 }
 
-// handlePlayAction processes game action messages
-func (h *Hub) handlePlayAction(client *Client, msg *dto.WebSocketMessage) {
-	var payload dto.PlayActionPayload
-	if err := parsePayload(msg.Payload, &payload); err != nil {
-		client.sendError("Invalid play action payload")
-		return
+// addToGame adds a connection to a game group
+func (h *Hub) addToGame(connection *Connection, gameID string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	
+	if h.gameConnections[gameID] == nil {
+		h.gameConnections[gameID] = make(map[*Connection]bool)
 	}
-
-	playerID, gameID := client.GetPlayerInfo()
-	if gameID == "" || playerID == "" {
-		client.sendError("Not connected to a game")
-		return
-	}
-
-	// Apply the action through the service
-	game, err := h.gameService.ApplyAction(gameID, playerID, payload.ActionRequest)
-	if err != nil {
-		client.sendError("Failed to apply action: " + err.Error())
-		return
-	}
-
-	// Broadcast updated game state to all clients in the game
-	h.broadcastGameUpdate(gameID, game)
+	h.gameConnections[gameID][connection] = true
 }
 
-// broadcastGameUpdate broadcasts a game state update to all clients in the game
-func (h *Hub) broadcastGameUpdate(gameID string, game *model.Game) {
-	message := &dto.WebSocketMessage{
-		Type: dto.MessageTypeGameUpdated,
-		Payload: dto.GameUpdatedPayload{
-			Game: dto.ToGameDto(game),
-		},
-		GameID: gameID,
+// broadcastToGame sends a message to all connections in a game
+func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
+	h.mu.RLock()
+	gameConns := h.gameConnections[gameID]
+	h.mu.RUnlock()
+	
+	if gameConns == nil {
+		return
 	}
-
-	h.BroadcastToGame(gameID, message)
+	
+	for connection := range gameConns {
+		connection.SendMessage(message)
+	}
+	
+	h.logger.Debug("Message broadcast to game",
+		zap.String("game_id", gameID),
+		zap.String("message_type", string(message.Type)),
+		zap.Int("connection_count", len(gameConns)))
 }
 
-// parsePayload parses a message payload into the target structure
-func parsePayload(payload interface{}, target interface{}) error {
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
+// sendToConnection sends a message to a specific connection
+func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMessage) {
+	connection.SendMessage(message)
+	
+	h.logger.Debug("Message sent to connection",
+		zap.String("connection_id", connection.ID),
+		zap.String("message_type", string(message.Type)))
+}
+
+// closeAllConnections closes all active connections
+func (h *Hub) closeAllConnections() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	
+	for connection := range h.connections {
+		close(connection.Send)
+		connection.Conn.Close()
 	}
-	return json.Unmarshal(data, target)
+	
+	h.logger.Info("All connections closed")
 }
