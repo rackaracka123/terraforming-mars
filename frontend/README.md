@@ -173,7 +173,7 @@ This updates `src/types/generated/` with latest backend types.
 - Verify WebSocket URL in service configuration
 
 ### Type Errors
-- Run `go generate` in backend directory
+- Run `tygo generate` in backend directory
 - Check that generated types are imported correctly
 - Ensure backend and frontend type versions match
 

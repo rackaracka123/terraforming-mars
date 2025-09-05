@@ -26,7 +26,7 @@ go run cmd/server/main.go     # Run development server directly
 go build -o bin/server cmd/server/main.go  # Build production binary
 ./bin/server                  # Run production binary
 make test                     # Run all tests
-go generate                   # Generate TypeScript types and Swagger docs
+tygo generate                 # Generate TypeScript types and Swagger docs
 ```
 
 ### Frontend (React - Port 3000) 
@@ -127,7 +127,7 @@ Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat convert
 1. **Define domain entities** in `internal/domain/` with proper `ts:` tags
 2. **Implement service logic** in `internal/service/`
 3. **Add WebSocket handlers** in `internal/delivery/websocket/`
-4. **Generate types**: Run `go generate` to update frontend types
+4. **Generate types**: Run `tygo generate` to update frontend types
 5. **Frontend integration**: Import generated types and implement UI
 
 ### Backend Development Flow
