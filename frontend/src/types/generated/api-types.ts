@@ -195,6 +195,12 @@ export interface ListGamesResponse {
   games: GameDto[];
 }
 /**
+ * UpdateResourcesRequest represents the request body for updating player resources
+ */
+export interface UpdateResourcesRequest {
+  resources: ResourcesDto;
+}
+/**
  * ErrorResponse represents an error response
  */
 export interface ErrorResponse {

@@ -9,13 +9,13 @@ type GameCreatedEvent struct {
 
 // NewGameCreatedEvent creates a new game created event
 func NewGameCreatedEvent(gameID string, maxPlayers int) *GameCreatedEvent {
-	payload := model.GameCreatedEvent{
+	payload := GameCreatedEventData{
 		GameID:     gameID,
 		MaxPlayers: maxPlayers,
 	}
 
 	return &GameCreatedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypeGameCreated, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypeGameCreated, gameID, payload),
 	}
 }
 
@@ -26,14 +26,14 @@ type PlayerJoinedEvent struct {
 
 // NewPlayerJoinedEvent creates a new player joined event
 func NewPlayerJoinedEvent(gameID, playerID, playerName string) *PlayerJoinedEvent {
-	payload := model.PlayerJoinedEvent{
+	payload := PlayerJoinedEventData{
 		GameID:     gameID,
 		PlayerID:   playerID,
 		PlayerName: playerName,
 	}
 
 	return &PlayerJoinedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypePlayerJoined, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypePlayerJoined, gameID, payload),
 	}
 }
 
@@ -44,13 +44,13 @@ type GameStartedEvent struct {
 
 // NewGameStartedEvent creates a new game started event
 func NewGameStartedEvent(gameID string, playerCount int) *GameStartedEvent {
-	payload := model.GameStartedEvent{
+	payload := GameStartedEventData{
 		GameID:      gameID,
 		PlayerCount: playerCount,
 	}
 
 	return &GameStartedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypeGameStarted, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypeGameStarted, gameID, payload),
 	}
 }
 
@@ -61,14 +61,14 @@ type PlayerStartingCardOptionsEvent struct {
 
 // NewPlayerStartingCardOptionsEvent creates a new player starting card options event
 func NewPlayerStartingCardOptionsEvent(gameID, playerID string, cardOptions []string) *PlayerStartingCardOptionsEvent {
-	payload := model.PlayerStartingCardOptionsEvent{
+	payload := PlayerStartingCardOptionsEventData{
 		GameID:      gameID,
 		PlayerID:    playerID,
 		CardOptions: cardOptions,
 	}
 
 	return &PlayerStartingCardOptionsEvent{
-		BaseEvent: NewBaseEvent(model.EventTypePlayerStartingCardOptions, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypePlayerStartingCardOptions, gameID, payload),
 	}
 }
 
@@ -79,7 +79,7 @@ type StartingCardSelectedEvent struct {
 
 // NewStartingCardSelectedEvent creates a new starting card selected event
 func NewStartingCardSelectedEvent(gameID, playerID string, selectedCards []string, cost int) *StartingCardSelectedEvent {
-	payload := model.StartingCardSelectedEvent{
+	payload := StartingCardSelectedEventData{
 		GameID:        gameID,
 		PlayerID:      playerID,
 		SelectedCards: selectedCards,
@@ -87,7 +87,7 @@ func NewStartingCardSelectedEvent(gameID, playerID string, selectedCards []strin
 	}
 
 	return &StartingCardSelectedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypeStartingCardSelected, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypeStartingCardSelected, gameID, payload),
 	}
 }
 
@@ -98,12 +98,12 @@ type GameUpdatedEvent struct {
 
 // NewGameUpdatedEvent creates a new game updated event
 func NewGameUpdatedEvent(gameID string) *GameUpdatedEvent {
-	payload := model.GameUpdatedEvent{
+	payload := GameUpdatedEventData{
 		GameID: gameID,
 	}
 
 	return &GameUpdatedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypeGameUpdated, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypeGameUpdated, gameID, payload),
 	}
 }
 
@@ -114,14 +114,14 @@ type CardPlayedEvent struct {
 
 // NewCardPlayedEvent creates a new card played event
 func NewCardPlayedEvent(gameID, playerID, cardID string) *CardPlayedEvent {
-	payload := model.CardPlayedEvent{
+	payload := CardPlayedEventData{
 		GameID:   gameID,
 		PlayerID: playerID,
 		CardID:   cardID,
 	}
 
 	return &CardPlayedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypeCardPlayed, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypeCardPlayed, gameID, payload),
 	}
 }
 
@@ -132,7 +132,7 @@ type PlayerResourcesChangedEvent struct {
 
 // NewPlayerResourcesChangedEvent creates a new player resources changed event
 func NewPlayerResourcesChangedEvent(gameID, playerID string, beforeResources, afterResources model.Resources) *PlayerResourcesChangedEvent {
-	payload := model.PlayerResourcesChangedEvent{
+	payload := PlayerResourcesChangedEventData{
 		GameID:          gameID,
 		PlayerID:        playerID,
 		BeforeResources: beforeResources,
@@ -140,7 +140,7 @@ func NewPlayerResourcesChangedEvent(gameID, playerID string, beforeResources, af
 	}
 
 	return &PlayerResourcesChangedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypePlayerResourcesChanged, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypePlayerResourcesChanged, gameID, payload),
 	}
 }
 
@@ -151,7 +151,7 @@ type PlayerProductionChangedEvent struct {
 
 // NewPlayerProductionChangedEvent creates a new player production changed event
 func NewPlayerProductionChangedEvent(gameID, playerID string, beforeProduction, afterProduction model.Production) *PlayerProductionChangedEvent {
-	payload := model.PlayerProductionChangedEvent{
+	payload := PlayerProductionChangedEventData{
 		GameID:           gameID,
 		PlayerID:         playerID,
 		BeforeProduction: beforeProduction,
@@ -159,6 +159,130 @@ func NewPlayerProductionChangedEvent(gameID, playerID string, beforeProduction, 
 	}
 
 	return &PlayerProductionChangedEvent{
-		BaseEvent: NewBaseEvent(model.EventTypePlayerProductionChanged, gameID, payload),
+		BaseEvent: NewBaseEvent(EventTypePlayerProductionChanged, gameID, payload),
+	}
+}
+
+// GameDeletedEvent represents when a game is deleted
+type GameDeletedEvent struct {
+	BaseEvent
+}
+
+// NewGameDeletedEvent creates a new game deleted event
+func NewGameDeletedEvent(gameID string) *GameDeletedEvent {
+	payload := GameDeletedEventData{
+		GameID: gameID,
+	}
+
+	return &GameDeletedEvent{
+		BaseEvent: NewBaseEvent(EventTypeGameDeleted, gameID, payload),
+	}
+}
+
+// GameStateChangedEvent represents when a game's state is changed
+type GameStateChangedEvent struct {
+	BaseEvent
+}
+
+// NewGameStateChangedEvent creates a new game state changed event
+func NewGameStateChangedEvent(gameID string, oldState, newState *model.Game) *GameStateChangedEvent {
+	payload := GameStateChangedEventData{
+		GameID:   gameID,
+		OldState: oldState,
+		NewState: newState,
+	}
+
+	return &GameStateChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypeGameStateChanged, gameID, payload),
+	}
+}
+
+// PlayerLeftEvent represents when a player leaves a game
+type PlayerLeftEvent struct {
+	BaseEvent
+}
+
+// NewPlayerLeftEvent creates a new player left event
+func NewPlayerLeftEvent(gameID, playerID, playerName string) *PlayerLeftEvent {
+	payload := PlayerLeftEventData{
+		GameID:     gameID,
+		PlayerID:   playerID,
+		PlayerName: playerName,
+	}
+
+	return &PlayerLeftEvent{
+		BaseEvent: NewBaseEvent(EventTypePlayerLeft, gameID, payload),
+	}
+}
+
+// TemperatureChangedEvent represents when global temperature changes
+type TemperatureChangedEvent struct {
+	BaseEvent
+}
+
+// NewTemperatureChangedEvent creates a new temperature changed event
+func NewTemperatureChangedEvent(gameID string, oldTemperature, newTemperature int) *TemperatureChangedEvent {
+	payload := TemperatureChangedEventData{
+		GameID:         gameID,
+		OldTemperature: oldTemperature,
+		NewTemperature: newTemperature,
+	}
+
+	return &TemperatureChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypeTemperatureChanged, gameID, payload),
+	}
+}
+
+// OxygenChangedEvent represents when global oxygen level changes
+type OxygenChangedEvent struct {
+	BaseEvent
+}
+
+// NewOxygenChangedEvent creates a new oxygen changed event
+func NewOxygenChangedEvent(gameID string, oldOxygen, newOxygen int) *OxygenChangedEvent {
+	payload := OxygenChangedEventData{
+		GameID:    gameID,
+		OldOxygen: oldOxygen,
+		NewOxygen: newOxygen,
+	}
+
+	return &OxygenChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypeOxygenChanged, gameID, payload),
+	}
+}
+
+// OceansChangedEvent represents when ocean count changes
+type OceansChangedEvent struct {
+	BaseEvent
+}
+
+// NewOceansChangedEvent creates a new oceans changed event
+func NewOceansChangedEvent(gameID string, oldOceans, newOceans int) *OceansChangedEvent {
+	payload := OceansChangedEventData{
+		GameID:    gameID,
+		OldOceans: oldOceans,
+		NewOceans: newOceans,
+	}
+
+	return &OceansChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypeOceansChanged, gameID, payload),
+	}
+}
+
+// GlobalParametersChangedEvent represents when any global parameters change
+type GlobalParametersChangedEvent struct {
+	BaseEvent
+}
+
+// NewGlobalParametersChangedEvent creates a new global parameters changed event
+func NewGlobalParametersChangedEvent(gameID string, oldParameters, newParameters model.GlobalParameters) *GlobalParametersChangedEvent {
+	payload := GlobalParametersChangedEventData{
+		GameID:        gameID,
+		OldParameters: oldParameters,
+		NewParameters: newParameters,
+	}
+
+	return &GlobalParametersChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypeGlobalParametersChanged, gameID, payload),
 	}
 }

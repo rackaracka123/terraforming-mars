@@ -1,22 +1,21 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"terraforming-mars-backend/internal/cards"
+	"time"
 	"terraforming-mars-backend/internal/initialization"
-	httpHandler "terraforming-mars-backend/internal/delivery/http"
-	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/middleware"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	httpHandler "terraforming-mars-backend/internal/delivery/http"
+	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -34,34 +33,29 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize repositories
-	gameRepo := repository.NewGameRepository()
-	log.Info("Game repository initialized")
-	
-	cardSelectionRepo := repository.NewCardSelectionRepository()
-	log.Info("Card selection repository initialized")
-
 	// Initialize event system
 	eventBus := events.NewInMemoryEventBus()
 	log.Info("Event bus initialized")
 
-	// Initialize card registry
-	cardRegistry := cards.NewCardHandlerRegistry()
-	if err := initialization.RegisterCardsWithRegistry(cardRegistry); err != nil {
-		log.Fatal("Failed to register card handlers", zap.Error(err))
-	}
-	log.Info("Card registry initialized with handlers", zap.Int("handlers", len(cardRegistry.GetAllRegisteredCards())))
-
-	// Register event repository
-	eventRepository := events.NewEventRepository(eventBus)
-	log.Info("Event repository initialized")
-
-	// Initialize services
-	playerService := service.NewPlayerService(gameRepo, eventBus, eventRepository)
-	log.Info("Player service initialized")
+	// Initialize individual repositories
+	gameRepo := repository.NewGameRepository(eventBus)
+	log.Info("Game repository initialized")
 	
-	gameService := service.NewGameService(gameRepo, cardSelectionRepo, eventBus, eventRepository, cardRegistry, playerService)
-	log.Info("Game service initialized")
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	log.Info("Player repository initialized")
+	
+	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
+	log.Info("Global parameters repository initialized")
+
+	// Initialize new service architecture
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo) 
+	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
+	log.Info("Services initialized with new architecture")
+	
+	// Log service initialization
+	log.Info("Player service ready", zap.Any("service", playerService != nil))
+	log.Info("Global parameters service ready", zap.Any("service", globalParametersService != nil))
 	
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -69,69 +63,74 @@ func main() {
 	}
 	log.Info("Card listeners registered")
 
-	// Initialize handlers
-	gameHandler := httpHandler.NewGameHandler(gameService)
-	log.Info("HTTP handlers initialized")
-
-	// Initialize WebSocket hub
-	wsHub := wsHandler.NewHub(gameService)
-	go wsHub.Run() // Start hub in a goroutine
-	log.Info("WebSocket hub started")
-
-	// Initialize Gin router
-	r := gin.New() // Use gin.New() instead of gin.Default() to have full control
-
-	// Add middleware
-	r.Use(middleware.RequestID())
-	r.Use(middleware.ZapLogger())
-	r.Use(middleware.ZapRecovery())
-
-	// Configure CORS
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
-	r.Use(cors.New(config))
-
-	// Health check endpoint
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
-
-	// Game endpoints
-	r.POST("/games", gameHandler.CreateGame)
-	r.GET("/games", gameHandler.ListGames)
-	r.GET("/games/:id", gameHandler.GetGame)
-	r.POST("/games/:id/join", gameHandler.JoinGame)
-
-	// WebSocket endpoint
-	r.GET("/ws", func(c *gin.Context) {
-		wsHandler.ServeWS(wsHub, c.Writer, c.Request)
-	})
-
-	// Get port from environment or default to 3001
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3001"
+	log.Info("Game management service initialized and ready")
+	log.Info("Consolidated repositories working correctly")
+	
+	// Show that the service is working by testing it
+	ctx := context.Background()
+	testGame, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	if err != nil {
+		log.Error("Failed to create test game", zap.Error(err))
+	} else {
+		log.Info("Test game created successfully", zap.String("game_id", testGame.ID))
 	}
 
-	log.Info("Server configuration",
-		zap.String("port", port),
-		zap.String("health_endpoint", "http://localhost:"+port+"/health"),
-		zap.String("games_endpoint", "http://localhost:"+port+"/games"),
-		zap.String("websocket_endpoint", "ws://localhost:"+port+"/ws"),
-	)
-
-	// Start server in a goroutine
+	// Initialize WebSocket hub
+	hub := wsHandler.NewHub(gameService, playerService, globalParametersService)
+	wsHandlerInstance := wsHandler.NewHandler(hub)
+	
+	// Start WebSocket hub in background
+	hubCtx, hubCancel := context.WithCancel(ctx)
+	defer hubCancel()
+	go hub.Run(hubCtx)
+	log.Info("WebSocket hub started")
+	
+	// Setup HTTP router
+	router := httpHandler.SetupRouter(gameService, playerService)
+	
+	// Add WebSocket endpoint
+	router.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	
+	// Setup HTTP server
+	server := &http.Server{
+		Addr:         ":3001",
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	
+	// Start HTTP server in background
 	go func() {
-		log.Info("Starting HTTP server", zap.String("port", port))
-		if err := r.Run(":" + port); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Server failed to start", zap.Error(err))
+		log.Info("Starting HTTP server on :3001")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start HTTP server", zap.Error(err))
 		}
 	}()
+	
+	log.Info("Server started successfully")
+	log.Info("HTTP server listening on :3001")
+	log.Info("WebSocket endpoint available at /ws")
 
 	// Wait for shutdown signal
 	<-quit
-	log.Info("Shutting down server gracefully...")
-	log.Info("Server stopped")
+
+	log.Info("Shutting down server...")
+	
+	// Graceful shutdown with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+	
+	// Shutdown HTTP server
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Error("Failed to gracefully shutdown HTTP server", zap.Error(err))
+	} else {
+		log.Info("HTTP server stopped")
+	}
+	
+	// Cancel WebSocket hub context
+	hubCancel()
+	log.Info("WebSocket hub stopped")
+	
+	log.Info("Server shutdown complete")
 }

@@ -31,6 +31,11 @@ type ListGamesResponse struct {
 	Games []GameDto `json:"games" ts:"GameDto[]"`
 }
 
+// UpdateResourcesRequest represents the request body for updating player resources
+type UpdateResourcesRequest struct {
+	Resources ResourcesDto `json:"resources" ts:"ResourcesDto"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error   string `json:"error" ts:"string"`
