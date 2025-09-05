@@ -10,8 +10,7 @@ Digital implementation of Terraforming Mars board game with real-time multiplaye
 
 ### Quick Start (Recommended)
 ```bash
-npm start        # Starts both Go backend and React frontend concurrently
-npm run dev      # Alias for npm start
+make run         # Alternative: Run both servers using Makefile (must be in root directory)
 ```
 
 ### Individual Servers
