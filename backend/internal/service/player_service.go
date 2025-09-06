@@ -29,6 +29,11 @@ type PlayerService interface {
 	AddProduction(ctx context.Context, gameID, playerID string, production model.ResourceSet) error
 	PayResourceCost(ctx context.Context, gameID, playerID string, cost model.ResourceSet) error
 	AddResources(ctx context.Context, gameID, playerID string, resources model.ResourceSet) error
+
+	// Terraform rating methods
+	UpdatePlayerTR(ctx context.Context, gameID, playerID string, newTR int) error
+	AddPlayerTR(ctx context.Context, gameID, playerID string, trIncrease int) error
+
 }
 
 // PlayerServiceImpl implements PlayerService interface
@@ -245,4 +250,83 @@ func (s *PlayerServiceImpl) AddResources(ctx context.Context, gameID, playerID s
 	}
 
 	return s.UpdatePlayerResources(ctx, gameID, playerID, newResources)
+}
+
+// CanAffordStandardProject checks if the player has enough credits for a standard project (business logic from Player model)
+func (s *PlayerServiceImpl) CanAffordStandardProject(player *model.Player, project model.StandardProject) bool {
+	cost, exists := model.StandardProjectCost[project]
+	if !exists {
+		return false
+	}
+	return player.Resources.Credits >= cost
+}
+
+// HasCardsToSell checks if the player has enough cards in hand to sell (business logic from Player model)
+func (s *PlayerServiceImpl) HasCardsToSell(player *model.Player, count int) bool {
+	return len(player.Cards) >= count && count > 0
+}
+
+// GetMaxCardsToSell returns the maximum number of cards the player can sell (business logic from Player model)
+func (s *PlayerServiceImpl) GetMaxCardsToSell(player *model.Player) int {
+	return len(player.Cards)
+}
+
+// UpdatePlayerTR updates a player's terraform rating
+func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID string, newTR int) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player
+	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player for TR update", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Create a copy of the player to avoid modifying the stored one
+	updatedPlayer := *player
+	updatedPlayer.TerraformRating = newTR
+
+	// Update through PlayerRepository
+	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
+		log.Error("Failed to update player terraform rating", zap.Error(err))
+		return fmt.Errorf("failed to update player: %w", err)
+	}
+
+	// Also need to update the game state to keep the main Game entity in sync
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for player TR update", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Find and update player in game
+	for i, p := range game.Players {
+		if p.ID == playerID {
+			game.Players[i] = updatedPlayer
+			break
+		}
+	}
+
+	// Update game state
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game after player TR change", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Player terraform rating updated", 
+		zap.Int("old_tr", player.TerraformRating),
+		zap.Int("new_tr", newTR))
+
+	return nil
+}
+
+// AddPlayerTR increases a player's terraform rating by the specified amount
+func (s *PlayerServiceImpl) AddPlayerTR(ctx context.Context, gameID, playerID string, trIncrease int) error {
+	player, err := s.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	newTR := player.TerraformRating + trIncrease
+	return s.UpdatePlayerTR(ctx, gameID, playerID, newTR)
 }

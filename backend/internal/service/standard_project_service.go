@@ -29,6 +29,7 @@ type StandardProjectService interface {
 
 	// BuildCity places city tile for 25 M€
 	BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+
 }
 
 // StandardProjectServiceImpl implements StandardProjectService interface
@@ -66,7 +67,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	}
 
 	// Validate player can sell cards
-	if !player.HasCardsToSell(cardCount) {
+	if len(player.Cards) < cardCount || cardCount <= 0 {
 		log.Warn("Player attempted to sell more cards than available",
 			zap.Int("requested", cardCount),
 			zap.Int("available", len(player.Cards)))
@@ -145,7 +146,7 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
-	if !hexPosition.IsValid() {
+	if !s.IsValidHexPosition(&hexPosition) {
 		log.Warn("Invalid hex position for aquifer",
 			zap.Int("q", hexPosition.Q),
 			zap.Int("r", hexPosition.R),
@@ -176,7 +177,7 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
-	if !hexPosition.IsValid() {
+	if !s.IsValidHexPosition(&hexPosition) {
 		log.Warn("Invalid hex position for greenery",
 			zap.Int("q", hexPosition.Q),
 			zap.Int("r", hexPosition.R),
@@ -207,7 +208,7 @@ func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, play
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
-	if !hexPosition.IsValid() {
+	if !s.IsValidHexPosition(&hexPosition) {
 		log.Warn("Invalid hex position for city",
 			zap.Int("q", hexPosition.Q),
 			zap.Int("r", hexPosition.R),
@@ -239,8 +240,11 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	}
 
 	// Validate player can afford the project
-	if !player.CanAffordStandardProject(project) {
-		cost := model.StandardProjectCost[project]
+	cost, exists := model.StandardProjectCost[project]
+	if !exists {
+		return fmt.Errorf("unknown standard project: %s", project)
+	}
+	if player.Resources.Credits < cost {
 		log.Warn("Player cannot afford standard project",
 			zap.String("project", string(project)),
 			zap.Int("cost", cost),
@@ -252,7 +256,6 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	updatedPlayer := *player
 
 	// Deduct cost
-	cost := model.StandardProjectCost[project]
 	updatedPlayer.Resources.Credits -= cost
 
 	// Execute project-specific action
@@ -301,4 +304,65 @@ func (s *StandardProjectServiceImpl) updateGameWithPlayer(ctx context.Context, g
 	}
 
 	return nil
+}
+
+// StandardProjectRequiresHexPosition returns true if the standard project requires a hex position (business logic from StandardProject functions)
+func (s *StandardProjectServiceImpl) StandardProjectRequiresHexPosition(project model.StandardProject) bool {
+	switch project {
+	case model.StandardProjectAquifer, model.StandardProjectGreenery, model.StandardProjectCity:
+		return true
+	default:
+		return false
+	}
+}
+
+// StandardProjectProvidesTR returns true if the standard project increases terraform rating (business logic from StandardProject functions)
+func (s *StandardProjectServiceImpl) StandardProjectProvidesTR(project model.StandardProject) bool {
+	switch project {
+	case model.StandardProjectAsteroid, model.StandardProjectAquifer, model.StandardProjectGreenery:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValidHexPosition validates that the hex position follows cube coordinate rules (business logic from HexPosition model)
+func (s *StandardProjectServiceImpl) IsValidHexPosition(h *model.HexPosition) bool {
+	return h.Q+h.R+h.S == 0
+}
+
+// DistanceHexPosition calculates the distance between two hex positions (business logic from HexPosition model)
+func (s *StandardProjectServiceImpl) DistanceHexPosition(h1, h2 *model.HexPosition) int {
+	return (abs(h1.Q-h2.Q) + abs(h1.R-h2.R) + abs(h1.S-h2.S)) / 2
+}
+
+// GetHexNeighbors returns all adjacent hex positions (business logic from HexPosition model)
+func (s *StandardProjectServiceImpl) GetHexNeighbors(h *model.HexPosition) []model.HexPosition {
+	directions := []model.HexPosition{
+		{1, -1, 0}, // East
+		{1, 0, -1}, // Southeast
+		{0, 1, -1}, // Southwest
+		{-1, 1, 0}, // West
+		{-1, 0, 1}, // Northwest
+		{0, -1, 1}, // Northeast
+	}
+
+	neighbors := make([]model.HexPosition, 6)
+	for i, dir := range directions {
+		neighbors[i] = model.HexPosition{
+			Q: h.Q + dir.Q,
+			R: h.R + dir.R,
+			S: h.S + dir.S,
+		}
+	}
+
+	return neighbors
+}
+
+// abs returns the absolute value of an integer (helper function)
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

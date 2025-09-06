@@ -4,5 +4,8 @@ import (
 	"terraforming-mars-backend/internal/service"
 )
 
-// PlayerService is an alias to the shared interface
+// Service type aliases for convenience
 type PlayerService = service.PlayerService
+type GameService = service.GameService
+type GlobalParametersService = service.GlobalParametersService
+type StandardProjectService = service.StandardProjectService

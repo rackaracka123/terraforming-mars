@@ -163,6 +163,25 @@ func NewPlayerProductionChangedEvent(gameID, playerID string, beforeProduction, 
 	}
 }
 
+// PlayerTRChangedEvent represents when a player's terraform rating is modified
+type PlayerTRChangedEvent struct {
+	BaseEvent
+}
+
+// NewPlayerTRChangedEvent creates a new player TR changed event
+func NewPlayerTRChangedEvent(gameID, playerID string, beforeTR, afterTR int) *PlayerTRChangedEvent {
+	payload := PlayerTRChangedEventData{
+		GameID:   gameID,
+		PlayerID: playerID,
+		BeforeTR: beforeTR,
+		AfterTR:  afterTR,
+	}
+
+	return &PlayerTRChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypePlayerTRChanged, gameID, payload),
+	}
+}
+
 // GameDeletedEvent represents when a game is deleted
 type GameDeletedEvent struct {
 	BaseEvent

@@ -113,7 +113,7 @@ func (r *PlayerRepositoryImpl) GetPlayer(ctx context.Context, gameID, playerID s
 		return nil, fmt.Errorf("player with ID %s not found in game %s", playerID, gameID)
 	}
 
-	return player, nil
+	return player.DeepCopy(), nil
 }
 
 // UpdatePlayer updates a player
@@ -148,6 +148,7 @@ func (r *PlayerRepositoryImpl) UpdatePlayer(ctx context.Context, gameID string, 
 	// Capture old state for events (make copies to avoid pointer issues)
 	oldResources := oldPlayer.Resources
 	oldProduction := oldPlayer.Production
+	oldTR := oldPlayer.TerraformRating
 
 	// Update player (store a copy to avoid pointer issues)
 	playerCopy := *player
@@ -155,7 +156,7 @@ func (r *PlayerRepositoryImpl) UpdatePlayer(ctx context.Context, gameID string, 
 
 	log.Info("Player updated")
 
-	// Publish events if resources or production changed
+	// Publish events if resources, production, or TR changed
 	if r.eventBus != nil {
 		if oldResources != player.Resources {
 			resourcesChangedEvent := events.NewPlayerResourcesChangedEvent(gameID, player.ID, oldResources, player.Resources)
@@ -168,6 +169,13 @@ func (r *PlayerRepositoryImpl) UpdatePlayer(ctx context.Context, gameID string, 
 			productionChangedEvent := events.NewPlayerProductionChangedEvent(gameID, player.ID, oldProduction, player.Production)
 			if err := r.eventBus.Publish(ctx, productionChangedEvent); err != nil {
 				log.Warn("Failed to publish player production changed event", zap.Error(err))
+			}
+		}
+
+		if oldTR != player.TerraformRating {
+			trChangedEvent := events.NewPlayerTRChangedEvent(gameID, player.ID, oldTR, player.TerraformRating)
+			if err := r.eventBus.Publish(ctx, trChangedEvent); err != nil {
+				log.Warn("Failed to publish player TR changed event", zap.Error(err))
 			}
 		}
 	}
@@ -191,7 +199,7 @@ func (r *PlayerRepositoryImpl) ListPlayers(ctx context.Context, gameID string) (
 
 	players := make([]model.Player, 0, len(gamePlayers))
 	for _, player := range gamePlayers {
-		players = append(players, *player)
+		players = append(players, *player.DeepCopy())
 	}
 
 	return players, nil

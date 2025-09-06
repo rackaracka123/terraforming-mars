@@ -56,7 +56,7 @@ func (r *GlobalParametersRepositoryImpl) Get(ctx context.Context, gameID string)
 		return defaultParams, nil
 	}
 
-	return params, nil
+	return params.DeepCopy(), nil
 }
 
 // Update updates global parameters for a game

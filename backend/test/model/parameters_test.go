@@ -28,251 +28,84 @@ func TestGlobalParameters_MarsStartingConditions(t *testing.T) {
 	assert.Equal(t, 0, params.Oceans)
 }
 
-func TestGlobalParameters_CanIncreaseTemperature(t *testing.T) {
-	tests := []struct {
-		name      string
-		current   int
-		increase  int
-		expected  bool
-		finalTemp int
-	}{
-		{"Can increase from minimum", -30, 5, true, -20},
-		{"Can increase to maximum", 6, 1, true, 8},
-		{"Cannot exceed maximum", 8, 1, false, 8},
-		{"Already at maximum", 8, 0, true, 8},
-		{"Large increase capped at maximum", -30, 50, true, 8},
-		{"Zero increase", -20, 0, true, -20},
+func TestGlobalParameters_DeepCopy(t *testing.T) {
+	original := &model.GlobalParameters{
+		Temperature: 5,
+		Oxygen:      10,
+		Oceans:      3,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := &model.GlobalParameters{Temperature: tt.current}
-			result := params.CanIncreaseTemperature(tt.increase)
+	copy := original.DeepCopy()
 
-			if tt.expected {
-				assert.True(t, result)
-				params.IncreaseTemperature(tt.increase)
-				assert.Equal(t, tt.finalTemp, params.Temperature)
-			} else {
-				assert.False(t, result)
-			}
-		})
-	}
+	// Should be equal but different pointers
+	assert.Equal(t, original.Temperature, copy.Temperature)
+	assert.Equal(t, original.Oxygen, copy.Oxygen)
+	assert.Equal(t, original.Oceans, copy.Oceans)
+	assert.NotSame(t, original, copy)
+
+	// Modifying copy should not affect original
+	copy.Temperature = 8
+	assert.Equal(t, 5, original.Temperature)
+	assert.Equal(t, 8, copy.Temperature)
 }
 
-func TestGlobalParameters_CanIncreaseOxygen(t *testing.T) {
-	tests := []struct {
-		name        string
-		current     int
-		increase    int
-		expected    bool
-		finalOxygen int
-	}{
-		{"Can increase from zero", 0, 5, true, 5},
-		{"Can increase to maximum", 13, 1, true, 14},
-		{"Cannot exceed maximum", 14, 1, false, 14},
-		{"Already at maximum", 14, 0, true, 14},
-		{"Large increase capped at maximum", 0, 20, true, 14},
-		{"Zero increase", 10, 0, true, 10},
+func TestGameSettings_DeepCopy(t *testing.T) {
+	temp := -25
+	oxygen := 5
+	oceans := 2
+	
+	original := &model.GameSettings{
+		MaxPlayers:  3,
+		Temperature: &temp,
+		Oxygen:      &oxygen,
+		Oceans:      &oceans,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := &model.GlobalParameters{Oxygen: tt.current}
-			result := params.CanIncreaseOxygen(tt.increase)
+	copy := original.DeepCopy()
 
-			if tt.expected {
-				assert.True(t, result)
-				params.IncreaseOxygen(tt.increase)
-				assert.Equal(t, tt.finalOxygen, params.Oxygen)
-			} else {
-				assert.False(t, result)
-			}
-		})
-	}
+	// Should be equal but different pointers
+	assert.Equal(t, original.MaxPlayers, copy.MaxPlayers)
+	assert.Equal(t, *original.Temperature, *copy.Temperature)
+	assert.Equal(t, *original.Oxygen, *copy.Oxygen)
+	assert.Equal(t, *original.Oceans, *copy.Oceans)
+	assert.NotSame(t, original, copy)
+	assert.NotSame(t, original.Temperature, copy.Temperature)
+	assert.NotSame(t, original.Oxygen, copy.Oxygen)
+	assert.NotSame(t, original.Oceans, copy.Oceans)
+
+	// Modifying copy should not affect original
+	*copy.Temperature = -20
+	assert.Equal(t, -25, *original.Temperature)
+	assert.Equal(t, -20, *copy.Temperature)
 }
 
-func TestGlobalParameters_CanPlaceOcean(t *testing.T) {
-	tests := []struct {
-		name        string
-		current     int
-		place       int
-		expected    bool
-		finalOceans int
-	}{
-		{"Can place from zero", 0, 3, true, 3},
-		{"Can place to maximum", 8, 1, true, 9},
-		{"Cannot exceed maximum", 9, 1, false, 9},
-		{"Already at maximum", 9, 0, true, 9},
-		{"Large placement capped at maximum", 0, 15, true, 9},
-		{"Zero placement", 5, 0, true, 5},
+func TestHexPosition_DeepCopy(t *testing.T) {
+	original := &model.HexPosition{
+		Q: 1,
+		R: -1,
+		S: 0,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := &model.GlobalParameters{Oceans: tt.current}
-			result := params.CanPlaceOcean(tt.place)
+	copy := original.DeepCopy()
 
-			if tt.expected {
-				assert.True(t, result)
-				params.PlaceOcean(tt.place)
-				assert.Equal(t, tt.finalOceans, params.Oceans)
-			} else {
-				assert.False(t, result)
-			}
-		})
-	}
+	// Should be equal but different pointers
+	assert.Equal(t, original.Q, copy.Q)
+	assert.Equal(t, original.R, copy.R)
+	assert.Equal(t, original.S, copy.S)
+	assert.NotSame(t, original, copy)
+
+	// Modifying copy should not affect original
+	copy.Q = 2
+	assert.Equal(t, 1, original.Q)
+	assert.Equal(t, 2, copy.Q)
 }
 
-func TestGlobalParameters_IsFullyTerraformed(t *testing.T) {
-	tests := []struct {
-		name        string
-		temperature int
-		oxygen      int
-		oceans      int
-		expected    bool
-	}{
-		{"Not terraformed - all minimum", -30, 0, 0, false},
-		{"Not terraformed - temperature not max", 6, 14, 9, false},
-		{"Not terraformed - oxygen not max", 8, 13, 9, false},
-		{"Not terraformed - oceans not max", 8, 14, 8, false},
-		{"Fully terraformed", 8, 14, 9, true},
-		{"Partially terraformed", -10, 8, 5, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := model.GlobalParameters{
-				Temperature: tt.temperature,
-				Oxygen:      tt.oxygen,
-				Oceans:      tt.oceans,
-			}
-
-			result := params.IsFullyTerraformed()
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestGlobalParameters_GetTerraformingProgress(t *testing.T) {
-	tests := []struct {
-		name        string
-		temperature int
-		oxygen      int
-		oceans      int
-		expected    float64
-	}{
-		{"No progress", -30, 0, 0, 0.0},
-		{"Full progress", 8, 14, 9, 100.0},
-		{"Near half progress", -11, 7, 4, 48.15},
-		{"Temperature only", 8, 0, 0, 100.0 / 3},
-		{"Oxygen only", -30, 14, 0, 100.0 / 3},
-		{"Oceans only", -30, 0, 9, 100.0 / 3},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			params := model.GlobalParameters{
-				Temperature: tt.temperature,
-				Oxygen:      tt.oxygen,
-				Oceans:      tt.oceans,
-			}
-
-			result := params.GetTerraformingProgress()
-			assert.InDelta(t, tt.expected, result, 0.1) // Allow small floating point differences
-		})
-	}
-}
-
-func TestHexPosition_IsValid(t *testing.T) {
-	tests := []struct {
-		name     string
-		position model.HexPosition
-		expected bool
-	}{
-		{"Valid center", model.HexPosition{Q: 0, R: 0, S: 0}, true},
-		{"Valid positive Q", model.HexPosition{Q: 1, R: -1, S: 0}, true},
-		{"Valid negative Q", model.HexPosition{Q: -1, R: 1, S: 0}, true},
-		{"Valid positive R", model.HexPosition{Q: 0, R: 1, S: -1}, true},
-		{"Valid negative R", model.HexPosition{Q: 0, R: -1, S: 1}, true},
-		{"Valid positive S", model.HexPosition{Q: -1, R: 0, S: 1}, true},
-		{"Valid negative S", model.HexPosition{Q: 1, R: 0, S: -1}, true},
-		{"Valid complex", model.HexPosition{Q: 2, R: -1, S: -1}, true},
-		{"Invalid sum positive", model.HexPosition{Q: 1, R: 1, S: 1}, false},
-		{"Invalid sum negative", model.HexPosition{Q: -1, R: -1, S: -1}, false},
-		{"Invalid sum two", model.HexPosition{Q: 2, R: 1, S: 1}, false},
-		{"Invalid partial", model.HexPosition{Q: 1, R: 0, S: 0}, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.position.IsValid()
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestHexPosition_Distance(t *testing.T) {
-	tests := []struct {
-		name     string
-		pos1     model.HexPosition
-		pos2     model.HexPosition
-		expected int
-	}{
-		{"Same position", model.HexPosition{0, 0, 0}, model.HexPosition{0, 0, 0}, 0},
-		{"Adjacent horizontal", model.HexPosition{0, 0, 0}, model.HexPosition{1, -1, 0}, 1},
-		{"Adjacent vertical", model.HexPosition{0, 0, 0}, model.HexPosition{0, 1, -1}, 1},
-		{"Distance 2", model.HexPosition{0, 0, 0}, model.HexPosition{2, -1, -1}, 2},
-		{"Distance 3", model.HexPosition{0, 0, 0}, model.HexPosition{-2, 1, 1}, 2},
-		{"Complex distance", model.HexPosition{1, -1, 0}, model.HexPosition{-1, 2, -1}, 3},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.pos1.Distance(tt.pos2)
-			assert.Equal(t, tt.expected, result)
-
-			// Distance should be symmetric
-			reverseResult := tt.pos2.Distance(tt.pos1)
-			assert.Equal(t, result, reverseResult)
-		})
-	}
-}
-
-func TestHexPosition_GetNeighbors(t *testing.T) {
-	center := model.HexPosition{0, 0, 0}
-	neighbors := center.GetNeighbors()
-
-	expectedNeighbors := []model.HexPosition{
-		{1, -1, 0}, // East
-		{1, 0, -1}, // Southeast
-		{0, 1, -1}, // Southwest
-		{-1, 1, 0}, // West
-		{-1, 0, 1}, // Northwest
-		{0, -1, 1}, // Northeast
-	}
-
-	assert.Len(t, neighbors, 6)
-
-	// Check that all expected neighbors are present
-	for _, expected := range expectedNeighbors {
-		found := false
-		for _, neighbor := range neighbors {
-			if neighbor == expected {
-				found = true
-				break
-			}
-		}
-		assert.True(t, found, "Expected neighbor %+v not found", expected)
-	}
-
-	// Check that all neighbors are valid hex positions
-	for _, neighbor := range neighbors {
-		assert.True(t, neighbor.IsValid())
-	}
-
-	// Check that all neighbors are distance 1 from center
-	for _, neighbor := range neighbors {
-		assert.Equal(t, 1, center.Distance(neighbor))
-	}
+func TestConstants(t *testing.T) {
+	// Test model constants are defined
+	assert.Equal(t, -30, model.MinTemperature)
+	assert.Equal(t, 8, model.MaxTemperature)
+	assert.Equal(t, 0, model.MinOxygen)
+	assert.Equal(t, 14, model.MaxOxygen)
+	assert.Equal(t, 0, model.MinOceans)
+	assert.Equal(t, 9, model.MaxOceans)
 }

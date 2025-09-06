@@ -60,10 +60,10 @@ func ValidateCardRequirements(ctx context.Context, game *model.Game, playerID st
 
 // GetPlayerTags returns all tags from cards the player has played
 func GetPlayerTags(ctx context.Context, game *model.Game, playerID string, playerService PlayerService) ([]model.CardTag, error) {
-	// Get the player from the game
-	player, found := game.GetPlayer(playerID)
-	if !found {
-		return nil, fmt.Errorf("player not found in game")
+	// Get the player using service (which returns a deep copy)
+	player, err := playerService.GetPlayer(ctx, game.ID, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("player not found in game: %w", err)
 	}
 	tagMap := make(map[model.CardTag]bool)
 	cards := model.GetStartingCards()

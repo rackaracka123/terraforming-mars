@@ -26,6 +26,7 @@ type GlobalParametersService interface {
 
 	// Place ocean tiles
 	PlaceOcean(ctx context.Context, gameID string, count int) error
+
 }
 
 // GlobalParametersServiceImpl implements GlobalParametersService interface
@@ -156,4 +157,97 @@ func (s *GlobalParametersServiceImpl) PlaceOcean(ctx context.Context, gameID str
 	updatedParams.Oceans = newOceans
 
 	return s.UpdateGlobalParameters(ctx, gameID, updatedParams)
+}
+
+// CanIncreaseTemperature checks if temperature can be increased by the given steps (business logic from GlobalParameters model)
+func (s *GlobalParametersServiceImpl) CanIncreaseTemperature(params *model.GlobalParameters, steps int) bool {
+	return steps >= 0 && (params.Temperature < model.MaxTemperature || steps == 0)
+}
+
+// CanIncreaseOxygen checks if oxygen can be increased by the given percentage (business logic from GlobalParameters model)
+func (s *GlobalParametersServiceImpl) CanIncreaseOxygen(params *model.GlobalParameters, percent int) bool {
+	return percent >= 0 && (params.Oxygen < model.MaxOxygen || percent == 0)
+}
+
+// CanPlaceOcean checks if oceans can be placed (business logic from GlobalParameters model)
+func (s *GlobalParametersServiceImpl) CanPlaceOcean(params *model.GlobalParameters, count int) bool {
+	return count >= 0 && (params.Oceans < model.MaxOceans || count == 0)
+}
+
+// IsFullyTerraformed checks if all terraforming parameters are at maximum (business logic from GlobalParameters model)
+func (s *GlobalParametersServiceImpl) IsFullyTerraformed(params *model.GlobalParameters) bool {
+	return params.Temperature == model.MaxTemperature && params.Oxygen == model.MaxOxygen && params.Oceans == model.MaxOceans
+}
+
+// GetTerraformingProgress returns the overall terraforming progress as a percentage (business logic from GlobalParameters model)
+func (s *GlobalParametersServiceImpl) GetTerraformingProgress(params *model.GlobalParameters) float64 {
+	tempProgress := float64(params.Temperature-model.MinTemperature) / float64(model.MaxTemperature-model.MinTemperature)
+	oxygenProgress := float64(params.Oxygen-model.MinOxygen) / float64(model.MaxOxygen-model.MinOxygen)
+	oceanProgress := float64(params.Oceans-model.MinOceans) / float64(model.MaxOceans-model.MinOceans)
+
+	return (tempProgress + oxygenProgress + oceanProgress) / 3.0 * 100.0
+}
+
+// AddResources adds two resource sets together (business logic from Resources model)
+func (s *GlobalParametersServiceImpl) AddResources(resources *model.Resources, other model.Resources) model.Resources {
+	return model.Resources{
+		Credits:  resources.Credits + other.Credits,
+		Steel:    resources.Steel + other.Steel,
+		Titanium: resources.Titanium + other.Titanium,
+		Plants:   resources.Plants + other.Plants,
+		Energy:   resources.Energy + other.Energy,
+		Heat:     resources.Heat + other.Heat,
+	}
+}
+
+// SubtractResources subtracts one resource set from another (business logic from Resources model)
+func (s *GlobalParametersServiceImpl) SubtractResources(resources *model.Resources, other model.Resources) model.Resources {
+	return model.Resources{
+		Credits:  resources.Credits - other.Credits,
+		Steel:    resources.Steel - other.Steel,
+		Titanium: resources.Titanium - other.Titanium,
+		Plants:   resources.Plants - other.Plants,
+		Energy:   resources.Energy - other.Energy,
+		Heat:     resources.Heat - other.Heat,
+	}
+}
+
+// HasNegativeResources checks if any resource values are negative (business logic from Resources model)
+func (s *GlobalParametersServiceImpl) HasNegativeResources(resources *model.Resources) bool {
+	return resources.Credits < 0 || resources.Steel < 0 || resources.Titanium < 0 ||
+		resources.Plants < 0 || resources.Energy < 0 || resources.Heat < 0
+}
+
+// CanAffordResources checks if current resources can afford the given cost (business logic from Resources model)
+func (s *GlobalParametersServiceImpl) CanAffordResources(resources *model.Resources, cost model.Resources) bool {
+	return resources.Credits >= cost.Credits &&
+		resources.Steel >= cost.Steel &&
+		resources.Titanium >= cost.Titanium &&
+		resources.Plants >= cost.Plants &&
+		resources.Energy >= cost.Energy &&
+		resources.Heat >= cost.Heat
+}
+
+// AddProduction adds two production sets together (business logic from Production model)
+func (s *GlobalParametersServiceImpl) AddProduction(production *model.Production, other model.Production) model.Production {
+	return model.Production{
+		Credits:  production.Credits + other.Credits,
+		Steel:    production.Steel + other.Steel,
+		Titanium: production.Titanium + other.Titanium,
+		Plants:   production.Plants + other.Plants,
+		Energy:   production.Energy + other.Energy,
+		Heat:     production.Heat + other.Heat,
+	}
+}
+
+// SubtractProduction subtracts one production set from another (business logic from Production model)
+func (s *GlobalParametersServiceImpl) SubtractProduction(production *model.Production, other model.Production) model.Production {
+	return model.Production{
+		Credits:  production.Credits - other.Credits,
+		Steel:    production.Steel - other.Steel,
+		Titanium: production.Titanium - other.Titanium,
+		Plants:   production.Plants - other.Plants,
+		Energy:   production.Energy - other.Energy,
+		Heat:     production.Heat - other.Heat,
+	}
 }

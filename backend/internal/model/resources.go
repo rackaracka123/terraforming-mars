@@ -20,66 +20,34 @@ type Production struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
-// Add adds two resource sets together
-func (r Resources) Add(other Resources) Resources {
-	return Resources{
-		Credits:  r.Credits + other.Credits,
-		Steel:    r.Steel + other.Steel,
-		Titanium: r.Titanium + other.Titanium,
-		Plants:   r.Plants + other.Plants,
-		Energy:   r.Energy + other.Energy,
-		Heat:     r.Heat + other.Heat,
+// DeepCopy creates a deep copy of the Resources
+func (r *Resources) DeepCopy() *Resources {
+	if r == nil {
+		return nil
+	}
+	
+	return &Resources{
+		Credits:  r.Credits,
+		Steel:    r.Steel,
+		Titanium: r.Titanium,
+		Plants:   r.Plants,
+		Energy:   r.Energy,
+		Heat:     r.Heat,
 	}
 }
 
-// Subtract subtracts one resource set from another
-func (r Resources) Subtract(other Resources) Resources {
-	return Resources{
-		Credits:  r.Credits - other.Credits,
-		Steel:    r.Steel - other.Steel,
-		Titanium: r.Titanium - other.Titanium,
-		Plants:   r.Plants - other.Plants,
-		Energy:   r.Energy - other.Energy,
-		Heat:     r.Heat - other.Heat,
+// DeepCopy creates a deep copy of the Production
+func (p *Production) DeepCopy() *Production {
+	if p == nil {
+		return nil
 	}
-}
-
-// HasNegative checks if any resource values are negative
-func (r Resources) HasNegative() bool {
-	return r.Credits < 0 || r.Steel < 0 || r.Titanium < 0 ||
-		r.Plants < 0 || r.Energy < 0 || r.Heat < 0
-}
-
-// CanAfford checks if current resources can afford the given cost
-func (r Resources) CanAfford(cost Resources) bool {
-	return r.Credits >= cost.Credits &&
-		r.Steel >= cost.Steel &&
-		r.Titanium >= cost.Titanium &&
-		r.Plants >= cost.Plants &&
-		r.Energy >= cost.Energy &&
-		r.Heat >= cost.Heat
-}
-
-// Add adds two production sets together
-func (p Production) Add(other Production) Production {
-	return Production{
-		Credits:  p.Credits + other.Credits,
-		Steel:    p.Steel + other.Steel,
-		Titanium: p.Titanium + other.Titanium,
-		Plants:   p.Plants + other.Plants,
-		Energy:   p.Energy + other.Energy,
-		Heat:     p.Heat + other.Heat,
-	}
-}
-
-// Subtract subtracts one production set from another
-func (p Production) Subtract(other Production) Production {
-	return Production{
-		Credits:  p.Credits - other.Credits,
-		Steel:    p.Steel - other.Steel,
-		Titanium: p.Titanium - other.Titanium,
-		Plants:   p.Plants - other.Plants,
-		Energy:   p.Energy - other.Energy,
-		Heat:     p.Heat - other.Heat,
+	
+	return &Production{
+		Credits:  p.Credits,
+		Steel:    p.Steel,
+		Titanium: p.Titanium,
+		Plants:   p.Plants,
+		Energy:   p.Energy,
+		Heat:     p.Heat,
 	}
 }
