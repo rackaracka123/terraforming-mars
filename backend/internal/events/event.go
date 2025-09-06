@@ -1,8 +1,8 @@
 package events
 
 import (
-	"time"
 	"terraforming-mars-backend/internal/model"
+	"time"
 )
 
 // Event type constants
@@ -130,10 +130,10 @@ type CardPlayedEventData struct {
 
 // PlayerResourcesChangedEventData represents when a player's resources are modified
 type PlayerResourcesChangedEventData struct {
-	GameID          string           `json:"gameId"`
-	PlayerID        string           `json:"playerId"`
-	BeforeResources model.Resources  `json:"beforeResources"`
-	AfterResources  model.Resources  `json:"afterResources"`
+	GameID          string          `json:"gameId"`
+	PlayerID        string          `json:"playerId"`
+	BeforeResources model.Resources `json:"beforeResources"`
+	AfterResources  model.Resources `json:"afterResources"`
 }
 
 // PlayerProductionChangedEventData represents when a player's production is modified
@@ -186,7 +186,7 @@ type OceansChangedEventData struct {
 
 // GlobalParametersChangedEventData represents when any global parameters change
 type GlobalParametersChangedEventData struct {
-	GameID        string                  `json:"gameId"`
+	GameID        string                 `json:"gameId"`
 	OldParameters model.GlobalParameters `json:"oldParameters"`
 	NewParameters model.GlobalParameters `json:"newParameters"`
 }

@@ -6,15 +6,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-	"terraforming-mars-backend/internal/initialization"
+	httpHandler "terraforming-mars-backend/internal/delivery/http"
+	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/initialization"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
-	httpHandler "terraforming-mars-backend/internal/delivery/http"
-	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -41,24 +41,24 @@ func main() {
 	// Initialize individual repositories
 	gameRepo := repository.NewGameRepository(eventBus)
 	log.Info("Game repository initialized")
-	
+
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	log.Info("Player repository initialized")
-	
+
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 	log.Info("Global parameters repository initialized")
 
 	// Initialize new service architecture
 	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
-	playerService := service.NewPlayerService(gameRepo, playerRepo) 
+	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
 	log.Info("Services initialized with new architecture")
-	
+
 	// Log service initialization
 	log.Info("Player service ready", zap.Any("service", playerService != nil))
 	log.Info("Global parameters service ready", zap.Any("service", globalParametersService != nil))
-	
+
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {
 		log.Fatal("Failed to register card listeners", zap.Error(err))
@@ -67,7 +67,7 @@ func main() {
 
 	log.Info("Game management service initialized and ready")
 	log.Info("Consolidated repositories working correctly")
-	
+
 	// Show that the service is working by testing it
 	ctx := context.Background()
 	testGame, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
@@ -80,25 +80,25 @@ func main() {
 	// Initialize WebSocket hub
 	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService)
 	wsHandlerInstance := wsHandler.NewHandler(hub)
-	
+
 	// Start WebSocket hub in background
 	hubCtx, hubCancel := context.WithCancel(ctx)
 	defer hubCancel()
 	go hub.Run(hubCtx)
 	log.Info("WebSocket hub started")
-	
+
 	// Setup main router without middleware for WebSocket
 	mainRouter := mux.NewRouter()
-	
+
 	// Setup API router with middleware
 	apiRouter := httpHandler.SetupRouter(gameService, playerService)
-	
+
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
-	
+
 	// Add WebSocket endpoint directly to main router (no middleware)
 	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
-	
+
 	// Setup HTTP server
 	server := &http.Server{
 		Addr:         ":3001",
@@ -107,7 +107,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	
+
 	// Start HTTP server in background
 	go func() {
 		log.Info("Starting HTTP server on :3001")
@@ -115,7 +115,7 @@ func main() {
 			log.Fatal("Failed to start HTTP server", zap.Error(err))
 		}
 	}()
-	
+
 	log.Info("✅ Server started successfully")
 	log.Info("🌍 HTTP server listening on :3001")
 	log.Info("🔌 WebSocket endpoint available at /ws")
@@ -124,21 +124,21 @@ func main() {
 	<-quit
 
 	log.Info("🛑 Shutting down server...")
-	
+
 	// Graceful shutdown with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
-	
+
 	// Shutdown HTTP server
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Error("Failed to gracefully shutdown HTTP server", zap.Error(err))
 	} else {
 		log.Info("✅ HTTP server stopped")
 	}
-	
+
 	// Cancel WebSocket hub context
 	hubCancel()
 	log.Info("✅ WebSocket hub stopped")
-	
+
 	log.Info("✅ Server shutdown complete")
 }

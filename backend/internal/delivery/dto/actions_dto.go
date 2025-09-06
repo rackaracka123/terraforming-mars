@@ -8,12 +8,12 @@ const (
 	ActionTypeStartGame          ActionType = "start-game"
 	ActionTypePlayCard           ActionType = "play-card"
 	// Standard Projects
-	ActionTypeSellPatents        ActionType = "sell-patents"
-	ActionTypeBuildPowerPlant    ActionType = "build-power-plant"
-	ActionTypeLaunchAsteroid     ActionType = "launch-asteroid"
-	ActionTypeBuildAquifer       ActionType = "build-aquifer"
-	ActionTypePlantGreenery      ActionType = "plant-greenery"
-	ActionTypeBuildCity          ActionType = "build-city"
+	ActionTypeSellPatents     ActionType = "sell-patents"
+	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
+	ActionTypeLaunchAsteroid  ActionType = "launch-asteroid"
+	ActionTypeBuildAquifer    ActionType = "build-aquifer"
+	ActionTypePlantGreenery   ActionType = "plant-greenery"
+	ActionTypeBuildCity       ActionType = "build-city"
 )
 
 // SelectStartingCardAction represents selecting starting cards
@@ -74,7 +74,6 @@ type BuildCityAction struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
 }
-
 
 // ActionSelectStartingCardRequest contains the action data for select starting card actions
 type ActionSelectStartingCardRequest struct {
@@ -173,4 +172,3 @@ type ActionBuildCityRequest struct {
 func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 	return &BuildCityAction{Type: ap.Type, HexPosition: ap.HexPosition}
 }
-

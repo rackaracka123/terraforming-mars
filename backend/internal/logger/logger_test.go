@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"terraforming-mars-backend/internal/logger"
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/logger"
 )
 
 func TestInit(t *testing.T) {

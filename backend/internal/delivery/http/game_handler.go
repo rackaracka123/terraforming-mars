@@ -27,25 +27,25 @@ func NewGameHandler(gameService service.GameService) *GameHandler {
 // CreateGame creates a new game
 func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	h.LogRequest(r, "CreateGame")
-	
+
 	var req dto.CreateGameRequest
 	if err := h.ParseJSONRequest(r, &req); err != nil {
 		h.WriteErrorResponse(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Delegate to service
 	gameSettings := model.GameSettings{
 		MaxPlayers: req.MaxPlayers,
 	}
-	
+
 	game, err := h.gameService.CreateGame(r.Context(), gameSettings)
 	if err != nil {
 		h.logger.Error("Failed to create game", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
 		return
 	}
-	
+
 	// Convert to DTO and respond
 	gameDto := dto.ToGameDto(game)
 	response := dto.CreateGameResponse{
@@ -57,15 +57,15 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 // GetGame retrieves a game by ID
 func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	h.LogRequest(r, "GetGame")
-	
+
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
-	
+
 	if gameID == "" {
 		h.WriteErrorResponse(w, http.StatusBadRequest, "Game ID is required")
 		return
 	}
-	
+
 	// Delegate to service
 	game, err := h.gameService.GetGame(r.Context(), gameID)
 	if err != nil {
@@ -73,7 +73,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
 		return
 	}
-	
+
 	// Convert to DTO and respond
 	gameDto := dto.ToGameDto(game)
 	response := dto.GetGameResponse{
@@ -85,7 +85,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 // ListGames retrieves all games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	h.LogRequest(r, "ListGames")
-	
+
 	// Delegate to service (list all games by passing empty status)
 	games, err := h.gameService.ListGames(r.Context(), "")
 	if err != nil {
@@ -93,7 +93,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")
 		return
 	}
-	
+
 	// Convert to DTOs and respond
 	gameDtos := dto.ToGameDtoSlice(games)
 	response := dto.ListGamesResponse{
@@ -101,4 +101,3 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	}
 	h.WriteJSONResponse(w, http.StatusOK, response)
 }
-

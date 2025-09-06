@@ -28,7 +28,7 @@ func TestInMemoryEventBus_PublishSubscribe(t *testing.T) {
 
 	// Create a channel to receive events
 	eventsCh := make(chan Event, 10)
-	
+
 	// Subscribe to test events
 	bus.Subscribe("test-event", func(ctx context.Context, event Event) error {
 		eventsCh <- event
@@ -46,7 +46,7 @@ func TestInMemoryEventBus_PublishSubscribe(t *testing.T) {
 	case receivedEvent := <-eventsCh:
 		assert.Equal(t, "game1", receivedEvent.GetGameID())
 		assert.Equal(t, "test-event", receivedEvent.GetType())
-		
+
 		// Cast back to TestEvent to check data
 		if testEv, ok := receivedEvent.(*TestEvent); ok {
 			assert.Equal(t, "test data", testEv.Data)
@@ -82,9 +82,8 @@ func TestInMemoryEventBus_Subscribe(t *testing.T) {
 	bus.Subscribe("test", func(ctx context.Context, event Event) error {
 		return nil
 	})
-	
+
 	// Verify internal state (listeners should be added)
 	assert.NotNil(t, bus.listeners)
 	assert.Len(t, bus.listeners["test"], 2)
 }
-

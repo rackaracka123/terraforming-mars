@@ -33,7 +33,7 @@ func (h *AtmosphericProcessorsHandler) Play(ctx *cards.CardHandlerContext) error
 		if ctx.Game.GlobalParameters.Oxygen > 14 {
 			ctx.Game.GlobalParameters.Oxygen = 14
 		}
-		
+
 		// Player gains TR when raising global parameters
 		player, found := ctx.Game.GetPlayer(ctx.PlayerID)
 		if !found {
@@ -43,7 +43,7 @@ func (h *AtmosphericProcessorsHandler) Play(ctx *cards.CardHandlerContext) error
 	} else {
 		return fmt.Errorf("oxygen already at maximum level")
 	}
-	
+
 	return nil
 }
 
@@ -54,16 +54,16 @@ func (h *AtmosphericProcessorsHandler) RegisterListeners(eventBus events.EventBu
 	eventBus.Subscribe("temperature-increased", func(ctx context.Context, event events.Event) error {
 		// In a real implementation, this would check if the card is in play
 		// for a specific player and provide appropriate bonuses
-		
+
 		// For now, this is a demonstration of the pattern
 		// The actual implementation would:
 		// 1. Check if this card is in play for any player
 		// 2. Apply appropriate synergy effects
 		// 3. Update game state accordingly
-		
+
 		return nil
 	})
-	
+
 	return nil
 }
 

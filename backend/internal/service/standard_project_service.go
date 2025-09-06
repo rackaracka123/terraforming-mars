@@ -33,9 +33,9 @@ type StandardProjectService interface {
 
 // StandardProjectServiceImpl implements StandardProjectService interface
 type StandardProjectServiceImpl struct {
-	gameRepo               repository.GameRepository
-	playerRepo             repository.PlayerRepository
-	globalParametersRepo   repository.GlobalParametersRepository
+	gameRepo                repository.GameRepository
+	playerRepo              repository.PlayerRepository
+	globalParametersRepo    repository.GlobalParametersRepository
 	globalParametersService GlobalParametersService
 }
 
@@ -47,9 +47,9 @@ func NewStandardProjectService(
 	globalParametersService GlobalParametersService,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
-		gameRepo:               gameRepo,
-		playerRepo:             playerRepo,
-		globalParametersRepo:   globalParametersRepo,
+		gameRepo:                gameRepo,
+		playerRepo:              playerRepo,
+		globalParametersRepo:    globalParametersRepo,
 		globalParametersService: globalParametersService,
 	}
 }
@@ -79,7 +79,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	// Update player resources and remove cards from hand
 	updatedPlayer := *player
 	updatedPlayer.Resources.Credits += creditsGained
-	
+
 	// Remove cards from hand (remove first N cards)
 	if len(updatedPlayer.Cards) >= cardCount {
 		updatedPlayer.Cards = updatedPlayer.Cards[cardCount:]
@@ -111,10 +111,10 @@ func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID
 	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectPowerPlant, func(player *model.Player) error {
 		// Increase energy production by 1
 		player.Production.Energy++
-		
+
 		log.Info("Player built power plant",
 			zap.Int("new_energy_production", player.Production.Energy))
-		
+
 		return nil
 	})
 }
@@ -126,16 +126,16 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAsteroid, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
-		
+
 		// Increase temperature by 1 step (2°C)
 		if err := s.globalParametersService.IncreaseTemperature(ctx, gameID, 1); err != nil {
 			log.Error("Failed to increase temperature", zap.Error(err))
 			return fmt.Errorf("failed to increase temperature: %w", err)
 		}
-		
+
 		log.Info("Player launched asteroid",
 			zap.Int("new_terraform_rating", player.TerraformRating))
-		
+
 		return nil
 	})
 }
@@ -156,17 +156,17 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAquifer, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
-		
+
 		// Place ocean tile (increase ocean count)
 		if err := s.globalParametersService.PlaceOcean(ctx, gameID, 1); err != nil {
 			log.Error("Failed to place ocean", zap.Error(err))
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
-		
+
 		log.Info("Player built aquifer",
 			zap.Int("new_terraform_rating", player.TerraformRating),
 			zap.Any("hex_position", hexPosition))
-		
+
 		return nil
 	})
 }
@@ -187,17 +187,17 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectGreenery, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
-		
+
 		// Increase oxygen by 1 step
 		if err := s.globalParametersService.IncreaseOxygen(ctx, gameID, 1); err != nil {
 			log.Error("Failed to increase oxygen", zap.Error(err))
 			return fmt.Errorf("failed to increase oxygen: %w", err)
 		}
-		
+
 		log.Info("Player planted greenery",
 			zap.Int("new_terraform_rating", player.TerraformRating),
 			zap.Any("hex_position", hexPosition))
-		
+
 		return nil
 	})
 }
@@ -218,11 +218,11 @@ func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, play
 	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectCity, func(player *model.Player) error {
 		// Increase megacredit production by 1 (cities provide income)
 		player.Production.Credits++
-		
+
 		log.Info("Player built city",
 			zap.Int("new_credit_production", player.Production.Credits),
 			zap.Any("hex_position", hexPosition))
-		
+
 		return nil
 	})
 }
@@ -250,7 +250,7 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 
 	// Create updated player copy
 	updatedPlayer := *player
-	
+
 	// Deduct cost
 	cost := model.StandardProjectCost[project]
 	updatedPlayer.Resources.Credits -= cost

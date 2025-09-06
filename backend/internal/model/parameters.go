@@ -4,12 +4,12 @@ package model
 type GamePhase string
 
 const (
-	GamePhaseSetup                    GamePhase = "setup"
-	GamePhaseStartingCardSelection    GamePhase = "starting_card_selection"
-	GamePhaseCorporationSelection     GamePhase = "corporation_selection"
-	GamePhaseAction                   GamePhase = "action"
-	GamePhaseProduction               GamePhase = "production"
-	GamePhaseComplete                 GamePhase = "complete"
+	GamePhaseSetup                 GamePhase = "setup"
+	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
+	GamePhaseCorporationSelection  GamePhase = "corporation_selection"
+	GamePhaseAction                GamePhase = "action"
+	GamePhaseProduction            GamePhase = "production"
+	GamePhaseComplete              GamePhase = "complete"
 )
 
 // GameStatus represents the current status of the game
@@ -37,10 +37,10 @@ type GlobalParameters struct {
 const (
 	MinTemperature = -30
 	MaxTemperature = 8
-	MinOxygen     = 0
-	MaxOxygen     = 14
-	MinOceans     = 0
-	MaxOceans     = 9
+	MinOxygen      = 0
+	MaxOxygen      = 14
+	MinOceans      = 0
+	MaxOceans      = 9
 )
 
 // CanIncreaseTemperature checks if temperature can be increased by the given steps
@@ -98,6 +98,6 @@ func (g *GlobalParameters) GetTerraformingProgress() float64 {
 	tempProgress := float64(g.Temperature-MinTemperature) / float64(MaxTemperature-MinTemperature)
 	oxygenProgress := float64(g.Oxygen-MinOxygen) / float64(MaxOxygen-MinOxygen)
 	oceanProgress := float64(g.Oceans-MinOceans) / float64(MaxOceans-MinOceans)
-	
+
 	return (tempProgress + oxygenProgress + oceanProgress) / 3.0 * 100.0
 }

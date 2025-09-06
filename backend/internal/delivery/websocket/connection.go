@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"sync"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
 
@@ -55,7 +56,7 @@ func (c *Connection) GetPlayer() (playerID, gameID string) {
 func (c *Connection) CloseSend() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if !c.sendClosed {
 		c.sendClosed = true
 		close(c.Send)
@@ -141,26 +142,5 @@ func (c *Connection) SendMessage(message dto.WebSocketMessage) {
 	default:
 		c.logger.Warn("Connection send channel is full, closing connection", zap.String("connection_id", c.ID))
 		close(c.Send)
-	}
-}
-
-// SetContextCancel stores the context cancel function for proper cleanup
-func (c *Connection) SetContextCancel(cancel context.CancelFunc) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.cancel = cancel
-}
-
-// Close closes the connection and cancels its context
-func (c *Connection) Close() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	
-	if c.cancel != nil {
-		c.cancel()
-	}
-	
-	if c.Conn != nil {
-		c.Conn.Close()
 	}
 }

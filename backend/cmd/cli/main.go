@@ -21,20 +21,20 @@ import (
 const (
 	// Default server address
 	defaultServerAddr = "localhost:3001"
-	
+
 	// CLI tool metadata
 	cliVersion = "1.0.0"
-	cliName = "Terraforming Mars CLI"
+	cliName    = "Terraforming Mars CLI"
 )
 
 // GameState holds the current game state for display
 type GameState struct {
-	Player          *model.Player
-	Generation      int
-	CurrentPhase    string
-	GameID          string
-	IsConnected     bool
-	TotalPlayers    int
+	Player           *model.Player
+	Generation       int
+	CurrentPhase     string
+	GameID           string
+	IsConnected      bool
+	TotalPlayers     int
 	GlobalParameters *GlobalParams
 }
 
@@ -46,12 +46,12 @@ type GlobalParams struct {
 }
 
 type CLIClient struct {
-	conn     *websocket.Conn
-	playerID string
-	gameID   string
-	done     chan struct{}
-	closed   bool
-	ui       *UI
+	conn      *websocket.Conn
+	playerID  string
+	gameID    string
+	done      chan struct{}
+	closed    bool
+	ui        *UI
 	gameState *GameState
 }
 
@@ -68,9 +68,9 @@ func main() {
 	}
 
 	client := &CLIClient{
-		playerID: "cli-" + uuid.New().String()[:8],
-		done:     make(chan struct{}),
-		ui:       NewUI(),
+		playerID:  "cli-" + uuid.New().String()[:8],
+		done:      make(chan struct{}),
+		ui:        NewUI(),
 		gameState: &GameState{},
 	}
 
@@ -94,12 +94,12 @@ func main() {
 	go func() {
 		<-interrupt
 		fmt.Println("\n🛑 Shutting down CLI...")
-		
+
 		if !client.closed {
 			client.closed = true
 			close(client.done)
 		}
-		
+
 		// Close connection gracefully
 		client.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		time.Sleep(time.Second)
@@ -112,13 +112,13 @@ func main() {
 
 func (c *CLIClient) connect(serverAddr string) error {
 	u := url.URL{Scheme: "ws", Host: serverAddr, Path: "/ws"}
-	
+
 	var err error
 	c.conn, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return fmt.Errorf("dial error: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (c *CLIClient) readMessages() {
 				}
 				return
 			}
-			
+
 			c.handleMessage(message)
 		}
 	}
@@ -162,7 +162,7 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 	case dto.MessageTypeGameUpdated:
 		c.updateGameStateFromMessage(message)
 		c.refreshDisplay()
-		
+
 	case dto.MessageTypePlayerConnected:
 		// Extract the actual player ID from the payload
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
@@ -170,7 +170,7 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 				c.playerID = playerID // Update to the actual player ID from the game
 			}
 		}
-		
+
 	case dto.MessageTypeError:
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
 			if msg, ok := payload["message"].(string); ok {
@@ -179,7 +179,7 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 				fmt.Print(c.ui.RenderPrompt())
 			}
 		}
-		
+
 	case dto.MessageTypeFullState:
 		c.updateGameStateFromMessage(message)
 		c.gameID = message.GameID
@@ -192,10 +192,10 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 
 func (c *CLIClient) commandLoop() {
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	// Initial display refresh
 	c.refreshDisplay()
-	
+
 	for {
 		// Check if we should exit
 		select {
@@ -204,9 +204,9 @@ func (c *CLIClient) commandLoop() {
 		default:
 			// Continue with command processing
 		}
-		
+
 		fmt.Print(c.ui.RenderPrompt())
-		
+
 		// Read line input
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -219,12 +219,12 @@ func (c *CLIClient) commandLoop() {
 				return
 			}
 		}
-		
+
 		command := strings.TrimSpace(line)
 		if command == "" {
 			continue
 		}
-		
+
 		if c.processCommand(command) {
 			return // quit command
 		}
@@ -236,14 +236,14 @@ func (c *CLIClient) processCommand(command string) bool {
 	if len(parts) == 0 {
 		return false
 	}
-	
+
 	cmd := strings.ToLower(parts[0])
 	args := parts[1:]
-	
+
 	switch cmd {
 	case "help", "h":
 		c.showHelp()
-		
+
 	case "quit", "exit", "q":
 		fmt.Println("👋 Goodbye!")
 		if !c.closed {
@@ -251,31 +251,31 @@ func (c *CLIClient) processCommand(command string) bool {
 			close(c.done)
 		}
 		return true
-		
+
 	case "status", "s":
 		c.showStatus()
-		
+
 	case "join":
 		c.joinGame(args)
-		
+
 	case "create":
 		c.createGame(args)
-		
+
 	case "games":
 		c.listGames()
-		
+
 	case "players":
 		c.listPlayers()
-		
+
 	case "actions":
 		c.showAvailableActions()
-		
+
 	case "send":
 		c.sendRawMessage(args)
-		
+
 	case "clear", "cls":
 		fmt.Print("\033[2J\033[H") // Clear screen
-		
+
 	default:
 		// Check if it's a numbered action selection
 		if len(cmd) > 0 && cmd[0] >= '0' && cmd[0] <= '9' {
@@ -284,7 +284,7 @@ func (c *CLIClient) processCommand(command string) bool {
 			fmt.Printf("❓ Unknown command: %s (type 'help' for available commands)\n", cmd)
 		}
 	}
-	
+
 	return false
 }
 
@@ -318,9 +318,9 @@ func (c *CLIClient) joinGame(args []string) {
 		fmt.Println("Example: join f5d085d0-f9e2-47a0-b165-716c6022451b")
 		return
 	}
-	
+
 	gameID := args[0]
-	
+
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
@@ -329,12 +329,12 @@ func (c *CLIClient) joinGame(args []string) {
 			GameID:     gameID,
 		},
 	}
-	
+
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf("❌ Failed to join game: %v\n", err)
 		return
 	}
-	
+
 	// Set gameID locally since we're attempting to join this game
 	c.gameID = gameID
 	fmt.Printf("🎮 Joining game: %s\n", gameID)
@@ -346,12 +346,12 @@ func (c *CLIClient) createGame(args []string) {
 		fmt.Println("Example: create \"Alice\"")
 		return
 	}
-	
+
 	playerName := strings.Join(args, " ")
-	
+
 	// Generate a game ID automatically
 	gameID := fmt.Sprintf("game-%d", time.Now().Unix())
-	
+
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
@@ -360,12 +360,12 @@ func (c *CLIClient) createGame(args []string) {
 			GameID:     gameID,
 		},
 	}
-	
+
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf("❌ Failed to create game: %v\n", err)
 		return
 	}
-	
+
 	// Set gameID locally since we're creating and joining this game
 	c.gameID = gameID
 	fmt.Printf("🎮 Creating game and joining as '%s'\n", playerName)
@@ -380,7 +380,7 @@ func (c *CLIClient) listPlayers() {
 		fmt.Println("❌ Not connected to any game")
 		return
 	}
-	
+
 	fmt.Printf("👥 Players in game %s:\n", c.gameID)
 	fmt.Printf("   • %s (you)\n", fmt.Sprintf("CLI-Player-%s", c.playerID[4:]))
 	fmt.Println("\n💡 Other players will appear here when they join the game")
@@ -407,7 +407,7 @@ func (c *CLIClient) selectAction(actionNum string) {
 		fmt.Println("❌ Not connected to any game. Use 'connect <game>' first.")
 		return
 	}
-	
+
 	switch actionNum {
 	case "0":
 		c.skipAction()
@@ -444,7 +444,7 @@ func (c *CLIClient) skipAction() {
 			},
 		},
 	}
-	
+
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf("\r❌ Failed to skip action: %v\n", err)
 		fmt.Print(c.ui.RenderPrompt())
@@ -462,7 +462,7 @@ func (c *CLIClient) raiseTemperature() {
 			},
 		},
 	}
-	
+
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf("\r❌ Failed to raise temperature: %v\n", err)
 		fmt.Print(c.ui.RenderPrompt())
@@ -542,9 +542,9 @@ func (c *CLIClient) endTurn() {
 // executeStandardProject executes a standard project and shows status
 func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 	fmt.Printf("🔨 Executing: %s", projectName)
-	
+
 	var message dto.WebSocketMessage
-	
+
 	// Build the message based on project type
 	switch projectType {
 	case "SELL_PATENTS":
@@ -556,18 +556,18 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 			fmt.Printf(" ❌ Failed\n")
 			return
 		}
-		
+
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
 			GameID: c.gameID,
 			Payload: dto.PlayActionPayload{
 				ActionRequest: map[string]interface{}{
-					"type": "sell-patents",
+					"type":      "sell-patents",
 					"cardCount": cardCount,
 				},
 			},
 		}
-		
+
 	case "POWER_PLANT":
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
@@ -578,7 +578,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 				},
 			},
 		}
-		
+
 	case "ASTEROID":
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
@@ -589,7 +589,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 				},
 			},
 		}
-		
+
 	case "AQUIFER":
 		// For hex placement projects, ask for position
 		fmt.Print("\nEnter hex position (q r s): ")
@@ -599,7 +599,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 			fmt.Printf(" ❌ Failed - Invalid hex position\n")
 			return
 		}
-		
+
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
 			GameID: c.gameID,
@@ -614,7 +614,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 				},
 			},
 		}
-		
+
 	case "GREENERY":
 		// For hex placement projects, ask for position
 		fmt.Print("\nEnter hex position (q r s): ")
@@ -624,7 +624,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 			fmt.Printf(" ❌ Failed - Invalid hex position\n")
 			return
 		}
-		
+
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
 			GameID: c.gameID,
@@ -639,7 +639,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 				},
 			},
 		}
-		
+
 	case "CITY":
 		// For hex placement projects, ask for position
 		fmt.Print("\nEnter hex position (q r s): ")
@@ -649,7 +649,7 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 			fmt.Printf(" ❌ Failed - Invalid hex position\n")
 			return
 		}
-		
+
 		message = dto.WebSocketMessage{
 			Type:   dto.MessageTypePlayAction,
 			GameID: c.gameID,
@@ -665,13 +665,13 @@ func (c *CLIClient) executeStandardProject(projectType, projectName string) {
 			},
 		}
 	}
-	
+
 	// Send the message
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf(" ❌ Failed - %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf(" ✅ Success\n")
 }
 
@@ -681,10 +681,10 @@ func (c *CLIClient) sendRawMessage(args []string) {
 		fmt.Println("Example: send player-connect")
 		return
 	}
-	
+
 	messageType := dto.MessageType(args[0])
 	var payload interface{}
-	
+
 	if len(args) > 1 {
 		payloadStr := strings.Join(args[1:], " ")
 		if err := json.Unmarshal([]byte(payloadStr), &payload); err != nil {
@@ -692,18 +692,18 @@ func (c *CLIClient) sendRawMessage(args []string) {
 			return
 		}
 	}
-	
+
 	message := dto.WebSocketMessage{
 		Type:    messageType,
 		GameID:  c.gameID,
 		Payload: payload,
 	}
-	
+
 	if err := c.conn.WriteJSON(message); err != nil {
 		fmt.Printf("❌ Failed to send message: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("📤 Sent message: %s\n", messageType)
 }
 
@@ -722,16 +722,16 @@ func (c *CLIClient) parseGameData(gameData map[string]interface{}) {
 	if generation, ok := gameData["generation"].(float64); ok {
 		c.gameState.Generation = int(generation)
 	}
-	
+
 	// Update current phase
 	if phase, ok := gameData["currentPhase"].(string); ok {
 		c.gameState.CurrentPhase = phase
 	}
-	
+
 	// Update total players
 	if players, ok := gameData["players"].([]interface{}); ok {
 		c.gameState.TotalPlayers = len(players)
-		
+
 		// Find current player
 		for _, playerInterface := range players {
 			if playerMap, ok := playerInterface.(map[string]interface{}); ok {
@@ -742,13 +742,13 @@ func (c *CLIClient) parseGameData(gameData map[string]interface{}) {
 			}
 		}
 	}
-	
+
 	// Update global parameters
 	if globalParams, ok := gameData["globalParameters"].(map[string]interface{}); ok {
 		if c.gameState.GlobalParameters == nil {
 			c.gameState.GlobalParameters = &GlobalParams{}
 		}
-		
+
 		if temp, ok := globalParams["temperature"].(float64); ok {
 			c.gameState.GlobalParameters.Temperature = int(temp)
 		}
@@ -766,7 +766,7 @@ func (c *CLIClient) parsePlayerData(playerData map[string]interface{}) {
 	if c.gameState.Player == nil {
 		c.gameState.Player = &model.Player{}
 	}
-	
+
 	// Parse basic player info
 	if name, ok := playerData["name"].(string); ok {
 		c.gameState.Player.Name = name
@@ -780,17 +780,17 @@ func (c *CLIClient) parsePlayerData(playerData map[string]interface{}) {
 	if active, ok := playerData["isActive"].(bool); ok {
 		c.gameState.Player.IsActive = active
 	}
-	
+
 	// Parse resources
 	if resources, ok := playerData["resources"].(map[string]interface{}); ok {
 		c.parseResources(resources, &c.gameState.Player.Resources)
 	}
-	
+
 	// Parse production
 	if production, ok := playerData["production"].(map[string]interface{}); ok {
 		c.parseProduction(production, &c.gameState.Player.Production)
 	}
-	
+
 	// Parse cards
 	if cards, ok := playerData["cards"].([]interface{}); ok {
 		c.gameState.Player.Cards = make([]string, len(cards))
@@ -800,7 +800,7 @@ func (c *CLIClient) parsePlayerData(playerData map[string]interface{}) {
 			}
 		}
 	}
-	
+
 	// Parse played cards
 	if playedCards, ok := playerData["playedCards"].([]interface{}); ok {
 		c.gameState.Player.PlayedCards = make([]string, len(playedCards))

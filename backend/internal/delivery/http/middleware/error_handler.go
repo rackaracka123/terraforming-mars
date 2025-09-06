@@ -20,19 +20,19 @@ func Recovery(next http.Handler) http.Handler {
 					zap.String("method", r.Method),
 					zap.String("path", r.URL.Path),
 					zap.String("remote_addr", r.RemoteAddr))
-				
+
 				// Send error response
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
-				
+
 				errorResponse := dto.ErrorPayload{
 					Message: "Internal server error",
 				}
-				
+
 				json.NewEncoder(w).Encode(errorResponse)
 			}
 		}()
-		
+
 		next.ServeHTTP(w, r)
 	})
 }

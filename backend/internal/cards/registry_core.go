@@ -22,12 +22,12 @@ func NewCardHandlerRegistry() *CardHandlerRegistry {
 func (r *CardHandlerRegistry) Register(handler CardHandler) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	
+
 	cardID := handler.GetCardID()
 	if _, exists := r.handlers[cardID]; exists {
 		return fmt.Errorf("handler for card %s already registered", cardID)
 	}
-	
+
 	r.handlers[cardID] = handler
 	return nil
 }
@@ -36,12 +36,12 @@ func (r *CardHandlerRegistry) Register(handler CardHandler) error {
 func (r *CardHandlerRegistry) GetHandler(cardID string) (CardHandler, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	handler, exists := r.handlers[cardID]
 	if !exists {
 		return nil, fmt.Errorf("no handler registered for card %s", cardID)
 	}
-	
+
 	return handler, nil
 }
 
@@ -49,7 +49,7 @@ func (r *CardHandlerRegistry) GetHandler(cardID string) (CardHandler, error) {
 func (r *CardHandlerRegistry) HasHandler(cardID string) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	_, exists := r.handlers[cardID]
 	return exists
 }
@@ -58,12 +58,12 @@ func (r *CardHandlerRegistry) HasHandler(cardID string) bool {
 func (r *CardHandlerRegistry) GetAllRegisteredCards() []string {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	cardIDs := make([]string, 0, len(r.handlers))
 	for cardID := range r.handlers {
 		cardIDs = append(cardIDs, cardID)
 	}
-	
+
 	return cardIDs
 }
 
@@ -71,7 +71,7 @@ func (r *CardHandlerRegistry) GetAllRegisteredCards() []string {
 func (r *CardHandlerRegistry) UnregisterAll() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	
+
 	r.handlers = make(map[string]CardHandler)
 }
 

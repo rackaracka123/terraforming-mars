@@ -15,7 +15,7 @@ func RequestID() gin.HandlerFunc {
 		if requestID == "" {
 			requestID = generateRequestID()
 		}
-		
+
 		c.Header("X-Request-ID", requestID)
 		c.Set("request_id", requestID)
 		c.Next()
@@ -28,16 +28,16 @@ func ZapLogger() gin.HandlerFunc {
 		start := time.Now()
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
-		
+
 		// Process request
 		c.Next()
-		
+
 		// Calculate request duration
 		duration := time.Since(start)
-		
+
 		// Get request ID from context
 		requestID, _ := c.Get("request_id")
-		
+
 		// Build log fields
 		fields := []zap.Field{
 			zap.Int("status", c.Writer.Status()),
@@ -48,21 +48,21 @@ func ZapLogger() gin.HandlerFunc {
 			zap.Duration("duration", duration),
 			zap.Int("size", c.Writer.Size()),
 		}
-		
+
 		// Add request ID if present
 		if requestID != nil {
 			fields = append(fields, zap.String("request_id", requestID.(string)))
 		}
-		
+
 		// Add query parameters if present
 		if raw != "" {
 			fields = append(fields, zap.String("query", raw))
 		}
-		
+
 		// Log based on status code
 		status := c.Writer.Status()
 		msg := "HTTP Request"
-		
+
 		if len(c.Errors) > 0 {
 			// Log errors
 			for _, err := range c.Errors {
@@ -83,18 +83,18 @@ func ZapLogger() gin.HandlerFunc {
 func ZapRecovery() gin.HandlerFunc {
 	return gin.RecoveryWithWriter(gin.DefaultWriter, func(c *gin.Context, err interface{}) {
 		requestID, _ := c.Get("request_id")
-		
+
 		fields := []zap.Field{
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
 			zap.String("ip", c.ClientIP()),
 			zap.Any("error", err),
 		}
-		
+
 		if requestID != nil {
 			fields = append(fields, zap.String("request_id", requestID.(string)))
 		}
-		
+
 		logger.Get().Error("Panic recovered", fields...)
 		c.AbortWithStatus(500)
 	})

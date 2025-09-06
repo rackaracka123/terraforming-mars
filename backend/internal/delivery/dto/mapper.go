@@ -14,12 +14,12 @@ func ToGameDto(game *model.Game) GameDto {
 	}
 
 	return GameDto{
-		ID:       game.ID,
-		Status:   GameStatus(game.Status),
-		Settings: ToGameSettingsDto(game.Settings),
-		Players:  players,
-		HostPlayerID: game.HostPlayerID,
-		CurrentPhase: GamePhase(game.CurrentPhase),
+		ID:               game.ID,
+		Status:           GameStatus(game.Status),
+		Settings:         ToGameSettingsDto(game.Settings),
+		Players:          players,
+		HostPlayerID:     game.HostPlayerID,
+		CurrentPhase:     GamePhase(game.CurrentPhase),
 		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
 		CurrentPlayerID:  game.CurrentPlayerID,
 		Generation:       game.Generation,
