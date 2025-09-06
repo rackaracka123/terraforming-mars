@@ -8,42 +8,71 @@ Digital implementation of Terraforming Mars board game with real-time multiplaye
 
 ## Development Commands
 
-### Quick Start (Recommended)
+All commands should be run from the **project root directory**. The project now uses a unified Makefile for all development tasks.
+
+### 🚀 Quick Start
 ```bash
-make run         # Alternative: Run both servers using Makefile (must be in root directory)
+make run         # Run both frontend (3000) and backend (3001) servers
+make help        # Show all available commands with descriptions
 ```
 
-### Individual Servers
+### 🎯 Main Commands
 ```bash
-npm run backend  # Go backend only (port 3001)
-npm run frontend # React frontend only (port 3000)
+make frontend    # Start React development server (port 3000)
+make backend     # Start Go backend server (port 3001)
+make tm          # Launch interactive CLI tool for backend testing
 ```
 
-### Backend (Go - Port 3001)
+### 🧪 Testing
 ```bash
-cd backend
-go run cmd/server/main.go     # Run development server directly
-go build -o bin/server cmd/server/main.go  # Build production binary
-./bin/server                  # Run production binary
-make test                     # Run all tests
-tygo generate                 # Generate TypeScript types
+make test         # Run all tests (backend + frontend)
+make test-backend # Run Go backend tests only
+make test-verbose # Run backend tests with verbose output
+make test-coverage# Generate test coverage report (backend/coverage.html)
+make test-quick   # Fast test suite for development iteration
 ```
 
-### Frontend (React - Port 3000) 
+### 🔧 Code Quality
 ```bash
-cd frontend  
-npm start        # React development server
-npm run build    # Production build for deployment
-npm test         # Run Jest tests
+make lint         # Run all linters (Go fmt + ESLint)
+make format       # Format all code (Go + TypeScript)
+make generate     # Generate TypeScript types from Go structs
+make lint-backend # Go formatting only
+make lint-frontend# ESLint only
 ```
 
-### Code Generation
+### 🏗️ Build & Deploy
 ```bash
-npm run generate-docs    # Generate Swagger API documentation
+make build        # Build production binaries for both frontend and backend
+make build-backend# Build Go server binary (backend/bin/server)
+make build-frontend# Build React production bundle (frontend/dist/)
+make clean        # Clean all build artifacts
 ```
 
-### Both Servers
-Frontend connects to backend at http://localhost:3001. Use root-level `npm start` to run both servers automatically.
+### 🛠️ CLI Tool
+```bash
+make tm           # Run CLI tool locally
+make install-cli  # Install CLI tool globally as 'tm' command
+tm                # Run installed CLI from anywhere (after install-cli)
+```
+
+### 🧰 Development Helpers
+```bash
+make dev-setup    # Set up development environment (go mod tidy + npm install)
+make test-watch   # Watch Go files and run tests on changes (requires entr)
+```
+
+### 🔄 Type Generation
+```bash
+make generate                # Generate TypeScript types from Go structs (recommended)
+cd backend && tygo generate  # Alternative direct command
+```
+
+### Legacy Commands (deprecated)
+These commands are no longer needed but mentioned for reference:
+- ~~`npm run backend`~~ → Use `make backend`
+- ~~`npm run frontend`~~ → Use `make frontend`
+- ~~`cd backend && make test`~~ → Use `make test-backend`
 
 
 ## Core Architecture
@@ -120,6 +149,47 @@ type Player struct {
 
 ### Resource System
 Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat converts to temperature raises (8 heat = 1 step). Production tracks for sustainable resource generation.
+
+## CLI Tool (`make tm`)
+
+The project includes an interactive CLI tool for backend testing and development:
+
+### Features
+- **WebSocket Connection**: Direct connection to backend for real-time testing
+- **Numbered Actions**: Interactive action selection (0-9) with skip option (0)
+- **Game Management**: Join games, view status, send custom messages
+- **Real-time Feedback**: Live updates from game state changes
+
+### Usage
+```bash
+make tm                    # Launch CLI tool
+make install-cli           # Install globally as 'tm' command
+tm                        # Run from anywhere (after install)
+```
+
+### Available Commands
+- `help` - Show all commands
+- `connect <game>` - Join or create a game
+- `status` - Show connection and game status  
+- `actions` - Display numbered action list
+- `0-9` - Select action by number (0 = skip)
+- `send <type>` - Send raw WebSocket messages
+- `quit` - Exit CLI tool
+
+### Example Session
+```bash
+tm> connect test-game      # Join game
+tm> actions               # Show available actions
+tm> 1                     # Raise temperature
+tm> 0                     # Skip action
+tm> quit                  # Exit
+```
+
+The CLI tool is particularly useful for:
+- Testing game mechanics without frontend
+- Debugging WebSocket message flow  
+- Rapid iteration on backend features
+- Automated testing scenarios
 
 ## Key Development Patterns
 

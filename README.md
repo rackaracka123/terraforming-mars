@@ -2,38 +2,90 @@
 
 A digital implementation of the board game Terraforming Mars with a unique 3D game view and comprehensive multiplayer support.
 
-## Features
+## 🚀 Features
 
-- **3D Game View**: Drag and rotate your view of Mars in a beautiful 3D space
-- **Parallax Background**: Earth, moons, and stars move at different depths
-- **Complete Card System**: All 200+ project cards with unique abilities
-- **Real-time Multiplayer**: Play with friends online
-- **Visual Terraforming**: Watch Mars transform as you play
+- **3D Game View**: Interactive Mars board with hex-based tile system
+- **Real-time Multiplayer**: WebSocket-based multiplayer with Go backend
+- **Clean Architecture**: Backend follows domain-driven design principles  
+- **Type Safety**: Automatic TypeScript generation from Go structs
+- **Visual Terraforming**: Watch Mars transform as global parameters change
+- **CLI Tool**: Interactive command-line interface for backend testing
 
-## Project Structure
+## 📁 Project Structure
 
 - `frontend/` - React/TypeScript client with Three.js 3D graphics
-- `backend/` - Node.js/Express server with Socket.io for multiplayer
+- `backend/` - Go server with clean architecture and WebSocket multiplayer
+- `Makefile` - Unified development commands
 
-## Quick Start
+## ⚡ Quick Start
 
-### Backend
+### Run Both Servers
 ```bash
-cd backend
-npm install
-npm run dev
+make run
+```
+This starts both frontend (port 3000) and backend (port 3001) servers.
+
+### Individual Servers
+```bash
+make frontend    # React development server
+make backend     # Go backend server
 ```
 
-### Frontend
+### CLI Tool
 ```bash
-cd frontend
-npm install
-npm start
+make tm          # Interactive CLI for backend
 ```
 
-## Technology Stack
+## 🛠️ Development Commands
 
-- **Frontend**: React, TypeScript, Three.js, React Three Fiber, Redux Toolkit
-- **Backend**: Node.js, Express, Socket.io, TypeScript
-- **3D Graphics**: Three.js with custom 3D game view controls
-- **State Management**: Redux Toolkit for complex game state
+### Main Commands
+- `make run` - Start both servers
+- `make frontend` - Start frontend only
+- `make backend` - Start backend only  
+- `make tm` - Launch CLI tool
+
+### Testing
+- `make test` - Run all tests
+- `make test-backend` - Backend tests only
+- `make test-verbose` - Verbose backend tests
+- `make test-coverage` - Coverage report
+
+### Code Quality
+- `make lint` - Run all linters
+- `make format` - Format all code
+- `make generate` - Generate TypeScript types
+
+### Build & Deploy
+- `make build` - Production builds
+- `make clean` - Clean artifacts
+- `make install-cli` - Install CLI globally
+
+## 🏗️ Technology Stack
+
+- **Frontend**: React, TypeScript, Three.js, React Three Fiber
+- **Backend**: Go, Gorilla WebSocket, Clean Architecture
+- **3D Graphics**: Three.js with custom hex coordinate system
+- **Type Safety**: Go-to-TypeScript code generation
+- **Multiplayer**: WebSocket real-time communication
+
+## 🎮 Game Architecture
+
+### Backend (Go)
+- **Domain Layer**: Core game entities and business logic
+- **Service Layer**: Use cases and application logic
+- **Delivery Layer**: HTTP handlers and WebSocket hub
+- **Repository Layer**: In-memory game state storage
+
+### Frontend (React)
+- **3D Rendering**: React Three Fiber with custom pan controls
+- **Game State**: Redux with generated TypeScript types
+- **Real-time Updates**: WebSocket client for live game state
+- **Component Architecture**: Modular UI with asset integration
+
+## 📋 Development Workflow
+
+1. **Make changes** to Go domain models with `ts:` tags
+2. **Run `make generate`** to update TypeScript types  
+3. **Implement frontend** using generated types
+4. **Test with CLI** using `make tm` for backend interaction
+5. **Run `make lint`** before committing changes

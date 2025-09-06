@@ -16,6 +16,7 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -86,16 +87,22 @@ func main() {
 	go hub.Run(hubCtx)
 	log.Info("WebSocket hub started")
 	
-	// Setup HTTP router
-	router := httpHandler.SetupRouter(gameService, playerService)
+	// Setup main router without middleware for WebSocket
+	mainRouter := mux.NewRouter()
 	
-	// Add WebSocket endpoint
-	router.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	// Setup API router with middleware
+	apiRouter := httpHandler.SetupRouter(gameService, playerService)
+	
+	// Mount API router
+	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
+	
+	// Add WebSocket endpoint directly to main router (no middleware)
+	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
 	
 	// Setup HTTP server
 	server := &http.Server{
 		Addr:         ":3001",
-		Handler:      router,
+		Handler:      mainRouter,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
