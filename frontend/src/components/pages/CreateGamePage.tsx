@@ -35,7 +35,6 @@ const CreateGamePage: React.FC = () => {
 
       // Creating game with settings
       const game = await apiService.createGame(gameSettings);
-      // Game created successfully
 
       // Connect to WebSocket if not already connected
       if (!webSocketService.connected) {

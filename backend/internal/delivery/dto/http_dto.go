@@ -36,6 +36,16 @@ type UpdateResourcesRequest struct {
 	Resources ResourcesDto `json:"resources" ts:"ResourcesDto"`
 }
 
+// GetPlayerResponse represents the response for getting a player
+type GetPlayerResponse struct {
+	Player PlayerDto `json:"player" ts:"PlayerDto"`
+}
+
+// UpdatePlayerResourcesResponse represents the response for updating player resources
+type UpdatePlayerResourcesResponse struct {
+	Player PlayerDto `json:"player" ts:"PlayerDto"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error   string `json:"error" ts:"string"`

@@ -41,8 +41,9 @@ type GameUpdatedPayload struct {
 
 // PlayerConnectedPayload contains data about a newly connected player
 type PlayerConnectedPayload struct {
-	PlayerID   string `json:"playerId" ts:"string"`
-	PlayerName string `json:"playerName" ts:"string"`
+	PlayerID   string  `json:"playerId" ts:"string"`
+	PlayerName string  `json:"playerName" ts:"string"`
+	Game       GameDto `json:"game" ts:"GameDto"`
 }
 
 // ErrorPayload contains error information

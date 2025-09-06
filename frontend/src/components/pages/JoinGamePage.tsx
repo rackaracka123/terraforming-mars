@@ -55,9 +55,22 @@ const JoinGamePage: React.FC = () => {
       setValidatedGame(game);
       setGameValidated(true);
     } catch (err) {
-      // If URL game ID is invalid, allow manual entry
-      console.warn("URL game ID is invalid:", err);
-      setError("Invalid game code in URL. Please enter a valid game ID.");
+      if (err instanceof Error) {
+        if (err.message.includes("404") || err.message.includes("not found")) {
+          setError("Game not found. Please check the game ID.");
+          return;
+        } else if (err.message.includes("full")) {
+          setError("This game is full. Please try another game.");
+          return;
+        } else if (err.message.includes("started")) {
+          setError("This game has already started.");
+          return;
+        } else {
+          setError(err.message || "Failed to find game");
+          return;
+        }
+      }
+      setError("Failed to find game");
     } finally {
       setIsLoadingGameValidation(false);
     }

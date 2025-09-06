@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 
@@ -14,11 +15,11 @@ import (
 func (h *Hub) handleMessage(ctx context.Context, hubMessage HubMessage) {
 	connection := hubMessage.Connection
 	message := hubMessage.Message
-	
+
 	h.logger.Debug("Processing WebSocket message",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
-	
+
 	switch message.Type {
 	case dto.MessageTypePlayerConnect:
 		h.handlePlayerConnect(ctx, connection, message)
@@ -28,7 +29,7 @@ func (h *Hub) handleMessage(ctx context.Context, hubMessage HubMessage) {
 		h.logger.Warn("Unknown message type received",
 			zap.String("connection_id", connection.ID),
 			zap.String("message_type", string(message.Type)))
-		
+
 		h.sendErrorToConnection(connection, "Unknown message type")
 	}
 }
@@ -43,7 +44,7 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 		h.sendErrorToConnection(connection, "Invalid player connect payload")
 		return
 	}
-	
+
 	// Delegate to service
 	game, err := h.gameService.JoinGame(ctx, payload.GameID, payload.PlayerName)
 	if err != nil {
@@ -55,7 +56,7 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 		h.sendErrorToConnection(connection, "Failed to join game")
 		return
 	}
-	
+
 	// Find the player ID of the newly joined player
 	var playerID string
 	for _, player := range game.Players {
@@ -64,31 +65,22 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 			break
 		}
 	}
-	
+
 	// Associate connection with player and game
 	connection.SetPlayer(playerID, payload.GameID)
 	h.addToGame(connection, payload.GameID)
-	
+
 	// Send player connected confirmation to the joining player
-	h.sendToConnection(connection, dto.WebSocketMessage{
+	h.broadcastToGame(payload.GameID, dto.WebSocketMessage{
 		Type: dto.MessageTypePlayerConnected,
 		Payload: dto.PlayerConnectedPayload{
 			PlayerID:   playerID,
 			PlayerName: payload.PlayerName,
+			Game:       dto.ToGameDto(game),
 		},
 		GameID: payload.GameID,
 	})
-	
-	// Broadcast full game state to all players in the game
-	h.broadcastToGame(payload.GameID, dto.WebSocketMessage{
-		Type: dto.MessageTypeFullState,
-		Payload: dto.FullStatePayload{
-			Game:     dto.ToGameDto(game),
-			PlayerID: playerID,
-		},
-		GameID: payload.GameID,
-	})
-	
+
 	h.logger.Info("Player connected via WebSocket",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
@@ -105,7 +97,7 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		h.sendErrorToConnection(connection, "You must connect to a game first")
 		return
 	}
-	
+
 	var payload dto.PlayActionPayload
 	if err := h.parseMessagePayload(message.Payload, &payload); err != nil {
 		h.logger.Error("Failed to parse play action payload",
@@ -114,7 +106,7 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		h.sendErrorToConnection(connection, "Invalid action payload")
 		return
 	}
-	
+
 	// Handle different action types
 	if err := h.processAction(ctx, gameID, playerID, payload.ActionRequest); err != nil {
 		h.logger.Error("Failed to process action",
@@ -125,7 +117,7 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		h.sendErrorToConnection(connection, fmt.Sprintf("Action failed: %v", err))
 		return
 	}
-	
+
 	// Broadcast updated game state to all players in the game
 	game, err := h.gameService.GetGame(ctx, gameID)
 	if err != nil {
@@ -135,7 +127,7 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		h.sendErrorToConnection(connection, "Failed to get updated game state")
 		return
 	}
-	
+
 	h.broadcastToGame(gameID, dto.WebSocketMessage{
 		Type: dto.MessageTypeFullState,
 		Payload: dto.FullStatePayload{
@@ -153,14 +145,14 @@ func (h *Hub) parseMessagePayload(payload interface{}, dest interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal(payloadBytes, dest)
 }
 
 // sendErrorToConnection sends an error message to a connection
 func (h *Hub) sendErrorToConnection(connection *Connection, message string) {
 	_, gameID := connection.GetPlayer()
-	
+
 	errorMessage := dto.WebSocketMessage{
 		Type: dto.MessageTypeError,
 		Payload: dto.ErrorPayload{
@@ -168,7 +160,7 @@ func (h *Hub) sendErrorToConnection(connection *Connection, message string) {
 		},
 		GameID: gameID,
 	}
-	
+
 	h.sendToConnection(connection, errorMessage)
 }
 
@@ -179,19 +171,21 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 	if err != nil {
 		return fmt.Errorf("failed to marshal action request: %w", err)
 	}
-	
+
 	var actionMap map[string]interface{}
 	if err := json.Unmarshal(actionBytes, &actionMap); err != nil {
 		return fmt.Errorf("failed to unmarshal action request: %w", err)
 	}
-	
+
 	actionType, ok := actionMap["type"].(string)
 	if !ok {
 		return fmt.Errorf("action type not found or invalid")
 	}
-	
+
 	// Handle different action types
 	switch dto.ActionType(actionType) {
+	case dto.ActionTypeStartGame:
+		return h.handleStartGame(ctx, gameID, playerID)
 	case dto.ActionTypeSellPatents:
 		return h.handleSellPatents(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildPowerPlant:
@@ -209,13 +203,20 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 	}
 }
 
+// handleStartGame handles the start game action
+func (h *Hub) handleStartGame(ctx context.Context, gameID, playerID string) error {
+	return h.gameService.StartGame(ctx, gameID, playerID)
+}
+
+//err = s.actionHandlers.StartGame.Handle(game, player, request)
+
 // handleSellPatents handles sell patents standard project
 func (h *Hub) handleSellPatents(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
 	var request dto.ActionSellPatentsRequest
 	if err := h.parseActionRequest(actionRequest, &request); err != nil {
 		return fmt.Errorf("invalid sell patents request: %w", err)
 	}
-	
+
 	return h.standardProjectService.SellPatents(ctx, gameID, playerID, request.CardCount)
 }
 
@@ -235,13 +236,13 @@ func (h *Hub) handleBuildAquifer(ctx context.Context, gameID, playerID string, a
 	if err := h.parseActionRequest(actionRequest, &request); err != nil {
 		return fmt.Errorf("invalid build aquifer request: %w", err)
 	}
-	
+
 	hexPosition := model.HexPosition{
 		Q: request.HexPosition.Q,
 		R: request.HexPosition.R,
 		S: request.HexPosition.S,
 	}
-	
+
 	return h.standardProjectService.BuildAquifer(ctx, gameID, playerID, hexPosition)
 }
 
@@ -251,13 +252,13 @@ func (h *Hub) handlePlantGreenery(ctx context.Context, gameID, playerID string, 
 	if err := h.parseActionRequest(actionRequest, &request); err != nil {
 		return fmt.Errorf("invalid plant greenery request: %w", err)
 	}
-	
+
 	hexPosition := model.HexPosition{
 		Q: request.HexPosition.Q,
 		R: request.HexPosition.R,
 		S: request.HexPosition.S,
 	}
-	
+
 	return h.standardProjectService.PlantGreenery(ctx, gameID, playerID, hexPosition)
 }
 
@@ -267,13 +268,13 @@ func (h *Hub) handleBuildCity(ctx context.Context, gameID, playerID string, acti
 	if err := h.parseActionRequest(actionRequest, &request); err != nil {
 		return fmt.Errorf("invalid build city request: %w", err)
 	}
-	
+
 	hexPosition := model.HexPosition{
 		Q: request.HexPosition.Q,
 		R: request.HexPosition.R,
 		S: request.HexPosition.S,
 	}
-	
+
 	return h.standardProjectService.BuildCity(ctx, gameID, playerID, hexPosition)
 }
 
@@ -283,10 +284,10 @@ func (h *Hub) parseActionRequest(actionRequest interface{}, dest interface{}) er
 	if err != nil {
 		return fmt.Errorf("failed to marshal action request: %w", err)
 	}
-	
+
 	if err := json.Unmarshal(actionBytes, dest); err != nil {
 		return fmt.Errorf("failed to unmarshal action request: %w", err)
 	}
-	
+
 	return nil
 }
