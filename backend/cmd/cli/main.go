@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/model"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,12 +27,32 @@ const (
 	cliName = "Terraforming Mars CLI"
 )
 
+// GameState holds the current game state for display
+type GameState struct {
+	Player          *model.Player
+	Generation      int
+	CurrentPhase    string
+	GameID          string
+	IsConnected     bool
+	TotalPlayers    int
+	GlobalParameters *GlobalParams
+}
+
+// GlobalParams represents the global parameters for display
+type GlobalParams struct {
+	Temperature int
+	Oxygen      int
+	Oceans      int
+}
+
 type CLIClient struct {
 	conn     *websocket.Conn
 	playerID string
 	gameID   string
 	done     chan struct{}
 	closed   bool
+	ui       *UI
+	gameState *GameState
 }
 
 func main() {
@@ -49,6 +70,8 @@ func main() {
 	client := &CLIClient{
 		playerID: "cli-" + uuid.New().String()[:8],
 		done:     make(chan struct{}),
+		ui:       NewUI(),
+		gameState: &GameState{},
 	}
 
 	// Connect to server
@@ -129,48 +152,49 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 	// Set gameID if provided in any message
 	if message.GameID != "" && c.gameID == "" {
 		c.gameID = message.GameID
-		fmt.Printf("🔗 Connected to game: %s\n", message.GameID)
+		c.gameState.GameID = message.GameID
+		c.gameState.IsConnected = true
+		c.ui.UpdateGameState(c.gameState)
+		c.refreshDisplay()
 	}
 
 	switch message.Type {
 	case dto.MessageTypeGameUpdated:
-		fmt.Printf("🎮 Game updated (Game ID: %s)\n", message.GameID)
+		c.updateGameStateFromMessage(message)
+		c.refreshDisplay()
+		
+	case dto.MessageTypePlayerConnected:
+		// Extract the actual player ID from the payload
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
-			if gameData, ok := payload["game"].(map[string]interface{}); ok {
-				if players, ok := gameData["players"].([]interface{}); ok {
-					fmt.Printf("   Players: %d\n", len(players))
-				}
-				if phase, ok := gameData["phase"].(string); ok {
-					fmt.Printf("   Phase: %s\n", phase)
-				}
+			if playerID, ok := payload["playerId"].(string); ok {
+				c.playerID = playerID // Update to the actual player ID from the game
 			}
 		}
 		
-	case dto.MessageTypePlayerConnected:
-		fmt.Printf("👤 Player connected\n")
-		
 	case dto.MessageTypeError:
-		fmt.Printf("❌ Error: ")
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
 			if msg, ok := payload["message"].(string); ok {
-				fmt.Printf("%s\n", msg)
+				// Only show errors on the current line, don't add to history
+				fmt.Printf("\r%s\n", c.ui.RenderMessage("error", msg))
+				fmt.Print(c.ui.RenderPrompt())
 			}
 		}
 		
 	case dto.MessageTypeFullState:
-		fmt.Printf("📊 Full state received (Game ID: %s)\n", message.GameID)
+		c.updateGameStateFromMessage(message)
 		c.gameID = message.GameID
-		
-	case dto.MessageTypeAvailableCards:
-		fmt.Printf("🃏 Available cards received\n")
-		
-	default:
-		fmt.Printf("📨 Received: %s\n", message.Type)
+		c.gameState.GameID = message.GameID
+		c.gameState.IsConnected = true
+		c.ui.UpdateGameState(c.gameState)
+		c.refreshDisplay()
 	}
 }
 
 func (c *CLIClient) commandLoop() {
 	reader := bufio.NewReader(os.Stdin)
+	
+	// Initial display refresh
+	c.refreshDisplay()
 	
 	for {
 		// Check if we should exit
@@ -181,7 +205,7 @@ func (c *CLIClient) commandLoop() {
 			// Continue with command processing
 		}
 		
-		fmt.Print("tm> ")
+		fmt.Print(c.ui.RenderPrompt())
 		
 		// Read line input
 		line, err := reader.ReadString('\n')
@@ -318,22 +342,21 @@ func (c *CLIClient) joinGame(args []string) {
 
 func (c *CLIClient) createGame(args []string) {
 	if len(args) == 0 {
-		fmt.Println("❌ Usage: create <gameName>")
-		fmt.Println("Example: create \"Mars Colony Alpha\"")
+		fmt.Println("❌ Usage: create <playerName>")
+		fmt.Println("Example: create \"Alice\"")
 		return
 	}
 	
-	gameName := strings.Join(args, " ")
+	playerName := strings.Join(args, " ")
 	
-	// For now, we'll create a game by connecting with a generated ID
-	// In a real implementation, this would call a create game API endpoint
-	gameID := fmt.Sprintf("game-%s-%d", strings.ReplaceAll(strings.ToLower(gameName), " ", "-"), time.Now().Unix())
+	// Generate a game ID automatically
+	gameID := fmt.Sprintf("game-%d", time.Now().Unix())
 	
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
 		Payload: dto.PlayerConnectPayload{
-			PlayerName: fmt.Sprintf("CLI-Player-%s", c.playerID[4:]),
+			PlayerName: playerName,
 			GameID:     gameID,
 		},
 	}
@@ -345,7 +368,7 @@ func (c *CLIClient) createGame(args []string) {
 	
 	// Set gameID locally since we're creating and joining this game
 	c.gameID = gameID
-	fmt.Printf("🎮 Creating and joining game '%s' with ID: %s\n", gameName, gameID)
+	fmt.Printf("🎮 Creating game and joining as '%s'\n", playerName)
 }
 
 func (c *CLIClient) listGames() {
@@ -412,8 +435,6 @@ func (c *CLIClient) selectAction(actionNum string) {
 }
 
 func (c *CLIClient) skipAction() {
-	fmt.Println("⏭️  Skipping action...")
-	
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayAction,
 		GameID: c.gameID,
@@ -425,72 +446,233 @@ func (c *CLIClient) skipAction() {
 	}
 	
 	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("❌ Failed to skip action: %v\n", err)
+		fmt.Printf("\r❌ Failed to skip action: %v\n", err)
+		fmt.Print(c.ui.RenderPrompt())
 		return
 	}
-	
-	fmt.Println("✅ Action skipped")
 }
 
 func (c *CLIClient) raiseTemperature() {
-	fmt.Println("🌡️  Raising temperature...")
-	
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayAction,
 		GameID: c.gameID,
 		Payload: dto.PlayActionPayload{
 			ActionRequest: map[string]interface{}{
-				"type": "raise-temperature",
+				"type": "launch-asteroid",
 			},
 		},
 	}
 	
 	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("❌ Failed to raise temperature: %v\n", err)
+		fmt.Printf("\r❌ Failed to raise temperature: %v\n", err)
+		fmt.Print(c.ui.RenderPrompt())
 		return
 	}
-	
-	fmt.Println("✅ Temperature raise requested (costs 8 heat)")
 }
 
 func (c *CLIClient) raiseOxygen() {
-	fmt.Println("💨 Raising oxygen...")
-	fmt.Println("💡 This is a placeholder - oxygen raising not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) placeOcean() {
-	fmt.Println("🌊 Placing ocean...")
-	fmt.Println("💡 This is a placeholder - ocean placement not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) buyStandardProject() {
-	fmt.Println("🏗️  Buying standard project...")
-	fmt.Println("💡 This is a placeholder - standard projects not fully implemented yet")
+	if c.gameID == "" {
+		fmt.Println("❌ Not connected to any game. Use 'connect <game>' first.")
+		return
+	}
+
+	// Show available standard projects
+	fmt.Println("🏗️ Standard Projects Available:")
+	fmt.Println("  1. Sell Patents - 1 M€ per card")
+	fmt.Println("  2. Power Plant - 11 M€ (Energy production +1)")
+	fmt.Println("  3. Asteroid - 14 M€ (Temperature +1, TR +1)")
+	fmt.Println("  4. Aquifer - 18 M€ (Ocean +1, TR +1)")
+	fmt.Println("  5. Greenery - 23 M€ (Oxygen +1, TR +1)")
+	fmt.Println("  6. City - 25 M€ (Credit production +1)")
+	fmt.Println("  0. Cancel")
+	fmt.Print("Select project (0-6): ")
+
+	var choice string
+	fmt.Scanln(&choice)
+
+	switch choice {
+	case "0":
+		fmt.Println("❌ Cancelled standard project selection")
+		return
+	case "1":
+		c.executeStandardProject("SELL_PATENTS", "Sell Patents")
+	case "2":
+		c.executeStandardProject("POWER_PLANT", "Power Plant")
+	case "3":
+		c.executeStandardProject("ASTEROID", "Asteroid")
+	case "4":
+		c.executeStandardProject("AQUIFER", "Aquifer")
+	case "5":
+		c.executeStandardProject("GREENERY", "Greenery")
+	case "6":
+		c.executeStandardProject("CITY", "City")
+	default:
+		fmt.Printf("❌ Invalid choice: %s\n", choice)
+	}
 }
 
 func (c *CLIClient) playCard() {
-	fmt.Println("🃏 Playing card from hand...")
-	fmt.Println("💡 This is a placeholder - card playing not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) useCorporationAction() {
-	fmt.Println("🏢 Using corporation action...")
-	fmt.Println("💡 This is a placeholder - corporation actions not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) useCardAction() {
-	fmt.Println("⚡ Using card action...")
-	fmt.Println("💡 This is a placeholder - card actions not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) tradeWithColonies() {
-	fmt.Println("🚀 Trading with colonies...")
-	fmt.Println("💡 This is a placeholder - colonies not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
 }
 
 func (c *CLIClient) endTurn() {
-	fmt.Println("🏁 Ending turn...")
-	fmt.Println("💡 This is a placeholder - turn management not implemented in backend yet")
+	// Placeholder - not implemented in backend yet
+}
+
+// executeStandardProject executes a standard project and shows status
+func (c *CLIClient) executeStandardProject(projectType, projectName string) {
+	fmt.Printf("🔨 Executing: %s", projectName)
+	
+	var message dto.WebSocketMessage
+	
+	// Build the message based on project type
+	switch projectType {
+	case "SELL_PATENTS":
+		// For sell patents, ask how many cards to sell
+		fmt.Print("\nHow many cards to sell? ")
+		var cardCount int
+		fmt.Scanln(&cardCount)
+		if cardCount <= 0 {
+			fmt.Printf(" ❌ Failed\n")
+			return
+		}
+		
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "sell-patents",
+					"cardCount": cardCount,
+				},
+			},
+		}
+		
+	case "POWER_PLANT":
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "build-power-plant",
+				},
+			},
+		}
+		
+	case "ASTEROID":
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "launch-asteroid",
+				},
+			},
+		}
+		
+	case "AQUIFER":
+		// For hex placement projects, ask for position
+		fmt.Print("\nEnter hex position (q r s): ")
+		var q, r, s int
+		fmt.Scanf("%d %d %d", &q, &r, &s)
+		if q+r+s != 0 {
+			fmt.Printf(" ❌ Failed - Invalid hex position\n")
+			return
+		}
+		
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "build-aquifer",
+					"hexPosition": map[string]interface{}{
+						"q": q,
+						"r": r,
+						"s": s,
+					},
+				},
+			},
+		}
+		
+	case "GREENERY":
+		// For hex placement projects, ask for position
+		fmt.Print("\nEnter hex position (q r s): ")
+		var q, r, s int
+		fmt.Scanf("%d %d %d", &q, &r, &s)
+		if q+r+s != 0 {
+			fmt.Printf(" ❌ Failed - Invalid hex position\n")
+			return
+		}
+		
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "plant-greenery",
+					"hexPosition": map[string]interface{}{
+						"q": q,
+						"r": r,
+						"s": s,
+					},
+				},
+			},
+		}
+		
+	case "CITY":
+		// For hex placement projects, ask for position
+		fmt.Print("\nEnter hex position (q r s): ")
+		var q, r, s int
+		fmt.Scanf("%d %d %d", &q, &r, &s)
+		if q+r+s != 0 {
+			fmt.Printf(" ❌ Failed - Invalid hex position\n")
+			return
+		}
+		
+		message = dto.WebSocketMessage{
+			Type:   dto.MessageTypePlayAction,
+			GameID: c.gameID,
+			Payload: dto.PlayActionPayload{
+				ActionRequest: map[string]interface{}{
+					"type": "build-city",
+					"hexPosition": map[string]interface{}{
+						"q": q,
+						"r": r,
+						"s": s,
+					},
+				},
+			},
+		}
+	}
+	
+	// Send the message
+	if err := c.conn.WriteJSON(message); err != nil {
+		fmt.Printf(" ❌ Failed - %v\n", err)
+		return
+	}
+	
+	fmt.Printf(" ✅ Success\n")
 }
 
 func (c *CLIClient) sendRawMessage(args []string) {
@@ -523,4 +705,161 @@ func (c *CLIClient) sendRawMessage(args []string) {
 	}
 	
 	fmt.Printf("📤 Sent message: %s\n", messageType)
+}
+
+// updateGameStateFromMessage updates the game state from a WebSocket message
+func (c *CLIClient) updateGameStateFromMessage(message dto.WebSocketMessage) {
+	if payload, ok := message.Payload.(map[string]interface{}); ok {
+		if gameData, ok := payload["game"].(map[string]interface{}); ok {
+			c.parseGameData(gameData)
+		}
+	}
+}
+
+// parseGameData parses game data from the message payload
+func (c *CLIClient) parseGameData(gameData map[string]interface{}) {
+	// Update generation
+	if generation, ok := gameData["generation"].(float64); ok {
+		c.gameState.Generation = int(generation)
+	}
+	
+	// Update current phase
+	if phase, ok := gameData["currentPhase"].(string); ok {
+		c.gameState.CurrentPhase = phase
+	}
+	
+	// Update total players
+	if players, ok := gameData["players"].([]interface{}); ok {
+		c.gameState.TotalPlayers = len(players)
+		
+		// Find current player
+		for _, playerInterface := range players {
+			if playerMap, ok := playerInterface.(map[string]interface{}); ok {
+				if playerID, ok := playerMap["id"].(string); ok && playerID == c.playerID {
+					c.parsePlayerData(playerMap)
+					break
+				}
+			}
+		}
+	}
+	
+	// Update global parameters
+	if globalParams, ok := gameData["globalParameters"].(map[string]interface{}); ok {
+		if c.gameState.GlobalParameters == nil {
+			c.gameState.GlobalParameters = &GlobalParams{}
+		}
+		
+		if temp, ok := globalParams["temperature"].(float64); ok {
+			c.gameState.GlobalParameters.Temperature = int(temp)
+		}
+		if oxygen, ok := globalParams["oxygen"].(float64); ok {
+			c.gameState.GlobalParameters.Oxygen = int(oxygen)
+		}
+		if oceans, ok := globalParams["oceans"].(float64); ok {
+			c.gameState.GlobalParameters.Oceans = int(oceans)
+		}
+	}
+}
+
+// parsePlayerData parses player data from the message
+func (c *CLIClient) parsePlayerData(playerData map[string]interface{}) {
+	if c.gameState.Player == nil {
+		c.gameState.Player = &model.Player{}
+	}
+	
+	// Parse basic player info
+	if name, ok := playerData["name"].(string); ok {
+		c.gameState.Player.Name = name
+	}
+	if corp, ok := playerData["corporation"].(string); ok {
+		c.gameState.Player.Corporation = corp
+	}
+	if tr, ok := playerData["terraformRating"].(float64); ok {
+		c.gameState.Player.TerraformRating = int(tr)
+	}
+	if active, ok := playerData["isActive"].(bool); ok {
+		c.gameState.Player.IsActive = active
+	}
+	
+	// Parse resources
+	if resources, ok := playerData["resources"].(map[string]interface{}); ok {
+		c.parseResources(resources, &c.gameState.Player.Resources)
+	}
+	
+	// Parse production
+	if production, ok := playerData["production"].(map[string]interface{}); ok {
+		c.parseProduction(production, &c.gameState.Player.Production)
+	}
+	
+	// Parse cards
+	if cards, ok := playerData["cards"].([]interface{}); ok {
+		c.gameState.Player.Cards = make([]string, len(cards))
+		for i, card := range cards {
+			if cardStr, ok := card.(string); ok {
+				c.gameState.Player.Cards[i] = cardStr
+			}
+		}
+	}
+	
+	// Parse played cards
+	if playedCards, ok := playerData["playedCards"].([]interface{}); ok {
+		c.gameState.Player.PlayedCards = make([]string, len(playedCards))
+		for i, card := range playedCards {
+			if cardStr, ok := card.(string); ok {
+				c.gameState.Player.PlayedCards[i] = cardStr
+			}
+		}
+	}
+}
+
+// parseResources parses resources from the message
+func (c *CLIClient) parseResources(resourcesData map[string]interface{}, resources *model.Resources) {
+	if credits, ok := resourcesData["credits"].(float64); ok {
+		resources.Credits = int(credits)
+	}
+	if steel, ok := resourcesData["steel"].(float64); ok {
+		resources.Steel = int(steel)
+	}
+	if titanium, ok := resourcesData["titanium"].(float64); ok {
+		resources.Titanium = int(titanium)
+	}
+	if plants, ok := resourcesData["plants"].(float64); ok {
+		resources.Plants = int(plants)
+	}
+	if energy, ok := resourcesData["energy"].(float64); ok {
+		resources.Energy = int(energy)
+	}
+	if heat, ok := resourcesData["heat"].(float64); ok {
+		resources.Heat = int(heat)
+	}
+}
+
+// parseProduction parses production from the message
+func (c *CLIClient) parseProduction(productionData map[string]interface{}, production *model.Production) {
+	if credits, ok := productionData["credits"].(float64); ok {
+		production.Credits = int(credits)
+	}
+	if steel, ok := productionData["steel"].(float64); ok {
+		production.Steel = int(steel)
+	}
+	if titanium, ok := productionData["titanium"].(float64); ok {
+		production.Titanium = int(titanium)
+	}
+	if plants, ok := productionData["plants"].(float64); ok {
+		production.Plants = int(plants)
+	}
+	if energy, ok := productionData["energy"].(float64); ok {
+		production.Energy = int(energy)
+	}
+	if heat, ok := productionData["heat"].(float64); ok {
+		production.Heat = int(heat)
+	}
+}
+
+// refreshDisplay refreshes the status display
+func (c *CLIClient) refreshDisplay() {
+	c.ui.UpdateGameState(c.gameState)
+	fmt.Print("\033[2J\033[H") // Clear screen
+	fmt.Println(c.ui.RenderStatus())
+	fmt.Println()
 }

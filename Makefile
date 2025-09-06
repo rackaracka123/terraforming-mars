@@ -49,12 +49,12 @@ backend:
 tm: cli
 
 cli:
-	@echo "🔧 Building and running CLI tool..."
-	cd backend && go build -o bin/tm cmd/cli/main.go && ./bin/tm
+	@echo "🔧 Running CLI tool directly..."
+	cd backend && go run cmd/cli/*.go
 
 install-cli:
 	@echo "📦 Installing CLI tool globally..."
-	cd backend && go build -o bin/tm cmd/cli/main.go && sudo cp bin/tm /usr/local/bin/tm
+	cd backend && go build -o bin/tm cmd/cli/*.go && sudo cp bin/tm /usr/local/bin/tm
 	@echo "✅ CLI tool installed! Run 'tm' from anywhere."
 
 # Testing commands

@@ -52,7 +52,7 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 		gameConnections:         make(map[string]map[*Connection]bool),
 		Register:                make(chan *Connection),
 		Unregister:              make(chan *Connection),
-		Broadcast:               make(chan HubMessage),
+		Broadcast:               make(chan HubMessage, 256),
 		gameService:             gameService,
 		playerService:           playerService,
 		globalParametersService: globalParametersService,
@@ -113,6 +113,9 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 				}
 			}
 		}
+		
+		// Close the connection properly
+		connection.Close()
 		
 		h.logger.Info("⛓️‍💥 Client disconnected from server",
 			zap.String("connection_id", connection.ID),
