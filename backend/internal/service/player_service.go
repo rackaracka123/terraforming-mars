@@ -34,6 +34,10 @@ type PlayerService interface {
 	UpdatePlayerTR(ctx context.Context, gameID, playerID string, newTR int) error
 	AddPlayerTR(ctx context.Context, gameID, playerID string, trIncrease int) error
 
+	// Standard project utility methods
+	CanAffordStandardProject(player *model.Player, project model.StandardProject) bool
+	HasCardsToSell(player *model.Player, count int) bool
+	GetMaxCardsToSell(player *model.Player) int
 }
 
 // PlayerServiceImpl implements PlayerService interface

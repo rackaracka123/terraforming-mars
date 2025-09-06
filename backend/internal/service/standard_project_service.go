@@ -30,6 +30,8 @@ type StandardProjectService interface {
 	// BuildCity places city tile for 25 M€
 	BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
 
+	// IsValidHexPosition validates hex coordinate positioning
+	IsValidHexPosition(h *model.HexPosition) bool
 }
 
 // StandardProjectServiceImpl implements StandardProjectService interface

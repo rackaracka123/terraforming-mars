@@ -13,7 +13,7 @@ func TestRequestID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Initialize logger
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestZapLogger(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Initialize logger
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestZapRecovery(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Initialize logger
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}

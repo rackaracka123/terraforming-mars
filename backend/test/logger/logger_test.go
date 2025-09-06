@@ -11,7 +11,7 @@ import (
 func TestInit(t *testing.T) {
 	// Test development environment
 	os.Setenv("GO_ENV", "development")
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger in development mode: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestInit(t *testing.T) {
 
 	// Test production environment
 	os.Setenv("GO_ENV", "production")
-	err = logger.Init()
+	err = logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger in production mode: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestWithGameContext(t *testing.T) {
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestWithGameContext(t *testing.T) {
 }
 
 func TestWithClientContext(t *testing.T) {
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestLoggerFallback(t *testing.T) {
 }
 
 func TestWithContext(t *testing.T) {
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger: %v", err)
 	}

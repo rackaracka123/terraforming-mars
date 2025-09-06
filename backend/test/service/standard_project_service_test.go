@@ -40,7 +40,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	string, // playerID
 ) {
 	// Initialize logger for testing
-	err := logger.Init()
+	err := logger.Init(nil)
 	require.NoError(t, err)
 
 	// Initialize services
@@ -99,7 +99,6 @@ func setupStandardProjectServiceTest(t *testing.T) (
 		}
 	}
 	// Update the game directly through repository instead of removed UpdateGame method
-	gameRepo := repository.NewGameRepository(nil)
 	err = gameRepo.Update(ctx, updatedGame)
 	require.NoError(t, err)
 
