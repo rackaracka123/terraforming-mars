@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 	"terraforming-mars-backend/internal/logger"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -52,16 +52,16 @@ func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap the response writer
 		wrapped := newResponseWriter(w)
-		
+
 		// Process request
 		next.ServeHTTP(wrapped, r)
-		
+
 		// Calculate request duration
 		duration := time.Since(start)
-		
+
 		// Build log fields
 		fields := []zap.Field{
 			zap.Int("status", wrapped.statusCode),
@@ -72,15 +72,15 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			zap.Duration("duration", duration),
 			zap.Int("size", wrapped.size),
 		}
-		
+
 		// Add query parameters if present
 		if r.URL.RawQuery != "" {
 			fields = append(fields, zap.String("query", r.URL.RawQuery))
 		}
-		
+
 		// Log based on status code
 		msg := "HTTP Request"
-		
+
 		if wrapped.statusCode >= 500 {
 			logger.Get().Error(msg, fields...)
 		} else if wrapped.statusCode >= 400 {

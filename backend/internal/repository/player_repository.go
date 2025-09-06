@@ -15,16 +15,16 @@ import (
 type PlayerRepository interface {
 	// Add player to game
 	AddPlayer(ctx context.Context, gameID string, player model.Player) error
-	
+
 	// Get player by game and player ID
 	GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error)
-	
+
 	// Update player
 	UpdatePlayer(ctx context.Context, gameID string, player *model.Player) error
-	
+
 	// Get all players in a game
 	ListPlayers(ctx context.Context, gameID string) ([]model.Player, error)
-	
+
 	// Remove player from game
 	RemovePlayer(ctx context.Context, gameID, playerID string) error
 }
@@ -74,7 +74,7 @@ func (r *PlayerRepositoryImpl) AddPlayer(ctx context.Context, gameID string, pla
 	// Add player
 	r.players[gameID][player.ID] = &player
 
-	log.Info("Player added to game successfully", 
+	log.Info("Player added to game successfully",
 		zap.String("player_name", player.Name),
 	)
 
@@ -228,7 +228,7 @@ func (r *PlayerRepositoryImpl) RemovePlayer(ctx context.Context, gameID, playerI
 		delete(r.players, gameID)
 	}
 
-	log.Info("Player removed from game successfully", 
+	log.Info("Player removed from game successfully",
 		zap.String("player_name", player.Name),
 	)
 

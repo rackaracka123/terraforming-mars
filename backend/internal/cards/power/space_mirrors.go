@@ -38,7 +38,7 @@ func (h *SpaceMirrorsHandler) Activate(ctx *cards.CardHandlerContext) error {
 	if err := ctx.PlayerService.PayResourceCost(ctx.Context, ctx.Game.ID, ctx.PlayerID, *h.ActivationCost); err != nil {
 		return err
 	}
-	
+
 	// Gain 1 Energy production
 	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Energy: 1,

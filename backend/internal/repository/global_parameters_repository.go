@@ -15,7 +15,7 @@ import (
 type GlobalParametersRepository interface {
 	// Get global parameters for a game
 	Get(ctx context.Context, gameID string) (*model.GlobalParameters, error)
-	
+
 	// Update global parameters
 	Update(ctx context.Context, gameID string, params *model.GlobalParameters) error
 }

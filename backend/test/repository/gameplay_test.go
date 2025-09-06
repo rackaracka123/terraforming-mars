@@ -2,12 +2,12 @@ package repository_test
 
 import (
 	"context"
-	"testing"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +25,7 @@ func TestGameplayLogic(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
-	
+
 	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
@@ -46,7 +46,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, game.Players, 1)
 		assert.Equal(t, "Alice", game.Players[0].Name)
-		assert.Equal(t, 20, game.Players[0].TerraformRating) // Starting TR
+		assert.Equal(t, 20, game.Players[0].TerraformRating)   // Starting TR
 		assert.Equal(t, 1, game.Players[0].Production.Credits) // Base production
 
 		game, err = gameService.JoinGame(ctx, game.ID, "Bob")
@@ -58,7 +58,7 @@ func TestGameplayLogic(t *testing.T) {
 		// Create game and add player
 		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
-		
+
 		game, err = gameService.JoinGame(ctx, game.ID, "Player1")
 		assert.NoError(t, err)
 		playerID := game.Players[0].ID
@@ -91,7 +91,7 @@ func TestGameplayLogic(t *testing.T) {
 		// Create game and add player
 		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
-		
+
 		game, err = gameService.JoinGame(ctx, game.ID, "Producer")
 		assert.NoError(t, err)
 		playerID := game.Players[0].ID

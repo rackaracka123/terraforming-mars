@@ -14,26 +14,26 @@ import (
 // RegisterAllCards registers all card handlers with the global registry
 func RegisterAllCards() error {
 	handlers := getAllCardHandlers()
-	
+
 	for _, handler := range handlers {
 		if err := cards.RegisterCardHandler(handler); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
 // RegisterCardsWithRegistry registers all card handlers with a specific registry
 func RegisterCardsWithRegistry(registry *cards.CardHandlerRegistry) error {
 	handlers := getAllCardHandlers()
-	
+
 	for _, handler := range handlers {
 		if err := registry.Register(handler); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -41,7 +41,7 @@ func RegisterCardsWithRegistry(registry *cards.CardHandlerRegistry) error {
 // This automatically detects which cards implement the ListenerRegistrar interface
 func RegisterCardListeners(eventBus events.EventBus) error {
 	handlers := getAllCardHandlers()
-	
+
 	for _, handler := range handlers {
 		// Check if this handler implements ListenerRegistrar
 		if registrar, ok := handler.(cards.ListenerRegistrar); ok {
@@ -50,14 +50,14 @@ func RegisterCardListeners(eventBus events.EventBus) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // UnregisterCardListeners cleans up event listeners for all cards
 func UnregisterCardListeners(eventBus events.EventBus) error {
 	handlers := getAllCardHandlers()
-	
+
 	for _, handler := range handlers {
 		// Check if this handler implements ListenerRegistrar
 		if registrar, ok := handler.(cards.ListenerRegistrar); ok {
@@ -66,7 +66,7 @@ func UnregisterCardListeners(eventBus events.EventBus) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -78,19 +78,19 @@ func getAllCardHandlers() []cards.CardHandler {
 		economy.NewInvestmentHandler(),
 		economy.NewMiningOperationHandler(),
 		economy.NewMiningGuildHandler(), // With listeners
-		
+
 		// Power cards
 		power.NewPowerPlantHandler(),
 		power.NewHeatGeneratorsHandler(),
 		power.NewSpaceMirrorsHandler(),
-		
+
 		// Science cards
 		science.NewResearchGrantHandler(),
 		science.NewAtmosphericProcessorsHandler(), // With listeners
-		
+
 		// Space cards
 		space.NewWaterImportHandler(),
-		
+
 		// Plant cards
 		plants.NewNitrogenPlantsHandler(),
 	}

@@ -105,22 +105,22 @@ func (ui *UI) renderGameInfo() string {
 	}
 
 	title := headerStyle.Render("🎮 Game Status")
-	
+
 	var lines []string
 	lines = append(lines, "")
-	lines = append(lines, fmt.Sprintf("Generation: %s", 
+	lines = append(lines, fmt.Sprintf("Generation: %s",
 		resourceValueStyle.Render(fmt.Sprintf("%d", ui.state.Generation))))
-	lines = append(lines, fmt.Sprintf("Phase: %s", 
+	lines = append(lines, fmt.Sprintf("Phase: %s",
 		productionStyle.Render(ui.state.CurrentPhase)))
-	lines = append(lines, fmt.Sprintf("Players: %s", 
+	lines = append(lines, fmt.Sprintf("Players: %s",
 		resourceValueStyle.Render(fmt.Sprintf("%d", ui.state.TotalPlayers))))
-	
+
 	if ui.state.GameID != "" {
 		gameIDShort := ui.state.GameID
 		if len(gameIDShort) > 8 {
 			gameIDShort = gameIDShort[:8] + "..."
 		}
-		lines = append(lines, fmt.Sprintf("Game ID: %s", 
+		lines = append(lines, fmt.Sprintf("Game ID: %s",
 			baseStyle.Foreground(mutedColor).Render(gameIDShort)))
 	}
 
@@ -135,9 +135,9 @@ func (ui *UI) renderPlayerResources() string {
 	}
 
 	title := headerStyle.Render("💰 Resources")
-	
+
 	resources := ui.state.Player.Resources
-	
+
 	var lines []string
 	lines = append(lines, "")
 	lines = append(lines, ui.formatResourceLine("Credits", "💳", resources.Credits))
@@ -146,10 +146,10 @@ func (ui *UI) renderPlayerResources() string {
 	lines = append(lines, ui.formatResourceLine("Plants", "🌱", resources.Plants))
 	lines = append(lines, ui.formatResourceLine("Energy", "⚡", resources.Energy))
 	lines = append(lines, ui.formatResourceLine("Heat", "🌡️", resources.Heat))
-	
+
 	// Terraform Rating
 	lines = append(lines, "")
-	lines = append(lines, fmt.Sprintf("TR: %s", 
+	lines = append(lines, fmt.Sprintf("TR: %s",
 		activeStyle.Render(fmt.Sprintf("%d", ui.state.Player.TerraformRating))))
 
 	content := title + "\n" + strings.Join(lines, "\n")
@@ -163,9 +163,9 @@ func (ui *UI) renderPlayerProduction() string {
 	}
 
 	title := headerStyle.Render("🏭 Production")
-	
+
 	production := ui.state.Player.Production
-	
+
 	var lines []string
 	lines = append(lines, "")
 	lines = append(lines, ui.formatProductionLine("Credits", "💳", production.Credits))
@@ -186,9 +186,9 @@ func (ui *UI) renderGlobalParameters() string {
 	}
 
 	title := headerStyle.Render("🌍 Mars Status")
-	
+
 	params := ui.state.GlobalParameters
-	
+
 	var lines []string
 	lines = append(lines, "")
 	lines = append(lines, ui.formatGlobalParam("Temperature", "🌡️", params.Temperature, "°C"))

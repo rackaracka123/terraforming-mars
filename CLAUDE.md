@@ -199,6 +199,7 @@ The CLI tool is particularly useful for:
 3. **Add WebSocket handlers** in `internal/delivery/websocket/`
 4. **Generate types**: Run `tygo generate` to update frontend types
 5. **Frontend integration**: Import generated types and implement UI
+6. **Format and lint**: **ALWAYS** run `make format` and `make lint` after completing any feature
 
 ### Backend Development Flow
 1. Modify Go structs -> Add business logic -> Update handlers

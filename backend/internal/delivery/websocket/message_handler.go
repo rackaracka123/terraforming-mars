@@ -80,7 +80,7 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 		},
 		GameID: game.ID,
 	})
-	
+
 	h.logger.Info("🎮 Player connected to game server via WebSocket",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),

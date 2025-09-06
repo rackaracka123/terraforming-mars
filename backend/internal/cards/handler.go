@@ -20,13 +20,13 @@ type CardHandlerContext struct {
 type CardHandler interface {
 	// GetCardID returns the unique identifier for this card
 	GetCardID() string
-	
+
 	// CanPlay checks if the card can be played given the current game state
 	CanPlay(ctx *CardHandlerContext) error
-	
+
 	// Play executes the card's effects
 	Play(ctx *CardHandlerContext) error
-	
+
 	// GetRequirements returns the requirements needed to play this card
 	GetRequirements() model.CardRequirements
 }
@@ -35,7 +35,7 @@ type CardHandler interface {
 type ListenerRegistrar interface {
 	// RegisterListeners registers event listeners for this card
 	RegisterListeners(eventBus events.EventBus) error
-	
+
 	// UnregisterListeners cleans up event listeners for this card
 	UnregisterListeners(eventBus events.EventBus) error
 }
@@ -45,7 +45,6 @@ type CardWithListeners interface {
 	CardHandler
 	ListenerRegistrar
 }
-
 
 // BaseCardHandler provides common functionality for all card handlers
 type BaseCardHandler struct {

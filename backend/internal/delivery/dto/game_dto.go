@@ -4,12 +4,12 @@ package dto
 type GamePhase string
 
 const (
-	GamePhaseSetup                    GamePhase = "setup"
-	GamePhaseStartingCardSelection    GamePhase = "starting_card_selection"
-	GamePhaseCorporationSelection     GamePhase = "corporation_selection"
-	GamePhaseAction                   GamePhase = "action"
-	GamePhaseProduction               GamePhase = "production"
-	GamePhaseComplete                 GamePhase = "complete"
+	GamePhaseSetup                 GamePhase = "setup"
+	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
+	GamePhaseCorporationSelection  GamePhase = "corporation_selection"
+	GamePhaseAction                GamePhase = "action"
+	GamePhaseProduction            GamePhase = "production"
+	GamePhaseComplete              GamePhase = "complete"
 )
 
 // GameStatus represents the current status of the game
@@ -87,14 +87,14 @@ type PlayerDto struct {
 
 // GameDto represents a game for client consumption
 type GameDto struct {
-	ID               string                `json:"id" ts:"string"`
-	Status           GameStatus            `json:"status" ts:"GameStatus"`
-	Settings         GameSettingsDto       `json:"settings" ts:"GameSettingsDto"`
-	Players          []PlayerDto           `json:"players" ts:"PlayerDto[]"`
-	HostPlayerID     string                `json:"hostPlayerId" ts:"string"`
-	CurrentPhase     GamePhase             `json:"currentPhase" ts:"GamePhase"`
-	GlobalParameters GlobalParametersDto   `json:"globalParameters" ts:"GlobalParametersDto"`
-	CurrentPlayerID  string                `json:"currentPlayerId" ts:"string"`
-	Generation       int                   `json:"generation" ts:"number"`
-	RemainingActions int                   `json:"remainingActions" ts:"number"`
+	ID               string              `json:"id" ts:"string"`
+	Status           GameStatus          `json:"status" ts:"GameStatus"`
+	Settings         GameSettingsDto     `json:"settings" ts:"GameSettingsDto"`
+	Players          []PlayerDto         `json:"players" ts:"PlayerDto[]"`
+	HostPlayerID     string              `json:"hostPlayerId" ts:"string"`
+	CurrentPhase     GamePhase           `json:"currentPhase" ts:"GamePhase"`
+	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`
+	CurrentPlayerID  string              `json:"currentPlayerId" ts:"string"`
+	Generation       int                 `json:"generation" ts:"number"`
+	RemainingActions int                 `json:"remainingActions" ts:"number"`
 }

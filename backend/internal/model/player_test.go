@@ -16,12 +16,12 @@ func TestPlayer_CanAffordStandardProject(t *testing.T) {
 		project  StandardProject
 		expected bool
 	}{
-		{"Can afford sell patents", StandardProjectSellPatents, true},  // 0 cost
-		{"Can afford power plant", StandardProjectPowerPlant, true},    // 11 cost
-		{"Can afford asteroid", StandardProjectAsteroid, true},         // 14 cost
-		{"Can afford aquifer", StandardProjectAquifer, true},           // 18 cost
-		{"Cannot afford greenery", StandardProjectGreenery, false},     // 23 cost
-		{"Cannot afford city", StandardProjectCity, false},             // 25 cost
+		{"Can afford sell patents", StandardProjectSellPatents, true}, // 0 cost
+		{"Can afford power plant", StandardProjectPowerPlant, true},   // 11 cost
+		{"Can afford asteroid", StandardProjectAsteroid, true},        // 14 cost
+		{"Can afford aquifer", StandardProjectAquifer, true},          // 18 cost
+		{"Cannot afford greenery", StandardProjectGreenery, false},    // 23 cost
+		{"Cannot afford city", StandardProjectCity, false},            // 25 cost
 	}
 
 	for _, tt := range tests {
@@ -111,7 +111,7 @@ func TestPlayer_InitialState(t *testing.T) {
 	assert.Empty(t, player.PlayedCards)
 	assert.Equal(t, 0, player.TerraformRating)
 	assert.False(t, player.IsActive)
-	
+
 	// Test zero-value resources and production
 	assert.Equal(t, 0, player.Resources.Credits)
 	assert.Equal(t, 0, player.Production.Credits)

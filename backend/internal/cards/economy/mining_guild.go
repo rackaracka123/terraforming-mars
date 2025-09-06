@@ -31,8 +31,8 @@ func (h *MiningGuildHandler) Play(ctx *cards.CardHandlerContext) error {
 	return ctx.PlayerService.AddProduction(ctx.Context, ctx.Game.ID, ctx.PlayerID, model.ResourceSet{
 		Steel: 1,
 	})
-	
-	// The ongoing effect (gain resources when steel/titanium is produced) 
+
+	// The ongoing effect (gain resources when steel/titanium is produced)
 	// is handled by the listener system
 }
 
@@ -43,16 +43,16 @@ func (h *MiningGuildHandler) RegisterListeners(eventBus events.EventBus) error {
 	eventBus.Subscribe("production-phase", func(ctx context.Context, event events.Event) error {
 		return h.handleProductionPhase(event)
 	})
-	
+
 	// Listen for specific resource production events
 	eventBus.Subscribe("steel-produced", func(ctx context.Context, event events.Event) error {
 		return h.handleSteelProduction(event)
 	})
-	
+
 	eventBus.Subscribe("titanium-produced", func(ctx context.Context, event events.Event) error {
 		return h.handleTitaniumProduction(event)
 	})
-	
+
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (h *MiningGuildHandler) handleProductionPhase(event events.Event) error {
 	// 1. Check if any player with Mining Guild in play is producing steel/titanium
 	// 2. Grant appropriate bonuses to those players
 	// 3. Update game state accordingly
-	
+
 	// For demonstration purposes, this is a placeholder
 	return nil
 }

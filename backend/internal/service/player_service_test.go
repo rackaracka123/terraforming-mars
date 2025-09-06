@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"testing"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -161,7 +161,6 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
-
 
 func TestPlayerService_GetPlayer(t *testing.T) {
 	playerService, _, game := setupPlayerServiceTest(t)

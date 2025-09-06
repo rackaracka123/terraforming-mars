@@ -8,7 +8,7 @@ import (
 
 func TestResources_Zero(t *testing.T) {
 	resources := Resources{}
-	
+
 	assert.Equal(t, 0, resources.Credits)
 	assert.Equal(t, 0, resources.Steel)
 	assert.Equal(t, 0, resources.Titanium)
@@ -26,7 +26,7 @@ func TestResources_Add(t *testing.T) {
 		Energy:   2,
 		Heat:     4,
 	}
-	
+
 	r2 := Resources{
 		Credits:  5,
 		Steel:    2,
@@ -35,7 +35,7 @@ func TestResources_Add(t *testing.T) {
 		Energy:   4,
 		Heat:     2,
 	}
-	
+
 	expected := Resources{
 		Credits:  15,
 		Steel:    7,
@@ -44,10 +44,10 @@ func TestResources_Add(t *testing.T) {
 		Energy:   6,
 		Heat:     6,
 	}
-	
+
 	result := r1.Add(r2)
 	assert.Equal(t, expected, result)
-	
+
 	// Verify original resources are unchanged
 	assert.Equal(t, 10, r1.Credits)
 	assert.Equal(t, 5, r2.Credits)
@@ -62,7 +62,7 @@ func TestResources_Subtract(t *testing.T) {
 		Energy:   8,
 		Heat:     12,
 	}
-	
+
 	r2 := Resources{
 		Credits:  5,
 		Steel:    3,
@@ -71,7 +71,7 @@ func TestResources_Subtract(t *testing.T) {
 		Energy:   3,
 		Heat:     6,
 	}
-	
+
 	expected := Resources{
 		Credits:  15,
 		Steel:    7,
@@ -80,7 +80,7 @@ func TestResources_Subtract(t *testing.T) {
 		Energy:   5,
 		Heat:     6,
 	}
-	
+
 	result := r1.Subtract(r2)
 	assert.Equal(t, expected, result)
 }
@@ -94,7 +94,7 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 		Energy:   1,
 		Heat:     2,
 	}
-	
+
 	r2 := Resources{
 		Credits:  10,
 		Steel:    5,
@@ -103,7 +103,7 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 		Energy:   4,
 		Heat:     8,
 	}
-	
+
 	expected := Resources{
 		Credits:  -5,
 		Steel:    -3,
@@ -112,7 +112,7 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 		Energy:   -3,
 		Heat:     -6,
 	}
-	
+
 	result := r1.Subtract(r2)
 	assert.Equal(t, expected, result)
 }
@@ -149,7 +149,7 @@ func TestResources_HasNegative(t *testing.T) {
 			true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.resources.HasNegative()
@@ -167,7 +167,7 @@ func TestResources_CanAfford(t *testing.T) {
 		Energy:   8,
 		Heat:     12,
 	}
-	
+
 	tests := []struct {
 		name     string
 		cost     Resources
@@ -199,7 +199,7 @@ func TestResources_CanAfford(t *testing.T) {
 			true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := playerResources.CanAfford(tt.cost)
@@ -210,7 +210,7 @@ func TestResources_CanAfford(t *testing.T) {
 
 func TestProduction_Zero(t *testing.T) {
 	production := Production{}
-	
+
 	assert.Equal(t, 0, production.Credits)
 	assert.Equal(t, 0, production.Steel)
 	assert.Equal(t, 0, production.Titanium)
@@ -228,7 +228,7 @@ func TestProduction_Add(t *testing.T) {
 		Energy:   2,
 		Heat:     1,
 	}
-	
+
 	p2 := Production{
 		Credits:  1,
 		Steel:    2,
@@ -237,7 +237,7 @@ func TestProduction_Add(t *testing.T) {
 		Energy:   1,
 		Heat:     2,
 	}
-	
+
 	expected := Production{
 		Credits:  3,
 		Steel:    3,
@@ -246,7 +246,7 @@ func TestProduction_Add(t *testing.T) {
 		Energy:   3,
 		Heat:     3,
 	}
-	
+
 	result := p1.Add(p2)
 	assert.Equal(t, expected, result)
 }
@@ -260,7 +260,7 @@ func TestProduction_Subtract(t *testing.T) {
 		Energy:   4,
 		Heat:     3,
 	}
-	
+
 	p2 := Production{
 		Credits:  2,
 		Steel:    1,
@@ -269,7 +269,7 @@ func TestProduction_Subtract(t *testing.T) {
 		Energy:   2,
 		Heat:     1,
 	}
-	
+
 	expected := Production{
 		Credits:  3,
 		Steel:    3,
@@ -278,7 +278,7 @@ func TestProduction_Subtract(t *testing.T) {
 		Energy:   2,
 		Heat:     2,
 	}
-	
+
 	result := p1.Subtract(p2)
 	assert.Equal(t, expected, result)
 }

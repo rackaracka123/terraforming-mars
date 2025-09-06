@@ -113,10 +113,10 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 				}
 			}
 		}
-		
+
 		// Close the connection properly
 		connection.Close()
-		
+
 		h.logger.Info("⛓️‍💥 Client disconnected from server",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
@@ -148,7 +148,7 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 	for connection := range gameConns {
 		connection.SendMessage(message)
 	}
-	
+
 	h.logger.Debug("📢 Server broadcasting to game clients",
 		zap.String("game_id", gameID),
 		zap.String("message_type", string(message.Type)),
@@ -158,7 +158,7 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 // sendToConnection sends a message to a specific connection
 func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMessage) {
 	connection.SendMessage(message)
-	
+
 	h.logger.Debug("💬 Server message sent to client",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
@@ -173,6 +173,6 @@ func (h *Hub) closeAllConnections() {
 		close(connection.Send)
 		connection.Conn.Close()
 	}
-	
+
 	h.logger.Info("⛓️‍💥 All client connections closed by server")
 }

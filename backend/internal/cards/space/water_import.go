@@ -31,7 +31,7 @@ func (h *WaterImportHandler) Play(ctx *cards.CardHandlerContext) error {
 		if ctx.Game.GlobalParameters.Oceans > 9 {
 			ctx.Game.GlobalParameters.Oceans = 9
 		}
-		
+
 		// Player gains TR when raising global parameters
 		player, found := ctx.Game.GetPlayer(ctx.PlayerID)
 		if !found {
@@ -41,6 +41,6 @@ func (h *WaterImportHandler) Play(ctx *cards.CardHandlerContext) error {
 	} else {
 		return fmt.Errorf("maximum number of ocean tiles already placed")
 	}
-	
+
 	return nil
 }

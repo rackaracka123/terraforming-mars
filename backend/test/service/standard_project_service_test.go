@@ -2,12 +2,12 @@ package service_test
 
 import (
 	"context"
-	"testing"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,15 +63,15 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	// Add some cards to the player's hand
 	updatedGame, err := gameService.GetGame(ctx, game.ID)
 	require.NoError(t, err)
-	
+
 	// Update player to have cards through player repository
 	player, err := playerRepo.GetPlayer(ctx, game.ID, playerID)
 	require.NoError(t, err)
-	
+
 	player.Cards = []string{"card1", "card2", "card3", "card4", "card5"}
 	err = playerRepo.UpdatePlayer(ctx, game.ID, player)
 	require.NoError(t, err)
-	
+
 	// Also update the game state to reflect the cards
 	for i := range updatedGame.Players {
 		if updatedGame.Players[i].ID == playerID {
@@ -336,12 +336,12 @@ func TestPlayer_CanAffordStandardProject(t *testing.T) {
 		project  model.StandardProject
 		expected bool
 	}{
-		{"Can afford sell patents", model.StandardProjectSellPatents, true},  // 0 cost
-		{"Can afford power plant", model.StandardProjectPowerPlant, true},    // 11 cost
-		{"Can afford asteroid", model.StandardProjectAsteroid, true},         // 14 cost
-		{"Can afford aquifer", model.StandardProjectAquifer, true},           // 18 cost
-		{"Cannot afford greenery", model.StandardProjectGreenery, false},     // 23 cost
-		{"Cannot afford city", model.StandardProjectCity, false},             // 25 cost
+		{"Can afford sell patents", model.StandardProjectSellPatents, true}, // 0 cost
+		{"Can afford power plant", model.StandardProjectPowerPlant, true},   // 11 cost
+		{"Can afford asteroid", model.StandardProjectAsteroid, true},        // 14 cost
+		{"Can afford aquifer", model.StandardProjectAquifer, true},          // 18 cost
+		{"Cannot afford greenery", model.StandardProjectGreenery, false},    // 23 cost
+		{"Cannot afford city", model.StandardProjectCity, false},            // 25 cost
 	}
 
 	for _, tt := range tests {

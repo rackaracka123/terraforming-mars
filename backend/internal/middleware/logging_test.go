@@ -21,7 +21,7 @@ func TestRequestID(t *testing.T) {
 
 	r := gin.New()
 	r.Use(middleware.RequestID())
-	
+
 	r.GET("/test", func(c *gin.Context) {
 		requestID, exists := c.Get("request_id")
 		if !exists {
@@ -71,7 +71,7 @@ func TestZapLogger(t *testing.T) {
 	r := gin.New()
 	r.Use(middleware.RequestID())
 	r.Use(middleware.ZapLogger())
-	
+
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
@@ -112,7 +112,7 @@ func TestZapRecovery(t *testing.T) {
 	r := gin.New()
 	r.Use(middleware.RequestID())
 	r.Use(middleware.ZapRecovery())
-	
+
 	r.GET("/panic", func(c *gin.Context) {
 		panic("test panic")
 	})

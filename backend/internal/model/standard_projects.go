@@ -62,14 +62,14 @@ func (h HexPosition) Distance(other HexPosition) int {
 // GetNeighbors returns all adjacent hex positions
 func (h HexPosition) GetNeighbors() []HexPosition {
 	directions := []HexPosition{
-		{1, -1, 0},  // East
-		{1, 0, -1},  // Southeast
-		{0, 1, -1},  // Southwest
-		{-1, 1, 0},  // West
-		{-1, 0, 1},  // Northwest
-		{0, -1, 1},  // Northeast
+		{1, -1, 0}, // East
+		{1, 0, -1}, // Southeast
+		{0, 1, -1}, // Southwest
+		{-1, 1, 0}, // West
+		{-1, 0, 1}, // Northwest
+		{0, -1, 1}, // Northeast
 	}
-	
+
 	neighbors := make([]HexPosition, 6)
 	for i, dir := range directions {
 		neighbors[i] = HexPosition{
@@ -78,7 +78,7 @@ func (h HexPosition) GetNeighbors() []HexPosition {
 			S: h.S + dir.S,
 		}
 	}
-	
+
 	return neighbors
 }
 

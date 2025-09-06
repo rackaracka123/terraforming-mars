@@ -17,16 +17,16 @@ import (
 type GameRepository interface {
 	// Create a new game
 	Create(ctx context.Context, settings model.GameSettings) (*model.Game, error)
-	
+
 	// Get game by ID
 	Get(ctx context.Context, gameID string) (*model.Game, error)
-	
+
 	// Update game state
 	Update(ctx context.Context, game *model.Game) error
-	
+
 	// List games with optional status filter
 	List(ctx context.Context, status string) ([]*model.Game, error)
-	
+
 	// Delete game
 	Delete(ctx context.Context, gameID string) error
 }
@@ -63,7 +63,7 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	// Store in repository
 	r.games[gameID] = game
 
-	log.Info("Game created successfully", 
+	log.Info("Game created successfully",
 		zap.String("game_id", gameID),
 		zap.Int("max_players", settings.MaxPlayers),
 	)
@@ -140,7 +140,7 @@ func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]*model.
 	defer r.mutex.RUnlock()
 
 	games := make([]*model.Game, 0)
-	
+
 	for _, game := range r.games {
 		if status == "" || string(game.Status) == status {
 			games = append(games, game)

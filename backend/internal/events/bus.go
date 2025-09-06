@@ -42,11 +42,11 @@ func (bus *InMemoryEventBus) Subscribe(eventType string, listener EventListener)
 	if bus.listeners[eventType] == nil {
 		bus.listeners[eventType] = make([]EventListener, 0)
 	}
-	
+
 	bus.listeners[eventType] = append(bus.listeners[eventType], listener)
-	
+
 	log := logger.Get()
-	log.Info("Event listener registered", 
+	log.Info("Event listener registered",
 		zap.String("event_type", eventType),
 		zap.Int("listener_count", len(bus.listeners[eventType])),
 	)
@@ -59,15 +59,15 @@ func (bus *InMemoryEventBus) Publish(ctx context.Context, event Event) error {
 	bus.mutex.RUnlock()
 
 	log := logger.WithGameContext(event.GetGameID(), "")
-	
+
 	if len(listeners) == 0 {
-		log.Debug("No listeners registered for event type", 
+		log.Debug("No listeners registered for event type",
 			zap.String("event_type", event.GetType()),
 		)
 		return nil
 	}
 
-	log.Info("Publishing event", 
+	log.Info("Publishing event",
 		zap.String("event_type", event.GetType()),
 		zap.Int("listener_count", len(listeners)),
 	)
@@ -81,7 +81,7 @@ func (bus *InMemoryEventBus) Publish(ctx context.Context, event Event) error {
 		go func(l EventListener) {
 			defer wg.Done()
 			if err := l(ctx, event); err != nil {
-				log.Error("Event listener failed", 
+				log.Error("Event listener failed",
 					zap.String("event_type", event.GetType()),
 					zap.Error(err),
 				)
@@ -100,7 +100,7 @@ func (bus *InMemoryEventBus) Publish(ctx context.Context, event Event) error {
 		}
 	}
 
-	log.Info("Event published successfully", 
+	log.Info("Event published successfully",
 		zap.String("event_type", event.GetType()),
 		zap.Int("listeners_executed", len(listeners)),
 	)
