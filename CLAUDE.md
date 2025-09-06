@@ -111,6 +111,108 @@ Go structs automatically generate TypeScript interfaces via custom type generato
 - **PanControls.tsx**: Custom mouse/touch controls (pan + zoom, no orbit rotation)
 - **BackgroundCelestials**: Parallax layers for space environment
 
+## Clean Architecture Implementation
+
+The backend follows Clean Architecture principles with strict separation of concerns and dependency inversion.
+
+### Architectural Layers
+
+**Domain Layer** (`internal/model/`)
+- **Domain Entities**: Core business objects with identity (Player, Game, GlobalParameters)
+- **Value Objects**: Immutable objects defined by their values (Resources, Production)
+- **Domain Events**: Represent significant business occurrences (PlayerTRChanged, ResourcesChanged)
+- **Defensive Copying**: All entities implement `DeepCopy()` to prevent external mutation
+- **No Dependencies**: This layer has no dependencies on other layers
+
+**Application Layer** (`internal/service/`)
+- **Use Cases**: Orchestrate business operations and enforce business rules
+- **Domain Services**: Handle complex domain logic that spans multiple entities
+- **Event Handlers**: Subscribe to and react to domain events
+- **Interface Definitions**: Define contracts for infrastructure dependencies
+- **Dependency Rule**: Depends only on the Domain layer
+
+**Infrastructure Layer** (`internal/repository/`)
+- **Data Access**: Implement data persistence and retrieval
+- **Event Publishing**: Emit domain events when data changes occur
+- **External Services**: Handle integrations with external systems
+- **Dependency Implementation**: Implement interfaces defined in Application layer
+
+**Presentation Layer** (`internal/cards/`, `internal/delivery/`)
+- **API Endpoints**: Handle HTTP requests and WebSocket connections
+- **Request/Response Models**: DTOs for external communication
+- **Card Handlers**: Implement game card effects using Application services
+- **Dependency Direction**: Depends on Application layer, not Infrastructure
+
+### Clean Architecture Principles
+
+**1. Dependency Inversion**
+- High-level modules (Application) don't depend on low-level modules (Infrastructure)
+- Both depend on abstractions (interfaces)
+- Infrastructure implements interfaces defined in Application layer
+
+**2. Separation of Concerns**
+- **Domain**: Pure business logic with no external dependencies
+- **Application**: Coordinates domain operations and defines use cases  
+- **Infrastructure**: Handles technical concerns (data, events, external APIs)
+- **Presentation**: Manages user interface and external communication
+
+**3. Testability**
+- Business logic isolated in Domain and Application layers
+- Infrastructure dependencies injected via interfaces
+- Easy to mock external dependencies for unit testing
+
+**4. Independence**
+- Business rules independent of frameworks, databases, and UI
+- Domain entities contain core business logic
+- Application services orchestrate domain operations
+
+### Event-Driven Architecture Patterns
+
+**Domain Events**
+- Published by Infrastructure layer when data changes
+- Carry rich payloads with before/after state
+- Enable loose coupling between domain concepts
+- Support audit trails and eventual consistency
+
+**Event Handlers**
+- Implemented in Application services
+- React to domain events for cross-cutting concerns
+- Enable features like milestone tracking and notifications
+- Execute concurrently with proper error handling
+
+**Event Flow**
+```
+Domain Entity → Repository (publishes event) → Event Bus → Service Handler
+```
+
+### Development Guidelines
+
+**Domain Layer**
+- Keep entities focused on business invariants
+- Use defensive copying to protect entity state
+- Implement domain events for significant business occurrences
+- No external dependencies or infrastructure concerns
+
+**Application Layer**  
+- Orchestrate complex business operations
+- Validate business rules before domain operations
+- Handle domain events for cross-cutting functionality
+- Define interfaces for infrastructure dependencies
+
+**Infrastructure Layer**
+- Implement data persistence with defensive copying
+- Publish domain events when data changes
+- Handle external service integrations
+- Manage technical cross-cutting concerns
+
+**Presentation Layer**
+- Use Application services for all business operations
+- Never access Infrastructure layer directly
+- Implement proper error handling and validation
+- Keep presentation logic separate from business logic
+
+Reference existing code implementations for concrete examples of these architectural patterns.
+
 ## Game State Flow
 
 ### WebSocket Event Architecture
