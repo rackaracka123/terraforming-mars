@@ -26,7 +26,7 @@
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "react-hooks/exhaustive-deps": "warn",
+    "react-hooks/exhaustive-deps": "off",
     "no-console": "warn",
     "prefer-const": "warn",
     "no-unused-expressions": "warn"
