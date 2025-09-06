@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/term"
 )
 
 // UI styling constants
@@ -22,8 +25,8 @@ var (
 	baseStyle = lipgloss.NewStyle().
 			Foreground(textColor)
 
-	// Panel styles
-	panelStyle = baseStyle.
+	// Panel styles (base - will be modified dynamically)
+	basePanelStyle = baseStyle.
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(primaryColor).
 			Padding(1, 2).
@@ -56,19 +59,97 @@ var (
 
 // UI manages the terminal UI display
 type UI struct {
-	state *GameState
+	state         *GameState
+	lastCommand   string
+	lastResult    string
+	commandOutput []string
+	termWidth     int
+	termHeight    int
 }
 
 // NewUI creates a new UI instance
 func NewUI() *UI {
-	return &UI{
-		state: &GameState{},
+	ui := &UI{
+		state:         &GameState{},
+		commandOutput: make([]string, 0),
 	}
+	ui.updateTerminalSize()
+	return ui
+}
+
+// updateTerminalSize detects and updates the terminal dimensions
+func (ui *UI) updateTerminalSize() {
+	// Try to get terminal size from stdout first
+	width, height, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		// Try stderr if stdout fails
+		width, height, err = term.GetSize(int(os.Stderr.Fd()))
+	}
+	if err != nil {
+		// Try stdin if both stdout and stderr fail
+		width, height, err = term.GetSize(int(os.Stdin.Fd()))
+	}
+
+	if err != nil {
+		// Check environment variables as last resort
+		if cols := os.Getenv("COLUMNS"); cols != "" {
+			if w, parseErr := strconv.Atoi(cols); parseErr == nil {
+				ui.termWidth = w
+			} else {
+				ui.termWidth = 80
+			}
+		} else {
+			ui.termWidth = 80
+		}
+
+		if lines := os.Getenv("LINES"); lines != "" {
+			if h, parseErr := strconv.Atoi(lines); parseErr == nil {
+				ui.termHeight = h
+			} else {
+				ui.termHeight = 24
+			}
+		} else {
+			ui.termHeight = 24
+		}
+	} else {
+		ui.termWidth = width
+		ui.termHeight = height
+	}
+
+	// Ensure minimum width
+	if ui.termWidth < 40 {
+		ui.termWidth = 40
+	}
+}
+
+// getPanelStyle returns a panel style appropriate for current terminal size
+func (ui *UI) getPanelStyle() lipgloss.Style {
+	style := basePanelStyle
+
+	// For horizontal layout in wide terminals, limit panel width
+	if ui.termWidth >= 120 {
+		maxPanelWidth := (ui.termWidth - 8) / 4 // 4 panels, with some margin
+		style = style.Width(maxPanelWidth)
+	}
+
+	return style
 }
 
 // UpdateGameState updates the current game state
 func (ui *UI) UpdateGameState(state *GameState) {
 	ui.state = state
+}
+
+// SetLastCommand sets the last command and its result for display
+func (ui *UI) SetLastCommand(command, result string) {
+	ui.lastCommand = command
+	ui.lastResult = result
+}
+
+// ClearCommandOutput clears the command output area
+func (ui *UI) ClearCommandOutput() {
+	ui.lastCommand = ""
+	ui.lastResult = ""
 }
 
 // RenderStatus renders the complete status display
@@ -84,8 +165,53 @@ func (ui *UI) RenderStatus() string {
 		ui.renderGlobalParameters(),
 	}
 
-	// Join sections horizontally
-	return lipgloss.JoinHorizontal(lipgloss.Top, sections...)
+	// Choose layout based on terminal width
+	// If terminal is narrow (< 120 chars), stack vertically
+	// Otherwise, join horizontally
+	if ui.termWidth < 120 {
+		return strings.Join(sections, "\n")
+	} else {
+		return lipgloss.JoinHorizontal(lipgloss.Top, sections...)
+	}
+}
+
+// RenderFullDisplay renders the complete display with status and command areas
+func (ui *UI) RenderFullDisplay() string {
+	// Update terminal size in case it changed
+	ui.updateTerminalSize()
+
+	var parts []string
+
+	// Status area at the top
+	parts = append(parts, ui.RenderStatus())
+
+	// Separator line using terminal width
+	separator := strings.Repeat("─", ui.termWidth)
+	parts = append(parts, baseStyle.Foreground(mutedColor).Render(separator))
+
+	// Command output area
+	if ui.lastCommand != "" || ui.lastResult != "" {
+		parts = append(parts, ui.renderCommandArea())
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// renderCommandArea renders the last command and its result
+func (ui *UI) renderCommandArea() string {
+	var lines []string
+
+	if ui.lastCommand != "" {
+		commandLine := baseStyle.Foreground(primaryColor).Render("tm> ") +
+			baseStyle.Render(ui.lastCommand)
+		lines = append(lines, commandLine)
+	}
+
+	if ui.lastResult != "" {
+		lines = append(lines, ui.lastResult)
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 // renderDisconnectedStatus shows when not connected
@@ -93,7 +219,7 @@ func (ui *UI) renderDisconnectedStatus() string {
 	content := headerStyle.Render("🔌 Disconnected") + "\n" +
 		inactiveStyle.Render("Connect to a game to see status")
 
-	return panelStyle.
+	return ui.getPanelStyle().
 		BorderForeground(warningColor).
 		Render(content)
 }
@@ -125,7 +251,7 @@ func (ui *UI) renderGameInfo() string {
 	}
 
 	content := title + "\n" + strings.Join(lines, "\n")
-	return panelStyle.Render(content)
+	return ui.getPanelStyle().Render(content)
 }
 
 // renderPlayerResources renders the player's resources
@@ -153,7 +279,7 @@ func (ui *UI) renderPlayerResources() string {
 		activeStyle.Render(fmt.Sprintf("%d", ui.state.Player.TerraformRating))))
 
 	content := title + "\n" + strings.Join(lines, "\n")
-	return panelStyle.Render(content)
+	return ui.getPanelStyle().Render(content)
 }
 
 // renderPlayerProduction renders the player's production
@@ -176,7 +302,7 @@ func (ui *UI) renderPlayerProduction() string {
 	lines = append(lines, ui.formatProductionLine("Heat", "🌡️", production.Heat))
 
 	content := title + "\n" + strings.Join(lines, "\n")
-	return panelStyle.Render(content)
+	return ui.getPanelStyle().Render(content)
 }
 
 // renderGlobalParameters renders the global terraforming parameters
@@ -196,7 +322,7 @@ func (ui *UI) renderGlobalParameters() string {
 	lines = append(lines, ui.formatGlobalParam("Oceans", "🌊", params.Oceans, ""))
 
 	content := title + "\n" + strings.Join(lines, "\n")
-	return panelStyle.Render(content)
+	return ui.getPanelStyle().Render(content)
 }
 
 // formatResourceLine formats a resource line with icon and value

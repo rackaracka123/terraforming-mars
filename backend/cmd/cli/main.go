@@ -92,6 +92,10 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
+	// Set up window resize signal handling
+	winResize := make(chan os.Signal, 1)
+	signal.Notify(winResize, syscall.SIGWINCH)
+
 	// Start message reader goroutine
 	go client.readMessages()
 
@@ -109,6 +113,19 @@ func main() {
 		client.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		time.Sleep(time.Second)
 		os.Exit(0)
+	}()
+
+	// Handle window resize signal in goroutine
+	go func() {
+		for {
+			select {
+			case <-winResize:
+				// Terminal was resized, refresh the display
+				client.refreshDisplay()
+			case <-client.done:
+				return
+			}
+		}
 	}()
 
 	// Run interactive command loop in main thread
@@ -179,9 +196,9 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 	case dto.MessageTypeError:
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
 			if msg, ok := payload["message"].(string); ok {
-				// Only show errors on the current line, don't add to history
-				fmt.Printf("\r%s\n", c.ui.RenderMessage("error", msg))
-				fmt.Print(c.ui.RenderPrompt())
+				errorMsg := c.ui.RenderMessage("error", msg)
+				c.ui.SetLastCommand("", errorMsg)
+				c.refreshDisplay()
 			}
 		}
 
@@ -279,14 +296,15 @@ func (c *CLIClient) processCommand(command string) bool {
 		c.sendRawMessage(args)
 
 	case "clear", "cls":
-		fmt.Print("\033[2J\033[H") // Clear screen
+		c.ui.ClearCommandOutput()
+		c.refreshDisplay()
 
 	default:
 		// Check if it's a numbered action selection
 		if len(cmd) > 0 && cmd[0] >= '0' && cmd[0] <= '9' {
 			c.selectAction(cmd)
 		} else {
-			fmt.Printf("❓ Unknown command: %s (type 'help' for available commands)\n", cmd)
+			c.displayCommandResult(cmd, fmt.Sprintf("❓ Unknown command: %s (type 'help' for available commands)", cmd))
 		}
 	}
 
@@ -294,67 +312,62 @@ func (c *CLIClient) processCommand(command string) bool {
 }
 
 func (c *CLIClient) showHelp() {
-	fmt.Println("📖 Available Commands:")
-	fmt.Println("  help, h          - Show this help message")
-	fmt.Println("  quit, exit, q    - Exit the CLI")
-	fmt.Println("  status, s        - Show connection status")
-	fmt.Println("  caj <name>       - Create and join game with player name")
-	fmt.Println("  join <id> <name> - Join existing game by ID with player name")
-	fmt.Println("  games            - List available games")
-	fmt.Println("  players          - List players in current game")
-	fmt.Println("  actions          - Show numbered list of available actions")
-	fmt.Println("  0-9              - Select action by number (0 = skip)")
-	fmt.Println("  send <type>      - Send raw WebSocket message")
-	fmt.Println("  clear, cls       - Clear screen")
-	fmt.Println()
+	helpText := `📖 Available Commands:
+  help, h          - Show this help message
+  quit, exit, q    - Exit the CLI
+  status, s        - Show connection status
+  caj <name>       - Create and join game with player name
+  join <id> <name> - Join existing game by ID with player name
+  games            - List available games
+  players          - List players in current game
+  actions          - Show numbered list of available actions
+  0-9              - Select action by number (0 = skip)
+  send <type>      - Send raw WebSocket message
+  clear, cls       - Clear screen`
+
+	c.displayCommandResult("help", helpText)
 }
 
 func (c *CLIClient) showStatus() {
-	fmt.Printf("🔗 Connection Status:\n")
-	fmt.Printf("  Player ID: %s\n", c.playerID)
-	fmt.Printf("  Game ID: %s\n", c.gameID)
-	fmt.Printf("  Connected: %t\n", c.conn != nil)
-	fmt.Println()
+	statusText := fmt.Sprintf(`🔗 Connection Status:
+  Player ID: %s
+  Game ID: %s
+  Connected: %t`, c.playerID, c.gameID, c.conn != nil)
+
+	c.displayCommandResult("status", statusText)
 }
 
 func (c *CLIClient) createAndJoinGame(args []string) {
 	if len(args) == 0 {
-		fmt.Println("❌ Usage: caj <playerName>")
-		fmt.Println("Example: caj \"Alice\"")
+		c.displayCommandResult("caj", "❌ Usage: caj <playerName>\nExample: caj \"Alice\"")
 		return
 	}
 
 	playerName := strings.Join(args, " ")
 
 	// Step 1: Create game via HTTP API
-	fmt.Printf("🎮 Creating game...")
 	gameID, err := c.createGameViaHTTP()
 	if err != nil {
-		fmt.Printf(" ❌ Failed\n")
-		fmt.Printf("Failed to create game: %v\n", err)
+		c.displayCommandResult("caj", fmt.Sprintf("❌ Failed to create game: %v", err))
 		return
 	}
-	fmt.Printf(" ✅ Success (ID: %s)\n", gameID[:8]+"...")
 
 	// Step 2: Join the created game via WebSocket
-	fmt.Printf("🔗 Joining game as '%s'...", playerName)
 	err = c.joinGameViaWebSocket(gameID, playerName)
 	if err != nil {
-		fmt.Printf(" ❌ Failed\n")
-		fmt.Printf("Failed to join game: %v\n", err)
+		c.displayCommandResult("caj", fmt.Sprintf("❌ Failed to join game: %v", err))
 		return
 	}
-	fmt.Printf(" ✅ Success\n")
 
 	// Set gameID locally
 	c.gameID = gameID
-	fmt.Printf("🎉 Ready to play as '%s'!\n", playerName)
+	result := fmt.Sprintf("✅ Game created and joined successfully!\n🎮 Game ID: %s\n🎉 Ready to play as '%s'!", gameID[:8]+"...", playerName)
+	c.displayCommandResult("caj "+playerName, result)
 }
 
 func (c *CLIClient) joinExistingGame(args []string) {
 	if len(args) < 2 {
-		fmt.Println("❌ Usage: join <gameID> <playerName>")
-		fmt.Println("Example: join abc123 \"Alice\"")
+		c.displayCommandResult("join", "❌ Usage: join <gameID> <playerName>\nExample: join abc123 \"Alice\"")
 		return
 	}
 
@@ -362,18 +375,16 @@ func (c *CLIClient) joinExistingGame(args []string) {
 	playerName := strings.Join(args[1:], " ")
 
 	// Join the game via WebSocket
-	fmt.Printf("🔗 Joining game %s as '%s'...", gameID[:min(8, len(gameID))], playerName)
 	err := c.joinGameViaWebSocket(gameID, playerName)
 	if err != nil {
-		fmt.Printf(" ❌ Failed\n")
-		fmt.Printf("Failed to join game: %v\n", err)
+		c.displayCommandResult("join", fmt.Sprintf("❌ Failed to join game: %v", err))
 		return
 	}
-	fmt.Printf(" ✅ Success\n")
 
 	// Set gameID locally
 	c.gameID = gameID
-	fmt.Printf("🎉 Ready to play as '%s'!\n", playerName)
+	result := fmt.Sprintf("✅ Successfully joined game %s\n🎉 Ready to play as '%s'!", gameID[:min(8, len(gameID))], playerName)
+	c.displayCommandResult("join "+gameID+" "+playerName, result)
 }
 
 // Helper function for minimum of two integers
@@ -446,24 +457,26 @@ func (c *CLIClient) listPlayers() {
 }
 
 func (c *CLIClient) showAvailableActions() {
-	fmt.Println("🎯 Available Actions:")
-	fmt.Println("  0. Skip Action")
-	fmt.Println("  1. Raise Temperature (8 heat → +1°C)")
-	fmt.Println("  2. Raise Oxygen (14 megacredits → +1%)")
-	fmt.Println("  3. Place Ocean (18 megacredits → ocean tile)")
-	fmt.Println("  4. Buy Standard Project")
-	fmt.Println("  5. Play Card from Hand")
-	fmt.Println("  6. Use Corporation Action")
-	fmt.Println("  7. Use Card Action")
-	fmt.Println("  8. Trade with Colonies")
-	fmt.Println("  9. End Turn")
-	fmt.Println()
-	fmt.Println("💡 Enter the action number (0-9) to perform the action")
+	actionsText := `🎯 Available Actions:
+  0. Skip Action
+  1. Raise Temperature (8 heat → +1°C)
+  2. Raise Oxygen (14 megacredits → +1%)
+  3. Place Ocean (18 megacredits → ocean tile)
+  4. Buy Standard Project
+  5. Play Card from Hand
+  6. Use Corporation Action
+  7. Use Card Action
+  8. Trade with Colonies
+  9. End Turn
+
+💡 Enter the action number (0-9) to perform the action`
+
+	c.displayCommandResult("actions", actionsText)
 }
 
 func (c *CLIClient) selectAction(actionNum string) {
 	if c.gameID == "" {
-		fmt.Println("❌ Not connected to any game. Use 'connect <game>' first.")
+		c.displayCommandResult(actionNum, "❌ Not connected to any game. Use 'caj <name>' or 'join <id> <name>' first.")
 		return
 	}
 
@@ -489,7 +502,7 @@ func (c *CLIClient) selectAction(actionNum string) {
 	case "9":
 		c.endTurn()
 	default:
-		fmt.Printf("❌ Invalid action number: %s (use 0-9)\n", actionNum)
+		c.displayCommandResult(actionNum, fmt.Sprintf("❌ Invalid action number: %s (use 0-9)", actionNum))
 	}
 }
 
@@ -505,10 +518,11 @@ func (c *CLIClient) skipAction() {
 	}
 
 	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("\r❌ Failed to skip action: %v\n", err)
-		fmt.Print(c.ui.RenderPrompt())
+		c.displayCommandResult("0", fmt.Sprintf("❌ Failed to skip action: %v", err))
 		return
 	}
+
+	c.displayCommandResult("0", "✅ Action skipped")
 }
 
 func (c *CLIClient) raiseTemperature() {
@@ -523,10 +537,11 @@ func (c *CLIClient) raiseTemperature() {
 	}
 
 	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("\r❌ Failed to raise temperature: %v\n", err)
-		fmt.Print(c.ui.RenderPrompt())
+		c.displayCommandResult("1", fmt.Sprintf("❌ Failed to raise temperature: %v", err))
 		return
 	}
+
+	c.displayCommandResult("1", "🌡️ Asteroid launched to raise temperature")
 }
 
 func (c *CLIClient) raiseOxygen() {
@@ -915,10 +930,16 @@ func (c *CLIClient) parseProduction(productionData map[string]interface{}, produ
 	}
 }
 
-// refreshDisplay refreshes the status display
+// refreshDisplay refreshes the complete display
 func (c *CLIClient) refreshDisplay() {
 	c.ui.UpdateGameState(c.gameState)
-	fmt.Print("\033[2J\033[H") // Clear screen
-	fmt.Println(c.ui.RenderStatus())
-	fmt.Println()
+	fmt.Print("\033[2J\033[H") // Clear screen and move cursor to home
+	fmt.Println(c.ui.RenderFullDisplay())
+	fmt.Println() // Add space before prompt
+}
+
+// displayCommandResult displays a command and its result, then refreshes
+func (c *CLIClient) displayCommandResult(command, result string) {
+	c.ui.SetLastCommand(command, result)
+	c.refreshDisplay()
 }
