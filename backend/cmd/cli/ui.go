@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/term"
@@ -126,8 +127,8 @@ func (ui *UI) updateTerminalSize() {
 func (ui *UI) getPanelStyle() lipgloss.Style {
 	style := basePanelStyle
 
-	// For horizontal layout in wide terminals, limit panel width
-	if ui.termWidth >= 120 {
+	// For horizontal layout, limit panel width to fit all 4 panels
+	if ui.termWidth >= 80 {
 		maxPanelWidth := (ui.termWidth - 8) / 4 // 4 panels, with some margin
 		style = style.Width(maxPanelWidth)
 	}
@@ -165,10 +166,9 @@ func (ui *UI) RenderStatus() string {
 		ui.renderGlobalParameters(),
 	}
 
-	// Choose layout based on terminal width
-	// If terminal is narrow (< 120 chars), stack vertically
-	// Otherwise, join horizontally
-	if ui.termWidth < 120 {
+	// Always use horizontal layout for better space utilization
+	// Only stack vertically for very narrow terminals (< 80 chars)
+	if ui.termWidth < 80 {
 		return strings.Join(sections, "\n")
 	} else {
 		return lipgloss.JoinHorizontal(lipgloss.Top, sections...)
@@ -234,12 +234,42 @@ func (ui *UI) renderGameInfo() string {
 
 	var lines []string
 	lines = append(lines, "")
+
+	// Show game status with appropriate styling
+	statusText := string(ui.state.GameStatus)
+	var statusStyle lipgloss.Style
+	switch ui.state.GameStatus {
+	case model.GameStatusLobby:
+		statusStyle = baseStyle.Foreground(warningColor)
+		statusText = "🔄 Lobby"
+	case model.GameStatusActive:
+		statusStyle = baseStyle.Foreground(accentColor)
+		statusText = "🎮 Active"
+	case model.GameStatusCompleted:
+		statusStyle = baseStyle.Foreground(mutedColor)
+		statusText = "✅ Complete"
+	default:
+		statusStyle = baseStyle.Foreground(mutedColor)
+	}
+	lines = append(lines, fmt.Sprintf("Status: %s", statusStyle.Render(statusText)))
+
 	lines = append(lines, fmt.Sprintf("Generation: %s",
 		resourceValueStyle.Render(fmt.Sprintf("%d", ui.state.Generation))))
 	lines = append(lines, fmt.Sprintf("Phase: %s",
-		productionStyle.Render(ui.state.CurrentPhase)))
+		productionStyle.Render(string(ui.state.CurrentPhase))))
 	lines = append(lines, fmt.Sprintf("Players: %s",
 		resourceValueStyle.Render(fmt.Sprintf("%d", ui.state.TotalPlayers))))
+
+	// Show host status if player is available
+	if ui.state.Player != nil && ui.state.HostPlayerID != "" {
+		if ui.state.Player.ID == ui.state.HostPlayerID {
+			lines = append(lines, fmt.Sprintf("Role: %s",
+				activeStyle.Render("👑 Host")))
+		} else {
+			lines = append(lines, fmt.Sprintf("Role: %s",
+				baseStyle.Foreground(mutedColor).Render("👤 Player")))
+		}
+	}
 
 	if ui.state.GameID != "" {
 		gameIDShort := ui.state.GameID

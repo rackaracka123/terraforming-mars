@@ -36,10 +36,12 @@ const (
 type GameState struct {
 	Player           *model.Player
 	Generation       int
-	CurrentPhase     string
+	CurrentPhase     model.GamePhase
 	GameID           string
 	IsConnected      bool
 	TotalPlayers     int
+	GameStatus       model.GameStatus
+	HostPlayerID     string
 	GlobalParameters *GlobalParams
 }
 
@@ -186,10 +188,20 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 		c.refreshDisplay()
 
 	case dto.MessageTypePlayerConnected:
-		// Extract the actual player ID from the payload
+		// Extract the actual player ID and game state from the payload
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
 			if playerID, ok := payload["playerId"].(string); ok {
 				c.playerID = playerID // Update to the actual player ID from the game
+			}
+
+			// Parse the nested game data to update full game state
+			if gameData, ok := payload["game"].(map[string]interface{}); ok {
+				c.parseGameData(gameData)
+				c.gameID = message.GameID
+				c.gameState.GameID = message.GameID
+				c.gameState.IsConnected = true
+				c.ui.UpdateGameState(c.gameState)
+				c.refreshDisplay()
 			}
 		}
 
@@ -457,7 +469,26 @@ func (c *CLIClient) listPlayers() {
 }
 
 func (c *CLIClient) showAvailableActions() {
-	actionsText := `🎯 Available Actions:
+	var actionsText string
+
+	// Check if we're in lobby and current player is host
+	if c.gameState != nil && c.gameState.GameStatus == model.GameStatusLobby {
+		if c.gameState.Player != nil && c.gameState.Player.ID == c.gameState.HostPlayerID {
+			// Host in lobby - show start game action
+			actionsText = `🎯 Lobby Actions (Host):
+  0. Start Game (transition from lobby to active game)
+  
+💡 As the host, you can start the game when ready!`
+		} else {
+			// Non-host in lobby
+			actionsText = `🎯 Lobby Actions:
+  Waiting for host to start the game...
+  
+💡 The host will start the game when ready.`
+		}
+	} else {
+		// Active game actions
+		actionsText = `🎯 Available Actions:
   0. Skip Action
   1. Raise Temperature (8 heat → +1°C)
   2. Raise Oxygen (14 megacredits → +1%)
@@ -470,6 +501,7 @@ func (c *CLIClient) showAvailableActions() {
   9. End Turn
 
 💡 Enter the action number (0-9) to perform the action`
+	}
 
 	c.displayCommandResult("actions", actionsText)
 }
@@ -480,6 +512,23 @@ func (c *CLIClient) selectAction(actionNum string) {
 		return
 	}
 
+	// Handle lobby actions differently from active game actions
+	if c.gameState != nil && c.gameState.GameStatus == model.GameStatusLobby {
+		switch actionNum {
+		case "0":
+			// Start game action in lobby (host only)
+			if c.gameState.Player != nil && c.gameState.Player.ID == c.gameState.HostPlayerID {
+				c.startGame()
+			} else {
+				c.displayCommandResult(actionNum, "❌ Only the host can start the game.")
+			}
+		default:
+			c.displayCommandResult(actionNum, "❌ Invalid action for lobby. Only action 0 (Start Game) is available for the host.")
+		}
+		return
+	}
+
+	// Active game actions
 	switch actionNum {
 	case "0":
 		c.skipAction()
@@ -504,6 +553,25 @@ func (c *CLIClient) selectAction(actionNum string) {
 	default:
 		c.displayCommandResult(actionNum, fmt.Sprintf("❌ Invalid action number: %s (use 0-9)", actionNum))
 	}
+}
+
+func (c *CLIClient) startGame() {
+	message := dto.WebSocketMessage{
+		Type:   dto.MessageTypePlayAction,
+		GameID: c.gameID,
+		Payload: dto.PlayActionPayload{
+			ActionRequest: map[string]interface{}{
+				"type": "start-game",
+			},
+		},
+	}
+
+	if err := c.conn.WriteJSON(message); err != nil {
+		c.displayCommandResult("0", fmt.Sprintf("❌ Failed to start game: %v", err))
+		return
+	}
+
+	c.displayCommandResult("0", "🚀 Starting game...")
 }
 
 func (c *CLIClient) skipAction() {
@@ -797,9 +865,19 @@ func (c *CLIClient) parseGameData(gameData map[string]interface{}) {
 		c.gameState.Generation = int(generation)
 	}
 
-	// Update current phase
+	// Update current phase using backend types
 	if phase, ok := gameData["currentPhase"].(string); ok {
-		c.gameState.CurrentPhase = phase
+		c.gameState.CurrentPhase = model.GamePhase(phase)
+	}
+
+	// Update game status using backend types
+	if status, ok := gameData["status"].(string); ok {
+		c.gameState.GameStatus = model.GameStatus(status)
+	}
+
+	// Update host player ID
+	if hostPlayerID, ok := gameData["hostPlayerId"].(string); ok {
+		c.gameState.HostPlayerID = hostPlayerID
 	}
 
 	// Update total players
