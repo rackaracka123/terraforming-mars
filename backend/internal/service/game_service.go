@@ -63,36 +63,15 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		return nil, fmt.Errorf("invalid game settings: %w", err)
 	}
 
-	log.Info("Creating game via GameService", zap.Int("max_players", settings.MaxPlayers))
+	log.Debug("Creating game via GameService")
 
-	// Create game through repository
 	game, err := s.gameRepo.Create(ctx, settings)
 	if err != nil {
 		log.Error("Failed to create game", zap.Error(err))
 		return nil, fmt.Errorf("failed to create game: %w", err)
 	}
 
-	// Initialize global parameters
-	initialParams := model.GlobalParameters{
-		Temperature: -30, // Mars starting temperature
-		Oxygen:      0,   // Starting oxygen level
-		Oceans:      0,   // Starting ocean tiles
-	}
-	game.GlobalParameters = initialParams
-
-	// Initialize global parameters in the dedicated repository
-	if err := s.parametersRepo.Update(ctx, game.ID, &initialParams); err != nil {
-		log.Error("Failed to initialize global parameters repository", zap.Error(err))
-		return nil, fmt.Errorf("failed to initialize global parameters: %w", err)
-	}
-
-	// Update game with initial parameters
-	if err := s.gameRepo.Update(ctx, game); err != nil {
-		log.Error("Failed to update game with initial parameters", zap.Error(err))
-		return nil, fmt.Errorf("failed to update game: %w", err)
-	}
-
-	log.Info("Game created successfully via GameService", zap.String("game_id", game.ID))
+	log.Info("Game created via GameService", zap.String("game_id", game.ID))
 	return game, nil
 }
 
@@ -113,7 +92,7 @@ func (s *GameServiceImpl) UpdateGame(ctx context.Context, game *model.Game) erro
 
 func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, "")
-	log.Info("Starting game via GameService")
+	log.Debug("Starting game via GameService")
 
 	// Get current game state
 	game, err := s.gameRepo.Get(ctx, gameID)
@@ -147,14 +126,14 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Game started successfully", zap.String("game_id", gameID))
+	log.Info("Game started", zap.String("game_id", gameID))
 	return nil
 }
 
 // JoinGame adds a player to a game using both GameState and Player repositories
 func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
-	log.Info("Player joining game via GameService", zap.String("player_name", playerName))
+	log.Debug("Player joining game via GameService", zap.String("player_name", playerName))
 
 	// Get the current game state
 	game, err := s.gameRepo.Get(ctx, gameID)
@@ -208,7 +187,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	// Set the first player as host if no host is set
 	if game.HostPlayerID == "" {
 		game.HostPlayerID = player.ID
-		log.Info("Player set as host", zap.String("player_id", playerID))
+		log.Debug("Player set as host", zap.String("player_id", playerID))
 	}
 
 	// Update game through GameStateRepository
@@ -217,7 +196,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player joined game successfully",
+	log.Debug("Player joined game",
 		zap.String("player_id", playerID),
 		zap.Int("total_players", len(game.Players)),
 	)
@@ -229,6 +208,24 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) error {
 	if settings.MaxPlayers < 1 || settings.MaxPlayers > 5 {
 		return fmt.Errorf("max players must be between 1 and 5, got %d", settings.MaxPlayers)
+	}
+
+	if settings.Oxygen != nil {
+		if *settings.Oxygen < 0 || *settings.Oxygen > 14 {
+			return fmt.Errorf("oxygen level must be between 0 and 14, got %d", settings.Oxygen)
+		}
+	}
+
+	if settings.Temperature != nil {
+		if *settings.Temperature < -30 || *settings.Temperature > 8 {
+			return fmt.Errorf("temperature must be between -30 and 8, got %d", settings.Temperature)
+		}
+	}
+
+	if settings.Oceans != nil {
+		if *settings.Oceans < 0 || *settings.Oceans > 9 {
+			return fmt.Errorf("oceans must be between 0 and 9, got %d", settings.Oceans)
+		}
 	}
 	return nil
 }

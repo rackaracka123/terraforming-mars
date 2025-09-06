@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
+
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -52,7 +53,7 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	defer r.mutex.Unlock()
 
 	log := logger.Get()
-	log.Info("Creating new game", zap.Int("max_players", settings.MaxPlayers))
+	log.Debug("Creating new game")
 
 	// Generate unique game ID
 	gameID := uuid.New().String()
@@ -63,14 +64,13 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	// Store in repository
 	r.games[gameID] = game
 
-	log.Info("Game created successfully",
+	log.Debug("Game created",
 		zap.String("game_id", gameID),
-		zap.Int("max_players", settings.MaxPlayers),
 	)
 
 	// Publish game created event
 	if r.eventBus != nil {
-		gameCreatedEvent := events.NewGameCreatedEvent(gameID, settings.MaxPlayers)
+		gameCreatedEvent := events.NewGameCreatedEvent(gameID, settings)
 		if err := r.eventBus.Publish(ctx, gameCreatedEvent); err != nil {
 			log.Warn("Failed to publish game created event", zap.Error(err))
 		}
@@ -121,7 +121,7 @@ func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error
 	// Store updated game
 	r.games[game.ID] = game
 
-	log.Info("Game updated successfully")
+	log.Debug("Game updated")
 
 	// Publish game updated event
 	if r.eventBus != nil {
@@ -168,7 +168,7 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 
 	delete(r.games, gameID)
 
-	log.Info("Game deleted successfully")
+	log.Info("Game deleted")
 
 	// Publish game deleted event
 	if r.eventBus != nil {

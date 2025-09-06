@@ -103,7 +103,7 @@ func (r *GlobalParametersRepositoryImpl) Update(ctx context.Context, gameID stri
 		Oceans:      params.Oceans,
 	}
 
-	log.Info("Global parameters updated successfully",
+	log.Info("Global parameters updated",
 		zap.Int("temperature", params.Temperature),
 		zap.Int("oxygen", params.Oxygen),
 		zap.Int("oceans", params.Oceans),

@@ -97,7 +97,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player sold patents successfully",
+	log.Info("Player sold patents",
 		zap.Int("cards_sold", cardCount),
 		zap.Int("credits_gained", creditsGained))
 
@@ -272,7 +272,7 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Standard project executed successfully",
+	log.Info("Standard project executed",
 		zap.String("project", string(project)),
 		zap.Int("cost", cost))
 

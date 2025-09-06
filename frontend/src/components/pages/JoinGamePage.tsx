@@ -37,6 +37,9 @@ const JoinGamePage: React.FC = () => {
 
     try {
       const game = await apiService.getGame(gameIdFromUrl);
+      if (!game) {
+        throw new Error("Game not found");
+      }
 
       // Check if game is full
       if (
@@ -96,6 +99,9 @@ const JoinGamePage: React.FC = () => {
     try {
       // Verify the game exists and is joinable
       const game = await apiService.getGame(gameId.trim());
+      if (!game) {
+        throw new Error("Game not found");
+      }
 
       // Check if game is full
       if (

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"terraforming-mars-backend/internal/logger"
 	"time"
+
+	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
 )
@@ -68,9 +69,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			zap.String("method", r.Method),
 			zap.String("path", r.URL.Path),
 			zap.String("remote_addr", r.RemoteAddr),
-			zap.String("user_agent", r.UserAgent()),
 			zap.Duration("duration", duration),
-			zap.Int("size", wrapped.size),
 		}
 
 		// Add query parameters if present

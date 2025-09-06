@@ -73,7 +73,7 @@ func (s *GlobalParametersServiceImpl) UpdateGlobalParameters(ctx context.Context
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Global parameters updated successfully",
+	log.Info("Global parameters updated",
 		zap.Int("temperature", newParams.Temperature),
 		zap.Int("oxygen", newParams.Oxygen),
 		zap.Int("oceans", newParams.Oceans))

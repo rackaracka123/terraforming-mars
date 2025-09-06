@@ -90,7 +90,7 @@ func (h *Hub) registerConnection(connection *Connection) {
 	defer h.mu.Unlock()
 
 	h.connections[connection] = true
-	h.logger.Info("🔗 Client connected to server", zap.String("connection_id", connection.ID))
+	h.logger.Debug("🔗 Client connected to server", zap.String("connection_id", connection.ID))
 }
 
 // unregisterConnection unregisters a connection
@@ -117,7 +117,7 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 		// Close the connection properly
 		connection.Close()
 
-		h.logger.Info("⛓️‍💥 Client disconnected from server",
+		h.logger.Debug("⛓️‍💥 Client disconnected from server",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
 			zap.String("game_id", gameID))

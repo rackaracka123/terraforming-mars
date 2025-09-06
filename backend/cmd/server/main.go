@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
@@ -14,21 +16,26 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
-	"time"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
 func main() {
+	logLevel := os.Getenv("TM_LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
 	// Initialize logger
-	if err := logger.Init(); err != nil {
+	if err := logger.Init(&logLevel); err != nil {
 		panic("Failed to initialize logger: " + err.Error())
 	}
 	defer logger.Shutdown()
 
 	log := logger.Get()
 	log.Info("🚀 Starting Terraforming Mars backend server")
+	log.Info("Log level set to " + logLevel)
 
 	// Setup graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -74,7 +81,7 @@ func main() {
 	if err != nil {
 		log.Error("Failed to create test game", zap.Error(err))
 	} else {
-		log.Info("Test game created successfully", zap.String("game_id", testGame.ID))
+		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
 	// Initialize WebSocket hub
@@ -116,7 +123,7 @@ func main() {
 		}
 	}()
 
-	log.Info("✅ Server started successfully")
+	log.Info("✅ Server started")
 	log.Info("🌍 HTTP server listening on :3001")
 	log.Info("🔌 WebSocket endpoint available at /ws")
 
