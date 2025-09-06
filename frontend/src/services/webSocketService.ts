@@ -148,8 +148,8 @@ export class WebSocketService {
     });
   }
 
-  playAction(action: string, data?: unknown): string {
-    return this.send(MessageTypePlayAction, { action, data });
+  playAction(actionPayload: object): string {
+    return this.send(MessageTypePlayAction, { actionRequest: actionPayload });
   }
 
   on(event: string, callback: EventCallback) {
