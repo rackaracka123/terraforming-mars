@@ -16,6 +16,7 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +28,7 @@ func main() {
 	defer logger.Shutdown()
 
 	log := logger.Get()
-	log.Info("Starting Terraforming Mars backend server")
+	log.Info("🚀 Starting Terraforming Mars backend server")
 
 	// Setup graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -86,16 +87,22 @@ func main() {
 	go hub.Run(hubCtx)
 	log.Info("WebSocket hub started")
 	
-	// Setup HTTP router
-	router := httpHandler.SetupRouter(gameService, playerService)
+	// Setup main router without middleware for WebSocket
+	mainRouter := mux.NewRouter()
 	
-	// Add WebSocket endpoint
-	router.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	// Setup API router with middleware
+	apiRouter := httpHandler.SetupRouter(gameService, playerService)
+	
+	// Mount API router
+	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
+	
+	// Add WebSocket endpoint directly to main router (no middleware)
+	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
 	
 	// Setup HTTP server
 	server := &http.Server{
 		Addr:         ":3001",
-		Handler:      router,
+		Handler:      mainRouter,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -109,14 +116,14 @@ func main() {
 		}
 	}()
 	
-	log.Info("Server started successfully")
-	log.Info("HTTP server listening on :3001")
-	log.Info("WebSocket endpoint available at /ws")
+	log.Info("✅ Server started successfully")
+	log.Info("🌍 HTTP server listening on :3001")
+	log.Info("🔌 WebSocket endpoint available at /ws")
 
 	// Wait for shutdown signal
 	<-quit
 
-	log.Info("Shutting down server...")
+	log.Info("🛑 Shutting down server...")
 	
 	// Graceful shutdown with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -126,12 +133,12 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Error("Failed to gracefully shutdown HTTP server", zap.Error(err))
 	} else {
-		log.Info("HTTP server stopped")
+		log.Info("✅ HTTP server stopped")
 	}
 	
 	// Cancel WebSocket hub context
 	hubCancel()
-	log.Info("WebSocket hub stopped")
+	log.Info("✅ WebSocket hub stopped")
 	
-	log.Info("Server shutdown complete")
+	log.Info("✅ Server shutdown complete")
 }

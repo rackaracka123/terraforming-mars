@@ -188,7 +188,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		ID:   playerID,
 		Name: playerName,
 		Resources: model.Resources{
-			Credits: 0,
+			Credits: 40, // Starting credits for standard projects
 		},
 		Production: model.Production{
 			Credits: 1, // Base production

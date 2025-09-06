@@ -51,7 +51,7 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 		h.logger.Error("Failed to join game via WebSocket",
 			zap.Error(err),
 			zap.String("connection_id", connection.ID),
-			zap.String("game_id", payload.GameID),
+			zap.String("game_id", game.ID),
 			zap.String("player_name", payload.PlayerName))
 		h.sendErrorToConnection(connection, "Failed to join game")
 		return
@@ -78,13 +78,13 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 			PlayerName: payload.PlayerName,
 			Game:       dto.ToGameDto(game),
 		},
-		GameID: payload.GameID,
+		GameID: game.ID,
 	})
-
-	h.logger.Info("Player connected via WebSocket",
+	
+	h.logger.Info("🎮 Player connected to game server via WebSocket",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
-		zap.String("game_id", payload.GameID),
+		zap.String("game_id", game.ID),
 		zap.String("player_name", payload.PlayerName))
 }
 

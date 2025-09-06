@@ -55,7 +55,6 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	// Register connection with hub
 	h.hub.Register <- connection
-
 	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))

@@ -52,7 +52,7 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 		gameConnections:         make(map[string]map[*Connection]bool),
 		Register:                make(chan *Connection),
 		Unregister:              make(chan *Connection),
-		Broadcast:               make(chan HubMessage),
+		Broadcast:               make(chan HubMessage, 256),
 		gameService:             gameService,
 		playerService:           playerService,
 		globalParametersService: globalParametersService,
@@ -90,7 +90,7 @@ func (h *Hub) registerConnection(connection *Connection) {
 	defer h.mu.Unlock()
 
 	h.connections[connection] = true
-	h.logger.Info("Connection registered", zap.String("connection_id", connection.ID))
+	h.logger.Info("🔗 Client connected to server", zap.String("connection_id", connection.ID))
 }
 
 // unregisterConnection unregisters a connection
@@ -113,8 +113,11 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 				}
 			}
 		}
-
-		h.logger.Info("Connection unregistered",
+		
+		// Close the connection properly
+		connection.Close()
+		
+		h.logger.Info("⛓️‍💥 Client disconnected from server",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
 			zap.String("game_id", gameID))
@@ -145,8 +148,8 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 	for connection := range gameConns {
 		connection.SendMessage(message)
 	}
-
-	h.logger.Debug("Message broadcast to game",
+	
+	h.logger.Debug("📢 Server broadcasting to game clients",
 		zap.String("game_id", gameID),
 		zap.String("message_type", string(message.Type)),
 		zap.Int("connection_count", len(gameConns)))
@@ -155,8 +158,8 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 // sendToConnection sends a message to a specific connection
 func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMessage) {
 	connection.SendMessage(message)
-
-	h.logger.Debug("Message sent to connection",
+	
+	h.logger.Debug("💬 Server message sent to client",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 }
@@ -170,6 +173,6 @@ func (h *Hub) closeAllConnections() {
 		close(connection.Send)
 		connection.Conn.Close()
 	}
-
-	h.logger.Info("All connections closed")
+	
+	h.logger.Info("⛓️‍💥 All client connections closed by server")
 }

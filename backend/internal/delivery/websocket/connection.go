@@ -143,3 +143,24 @@ func (c *Connection) SendMessage(message dto.WebSocketMessage) {
 		close(c.Send)
 	}
 }
+
+// SetContextCancel stores the context cancel function for proper cleanup
+func (c *Connection) SetContextCancel(cancel context.CancelFunc) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cancel = cancel
+}
+
+// Close closes the connection and cancels its context
+func (c *Connection) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if c.cancel != nil {
+		c.cancel()
+	}
+	
+	if c.Conn != nil {
+		c.Conn.Close()
+	}
+}
