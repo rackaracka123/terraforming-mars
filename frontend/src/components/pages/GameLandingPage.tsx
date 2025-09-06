@@ -19,6 +19,9 @@ const GameLandingPage: React.FC = () => {
           if (gameId && playerId) {
             // Try to get the current game state from server
             const game = await apiService.getGame(gameId);
+            if (!game) {
+              throw new Error("Saved game not found on server");
+            }
 
             // Connect to WebSocket if not connected
             if (!webSocketService.connected) {

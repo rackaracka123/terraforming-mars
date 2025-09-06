@@ -43,9 +43,13 @@ export class ApiService {
     }
   }
 
-  async getGame(gameId: string): Promise<GameDto> {
+  async getGame(gameId: string): Promise<GameDto | null> {
     try {
       const response = await fetch(`${this.baseUrl}/games/${gameId}`);
+
+      if (response.status === 404) {
+        return null;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

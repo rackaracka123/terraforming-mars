@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
@@ -26,8 +27,6 @@ func NewGameHandler(gameService service.GameService) *GameHandler {
 
 // CreateGame creates a new game
 func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "CreateGame")
-
 	var req dto.CreateGameRequest
 	if err := h.ParseJSONRequest(r, &req); err != nil {
 		h.WriteErrorResponse(w, http.StatusBadRequest, "Invalid request body")
@@ -56,8 +55,6 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
 // GetGame retrieves a game by ID
 func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "GetGame")
-
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
@@ -84,8 +81,6 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 // ListGames retrieves all games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "ListGames")
-
 	// Delegate to service (list all games by passing empty status)
 	games, err := h.gameService.ListGames(r.Context(), "")
 	if err != nil {

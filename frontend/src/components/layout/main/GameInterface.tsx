@@ -145,7 +145,10 @@ export default function GameInterface() {
       }
 
       // Fetch current game state from server
-      const gameData = await apiService.getGame(gameId);
+      const game = await apiService.getGame(gameId);
+      if (!game) {
+        throw new Error("Saved game not found on server");
+      }
 
       // Connect to WebSocket if not connected
       if (!webSocketService.connected) {
@@ -156,10 +159,10 @@ export default function GameInterface() {
       await webSocketService.playerConnect(playerName, gameId);
 
       // Set up the game state
-      setGame(gameData);
+      setGame(game);
       setIsConnected(true);
 
-      const mockState = convertGameToMockState(gameData, playerId);
+      const mockState = convertGameToMockState(game, playerId);
       setMockGameState(mockState);
 
       const player = mockState.players.find((p) => p.id === playerId);

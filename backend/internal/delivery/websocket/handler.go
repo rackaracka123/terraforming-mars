@@ -46,7 +46,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Create connection ID
 	connectionID := uuid.New().String()
 
-	h.logger.Info("New WebSocket connection established",
+	h.logger.Debug("New WebSocket connection established",
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 

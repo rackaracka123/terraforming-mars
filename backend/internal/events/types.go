@@ -8,10 +8,10 @@ type GameCreatedEvent struct {
 }
 
 // NewGameCreatedEvent creates a new game created event
-func NewGameCreatedEvent(gameID string, maxPlayers int) *GameCreatedEvent {
+func NewGameCreatedEvent(gameID string, settings model.GameSettings) *GameCreatedEvent {
 	payload := GameCreatedEventData{
-		GameID:     gameID,
-		MaxPlayers: maxPlayers,
+		GameID:       gameID,
+		GameSettings: settings,
 	}
 
 	return &GameCreatedEvent{

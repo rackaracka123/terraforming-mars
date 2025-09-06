@@ -8,17 +8,41 @@ import (
 
 var globalLogger *zap.Logger
 
-// Init initializes the global logger based on the environment
-func Init() error {
+// Init initializes the global logger
+func Init(logLevel *string) error {
 	var err error
 
+	// Create config based on GO_ENV for formatting
 	env := os.Getenv("GO_ENV")
+	var config zap.Config
 	if env == "production" {
-		globalLogger, err = zap.NewProduction()
+		config = zap.NewProductionConfig()
 	} else {
-		globalLogger, err = zap.NewDevelopment()
+		config = zap.NewDevelopmentConfig()
 	}
 
+	var appliedLogLevel string
+	if logLevel != nil {
+		appliedLogLevel = *logLevel
+	} else {
+		appliedLogLevel = "info"
+	}
+
+	// Set the log level based on TM_LOG_LEVEL
+	switch appliedLogLevel {
+	case "debug":
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	case "info":
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	case "warn":
+		config.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	case "error":
+		config.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
+	default:
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	}
+
+	globalLogger, err = config.Build()
 	if err != nil {
 		return err
 	}

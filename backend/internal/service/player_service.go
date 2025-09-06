@@ -87,7 +87,7 @@ func (s *PlayerServiceImpl) UpdatePlayerResources(ctx context.Context, gameID, p
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player resources updated successfully")
+	log.Info("Player resources updated")
 	return nil
 }
 
@@ -133,7 +133,7 @@ func (s *PlayerServiceImpl) UpdatePlayerProduction(ctx context.Context, gameID, 
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player production updated successfully")
+	log.Info("Player production updated")
 	return nil
 }
 

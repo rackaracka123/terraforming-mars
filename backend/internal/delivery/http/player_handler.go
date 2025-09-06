@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
@@ -28,8 +29,6 @@ func NewPlayerHandler(playerService service.PlayerService, gameService service.G
 
 // JoinGame adds a player to a game
 func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "JoinGame")
-
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
@@ -74,8 +73,6 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 // GetPlayer retrieves a player by ID
 func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "GetPlayer")
-
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 	playerID := vars["playerId"]
@@ -110,8 +107,6 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 
 // UpdatePlayerResources updates player resources (for testing/admin purposes)
 func (h *PlayerHandler) UpdatePlayerResources(w http.ResponseWriter, r *http.Request) {
-	h.LogRequest(r, "UpdatePlayerResources")
-
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 	playerID := vars["playerId"]

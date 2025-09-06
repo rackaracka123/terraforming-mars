@@ -100,7 +100,7 @@ func (bus *InMemoryEventBus) Publish(ctx context.Context, event Event) error {
 		}
 	}
 
-	log.Info("Event published successfully",
+	log.Info("Event published",
 		zap.String("event_type", event.GetType()),
 		zap.Int("listeners_executed", len(listeners)),
 	)

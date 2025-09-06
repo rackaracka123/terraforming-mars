@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -74,7 +75,7 @@ func (r *PlayerRepositoryImpl) AddPlayer(ctx context.Context, gameID string, pla
 	// Add player
 	r.players[gameID][player.ID] = &player
 
-	log.Info("Player added to game successfully",
+	log.Debug("Player added to game",
 		zap.String("player_name", player.Name),
 	)
 
@@ -152,7 +153,7 @@ func (r *PlayerRepositoryImpl) UpdatePlayer(ctx context.Context, gameID string, 
 	playerCopy := *player
 	r.players[gameID][player.ID] = &playerCopy
 
-	log.Info("Player updated successfully")
+	log.Info("Player updated")
 
 	// Publish events if resources or production changed
 	if r.eventBus != nil {
@@ -228,7 +229,7 @@ func (r *PlayerRepositoryImpl) RemovePlayer(ctx context.Context, gameID, playerI
 		delete(r.players, gameID)
 	}
 
-	log.Info("Player removed from game successfully",
+	log.Info("Player removed from game",
 		zap.String("player_name", player.Name),
 	)
 

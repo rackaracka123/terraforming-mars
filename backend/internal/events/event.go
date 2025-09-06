@@ -1,8 +1,9 @@
 package events
 
 import (
-	"terraforming-mars-backend/internal/model"
 	"time"
+
+	"terraforming-mars-backend/internal/model"
 )
 
 // Event type constants
@@ -84,8 +85,8 @@ func NewBaseEvent(eventType, gameID string, payload interface{}) BaseEvent {
 
 // GameCreatedEventData represents when a game is created
 type GameCreatedEventData struct {
-	GameID     string `json:"gameId"`
-	MaxPlayers int    `json:"maxPlayers"`
+	GameID       string             `json:"gameId"`
+	GameSettings model.GameSettings `json:"gameSettings"`
 }
 
 // PlayerJoinedEventData represents when a player joins a game
