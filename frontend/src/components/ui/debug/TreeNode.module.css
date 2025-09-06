@@ -1,0 +1,46 @@
+.treeNode {
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.treeNodeContent {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 3px;
+  position: relative;
+  user-select: text;
+}
+
+.treeExpandToggle {
+  cursor: pointer;
+  margin-right: 4px;
+  color: #abb2bf;
+  font-size: 12px;
+  user-select: none;
+}
+
+.expandedContent {
+  margin-left: 20px;
+}
+
+.changed .treeNodeContent {
+  animation: blink 1.5s ease-out;
+}
+
+@keyframes blink {
+  0% {
+    background-color: rgba(255, 223, 0, 0.4);
+    box-shadow: 0 0 10px rgba(255, 223, 0, 0.6);
+  }
+  50% {
+    background-color: rgba(255, 223, 0, 0.2);
+    box-shadow: 0 0 5px rgba(255, 223, 0, 0.3);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
