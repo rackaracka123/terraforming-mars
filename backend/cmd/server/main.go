@@ -49,7 +49,7 @@ func main() {
 	log.Info("Global parameters repository initialized")
 
 	// Initialize new service architecture
-	gameService := service.NewGameService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)

@@ -35,18 +35,21 @@ type GameService interface {
 
 // GameServiceImpl implements GameService interface
 type GameServiceImpl struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	parametersRepo repository.GlobalParametersRepository
 }
 
 // NewGameService creates a new GameService instance
 func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
+	parametersRepo repository.GlobalParametersRepository,
 ) GameService {
 	return &GameServiceImpl{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		parametersRepo: parametersRepo,
 	}
 }
 
@@ -70,10 +73,17 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 	}
 
 	// Initialize global parameters
-	game.GlobalParameters = model.GlobalParameters{
+	initialParams := model.GlobalParameters{
 		Temperature: -30, // Mars starting temperature
 		Oxygen:      0,   // Starting oxygen level
 		Oceans:      0,   // Starting ocean tiles
+	}
+	game.GlobalParameters = initialParams
+
+	// Initialize global parameters in the dedicated repository
+	if err := s.parametersRepo.Update(ctx, game.ID, &initialParams); err != nil {
+		log.Error("Failed to initialize global parameters repository", zap.Error(err))
+		return nil, fmt.Errorf("failed to initialize global parameters: %w", err)
 	}
 
 	// Update game with initial parameters

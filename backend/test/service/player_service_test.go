@@ -20,9 +20,10 @@ func setupPlayerServiceTest(t *testing.T) (
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
 
 	ctx := context.Background()
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
