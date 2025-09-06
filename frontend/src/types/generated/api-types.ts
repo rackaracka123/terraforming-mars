@@ -235,6 +235,11 @@ export interface PlayerDto {
   terraformRating: number /* int */;
   isActive: boolean;
   playedCards: string[];
+  passed: boolean;
+  availableActions: number /* int */;
+  victoryPoints: number /* int */;
+  milestoneIcon: string;
+  connectionStatus: any /* model.ConnectionStatus */;
 }
 /**
  * GameDto represents a game for client consumption
@@ -330,12 +335,15 @@ export type MessageType = string;
  * Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
+export const MessageTypePlayerReconnect: MessageType = "player-reconnect";
 export const MessageTypePlayAction: MessageType = "do-action";
 /**
  * Server -> Client messages
  */
 export const MessageTypeGameUpdated: MessageType = "game-updated";
 export const MessageTypePlayerConnected: MessageType = "player-connected";
+export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
+export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
@@ -393,4 +401,27 @@ export interface FullStatePayload {
  */
 export interface AvailableCardsPayload {
   cards: CardDto[];
+}
+/**
+ * PlayerReconnectPayload contains player reconnection data
+ */
+export interface PlayerReconnectPayload {
+  playerName: string;
+  gameId: string;
+}
+/**
+ * PlayerReconnectedPayload contains data about a reconnected player
+ */
+export interface PlayerReconnectedPayload {
+  playerId: string;
+  playerName: string;
+  game: GameDto;
+}
+/**
+ * PlayerDisconnectedPayload contains data about a disconnected player
+ */
+export interface PlayerDisconnectedPayload {
+  playerId: string;
+  playerName: string;
+  game: GameDto;
 }

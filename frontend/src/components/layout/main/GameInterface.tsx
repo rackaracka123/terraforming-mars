@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
@@ -8,13 +8,16 @@ import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
-import { webSocketService } from "../../../services/webSocketService.ts";
-import { apiService } from "../../../services/apiService.ts";
+import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
+import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
+import { getTabManager } from "../../../utils/tabManager.ts";
 import {
   FullStatePayload,
   GameDto,
   GameStatusLobby,
+  PlayerDisconnectedPayload,
   PlayerDto,
+  PlayerReconnectedPayload,
 } from "../../../types/generated/api-types.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
@@ -78,9 +81,20 @@ export default function GameInterface() {
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
 
+  // Tab management
+  const [showTabConflict, setShowTabConflict] = useState(false);
+  const [conflictingTabInfo, setConflictingTabInfo] = useState<{
+    gameId: string;
+    playerName: string;
+  } | null>(null);
+
   // Change detection
   const previousGameRef = useRef<GameDto | null>(null);
   const [changedPaths, setChangedPaths] = useState<Set<string>>(new Set());
+
+  // WebSocket stability
+  const isWebSocketInitialized = useRef(false);
+  const currentPlayerIdRef = useRef<string | null>(null);
 
   // Helper function to convert Game to MockGameState for compatibility
   const convertGameToMockState = (
@@ -110,10 +124,10 @@ export default function GameInterface() {
             heat: 0,
           },
           terraformRating: p.terraformRating || 20,
-          victoryPoints: 0,
+          victoryPoints: p.victoryPoints || 0,
           corporation: p.corporation,
-          passed: false,
-          availableActions: 2,
+          passed: p.passed || false,
+          availableActions: p.availableActions || 0,
         })) || [],
       currentPlayer: playerId,
       generation: gameData.generation || 1,
@@ -126,62 +140,12 @@ export default function GameInterface() {
     };
   };
 
-  // Reconnection function
-  const attemptReconnection = async () => {
-    setIsReconnecting(true);
-    try {
-      // Check localStorage for saved game data
-      const savedGameData = localStorage.getItem("terraforming-mars-game");
-      if (!savedGameData) {
-        navigate("/");
-        return;
-      }
+  // Stable WebSocket event handlers using useCallback
+  const handleGameUpdated = useCallback(
+    (updatedGame: GameDto) => {
+      const playerId = currentPlayerIdRef.current;
+      if (!playerId) return;
 
-      const { gameId, playerId, playerName } = JSON.parse(savedGameData);
-      if (!gameId || !playerId || !playerName) {
-        localStorage.removeItem("terraforming-mars-game");
-        navigate("/");
-        return;
-      }
-
-      // Fetch current game state from server
-      const game = await apiService.getGame(gameId);
-      if (!game) {
-        throw new Error("Saved game not found on server");
-      }
-
-      // Connect to WebSocket if not connected
-      if (!webSocketService.connected) {
-        await webSocketService.connect();
-      }
-
-      // Reconnect player to the game
-      await webSocketService.playerConnect(playerName, gameId);
-
-      // Set up the game state
-      setGame(game);
-      setIsConnected(true);
-
-      const mockState = convertGameToMockState(game, playerId);
-      setMockGameState(mockState);
-
-      const player = mockState.players.find((p) => p.id === playerId);
-      setCurrentPlayer(player || null);
-
-      // Set up WebSocket listeners
-      setupWebSocketListeners(playerId);
-    } catch (error) {
-      void error;
-      localStorage.removeItem("terraforming-mars-game");
-      navigate("/");
-    } finally {
-      setIsReconnecting(false);
-    }
-  };
-
-  // Setup WebSocket listeners
-  const setupWebSocketListeners = (playerId: string) => {
-    const handleGameUpdated = (updatedGame: GameDto) => {
       // Detect changes before updating
       if (previousGameRef.current) {
         const changes = findChangedPaths(previousGameRef.current, updatedGame);
@@ -215,83 +179,264 @@ export default function GameInterface() {
       } else {
         setShowCorporationModal(false);
       }
-    };
+    },
+    [convertGameToMockState],
+  );
 
-    const handleFullState = (statePayload: FullStatePayload) => {
+  const handleFullState = useCallback(
+    (statePayload: FullStatePayload) => {
       // Handle full-state message (e.g., on reconnection)
       if (statePayload.game) {
         handleGameUpdated(statePayload.game);
       }
-    };
+    },
+    [handleGameUpdated],
+  );
 
-    const handlePlayerConnected = (payload: any) => {
+  const handlePlayerConnected = useCallback(
+    (payload: any) => {
       // Handle player-connected message that now includes game state
       if (payload.game) {
         handleGameUpdated(payload.game);
       }
-    };
+    },
+    [handleGameUpdated],
+  );
 
-    const handleError = () => {
-      // Could show error modal
-    };
+  const handleError = useCallback(() => {
+    // Could show error modal
+  }, []);
 
-    const handleDisconnect = () => {
-      setIsConnected(false);
-      // Could redirect back to landing page
-      navigate("/");
-    };
+  const handleDisconnect = useCallback(() => {
+    // WebSocket connection closed - this client lost connection
+    setIsConnected(false);
 
-    webSocketService.on("game-updated", handleGameUpdated);
-    webSocketService.on("full-state", handleFullState);
-    webSocketService.on("player-connected", handlePlayerConnected);
-    webSocketService.on("error", handleError);
-    webSocketService.on("disconnect", handleDisconnect);
+    // Only redirect if we were actually connected to a game
+    if (currentPlayerIdRef.current) {
+      // Attempting reconnection instead of returning to main menu
+      setIsReconnecting(true);
+
+      // Try to navigate to reconnecting page with game data
+      const savedGameData = localStorage.getItem("terraforming-mars-game");
+      if (savedGameData) {
+        navigate("/reconnecting", { replace: true });
+      } else {
+        // No saved game data, go to main menu
+        navigate("/", { replace: true });
+      }
+    }
+  }, [navigate]);
+
+  const handlePlayerReconnected = useCallback(
+    (payload: PlayerReconnectedPayload) => {
+      // Handle when any player (including this player) reconnects
+      if (payload.game) {
+        handleGameUpdated(payload.game);
+      }
+      // You could show a notification here about the reconnected player
+      // Player reconnected: payload.playerName
+    },
+    [handleGameUpdated],
+  );
+
+  const handlePlayerDisconnected = useCallback(
+    (payload: PlayerDisconnectedPayload) => {
+      // Handle when any player disconnects (NOT this client)
+      // Player disconnected from the game
+
+      if (payload.game) {
+        handleGameUpdated(payload.game);
+      }
+    },
+    [handleGameUpdated],
+  );
+
+  // Setup WebSocket listeners using global manager - only initialize once
+  const setupWebSocketListeners = useCallback(() => {
+    if (isWebSocketInitialized.current) {
+      return () => {}; // Already initialized, return empty cleanup
+    }
+
+    globalWebSocketManager.on("game-updated", handleGameUpdated);
+    globalWebSocketManager.on("full-state", handleFullState);
+    globalWebSocketManager.on("player-connected", handlePlayerConnected);
+    globalWebSocketManager.on("player-reconnected", handlePlayerReconnected);
+    globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
+    globalWebSocketManager.on("error", handleError);
+    globalWebSocketManager.on("disconnect", handleDisconnect);
+
+    isWebSocketInitialized.current = true;
 
     return () => {
-      webSocketService.off("game-updated", handleGameUpdated);
-      webSocketService.off("full-state", handleFullState);
-      webSocketService.off("player-connected", handlePlayerConnected);
-      webSocketService.off("error", handleError);
-      webSocketService.off("disconnect", handleDisconnect);
+      globalWebSocketManager.off("game-updated", handleGameUpdated);
+      globalWebSocketManager.off("full-state", handleFullState);
+      globalWebSocketManager.off("player-connected", handlePlayerConnected);
+      globalWebSocketManager.off("player-reconnected", handlePlayerReconnected);
+      globalWebSocketManager.off(
+        "player-disconnected",
+        handlePlayerDisconnected,
+      );
+      globalWebSocketManager.off("error", handleError);
+      globalWebSocketManager.off("disconnect", handleDisconnect);
+      isWebSocketInitialized.current = false;
     };
+  }, [
+    handleGameUpdated,
+    handleFullState,
+    handlePlayerConnected,
+    handlePlayerReconnected,
+    handlePlayerDisconnected,
+    handleError,
+    handleDisconnect,
+  ]);
+
+  // Tab conflict handlers
+  const handleTabTakeOver = () => {
+    if (conflictingTabInfo) {
+      const tabManager = getTabManager();
+      tabManager.forceTakeOver(
+        conflictingTabInfo.gameId,
+        conflictingTabInfo.playerName,
+      );
+      setShowTabConflict(false);
+      setConflictingTabInfo(null);
+
+      // Now initialize the game with the route state
+      const routeState = location.state as {
+        game?: GameDto;
+        playerId?: string;
+        playerName?: string;
+      } | null;
+
+      if (routeState?.game && routeState?.playerId && routeState?.playerName) {
+        setGame(routeState.game);
+        setIsConnected(true);
+
+        // Store game data for reconnection
+        localStorage.setItem(
+          "terraforming-mars-game",
+          JSON.stringify({
+            gameId: routeState.game.id,
+            playerId: routeState.playerId,
+            playerName: routeState.playerName,
+            timestamp: Date.now(),
+          }),
+        );
+
+        // Convert real game to mock format for GameLayout compatibility
+        const mockState = convertGameToMockState(
+          routeState.game,
+          routeState.playerId,
+        );
+        setMockGameState(mockState);
+
+        const player = mockState.players.find(
+          (p) => p.id === routeState.playerId,
+        );
+        setCurrentPlayer(player || null);
+
+        // Store player ID for WebSocket handlers
+        currentPlayerIdRef.current = routeState.playerId;
+      }
+    }
+  };
+
+  const handleTabCancel = () => {
+    setShowTabConflict(false);
+    setConflictingTabInfo(null);
+    // Return to main menu
+    navigate("/", { replace: true });
   };
 
   useEffect(() => {
-    // Check if we have real game state from routing
-    const routeState = location.state as {
-      game?: GameDto;
-      playerId?: string;
-      playerName?: string;
-    } | null;
+    const initializeGame = async () => {
+      // Check if we have real game state from routing
+      const routeState = location.state as {
+        game?: GameDto;
+        playerId?: string;
+        playerName?: string;
+        isReconnection?: boolean;
+      } | null;
 
-    if (!routeState?.game || !routeState?.playerId) {
-      // No route state, attempt reconnection from localStorage
-      void attemptReconnection();
-      return;
-    }
+      if (
+        !routeState?.game ||
+        !routeState?.playerId ||
+        !routeState?.playerName
+      ) {
+        // No route state, check if we should route to reconnection page
+        const savedGameData = localStorage.getItem("terraforming-mars-game");
+        if (savedGameData) {
+          // Route to reconnecting page instead of attempting reconnection here
+          navigate("/reconnecting", { replace: true });
+          return;
+        }
 
-    setGame(routeState.game);
-    setIsConnected(true);
+        // No saved data, return to main menu
+        navigate("/", { replace: true });
+        return;
+      }
 
-    // Convert real game to mock format for GameLayout compatibility
-    const mockState = convertGameToMockState(
-      routeState.game,
-      routeState.playerId,
-    );
-    setMockGameState(mockState);
+      // We have route state, try to claim the tab for this game session
+      const tabManager = getTabManager();
+      const canClaim = await tabManager.claimTab(
+        routeState.game.id,
+        routeState.playerName,
+      );
 
-    const player = mockState.players.find((p) => p.id === routeState.playerId);
-    setCurrentPlayer(player || null);
+      if (!canClaim) {
+        // Another tab has this game open, show conflict overlay
+        const activeTabInfo = tabManager.getActiveTabInfo();
+        if (activeTabInfo) {
+          setConflictingTabInfo(activeTabInfo);
+          setShowTabConflict(true);
+          return;
+        }
+      }
 
-    return setupWebSocketListeners(routeState.playerId);
+      // Successfully claimed tab or no conflict, initialize game
+      setGame(routeState.game);
+      setIsConnected(true);
+
+      // Store game data for reconnection
+      localStorage.setItem(
+        "terraforming-mars-game",
+        JSON.stringify({
+          gameId: routeState.game.id,
+          playerId: routeState.playerId,
+          playerName: routeState.playerName,
+          timestamp: Date.now(),
+        }),
+      );
+
+      // Convert real game to mock format for GameLayout compatibility
+      const mockState = convertGameToMockState(
+        routeState.game,
+        routeState.playerId,
+      );
+      setMockGameState(mockState);
+
+      const player = mockState.players.find(
+        (p) => p.id === routeState.playerId,
+      );
+      setCurrentPlayer(player || null);
+
+      // Store player ID for WebSocket handlers
+      currentPlayerIdRef.current = routeState.playerId;
+    };
+
+    void initializeGame();
   }, [location.state, navigate]);
 
-  // const handleCorporationSelection = (corporationId: string) => {
-  //   webSocketService.playAction("select-corporation", { corporationId });
-  //   setShowCorporationModal(false);
-  // };
+  // Register event listeners when component mounts, unregister on unmount
+  useEffect(() => {
+    // Store player ID in global manager for event handling
+    if (currentPlayerIdRef.current) {
+      globalWebSocketManager.setCurrentPlayerId(currentPlayerIdRef.current);
+    }
 
-  // Demo data for the new modals (in a real app, this would come from game state)
+    return setupWebSocketListeners();
+  }, [setupWebSocketListeners]);
+
   const demoCards = [
     {
       id: "card-1",
@@ -473,7 +618,6 @@ export default function GameInterface() {
       <GameLayout
         gameState={mockGameState}
         currentPlayer={currentPlayer}
-        socket={webSocketService}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
@@ -536,6 +680,14 @@ export default function GameInterface() {
 
       {isLobbyPhase && game && (
         <WaitingRoomOverlay game={game} playerId={currentPlayer?.id || ""} />
+      )}
+
+      {showTabConflict && conflictingTabInfo && (
+        <TabConflictOverlay
+          activeGameInfo={conflictingTabInfo}
+          onTakeOver={handleTabTakeOver}
+          onCancel={handleTabCancel}
+        />
       )}
     </>
   );
