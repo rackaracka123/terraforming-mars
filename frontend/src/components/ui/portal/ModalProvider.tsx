@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import useModalStack, { ModalLevel } from "../../../hooks/useModalStack.ts";
+import styles from "./ModalProvider.module.css";
 
 interface ModalContextValue {
   openModal: (
@@ -79,17 +80,17 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!container || modals.length === 0) return null;
 
     return createPortal(
-      <div className={`modal-level-container ${level}`}>
+      <div className={`${styles.modalLevelContainer} ${level}`}>
         {modals.map((modal) => {
           const ModalComponent = modal.component;
           return (
-            <div key={modal.id} className="modal-overlay">
+            <div key={modal.id} className={styles.modalOverlay}>
               <div
-                className="modal-backdrop"
+                className={styles.modalBackdrop}
                 onClick={() => modalStack.closeModal(modal.id)}
               >
                 <div
-                  className="modal-content"
+                  className={styles.modalContent}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ModalComponent
@@ -102,54 +103,6 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({
             </div>
           );
         })}
-
-        <style jsx>{`
-          .modal-level-container {
-            position: relative;
-          }
-
-          .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            /* No z-index - DOM order provides stacking */
-          }
-
-          .modal-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(3px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-          }
-
-          .modal-content {
-            /* Isolation creates natural stacking context */
-            isolation: isolate;
-            position: relative;
-          }
-
-          /* Adjust backdrop opacity based on level */
-          .primary .modal-backdrop {
-            background: rgba(0, 0, 0, 0.6);
-          }
-
-          .secondary .modal-backdrop {
-            background: rgba(0, 0, 0, 0.4);
-          }
-
-          .system .modal-backdrop {
-            background: rgba(0, 0, 0, 0.8);
-          }
-        `}</style>
       </div>,
       container,
     );
