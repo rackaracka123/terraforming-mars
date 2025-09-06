@@ -23,6 +23,8 @@ func (h *Hub) handleMessage(ctx context.Context, hubMessage HubMessage) {
 	switch message.Type {
 	case dto.MessageTypePlayerConnect:
 		h.handlePlayerConnect(ctx, connection, message)
+	case dto.MessageTypePlayerReconnect:
+		h.handlePlayerReconnect(ctx, connection, message)
 	case dto.MessageTypePlayAction:
 		h.handlePlayAction(ctx, connection, message)
 	default:
@@ -289,4 +291,113 @@ func (h *Hub) parseActionRequest(actionRequest interface{}, dest interface{}) er
 	}
 
 	return nil
+}
+
+// handlePlayerReconnect handles player reconnection requests
+func (h *Hub) handlePlayerReconnect(ctx context.Context, connection *Connection, message dto.WebSocketMessage) {
+	var payload dto.PlayerReconnectPayload
+	if err := h.parseMessagePayload(message.Payload, &payload); err != nil {
+		h.logger.Error("Failed to parse player reconnect payload",
+			zap.Error(err),
+			zap.String("connection_id", connection.ID))
+		h.sendErrorToConnection(connection, "Invalid player reconnect payload")
+		return
+	}
+
+	h.logger.Info("🔄 Player attempting to reconnect",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_name", payload.PlayerName),
+		zap.String("game_id", payload.GameID))
+
+	// Validate game exists
+	game, err := h.gameService.GetGame(ctx, payload.GameID)
+	if err != nil {
+		h.logger.Error("Failed to get game for reconnection",
+			zap.String("game_id", payload.GameID),
+			zap.String("player_name", payload.PlayerName),
+			zap.Error(err))
+		h.sendErrorToConnection(connection, "Game does not exist")
+		return
+	}
+
+	// Find player by name (not ID) for cross-device support
+	player, err := h.playerService.GetPlayerByName(ctx, payload.GameID, payload.PlayerName)
+	if err != nil {
+		h.logger.Error("Player not found for reconnection",
+			zap.String("game_id", payload.GameID),
+			zap.String("player_name", payload.PlayerName),
+			zap.Error(err))
+		h.sendErrorToConnection(connection, "Player not found in game")
+		return
+	}
+
+	// Check if player is already connected elsewhere - disconnect the old connection
+	h.mu.Lock()
+	for existingConn := range h.connections {
+		existingPlayerID, existingGameID := existingConn.GetPlayer()
+		if existingPlayerID == player.ID && existingGameID == payload.GameID {
+			h.logger.Info("🔀 Disconnecting existing connection for player",
+				zap.String("existing_connection_id", existingConn.ID),
+				zap.String("new_connection_id", connection.ID),
+				zap.String("player_id", player.ID),
+				zap.String("player_name", player.Name))
+
+			// Send a message to the old connection about being replaced
+			h.sendErrorToConnection(existingConn, "Connection replaced by new device")
+
+			// Let the standard unregister process handle the cleanup
+			// This prevents race conditions and ensures proper cleanup
+			go func() {
+				existingConn.Close() // This will trigger unregisterConnection via ReadPump/WritePump
+			}()
+			break
+		}
+	}
+	h.mu.Unlock()
+
+	// Associate the connection with the player and game
+	connection.SetPlayer(player.ID, payload.GameID)
+	h.addToGame(connection, payload.GameID)
+
+	h.logger.Info("Connection ID: {}", zap.String("connection_id", connection.ID))
+
+	// Update player connection status to connected
+	err = h.playerService.UpdatePlayerConnectionStatus(ctx, payload.GameID, player.ID, model.ConnectionStatusConnected)
+	if err != nil {
+		h.logger.Error("Failed to update player connection status on reconnect",
+			zap.String("player_id", player.ID),
+			zap.String("game_id", payload.GameID),
+			zap.Error(err))
+	}
+
+	// Get fresh game state after connection status update
+	game, err = h.gameService.GetGame(ctx, payload.GameID)
+	if err != nil {
+		h.logger.Error("Failed to get updated game state after reconnection",
+			zap.String("game_id", payload.GameID),
+			zap.Error(err))
+		h.sendErrorToConnection(connection, "Failed to retrieve game state")
+		return
+	}
+
+	// Send player-reconnected message to ALL players (including the reconnecting player)
+	reconnectedPayload := dto.PlayerReconnectedPayload{
+		PlayerID:   player.ID,
+		PlayerName: player.Name,
+		Game:       dto.ToGameDto(game),
+	}
+
+	reconnectedMessage := dto.WebSocketMessage{
+		Type:    dto.MessageTypePlayerReconnected,
+		Payload: reconnectedPayload,
+		GameID:  payload.GameID,
+	}
+
+	h.broadcastToGame(payload.GameID, reconnectedMessage)
+
+	h.logger.Info("📢 Player reconnected successfully, broadcasted to game",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", player.ID),
+		zap.String("player_name", player.Name),
+		zap.String("game_id", payload.GameID))
 }
