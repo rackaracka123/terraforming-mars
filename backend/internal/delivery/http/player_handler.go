@@ -102,7 +102,10 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	
 	// Convert to DTO and respond
 	playerDto := dto.ToPlayerDto(*player)
-	h.WriteJSONResponse(w, http.StatusOK, playerDto)
+	response := dto.GetPlayerResponse{
+		Player: playerDto,
+	}
+	h.WriteJSONResponse(w, http.StatusOK, response)
 }
 
 // UpdatePlayerResources updates player resources (for testing/admin purposes)
@@ -161,5 +164,8 @@ func (h *PlayerHandler) UpdatePlayerResources(w http.ResponseWriter, r *http.Req
 	
 	// Convert to DTO and respond
 	playerDto := dto.ToPlayerDto(*player)
-	h.WriteJSONResponse(w, http.StatusOK, playerDto)
+	response := dto.UpdatePlayerResourcesResponse{
+		Player: playerDto,
+	}
+	h.WriteJSONResponse(w, http.StatusOK, response)
 }

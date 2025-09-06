@@ -154,6 +154,7 @@ Current supported messages:
 - `select-corporation`: Choose starting corporation
 - `raise-temperature`: Spend heat to increase global temperature
 - `skip-action`: Pass current turn
+- `start-game`: Host starts the game (transitions from lobby to active status)
 
 ### Go Struct Tags for Type Generation
 Use both `json:` and `ts:` tags on all domain structs:
@@ -174,6 +175,33 @@ type Resource struct {
 - **Resource management** and global parameter tracking
 - **Corporation selection** with WebSocket synchronization
 - **Custom pan controls** for 3D Mars view (no orbital rotation)
+- **Waiting room system** with lobby phase management
+
+### Waiting Room System
+- **Game Status Management**: Games start in `GameStatusLobby` and transition to `GameStatusActive` when started
+- **Host Controls**: First player to create/join becomes the host (`game.hostPlayerId`)
+- **Start Game Button**: Only visible to the host, triggers `start-game` WebSocket action
+- **Shareable Join Links**: Generate URLs like `https://domain/join?code={gameId}` with copy functionality
+- **URL Parameter Handling**: JoinGamePage automatically validates and uses `?code` parameter
+- **Real-time Updates**: Players see new joins instantly via WebSocket `game-updated` events
+- **UI Adaptation**: Bottom resource bar and cards are hidden during lobby phase
+- **Mars Background**: 3D Mars view remains visible with translucent overlay for better contrast
+
+### Game State Persistence & Reconnection
+- **localStorage Storage**: Game data automatically saved after create/join with `gameId`, `playerId`, `playerName`
+- **Page Reload Support**: GameInterface checks localStorage when route state is missing
+- **Automatic Reconnection**: Fetches current game state from server and reconnects WebSocket
+- **State Recovery Flow**: API call → WebSocket reconnect → Full state restoration
+- **Fallback Logic**: Redirects to landing page if reconnection fails or data is invalid
+- **Seamless Experience**: Players can reload page without losing game session
+- **Error Handling**: Invalid/expired game data is cleaned up automatically
+
+#### Game Phase Transitions
+1. **Creation**: Game starts in `lobby` status with first player as host
+2. **Joining**: Additional players join via game ID or shareable link
+3. **Starting**: Host clicks "Start Game" → triggers `start-game` action
+4. **Transition**: Backend changes status to `active` and phase to `starting_card_selection`
+5. **Active Game**: Resource bars and cards become visible, game logic begins
 
 ### Backend Architecture Complete
 - **Domain models** with comprehensive game entities
@@ -215,6 +243,7 @@ When displaying production values, use the production asset:
 - **Pattern**: Icon background with number overlay (create ProductionDisplay component if needed)
 
 ### UI Development Patterns
+- **Inspect existing design language**: When updating any UI element in the frontend, other components should ALWAYS be inspected for the design language in the codebase
 - **Reuse over creation**: Always check for existing components before creating new ones
 - **Consistent styling**: Use established components to maintain visual consistency
 - **Asset integration**: Prefer official game assets over text/CSS styling
@@ -222,12 +251,22 @@ When displaying production values, use the production asset:
 
 ## Code Quality Requirements
 
-**CRITICAL**: Always run these commands before completing any feature or pushing code:
+**CRITICAL**: Always run these commands after completing any task involving code changes:
 
+### Backend Formatting
 ```bash
-npm run format:write    # Format code with Prettier  
+cd backend
+make format            # Format Go code with gofmt
+```
+
+### Frontend Formatting  
+```bash
+cd frontend
+npm run format:write   # Format code with Prettier  
 npm run lint           # Check for ESLint errors
 ```
+
+**Note**: These commands must be run from the respective directories (backend/ and frontend/). Always format both backend and frontend code after any changes, even if you only modified one side, to maintain consistent code quality across the entire codebase.
 
 **Lint Error Policy**: 
 - All lint ERRORS must be fixed immediately - no exceptions
@@ -249,6 +288,7 @@ npm run lint           # Check for ESLint errors
 - **3D Rendering**: Uses React Three Fiber - modify scenes in `Game3DView.tsx`
 - **WebSocket Client**: Game state updates come via WebSocket, no local game state
 - **Component Architecture**: Follow existing patterns for new game UI components
+- **Promise Handling**: Use `void <function>()` to explicitly discard promises in event handlers to avoid IDE warnings
 
 ### Full-Stack Development
 - **Both servers** must be running for full functionality (`npm start`)

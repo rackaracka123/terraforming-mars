@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"context"
 	"sync"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
@@ -12,14 +11,17 @@ import (
 
 // Connection represents a WebSocket connection
 type Connection struct {
-	ID       string
-	PlayerID string
-	GameID   string
-	Conn     *websocket.Conn
-	Send     chan dto.WebSocketMessage
-	Hub      *Hub
-	mu       sync.RWMutex
-	logger   *zap.Logger
+	ID         string
+	PlayerID   string
+	GameID     string
+	Conn       *websocket.Conn
+	Send       chan dto.WebSocketMessage
+	Hub        *Hub
+	mu         sync.RWMutex
+	logger     *zap.Logger
+	Done       chan struct{} // Signal channel for connection cleanup
+	closeOnce  sync.Once     // Ensure cleanup only happens once
+	sendClosed bool          // Track if Send channel is closed
 }
 
 // NewConnection creates a new WebSocket connection
@@ -30,6 +32,7 @@ func NewConnection(id string, conn *websocket.Conn, hub *Hub) *Connection {
 		Send:   make(chan dto.WebSocketMessage, 256),
 		Hub:    hub,
 		logger: logger.Get(),
+		Done:   make(chan struct{}),
 	}
 }
 
@@ -48,56 +51,69 @@ func (c *Connection) GetPlayer() (playerID, gameID string) {
 	return c.PlayerID, c.GameID
 }
 
-// ReadPump pumps messages from the websocket connection to the hub
-func (c *Connection) ReadPump(ctx context.Context) {
-	defer func() {
-		c.Hub.Unregister <- c
+// CloseSend safely closes the Send channel
+func (c *Connection) CloseSend() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if !c.sendClosed {
+		c.sendClosed = true
+		close(c.Send)
+	}
+}
+
+// Close closes the connection and signals cleanup
+func (c *Connection) Close() {
+	c.closeOnce.Do(func() {
+		close(c.Done)
 		c.Conn.Close()
+	})
+}
+
+// ReadPump pumps messages from the websocket connection to the hub
+func (c *Connection) ReadPump() {
+	defer func() {
+		c.Close()
+		c.Hub.Unregister <- c
 	}()
 
 	for {
-		select {
-		case <-ctx.Done():
-			c.logger.Info("Connection read pump stopping due to context cancellation", zap.String("connection_id", c.ID))
+		var message dto.WebSocketMessage
+		err := c.Conn.ReadJSON(&message)
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				c.logger.Error("WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
+			} else {
+				c.logger.Info("WebSocket connection closed", zap.String("connection_id", c.ID))
+			}
 			return
+		}
+
+		c.logger.Debug("Received WebSocket message",
+			zap.String("connection_id", c.ID),
+			zap.String("message_type", string(message.Type)))
+
+		// Send message to hub for processing
+		select {
+		case c.Hub.Broadcast <- HubMessage{
+			Connection: c,
+			Message:    message,
+		}:
 		default:
-			var message dto.WebSocketMessage
-			err := c.Conn.ReadJSON(&message)
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					c.logger.Error("WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
-				} else {
-					c.logger.Info("WebSocket connection closed", zap.String("connection_id", c.ID))
-				}
-				return
-			}
-
-			c.logger.Debug("Received WebSocket message",
-				zap.String("connection_id", c.ID),
-				zap.String("message_type", string(message.Type)))
-
-			// Send message to hub for processing
-			select {
-			case c.Hub.Broadcast <- HubMessage{
-				Connection: c,
-				Message:    message,
-			}:
-			default:
-				c.logger.Warn("Hub broadcast channel is full", zap.String("connection_id", c.ID))
-				return
-			}
+			c.logger.Warn("Hub broadcast channel is full", zap.String("connection_id", c.ID))
+			return
 		}
 	}
 }
 
 // WritePump pumps messages from the hub to the websocket connection
-func (c *Connection) WritePump(ctx context.Context) {
-	defer c.Conn.Close()
+func (c *Connection) WritePump() {
+	defer c.Close()
 
 	for {
 		select {
-		case <-ctx.Done():
-			c.logger.Info("Connection write pump stopping due to context cancellation", zap.String("connection_id", c.ID))
+		case <-c.Done:
+			c.logger.Debug("Write pump stopping - connection closed", zap.String("connection_id", c.ID))
 			return
 		case message, ok := <-c.Send:
 			if !ok {

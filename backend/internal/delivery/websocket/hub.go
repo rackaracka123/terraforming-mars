@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"sync"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
@@ -20,25 +21,25 @@ type HubMessage struct {
 type Hub struct {
 	// Registered connections
 	connections map[*Connection]bool
-	
+
 	// Connections grouped by game ID for efficient broadcasting
 	gameConnections map[string]map[*Connection]bool
-	
+
 	// Register requests from connections
 	Register chan *Connection
-	
+
 	// Unregister requests from connections
 	Unregister chan *Connection
-	
+
 	// Broadcast messages to connections
 	Broadcast chan HubMessage
-	
+
 	// Services for handling business logic
 	gameService             service.GameService
-	playerService          service.PlayerService
+	playerService           service.PlayerService
 	globalParametersService service.GlobalParametersService
 	standardProjectService  service.StandardProjectService
-	
+
 	// Synchronization
 	mu     sync.RWMutex
 	logger *zap.Logger
@@ -53,7 +54,7 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 		Unregister:              make(chan *Connection),
 		Broadcast:               make(chan HubMessage),
 		gameService:             gameService,
-		playerService:          playerService,
+		playerService:           playerService,
 		globalParametersService: globalParametersService,
 		standardProjectService:  standardProjectService,
 		logger:                  logger.Get(),
@@ -63,20 +64,20 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 // Run starts the hub and handles connection management
 func (h *Hub) Run(ctx context.Context) {
 	h.logger.Info("Starting WebSocket hub")
-	
+
 	for {
 		select {
 		case <-ctx.Done():
 			h.logger.Info("WebSocket hub stopping due to context cancellation")
 			h.closeAllConnections()
 			return
-			
+
 		case connection := <-h.Register:
 			h.registerConnection(connection)
-			
+
 		case connection := <-h.Unregister:
 			h.unregisterConnection(connection)
-			
+
 		case hubMessage := <-h.Broadcast:
 			h.handleMessage(ctx, hubMessage)
 		}
@@ -87,7 +88,7 @@ func (h *Hub) Run(ctx context.Context) {
 func (h *Hub) registerConnection(connection *Connection) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	h.connections[connection] = true
 	h.logger.Info("Connection registered", zap.String("connection_id", connection.ID))
 }
@@ -96,12 +97,12 @@ func (h *Hub) registerConnection(connection *Connection) {
 func (h *Hub) unregisterConnection(connection *Connection) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	if _, ok := h.connections[connection]; ok {
 		// Remove from connections
 		delete(h.connections, connection)
-		close(connection.Send)
-		
+		connection.CloseSend()
+
 		// Remove from game connections if assigned
 		playerID, gameID := connection.GetPlayer()
 		if gameID != "" {
@@ -112,7 +113,7 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 				}
 			}
 		}
-		
+
 		h.logger.Info("Connection unregistered",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
@@ -124,7 +125,7 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 func (h *Hub) addToGame(connection *Connection, gameID string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	if h.gameConnections[gameID] == nil {
 		h.gameConnections[gameID] = make(map[*Connection]bool)
 	}
@@ -136,15 +137,15 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 	h.mu.RLock()
 	gameConns := h.gameConnections[gameID]
 	h.mu.RUnlock()
-	
+
 	if gameConns == nil {
 		return
 	}
-	
+
 	for connection := range gameConns {
 		connection.SendMessage(message)
 	}
-	
+
 	h.logger.Debug("Message broadcast to game",
 		zap.String("game_id", gameID),
 		zap.String("message_type", string(message.Type)),
@@ -154,7 +155,7 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 // sendToConnection sends a message to a specific connection
 func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMessage) {
 	connection.SendMessage(message)
-	
+
 	h.logger.Debug("Message sent to connection",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
@@ -164,11 +165,11 @@ func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMess
 func (h *Hub) closeAllConnections() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	for connection := range h.connections {
 		close(connection.Send)
 		connection.Conn.Close()
 	}
-	
+
 	h.logger.Info("All connections closed")
 }

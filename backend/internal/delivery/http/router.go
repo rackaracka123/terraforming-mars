@@ -22,7 +22,9 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	router.Use(middleware.Recovery)
 	router.Use(middleware.CORS)
 	router.Use(middleware.LoggingMiddleware)
-	
+	router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 	

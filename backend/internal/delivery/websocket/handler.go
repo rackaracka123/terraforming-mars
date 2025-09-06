@@ -1,10 +1,10 @@
 package websocket
 
 import (
-	"context"
 	"net/http"
-	"terraforming-mars-backend/internal/logger"
 	"time"
+
+	"terraforming-mars-backend/internal/logger"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -45,50 +45,52 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	// Create connection ID
 	connectionID := uuid.New().String()
-	
+
 	h.logger.Info("New WebSocket connection established",
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 
 	// Create new connection
 	connection := NewConnection(connectionID, conn, h.hub)
-	
+
 	// Register connection with hub
 	h.hub.Register <- connection
-	
-	// Start goroutines with context for graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	
+
 	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	
+
 	// Handle pong messages to keep connection alive
 	conn.SetPongHandler(func(string) error {
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		return nil
 	})
-	
-	// Start read and write pumps
-	go connection.WritePump(ctx)
-	go connection.ReadPump(ctx)
-	
+
+	// Start read and write pumps without context (they'll manage their own lifecycle)
+	go connection.WritePump()
+	go connection.ReadPump()
+
 	// Send periodic pings to keep connection alive
-	go h.pingLoop(ctx, connection)
+	go h.pingLoop(connection)
 }
 
 // pingLoop sends periodic ping messages to keep the connection alive
-func (h *Handler) pingLoop(ctx context.Context, connection *Connection) {
+func (h *Handler) pingLoop(connection *Connection) {
 	ticker := time.NewTicker(54 * time.Second) // Ping every 54 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
-		case <-ctx.Done():
+		case <-connection.Done:
+			h.logger.Debug("Ping loop stopping - connection closed", zap.String("connection_id", connection.ID))
 			return
 		case <-ticker.C:
-			connection.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := connection.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				h.logger.Error("Failed to set write deadline for ping",
+					zap.Error(err),
+					zap.String("connection_id", connection.ID))
+				return
+			}
 			if err := connection.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				h.logger.Error("Failed to send ping message",
 					zap.Error(err),

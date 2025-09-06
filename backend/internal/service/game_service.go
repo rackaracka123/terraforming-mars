@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -24,6 +25,9 @@ type GameService interface {
 
 	// Update game state (internal use for synchronization)
 	UpdateGame(ctx context.Context, game *model.Game) error
+
+	// Start a game (transition from status "lobby" to "active")
+	StartGame(ctx context.Context, gameID string, playerID string) error
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
@@ -112,6 +116,46 @@ func (s *GameServiceImpl) UpdateGame(ctx context.Context, game *model.Game) erro
 	return s.gameRepo.Update(ctx, game)
 }
 
+func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID string) error {
+	log := logger.WithGameContext(gameID, "")
+	log.Info("Starting game via GameService")
+
+	// Get current game state
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for start", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Ensure player is host
+	if game.HostPlayerID != playerID {
+		log.Warn("Non-host player attempted to start game", zap.String("player_id", playerID))
+		return fmt.Errorf("only the host can start the game")
+	}
+
+	// Validate game can be started
+	if game.Status != model.GameStatusLobby {
+		log.Warn("Attempted to start game not in lobby state", zap.String("current_status", string(game.Status)))
+		return fmt.Errorf("game is not in lobby state")
+	}
+	if len(game.Players) < 1 {
+		log.Warn("Attempted to start game with no players")
+		return fmt.Errorf("cannot start game with no players")
+	}
+
+	// Transition game status to active
+	game.Status = model.GameStatusActive
+
+	// Update game through repository
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game status to active", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Game started successfully", zap.String("game_id", gameID))
+	return nil
+}
+
 // JoinGame adds a player to a game using both GameState and Player repositories
 func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
@@ -131,7 +175,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	}
 
 	if game.IsGameFull() {
-		log.Warn("Attempted to join full game", 
+		log.Warn("Attempted to join full game",
 			zap.String("player_name", playerName),
 			zap.Int("current_players", len(game.Players)),
 		)
@@ -178,7 +222,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player joined game successfully", 
+	log.Info("Player joined game successfully",
 		zap.String("player_id", playerID),
 		zap.Int("total_players", len(game.Players)),
 	)

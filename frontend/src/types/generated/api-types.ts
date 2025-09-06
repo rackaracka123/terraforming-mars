@@ -155,7 +155,8 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseSetup: GamePhase = "setup";
-export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase =
+  "starting_card_selection";
 export const GamePhaseCorporationSelection: GamePhase = "corporation_selection";
 export const GamePhaseAction: GamePhase = "action";
 export const GamePhaseProduction: GamePhase = "production";
@@ -298,6 +299,18 @@ export interface UpdateResourcesRequest {
   resources: ResourcesDto;
 }
 /**
+ * GetPlayerResponse represents the response for getting a player
+ */
+export interface GetPlayerResponse {
+  player: PlayerDto;
+}
+/**
+ * UpdatePlayerResourcesResponse represents the response for updating player resources
+ */
+export interface UpdatePlayerResourcesResponse {
+  player: PlayerDto;
+}
+/**
  * ErrorResponse represents an error response
  */
 export interface ErrorResponse {
@@ -359,6 +372,7 @@ export interface GameUpdatedPayload {
 export interface PlayerConnectedPayload {
   playerId: string;
   playerName: string;
+  game: GameDto;
 }
 /**
  * ErrorPayload contains error information

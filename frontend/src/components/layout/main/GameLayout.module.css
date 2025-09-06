@@ -1,0 +1,37 @@
+.gameLayout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 100vw;
+  height: 100vh;
+  background: #000011 url("/assets/background-noise.png");
+  background-attachment: fixed;
+  background-repeat: repeat;
+  color: white;
+  overflow: hidden;
+}
+
+.gameContent {
+  display: grid;
+  grid-template-columns: minmax(280px, 320px) 1fr minmax(150px, 250px);
+  min-height: 0;
+  gap: 0;
+}
+
+@media (max-width: 1200px) {
+  .gameContent {
+    grid-template-columns: minmax(250px, 280px) 1fr minmax(120px, 180px);
+  }
+}
+
+@media (max-width: 900px) {
+  .gameContent {
+    grid-template-columns: minmax(200px, 240px) 1fr minmax(100px, 150px);
+  }
+}
+
+@media (max-width: 768px) {
+  .gameContent {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+}

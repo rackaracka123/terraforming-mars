@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"time"
 	"terraforming-mars-backend/internal/logger"
@@ -34,6 +37,15 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	size, err := rw.ResponseWriter.Write(b)
 	rw.size += size
 	return size, err
+}
+
+// Hijack implements http.Hijacker interface for WebSocket support
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("wrapped ResponseWriter does not implement http.Hijacker")
+	}
+	return hijacker.Hijack()
 }
 
 // LoggingMiddleware logs HTTP requests using Zap

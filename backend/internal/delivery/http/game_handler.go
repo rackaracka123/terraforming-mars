@@ -48,7 +48,10 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	
 	// Convert to DTO and respond
 	gameDto := dto.ToGameDto(game)
-	h.WriteJSONResponse(w, http.StatusCreated, gameDto)
+	response := dto.CreateGameResponse{
+		Game: gameDto,
+	}
+	h.WriteJSONResponse(w, http.StatusCreated, response)
 }
 
 // GetGame retrieves a game by ID
@@ -73,7 +76,10 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	
 	// Convert to DTO and respond
 	gameDto := dto.ToGameDto(game)
-	h.WriteJSONResponse(w, http.StatusOK, gameDto)
+	response := dto.GetGameResponse{
+		Game: gameDto,
+	}
+	h.WriteJSONResponse(w, http.StatusOK, response)
 }
 
 // ListGames retrieves all games
@@ -90,7 +96,9 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	
 	// Convert to DTOs and respond
 	gameDtos := dto.ToGameDtoSlice(games)
-	
-	h.WriteJSONResponse(w, http.StatusOK, gameDtos)
+	response := dto.ListGamesResponse{
+		Games: gameDtos,
+	}
+	h.WriteJSONResponse(w, http.StatusOK, response)
 }
 

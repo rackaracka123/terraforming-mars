@@ -7,6 +7,7 @@ import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
+import styles from "./GameLayout.module.css";
 
 // Mock interfaces for compatibility
 interface MockGameState {
@@ -53,6 +54,7 @@ interface GameLayoutProps {
   currentPlayer: MockPlayer | null;
   socket: WebSocket | null;
   isAnyModalOpen?: boolean;
+  isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;
   onOpenActionsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
@@ -65,6 +67,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   currentPlayer,
   socket,
   isAnyModalOpen = false,
+  isLobbyPhase = false,
   onOpenCardEffectsModal,
   onOpenActionsModal,
   onOpenCardsPlayedModal,
@@ -73,10 +76,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 }) => {
   return (
     <MainContentProvider>
-      <div className="game-layout">
+      <div className={styles.gameLayout}>
         <TopMenuBar />
 
-        <div className="game-content">
+        <div className={styles.gameContent}>
           <LeftSidebar
             players={gameState?.players || []}
             currentPlayer={currentPlayer}
@@ -98,62 +101,20 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           currentPlayer={currentPlayer}
         />
 
-        <BottomResourceBar
-          currentPlayer={currentPlayer}
-          onOpenCardEffectsModal={onOpenCardEffectsModal}
-          onOpenActionsModal={onOpenActionsModal}
-          onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-          onOpenTagsModal={onOpenTagsModal}
-          onOpenVictoryPointsModal={onOpenVictoryPointsModal}
-        />
+        {!isLobbyPhase && (
+          <>
+            <BottomResourceBar
+              currentPlayer={currentPlayer}
+              onOpenCardEffectsModal={onOpenCardEffectsModal}
+              onOpenActionsModal={onOpenActionsModal}
+              onOpenCardsPlayedModal={onOpenCardsPlayedModal}
+              onOpenTagsModal={onOpenTagsModal}
+              onOpenVictoryPointsModal={onOpenVictoryPointsModal}
+            />
 
-        <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
-
-        <style jsx>{`
-          .game-layout {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            width: 100vw;
-            height: 100vh;
-            background: #000011 url("/assets/background-noise.png");
-            background-attachment: fixed;
-            background-repeat: repeat;
-            color: white;
-            overflow: hidden;
-          }
-
-          .game-content {
-            display: grid;
-            grid-template-columns: minmax(280px, 320px) 1fr minmax(150px, 250px);
-            min-height: 0;
-            gap: 0;
-          }
-
-          @media (max-width: 1200px) {
-            .game-content {
-              grid-template-columns: minmax(250px, 280px) 1fr minmax(
-                  120px,
-                  180px
-                );
-            }
-          }
-
-          @media (max-width: 900px) {
-            .game-content {
-              grid-template-columns: minmax(200px, 240px) 1fr minmax(
-                  100px,
-                  150px
-                );
-            }
-          }
-
-          @media (max-width: 768px) {
-            .game-content {
-              grid-template-columns: 1fr;
-              grid-template-rows: auto 1fr auto;
-            }
-          }
-        `}</style>
+            <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
+          </>
+        )}
       </div>
     </MainContentProvider>
   );

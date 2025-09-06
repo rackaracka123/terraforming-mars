@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
@@ -6,8 +6,17 @@ import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
+import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
+import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import { webSocketService } from "../../../services/webSocketService.ts";
-import { GameDto, PlayerDto } from "../../../types/generated/api-types.ts";
+import { apiService } from "../../../services/apiService.ts";
+import {
+  FullStatePayload,
+  GameDto,
+  GameStatusLobby,
+  PlayerDto,
+} from "../../../types/generated/api-types.ts";
+import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
 // Mock interface for GameLayout compatibility
 interface MockGameState {
@@ -57,6 +66,7 @@ export default function GameInterface() {
     null,
   );
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<MockPlayer | null>(null);
   const [showCorporationModal, setShowCorporationModal] = useState(false);
 
@@ -66,6 +76,11 @@ export default function GameInterface() {
   const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
+  const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+
+  // Change detection
+  const previousGameRef = useRef<GameDto | null>(null);
+  const [changedPaths, setChangedPaths] = useState<Set<string>>(new Set());
 
   // Helper function to convert Game to MockGameState for compatibility
   const convertGameToMockState = (
@@ -111,6 +126,133 @@ export default function GameInterface() {
     };
   };
 
+  // Reconnection function
+  const attemptReconnection = async () => {
+    setIsReconnecting(true);
+    try {
+      // Check localStorage for saved game data
+      const savedGameData = localStorage.getItem("terraforming-mars-game");
+      if (!savedGameData) {
+        navigate("/");
+        return;
+      }
+
+      const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+      if (!gameId || !playerId || !playerName) {
+        localStorage.removeItem("terraforming-mars-game");
+        navigate("/");
+        return;
+      }
+
+      // Fetch current game state from server
+      const gameData = await apiService.getGame(gameId);
+
+      // Connect to WebSocket if not connected
+      if (!webSocketService.connected) {
+        await webSocketService.connect();
+      }
+
+      // Reconnect player to the game
+      await webSocketService.playerConnect(playerName, gameId);
+
+      // Set up the game state
+      setGame(gameData);
+      setIsConnected(true);
+
+      const mockState = convertGameToMockState(gameData, playerId);
+      setMockGameState(mockState);
+
+      const player = mockState.players.find((p) => p.id === playerId);
+      setCurrentPlayer(player || null);
+
+      // Set up WebSocket listeners
+      setupWebSocketListeners(playerId);
+    } catch (error) {
+      void error;
+      localStorage.removeItem("terraforming-mars-game");
+      navigate("/");
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
+
+  // Setup WebSocket listeners
+  const setupWebSocketListeners = (playerId: string) => {
+    const handleGameUpdated = (updatedGame: GameDto) => {
+      // Detect changes before updating
+      if (previousGameRef.current) {
+        const changes = findChangedPaths(previousGameRef.current, updatedGame);
+        setChangedPaths(changes);
+
+        // Clear changed paths after animation completes
+        if (changes.size > 0) {
+          setTimeout(() => {
+            setChangedPaths(new Set());
+          }, 1500);
+        }
+      }
+
+      // Store the previous state for next comparison
+      previousGameRef.current = deepClone(updatedGame);
+
+      setGame(updatedGame);
+
+      // Update mock state for compatibility
+      const updatedMockState = convertGameToMockState(updatedGame, playerId);
+      setMockGameState(updatedMockState);
+
+      const updatedPlayer = updatedMockState.players.find(
+        (p) => p.id === playerId,
+      );
+      setCurrentPlayer(updatedPlayer || null);
+
+      // Show corporation modal if player hasn't selected a corporation yet
+      if (updatedPlayer && !updatedPlayer.corporation) {
+        setShowCorporationModal(true);
+      } else {
+        setShowCorporationModal(false);
+      }
+    };
+
+    const handleFullState = (statePayload: FullStatePayload) => {
+      // Handle full-state message (e.g., on reconnection)
+      if (statePayload.game) {
+        handleGameUpdated(statePayload.game);
+      }
+    };
+
+    const handlePlayerConnected = (payload: any) => {
+      // Handle player-connected message that now includes game state
+      if (payload.game) {
+        handleGameUpdated(payload.game);
+      }
+    };
+
+    const handleError = () => {
+      // Could show error modal
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+      // Could redirect back to landing page
+      navigate("/");
+    };
+
+    webSocketService.on("game-updated", handleGameUpdated);
+    webSocketService.on("full-state", handleFullState);
+    webSocketService.on("player-connected", handlePlayerConnected);
+    webSocketService.on("error", handleError);
+    webSocketService.on("disconnect", handleDisconnect);
+
+    return () => {
+      webSocketService.off("game-updated", handleGameUpdated);
+      webSocketService.off("full-state", handleFullState);
+      webSocketService.off("player-connected", handlePlayerConnected);
+      webSocketService.off("error", handleError);
+      webSocketService.off("disconnect", handleDisconnect);
+    };
+  };
+
   useEffect(() => {
     // Check if we have real game state from routing
     const routeState = location.state as {
@@ -118,9 +260,10 @@ export default function GameInterface() {
       playerId?: string;
       playerName?: string;
     } | null;
+
     if (!routeState?.game || !routeState?.playerId) {
-      // No game data, redirect back to landing page
-      navigate("/");
+      // No route state, attempt reconnection from localStorage
+      void attemptReconnection();
       return;
     }
 
@@ -137,49 +280,7 @@ export default function GameInterface() {
     const player = mockState.players.find((p) => p.id === routeState.playerId);
     setCurrentPlayer(player || null);
 
-    // Set up WebSocket listeners for real-time updates
-    const handleGameUpdated = (updatedGame: GameDto) => {
-      setGame(updatedGame);
-
-      // Update mock state for compatibility
-      const updatedMockState = convertGameToMockState(
-        updatedGame,
-        routeState.playerId,
-      );
-      setMockGameState(updatedMockState);
-
-      const updatedPlayer = updatedMockState.players.find(
-        (p) => p.id === routeState.playerId,
-      );
-      setCurrentPlayer(updatedPlayer || null);
-
-      // Show corporation modal if player hasn't selected a corporation yet
-      if (updatedPlayer && !updatedPlayer.corporation) {
-        setShowCorporationModal(true);
-      } else {
-        setShowCorporationModal(false);
-      }
-    };
-
-    const handleError = () => {
-      // Could show error modal
-    };
-
-    const handleDisconnect = () => {
-      setIsConnected(false);
-      // Could redirect back to landing page
-      navigate("/");
-    };
-
-    webSocketService.on("game-updated", handleGameUpdated);
-    webSocketService.on("error", handleError);
-    webSocketService.on("disconnect", handleDisconnect);
-
-    return () => {
-      webSocketService.off("game-updated", handleGameUpdated);
-      webSocketService.off("error", handleError);
-      webSocketService.off("disconnect", handleDisconnect);
-    };
+    return setupWebSocketListeners(routeState.playerId);
   }, [location.state, navigate]);
 
   // const handleCorporationSelection = (corporationId: string) => {
@@ -284,6 +385,18 @@ export default function GameInterface() {
     // In a real app, emit to server
   };
 
+  // Listen for debug dropdown toggle from TopMenuBar
+  useEffect(() => {
+    const handleToggleDebug = () => {
+      setShowDebugDropdown((prev) => !prev);
+    };
+
+    window.addEventListener("toggle-debug-dropdown", handleToggleDebug);
+    return () => {
+      window.removeEventListener("toggle-debug-dropdown", handleToggleDebug);
+    };
+  }, []);
+
   // Demo keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -309,15 +422,20 @@ export default function GameInterface() {
             event.preventDefault();
             setShowCardEffectsModal(true);
             break;
+          case "d":
+          case "D":
+            event.preventDefault();
+            setShowDebugDropdown(!showDebugDropdown);
+            break;
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [showDebugDropdown]);
 
-  if (!isConnected || !mockGameState || !game) {
+  if (!isConnected || !mockGameState || !game || isReconnecting) {
     return (
       <div
         style={{
@@ -328,7 +446,9 @@ export default function GameInterface() {
         }}
       >
         <h2>Loading Terraforming Mars...</h2>
-        <p>Connecting to game...</p>
+        <p>
+          {isReconnecting ? "Reconnecting to game..." : "Connecting to game..."}
+        </p>
       </div>
     );
   }
@@ -342,6 +462,9 @@ export default function GameInterface() {
     showActionsModal ||
     showCardEffectsModal;
 
+  // Check if game is in lobby phase
+  const isLobbyPhase = game?.status === GameStatusLobby;
+
   return (
     <>
       <GameLayout
@@ -349,6 +472,7 @@ export default function GameInterface() {
         currentPlayer={currentPlayer}
         socket={webSocketService}
         isAnyModalOpen={isAnyModalOpen}
+        isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
@@ -399,6 +523,17 @@ export default function GameInterface() {
         cards={demoCards}
         playerName={currentPlayer?.name}
       />
+
+      <DebugDropdown
+        isVisible={showDebugDropdown}
+        onClose={() => setShowDebugDropdown(false)}
+        gameState={game}
+        changedPaths={changedPaths}
+      />
+
+      {isLobbyPhase && game && (
+        <WaitingRoomOverlay game={game} playerId={currentPlayer?.id || ""} />
+      )}
     </>
   );
 }
