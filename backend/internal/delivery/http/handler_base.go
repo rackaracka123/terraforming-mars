@@ -51,7 +51,7 @@ func (h *BaseHandler) ParseJSONRequest(r *http.Request, dest interface{}) error 
 
 // LogRequest logs the incoming HTTP request
 func (h *BaseHandler) LogRequest(r *http.Request, handlerName string) {
-	h.logger.Info("HTTP request received",
+	h.logger.Info("📡 Client request received by server",
 		zap.String("method", r.Method),
 		zap.String("path", r.URL.Path),
 		zap.String("handler", handlerName),

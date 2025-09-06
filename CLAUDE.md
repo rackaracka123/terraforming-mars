@@ -344,6 +344,14 @@ npm run lint           # Check for ESLint errors
 - Never commit code with lint errors
 - Run these commands after any significant code changes
 
+**Logging Guidelines**:
+- Use emojis in log messages where appropriate to make them more visually distinctive
+- Include directional indicators for client/server communication (client→server, server→client)
+- Connection logs: 🔗 for connect, ⛓️‍💥 for disconnect
+- Broadcasting: 📢 for server broadcasts, 💬 for direct messages
+- HTTP requests: 📡 for client requests to server
+- Server lifecycle: 🚀 for startup, 🛑 for shutdown, ✅ for completion
+
 ## Development Notes
 
 ### Backend Development (Go)

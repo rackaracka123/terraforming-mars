@@ -28,7 +28,7 @@ func main() {
 	defer logger.Shutdown()
 
 	log := logger.Get()
-	log.Info("Starting Terraforming Mars backend server")
+	log.Info("🚀 Starting Terraforming Mars backend server")
 
 	// Setup graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -116,14 +116,14 @@ func main() {
 		}
 	}()
 	
-	log.Info("Server started successfully")
-	log.Info("HTTP server listening on :3001")
-	log.Info("WebSocket endpoint available at /ws")
+	log.Info("✅ Server started successfully")
+	log.Info("🌍 HTTP server listening on :3001")
+	log.Info("🔌 WebSocket endpoint available at /ws")
 
 	// Wait for shutdown signal
 	<-quit
 
-	log.Info("Shutting down server...")
+	log.Info("🛑 Shutting down server...")
 	
 	// Graceful shutdown with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -133,12 +133,12 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Error("Failed to gracefully shutdown HTTP server", zap.Error(err))
 	} else {
-		log.Info("HTTP server stopped")
+		log.Info("✅ HTTP server stopped")
 	}
 	
 	// Cancel WebSocket hub context
 	hubCancel()
-	log.Info("WebSocket hub stopped")
+	log.Info("✅ WebSocket hub stopped")
 	
-	log.Info("Server shutdown complete")
+	log.Info("✅ Server shutdown complete")
 }
