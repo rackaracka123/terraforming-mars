@@ -52,7 +52,6 @@ interface MockPlayer {
 interface GameLayoutProps {
   gameState: MockGameState;
   currentPlayer: MockPlayer | null;
-  socket: WebSocket | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;
@@ -65,7 +64,6 @@ interface GameLayoutProps {
 const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
-  socket,
   isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
@@ -83,7 +81,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           <LeftSidebar
             players={gameState?.players || []}
             currentPlayer={currentPlayer}
-            socket={socket}
           />
 
           <MainContentDisplay gameState={gameState} />
