@@ -54,7 +54,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	connection := NewConnection(connectionID, conn, h.hub)
 
 	// Register connection with hub
+	h.logger.Info("Sending connection to Register channel", zap.String("connection_id", connectionID))
 	h.hub.Register <- connection
+	h.logger.Info("Connection sent to Register channel successfully", zap.String("connection_id", connectionID))
 	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))

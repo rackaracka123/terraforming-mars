@@ -1,5 +1,9 @@
 package dto
 
+import (
+	"terraforming-mars-backend/internal/model"
+)
+
 // GamePhase represents the current phase of the game
 type GamePhase string
 
@@ -74,15 +78,20 @@ type ProductionDto struct {
 
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
-	ID              string        `json:"id" ts:"string"`
-	Name            string        `json:"name" ts:"string"`
-	Corporation     string        `json:"corporation" ts:"string"`
-	Cards           []string      `json:"cards" ts:"string[]"`
-	Resources       ResourcesDto  `json:"resources" ts:"ResourcesDto"`
-	Production      ProductionDto `json:"production" ts:"ProductionDto"`
-	TerraformRating int           `json:"terraformRating" ts:"number"`
-	IsActive        bool          `json:"isActive" ts:"boolean"`
-	PlayedCards     []string      `json:"playedCards" ts:"string[]"`
+	ID               string                 `json:"id" ts:"string"`
+	Name             string                 `json:"name" ts:"string"`
+	Corporation      string                 `json:"corporation" ts:"string"`
+	Cards            []string               `json:"cards" ts:"string[]"`
+	Resources        ResourcesDto           `json:"resources" ts:"ResourcesDto"`
+	Production       ProductionDto          `json:"production" ts:"ProductionDto"`
+	TerraformRating  int                    `json:"terraformRating" ts:"number"`
+	IsActive         bool                   `json:"isActive" ts:"boolean"`
+	PlayedCards      []string               `json:"playedCards" ts:"string[]"`
+	Passed           bool                   `json:"passed" ts:"boolean"`
+	AvailableActions int                    `json:"availableActions" ts:"number"`
+	VictoryPoints    int                    `json:"victoryPoints" ts:"number"`
+	MilestoneIcon    string                 `json:"milestoneIcon" ts:"string"`
+	ConnectionStatus model.ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
 }
 
 // GameDto represents a game for client consumption

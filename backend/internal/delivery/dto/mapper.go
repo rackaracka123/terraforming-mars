@@ -30,15 +30,20 @@ func ToGameDto(game *model.Game) GameDto {
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
 	return PlayerDto{
-		ID:              player.ID,
-		Name:            player.Name,
-		Corporation:     player.Corporation,
-		Cards:           player.Cards,
-		Resources:       ToResourcesDto(player.Resources),
-		Production:      ToProductionDto(player.Production),
-		TerraformRating: player.TerraformRating,
-		IsActive:        player.IsActive,
-		PlayedCards:     player.PlayedCards,
+		ID:               player.ID,
+		Name:             player.Name,
+		Corporation:      player.Corporation,
+		Cards:            player.Cards,
+		Resources:        ToResourcesDto(player.Resources),
+		Production:       ToProductionDto(player.Production),
+		TerraformRating:  player.TerraformRating,
+		IsActive:         player.IsActive,
+		PlayedCards:      player.PlayedCards,
+		Passed:           player.Passed,
+		AvailableActions: player.AvailableActions,
+		VictoryPoints:    player.VictoryPoints,
+		MilestoneIcon:    player.MilestoneIcon,
+		ConnectionStatus: player.ConnectionStatus,
 	}
 }
 
