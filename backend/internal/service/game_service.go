@@ -215,7 +215,6 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	return game, nil
 }
 
-
 // validateGameSettings validates game creation settings
 func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) error {
 	if settings.MaxPlayers < 1 || settings.MaxPlayers > 5 {

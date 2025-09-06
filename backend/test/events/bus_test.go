@@ -2,9 +2,9 @@ package events_test
 
 import (
 	"context"
+	"terraforming-mars-backend/internal/events"
 	"testing"
 	"time"
-	"terraforming-mars-backend/internal/events"
 
 	"github.com/stretchr/testify/assert"
 )

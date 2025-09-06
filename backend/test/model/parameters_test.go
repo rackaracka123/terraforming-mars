@@ -1,8 +1,8 @@
 package model_test
 
 import (
-	"testing"
 	"terraforming-mars-backend/internal/model"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

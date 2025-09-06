@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -25,6 +27,9 @@ const (
 	// CLI tool metadata
 	cliVersion = "1.0.0"
 	cliName    = "Terraforming Mars CLI"
+
+	// HTTP API base URL
+	httpAPIBase = "http://localhost:3001/api/v1"
 )
 
 // GameState holds the current game state for display
@@ -255,11 +260,8 @@ func (c *CLIClient) processCommand(command string) bool {
 	case "status", "s":
 		c.showStatus()
 
-	case "join":
-		c.joinGame(args)
-
-	case "create":
-		c.createGame(args)
+	case "caj":
+		c.createAndJoinGame(args)
 
 	case "games":
 		c.listGames()
@@ -293,8 +295,7 @@ func (c *CLIClient) showHelp() {
 	fmt.Println("  help, h          - Show this help message")
 	fmt.Println("  quit, exit, q    - Exit the CLI")
 	fmt.Println("  status, s        - Show connection status")
-	fmt.Println("  create <name>    - Create a new game with given name")
-	fmt.Println("  join <gameId>    - Join an existing game by ID")
+	fmt.Println("  caj <name>       - Create and join game with player name")
 	fmt.Println("  games            - List available games")
 	fmt.Println("  players          - List players in current game")
 	fmt.Println("  actions          - Show numbered list of available actions")
@@ -312,46 +313,74 @@ func (c *CLIClient) showStatus() {
 	fmt.Println()
 }
 
-func (c *CLIClient) joinGame(args []string) {
+func (c *CLIClient) createAndJoinGame(args []string) {
 	if len(args) == 0 {
-		fmt.Println("❌ Usage: join <gameId>")
-		fmt.Println("Example: join f5d085d0-f9e2-47a0-b165-716c6022451b")
-		return
-	}
-
-	gameID := args[0]
-
-	message := dto.WebSocketMessage{
-		Type:   dto.MessageTypePlayerConnect,
-		GameID: gameID,
-		Payload: dto.PlayerConnectPayload{
-			PlayerName: fmt.Sprintf("CLI-Player-%s", c.playerID[4:]),
-			GameID:     gameID,
-		},
-	}
-
-	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("❌ Failed to join game: %v\n", err)
-		return
-	}
-
-	// Set gameID locally since we're attempting to join this game
-	c.gameID = gameID
-	fmt.Printf("🎮 Joining game: %s\n", gameID)
-}
-
-func (c *CLIClient) createGame(args []string) {
-	if len(args) == 0 {
-		fmt.Println("❌ Usage: create <playerName>")
-		fmt.Println("Example: create \"Alice\"")
+		fmt.Println("❌ Usage: caj <playerName>")
+		fmt.Println("Example: caj \"Alice\"")
 		return
 	}
 
 	playerName := strings.Join(args, " ")
 
-	// Generate a game ID automatically
-	gameID := fmt.Sprintf("game-%d", time.Now().Unix())
+	// Step 1: Create game via HTTP API
+	fmt.Printf("🎮 Creating game...")
+	gameID, err := c.createGameViaHTTP()
+	if err != nil {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("Failed to create game: %v\n", err)
+		return
+	}
+	fmt.Printf(" ✅ Success (ID: %s)\n", gameID[:8]+"...")
 
+	// Step 2: Join the created game via WebSocket
+	fmt.Printf("🔗 Joining game as '%s'...", playerName)
+	err = c.joinGameViaWebSocket(gameID, playerName)
+	if err != nil {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("Failed to join game: %v\n", err)
+		return
+	}
+	fmt.Printf(" ✅ Success\n")
+
+	// Set gameID locally
+	c.gameID = gameID
+	fmt.Printf("🎉 Ready to play as '%s'!\n", playerName)
+}
+
+// createGameViaHTTP creates a game using the HTTP API and returns the game ID
+func (c *CLIClient) createGameViaHTTP() (string, error) {
+	// Create request payload
+	requestBody := dto.CreateGameRequest{
+		MaxPlayers: 4,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Make HTTP POST request
+	resp, err := http.Post(httpAPIBase+"/games", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
+	}
+
+	// Parse response
+	var response dto.CreateGameResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return response.Game.ID, nil
+}
+
+// joinGameViaWebSocket joins an existing game via WebSocket
+func (c *CLIClient) joinGameViaWebSocket(gameID, playerName string) error {
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
@@ -361,14 +390,7 @@ func (c *CLIClient) createGame(args []string) {
 		},
 	}
 
-	if err := c.conn.WriteJSON(message); err != nil {
-		fmt.Printf("❌ Failed to create game: %v\n", err)
-		return
-	}
-
-	// Set gameID locally since we're creating and joining this game
-	c.gameID = gameID
-	fmt.Printf("🎮 Creating game and joining as '%s'\n", playerName)
+	return c.conn.WriteJSON(message)
 }
 
 func (c *CLIClient) listGames() {
