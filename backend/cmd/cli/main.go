@@ -263,6 +263,9 @@ func (c *CLIClient) processCommand(command string) bool {
 	case "caj":
 		c.createAndJoinGame(args)
 
+	case "join", "j":
+		c.joinExistingGame(args)
+
 	case "games":
 		c.listGames()
 
@@ -296,6 +299,7 @@ func (c *CLIClient) showHelp() {
 	fmt.Println("  quit, exit, q    - Exit the CLI")
 	fmt.Println("  status, s        - Show connection status")
 	fmt.Println("  caj <name>       - Create and join game with player name")
+	fmt.Println("  join <id> <name> - Join existing game by ID with player name")
 	fmt.Println("  games            - List available games")
 	fmt.Println("  players          - List players in current game")
 	fmt.Println("  actions          - Show numbered list of available actions")
@@ -345,6 +349,39 @@ func (c *CLIClient) createAndJoinGame(args []string) {
 	// Set gameID locally
 	c.gameID = gameID
 	fmt.Printf("🎉 Ready to play as '%s'!\n", playerName)
+}
+
+func (c *CLIClient) joinExistingGame(args []string) {
+	if len(args) < 2 {
+		fmt.Println("❌ Usage: join <gameID> <playerName>")
+		fmt.Println("Example: join abc123 \"Alice\"")
+		return
+	}
+
+	gameID := args[0]
+	playerName := strings.Join(args[1:], " ")
+
+	// Join the game via WebSocket
+	fmt.Printf("🔗 Joining game %s as '%s'...", gameID[:min(8, len(gameID))], playerName)
+	err := c.joinGameViaWebSocket(gameID, playerName)
+	if err != nil {
+		fmt.Printf(" ❌ Failed\n")
+		fmt.Printf("Failed to join game: %v\n", err)
+		return
+	}
+	fmt.Printf(" ✅ Success\n")
+
+	// Set gameID locally
+	c.gameID = gameID
+	fmt.Printf("🎉 Ready to play as '%s'!\n", playerName)
+}
+
+// Helper function for minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // createGameViaHTTP creates a game using the HTTP API and returns the game ID
