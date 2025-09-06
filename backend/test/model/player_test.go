@@ -1,27 +1,28 @@
-package model
+package model_test
 
 import (
 	"testing"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPlayer_CanAffordStandardProject(t *testing.T) {
-	player := &Player{
-		Resources: Resources{Credits: 20},
+	player := &model.Player{
+		Resources: model.Resources{Credits: 20},
 	}
 
 	tests := []struct {
 		name     string
-		project  StandardProject
+		project  model.StandardProject
 		expected bool
 	}{
-		{"Can afford sell patents", StandardProjectSellPatents, true}, // 0 cost
-		{"Can afford power plant", StandardProjectPowerPlant, true},   // 11 cost
-		{"Can afford asteroid", StandardProjectAsteroid, true},        // 14 cost
-		{"Can afford aquifer", StandardProjectAquifer, true},          // 18 cost
-		{"Cannot afford greenery", StandardProjectGreenery, false},    // 23 cost
-		{"Cannot afford city", StandardProjectCity, false},            // 25 cost
+		{"Can afford sell patents", model.StandardProjectSellPatents, true}, // 0 cost
+		{"Can afford power plant", model.StandardProjectPowerPlant, true},   // 11 cost
+		{"Can afford asteroid", model.StandardProjectAsteroid, true},        // 14 cost
+		{"Can afford aquifer", model.StandardProjectAquifer, true},          // 18 cost
+		{"Cannot afford greenery", model.StandardProjectGreenery, false},    // 23 cost
+		{"Cannot afford city", model.StandardProjectCity, false},            // 25 cost
 	}
 
 	for _, tt := range tests {
@@ -33,8 +34,8 @@ func TestPlayer_CanAffordStandardProject(t *testing.T) {
 }
 
 func TestPlayer_CanAffordStandardProject_InvalidProject(t *testing.T) {
-	player := &Player{
-		Resources: Resources{Credits: 100},
+	player := &model.Player{
+		Resources: model.Resources{Credits: 100},
 	}
 
 	// Test with invalid project (not in cost map)
@@ -43,7 +44,7 @@ func TestPlayer_CanAffordStandardProject_InvalidProject(t *testing.T) {
 }
 
 func TestPlayer_HasCardsToSell(t *testing.T) {
-	player := &Player{
+	player := &model.Player{
 		Cards: []string{"card1", "card2", "card3"},
 	}
 
@@ -68,7 +69,7 @@ func TestPlayer_HasCardsToSell(t *testing.T) {
 }
 
 func TestPlayer_HasCardsToSell_EmptyHand(t *testing.T) {
-	player := &Player{
+	player := &model.Player{
 		Cards: []string{},
 	}
 
@@ -90,7 +91,7 @@ func TestPlayer_GetMaxCardsToSell(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			player := &Player{Cards: tt.cards}
+			player := &model.Player{Cards: tt.cards}
 			result := player.GetMaxCardsToSell()
 			assert.Equal(t, tt.expected, result)
 		})
@@ -98,7 +99,7 @@ func TestPlayer_GetMaxCardsToSell(t *testing.T) {
 }
 
 func TestPlayer_InitialState(t *testing.T) {
-	player := &Player{
+	player := &model.Player{
 		ID:   "player1",
 		Name: "Test Player",
 	}

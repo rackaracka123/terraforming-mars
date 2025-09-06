@@ -26,7 +26,7 @@ func TestGameplayLogic(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 

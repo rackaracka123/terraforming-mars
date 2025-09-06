@@ -31,31 +31,22 @@ type GameService interface {
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
-
-	// Update player resources in a game
-	UpdatePlayerResources(ctx context.Context, gameID, playerID string, newResources model.Resources) error
-
-	// Update global parameters for a game
-	UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error
 }
 
 // GameServiceImpl implements GameService interface
 type GameServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	parametersRepo repository.GlobalParametersRepository
+	gameRepo   repository.GameRepository
+	playerRepo repository.PlayerRepository
 }
 
 // NewGameService creates a new GameService instance
 func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	parametersRepo repository.GlobalParametersRepository,
 ) GameService {
 	return &GameServiceImpl{
-		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
-		parametersRepo: parametersRepo,
+		gameRepo:   gameRepo,
+		playerRepo: playerRepo,
 	}
 }
 
@@ -79,19 +70,13 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 	}
 
 	// Initialize global parameters
-	initialParams := model.GlobalParameters{
+	game.GlobalParameters = model.GlobalParameters{
 		Temperature: -30, // Mars starting temperature
 		Oxygen:      0,   // Starting oxygen level
 		Oceans:      0,   // Starting ocean tiles
 	}
 
-	if err := s.parametersRepo.Update(ctx, game.ID, &initialParams); err != nil {
-		log.Error("Failed to initialize global parameters", zap.Error(err))
-		return nil, fmt.Errorf("failed to initialize parameters: %w", err)
-	}
-
 	// Update game with initial parameters
-	game.GlobalParameters = initialParams
 	if err := s.gameRepo.Update(ctx, game); err != nil {
 		log.Error("Failed to update game with initial parameters", zap.Error(err))
 		return nil, fmt.Errorf("failed to update game: %w", err)
@@ -230,84 +215,6 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	return game, nil
 }
 
-// UpdatePlayerResources updates a player's resources and publishes events
-func (s *GameServiceImpl) UpdatePlayerResources(ctx context.Context, gameID, playerID string, newResources model.Resources) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Get current player
-	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
-	}
-
-	// Create a copy of the player to avoid modifying the stored one
-	updatedPlayer := *player
-	updatedPlayer.Resources = newResources
-
-	// Update through PlayerRepository (this will publish events)
-	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update player resources", zap.Error(err))
-		return fmt.Errorf("failed to update player: %w", err)
-	}
-
-	// Also need to update the game state to keep the main Game entity in sync
-	game, err := s.gameRepo.Get(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for player update", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Find and update player in game
-	for i, p := range game.Players {
-		if p.ID == playerID {
-			game.Players[i] = updatedPlayer
-			break
-		}
-	}
-
-	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
-		log.Error("Failed to update game after player resource change", zap.Error(err))
-		return fmt.Errorf("failed to update game: %w", err)
-	}
-
-	log.Info("Player resources updated successfully")
-	return nil
-}
-
-// UpdateGlobalParameters updates the global terraforming parameters
-func (s *GameServiceImpl) UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error {
-	log := logger.WithGameContext(gameID, "")
-
-	// Update through GlobalParametersRepository (this will publish events)
-	if err := s.parametersRepo.Update(ctx, gameID, &newParams); err != nil {
-		log.Error("Failed to update global parameters", zap.Error(err))
-		return fmt.Errorf("failed to update global parameters: %w", err)
-	}
-
-	// Also update the game state to keep the main Game entity in sync
-	game, err := s.gameRepo.Get(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for parameter update", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	game.GlobalParameters = newParams
-
-	if err := s.gameRepo.Update(ctx, game); err != nil {
-		log.Error("Failed to update game after parameter change", zap.Error(err))
-		return fmt.Errorf("failed to update game: %w", err)
-	}
-
-	log.Info("Global parameters updated successfully",
-		zap.Int("temperature", newParams.Temperature),
-		zap.Int("oxygen", newParams.Oxygen),
-		zap.Int("oceans", newParams.Oceans),
-	)
-
-	return nil
-}
 
 // validateGameSettings validates game creation settings
 func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) error {

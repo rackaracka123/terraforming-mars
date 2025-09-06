@@ -1,13 +1,14 @@
-package model
+package model_test
 
 import (
 	"testing"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGlobalParameters_InitialState(t *testing.T) {
-	params := GlobalParameters{}
+	params := model.GlobalParameters{}
 
 	// Test zero values
 	assert.Equal(t, 0, params.Temperature)
@@ -16,7 +17,7 @@ func TestGlobalParameters_InitialState(t *testing.T) {
 }
 
 func TestGlobalParameters_MarsStartingConditions(t *testing.T) {
-	params := GlobalParameters{
+	params := model.GlobalParameters{
 		Temperature: -30,
 		Oxygen:      0,
 		Oceans:      0,
@@ -45,7 +46,7 @@ func TestGlobalParameters_CanIncreaseTemperature(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := &GlobalParameters{Temperature: tt.current}
+			params := &model.GlobalParameters{Temperature: tt.current}
 			result := params.CanIncreaseTemperature(tt.increase)
 
 			if tt.expected {
@@ -77,7 +78,7 @@ func TestGlobalParameters_CanIncreaseOxygen(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := &GlobalParameters{Oxygen: tt.current}
+			params := &model.GlobalParameters{Oxygen: tt.current}
 			result := params.CanIncreaseOxygen(tt.increase)
 
 			if tt.expected {
@@ -109,7 +110,7 @@ func TestGlobalParameters_CanPlaceOcean(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := &GlobalParameters{Oceans: tt.current}
+			params := &model.GlobalParameters{Oceans: tt.current}
 			result := params.CanPlaceOcean(tt.place)
 
 			if tt.expected {
@@ -141,7 +142,7 @@ func TestGlobalParameters_IsFullyTerraformed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := GlobalParameters{
+			params := model.GlobalParameters{
 				Temperature: tt.temperature,
 				Oxygen:      tt.oxygen,
 				Oceans:      tt.oceans,
@@ -171,7 +172,7 @@ func TestGlobalParameters_GetTerraformingProgress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := GlobalParameters{
+			params := model.GlobalParameters{
 				Temperature: tt.temperature,
 				Oxygen:      tt.oxygen,
 				Oceans:      tt.oceans,
@@ -186,21 +187,21 @@ func TestGlobalParameters_GetTerraformingProgress(t *testing.T) {
 func TestHexPosition_IsValid(t *testing.T) {
 	tests := []struct {
 		name     string
-		position HexPosition
+		position model.HexPosition
 		expected bool
 	}{
-		{"Valid center", HexPosition{Q: 0, R: 0, S: 0}, true},
-		{"Valid positive Q", HexPosition{Q: 1, R: -1, S: 0}, true},
-		{"Valid negative Q", HexPosition{Q: -1, R: 1, S: 0}, true},
-		{"Valid positive R", HexPosition{Q: 0, R: 1, S: -1}, true},
-		{"Valid negative R", HexPosition{Q: 0, R: -1, S: 1}, true},
-		{"Valid positive S", HexPosition{Q: -1, R: 0, S: 1}, true},
-		{"Valid negative S", HexPosition{Q: 1, R: 0, S: -1}, true},
-		{"Valid complex", HexPosition{Q: 2, R: -1, S: -1}, true},
-		{"Invalid sum positive", HexPosition{Q: 1, R: 1, S: 1}, false},
-		{"Invalid sum negative", HexPosition{Q: -1, R: -1, S: -1}, false},
-		{"Invalid sum two", HexPosition{Q: 2, R: 1, S: 1}, false},
-		{"Invalid partial", HexPosition{Q: 1, R: 0, S: 0}, false},
+		{"Valid center", model.HexPosition{Q: 0, R: 0, S: 0}, true},
+		{"Valid positive Q", model.HexPosition{Q: 1, R: -1, S: 0}, true},
+		{"Valid negative Q", model.HexPosition{Q: -1, R: 1, S: 0}, true},
+		{"Valid positive R", model.HexPosition{Q: 0, R: 1, S: -1}, true},
+		{"Valid negative R", model.HexPosition{Q: 0, R: -1, S: 1}, true},
+		{"Valid positive S", model.HexPosition{Q: -1, R: 0, S: 1}, true},
+		{"Valid negative S", model.HexPosition{Q: 1, R: 0, S: -1}, true},
+		{"Valid complex", model.HexPosition{Q: 2, R: -1, S: -1}, true},
+		{"Invalid sum positive", model.HexPosition{Q: 1, R: 1, S: 1}, false},
+		{"Invalid sum negative", model.HexPosition{Q: -1, R: -1, S: -1}, false},
+		{"Invalid sum two", model.HexPosition{Q: 2, R: 1, S: 1}, false},
+		{"Invalid partial", model.HexPosition{Q: 1, R: 0, S: 0}, false},
 	}
 
 	for _, tt := range tests {
@@ -214,16 +215,16 @@ func TestHexPosition_IsValid(t *testing.T) {
 func TestHexPosition_Distance(t *testing.T) {
 	tests := []struct {
 		name     string
-		pos1     HexPosition
-		pos2     HexPosition
+		pos1     model.HexPosition
+		pos2     model.HexPosition
 		expected int
 	}{
-		{"Same position", HexPosition{0, 0, 0}, HexPosition{0, 0, 0}, 0},
-		{"Adjacent horizontal", HexPosition{0, 0, 0}, HexPosition{1, -1, 0}, 1},
-		{"Adjacent vertical", HexPosition{0, 0, 0}, HexPosition{0, 1, -1}, 1},
-		{"Distance 2", HexPosition{0, 0, 0}, HexPosition{2, -1, -1}, 2},
-		{"Distance 3", HexPosition{0, 0, 0}, HexPosition{-2, 1, 1}, 2},
-		{"Complex distance", HexPosition{1, -1, 0}, HexPosition{-1, 2, -1}, 3},
+		{"Same position", model.HexPosition{0, 0, 0}, model.HexPosition{0, 0, 0}, 0},
+		{"Adjacent horizontal", model.HexPosition{0, 0, 0}, model.HexPosition{1, -1, 0}, 1},
+		{"Adjacent vertical", model.HexPosition{0, 0, 0}, model.HexPosition{0, 1, -1}, 1},
+		{"Distance 2", model.HexPosition{0, 0, 0}, model.HexPosition{2, -1, -1}, 2},
+		{"Distance 3", model.HexPosition{0, 0, 0}, model.HexPosition{-2, 1, 1}, 2},
+		{"Complex distance", model.HexPosition{1, -1, 0}, model.HexPosition{-1, 2, -1}, 3},
 	}
 
 	for _, tt := range tests {
@@ -239,10 +240,10 @@ func TestHexPosition_Distance(t *testing.T) {
 }
 
 func TestHexPosition_GetNeighbors(t *testing.T) {
-	center := HexPosition{0, 0, 0}
+	center := model.HexPosition{0, 0, 0}
 	neighbors := center.GetNeighbors()
 
-	expectedNeighbors := []HexPosition{
+	expectedNeighbors := []model.HexPosition{
 		{1, -1, 0}, // East
 		{1, 0, -1}, // Southeast
 		{0, 1, -1}, // Southwest

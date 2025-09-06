@@ -1,7 +1,8 @@
-package cards
+package cards_test
 
 import (
 	"context"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"testing"
@@ -15,13 +16,48 @@ type MockPlayerService struct {
 	mock.Mock
 }
 
+func (m *MockPlayerService) UpdatePlayerResources(ctx context.Context, gameID, playerID string, newResources model.Resources) error {
+	args := m.Called(ctx, gameID, playerID, newResources)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) UpdatePlayerProduction(ctx context.Context, gameID, playerID string, newProduction model.Production) error {
+	args := m.Called(ctx, gameID, playerID, newProduction)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error) {
+	args := m.Called(ctx, gameID, playerID)
+	return args.Get(0).(*model.Player), args.Error(1)
+}
+
+func (m *MockPlayerService) ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error {
+	args := m.Called(ctx, gameID, playerID, requirement)
+	return args.Error(0)
+}
+
 func (m *MockPlayerService) ValidateResourceCost(ctx context.Context, gameID, playerID string, cost model.ResourceSet) error {
 	args := m.Called(ctx, gameID, playerID, cost)
 	return args.Error(0)
 }
 
+func (m *MockPlayerService) AddProduction(ctx context.Context, gameID, playerID string, production model.ResourceSet) error {
+	args := m.Called(ctx, gameID, playerID, production)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) PayResourceCost(ctx context.Context, gameID, playerID string, cost model.ResourceSet) error {
+	args := m.Called(ctx, gameID, playerID, cost)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) AddResources(ctx context.Context, gameID, playerID string, resources model.ResourceSet) error {
+	args := m.Called(ctx, gameID, playerID, resources)
+	return args.Error(0)
+}
+
 func TestBaseCardHandler_GetCardID(t *testing.T) {
-	handler := &BaseCardHandler{
+	handler := &cards.BaseCardHandler{
 		CardID: "test-card",
 	}
 
@@ -29,14 +65,18 @@ func TestBaseCardHandler_GetCardID(t *testing.T) {
 }
 
 func TestBaseCardHandler_GetRequirements(t *testing.T) {
+	minTemp := -24
+	maxTemp := -14
+	minOxy := 2
+	maxOxy := 8
 	requirements := model.CardRequirements{
-		MinTemperature: -24,
-		MaxTemperature: -14,
-		MinOxygen:      2,
-		MaxOxygen:      8,
+		MinTemperature: &minTemp,
+		MaxTemperature: &maxTemp,
+		MinOxygen:      &minOxy,
+		MaxOxygen:      &maxOxy,
 	}
 
-	handler := &BaseCardHandler{
+	handler := &cards.BaseCardHandler{
 		CardID:       "test-card",
 		Requirements: requirements,
 	}
@@ -46,7 +86,7 @@ func TestBaseCardHandler_GetRequirements(t *testing.T) {
 }
 
 func TestBaseCardHandler_RegisterListeners(t *testing.T) {
-	handler := &BaseCardHandler{
+	handler := &cards.BaseCardHandler{
 		CardID: "test-card",
 	}
 
@@ -58,7 +98,7 @@ func TestBaseCardHandler_RegisterListeners(t *testing.T) {
 }
 
 func TestBaseCardHandler_UnregisterListeners(t *testing.T) {
-	handler := &BaseCardHandler{
+	handler := &cards.BaseCardHandler{
 		CardID: "test-card",
 	}
 
@@ -70,31 +110,33 @@ func TestBaseCardHandler_UnregisterListeners(t *testing.T) {
 }
 
 func TestEventCardHandler_Creation(t *testing.T) {
-	handler := &EventCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	minTemp := -20
+	handler := &cards.EventCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "event-card",
 			Requirements: model.CardRequirements{
-				MinTemperature: -20,
+				MinTemperature: &minTemp,
 			},
 		},
 	}
 
 	assert.Equal(t, "event-card", handler.GetCardID())
-	assert.Equal(t, -20, handler.GetRequirements().MinTemperature)
+	assert.Equal(t, &minTemp, handler.GetRequirements().MinTemperature)
 }
 
 func TestEffectCardHandler_Creation(t *testing.T) {
-	handler := &EffectCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	minOxy := 3
+	handler := &cards.EffectCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "effect-card",
 			Requirements: model.CardRequirements{
-				MinOxygen: 3,
+				MinOxygen: &minOxy,
 			},
 		},
 	}
 
 	assert.Equal(t, "effect-card", handler.GetCardID())
-	assert.Equal(t, 3, handler.GetRequirements().MinOxygen)
+	assert.Equal(t, &minOxy, handler.GetRequirements().MinOxygen)
 }
 
 func TestActiveCardHandler_Creation(t *testing.T) {
@@ -103,8 +145,8 @@ func TestActiveCardHandler_Creation(t *testing.T) {
 		Energy:  2,
 	}
 
-	handler := &ActiveCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	handler := &cards.ActiveCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "active-card",
 		},
 		ActivationCost: activationCost,
@@ -121,14 +163,14 @@ func TestActiveCardHandler_CanActivate_WithCost(t *testing.T) {
 		Energy:  2,
 	}
 
-	handler := &ActiveCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	handler := &cards.ActiveCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "active-card",
 		},
 		ActivationCost: activationCost,
 	}
 
-	ctx := &CardHandlerContext{
+	ctx := &cards.CardHandlerContext{
 		Context:       context.Background(),
 		Game:          &model.Game{ID: "game1"},
 		PlayerID:      "player1",
@@ -145,14 +187,14 @@ func TestActiveCardHandler_CanActivate_WithCost(t *testing.T) {
 }
 
 func TestActiveCardHandler_CanActivate_NoCost(t *testing.T) {
-	handler := &ActiveCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	handler := &cards.ActiveCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "active-card-no-cost",
 		},
 		ActivationCost: nil,
 	}
 
-	ctx := &CardHandlerContext{
+	ctx := &cards.CardHandlerContext{
 		Context:  context.Background(),
 		Game:     &model.Game{ID: "game1"},
 		PlayerID: "player1",
@@ -164,13 +206,13 @@ func TestActiveCardHandler_CanActivate_NoCost(t *testing.T) {
 }
 
 func TestActiveCardHandler_Activate_DefaultImplementation(t *testing.T) {
-	handler := &ActiveCardHandler{
-		BaseCardHandler: BaseCardHandler{
+	handler := &cards.ActiveCardHandler{
+		BaseCardHandler: cards.BaseCardHandler{
 			CardID: "active-card",
 		},
 	}
 
-	ctx := &CardHandlerContext{
+	ctx := &cards.CardHandlerContext{
 		Context:  context.Background(),
 		Game:     &model.Game{ID: "game1"},
 		PlayerID: "player1",
@@ -187,7 +229,7 @@ func TestCardHandlerContext_Structure(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	mockPlayerService := &MockPlayerService{}
 
-	ctx := &CardHandlerContext{
+	ctx := &cards.CardHandlerContext{
 		Context:       context.Background(),
 		Game:          game,
 		PlayerID:      "player1",

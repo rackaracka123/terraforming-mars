@@ -1,13 +1,14 @@
-package model
+package model_test
 
 import (
 	"testing"
+	"terraforming-mars-backend/internal/model"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestResources_Zero(t *testing.T) {
-	resources := Resources{}
+	resources := model.Resources{}
 
 	assert.Equal(t, 0, resources.Credits)
 	assert.Equal(t, 0, resources.Steel)
@@ -18,7 +19,7 @@ func TestResources_Zero(t *testing.T) {
 }
 
 func TestResources_Add(t *testing.T) {
-	r1 := Resources{
+	r1 := model.Resources{
 		Credits:  10,
 		Steel:    5,
 		Titanium: 3,
@@ -27,7 +28,7 @@ func TestResources_Add(t *testing.T) {
 		Heat:     4,
 	}
 
-	r2 := Resources{
+	r2 := model.Resources{
 		Credits:  5,
 		Steel:    2,
 		Titanium: 1,
@@ -36,7 +37,7 @@ func TestResources_Add(t *testing.T) {
 		Heat:     2,
 	}
 
-	expected := Resources{
+	expected := model.Resources{
 		Credits:  15,
 		Steel:    7,
 		Titanium: 4,
@@ -54,7 +55,7 @@ func TestResources_Add(t *testing.T) {
 }
 
 func TestResources_Subtract(t *testing.T) {
-	r1 := Resources{
+	r1 := model.Resources{
 		Credits:  20,
 		Steel:    10,
 		Titanium: 5,
@@ -63,7 +64,7 @@ func TestResources_Subtract(t *testing.T) {
 		Heat:     12,
 	}
 
-	r2 := Resources{
+	r2 := model.Resources{
 		Credits:  5,
 		Steel:    3,
 		Titanium: 2,
@@ -72,7 +73,7 @@ func TestResources_Subtract(t *testing.T) {
 		Heat:     6,
 	}
 
-	expected := Resources{
+	expected := model.Resources{
 		Credits:  15,
 		Steel:    7,
 		Titanium: 3,
@@ -86,7 +87,7 @@ func TestResources_Subtract(t *testing.T) {
 }
 
 func TestResources_Subtract_NegativeResults(t *testing.T) {
-	r1 := Resources{
+	r1 := model.Resources{
 		Credits:  5,
 		Steel:    2,
 		Titanium: 1,
@@ -95,7 +96,7 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 		Heat:     2,
 	}
 
-	r2 := Resources{
+	r2 := model.Resources{
 		Credits:  10,
 		Steel:    5,
 		Titanium: 3,
@@ -104,7 +105,7 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 		Heat:     8,
 	}
 
-	expected := Resources{
+	expected := model.Resources{
 		Credits:  -5,
 		Steel:    -3,
 		Titanium: -2,
@@ -120,32 +121,32 @@ func TestResources_Subtract_NegativeResults(t *testing.T) {
 func TestResources_HasNegative(t *testing.T) {
 	tests := []struct {
 		name      string
-		resources Resources
+		resources model.Resources
 		expected  bool
 	}{
 		{
 			"All positive",
-			Resources{Credits: 10, Steel: 5, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
+			model.Resources{Credits: 10, Steel: 5, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
 			false,
 		},
 		{
 			"All zero",
-			Resources{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0},
+			model.Resources{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0},
 			false,
 		},
 		{
 			"Negative credits",
-			Resources{Credits: -1, Steel: 5, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
+			model.Resources{Credits: -1, Steel: 5, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
 			true,
 		},
 		{
 			"Negative steel",
-			Resources{Credits: 10, Steel: -2, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
+			model.Resources{Credits: 10, Steel: -2, Titanium: 3, Plants: 8, Energy: 2, Heat: 4},
 			true,
 		},
 		{
 			"Multiple negative",
-			Resources{Credits: -5, Steel: 5, Titanium: -1, Plants: 8, Energy: 2, Heat: 4},
+			model.Resources{Credits: -5, Steel: 5, Titanium: -1, Plants: 8, Energy: 2, Heat: 4},
 			true,
 		},
 	}
@@ -159,7 +160,7 @@ func TestResources_HasNegative(t *testing.T) {
 }
 
 func TestResources_CanAfford(t *testing.T) {
-	playerResources := Resources{
+	playerResources := model.Resources{
 		Credits:  20,
 		Steel:    10,
 		Titanium: 5,
@@ -170,32 +171,32 @@ func TestResources_CanAfford(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		cost     Resources
+		cost     model.Resources
 		expected bool
 	}{
 		{
 			"Can afford all resources",
-			Resources{Credits: 10, Steel: 5, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
+			model.Resources{Credits: 10, Steel: 5, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
 			true,
 		},
 		{
 			"Can afford exact resources",
-			Resources{Credits: 20, Steel: 10, Titanium: 5, Plants: 15, Energy: 8, Heat: 12},
+			model.Resources{Credits: 20, Steel: 10, Titanium: 5, Plants: 15, Energy: 8, Heat: 12},
 			true,
 		},
 		{
 			"Cannot afford - credits too high",
-			Resources{Credits: 25, Steel: 5, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
+			model.Resources{Credits: 25, Steel: 5, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
 			false,
 		},
 		{
 			"Cannot afford - steel too high",
-			Resources{Credits: 10, Steel: 15, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
+			model.Resources{Credits: 10, Steel: 15, Titanium: 2, Plants: 8, Energy: 4, Heat: 6},
 			false,
 		},
 		{
 			"Can afford zero cost",
-			Resources{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0},
+			model.Resources{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0},
 			true,
 		},
 	}
@@ -209,7 +210,7 @@ func TestResources_CanAfford(t *testing.T) {
 }
 
 func TestProduction_Zero(t *testing.T) {
-	production := Production{}
+	production := model.Production{}
 
 	assert.Equal(t, 0, production.Credits)
 	assert.Equal(t, 0, production.Steel)
@@ -220,7 +221,7 @@ func TestProduction_Zero(t *testing.T) {
 }
 
 func TestProduction_Add(t *testing.T) {
-	p1 := Production{
+	p1 := model.Production{
 		Credits:  2,
 		Steel:    1,
 		Titanium: 1,
@@ -229,7 +230,7 @@ func TestProduction_Add(t *testing.T) {
 		Heat:     1,
 	}
 
-	p2 := Production{
+	p2 := model.Production{
 		Credits:  1,
 		Steel:    2,
 		Titanium: 0,
@@ -238,7 +239,7 @@ func TestProduction_Add(t *testing.T) {
 		Heat:     2,
 	}
 
-	expected := Production{
+	expected := model.Production{
 		Credits:  3,
 		Steel:    3,
 		Titanium: 1,
@@ -252,7 +253,7 @@ func TestProduction_Add(t *testing.T) {
 }
 
 func TestProduction_Subtract(t *testing.T) {
-	p1 := Production{
+	p1 := model.Production{
 		Credits:  5,
 		Steel:    4,
 		Titanium: 3,
@@ -261,7 +262,7 @@ func TestProduction_Subtract(t *testing.T) {
 		Heat:     3,
 	}
 
-	p2 := Production{
+	p2 := model.Production{
 		Credits:  2,
 		Steel:    1,
 		Titanium: 1,
@@ -270,7 +271,7 @@ func TestProduction_Subtract(t *testing.T) {
 		Heat:     1,
 	}
 
-	expected := Production{
+	expected := model.Production{
 		Credits:  3,
 		Steel:    3,
 		Titanium: 2,

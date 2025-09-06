@@ -16,6 +16,7 @@ import (
 func setupStandardProjectServiceTest(t *testing.T) (
 	service.StandardProjectService,
 	service.GameService,
+	service.PlayerService,
 	service.GlobalParametersService,
 	repository.PlayerRepository,
 	*model.Game,
@@ -31,7 +32,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
 
@@ -57,7 +59,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 		Energy:   10,
 		Heat:     10,
 	}
-	err = gameService.UpdatePlayerResources(ctx, game.ID, playerID, updatedResources)
+	err = playerService.UpdatePlayerResources(ctx, game.ID, playerID, updatedResources)
 	require.NoError(t, err)
 
 	// Add some cards to the player's hand
@@ -82,11 +84,11 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	err = gameService.UpdateGame(ctx, updatedGame)
 	require.NoError(t, err)
 
-	return standardProjectService, gameService, globalParametersService, playerRepo, updatedGame, playerID
+	return standardProjectService, gameService, playerService, globalParametersService, playerRepo, updatedGame, playerID
 }
 
 func TestStandardProjectService_SellPatents(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful sell patents", func(t *testing.T) {
@@ -120,7 +122,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, playerService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build power plant", func(t *testing.T) {
@@ -144,7 +146,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 	t.Run("Insufficient credits", func(t *testing.T) {
 		// Set player credits to less than cost
 		insufficientResources := model.Resources{Credits: 5}
-		err := gameService.UpdatePlayerResources(ctx, game.ID, playerID, insufficientResources)
+		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, insufficientResources)
 		require.NoError(t, err)
 
 		err = standardProjectService.BuildPowerPlant(ctx, game.ID, playerID)
@@ -154,7 +156,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 }
 
 func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
-	standardProjectService, gameService, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful launch asteroid", func(t *testing.T) {
@@ -187,7 +189,7 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildAquifer(t *testing.T) {
-	standardProjectService, gameService, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 1, R: -1, S: 0}
@@ -230,7 +232,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 }
 
 func TestStandardProjectService_PlantGreenery(t *testing.T) {
-	standardProjectService, gameService, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 2, R: -1, S: -1}
@@ -273,7 +275,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildCity(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: -2, R: 1, S: 1}
