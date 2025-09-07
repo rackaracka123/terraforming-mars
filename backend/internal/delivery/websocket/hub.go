@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
@@ -199,6 +200,33 @@ func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMess
 		zap.String("message_type", string(message.Type)))
 }
 
+// sendToPlayer sends a message to a specific player in a game
+func (h *Hub) sendToPlayer(gameID, playerID string, message dto.WebSocketMessage) {
+	h.mu.RLock()
+	gameConns := h.gameConnections[gameID]
+	h.mu.RUnlock()
+
+	if gameConns == nil {
+		h.logger.Warn("⚠️ No connections found for game", zap.String("game_id", gameID))
+		return
+	}
+
+	for conn := range gameConns {
+		if conn.PlayerID == playerID {
+			h.sendToConnection(conn, message)
+			h.logger.Info("📬 Message sent to specific player",
+				zap.String("game_id", gameID),
+				zap.String("player_id", playerID),
+				zap.String("message_type", string(message.Type)))
+			return
+		}
+	}
+
+	h.logger.Warn("⚠️ No connection found for player",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
+}
+
 // closeAllConnections closes all active connections
 func (h *Hub) closeAllConnections() {
 	h.mu.Lock()
@@ -216,6 +244,9 @@ func (h *Hub) closeAllConnections() {
 func (h *Hub) subscribeToEvents() {
 	// Subscribe to game state changes to broadcast updates to clients
 	h.eventBus.Subscribe(events.EventTypeGameStateChanged, h.handleGameStateChanged)
+	
+	// Subscribe to starting card options events to send available cards to players
+	h.eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, h.handlePlayerStartingCardOptions)
 	
 	h.logger.Info("📡 WebSocket hub subscribed to game state events")
 }
@@ -286,5 +317,65 @@ func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) er
 	
 	// Return immediately to prevent blocking the original operation
 	h.logger.Debug("✅ Event handler scheduled asynchronously")
+	return nil
+}
+
+// handlePlayerStartingCardOptions handles when starting cards are dealt to a player
+func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
+	h.logger.Info("🃏 Event handler called: handlePlayerStartingCardOptions - running async to prevent deadlock")
+	
+	// Create async context to prevent deadlock
+	go func() {
+		
+		// Parse event payload
+		payload := event.GetPayload().(events.PlayerStartingCardOptionsEventData)
+		gameID := payload.GameID
+		playerID := payload.PlayerID
+		cardOptions := payload.CardOptions
+		
+		h.logger.Debug("🃏 Processing starting card options for player", 
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Strings("card_options", cardOptions))
+		
+		// Get card details for the options
+		allStartingCards := model.GetStartingCards()
+		cardMap := make(map[string]model.Card)
+		for _, card := range allStartingCards {
+			cardMap[card.ID] = card
+		}
+		
+		// Build card DTOs for the available options
+		availableCards := make([]dto.CardDto, 0, len(cardOptions))
+		for _, cardID := range cardOptions {
+			if card, exists := cardMap[cardID]; exists {
+				cardDto := dto.CardDto{
+					ID:          card.ID,
+					Name:        card.Name,
+					Type:        dto.CardType(card.Type),
+					Cost:        card.Cost,
+					Description: card.Description,
+				}
+				availableCards = append(availableCards, cardDto)
+			}
+		}
+		
+		// Create available-cards message
+		message := dto.WebSocketMessage{
+			Type: dto.MessageTypeAvailableCards,
+			Payload: dto.AvailableCardsPayload{
+				Cards: availableCards,
+			},
+		}
+		
+		// Send to the specific player
+		h.sendToPlayer(gameID, playerID, message)
+		
+		h.logger.Info("🃏 Available cards sent to player",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Int("cards_count", len(availableCards)))
+	}()
+
 	return nil
 }

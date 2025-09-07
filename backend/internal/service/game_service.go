@@ -42,6 +42,7 @@ type GameServiceImpl struct {
 	playerRepo     repository.PlayerRepository
 	parametersRepo repository.GlobalParametersRepository
 	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	eventBus       events.EventBus
 }
 
 // NewGameService creates a new GameService instance
@@ -50,12 +51,14 @@ func NewGameService(
 	playerRepo repository.PlayerRepository,
 	parametersRepo repository.GlobalParametersRepository,
 	cardService *CardServiceImpl,
+	eventBus events.EventBus,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		parametersRepo: parametersRepo,
 		cardService:    cardService,
+		eventBus:       eventBus,
 	}
 }
 
@@ -310,11 +313,18 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		// Create and publish event
 		event := events.NewPlayerStartingCardOptionsEvent(gameID, player.ID, cardOptions)
 		
-		// TODO: We'll need to publish this event through an event bus
-		// For now, log the event creation
-		log.Debug("Starting card options event created", 
-			zap.String("player_id", player.ID),
-			zap.String("event_type", event.GetType()))
+		// Publish the event through the event bus
+		if s.eventBus != nil {
+			if err := s.eventBus.Publish(ctx, event); err != nil {
+				log.Warn("Failed to publish starting card options event", 
+					zap.String("player_id", player.ID),
+					zap.Error(err))
+			} else {
+				log.Debug("Starting card options event published", 
+					zap.String("player_id", player.ID),
+					zap.String("event_type", event.GetType()))
+			}
+		}
 	}
 
 	log.Info("Starting cards distributed to all players", zap.Int("players", len(players)))

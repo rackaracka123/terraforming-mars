@@ -49,7 +49,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
