@@ -12,9 +12,9 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -373,10 +373,10 @@ func (c *CLIClient) createAndJoinGame(args []string) {
 
 	// Set gameID locally
 	c.gameID = gameID
-	
+
 	// Give a brief moment for the server to respond with game state
 	time.Sleep(100 * time.Millisecond)
-	
+
 	result := fmt.Sprintf("✅ Game created and joined successfully!\n🎮 Game ID: %s\n🎉 Ready to play as '%s'!", gameID[:8]+"...", playerName)
 	c.displayCommandResult("caj "+playerName, result)
 }
@@ -474,7 +474,6 @@ func (c *CLIClient) listPlayers() {
 
 func (c *CLIClient) showAvailableActions() {
 	var actionsText string
-
 
 	// Check if we're in lobby and current player is host
 	if c.gameState != nil && c.gameState.GameStatus == model.GameStatusLobby {

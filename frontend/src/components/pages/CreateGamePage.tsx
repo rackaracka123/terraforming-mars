@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
-import { webSocketService } from "../../services/webSocketService";
+import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import styles from "./CreateGamePage.module.css";
 
@@ -36,13 +36,9 @@ const CreateGamePage: React.FC = () => {
       // Creating game with settings
       const game = await apiService.createGame(gameSettings);
 
-      // Connect to WebSocket if not already connected
-      if (!webSocketService.connected) {
-        await webSocketService.connect();
-      }
-
+      // Global WebSocket manager handles connection automatically
       // Connect player to the game
-      const playerConnectedResult = await webSocketService.playerConnect(
+      const playerConnectedResult = await globalWebSocketManager.playerConnect(
         playerName.trim(),
         game.id,
       );

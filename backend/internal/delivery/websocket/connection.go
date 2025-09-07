@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"net"
 	"sync"
+	"time"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
@@ -74,6 +76,7 @@ func (c *Connection) Close() {
 // ReadPump pumps messages from the websocket connection to the hub
 func (c *Connection) ReadPump() {
 	defer func() {
+		c.CloseSend() // Close Send channel first
 		c.Close()
 		c.Hub.Unregister <- c
 	}()
@@ -109,7 +112,10 @@ func (c *Connection) ReadPump() {
 
 // WritePump pumps messages from the hub to the websocket connection
 func (c *Connection) WritePump() {
-	defer c.Close()
+	defer func() {
+		c.CloseSend() // Close Send channel first
+		c.Close()
+	}()
 
 	for {
 		select {
@@ -119,7 +125,9 @@ func (c *Connection) WritePump() {
 		case message, ok := <-c.Send:
 			if !ok {
 				c.logger.Info("Send channel closed", zap.String("connection_id", c.ID))
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				closeMessage := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Connection closed by server")
+
+				c.Conn.WriteMessage(websocket.CloseMessage, closeMessage)
 				return
 			}
 
@@ -127,8 +135,28 @@ func (c *Connection) WritePump() {
 				zap.String("connection_id", c.ID),
 				zap.String("message_type", string(message.Type)))
 
+			// Set write deadline for this specific message (10 seconds should be enough for any message)
+			if err := c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				c.logger.Error("Failed to set write deadline",
+					zap.Error(err),
+					zap.String("connection_id", c.ID),
+					zap.String("message_type", string(message.Type)))
+				return
+			}
+
 			if err := c.Conn.WriteJSON(message); err != nil {
-				c.logger.Error("WebSocket write error", zap.Error(err), zap.String("connection_id", c.ID))
+				// Check if it's a timeout error
+				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+					c.logger.Error("WebSocket write timeout - message too large or network too slow",
+						zap.Error(err),
+						zap.String("connection_id", c.ID),
+						zap.String("message_type", string(message.Type)))
+				} else {
+					c.logger.Error("WebSocket write error",
+						zap.Error(err),
+						zap.String("connection_id", c.ID),
+						zap.String("message_type", string(message.Type)))
+				}
 				return
 			}
 		}
@@ -137,10 +165,19 @@ func (c *Connection) WritePump() {
 
 // SendMessage sends a message to this connection
 func (c *Connection) SendMessage(message dto.WebSocketMessage) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Check if Send channel is already closed
+	if c.sendClosed {
+		c.logger.Debug("Skipping send to closed connection", zap.String("connection_id", c.ID))
+		return
+	}
+
 	select {
 	case c.Send <- message:
 	default:
 		c.logger.Warn("Connection send channel is full, closing connection", zap.String("connection_id", c.ID))
-		close(c.Send)
+		c.CloseSend()
 	}
 }

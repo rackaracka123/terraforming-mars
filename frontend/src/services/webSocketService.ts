@@ -10,7 +10,12 @@ import {
   MessageTypePlayAction,
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
+  MessageTypePlayerReconnect,
+  MessageTypePlayerReconnected,
+  MessageTypePlayerDisconnected,
   PlayerConnectedPayload,
+  PlayerReconnectedPayload,
+  PlayerDisconnectedPayload,
   WebSocketMessage,
 } from "../types/generated/api-types.ts";
 
@@ -34,6 +39,21 @@ export class WebSocketService {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // If already connected, resolve immediately
+        if (
+          this.isConnected &&
+          this.ws &&
+          this.ws.readyState === WebSocket.OPEN
+        ) {
+          resolve();
+          return;
+        }
+
+        // Close existing connection if it exists
+        if (this.ws) {
+          this.ws.close();
+        }
+
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
@@ -58,7 +78,8 @@ export class WebSocketService {
           }
         };
 
-        this.ws.onclose = () => {
+        this.ws.onclose = (_event) => {
+          // WebSocket connection closed
           this.isConnected = false;
           this.emit("disconnect");
           this.attemptReconnect();
@@ -88,6 +109,17 @@ export class WebSocketService {
         const playerPayload = message.payload as PlayerConnectedPayload;
         this.currentPlayerId = playerPayload.playerId;
         this.emit("player-connected", playerPayload);
+        break;
+      }
+      case MessageTypePlayerReconnected: {
+        const reconnectedPayload = message.payload as PlayerReconnectedPayload;
+        this.emit("player-reconnected", reconnectedPayload);
+        break;
+      }
+      case MessageTypePlayerDisconnected: {
+        const disconnectedPayload =
+          message.payload as PlayerDisconnectedPayload;
+        this.emit("player-disconnected", disconnectedPayload);
         break;
       }
       case MessageTypeError: {
@@ -145,6 +177,46 @@ export class WebSocketService {
       };
 
       this.on("player-connected", responseHandler);
+    });
+  }
+
+  playerReconnect(
+    playerName: string,
+    gameId: string,
+  ): Promise<PlayerReconnectedPayload> {
+    return new Promise((resolve, reject) => {
+      this.send(MessageTypePlayerReconnect, { playerName, gameId }, gameId);
+      this.currentGameId = gameId;
+
+      // Set up one-time listener for player-reconnected response
+      const timeout = setTimeout(() => {
+        this.off("player-reconnected", responseHandler);
+        this.off("error", errorHandler);
+        reject(
+          new Error("Timeout waiting for player reconnection confirmation"),
+        );
+      }, 10000); // 10 second timeout
+
+      const responseHandler = (payload: PlayerReconnectedPayload) => {
+        // Only resolve if this is the reconnection for the current player
+        if (payload.playerName === playerName) {
+          clearTimeout(timeout);
+          this.off("player-reconnected", responseHandler);
+          this.off("error", errorHandler);
+          this.currentPlayerId = payload.playerId;
+          resolve(payload);
+        }
+      };
+
+      const errorHandler = (errorPayload: ErrorPayload) => {
+        clearTimeout(timeout);
+        this.off("player-reconnected", responseHandler);
+        this.off("error", errorHandler);
+        reject(new Error(errorPayload.message || "Reconnection failed"));
+      };
+
+      this.on("player-reconnected", responseHandler);
+      this.on("error", errorHandler);
     });
   }
 

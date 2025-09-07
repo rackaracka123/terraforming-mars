@@ -1,0 +1,198 @@
+import { webSocketService } from "./webSocketService.ts";
+import { WebSocketConnection } from "../types/webSocketTypes.ts";
+import type {
+  GameDto,
+  PlayerReconnectedPayload,
+  PlayerDisconnectedPayload,
+  FullStatePayload,
+} from "../types/generated/api-types.ts";
+
+class GlobalWebSocketManager implements WebSocketConnection {
+  private isInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
+  private currentPlayerId: string | null = null;
+  private eventCallbacks: { [event: string]: ((data: any) => void)[] } = {};
+
+  async initialize() {
+    if (this.isInitialized) {
+      // WebSocket already initialized, skipping
+      return;
+    }
+
+    // If already initializing, return the existing promise
+    if (this.initializationPromise) {
+      // WebSocket initialization already in progress, waiting...
+      return this.initializationPromise;
+    }
+
+    // Create initialization promise
+    this.initializationPromise = this._doInitialize();
+
+    try {
+      await this.initializationPromise;
+    } finally {
+      this.initializationPromise = null;
+    }
+  }
+
+  private async _doInitialize() {
+    try {
+      await webSocketService.connect();
+      this.setupGlobalEventHandlers();
+      this.isInitialized = true;
+      // Global WebSocket connection established
+    } catch (error) {
+      console.error("Failed to initialize global WebSocket connection:", error);
+      throw error;
+    }
+  }
+
+  async ensureConnected() {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    // Wait for connection to be ready if it's still connecting
+    if (!webSocketService.connected) {
+      // WebSocket not connected, waiting for connection...
+      return new Promise<void>((resolve, reject) => {
+        const checkConnection = () => {
+          if (webSocketService.connected) {
+            resolve();
+          } else {
+            // Keep checking every 100ms for up to 10 seconds
+            setTimeout(checkConnection, 100);
+          }
+        };
+
+        // Start checking
+        checkConnection();
+
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          reject(new Error("WebSocket connection timeout"));
+        }, 10000);
+      });
+    }
+  }
+
+  private setupGlobalEventHandlers() {
+    // These handlers will persist across all component lifecycles
+    webSocketService.on("game-updated", (updatedGame: GameDto) => {
+      // WebSocket: Game updated
+      this.emit("game-updated", updatedGame);
+    });
+
+    webSocketService.on("full-state", (statePayload: FullStatePayload) => {
+      // WebSocket: Full state received
+      this.emit("full-state", statePayload);
+    });
+
+    webSocketService.on("player-connected", (payload: any) => {
+      // WebSocket: Player connected
+      this.emit("player-connected", payload);
+    });
+
+    webSocketService.on(
+      "player-reconnected",
+      (payload: PlayerReconnectedPayload) => {
+        // WebSocket: Player reconnected
+        this.emit("player-reconnected", payload);
+      },
+    );
+
+    webSocketService.on(
+      "player-disconnected",
+      (payload: PlayerDisconnectedPayload) => {
+        // WebSocket: Player disconnected
+        this.emit("player-disconnected", payload);
+      },
+    );
+
+    webSocketService.on("error", (error: any) => {
+      console.error("WebSocket: Error received", error);
+      this.emit("error", error);
+    });
+
+    webSocketService.on("disconnect", () => {
+      // WebSocket: Connection lost
+      this.emit("disconnect");
+    });
+
+    webSocketService.on("connect", () => {
+      // WebSocket: Connected
+      this.emit("connect");
+    });
+  }
+
+  setCurrentPlayerId(playerId: string) {
+    this.currentPlayerId = playerId;
+    // WebSocket Manager: Current player set to playerId
+  }
+
+  getCurrentPlayerId(): string | null {
+    return this.currentPlayerId;
+  }
+
+  // Event system for components to listen to WebSocket events
+  on(event: string, callback: (data: any) => void) {
+    if (!this.eventCallbacks[event]) {
+      this.eventCallbacks[event] = [];
+    }
+    this.eventCallbacks[event].push(callback);
+  }
+
+  off(event: string, callback: (data: any) => void) {
+    if (this.eventCallbacks[event]) {
+      this.eventCallbacks[event] = this.eventCallbacks[event].filter(
+        (cb) => cb !== callback,
+      );
+    }
+  }
+
+  private emit(event: string, data?: any) {
+    if (this.eventCallbacks[event]) {
+      this.eventCallbacks[event].forEach((callback) => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(
+            `Error in WebSocket event callback for ${event}:`,
+            error,
+          );
+        }
+      });
+    }
+  }
+
+  // Proxy methods to underlying WebSocket service
+  async playerConnect(playerName: string, gameId: string) {
+    await this.ensureConnected();
+    return webSocketService.playerConnect(playerName, gameId);
+  }
+
+  async playerReconnect(playerName: string, gameId: string) {
+    await this.ensureConnected();
+    return webSocketService.playerReconnect(playerName, gameId);
+  }
+
+  async playAction(actionPayload: object): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.playAction(actionPayload);
+  }
+
+  get connected() {
+    return webSocketService.connected;
+  }
+
+  get playerId() {
+    return webSocketService.playerId;
+  }
+
+  get gameId() {
+    return webSocketService.gameId;
+  }
+}
+
+// Singleton instance - initialized once globally
+export const globalWebSocketManager = new GlobalWebSocketManager();

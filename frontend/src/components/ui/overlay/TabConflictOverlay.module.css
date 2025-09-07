@@ -1,0 +1,196 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 17, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  min-width: 400px;
+  max-width: 600px;
+  width: 90%;
+}
+
+.content {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.95) 0%,
+    rgba(20, 40, 70, 0.9) 50%,
+    rgba(10, 30, 60, 0.95) 100%
+  );
+  border: 2px solid rgba(255, 193, 7, 0.6);
+  border-radius: 20px;
+  padding: 40px;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(255, 193, 7, 0.2);
+  text-align: center;
+}
+
+.warningIcon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.title {
+  color: #ffc107;
+  font-size: 28px;
+  margin: 0 0 24px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+}
+
+.message {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.message p {
+  margin: 0 0 16px 0;
+}
+
+.gameInfo {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.value {
+  color: #ffffff;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.warning {
+  color: #ffc107;
+  font-size: 14px;
+  font-style: italic;
+  margin-top: 16px !important;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.cancelButton {
+  background: rgba(108, 117, 125, 0.8);
+  border: 2px solid rgba(108, 117, 125, 0.5);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.cancelButton:hover {
+  background: rgba(108, 117, 125, 1);
+  border-color: rgba(108, 117, 125, 0.8);
+  transform: translateY(-1px);
+}
+
+.takeOverButton {
+  background: linear-gradient(135deg, #dc3545 0%, #e55564 100%);
+  border: 2px solid rgba(220, 53, 69, 0.5);
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
+}
+
+.takeOverButton:hover {
+  background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);
+  border-color: rgba(220, 53, 69, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 25px rgba(220, 53, 69, 0.4);
+}
+
+@media (max-width: 768px) {
+  .modal {
+    min-width: 320px;
+    margin: 0 20px;
+  }
+
+  .content {
+    padding: 24px;
+  }
+
+  .warningIcon {
+    font-size: 48px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .message {
+    font-size: 14px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cancelButton,
+  .takeOverButton {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 18px;
+  }
+
+  .warningIcon {
+    font-size: 40px;
+    margin-bottom: 16px;
+  }
+
+  .content {
+    padding: 20px;
+  }
+}

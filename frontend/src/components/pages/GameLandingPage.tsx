@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
-import { webSocketService } from "../../services/webSocketService";
+import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,13 +23,8 @@ const GameLandingPage: React.FC = () => {
               throw new Error("Saved game not found on server");
             }
 
-            // Connect to WebSocket if not connected
-            if (!webSocketService.connected) {
-              await webSocketService.connect();
-            }
-
-            // Reconnect to the game
-            await webSocketService.playerConnect(playerName, gameId);
+            // Reconnect to the game using global WebSocket manager
+            await globalWebSocketManager.playerConnect(playerName, gameId);
 
             // Navigate to game interface with the retrieved game state
             navigate("/game", {

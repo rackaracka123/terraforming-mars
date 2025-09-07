@@ -5,15 +5,18 @@ type MessageType string
 
 const (
 	// Client -> Server messages
-	MessageTypePlayerConnect MessageType = "player-connect"
-	MessageTypePlayAction    MessageType = "do-action"
+	MessageTypePlayerConnect   MessageType = "player-connect"
+	MessageTypePlayerReconnect MessageType = "player-reconnect"
+	MessageTypePlayAction      MessageType = "do-action"
 
 	// Server -> Client messages
-	MessageTypeGameUpdated     MessageType = "game-updated"
-	MessageTypePlayerConnected MessageType = "player-connected"
-	MessageTypeError           MessageType = "error"
-	MessageTypeFullState       MessageType = "full-state"
-	MessageTypeAvailableCards  MessageType = "available-cards"
+	MessageTypeGameUpdated        MessageType = "game-updated"
+	MessageTypePlayerConnected    MessageType = "player-connected"
+	MessageTypePlayerReconnected  MessageType = "player-reconnected"
+	MessageTypePlayerDisconnected MessageType = "player-disconnected"
+	MessageTypeError              MessageType = "error"
+	MessageTypeFullState          MessageType = "full-state"
+	MessageTypeAvailableCards     MessageType = "available-cards"
 )
 
 // WebSocketMessage represents a WebSocket message
@@ -61,4 +64,24 @@ type FullStatePayload struct {
 // AvailableCardsPayload contains available starting cards
 type AvailableCardsPayload struct {
 	Cards []CardDto `json:"cards" ts:"CardDto[]"`
+}
+
+// PlayerReconnectPayload contains player reconnection data
+type PlayerReconnectPayload struct {
+	PlayerName string `json:"playerName" ts:"string"`
+	GameID     string `json:"gameId" ts:"string"`
+}
+
+// PlayerReconnectedPayload contains data about a reconnected player
+type PlayerReconnectedPayload struct {
+	PlayerID   string  `json:"playerId" ts:"string"`
+	PlayerName string  `json:"playerName" ts:"string"`
+	Game       GameDto `json:"game" ts:"GameDto"`
+}
+
+// PlayerDisconnectedPayload contains data about a disconnected player
+type PlayerDisconnectedPayload struct {
+	PlayerID   string  `json:"playerId" ts:"string"`
+	PlayerName string  `json:"playerName" ts:"string"`
+	Game       GameDto `json:"game" ts:"GameDto"`
 }

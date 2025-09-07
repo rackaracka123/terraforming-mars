@@ -24,13 +24,11 @@ type GameService interface {
 	// List games by status
 	ListGames(ctx context.Context, status string) ([]*model.Game, error)
 
-
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
-
 }
 
 // GameServiceImpl implements GameService interface
@@ -84,7 +82,6 @@ func (s *GameServiceImpl) GetGame(ctx context.Context, gameID string) (*model.Ga
 func (s *GameServiceImpl) ListGames(ctx context.Context, status string) ([]*model.Game, error) {
 	return s.gameRepo.List(ctx, status)
 }
-
 
 func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, "")
@@ -195,9 +192,14 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		Production: model.Production{
 			Credits: 1, // Base production
 		},
-		TerraformRating: 20, // Starting terraform rating
-		IsActive:        true,
-		PlayedCards:     make([]string, 0),
+		TerraformRating:  20, // Starting terraform rating
+		IsActive:         true,
+		PlayedCards:      make([]string, 0),
+		Passed:           false, // Player starts active, not passed
+		AvailableActions: 2,     // Standard actions per turn in action phase
+		VictoryPoints:    0,     // Starting victory points
+		MilestoneIcon:    "",    // No milestone achieved initially
+		ConnectionStatus: model.ConnectionStatusConnected,
 	}
 
 	// Add player through PlayerRepository

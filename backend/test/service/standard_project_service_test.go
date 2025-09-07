@@ -16,8 +16,8 @@ import (
 // Helper functions for creating test services
 func createTestStandardProjectService() service.StandardProjectService {
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	return service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
@@ -25,8 +25,8 @@ func createTestStandardProjectService() service.StandardProjectService {
 
 func createTestPlayerService() service.PlayerService {
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	return service.NewPlayerService(gameRepo, playerRepo)
 }
 
@@ -45,8 +45,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 
 	// Initialize services
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -20,6 +21,10 @@ type PlayerService interface {
 
 	// Get player information
 	GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error)
+	GetPlayerByName(ctx context.Context, gameID, playerName string) (*model.Player, error)
+
+	// Connection management
+	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
 
 	// Validation methods for card system
 	ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error
@@ -317,9 +322,34 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player terraform rating updated", 
+	log.Info("Player terraform rating updated",
 		zap.Int("old_tr", player.TerraformRating),
 		zap.Int("new_tr", newTR))
+	return nil
+}
+
+// UpdatePlayerConnectionStatus updates a player's connection status
+func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := s.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player for connection status update", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Update connection status
+	player.ConnectionStatus = status
+
+	// Save the updated player
+	err = s.playerRepo.UpdatePlayer(ctx, gameID, player)
+	if err != nil {
+		log.Error("Failed to update player connection status", zap.Error(err))
+		return fmt.Errorf("failed to update player: %w", err)
+	}
+
+	log.Info("Updated player connection status",
+		zap.String("status", string(status)))
 
 	return nil
 }
@@ -333,4 +363,29 @@ func (s *PlayerServiceImpl) AddPlayerTR(ctx context.Context, gameID, playerID st
 
 	newTR := player.TerraformRating + trIncrease
 	return s.UpdatePlayerTR(ctx, gameID, playerID, newTR)
+}
+
+// GetPlayerByName finds a player by name in a specific game
+func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (*model.Player, error) {
+	log := logger.WithGameContext(gameID, playerName)
+
+	// Get the game to access its players
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for player lookup", zap.Error(err))
+		return nil, fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Search for player by name
+	for _, player := range game.Players {
+		if player.Name == playerName {
+			log.Debug("Found player by name",
+				zap.String("player_id", player.ID),
+				zap.String("player_name", player.Name))
+			return &player, nil
+		}
+	}
+
+	log.Warn("Player not found by name", zap.String("player_name", playerName))
+	return nil, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
 }

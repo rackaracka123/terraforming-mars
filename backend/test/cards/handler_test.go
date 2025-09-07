@@ -31,6 +31,16 @@ func (m *MockPlayerService) GetPlayer(ctx context.Context, gameID, playerID stri
 	return args.Get(0).(*model.Player), args.Error(1)
 }
 
+func (m *MockPlayerService) GetPlayerByName(ctx context.Context, gameID, playerName string) (*model.Player, error) {
+	args := m.Called(ctx, gameID, playerName)
+	return args.Get(0).(*model.Player), args.Error(1)
+}
+
+func (m *MockPlayerService) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
+	args := m.Called(ctx, gameID, playerID, status)
+	return args.Error(0)
+}
+
 func (m *MockPlayerService) ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error {
 	args := m.Called(ctx, gameID, playerID, requirement)
 	return args.Error(0)
