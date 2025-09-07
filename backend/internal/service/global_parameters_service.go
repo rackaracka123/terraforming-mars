@@ -26,7 +26,6 @@ type GlobalParametersService interface {
 
 	// Place ocean tiles
 	PlaceOcean(ctx context.Context, gameID string, count int) error
-
 }
 
 // GlobalParametersServiceImpl implements GlobalParametersService interface

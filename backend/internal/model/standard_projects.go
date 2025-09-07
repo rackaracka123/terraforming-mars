@@ -22,7 +22,6 @@ var StandardProjectCost = map[StandardProject]int{
 	StandardProjectCity:        25, // 25 M€
 }
 
-
 // HexPosition represents a position on the Mars board using cube coordinates
 type HexPosition struct {
 	Q int `json:"q" ts:"number"` // Column coordinate
@@ -35,7 +34,7 @@ func (h *HexPosition) DeepCopy() *HexPosition {
 	if h == nil {
 		return nil
 	}
-	
+
 	return &HexPosition{
 		Q: h.Q,
 		R: h.R,

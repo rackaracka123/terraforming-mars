@@ -59,7 +59,7 @@ func (gs *GameSettings) DeepCopy() *GameSettings {
 	if gs == nil {
 		return nil
 	}
-	
+
 	var tempCopy, oxygenCopy, oceansCopy *int
 	if gs.Temperature != nil {
 		temp := *gs.Temperature
@@ -87,7 +87,7 @@ func (g *GlobalParameters) DeepCopy() *GlobalParameters {
 	if g == nil {
 		return nil
 	}
-	
+
 	return &GlobalParameters{
 		Temperature: g.Temperature,
 		Oxygen:      g.Oxygen,

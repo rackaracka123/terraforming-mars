@@ -25,7 +25,7 @@ func (r *Resources) DeepCopy() *Resources {
 	if r == nil {
 		return nil
 	}
-	
+
 	return &Resources{
 		Credits:  r.Credits,
 		Steel:    r.Steel,
@@ -41,7 +41,7 @@ func (p *Production) DeepCopy() *Production {
 	if p == nil {
 		return nil
 	}
-	
+
 	return &Production{
 		Credits:  p.Credits,
 		Steel:    p.Steel,

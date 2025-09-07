@@ -147,13 +147,13 @@ func (c *Connection) WritePump() {
 			if err := c.Conn.WriteJSON(message); err != nil {
 				// Check if it's a timeout error
 				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-					c.logger.Error("WebSocket write timeout - message too large or network too slow", 
-						zap.Error(err), 
+					c.logger.Error("WebSocket write timeout - message too large or network too slow",
+						zap.Error(err),
 						zap.String("connection_id", c.ID),
 						zap.String("message_type", string(message.Type)))
 				} else {
-					c.logger.Error("WebSocket write error", 
-						zap.Error(err), 
+					c.logger.Error("WebSocket write error",
+						zap.Error(err),
 						zap.String("connection_id", c.ID),
 						zap.String("message_type", string(message.Type)))
 				}
