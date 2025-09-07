@@ -1,0 +1,323 @@
+package service
+
+import (
+	"context"
+	"testing"
+
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/service"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestCardService_SelectStartingCards(t *testing.T) {
+	// Setup
+	eventBus := events.NewInMemoryEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+
+	ctx := context.Background()
+
+	// Create a test game
+	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
+	game.Status = model.GameStatusActive
+	game.CurrentPhase = model.GamePhaseStartingCardSelection
+
+	// Create test player with starting credits
+	player := model.Player{
+		ID:   "player1",
+		Name: "Test Player",
+		Resources: model.Resources{
+			Credits: 40, // Starting credits
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsActive:        true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	// Add player to game
+	game.Players = []model.Player{player}
+
+	// Store game and player
+	createdGame, err := gameRepo.Create(ctx, game.Settings)
+	require.NoError(t, err)
+	game.ID = createdGame.ID // Use the ID from the created game
+
+	// Update game with our test data
+	err = gameRepo.Update(ctx, game)
+	require.NoError(t, err)
+
+	err = playerRepo.AddPlayer(ctx, game.ID, player)
+	require.NoError(t, err)
+
+	// Store starting card options
+	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	cardServiceImpl := cardService.(*service.CardServiceImpl)
+	cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
+
+	tests := []struct {
+		name          string
+		selectedCards []string
+		expectedCost  int
+		expectedError bool
+		errorMessage  string
+	}{
+		{
+			name:          "Select no cards",
+			selectedCards: []string{},
+			expectedCost:  0,
+			expectedError: false,
+		},
+		{
+			name:          "Select one card (free)",
+			selectedCards: []string{"investment"},
+			expectedCost:  0,
+			expectedError: false,
+		},
+		{
+			name:          "Select two cards (3 MC for second)",
+			selectedCards: []string{"investment", "early-settlement"},
+			expectedCost:  3,
+			expectedError: false,
+		},
+		{
+			name:          "Select three cards (6 MC total)",
+			selectedCards: []string{"investment", "early-settlement", "research-grant"},
+			expectedCost:  6,
+			expectedError: false,
+		},
+		{
+			name:          "Select four cards (9 MC total)",
+			selectedCards: []string{"investment", "early-settlement", "research-grant", "power-plant"},
+			expectedCost:  9,
+			expectedError: false,
+		},
+		{
+			name:          "Select invalid card",
+			selectedCards: []string{"invalid-card"},
+			expectedError: true,
+			errorMessage:  "invalid card ID: invalid-card",
+		},
+		{
+			name:          "Select too many cards",
+			selectedCards: []string{"investment", "early-settlement", "research-grant", "power-plant", "extra-card"},
+			expectedError: true,
+			errorMessage:  "cannot select more than 4 cards",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset player state for each test
+			resetPlayer := model.Player{
+				ID:   "player1",
+				Name: "Test Player",
+				Resources: model.Resources{
+					Credits: 40,
+				},
+				Production: model.Production{
+					Credits: 1,
+				},
+				TerraformRating: 20,
+				IsActive:        true,
+				Cards:           []string{},
+				PlayedCards:     []string{},
+			}
+
+			err := playerRepo.UpdatePlayer(ctx, game.ID, &resetPlayer)
+			require.NoError(t, err)
+
+			// Reset game state
+			resetGame := *game
+			resetGame.Players = []model.Player{resetPlayer}
+			err = gameRepo.Update(ctx, &resetGame)
+			require.NoError(t, err)
+
+			// Reset card service selection status
+			cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
+
+			// Execute
+			err = cardService.SelectStartingCards(ctx, game.ID, player.ID, tt.selectedCards)
+
+			// Assert
+			if tt.expectedError {
+				assert.Error(t, err)
+				if tt.errorMessage != "" {
+					assert.Contains(t, err.Error(), tt.errorMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+
+				// Verify player state after selection
+				updatedPlayer, err := playerRepo.GetPlayer(ctx, game.ID, player.ID)
+				require.NoError(t, err)
+
+				// Check cards were added to player's hand
+				assert.Equal(t, len(tt.selectedCards), len(updatedPlayer.Cards))
+				for _, cardID := range tt.selectedCards {
+					assert.Contains(t, updatedPlayer.Cards, cardID)
+				}
+
+				// Check credits were deducted correctly
+				expectedCredits := 40 - tt.expectedCost
+				assert.Equal(t, expectedCredits, updatedPlayer.Resources.Credits)
+			}
+		})
+	}
+}
+
+func TestCardService_ValidateStartingCardSelection(t *testing.T) {
+	// Setup
+	eventBus := events.NewInMemoryEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+
+	ctx := context.Background()
+
+	// Store starting card options
+	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	cardServiceImpl := cardService.(*service.CardServiceImpl)
+	cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
+
+	tests := []struct {
+		name          string
+		cardIDs       []string
+		expectedError bool
+		errorMessage  string
+	}{
+		{
+			name:          "Valid selection from options",
+			cardIDs:       []string{"investment", "early-settlement"},
+			expectedError: false,
+		},
+		{
+			name:          "Empty selection is valid",
+			cardIDs:       []string{},
+			expectedError: false,
+		},
+		{
+			name:          "Card not in player's options",
+			cardIDs:       []string{"heat-generators"}, // Valid card but not in player's available options
+			expectedError: true,
+			errorMessage:  "card heat-generators is not in player's available options",
+		},
+		{
+			name:          "Too many cards",
+			cardIDs:       []string{"investment", "early-settlement", "research-grant", "power-plant", "extra"},
+			expectedError: true,
+			errorMessage:  "cannot select more than 4 cards, got 5",
+		},
+		{
+			name:          "Non-existent card ID",
+			cardIDs:       []string{"fake-card-id"},
+			expectedError: true,
+			errorMessage:  "invalid card ID: fake-card-id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset selection status
+			cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
+
+			err := cardService.ValidateStartingCardSelection(ctx, "test-game", "player1", tt.cardIDs)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+				if tt.errorMessage != "" {
+					assert.Contains(t, err.Error(), tt.errorMessage)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
+	// Setup
+	eventBus := events.NewInMemoryEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+
+	ctx := context.Background()
+
+	// Create a test game with multiple players
+	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
+	game.Status = model.GameStatusActive
+	game.CurrentPhase = model.GamePhaseStartingCardSelection
+
+	// Create test players
+	player1 := model.Player{
+		ID:              "player1",
+		Name:            "Player 1",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
+		TerraformRating: 20,
+		IsActive:        true,
+	}
+
+	player2 := model.Player{
+		ID:              "player2",
+		Name:            "Player 2",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
+		TerraformRating: 20,
+		IsActive:        true,
+	}
+
+	game.Players = []model.Player{player1, player2}
+
+	// Store game
+	createdGame, err := gameRepo.Create(ctx, game.Settings)
+	require.NoError(t, err)
+	game.ID = createdGame.ID // Use the ID from the created game
+
+	err = gameRepo.Update(ctx, game)
+	require.NoError(t, err)
+
+	// Add players
+	err = playerRepo.AddPlayer(ctx, game.ID, player1)
+	require.NoError(t, err)
+	err = playerRepo.AddPlayer(ctx, game.ID, player2)
+	require.NoError(t, err)
+
+	cardServiceImpl := cardService.(*service.CardServiceImpl)
+
+	// Test: No players have selection data
+	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	assert.False(t, complete)
+
+	// Setup card options for both players
+	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	cardServiceImpl.StorePlayerCardOptions(game.ID, player1.ID, availableCards)
+	cardServiceImpl.StorePlayerCardOptions(game.ID, player2.ID, availableCards)
+
+	// Test: No players have completed selection
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	assert.False(t, complete)
+
+	// Test: Only one player completed selection
+	err = cardService.SelectStartingCards(ctx, game.ID, player1.ID, []string{"investment"})
+	require.NoError(t, err)
+
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	assert.False(t, complete)
+
+	// Test: All players completed selection
+	err = cardService.SelectStartingCards(ctx, game.ID, player2.ID, []string{"early-settlement"})
+	require.NoError(t, err)
+
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	assert.True(t, complete)
+}

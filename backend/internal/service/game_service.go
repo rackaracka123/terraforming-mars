@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -27,6 +29,9 @@ type GameService interface {
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
+	// Advance game phase after all players complete starting card selection
+	AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error
+
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
 }
@@ -36,6 +41,8 @@ type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	parametersRepo repository.GlobalParametersRepository
+	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	eventBus       events.EventBus
 }
 
 // NewGameService creates a new GameService instance
@@ -43,11 +50,15 @@ func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	parametersRepo repository.GlobalParametersRepository,
+	cardService *CardServiceImpl,
+	eventBus events.EventBus,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		parametersRepo: parametersRepo,
+		cardService:    cardService,
+		eventBus:       eventBus,
 	}
 }
 
@@ -110,13 +121,20 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("cannot start game with no players")
 	}
 
-	// Transition game status to active
+	// Transition game status to active and phase to starting card selection
 	game.Status = model.GameStatusActive
+	game.CurrentPhase = model.GamePhaseStartingCardSelection
 
 	// Update game through repository
 	if err := s.gameRepo.Update(ctx, game); err != nil {
 		log.Error("Failed to update game status to active", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	// Distribute starting cards to all players
+	if err := s.distributeStartingCards(ctx, gameID, game.Players); err != nil {
+		log.Error("Failed to distribute starting cards", zap.Error(err))
+		return fmt.Errorf("failed to distribute starting cards: %w", err)
 	}
 
 	log.Info("Game started", zap.String("game_id", gameID))
@@ -257,5 +275,111 @@ func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) erro
 			return fmt.Errorf("oceans must be between 0 and 9, got %d", settings.Oceans)
 		}
 	}
+	return nil
+}
+
+// distributeStartingCards deals starting card options to all players
+func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []model.Player) error {
+	log := logger.WithGameContext(gameID, "")
+	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
+
+	// Get all available starting cards
+	allStartingCards := model.GetStartingCards()
+	startingCardIDs := make([]string, len(allStartingCards))
+	for i, card := range allStartingCards {
+		startingCardIDs[i] = card.ID
+	}
+
+	// Create random source for card distribution
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Distribute 4 random cards to each player
+	const cardsPerPlayer = 4
+	for _, player := range players {
+		// Shuffle and select 4 cards
+		shuffled := make([]string, len(startingCardIDs))
+		copy(shuffled, startingCardIDs)
+
+		// Fisher-Yates shuffle
+		for i := len(shuffled) - 1; i > 0; i-- {
+			j := rng.Intn(i + 1)
+			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+		}
+
+		cardOptions := shuffled[:cardsPerPlayer]
+
+		log.Debug("Dealing starting cards to player",
+			zap.String("player_id", player.ID),
+			zap.Strings("cards", cardOptions))
+
+		// Store card options in CardService for validation during selection
+		s.cardService.StorePlayerCardOptions(gameID, player.ID, cardOptions)
+
+		// Create and publish event
+		event := events.NewPlayerStartingCardOptionsEvent(gameID, player.ID, cardOptions)
+
+		// Publish the event through the event bus
+		if s.eventBus != nil {
+			if err := s.eventBus.Publish(ctx, event); err != nil {
+				log.Warn("Failed to publish starting card options event",
+					zap.String("player_id", player.ID),
+					zap.Error(err))
+			} else {
+				log.Debug("Starting card options event published",
+					zap.String("player_id", player.ID),
+					zap.String("event_type", event.GetType()))
+			}
+		}
+	}
+
+	log.Info("Starting cards distributed to all players", zap.Int("players", len(players)))
+	return nil
+}
+
+// AdvanceFromCardSelectionPhase advances the game from starting card selection to action phase
+func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
+	log := logger.WithGameContext(gameID, "")
+	log.Debug("Advancing game phase from card selection")
+
+	// Get current game state
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for phase advancement", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Validate current phase
+	if game.CurrentPhase != model.GamePhaseStartingCardSelection {
+		log.Warn("Attempted to advance from card selection phase but game is not in that phase",
+			zap.String("current_phase", string(game.CurrentPhase)))
+		return fmt.Errorf("game is not in starting card selection phase")
+	}
+
+	// Validate game is active
+	if game.Status != model.GameStatusActive {
+		log.Warn("Attempted to advance phase but game is not active",
+			zap.String("current_status", string(game.Status)))
+		return fmt.Errorf("game is not active")
+	}
+
+	// Advance to action phase
+	oldPhase := game.CurrentPhase
+	game.CurrentPhase = model.GamePhaseAction
+
+	// Update game through repository
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game phase", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	// Clear temporary card selection data
+	if s.cardService != nil {
+		s.cardService.ClearGameSelectionData(gameID)
+	}
+
+	log.Info("Game phase advanced successfully",
+		zap.String("previous_phase", string(oldPhase)),
+		zap.String("new_phase", string(game.CurrentPhase)))
+
 	return nil
 }

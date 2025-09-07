@@ -24,7 +24,7 @@ import (
 func main() {
 	logLevel := os.Getenv("TM_LOG_LEVEL")
 	if logLevel == "" {
-		logLevel = "info"
+		logLevel = "debug"
 	}
 
 	// Initialize logger
@@ -55,12 +55,15 @@ func main() {
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 	log.Info("Global parameters repository initialized")
 
+
 	// Initialize new service architecture
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
-	log.Info("Services initialized with new architecture")
+	
+	log.Info("Services initialized with new architecture and reconnection system")
 
 	// Log service initialization
 	log.Info("Player service ready", zap.Any("service", playerService != nil))
@@ -85,7 +88,7 @@ func main() {
 	}
 
 	// Initialize WebSocket hub
-	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService)
+	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService, cardService, eventBus)
 	wsHandlerInstance := wsHandler.NewHandler(hub)
 
 	// Start WebSocket hub in background

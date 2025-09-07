@@ -4,7 +4,7 @@ package model
 type GamePhase string
 
 const (
-	GamePhaseSetup                 GamePhase = "setup"
+	GamePhaseWaitingForGameStart   GamePhase = "waiting_for_game_start"
 	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
 	GamePhaseCorporationSelection  GamePhase = "corporation_selection"
 	GamePhaseAction                GamePhase = "action"

@@ -1,0 +1,185 @@
+package integration
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"sync"
+	httpHandler "terraforming-mars-backend/internal/delivery/http"
+	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/initialization"
+	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/service"
+	"time"
+
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+)
+
+// TestServer represents a test server instance
+type TestServer struct {
+	server  *http.Server
+	hub     *wsHandler.Hub
+	hubCtx  context.Context
+	cancel  context.CancelFunc
+	port    int
+	logger  *zap.Logger
+	started bool
+	mu      sync.Mutex
+}
+
+// NewTestServer creates a new test server on the specified port
+func NewTestServer(port int) (*TestServer, error) {
+	logger := zap.NewNop() // Use no-op logger for tests to reduce noise
+
+	// Initialize event bus
+	eventBus := events.NewInMemoryEventBus()
+
+	// Initialize repositories
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
+
+	// Initialize services with proper event bus wiring
+	cardService := service.NewCardService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	playerService := service.NewPlayerService(gameRepo, playerRepo)
+	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
+	
+
+	// Register card-specific listeners
+	if err := initialization.RegisterCardListeners(eventBus); err != nil {
+		return nil, fmt.Errorf("failed to register card listeners: %w", err)
+	}
+
+	// Initialize WebSocket hub with proper event bus
+	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService, cardService, eventBus)
+
+	wsHandlerInstance := wsHandler.NewHandler(hub)
+
+	// Setup router
+	mainRouter := mux.NewRouter()
+	apiRouter := httpHandler.SetupRouter(gameService, playerService)
+	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
+	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	
+	// Add health check endpoint
+	mainRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// Create HTTP server
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      mainRouter,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	return &TestServer{
+		server: server,
+		hub:    hub,
+		port:   port,
+		logger: logger,
+	}, nil
+}
+
+// Start starts the test server
+func (ts *TestServer) Start() error {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	if ts.started {
+		return nil
+	}
+
+	// Start WebSocket hub
+	ts.hubCtx, ts.cancel = context.WithCancel(context.Background())
+	go ts.hub.Run(ts.hubCtx)
+
+	// Start HTTP server in background
+	go func() {
+		if err := ts.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			ts.logger.Error("Test server failed", zap.Error(err))
+		}
+	}()
+
+	// Wait for server to be ready with polling mechanism
+	if err := ts.waitForServerReady(); err != nil {
+		return fmt.Errorf("server failed to start: %w", err)
+	}
+
+	ts.started = true
+	return nil
+}
+
+// waitForServerReady polls the health endpoint until server is ready
+func (ts *TestServer) waitForServerReady() error {
+	healthURL := fmt.Sprintf("http://localhost:%d/health", ts.port)
+	
+	// Try for up to 5 seconds with exponential backoff  
+	maxAttempts := 15
+	baseDelay := 50 * time.Millisecond
+	
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// Use a fresh client for each attempt with shorter timeout
+		client := &http.Client{Timeout: 200 * time.Millisecond}
+		resp, err := client.Get(healthURL)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				// Give a small additional delay to ensure WebSocket handlers are ready
+				time.Sleep(100 * time.Millisecond)
+				return nil
+			}
+		}
+		
+		// Exponential backoff with cap
+		delay := time.Duration(1<<uint(attempt)) * baseDelay
+		if delay > 500*time.Millisecond {
+			delay = 500 * time.Millisecond
+		}
+		time.Sleep(delay)
+	}
+	
+	return fmt.Errorf("server did not become ready within timeout on port %d", ts.port)
+}
+
+// Stop stops the test server
+func (ts *TestServer) Stop() error {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	if !ts.started {
+		return nil
+	}
+
+	// Stop WebSocket hub
+	if ts.cancel != nil {
+		ts.cancel()
+		// Give time for all WebSocket connections and goroutines to properly terminate
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Stop HTTP server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ts.started = false
+	return ts.server.Shutdown(ctx)
+}
+
+// GetBaseURL returns the base URL for HTTP requests
+func (ts *TestServer) GetBaseURL() string {
+	return fmt.Sprintf("http://localhost:%d", ts.port)
+}
+
+// GetWebSocketURL returns the WebSocket URL
+func (ts *TestServer) GetWebSocketURL() string {
+	return fmt.Sprintf("ws://localhost:%d/ws", ts.port)
+}

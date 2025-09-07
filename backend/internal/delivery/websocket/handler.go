@@ -36,17 +36,19 @@ func NewHandler(hub *Hub) *Handler {
 
 // ServeWS handles WebSocket requests from clients
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
+
 	// Upgrade connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error("Failed to upgrade connection to WebSocket", zap.Error(err))
+		h.logger.Error("❌ Failed to upgrade connection to WebSocket", zap.Error(err))
 		return
 	}
 
 	// Create connection ID
 	connectionID := uuid.New().String()
 
-	h.logger.Debug("New WebSocket connection established",
+	h.logger.Info("✅ New WebSocket connection established",
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 
@@ -54,9 +56,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	connection := NewConnection(connectionID, conn, h.hub)
 
 	// Register connection with hub
-	h.logger.Info("Sending connection to Register channel", zap.String("connection_id", connectionID))
+	h.logger.Info("📤 Registering connection with hub", zap.String("connection_id", connectionID))
 	h.hub.Register <- connection
-	h.logger.Info("Connection sent to Register channel successfully", zap.String("connection_id", connectionID))
+	h.logger.Info("✅ Connection sent to Register channel successfully", zap.String("connection_id", connectionID))
 	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
@@ -67,12 +69,15 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
+	h.logger.Debug("🚀 Starting connection pumps", zap.String("connection_id", connectionID))
 	// Start read and write pumps without context (they'll manage their own lifecycle)
 	go connection.WritePump()
 	go connection.ReadPump()
 
 	// Send periodic pings to keep connection alive
 	go h.pingLoop(connection)
+
+	h.logger.Info("🎉 WebSocket connection fully initialized", zap.String("connection_id", connectionID))
 }
 
 // pingLoop sends periodic ping messages to keep the connection alive

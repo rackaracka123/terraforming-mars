@@ -10,7 +10,7 @@ help:
 	@echo "🎯 Main Commands:"
 	@echo "  make run          - Run both frontend and backend servers"
 	@echo "  make frontend     - Run frontend development server (port 3000)"
-	@echo "  make backend      - Run backend development server (port 3001)"
+	@echo "  make backend      - Run backend development server with auto-restart (port 3001)"
 	@echo "  make tm          - Run CLI tool for backend interaction"
 	@echo ""
 	@echo "🧪 Testing:"
@@ -42,8 +42,9 @@ frontend:
 	cd frontend && npm start
 
 backend:
-	@echo "⚙️  Starting backend development server..."
-	cd backend && go run cmd/server/main.go
+	@echo "🔄 Starting backend development server with auto-restart..."
+	@echo "   Watching for changes in backend/ directory"
+	cd backend && go run ./cmd/watch cmd/server/main.go
 
 # CLI tool commands
 tm: cli
