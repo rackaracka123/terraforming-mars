@@ -84,76 +84,29 @@
   filter: grayscale(100%) brightness(0.7);
 }
 
-/* Disconnected player styling */
+/* Disconnected player styles */
 .player-entry.disconnected {
-  --player-color: rgba(60, 60, 60, 0.6) !important;
-  background: linear-gradient(
-    135deg,
-    rgba(60, 60, 60, 0.6) 0%,
-    rgba(40, 40, 40, 0.4) 50%,
-    rgba(30, 30, 30, 0.6) 100%
-  ) !important;
-  border-color: rgba(120, 120, 120, 0.3) !important;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.6),
-    0 0 10px rgba(120, 120, 120, 0.2) !important;
-  filter: grayscale(100%) brightness(0.6) contrast(0.8);
-  animation: disconnectFade 0.6s ease-out;
+  transition:
+    filter 0.8s ease-out,
+    opacity 0.8s ease-out;
+  filter: grayscale(80%) brightness(0.6);
+  opacity: 0.7;
 }
 
-.player-entry.disconnected:hover {
-  border-color: rgba(140, 140, 140, 0.4) !important;
-  transform: translateX(1px);
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.7),
-    0 0 15px rgba(140, 140, 140, 0.25) !important;
-}
-
-.player-entry.disconnected .player-content.player-card {
-  background: linear-gradient(
-    135deg,
-    rgba(60, 60, 60, 0.6) 0%,
-    rgba(40, 40, 40, 0.4) 50%,
-    rgba(30, 30, 30, 0.6) 100%
-  ) !important;
-  border-color: rgba(120, 120, 120, 0.3) !important;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.6),
-    0 0 10px rgba(120, 120, 120, 0.2) !important;
-}
-
-.player-entry.disconnected .player-name {
-  color: rgba(180, 180, 180, 0.8) !important;
-}
-
-.player-entry.disconnected .player-score {
-  color: rgba(160, 160, 160, 0.7) !important;
+.player-entry.disconnected .player-content {
+  filter: grayscale(80%) brightness(0.6);
+  transition: filter 0.8s ease-out;
 }
 
 .player-entry.disconnected .milestone-icon-img {
-  filter: grayscale(100%) brightness(0.5) contrast(0.8);
-  border-color: rgba(160, 160, 160, 0.4);
+  filter: grayscale(90%) brightness(0.5);
+  transition: filter 0.8s ease-out;
 }
 
-.player-entry.disconnected .you-indicator {
-  color: rgba(200, 150, 100, 0.8) !important;
-  background: rgba(100, 75, 50, 0.3) !important;
-  border-color: rgba(200, 150, 100, 0.4) !important;
-}
-
-@keyframes disconnectFade {
-  0% {
-    filter: grayscale(0%) brightness(1) contrast(1);
-    transform: scale(1);
-  }
-  50% {
-    filter: grayscale(50%) brightness(0.8) contrast(0.9);
-    transform: scale(0.98);
-  }
-  100% {
-    filter: grayscale(100%) brightness(0.6) contrast(0.8);
-    transform: scale(1);
-  }
+.player-entry.disconnected .player-name,
+.player-entry.disconnected .player-score {
+  filter: grayscale(70%) brightness(0.7);
+  transition: filter 0.8s ease-out;
 }
 
 .player-content {
@@ -442,14 +395,18 @@
 .disconnected-indicator {
   font-size: 10px;
   font-weight: bold;
-  color: rgba(255, 100, 100, 0.9);
-  background: rgba(150, 50, 50, 0.3);
+  color: rgba(255, 120, 120, 0.85);
+  background: rgba(180, 60, 60, 0.4);
   padding: 2px 6px;
   border-radius: 3px;
-  border: 1px solid rgba(255, 100, 100, 0.4);
+  border: 1px solid rgba(255, 120, 120, 0.5);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   letter-spacing: 0.5px;
   margin-top: 2px;
+  /* Create new stacking context to isolate from parent filters */
+  isolation: isolate;
+  /* Override the parent's grayscale filter to keep the red color */
+  filter: grayscale(0%) !important;
 }
 
 .connection-status {
@@ -477,10 +434,15 @@
 .connection-status.disconnected .connection-dot {
   background: radial-gradient(circle, #ff4444 0%, #cc2222 100%);
   animation: disconnectedBlink 1s ease-in-out infinite;
+  /* Create new stacking context to isolate from parent filters */
+  isolation: isolate;
+  /* Override the parent's grayscale filter to keep the red color */
+  filter: grayscale(0%) !important;
 }
 
 @keyframes connectedPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -491,7 +453,8 @@
 }
 
 @keyframes disconnectedBlink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

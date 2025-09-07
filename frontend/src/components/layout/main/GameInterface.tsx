@@ -21,56 +21,13 @@ import {
 } from "../../../types/generated/api-types.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
-// Mock interface for GameLayout compatibility
-interface MockGameState {
-  id: string;
-  players: MockPlayer[];
-  currentPlayer: string;
-  generation: number;
-  phase: string;
-  globalParameters: {
-    temperature: number;
-    oxygen: number;
-    oceans: number;
-  };
-}
-
-interface MockPlayer {
-  id: string;
-  name: string;
-  resources: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-  production: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  availableActions?: number;
-}
-
 export default function GameInterface() {
   const location = useLocation();
   const navigate = useNavigate();
   const [game, setGame] = useState<GameDto | null>(null);
-  const [mockGameState, setMockGameState] = useState<MockGameState | null>(
-    null,
-  );
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [currentPlayer, setCurrentPlayer] = useState<MockPlayer | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [showCorporationModal, setShowCorporationModal] = useState(false);
 
   // New modal states
@@ -96,92 +53,40 @@ export default function GameInterface() {
   const isWebSocketInitialized = useRef(false);
   const currentPlayerIdRef = useRef<string | null>(null);
 
-  // Helper function to convert Game to MockGameState for compatibility
-  const convertGameToMockState = (
-    gameData: GameDto,
-    playerId: string,
-  ): MockGameState => {
-    return {
-      id: gameData.id,
-      players:
-        gameData.players?.map((p: PlayerDto) => ({
-          id: p.id,
-          name: p.name,
-          resources: p.resources || {
-            credits: 0,
-            steel: 0,
-            titanium: 0,
-            plants: 0,
-            energy: 0,
-            heat: 0,
-          },
-          production: p.production || {
-            credits: 0,
-            steel: 0,
-            titanium: 0,
-            plants: 0,
-            energy: 0,
-            heat: 0,
-          },
-          terraformRating: p.terraformRating || 20,
-          victoryPoints: p.victoryPoints || 0,
-          corporation: p.corporation,
-          passed: p.passed || false,
-          availableActions: p.availableActions || 0,
-        })) || [],
-      currentPlayer: playerId,
-      generation: gameData.generation || 1,
-      phase: gameData.currentPhase || "setup",
-      globalParameters: {
-        temperature: gameData.globalParameters?.temperature || -30,
-        oxygen: gameData.globalParameters?.oxygen || 0,
-        oceans: gameData.globalParameters?.oceans || 0,
-      },
-    };
-  };
-
   // Stable WebSocket event handlers using useCallback
-  const handleGameUpdated = useCallback(
-    (updatedGame: GameDto) => {
-      const playerId = currentPlayerIdRef.current;
-      if (!playerId) return;
+  const handleGameUpdated = useCallback((updatedGame: GameDto) => {
+    const playerId = currentPlayerIdRef.current;
+    if (!playerId) return;
 
-      // Detect changes before updating
-      if (previousGameRef.current) {
-        const changes = findChangedPaths(previousGameRef.current, updatedGame);
-        setChangedPaths(changes);
+    // Detect changes before updating
+    if (previousGameRef.current) {
+      const changes = findChangedPaths(previousGameRef.current, updatedGame);
+      setChangedPaths(changes);
 
-        // Clear changed paths after animation completes
-        if (changes.size > 0) {
-          setTimeout(() => {
-            setChangedPaths(new Set());
-          }, 1500);
-        }
+      // Clear changed paths after animation completes
+      if (changes.size > 0) {
+        setTimeout(() => {
+          setChangedPaths(new Set());
+        }, 1500);
       }
+    }
 
-      // Store the previous state for next comparison
-      previousGameRef.current = deepClone(updatedGame);
+    // Store the previous state for next comparison
+    previousGameRef.current = deepClone(updatedGame);
 
-      setGame(updatedGame);
+    setGame(updatedGame);
 
-      // Update mock state for compatibility
-      const updatedMockState = convertGameToMockState(updatedGame, playerId);
-      setMockGameState(updatedMockState);
+    // Find current player in the updated game
+    const updatedPlayer = updatedGame.players.find((p) => p.id === playerId);
+    setCurrentPlayer(updatedPlayer || null);
 
-      const updatedPlayer = updatedMockState.players.find(
-        (p) => p.id === playerId,
-      );
-      setCurrentPlayer(updatedPlayer || null);
-
-      // Show corporation modal if player hasn't selected a corporation yet
-      if (updatedPlayer && !updatedPlayer.corporation) {
-        setShowCorporationModal(true);
-      } else {
-        setShowCorporationModal(false);
-      }
-    },
-    [convertGameToMockState],
-  );
+    // Show corporation modal if player hasn't selected a corporation yet
+    if (updatedPlayer && !updatedPlayer.corporation) {
+      setShowCorporationModal(true);
+    } else {
+      setShowCorporationModal(false);
+    }
+  }, []);
 
   const handleFullState = useCallback(
     (statePayload: FullStatePayload) => {
@@ -323,14 +228,8 @@ export default function GameInterface() {
           }),
         );
 
-        // Convert real game to mock format for GameLayout compatibility
-        const mockState = convertGameToMockState(
-          routeState.game,
-          routeState.playerId,
-        );
-        setMockGameState(mockState);
-
-        const player = mockState.players.find(
+        // Find current player in the game
+        const player = routeState.game.players.find(
           (p) => p.id === routeState.playerId,
         );
         setCurrentPlayer(player || null);
@@ -408,14 +307,8 @@ export default function GameInterface() {
         }),
       );
 
-      // Convert real game to mock format for GameLayout compatibility
-      const mockState = convertGameToMockState(
-        routeState.game,
-        routeState.playerId,
-      );
-      setMockGameState(mockState);
-
-      const player = mockState.players.find(
+      // Find current player in the game
+      const player = routeState.game.players.find(
         (p) => p.id === routeState.playerId,
       );
       setCurrentPlayer(player || null);
@@ -583,7 +476,7 @@ export default function GameInterface() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [showDebugDropdown]);
 
-  if (!isConnected || !mockGameState || !game || isReconnecting) {
+  if (!isConnected || !game || isReconnecting) {
     return (
       <div
         style={{
@@ -616,7 +509,7 @@ export default function GameInterface() {
   return (
     <>
       <GameLayout
-        gameState={mockGameState}
+        gameState={game}
         currentPlayer={currentPlayer}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}

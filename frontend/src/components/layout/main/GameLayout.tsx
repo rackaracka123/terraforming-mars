@@ -7,51 +7,12 @@ import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
+import { GameDto, PlayerDto } from "../../../types/generated/api-types.ts";
 import styles from "./GameLayout.module.css";
 
-// Mock interfaces for compatibility
-interface MockGameState {
-  id: string;
-  players: MockPlayer[];
-  currentPlayer: string;
-  generation: number;
-  phase: string;
-  globalParameters: {
-    temperature: number;
-    oxygen: number;
-    oceans: number;
-  };
-}
-
-interface MockPlayer {
-  id: string;
-  name: string;
-  resources: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-  production: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  availableActions?: number;
-}
-
 interface GameLayoutProps {
-  gameState: MockGameState;
-  currentPlayer: MockPlayer | null;
+  gameState: GameDto;
+  currentPlayer: PlayerDto | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;

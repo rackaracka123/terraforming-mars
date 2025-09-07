@@ -153,7 +153,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       onMouseLeave={() => setHoveredCorp(null)}
                     />
                     {/* Connection status indicator */}
-                    <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                    <div
+                      className={`connection-status ${isConnected ? "connected" : "disconnected"}`}
+                    >
                       <div className="connection-dot"></div>
                     </div>
                   </div>
@@ -165,7 +167,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     )}
                     {isPassed && <div className="passed-indicator">PASSED</div>}
                     {isDisconnected && (
-                      <div className="disconnected-indicator">OFFLINE</div>
+                      <div className="disconnected-indicator">DISCONNECTED</div>
                     )}
                   </div>
                 </div>
@@ -207,7 +209,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     onMouseLeave={() => setHoveredCorp(null)}
                   />
                   {/* Connection status indicator */}
-                  <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                  <div
+                    className={`connection-status ${isConnected ? "connected" : "disconnected"}`}
+                  >
                     <div className="connection-dot"></div>
                   </div>
                 </div>
@@ -216,7 +220,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   <div className="player-score">{score}</div>
                   {isPassed && <div className="passed-indicator">PASSED</div>}
                   {isDisconnected && (
-                    <div className="disconnected-indicator">OFFLINE</div>
+                    <div className="disconnected-indicator">DISCONNECTED</div>
                   )}
                 </div>
               </div>
