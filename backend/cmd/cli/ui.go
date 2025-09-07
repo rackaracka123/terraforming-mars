@@ -474,6 +474,8 @@ func (ui *UI) renderContextualActions() string {
 		return ui.renderDisconnectedActions()
 	} else if ui.state.GameStatus == model.GameStatusLobby {
 		return ui.renderLobbyActions()
+	} else if ui.state.CurrentPhase == model.GamePhaseStartingCardSelection {
+		return ui.renderStartingCardSelectionActions()
 	} else {
 		return ui.renderActiveGameActions()
 	}
@@ -519,6 +521,32 @@ func (ui *UI) renderLobbyActions() string {
 
 💡 The host will start the game when all players are ready.`
 	}
+
+	return basePanelStyle.
+		BorderForeground(secondaryColor).
+		Width(ui.termWidth - 4).
+		Render(title + content)
+}
+
+// renderStartingCardSelectionActions shows starting card selection interface
+func (ui *UI) renderStartingCardSelectionActions() string {
+	title := headerStyle.Render("🃏 Starting Card Selection")
+	
+	var content string
+	content = `
+⏳ Starting card selection phase in progress...
+
+💡 Available commands:
+• help - Show detailed help
+• cards - View available starting cards (when received)
+• overview - Show game overview
+• quit - Exit CLI
+
+🎯 Once you receive starting cards, you can:
+• Select cards with: select-cards <card1> <card2> ...
+• Each card beyond the first costs 3 MC
+
+💰 You start with 40 MC - plan your selection carefully!`
 
 	return basePanelStyle.
 		BorderForeground(secondaryColor).

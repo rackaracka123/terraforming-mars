@@ -29,7 +29,7 @@ func NewGame(id string, settings GameSettings) *Game {
 		Status:       GameStatusLobby,
 		Settings:     settings,
 		Players:      make([]Player, 0),
-		CurrentPhase: GamePhaseSetup,
+		CurrentPhase: GamePhaseWaitingForGameStart,
 		GlobalParameters: GlobalParameters{
 			Temperature: -30,
 			Oxygen:      0,

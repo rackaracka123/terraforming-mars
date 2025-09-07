@@ -341,6 +341,9 @@ func (c *CLIClient) processCommand(command string) bool {
 	case "convert":
 		c.requiresConnection(cmd, func() { c.convertResources(args) })
 
+	case "select-cards":
+		c.requiresConnection(cmd, func() { c.selectStartingCards(args) })
+
 	case "milestones", "awards":
 		c.requiresConnection(cmd, func() { c.showMilestonesAndAwards() })
 
@@ -1313,6 +1316,71 @@ func (c *CLIClient) sendRawMessage(args []string) {
 	}
 
 	fmt.Printf("📤 Sent message: %s\n", messageType)
+}
+
+// selectStartingCards handles starting card selection during initial card selection phase
+func (c *CLIClient) selectStartingCards(args []string) {
+	if c.gameID == "" {
+		c.displayCommandResult("select-cards", "❌ Not connected to any game. Use 'caj <name>' or 'join <id> <name>' first.")
+		return
+	}
+
+	// Validate game phase
+	if c.gameState == nil || c.gameState.CurrentPhase != model.GamePhaseStartingCardSelection {
+		c.displayCommandResult("select-cards", "❌ Not in starting card selection phase.\n💡 This command is only available during initial card selection.")
+		return
+	}
+
+	if len(args) == 0 {
+		helpText := `🃏 Starting Card Selection:
+  Usage: select-cards <card1> <card2> ...
+  
+  Examples:
+  select-cards investment              (select 1 card - free)
+  select-cards investment power-plant  (select 2 cards - costs 3 MC)
+  
+💰 Cost: First card is free, each additional card costs 3 MC`
+		c.displayCommandResult("select-cards", helpText)
+		return
+	}
+
+	// Validate maximum 4 cards
+	if len(args) > 4 {
+		c.displayCommandResult("select-cards", "❌ Cannot select more than 4 cards.")
+		return
+	}
+
+	// Calculate cost (first card free, 3 MC per additional card)
+	cost := (len(args) - 1) * 3
+	if c.gameState.Player != nil && c.gameState.Player.Resources.Credits < cost {
+		c.displayCommandResult("select-cards", fmt.Sprintf("❌ Insufficient credits. Need %d MC, have %d MC.", cost, c.gameState.Player.Resources.Credits))
+		return
+	}
+
+	message := dto.WebSocketMessage{
+		Type:   dto.MessageTypePlayAction,
+		GameID: c.gameID,
+		Payload: dto.PlayActionPayload{
+			ActionRequest: map[string]interface{}{
+				"type":    "select-starting-card",
+				"cardIds": args,
+			},
+		},
+	}
+
+	if err := c.conn.WriteJSON(message); err != nil {
+		c.displayCommandResult("select-cards", fmt.Sprintf("❌ Failed to select cards: %v", err))
+		return
+	}
+
+	costText := ""
+	if cost > 0 {
+		costText = fmt.Sprintf(" (cost: %d MC)", cost)
+	} else {
+		costText = " (free)"
+	}
+
+	c.displayCommandResult("select-cards", fmt.Sprintf("🃏 Attempting to select %d cards%s: %s", len(args), costText, strings.Join(args, ", ")))
 }
 
 // updateGameStateFromMessage updates the game state from a WebSocket message

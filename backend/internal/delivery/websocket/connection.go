@@ -73,35 +73,41 @@ func (c *Connection) Close() {
 
 // ReadPump pumps messages from the websocket connection to the hub
 func (c *Connection) ReadPump() {
+	c.logger.Info("🔄 Starting ReadPump for connection", zap.String("connection_id", c.ID))
 	defer func() {
+		c.logger.Info("🛑 ReadPump stopping for connection", zap.String("connection_id", c.ID))
 		c.Close()
 		c.Hub.Unregister <- c
 	}()
 
 	for {
+		c.logger.Debug("📡 Waiting to read WebSocket message", zap.String("connection_id", c.ID))
 		var message dto.WebSocketMessage
 		err := c.Conn.ReadJSON(&message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				c.logger.Error("WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
+				c.logger.Error("❌ WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
 			} else {
-				c.logger.Info("WebSocket connection closed", zap.String("connection_id", c.ID))
+				c.logger.Info("🔌 WebSocket connection closed normally", zap.String("connection_id", c.ID), zap.Error(err))
 			}
 			return
 		}
 
-		c.logger.Debug("Received WebSocket message",
+		c.logger.Info("📨 Received WebSocket message from client→server",
 			zap.String("connection_id", c.ID),
-			zap.String("message_type", string(message.Type)))
+			zap.String("message_type", string(message.Type)),
+			zap.Any("payload", message.Payload))
 
 		// Send message to hub for processing
+		c.logger.Debug("📤 Sending message to hub broadcast channel", zap.String("connection_id", c.ID))
 		select {
 		case c.Hub.Broadcast <- HubMessage{
 			Connection: c,
 			Message:    message,
 		}:
+			c.logger.Debug("✅ Message sent to hub successfully", zap.String("connection_id", c.ID))
 		default:
-			c.logger.Warn("Hub broadcast channel is full", zap.String("connection_id", c.ID))
+			c.logger.Warn("❌ Hub broadcast channel is full", zap.String("connection_id", c.ID))
 			return
 		}
 	}

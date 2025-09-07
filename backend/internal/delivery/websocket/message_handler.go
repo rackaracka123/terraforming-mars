@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
 	"go.uber.org/zap"
@@ -16,34 +17,49 @@ func (h *Hub) handleMessage(ctx context.Context, hubMessage HubMessage) {
 	connection := hubMessage.Connection
 	message := hubMessage.Message
 
-	h.logger.Debug("Processing WebSocket message",
+	h.logger.Info("🔄 Processing WebSocket message",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
 	switch message.Type {
 	case dto.MessageTypePlayerConnect:
+		h.logger.Debug("🚪 Handling player connect message")
 		h.handlePlayerConnect(ctx, connection, message)
 	case dto.MessageTypePlayAction:
+		h.logger.Debug("🎮 Handling play action message") 
 		h.handlePlayAction(ctx, connection, message)
 	default:
-		h.logger.Warn("Unknown message type received",
+		h.logger.Warn("❓ Unknown message type received",
 			zap.String("connection_id", connection.ID),
 			zap.String("message_type", string(message.Type)))
 
 		h.sendErrorToConnection(connection, "Unknown message type")
 	}
+	
+	h.logger.Debug("✅ Finished processing WebSocket message",
+		zap.String("connection_id", connection.ID),
+		zap.String("message_type", string(message.Type)))
 }
 
 // handlePlayerConnect handles player connection requests
 func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, message dto.WebSocketMessage) {
+	h.logger.Debug("🚪 Starting player connect handler",
+		zap.String("connection_id", connection.ID),
+		zap.Any("raw_payload", message.Payload))
+
 	var payload dto.PlayerConnectPayload
 	if err := h.parseMessagePayload(message.Payload, &payload); err != nil {
-		h.logger.Error("Failed to parse player connect payload",
+		h.logger.Error("❌ Failed to parse player connect payload",
 			zap.Error(err),
-			zap.String("connection_id", connection.ID))
+			zap.String("connection_id", connection.ID),
+			zap.Any("raw_payload", message.Payload))
 		h.sendErrorToConnection(connection, "Invalid player connect payload")
 		return
 	}
+
+	h.logger.Debug("✅ Payload parsed successfully",
+		zap.String("game_id", payload.GameID),
+		zap.String("player_name", payload.PlayerName))
 
 	// Delegate to service
 	game, err := h.gameService.JoinGame(ctx, payload.GameID, payload.PlayerName)
@@ -58,27 +74,64 @@ func (h *Hub) handlePlayerConnect(ctx context.Context, connection *Connection, m
 
 	// Find the player ID of the newly joined player
 	var playerID string
+	h.logger.Debug("🔍 Searching for player in game",
+		zap.String("player_name", payload.PlayerName),
+		zap.Int("total_players", len(game.Players)))
+		
 	for _, player := range game.Players {
+		h.logger.Debug("🔍 Checking player", zap.String("name", player.Name), zap.String("id", player.ID))
 		if player.Name == payload.PlayerName {
 			playerID = player.ID
+			h.logger.Debug("✅ Found matching player", zap.String("player_id", playerID))
 			break
 		}
 	}
 
+	if playerID == "" {
+		h.logger.Error("❌ Player not found in game after join", 
+			zap.String("player_name", payload.PlayerName),
+			zap.String("game_id", payload.GameID))
+		h.sendErrorToConnection(connection, "Player not found in game")
+		return
+	}
+
 	// Associate connection with player and game
+	h.logger.Debug("🔗 Setting player for connection",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", payload.GameID))
+		
 	connection.SetPlayer(playerID, payload.GameID)
 	h.addToGame(connection, payload.GameID)
 
+	h.logger.Debug("🔗 Connection added to game group", 
+		zap.String("connection_id", connection.ID),
+		zap.String("game_id", payload.GameID))
+
 	// Send player connected confirmation to the joining player
-	h.broadcastToGame(payload.GameID, dto.WebSocketMessage{
+	h.logger.Debug("🔄 Converting game to DTO", zap.String("game_id", game.ID))
+	gameDTO := dto.ToGameDto(game)
+	h.logger.Debug("✅ Game DTO conversion complete", zap.String("game_id", gameDTO.ID))
+
+	playerConnectedMsg := dto.WebSocketMessage{
 		Type: dto.MessageTypePlayerConnected,
 		Payload: dto.PlayerConnectedPayload{
 			PlayerID:   playerID,
 			PlayerName: payload.PlayerName,
-			Game:       dto.ToGameDto(game),
+			Game:       gameDTO,
 		},
 		GameID: game.ID,
-	})
+	}
+	
+	h.logger.Debug("✅ Created player-connected message", 
+		zap.String("player_id", playerID),
+		zap.String("game_id", game.ID))
+
+	h.logger.Debug("📤 Broadcasting player-connected message to game",
+		zap.String("game_id", payload.GameID),
+		zap.String("player_id", playerID))
+		
+	h.broadcastToGame(payload.GameID, playerConnectedMsg)
 
 	h.logger.Info("🎮 Player connected via WebSocket",
 		zap.String("connection_id", connection.ID),
@@ -185,6 +238,8 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 	switch dto.ActionType(actionType) {
 	case dto.ActionTypeStartGame:
 		return h.handleStartGame(ctx, gameID, playerID)
+	case dto.ActionTypeSelectStartingCard:
+		return h.handleSelectStartingCard(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeSellPatents:
 		return h.handleSellPatents(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildPowerPlant:
@@ -275,6 +330,43 @@ func (h *Hub) handleBuildCity(ctx context.Context, gameID, playerID string, acti
 	}
 
 	return h.standardProjectService.BuildCity(ctx, gameID, playerID, hexPosition)
+}
+
+// handleSelectStartingCard handles starting card selection
+func (h *Hub) handleSelectStartingCard(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionSelectStartingCardRequest
+	if err := h.parseActionRequest(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid select starting card request: %w", err)
+	}
+
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Player selecting starting cards", 
+		zap.Strings("card_ids", request.CardIDs),
+		zap.Int("count", len(request.CardIDs)))
+
+	// Process the card selection through CardService
+	if err := h.cardService.SelectStartingCards(ctx, gameID, playerID, request.CardIDs); err != nil {
+		log.Error("Failed to select starting cards", zap.Error(err))
+		return fmt.Errorf("card selection failed: %w", err)
+	}
+
+	// Check if all players have completed their selection
+	if h.cardService.IsAllPlayersCardSelectionComplete(ctx, gameID) {
+		log.Info("All players completed starting card selection, advancing game phase")
+		
+		// Advance game phase using proper GameService method
+		if err := h.gameService.AdvanceFromCardSelectionPhase(ctx, gameID); err != nil {
+			log.Error("Failed to advance game phase", zap.Error(err))
+			return fmt.Errorf("failed to advance game phase: %w", err)
+		}
+
+		log.Info("Game phase advanced to Action phase")
+	}
+
+	log.Info("Player completed starting card selection", 
+		zap.Strings("selected_cards", request.CardIDs))
+
+	return nil
 }
 
 // parseActionRequest parses an action request into the given destination

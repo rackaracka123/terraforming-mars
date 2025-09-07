@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
 
@@ -39,6 +40,10 @@ type Hub struct {
 	playerService           service.PlayerService
 	globalParametersService service.GlobalParametersService
 	standardProjectService  service.StandardProjectService
+	cardService             service.CardService
+
+	// Event system
+	eventBus events.EventBus
 
 	// Synchronization
 	mu     sync.RWMutex
@@ -46,8 +51,8 @@ type Hub struct {
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService, standardProjectService service.StandardProjectService) *Hub {
-	return &Hub{
+func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService, standardProjectService service.StandardProjectService, cardService service.CardService, eventBus events.EventBus) *Hub {
+	hub := &Hub{
 		connections:             make(map[*Connection]bool),
 		gameConnections:         make(map[string]map[*Connection]bool),
 		Register:                make(chan *Connection),
@@ -57,28 +62,40 @@ func NewHub(gameService service.GameService, playerService service.PlayerService
 		playerService:           playerService,
 		globalParametersService: globalParametersService,
 		standardProjectService:  standardProjectService,
+		cardService:             cardService,
+		eventBus:                eventBus,
 		logger:                  logger.Get(),
 	}
+
+	// Subscribe to game state changes
+	hub.subscribeToEvents()
+
+	return hub
 }
 
 // Run starts the hub and handles connection management
 func (h *Hub) Run(ctx context.Context) {
-	h.logger.Info("Starting WebSocket hub")
+	h.logger.Info("🚀 Starting WebSocket hub")
 
 	for {
 		select {
 		case <-ctx.Done():
-			h.logger.Info("WebSocket hub stopping due to context cancellation")
+			h.logger.Info("🛑 WebSocket hub stopping due to context cancellation")
 			h.closeAllConnections()
 			return
 
 		case connection := <-h.Register:
+			h.logger.Debug("🔗 Hub received connection registration", zap.String("connection_id", connection.ID))
 			h.registerConnection(connection)
 
 		case connection := <-h.Unregister:
+			h.logger.Debug("⛓️‍💥 Hub received connection unregistration", zap.String("connection_id", connection.ID))
 			h.unregisterConnection(connection)
 
 		case hubMessage := <-h.Broadcast:
+			h.logger.Debug("📨 Hub received broadcast message", 
+				zap.String("connection_id", hubMessage.Connection.ID),
+				zap.String("message_type", string(hubMessage.Message.Type)))
 			h.handleMessage(ctx, hubMessage)
 		}
 	}
@@ -141,18 +158,36 @@ func (h *Hub) broadcastToGame(gameID string, message dto.WebSocketMessage) {
 	gameConns := h.gameConnections[gameID]
 	h.mu.RUnlock()
 
+	h.logger.Debug("📢 Broadcasting to game - checking connections",
+		zap.String("game_id", gameID),
+		zap.String("message_type", string(message.Type)),
+		zap.Bool("has_connections", gameConns != nil),
+		zap.Int("connection_count", len(gameConns)))
+
 	if gameConns == nil {
+		h.logger.Warn("❌ No connections found for game", zap.String("game_id", gameID))
 		return
 	}
 
-	for connection := range gameConns {
-		connection.SendMessage(message)
+	if len(gameConns) == 0 {
+		h.logger.Warn("❌ Empty connection list for game", zap.String("game_id", gameID))
+		return
 	}
 
-	h.logger.Debug("📢 Server broadcasting to game clients",
+	sentCount := 0
+	for connection := range gameConns {
+		h.logger.Debug("📤 Sending message to individual connection",
+			zap.String("connection_id", connection.ID),
+			zap.String("game_id", gameID))
+		connection.SendMessage(message)
+		sentCount++
+	}
+
+	h.logger.Info("📢 Server broadcasted to game clients",
 		zap.String("game_id", gameID),
 		zap.String("message_type", string(message.Type)),
-		zap.Int("connection_count", len(gameConns)))
+		zap.Int("total_connections", len(gameConns)),
+		zap.Int("messages_sent", sentCount))
 }
 
 // sendToConnection sends a message to a specific connection
@@ -175,4 +210,81 @@ func (h *Hub) closeAllConnections() {
 	}
 
 	h.logger.Info("⛓️‍💥 All client connections closed by server")
+}
+
+// subscribeToEvents sets up event listeners for the hub
+func (h *Hub) subscribeToEvents() {
+	// Subscribe to game state changes to broadcast updates to clients
+	h.eventBus.Subscribe(events.EventTypeGameStateChanged, h.handleGameStateChanged)
+	
+	h.logger.Info("📡 WebSocket hub subscribed to game state events")
+}
+
+// handleGameStateChanged handles game state change events by broadcasting to clients
+func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) error {
+	h.logger.Info("🔄 Event handler called: handleGameStateChanged - running async to prevent deadlock")
+	
+	// Run the event handler asynchronously to prevent deadlocks
+	go func() {
+		// Extract the game state changed event data
+		gameStateEvent, ok := event.(*events.GameStateChangedEvent)
+		if !ok {
+			h.logger.Error("❌ Invalid event type for GameStateChanged handler")
+			return
+		}
+
+		h.logger.Debug("✅ Event type validated successfully")
+
+		// Get the game ID from the event data
+		eventData := gameStateEvent.GetPayload().(events.GameStateChangedEventData)
+		gameID := eventData.GameID
+
+		h.logger.Debug("📋 Game ID extracted from event", zap.String("game_id", gameID))
+
+		// Create a new context for this async operation
+		asyncCtx := context.Background()
+		
+		// Get the current game state to send to clients
+		h.logger.Debug("🔍 Getting game state for broadcast (async)", zap.String("game_id", gameID))
+		game, err := h.gameService.GetGame(asyncCtx, gameID)
+		if err != nil {
+			h.logger.Error("❌ Failed to get game for broadcast",
+				zap.String("game_id", gameID),
+				zap.Error(err))
+			return
+		}
+
+		h.logger.Debug("✅ Game state retrieved for broadcast", zap.String("game_id", gameID))
+
+		// Convert game to DTO for WebSocket message
+		h.logger.Debug("🔄 Converting game to DTO for broadcast")
+		gameDTO := dto.ToGameDto(game)
+		h.logger.Debug("✅ Game DTO converted successfully")
+
+		// Create game-updated message
+		h.logger.Debug("🔄 Creating game-updated message")
+		message := dto.WebSocketMessage{
+			Type: dto.MessageTypeGameUpdated,
+			Payload: dto.GameUpdatedPayload{
+				Game: gameDTO,
+			},
+		}
+
+		h.logger.Debug("✅ Game-updated message created successfully")
+
+		// Broadcast to all clients in the game
+		h.logger.Info("📢 Broadcasting game-updated message to clients", zap.String("game_id", gameID))
+		h.broadcastToGame(gameID, message)
+
+		h.logger.Info("✅ Game state change broadcasted to clients",
+			zap.String("game_id", gameID),
+			zap.String("game_phase", string(game.CurrentPhase)),
+			zap.String("game_status", string(game.Status)))
+
+		h.logger.Debug("✅ Event handler completed successfully")
+	}()
+	
+	// Return immediately to prevent blocking the original operation
+	h.logger.Debug("✅ Event handler scheduled asynchronously")
+	return nil
 }
