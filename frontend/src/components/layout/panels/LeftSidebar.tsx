@@ -131,12 +131,14 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           const isCurrentPlayer = player.id === currentPlayer?.id;
           const milestoneIcon = player.milestoneIcon || "banker";
           const playerColor = getPlayerColor(index);
+          const isConnected = player.connectionStatus === "connected";
+          const isDisconnected = player.connectionStatus === "disconnected";
 
           if (isCurrentPlayer) {
             return (
               <div
                 key={player.id || index}
-                className={`player-entry current ${isPassed ? "passed" : ""}`}
+                className={`player-entry current ${isPassed ? "passed" : ""} ${isDisconnected ? "disconnected" : ""}`}
                 style={{ "--player-color": playerColor } as React.CSSProperties}
               >
                 <div className="player-content player-card">
@@ -150,6 +152,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       }
                       onMouseLeave={() => setHoveredCorp(null)}
                     />
+                    {/* Connection status indicator */}
+                    <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                      <div className="connection-dot"></div>
+                    </div>
                   </div>
                   <div className="player-info-section">
                     <div className="player-name">{player.name}</div>
@@ -158,6 +164,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <div className="you-indicator">YOU</div>
                     )}
                     {isPassed && <div className="passed-indicator">PASSED</div>}
+                    {isDisconnected && (
+                      <div className="disconnected-indicator">OFFLINE</div>
+                    )}
                   </div>
                 </div>
                 <div className="player-actions">
@@ -183,7 +192,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           return (
             <div
               key={player.id || index}
-              className={`player-entry ${isPassed ? "passed" : ""}`}
+              className={`player-entry ${isPassed ? "passed" : ""} ${isDisconnected ? "disconnected" : ""}`}
               style={{ "--player-color": playerColor } as React.CSSProperties}
             >
               <div className="player-content">
@@ -197,11 +206,18 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     }
                     onMouseLeave={() => setHoveredCorp(null)}
                   />
+                  {/* Connection status indicator */}
+                  <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                    <div className="connection-dot"></div>
+                  </div>
                 </div>
                 <div className="player-info-section">
                   <div className="player-name">{player.name}</div>
                   <div className="player-score">{score}</div>
                   {isPassed && <div className="passed-indicator">PASSED</div>}
+                  {isDisconnected && (
+                    <div className="disconnected-indicator">OFFLINE</div>
+                  )}
                 </div>
               </div>
             </div>
