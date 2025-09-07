@@ -127,9 +127,13 @@ func (ui *UI) updateTerminalSize() {
 func (ui *UI) getPanelStyle() lipgloss.Style {
 	style := basePanelStyle
 
-	// For horizontal layout, limit panel width to fit all 4 panels
+	// For horizontal layout, limit panel width to fit multiple panels
 	if ui.termWidth >= 80 {
-		maxPanelWidth := (ui.termWidth - 8) / 4 // 4 panels, with some margin
+		maxPanels := 4 // default to 4 panels
+		if ui.state != nil && ui.state.Player != nil && len(ui.state.Player.PlayedCards) > 0 {
+			maxPanels = 5 // add played cards panel
+		}
+		maxPanelWidth := (ui.termWidth - 8) / maxPanels // panels with some margin
 		style = style.Width(maxPanelWidth)
 	}
 
@@ -166,6 +170,11 @@ func (ui *UI) RenderStatus() string {
 		ui.renderGlobalParameters(),
 	}
 
+	// Add played cards panel if player has played cards
+	if ui.state.Player != nil && len(ui.state.Player.PlayedCards) > 0 {
+		sections = append(sections, ui.renderPlayedCards())
+	}
+
 	// Always use horizontal layout for better space utilization
 	// Only stack vertically for very narrow terminals (< 80 chars)
 	if ui.termWidth < 80 {
@@ -189,8 +198,12 @@ func (ui *UI) RenderFullDisplay() string {
 	separator := strings.Repeat("─", ui.termWidth)
 	parts = append(parts, baseStyle.Foreground(mutedColor).Render(separator))
 
-	// Command output area
+	// Always show available actions/help
+	parts = append(parts, ui.renderContextualActions())
+
+	// Another separator before command output
 	if ui.lastCommand != "" || ui.lastResult != "" {
+		parts = append(parts, baseStyle.Foreground(mutedColor).Render(separator))
 		parts = append(parts, ui.renderCommandArea())
 	}
 
@@ -355,6 +368,37 @@ func (ui *UI) renderGlobalParameters() string {
 	return ui.getPanelStyle().Render(content)
 }
 
+// renderPlayedCards renders the player's played cards for reference
+func (ui *UI) renderPlayedCards() string {
+	if ui.state == nil || ui.state.Player == nil {
+		return ""
+	}
+
+	title := headerStyle.Render("🃏 Played Cards")
+
+	playedCards := ui.state.Player.PlayedCards
+	if len(playedCards) == 0 {
+		content := title + "\n\n" + baseStyle.Foreground(mutedColor).Render("No cards played yet")
+		return ui.getPanelStyle().Render(content)
+	}
+
+	var lines []string
+	lines = append(lines, "")
+
+	// Show first few played cards
+	maxDisplay := 5
+	for i, cardID := range playedCards {
+		if i >= maxDisplay {
+			lines = append(lines, baseStyle.Foreground(mutedColor).Render(fmt.Sprintf("... and %d more", len(playedCards)-maxDisplay)))
+			break
+		}
+		lines = append(lines, fmt.Sprintf("• %s", baseStyle.Render(cardID)))
+	}
+
+	content := title + "\n" + strings.Join(lines, "\n")
+	return ui.getPanelStyle().Render(content)
+}
+
 // formatResourceLine formats a resource line with icon and value
 func (ui *UI) formatResourceLine(name, icon string, value int) string {
 	nameFormatted := resourceStyle.Render(fmt.Sprintf("%s %s:", icon, name))
@@ -418,4 +462,133 @@ func (ui *UI) RenderMessage(msgType string, message string) string {
 	}
 
 	return style.Render(fmt.Sprintf("%s %s", icon, message))
+}
+
+// renderContextualActions displays available actions based on current game state
+func (ui *UI) renderContextualActions() string {
+	if ui.state == nil {
+		return ui.renderDisconnectedActions()
+	}
+
+	if !ui.state.IsConnected || ui.state.GameID == "" {
+		return ui.renderDisconnectedActions()
+	} else if ui.state.GameStatus == model.GameStatusLobby {
+		return ui.renderLobbyActions()
+	} else {
+		return ui.renderActiveGameActions()
+	}
+}
+
+// renderDisconnectedActions shows connection options when not connected
+func (ui *UI) renderDisconnectedActions() string {
+	title := headerStyle.Render("🔌 Available Commands")
+	
+	content := `
+• caj <name>       - Create and join new game
+• join <id> <name> - Join existing game by ID
+• help             - Show detailed help
+• status           - Show connection status
+• quit             - Exit CLI
+
+💡 Connect to a game with 'caj <name>' to start playing!`
+
+	return basePanelStyle.
+		BorderForeground(warningColor).
+		Width(ui.termWidth - 4).
+		Render(title + content)
+}
+
+// renderLobbyActions shows lobby-specific actions
+func (ui *UI) renderLobbyActions() string {
+	title := headerStyle.Render("🎯 Lobby Actions")
+	
+	var content string
+	if ui.state.Player != nil && ui.state.Player.ID == ui.state.HostPlayerID {
+		// Host in lobby
+		content = `
+• 0 - Start Game
+• help, status, players, overview, quit
+
+💡 You are the host! Press 0 to start when ready.`
+	} else {
+		// Non-host in lobby
+		content = `
+⏳ Waiting for host to start the game...
+
+• help, status, players, overview, quit
+
+💡 The host will start the game when all players are ready.`
+	}
+
+	return basePanelStyle.
+		BorderForeground(secondaryColor).
+		Width(ui.termWidth - 4).
+		Render(title + content)
+}
+
+// renderActiveGameActions shows game actions based on current state
+func (ui *UI) renderActiveGameActions() string {
+	if ui.state.Player == nil {
+		return ""
+	}
+
+	title := headerStyle.Render("🎯 Available Actions")
+	
+	player := ui.state.Player
+	var content strings.Builder
+	
+	content.WriteString("\n• 0 - End Turn / Skip Action")
+	
+	// Resource conversions
+	if player.Resources.Heat >= 8 {
+		content.WriteString(fmt.Sprintf("\n• 1 - Convert Heat → Temp ✓ (have %d)", player.Resources.Heat))
+	} else {
+		content.WriteString(fmt.Sprintf("\n• 1 - Convert Heat → Temp ✗ (need 8, have %d)", player.Resources.Heat))
+	}
+	
+	if player.Resources.Plants >= 8 {
+		content.WriteString(fmt.Sprintf("\n• 2 - Convert Plants → Greenery ✓ (have %d)", player.Resources.Plants))
+	} else {
+		content.WriteString(fmt.Sprintf("\n• 2 - Convert Plants → Greenery ✗ (need 8, have %d)", player.Resources.Plants))
+	}
+	
+	// Standard projects
+	if player.Resources.Credits >= 14 {
+		content.WriteString(fmt.Sprintf("\n• 3 - Asteroid Project ✓ (have %d MC)", player.Resources.Credits))
+	} else {
+		content.WriteString(fmt.Sprintf("\n• 3 - Asteroid Project ✗ (need 14 MC, have %d)", player.Resources.Credits))
+	}
+	
+	if player.Resources.Credits >= 18 {
+		content.WriteString(fmt.Sprintf("\n• 4 - Ocean Project ✓ (have %d MC)", player.Resources.Credits))
+	} else {
+		content.WriteString(fmt.Sprintf("\n• 4 - Ocean Project ✗ (need 18 MC, have %d)", player.Resources.Credits))
+	}
+	
+	// Cards
+	if len(player.Cards) > 0 {
+		content.WriteString(fmt.Sprintf("\n• 5 - Play Card ✓ (%d available)", len(player.Cards)))
+	} else {
+		content.WriteString("\n• 5 - Play Card ✗ (no cards)")
+	}
+	
+	if player.Resources.Credits >= 3 {
+		content.WriteString(fmt.Sprintf("\n• 6 - Buy Cards ✓ (have %d MC)", player.Resources.Credits))
+	} else {
+		content.WriteString(fmt.Sprintf("\n• 6 - Buy Cards ✗ (need 3 MC, have %d)", player.Resources.Credits))
+	}
+	
+	// Corporation
+	if player.Corporation != "" {
+		content.WriteString(fmt.Sprintf("\n• 7 - Corporation Action [%s]", player.Corporation))
+	} else {
+		content.WriteString("\n• 7 - Corporation Action [none]")
+	}
+	
+	content.WriteString("\n\n💡 Type number (0-7) or use commands: cards, buy, convert, etc.")
+
+	return basePanelStyle.
+		BorderForeground(accentColor).
+		Width(ui.termWidth - 4).
+		Render(title + content.String())
 }

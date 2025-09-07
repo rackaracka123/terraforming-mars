@@ -148,10 +148,10 @@ type PlayerProductionChangedEventData struct {
 
 // PlayerTRChangedEventData represents when a player's terraform rating is modified
 type PlayerTRChangedEventData struct {
-	GameID    string `json:"gameId"`
-	PlayerID  string `json:"playerId"`
-	BeforeTR  int    `json:"beforeTR"`
-	AfterTR   int    `json:"afterTR"`
+	GameID   string `json:"gameId"`
+	PlayerID string `json:"playerId"`
+	BeforeTR int    `json:"beforeTR"`
+	AfterTR  int    `json:"afterTR"`
 }
 
 // GameDeletedEventData represents when a game is deleted

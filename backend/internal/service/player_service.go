@@ -317,7 +317,7 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 
-	log.Info("Player terraform rating updated", 
+	log.Info("Player terraform rating updated",
 		zap.Int("old_tr", player.TerraformRating),
 		zap.Int("new_tr", newTR))
 

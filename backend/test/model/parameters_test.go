@@ -53,7 +53,7 @@ func TestGameSettings_DeepCopy(t *testing.T) {
 	temp := -25
 	oxygen := 5
 	oceans := 2
-	
+
 	original := &model.GameSettings{
 		MaxPlayers:  3,
 		Temperature: &temp,
