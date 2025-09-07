@@ -46,11 +46,11 @@ func main() {
 	log.Info("Event bus initialized")
 
 	// Initialize individual repositories
-	gameRepo := repository.NewGameRepository(eventBus)
-	log.Info("Game repository initialized")
-
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	log.Info("Player repository initialized")
+
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	log.Info("Game repository initialized")
 
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 	log.Info("Global parameters repository initialized")

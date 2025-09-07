@@ -263,7 +263,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
               {/* Internal temperature numbers */}
               <div className="temperature-internal-numbers">
-                {[-30, ...getTemperatureMarkings()].map((temp) => (
+                {getTemperatureMarkings().map((temp) => (
                   <div
                     key={temp}
                     className="temperature-internal-number"

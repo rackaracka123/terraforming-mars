@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
-import { webSocketService } from "../../services/webSocketService";
+import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import styles from "./JoinGamePage.module.css";
 
 // UUIDv4 validation regex
@@ -156,13 +156,9 @@ const JoinGamePage: React.FC = () => {
     setError(null);
 
     try {
-      // Connect to WebSocket if not already connected
-      if (!webSocketService.connected) {
-        await webSocketService.connect();
-      }
-
+      // Global WebSocket manager handles connection automatically
       // Connect player to the game
-      const playerConnectedResult = await webSocketService.playerConnect(
+      const playerConnectedResult = await globalWebSocketManager.playerConnect(
         playerName.trim(),
         validatedGame.id,
       );

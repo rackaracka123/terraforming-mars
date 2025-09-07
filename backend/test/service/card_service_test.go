@@ -104,7 +104,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			name:          "Select invalid card",
 			selectedCards: []string{"invalid-card"},
 			expectedError: true,
-			errorMessage:  "card invalid-card is not in player's available options",
+			errorMessage:  "invalid card ID: invalid-card",
 		},
 		{
 			name:          "Select too many cards",

@@ -324,10 +324,16 @@ Game state is authoritative on Go backend. All clients receive full state update
 ### WebSocket Message Types
 Current supported messages:
 - `join-game`: Player joins a game session
+- `player-reconnect`: Player reconnects to existing game session
 - `select-corporation`: Choose starting corporation
 - `raise-temperature`: Spend heat to increase global temperature
 - `skip-action`: Pass current turn
 - `start-game`: Host starts the game (transitions from lobby to active status)
+
+#### Connection Status Events
+- `player-connected`: Sent when a new player joins
+- `player-reconnected`: Sent when an existing player reconnects
+- `player-disconnected`: Sent when a player disconnects (includes accurate connection status)
 
 ### Go Struct Tags for Type Generation
 Use both `json:` and `ts:` tags on all domain structs:
@@ -368,6 +374,7 @@ type Resource struct {
 - **Fallback Logic**: Redirects to landing page if reconnection fails or data is invalid
 - **Seamless Experience**: Players can reload page without losing game session
 - **Error Handling**: Invalid/expired game data is cleaned up automatically
+- **Unified Connection Behavior**: Page refresh and close/reopen tab both use the same reconnection flow
 
 #### Game Phase Transitions
 1. **Creation**: Game starts in `lobby` status with first player as host
@@ -463,6 +470,12 @@ npm run lint           # Check for ESLint errors
 - **WebSocket Events**: Add new game actions in `internal/delivery/websocket/game_hub.go`
 - **Testing**: Use `go test ./...` to run all backend tests
 - **API Documentation**: Add Swagger comments to HTTP handlers for auto-generated docs
+
+#### Repository Pattern Best Practices
+- **Defensive Copying**: All repository methods must return deep copies to prevent external mutation
+- **Data Synchronization**: Ensure related repositories stay synchronized (e.g., GameRepository fetches fresh PlayerRepository data)
+- **Complete Entity Copying**: When implementing `DeepCopy()` methods, include ALL struct fields to prevent data loss
+- **Dependency Injection**: Inject required repositories into constructor methods for data consistency
 
 ### Frontend Development (React)
 - **Generated Types**: Always use types from `src/types/generated/api-types.ts`

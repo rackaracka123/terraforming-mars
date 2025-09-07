@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { GameDto } from "../../../types/generated/api-types.ts";
-import { webSocketService } from "../../../services/webSocketService.ts";
+import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import styles from "./WaitingRoomOverlay.module.css";
 
 interface WaitingRoomOverlayProps {
@@ -19,10 +19,12 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
   const handleStartGame = () => {
+    // Start Game button clicked, ishost: isHost
+
     if (!isHost) return;
 
     // Send start game action via WebSocket
-    webSocketService.playAction({ type: "start-game" });
+    globalWebSocketManager.playAction({ type: "start-game" });
     onStartGame?.();
   };
 

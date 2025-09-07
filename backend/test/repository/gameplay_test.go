@@ -22,8 +22,8 @@ func TestGameplayLogic(t *testing.T) {
 
 	// Initialize services
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)

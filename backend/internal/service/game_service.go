@@ -210,9 +210,14 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		Production: model.Production{
 			Credits: 1, // Base production
 		},
-		TerraformRating: 20, // Starting terraform rating
-		IsActive:        true,
-		PlayedCards:     make([]string, 0),
+		TerraformRating:  20, // Starting terraform rating
+		IsActive:         true,
+		PlayedCards:      make([]string, 0),
+		Passed:           false, // Player starts active, not passed
+		AvailableActions: 2,     // Standard actions per turn in action phase
+		VictoryPoints:    0,     // Starting victory points
+		MilestoneIcon:    "",    // No milestone achieved initially
+		ConnectionStatus: model.ConnectionStatusConnected,
 	}
 
 	// Add player through PlayerRepository

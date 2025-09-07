@@ -18,8 +18,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	*model.Game,
 ) {
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
@@ -185,6 +185,83 @@ func TestPlayerService_GetPlayer(t *testing.T) {
 
 	t.Run("Invalid player ID", func(t *testing.T) {
 		_, err := playerService.GetPlayer(ctx, game.ID, "invalid-player-id")
+		assert.Error(t, err)
+	})
+}
+
+func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
+	playerService, _, game := setupPlayerServiceTest(t)
+	ctx := context.Background()
+	playerID := game.Players[0].ID
+
+	t.Run("Update to connected status", func(t *testing.T) {
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, model.ConnectionStatusConnected)
+		assert.NoError(t, err)
+
+		// Verify the status was updated
+		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
+		assert.NoError(t, err)
+		assert.Equal(t, model.ConnectionStatusConnected, player.ConnectionStatus)
+	})
+
+	t.Run("Update to disconnected status", func(t *testing.T) {
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, model.ConnectionStatusDisconnected)
+		assert.NoError(t, err)
+
+		// Verify the status was updated
+		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
+		assert.NoError(t, err)
+		assert.Equal(t, model.ConnectionStatusDisconnected, player.ConnectionStatus)
+	})
+
+	t.Run("Invalid game ID", func(t *testing.T) {
+		err := playerService.UpdatePlayerConnectionStatus(ctx, "invalid-game-id", playerID, model.ConnectionStatusConnected)
+		assert.Error(t, err)
+	})
+
+	t.Run("Invalid player ID", func(t *testing.T) {
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, "invalid-player-id", model.ConnectionStatusConnected)
+		assert.Error(t, err)
+	})
+}
+
+func TestPlayerService_FindPlayerByName(t *testing.T) {
+	playerService, gameService, game := setupPlayerServiceTest(t)
+	ctx := context.Background()
+
+	// Add another player to the game for testing
+	game, err := gameService.JoinGame(ctx, game.ID, "TestPlayer2")
+	require.NoError(t, err)
+
+	t.Run("Find existing player by name", func(t *testing.T) {
+		player, err := playerService.GetPlayerByName(ctx, game.ID, "TestPlayer")
+		assert.NoError(t, err)
+		assert.NotNil(t, player)
+		assert.Equal(t, "TestPlayer", player.Name)
+		assert.Equal(t, game.Players[0].ID, player.ID)
+	})
+
+	t.Run("Find second player by name", func(t *testing.T) {
+		player, err := playerService.GetPlayerByName(ctx, game.ID, "TestPlayer2")
+		assert.NoError(t, err)
+		assert.NotNil(t, player)
+		assert.Equal(t, "TestPlayer2", player.Name)
+		assert.Equal(t, game.Players[1].ID, player.ID)
+	})
+
+	t.Run("Player not found", func(t *testing.T) {
+		_, err := playerService.GetPlayerByName(ctx, game.ID, "NonexistentPlayer")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("Invalid game ID", func(t *testing.T) {
+		_, err := playerService.GetPlayerByName(ctx, "invalid-game-id", "TestPlayer")
+		assert.Error(t, err)
+	})
+
+	t.Run("Empty player name", func(t *testing.T) {
+		_, err := playerService.GetPlayerByName(ctx, game.ID, "")
 		assert.Error(t, err)
 	})
 }
