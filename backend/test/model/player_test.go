@@ -7,97 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPlayer_CanAffordStandardProject(t *testing.T) {
-	player := &model.Player{
-		Resources: model.Resources{Credits: 20},
-	}
-
-	tests := []struct {
-		name     string
-		project  model.StandardProject
-		expected bool
-	}{
-		{"Can afford sell patents", model.StandardProjectSellPatents, true}, // 0 cost
-		{"Can afford power plant", model.StandardProjectPowerPlant, true},   // 11 cost
-		{"Can afford asteroid", model.StandardProjectAsteroid, true},        // 14 cost
-		{"Can afford aquifer", model.StandardProjectAquifer, true},          // 18 cost
-		{"Cannot afford greenery", model.StandardProjectGreenery, false},    // 23 cost
-		{"Cannot afford city", model.StandardProjectCity, false},            // 25 cost
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := player.CanAffordStandardProject(tt.project)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestPlayer_CanAffordStandardProject_InvalidProject(t *testing.T) {
-	player := &model.Player{
-		Resources: model.Resources{Credits: 100},
-	}
-
-	// Test with invalid project (not in cost map)
-	result := player.CanAffordStandardProject("INVALID_PROJECT")
-	assert.False(t, result)
-}
-
-func TestPlayer_HasCardsToSell(t *testing.T) {
-	player := &model.Player{
-		Cards: []string{"card1", "card2", "card3"},
-	}
-
-	tests := []struct {
-		name     string
-		count    int
-		expected bool
-	}{
-		{"Can sell 1 card", 1, true},
-		{"Can sell 3 cards", 3, true},
-		{"Cannot sell 4 cards", 4, false},
-		{"Cannot sell 0 cards", 0, false},
-		{"Cannot sell negative cards", -1, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := player.HasCardsToSell(tt.count)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestPlayer_HasCardsToSell_EmptyHand(t *testing.T) {
-	player := &model.Player{
-		Cards: []string{},
-	}
-
-	assert.False(t, player.HasCardsToSell(1))
-	assert.False(t, player.HasCardsToSell(0))
-}
-
-func TestPlayer_GetMaxCardsToSell(t *testing.T) {
-	tests := []struct {
-		name     string
-		cards    []string
-		expected int
-	}{
-		{"No cards", []string{}, 0},
-		{"One card", []string{"card1"}, 1},
-		{"Three cards", []string{"card1", "card2", "card3"}, 3},
-		{"Many cards", []string{"c1", "c2", "c3", "c4", "c5", "c6", "c7"}, 7},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			player := &model.Player{Cards: tt.cards}
-			result := player.GetMaxCardsToSell()
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestPlayer_InitialState(t *testing.T) {
 	player := &model.Player{
 		ID:   "player1",
@@ -116,4 +25,94 @@ func TestPlayer_InitialState(t *testing.T) {
 	// Test zero-value resources and production
 	assert.Equal(t, 0, player.Resources.Credits)
 	assert.Equal(t, 0, player.Production.Credits)
+}
+
+func TestPlayer_DeepCopy(t *testing.T) {
+	original := &model.Player{
+		ID:          "player1",
+		Name:        "Test Player",
+		Corporation: "Tharsis Republic",
+		Cards:       []string{"card1", "card2"},
+		Resources: model.Resources{
+			Credits:  50,
+			Steel:    10,
+			Titanium: 5,
+		},
+		Production: model.Production{
+			Credits: 2,
+			Steel:   1,
+		},
+		TerraformRating: 25,
+		IsActive:        true,
+		PlayedCards:     []string{"played1", "played2"},
+	}
+
+	copy := original.DeepCopy()
+
+	// Should be equal but different pointers
+	assert.Equal(t, original.ID, copy.ID)
+	assert.Equal(t, original.Name, copy.Name)
+	assert.Equal(t, original.Corporation, copy.Corporation)
+	assert.Equal(t, original.Cards, copy.Cards)
+	assert.Equal(t, original.Resources, copy.Resources)
+	assert.Equal(t, original.Production, copy.Production)
+	assert.Equal(t, original.TerraformRating, copy.TerraformRating)
+	assert.Equal(t, original.IsActive, copy.IsActive)
+	assert.Equal(t, original.PlayedCards, copy.PlayedCards)
+	assert.NotSame(t, original, copy)
+
+	// Modifying copy should not affect original
+	copy.Name = "Modified Player"
+	copy.Cards[0] = "modified_card"
+	copy.Resources.Credits = 100
+	copy.Production.Credits = 5
+	copy.PlayedCards[0] = "modified_played"
+
+	assert.Equal(t, "Test Player", original.Name)
+	assert.Equal(t, "Modified Player", copy.Name)
+	assert.Equal(t, "card1", original.Cards[0])
+	assert.Equal(t, "modified_card", copy.Cards[0])
+	assert.Equal(t, 50, original.Resources.Credits)
+	assert.Equal(t, 100, copy.Resources.Credits)
+	assert.Equal(t, 2, original.Production.Credits)
+	assert.Equal(t, 5, copy.Production.Credits)
+	assert.Equal(t, "played1", original.PlayedCards[0])
+	assert.Equal(t, "modified_played", copy.PlayedCards[0])
+}
+
+func TestPlayer_ResourcesAndProduction(t *testing.T) {
+	player := &model.Player{
+		Resources: model.Resources{
+			Credits:  40,
+			Steel:    8,
+			Titanium: 3,
+			Plants:   12,
+			Energy:   6,
+			Heat:     15,
+		},
+		Production: model.Production{
+			Credits:  1,
+			Steel:    2,
+			Titanium: 1,
+			Plants:   0,
+			Energy:   3,
+			Heat:     0,
+		},
+	}
+
+	// Test resources
+	assert.Equal(t, 40, player.Resources.Credits)
+	assert.Equal(t, 8, player.Resources.Steel)
+	assert.Equal(t, 3, player.Resources.Titanium)
+	assert.Equal(t, 12, player.Resources.Plants)
+	assert.Equal(t, 6, player.Resources.Energy)
+	assert.Equal(t, 15, player.Resources.Heat)
+
+	// Test production
+	assert.Equal(t, 1, player.Production.Credits)
+	assert.Equal(t, 2, player.Production.Steel)
+	assert.Equal(t, 1, player.Production.Titanium)
+	assert.Equal(t, 0, player.Production.Plants)
+	assert.Equal(t, 3, player.Production.Energy)
+	assert.Equal(t, 0, player.Production.Heat)
 }

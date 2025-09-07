@@ -4,16 +4,20 @@ import (
 	"context"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/service"
 )
 
 // CardHandlerContext provides the context needed for card handlers to execute
 type CardHandlerContext struct {
-	Context       context.Context
-	Game          *model.Game
-	PlayerID      string
-	Card          *model.Card
-	EventBus      events.EventBus
-	PlayerService PlayerService
+	Context                 context.Context
+	Game                    *model.Game
+	PlayerID                string
+	Card                    *model.Card
+	EventBus                events.EventBus
+	PlayerService           service.PlayerService
+	GameService             service.GameService
+	GlobalParametersService service.GlobalParametersService
+	StandardProjectService  service.StandardProjectService
 }
 
 // CardHandler defines the interface that all card implementations must satisfy

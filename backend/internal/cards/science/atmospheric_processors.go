@@ -27,21 +27,24 @@ func NewAtmosphericProcessorsHandler() *AtmosphericProcessorsHandler {
 
 // Play executes the Atmospheric Processors card effect
 func (h *AtmosphericProcessorsHandler) Play(ctx *cards.CardHandlerContext) error {
-	// Raise oxygen 1 step
-	if ctx.Game.GlobalParameters.Oxygen < 14 {
-		ctx.Game.GlobalParameters.Oxygen += 1
-		if ctx.Game.GlobalParameters.Oxygen > 14 {
-			ctx.Game.GlobalParameters.Oxygen = 14
-		}
+	// Check current oxygen level before attempting to raise it
+	params, err := ctx.GlobalParametersService.GetGlobalParameters(ctx.Context, ctx.Game.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get global parameters: %w", err)
+	}
 
-		// Player gains TR when raising global parameters
-		player, found := ctx.Game.GetPlayer(ctx.PlayerID)
-		if !found {
-			return fmt.Errorf("player not found in game")
-		}
-		player.TerraformRating += 1
-	} else {
+	if params.Oxygen >= 14 {
 		return fmt.Errorf("oxygen already at maximum level")
+	}
+
+	// Raise oxygen 1 step using the service
+	if err := ctx.GlobalParametersService.IncreaseOxygen(ctx.Context, ctx.Game.ID, 1); err != nil {
+		return fmt.Errorf("failed to increase oxygen: %w", err)
+	}
+
+	// Player gains TR when raising global parameters
+	if err := ctx.PlayerService.AddPlayerTR(ctx.Context, ctx.Game.ID, ctx.PlayerID, 1); err != nil {
+		return fmt.Errorf("failed to increase player TR: %w", err)
 	}
 
 	return nil

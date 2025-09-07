@@ -23,6 +23,7 @@ const (
 	// Player Changed
 	EventTypePlayerResourcesChanged  = "player.resources_changed"
 	EventTypePlayerProductionChanged = "player.production_changed"
+	EventTypePlayerTRChanged         = "player.tr_changed"
 
 	// Global Parameter Changed
 	EventTypeTemperatureChanged      = "global-parameters.temperature_changed"
@@ -143,6 +144,14 @@ type PlayerProductionChangedEventData struct {
 	PlayerID         string           `json:"playerId"`
 	BeforeProduction model.Production `json:"beforeProduction"`
 	AfterProduction  model.Production `json:"afterProduction"`
+}
+
+// PlayerTRChangedEventData represents when a player's terraform rating is modified
+type PlayerTRChangedEventData struct {
+	GameID    string `json:"gameId"`
+	PlayerID  string `json:"playerId"`
+	BeforeTR  int    `json:"beforeTR"`
+	AfterTR   int    `json:"afterTR"`
 }
 
 // GameDeletedEventData represents when a game is deleted

@@ -40,34 +40,30 @@ func NewGame(id string, settings GameSettings) *Game {
 	}
 }
 
-// AddPlayer adds a player to the game
-func (g *Game) AddPlayer(player Player) bool {
-	if len(g.Players) >= g.Settings.MaxPlayers {
-		return false
+// DeepCopy creates a deep copy of the Game
+func (g *Game) DeepCopy() *Game {
+	if g == nil {
+		return nil
 	}
 
-	g.Players = append(g.Players, player)
-	g.UpdatedAt = time.Now()
-
-	return true
-}
-
-// GetPlayer returns a player by ID
-func (g *Game) GetPlayer(playerID string) (*Player, bool) {
-	for i := range g.Players {
-		if g.Players[i].ID == playerID {
-			return &g.Players[i], true
-		}
+	// Copy players slice
+	playersCopy := make([]Player, len(g.Players))
+	for i, player := range g.Players {
+		playersCopy[i] = *player.DeepCopy()
 	}
-	return nil, false
-}
 
-// IsGameFull returns true if the game has reached maximum players
-func (g *Game) IsGameFull() bool {
-	return len(g.Players) >= g.Settings.MaxPlayers
-}
-
-// IsHost returns true if the given player ID is the host of the game
-func (g *Game) IsHost(playerID string) bool {
-	return g.HostPlayerID == playerID
+	return &Game{
+		ID:               g.ID,
+		CreatedAt:        g.CreatedAt,
+		UpdatedAt:        g.UpdatedAt,
+		Status:           g.Status,
+		Settings:         *g.Settings.DeepCopy(),
+		Players:          playersCopy,
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     g.CurrentPhase,
+		GlobalParameters: *g.GlobalParameters.DeepCopy(),
+		CurrentPlayerID:  g.CurrentPlayerID,
+		Generation:       g.Generation,
+		RemainingActions: g.RemainingActions,
+	}
 }

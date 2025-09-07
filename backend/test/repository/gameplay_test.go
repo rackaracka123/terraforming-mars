@@ -14,7 +14,7 @@ import (
 
 func TestGameplayLogic(t *testing.T) {
 	// Initialize logger for testing
-	err := logger.Init()
+	err := logger.Init(nil)
 	if err != nil {
 		t.Fatal("Failed to initialize logger:", err)
 	}

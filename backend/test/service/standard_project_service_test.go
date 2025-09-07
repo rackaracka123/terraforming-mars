@@ -13,6 +13,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Helper functions for creating test services
+func createTestStandardProjectService() service.StandardProjectService {
+	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
+	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
+	return service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
+}
+
+func createTestPlayerService() service.PlayerService {
+	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	return service.NewPlayerService(gameRepo, playerRepo)
+}
+
 func setupStandardProjectServiceTest(t *testing.T) (
 	service.StandardProjectService,
 	service.GameService,
@@ -23,7 +40,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	string, // playerID
 ) {
 	// Initialize logger for testing
-	err := logger.Init()
+	err := logger.Init(nil)
 	require.NoError(t, err)
 
 	// Initialize services
@@ -81,7 +98,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 			break
 		}
 	}
-	err = gameService.UpdateGame(ctx, updatedGame)
+	// Update the game directly through repository instead of removed UpdateGame method
+	err = gameRepo.Update(ctx, updatedGame)
 	require.NoError(t, err)
 
 	return standardProjectService, gameService, playerService, globalParametersService, playerRepo, updatedGame, playerID
@@ -322,7 +340,8 @@ func TestHexPosition_IsValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.position.IsValid()
+			svc := createTestStandardProjectService()
+			result := svc.IsValidHexPosition(&tt.position)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -348,7 +367,8 @@ func TestPlayer_CanAffordStandardProject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := player.CanAffordStandardProject(tt.project)
+			svc := createTestPlayerService()
+			result := svc.CanAffordStandardProject(player, tt.project)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -373,7 +393,8 @@ func TestPlayer_HasCardsToSell(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := player.HasCardsToSell(tt.count)
+			svc := createTestPlayerService()
+			result := svc.HasCardsToSell(player, tt.count)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -393,7 +414,8 @@ func TestPlayer_GetMaxCardsToSell(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			player := &model.Player{Cards: tt.cards}
-			result := player.GetMaxCardsToSell()
+			svc := createTestPlayerService()
+			result := svc.GetMaxCardsToSell(player)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

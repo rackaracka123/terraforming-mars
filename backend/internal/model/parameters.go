@@ -54,61 +54,43 @@ const (
 	MaxOceans      = 9
 )
 
-// CanIncreaseTemperature checks if temperature can be increased by the given steps
-func (g *GlobalParameters) CanIncreaseTemperature(steps int) bool {
-	return steps >= 0 && (g.Temperature < MaxTemperature || steps == 0)
-}
+// DeepCopy creates a deep copy of the GameSettings
+func (gs *GameSettings) DeepCopy() *GameSettings {
+	if gs == nil {
+		return nil
+	}
+	
+	var tempCopy, oxygenCopy, oceansCopy *int
+	if gs.Temperature != nil {
+		temp := *gs.Temperature
+		tempCopy = &temp
+	}
+	if gs.Oxygen != nil {
+		oxygen := *gs.Oxygen
+		oxygenCopy = &oxygen
+	}
+	if gs.Oceans != nil {
+		oceans := *gs.Oceans
+		oceansCopy = &oceans
+	}
 
-// IncreaseTemperature increases temperature by the given steps, capped at maximum
-func (g *GlobalParameters) IncreaseTemperature(steps int) {
-	newTemp := g.Temperature + steps*2 // Each step = 2°C
-	if newTemp > MaxTemperature {
-		g.Temperature = MaxTemperature
-	} else {
-		g.Temperature = newTemp
+	return &GameSettings{
+		MaxPlayers:  gs.MaxPlayers,
+		Temperature: tempCopy,
+		Oxygen:      oxygenCopy,
+		Oceans:      oceansCopy,
 	}
 }
 
-// CanIncreaseOxygen checks if oxygen can be increased by the given percentage
-func (g *GlobalParameters) CanIncreaseOxygen(percent int) bool {
-	return percent >= 0 && (g.Oxygen < MaxOxygen || percent == 0)
-}
-
-// IncreaseOxygen increases oxygen by the given percentage, capped at maximum
-func (g *GlobalParameters) IncreaseOxygen(percent int) {
-	newOxygen := g.Oxygen + percent
-	if newOxygen > MaxOxygen {
-		g.Oxygen = MaxOxygen
-	} else {
-		g.Oxygen = newOxygen
+// DeepCopy creates a deep copy of the GlobalParameters
+func (g *GlobalParameters) DeepCopy() *GlobalParameters {
+	if g == nil {
+		return nil
 	}
-}
-
-// CanPlaceOcean checks if oceans can be placed
-func (g *GlobalParameters) CanPlaceOcean(count int) bool {
-	return count >= 0 && (g.Oceans < MaxOceans || count == 0)
-}
-
-// PlaceOcean places the given number of oceans, capped at maximum
-func (g *GlobalParameters) PlaceOcean(count int) {
-	newOceans := g.Oceans + count
-	if newOceans > MaxOceans {
-		g.Oceans = MaxOceans
-	} else {
-		g.Oceans = newOceans
+	
+	return &GlobalParameters{
+		Temperature: g.Temperature,
+		Oxygen:      g.Oxygen,
+		Oceans:      g.Oceans,
 	}
-}
-
-// IsFullyTerraformed checks if all terraforming parameters are at maximum
-func (g *GlobalParameters) IsFullyTerraformed() bool {
-	return g.Temperature == MaxTemperature && g.Oxygen == MaxOxygen && g.Oceans == MaxOceans
-}
-
-// GetTerraformingProgress returns the overall terraforming progress as a percentage
-func (g *GlobalParameters) GetTerraformingProgress() float64 {
-	tempProgress := float64(g.Temperature-MinTemperature) / float64(MaxTemperature-MinTemperature)
-	oxygenProgress := float64(g.Oxygen-MinOxygen) / float64(MaxOxygen-MinOxygen)
-	oceanProgress := float64(g.Oceans-MinOceans) / float64(MaxOceans-MinOceans)
-
-	return (tempProgress + oxygenProgress + oceanProgress) / 3.0 * 100.0
 }

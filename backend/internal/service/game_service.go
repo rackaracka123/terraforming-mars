@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -23,14 +24,13 @@ type GameService interface {
 	// List games by status
 	ListGames(ctx context.Context, status string) ([]*model.Game, error)
 
-	// Update game state (internal use for synchronization)
-	UpdateGame(ctx context.Context, game *model.Game) error
 
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
+
 }
 
 // GameServiceImpl implements GameService interface
@@ -85,10 +85,6 @@ func (s *GameServiceImpl) ListGames(ctx context.Context, status string) ([]*mode
 	return s.gameRepo.List(ctx, status)
 }
 
-// UpdateGame updates game state
-func (s *GameServiceImpl) UpdateGame(ctx context.Context, game *model.Game) error {
-	return s.gameRepo.Update(ctx, game)
-}
 
 func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, "")
@@ -130,6 +126,38 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	return nil
 }
 
+// AddPlayerToGame adds a player to the game (business logic from Game model)
+func (s *GameServiceImpl) AddPlayerToGame(game *model.Game, player model.Player) bool {
+	if len(game.Players) >= game.Settings.MaxPlayers {
+		return false
+	}
+
+	game.Players = append(game.Players, player)
+	game.UpdatedAt = time.Now()
+
+	return true
+}
+
+// GetPlayerFromGame returns a player by ID (business logic from Game model)
+func (s *GameServiceImpl) GetPlayerFromGame(game *model.Game, playerID string) (*model.Player, bool) {
+	for i := range game.Players {
+		if game.Players[i].ID == playerID {
+			return &game.Players[i], true
+		}
+	}
+	return nil, false
+}
+
+// IsGameFull returns true if the game has reached maximum players (business logic from Game model)
+func (s *GameServiceImpl) IsGameFull(game *model.Game) bool {
+	return len(game.Players) >= game.Settings.MaxPlayers
+}
+
+// IsHost returns true if the given player ID is the host of the game (business logic from Game model)
+func (s *GameServiceImpl) IsHost(game *model.Game, playerID string) bool {
+	return game.HostPlayerID == playerID
+}
+
 // JoinGame adds a player to a game using both GameState and Player repositories
 func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
@@ -148,7 +176,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		return nil, fmt.Errorf("cannot join completed game")
 	}
 
-	if game.IsGameFull() {
+	if s.IsGameFull(game) {
 		log.Warn("Attempted to join full game",
 			zap.String("player_name", playerName),
 			zap.Int("current_players", len(game.Players)),
@@ -179,7 +207,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	}
 
 	// Update game state to include the new player
-	if !game.AddPlayer(player) {
+	if !s.AddPlayerToGame(game, player) {
 		log.Error("Failed to add player to game state")
 		return nil, fmt.Errorf("failed to add player to game")
 	}

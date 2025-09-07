@@ -56,6 +56,31 @@ func (m *MockPlayerService) AddResources(ctx context.Context, gameID, playerID s
 	return args.Error(0)
 }
 
+func (m *MockPlayerService) UpdatePlayerTR(ctx context.Context, gameID, playerID string, newTR int) error {
+	args := m.Called(ctx, gameID, playerID, newTR)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) AddPlayerTR(ctx context.Context, gameID, playerID string, trIncrease int) error {
+	args := m.Called(ctx, gameID, playerID, trIncrease)
+	return args.Error(0)
+}
+
+func (m *MockPlayerService) CanAffordStandardProject(player *model.Player, project model.StandardProject) bool {
+	args := m.Called(player, project)
+	return args.Bool(0)
+}
+
+func (m *MockPlayerService) HasCardsToSell(player *model.Player, count int) bool {
+	args := m.Called(player, count)
+	return args.Bool(0)
+}
+
+func (m *MockPlayerService) GetMaxCardsToSell(player *model.Player) int {
+	args := m.Called(player)
+	return args.Int(0)
+}
+
 func TestBaseCardHandler_GetCardID(t *testing.T) {
 	handler := &cards.BaseCardHandler{
 		CardID: "test-card",

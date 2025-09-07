@@ -13,21 +13,29 @@ type Player struct {
 	PlayedCards     []string   `json:"playedCards" ts:"string[]"`
 }
 
-// CanAffordStandardProject checks if the player has enough credits for a standard project
-func (p *Player) CanAffordStandardProject(project StandardProject) bool {
-	cost, exists := StandardProjectCost[project]
-	if !exists {
-		return false
+// DeepCopy creates a deep copy of the Player
+func (p *Player) DeepCopy() *Player {
+	if p == nil {
+		return nil
 	}
-	return p.Resources.Credits >= cost
-}
 
-// HasCardsToSell checks if the player has enough cards in hand to sell
-func (p *Player) HasCardsToSell(count int) bool {
-	return len(p.Cards) >= count && count > 0
-}
+	// Copy cards slice
+	cardsCopy := make([]string, len(p.Cards))
+	copy(cardsCopy, p.Cards)
 
-// GetMaxCardsToSell returns the maximum number of cards the player can sell
-func (p *Player) GetMaxCardsToSell() int {
-	return len(p.Cards)
+	// Copy played cards slice
+	playedCardsCopy := make([]string, len(p.PlayedCards))
+	copy(playedCardsCopy, p.PlayedCards)
+
+	return &Player{
+		ID:              p.ID,
+		Name:            p.Name,
+		Corporation:     p.Corporation,
+		Cards:           cardsCopy,
+		Resources:       *p.Resources.DeepCopy(),
+		Production:      *p.Production.DeepCopy(),
+		TerraformRating: p.TerraformRating,
+		IsActive:        p.IsActive,
+		PlayedCards:     playedCardsCopy,
+	}
 }

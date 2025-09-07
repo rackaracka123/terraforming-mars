@@ -93,7 +93,7 @@ func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (*model.Gam
 		return nil, fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	return game, nil
+	return game.DeepCopy(), nil
 }
 
 // Update updates a game in the repository
@@ -143,7 +143,7 @@ func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]*model.
 
 	for _, game := range r.games {
 		if status == "" || string(game.Status) == status {
-			games = append(games, game)
+			games = append(games, game.DeepCopy())
 		}
 	}
 
