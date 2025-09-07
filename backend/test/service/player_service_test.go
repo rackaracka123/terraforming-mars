@@ -18,8 +18,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	*model.Game,
 ) {
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	playerService := service.NewPlayerService(gameRepo, playerRepo)

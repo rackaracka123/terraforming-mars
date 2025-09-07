@@ -41,14 +41,19 @@ func (p *Player) DeepCopy() *Player {
 	copy(playedCardsCopy, p.PlayedCards)
 
 	return &Player{
-		ID:              p.ID,
-		Name:            p.Name,
-		Corporation:     p.Corporation,
-		Cards:           cardsCopy,
-		Resources:       *p.Resources.DeepCopy(),
-		Production:      *p.Production.DeepCopy(),
-		TerraformRating: p.TerraformRating,
-		IsActive:        p.IsActive,
-		PlayedCards:     playedCardsCopy,
+		ID:               p.ID,
+		Name:             p.Name,
+		Corporation:      p.Corporation,
+		Cards:            cardsCopy,
+		Resources:        *p.Resources.DeepCopy(),
+		Production:       *p.Production.DeepCopy(),
+		TerraformRating:  p.TerraformRating,
+		IsActive:         p.IsActive,
+		PlayedCards:      playedCardsCopy,
+		Passed:           p.Passed,
+		AvailableActions: p.AvailableActions,
+		VictoryPoints:    p.VictoryPoints,
+		MilestoneIcon:    p.MilestoneIcon,
+		ConnectionStatus: p.ConnectionStatus,
 	}
 }

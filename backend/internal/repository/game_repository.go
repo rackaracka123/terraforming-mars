@@ -34,16 +34,18 @@ type GameRepository interface {
 
 // GameRepositoryImpl implements GameRepository interface
 type GameRepositoryImpl struct {
-	games    map[string]*model.Game
-	mutex    sync.RWMutex
-	eventBus events.EventBus
+	games      map[string]*model.Game
+	mutex      sync.RWMutex
+	eventBus   events.EventBus
+	playerRepo PlayerRepository
 }
 
 // NewGameRepository creates a new game repository
-func NewGameRepository(eventBus events.EventBus) GameRepository {
+func NewGameRepository(eventBus events.EventBus, playerRepo PlayerRepository) GameRepository {
 	return &GameRepositoryImpl{
-		games:    make(map[string]*model.Game),
-		eventBus: eventBus,
+		games:      make(map[string]*model.Game),
+		eventBus:   eventBus,
+		playerRepo: playerRepo,
 	}
 }
 
@@ -79,7 +81,7 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	return game, nil
 }
 
-// Get retrieves a game by ID
+// Get retrieves a game by ID with fresh player data
 func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (*model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -93,7 +95,25 @@ func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (*model.Gam
 		return nil, fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	return game.DeepCopy(), nil
+	// Create a deep copy of the game
+	gameCopy := game.DeepCopy()
+
+	// Fetch fresh player data from PlayerRepository to ensure synchronization
+	for i, player := range gameCopy.Players {
+		freshPlayer, err := r.playerRepo.GetPlayer(ctx, gameID, player.ID)
+		if err != nil {
+			// Log warning but don't fail - use stale data as fallback
+			logger.Get().Warn("Failed to fetch fresh player data, using stale data",
+				zap.String("game_id", gameID),
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			continue
+		}
+		// Update the game's player with fresh data
+		gameCopy.Players[i] = *freshPlayer
+	}
+
+	return gameCopy, nil
 }
 
 // Update updates a game in the repository
