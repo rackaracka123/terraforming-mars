@@ -37,8 +37,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	eventBus := events.NewInMemoryEventBus()
 
 	// Initialize repositories
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	// Initialize services with proper event bus wiring

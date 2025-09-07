@@ -16,8 +16,8 @@ func TestCardSelectionFlow(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewInMemoryEventBus()
 	
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 	
 	cardService := service.NewCardService(gameRepo, playerRepo)

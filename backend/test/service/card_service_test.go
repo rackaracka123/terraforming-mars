@@ -16,8 +16,8 @@ import (
 func TestCardService_SelectStartingCards(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	
 	ctx := context.Background()
@@ -177,8 +177,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	
 	ctx := context.Background()
@@ -246,8 +246,8 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	
 	ctx := context.Background()
