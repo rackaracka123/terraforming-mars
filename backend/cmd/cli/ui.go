@@ -484,7 +484,7 @@ func (ui *UI) renderContextualActions() string {
 // renderDisconnectedActions shows connection options when not connected
 func (ui *UI) renderDisconnectedActions() string {
 	title := headerStyle.Render("🔌 Available Commands")
-	
+
 	content := `
 • caj <name>       - Create and join new game
 • join <id> <name> - Join existing game by ID
@@ -503,7 +503,7 @@ func (ui *UI) renderDisconnectedActions() string {
 // renderLobbyActions shows lobby-specific actions
 func (ui *UI) renderLobbyActions() string {
 	title := headerStyle.Render("🎯 Lobby Actions")
-	
+
 	var content string
 	if ui.state.Player != nil && ui.state.Player.ID == ui.state.HostPlayerID {
 		// Host in lobby
@@ -531,7 +531,7 @@ func (ui *UI) renderLobbyActions() string {
 // renderStartingCardSelectionActions shows starting card selection interface
 func (ui *UI) renderStartingCardSelectionActions() string {
 	title := headerStyle.Render("🃏 Starting Card Selection")
-	
+
 	var content string
 	content = `
 ⏳ Starting card selection phase in progress...
@@ -561,58 +561,58 @@ func (ui *UI) renderActiveGameActions() string {
 	}
 
 	title := headerStyle.Render("🎯 Available Actions")
-	
+
 	player := ui.state.Player
 	var content strings.Builder
-	
+
 	content.WriteString("\n• 0 - End Turn / Skip Action")
-	
+
 	// Resource conversions
 	if player.Resources.Heat >= 8 {
 		content.WriteString(fmt.Sprintf("\n• 1 - Convert Heat → Temp ✓ (have %d)", player.Resources.Heat))
 	} else {
 		content.WriteString(fmt.Sprintf("\n• 1 - Convert Heat → Temp ✗ (need 8, have %d)", player.Resources.Heat))
 	}
-	
+
 	if player.Resources.Plants >= 8 {
 		content.WriteString(fmt.Sprintf("\n• 2 - Convert Plants → Greenery ✓ (have %d)", player.Resources.Plants))
 	} else {
 		content.WriteString(fmt.Sprintf("\n• 2 - Convert Plants → Greenery ✗ (need 8, have %d)", player.Resources.Plants))
 	}
-	
+
 	// Standard projects
 	if player.Resources.Credits >= 14 {
 		content.WriteString(fmt.Sprintf("\n• 3 - Asteroid Project ✓ (have %d MC)", player.Resources.Credits))
 	} else {
 		content.WriteString(fmt.Sprintf("\n• 3 - Asteroid Project ✗ (need 14 MC, have %d)", player.Resources.Credits))
 	}
-	
+
 	if player.Resources.Credits >= 18 {
 		content.WriteString(fmt.Sprintf("\n• 4 - Ocean Project ✓ (have %d MC)", player.Resources.Credits))
 	} else {
 		content.WriteString(fmt.Sprintf("\n• 4 - Ocean Project ✗ (need 18 MC, have %d)", player.Resources.Credits))
 	}
-	
+
 	// Cards
 	if len(player.Cards) > 0 {
 		content.WriteString(fmt.Sprintf("\n• 5 - Play Card ✓ (%d available)", len(player.Cards)))
 	} else {
 		content.WriteString("\n• 5 - Play Card ✗ (no cards)")
 	}
-	
+
 	if player.Resources.Credits >= 3 {
 		content.WriteString(fmt.Sprintf("\n• 6 - Buy Cards ✓ (have %d MC)", player.Resources.Credits))
 	} else {
 		content.WriteString(fmt.Sprintf("\n• 6 - Buy Cards ✗ (need 3 MC, have %d)", player.Resources.Credits))
 	}
-	
+
 	// Corporation
 	if player.Corporation != "" {
 		content.WriteString(fmt.Sprintf("\n• 7 - Corporation Action [%s]", player.Corporation))
 	} else {
 		content.WriteString("\n• 7 - Corporation Action [none]")
 	}
-	
+
 	content.WriteString("\n\n💡 Type number (0-7) or use commands: cards, buy, convert, etc.")
 
 	return basePanelStyle.

@@ -36,11 +36,11 @@ func TestFullGameFlow(t *testing.T) {
 
 	// Step 6: Wait for available-cards message to know which cards are available for selection
 	time.Sleep(100 * time.Millisecond) // Allow server to send available cards
-	
+
 	// Look for available-cards message among recent messages
 	var availableCards []string
 	var foundAvailableCards bool
-	
+
 	// Try to get available-cards message with timeout
 	for attempts := 0; attempts < 3; attempts++ {
 		availableMessage, err := client.WaitForMessage(dto.MessageTypeAvailableCards)
@@ -63,7 +63,7 @@ func TestFullGameFlow(t *testing.T) {
 		}
 		time.Sleep(50 * time.Millisecond) // Brief wait before retry
 	}
-	
+
 	// Select cards based on what we found
 	if foundAvailableCards && len(availableCards) > 0 {
 		// Select the first card (free) and second card if available (costs 3 MC)
@@ -72,7 +72,7 @@ func TestFullGameFlow(t *testing.T) {
 		if len(availableCards) > 1 {
 			selectedCards = append(selectedCards, availableCards[1]) // Second card costs 3 MC
 		}
-		
+
 		err = client.SelectStartingCards(selectedCards)
 		require.NoError(t, err, "Failed to send select starting cards action")
 		t.Logf("✅ Selected %d starting cards: %v", len(selectedCards), selectedCards)
@@ -88,7 +88,7 @@ func TestFullGameFlow(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	message, err = client.WaitForAnyMessage()
 	require.NoError(t, err, "Failed to receive message after card selection")
-	
+
 	if message.Type == dto.MessageTypeError {
 		if payload, ok := message.Payload.(map[string]interface{}); ok {
 			if errorMsg, ok := payload["message"].(string); ok {
@@ -103,7 +103,7 @@ func TestFullGameFlow(t *testing.T) {
 	require.True(t, ok, "Payload should be a map")
 	gameData, ok := payload["game"].(map[string]interface{})
 	require.True(t, ok, "Game data should be present")
-	
+
 	currentPhase, ok := gameData["currentPhase"].(string)
 	require.True(t, ok, "Current phase should be present")
 	t.Logf("📊 Game phase after card selection: %s", currentPhase)
@@ -116,7 +116,7 @@ func TestFullGameFlow(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Failed to receive game updated after asteroid")
-	
+
 	// Verify temperature increased or credits decreased
 	payload, ok = message.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
@@ -144,7 +144,7 @@ func TestFullGameFlow(t *testing.T) {
 
 	t.Log("🎉 Full game flow completed successfully!")
 	t.Log("   ✅ Game created via HTTP")
-	t.Log("   ✅ Player joined via WebSocket")  
+	t.Log("   ✅ Player joined via WebSocket")
 	t.Log("   ✅ Game started (lobby → active)")
 	t.Log("   ✅ Starting cards selected")
 	t.Log("   ✅ Asteroid standard project executed")

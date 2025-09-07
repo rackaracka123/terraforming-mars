@@ -192,12 +192,12 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 	switch message.Type {
 	case dto.MessageTypeGameUpdated:
 		c.updateGameStateFromMessage(message)
-		
+
 		// Check if game just started (lobby → active)
 		if prevStatus == model.GameStatusLobby && c.gameState.GameStatus == model.GameStatusActive {
 			c.displayCommandResult("game-started", "🚀 Game Started! Ready for action!\n\n💡 Available actions are displayed above.\n📖 Type 'help' for command details or use numbered actions (0-7).")
 		}
-		
+
 		c.refreshDisplay()
 
 	case dto.MessageTypePlayerConnected:
@@ -217,7 +217,7 @@ func (c *CLIClient) handleMessage(message dto.WebSocketMessage) {
 				c.refreshDisplay()
 			}
 		}
-		
+
 		// Ensure connected state is set even if we don't get full game data
 		if !c.gameState.IsConnected && c.gameID != "" {
 			c.gameState.IsConnected = true
@@ -427,7 +427,6 @@ func (c *CLIClient) showContextualHelp() {
 	c.displayCommandResult("help", helpText)
 }
 
-
 func (c *CLIClient) showStatus() {
 	statusText := fmt.Sprintf(`🔗 Connection Status:
   Player ID: %s
@@ -570,7 +569,6 @@ func (c *CLIClient) listPlayers() {
 	fmt.Printf("   • %s (you)\n", fmt.Sprintf("CLI-Player-%s", c.playerID[4:]))
 	fmt.Println("\n💡 Other players will appear here when they join the game")
 }
-
 
 func (c *CLIClient) selectAction(actionNum string) {
 	// Check connection state first

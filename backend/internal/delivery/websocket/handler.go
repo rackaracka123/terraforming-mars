@@ -37,7 +37,7 @@ func NewHandler(hub *Hub) *Handler {
 // ServeWS handles WebSocket requests from clients
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
-	
+
 	// Upgrade connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -76,7 +76,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	// Send periodic pings to keep connection alive
 	go h.pingLoop(connection)
-	
+
 	h.logger.Info("🎉 WebSocket connection fully initialized", zap.String("connection_id", connectionID))
 }
 

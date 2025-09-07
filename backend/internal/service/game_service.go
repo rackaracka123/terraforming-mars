@@ -299,16 +299,16 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		// Shuffle and select 4 cards
 		shuffled := make([]string, len(startingCardIDs))
 		copy(shuffled, startingCardIDs)
-		
+
 		// Fisher-Yates shuffle
 		for i := len(shuffled) - 1; i > 0; i-- {
 			j := rng.Intn(i + 1)
 			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 		}
-		
+
 		cardOptions := shuffled[:cardsPerPlayer]
-		
-		log.Debug("Dealing starting cards to player", 
+
+		log.Debug("Dealing starting cards to player",
 			zap.String("player_id", player.ID),
 			zap.Strings("cards", cardOptions))
 
@@ -317,15 +317,15 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 
 		// Create and publish event
 		event := events.NewPlayerStartingCardOptionsEvent(gameID, player.ID, cardOptions)
-		
+
 		// Publish the event through the event bus
 		if s.eventBus != nil {
 			if err := s.eventBus.Publish(ctx, event); err != nil {
-				log.Warn("Failed to publish starting card options event", 
+				log.Warn("Failed to publish starting card options event",
 					zap.String("player_id", player.ID),
 					zap.Error(err))
 			} else {
-				log.Debug("Starting card options event published", 
+				log.Debug("Starting card options event published",
 					zap.String("player_id", player.ID),
 					zap.String("event_type", event.GetType()))
 			}
@@ -350,14 +350,14 @@ func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gam
 
 	// Validate current phase
 	if game.CurrentPhase != model.GamePhaseStartingCardSelection {
-		log.Warn("Attempted to advance from card selection phase but game is not in that phase", 
+		log.Warn("Attempted to advance from card selection phase but game is not in that phase",
 			zap.String("current_phase", string(game.CurrentPhase)))
 		return fmt.Errorf("game is not in starting card selection phase")
 	}
 
 	// Validate game is active
 	if game.Status != model.GameStatusActive {
-		log.Warn("Attempted to advance phase but game is not active", 
+		log.Warn("Attempted to advance phase but game is not active",
 			zap.String("current_status", string(game.Status)))
 		return fmt.Errorf("game is not active")
 	}
@@ -365,7 +365,7 @@ func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gam
 	// Advance to action phase
 	oldPhase := game.CurrentPhase
 	game.CurrentPhase = model.GamePhaseAction
-	
+
 	// Update game through repository
 	if err := s.gameRepo.Update(ctx, game); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
@@ -377,7 +377,7 @@ func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gam
 		s.cardService.ClearGameSelectionData(gameID)
 	}
 
-	log.Info("Game phase advanced successfully", 
+	log.Info("Game phase advanced successfully",
 		zap.String("previous_phase", string(oldPhase)),
 		zap.String("new_phase", string(game.CurrentPhase)))
 

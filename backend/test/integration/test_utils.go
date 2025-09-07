@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,41 +19,41 @@ import (
 )
 
 const (
-	// Test server configuration
-	testPort = 3002 // Use different port to avoid conflicts
-	
-	// Test timeouts
-	connectionTimeout = 5 * time.Second
-	messageTimeout    = 3 * time.Second
+	// Test timeouts - optimized for fast CI/CD while maintaining reliability
+	connectionTimeout = 3 * time.Second
+	messageTimeout    = 2 * time.Second
 )
 
 var (
-	testServer *TestServer
+	testServer     *TestServer
 	testServerHTTP string
 	testServerWS   string
-	setupOnce sync.Once
+	setupMu        sync.Mutex
+	serverStarted  bool
 )
+
+// getFreePort returns an available port number
+func getFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
+}
 
 // TestMain sets up and tears down the test server
 func TestMain(m *testing.M) {
-	// Create test server
-	var err error
-	testServer, err = NewTestServer(testPort)
-	if err != nil {
-		fmt.Printf("Failed to create test server: %v\n", err)
+	// Setup test server using shared function
+	if err := setupTestServer(); err != nil {
+		fmt.Printf("Failed to setup test server: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Start test server
-	err = testServer.Start()
-	if err != nil {
-		fmt.Printf("Failed to start test server: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Set test server URLs
-	testServerHTTP = testServer.GetBaseURL()
-	testServerWS = testServer.GetWebSocketURL()
 
 	fmt.Printf("Test server started at %s\n", testServerHTTP)
 
@@ -69,28 +70,38 @@ func TestMain(m *testing.M) {
 
 // setupTestServer ensures the test server is running (thread-safe)
 func setupTestServer() error {
-	var setupErr error
-	setupOnce.Do(func() {
-		// Create test server
-		var err error
-		testServer, err = NewTestServer(testPort)
-		if err != nil {
-			setupErr = fmt.Errorf("failed to create test server: %w", err)
-			return
-		}
+	setupMu.Lock()
+	defer setupMu.Unlock()
+	
+	// If server is already running, return
+	if serverStarted && testServer != nil {
+		return nil
+	}
 
-		// Start test server
-		err = testServer.Start()
-		if err != nil {
-			setupErr = fmt.Errorf("failed to start test server: %w", err)
-			return
-		}
+	// Get a free port
+	port, err := getFreePort()
+	if err != nil {
+		return fmt.Errorf("failed to get free port: %w", err)
+	}
 
-		// Set test server URLs
-		testServerHTTP = testServer.GetBaseURL()
-		testServerWS = testServer.GetWebSocketURL()
-	})
-	return setupErr
+	// Create test server on dynamic port
+	testServer, err = NewTestServer(port)
+	if err != nil {
+		return fmt.Errorf("failed to create test server on port %d: %w", port, err)
+	}
+
+	// Start test server
+	err = testServer.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start test server on port %d: %w", port, err)
+	}
+
+	// Set test server URLs
+	testServerHTTP = testServer.GetBaseURL()
+	testServerWS = testServer.GetWebSocketURL()
+	serverStarted = true
+	
+	return nil
 }
 
 // TestClient represents a test client for integration tests
@@ -101,6 +112,9 @@ type TestClient struct {
 	messages chan dto.WebSocketMessage
 	done     chan struct{}
 	t        *testing.T
+	writeMu  sync.Mutex // Protect WebSocket writes from concurrent access
+	closed   bool       // Track if client has been closed
+	mu       sync.Mutex // Protect client state
 }
 
 // NewTestClient creates a new test client
@@ -112,13 +126,13 @@ func NewTestClient(t *testing.T) *TestClient {
 	}
 }
 
-// Connect establishes WebSocket connection to the test server
+// Connect establishes WebSocket connection to the test server with retry logic
 func (c *TestClient) Connect() error {
 	// Ensure test server is running
 	if err := setupTestServer(); err != nil {
 		return fmt.Errorf("failed to setup test server: %w", err)
 	}
-	
+
 	u, err := url.Parse(testServerWS)
 	if err != nil {
 		return fmt.Errorf("failed to parse WebSocket URL %s: %w", testServerWS, err)
@@ -127,21 +141,39 @@ func (c *TestClient) Connect() error {
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = connectionTimeout
 
-	c.conn, _, err = dialer.Dial(u.String(), nil)
-	if err != nil {
-		return fmt.Errorf("failed to connect to WebSocket: %w", err)
+	// Retry connection with exponential backoff
+	maxRetries := 3
+	baseDelay := 100 * time.Millisecond
+	var lastErr error
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		c.conn, _, err = dialer.Dial(u.String(), nil)
+		if err == nil {
+			// Connection successful
+			go c.readMessages()
+			return nil
+		}
+
+		lastErr = err
+		if attempt < maxRetries {
+			// Calculate delay with exponential backoff
+			delay := time.Duration(1<<uint(attempt)) * baseDelay
+			if delay > 2*time.Second {
+				delay = 2 * time.Second
+			}
+			c.t.Logf("WebSocket connection attempt %d/%d failed: %v. Retrying in %v...", 
+				attempt+1, maxRetries+1, err, delay)
+			time.Sleep(delay)
+		}
 	}
 
-	// Start message reader
-	go c.readMessages()
-
-	return nil
+	return fmt.Errorf("failed to connect to WebSocket after %d attempts: %w", maxRetries+1, lastErr)
 }
 
 // readMessages reads messages from WebSocket and forwards to channel
 func (c *TestClient) readMessages() {
 	defer close(c.messages)
-	
+
 	for {
 		select {
 		case <-c.done:
@@ -149,26 +181,84 @@ func (c *TestClient) readMessages() {
 		default:
 			var message dto.WebSocketMessage
 			if err := c.conn.ReadJSON(&message); err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				// Check if client is closed before logging
+				c.mu.Lock()
+				closed := c.closed
+				c.mu.Unlock()
+				
+				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					c.t.Logf("WebSocket read error: %v", err)
 				}
 				return
 			}
+
+			// Check if client is closed before logging
+			c.mu.Lock()
+			closed := c.closed
+			c.mu.Unlock()
+			
+			if closed {
+				return
+			}
 			
 			c.t.Logf("Received message: %s", message.Type)
-			c.messages <- message
+			
+			// Non-blocking send to prevent goroutine hanging if channel is full
+			select {
+			case c.messages <- message:
+				// Message sent successfully
+			case <-c.done:
+				// Client is being closed, exit
+				return
+			default:
+				// Check if client is closed before warning
+				c.mu.Lock()
+				closed = c.closed
+				c.mu.Unlock()
+				
+				if closed {
+					return
+				}
+				
+				// Channel is full, drop oldest messages and try again
+				c.t.Logf("Warning: Message channel full, dropping oldest message")
+				select {
+				case <-c.messages:
+					// Dropped oldest message
+				default:
+					// Channel empty now, nothing to drop
+				}
+				// Try to send again
+				select {
+				case c.messages <- message:
+					// Message sent successfully after making space
+				case <-c.done:
+					return
+				default:
+					if !closed {
+						c.t.Logf("Warning: Unable to send message, dropping it")
+					}
+				}
+			}
 		}
 	}
 }
 
 // Close closes the WebSocket connection and stops the client
 func (c *TestClient) Close() {
-	if c.conn != nil {
-		close(c.done)
-		c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-		c.conn.Close()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if c.closed || c.conn == nil {
+		return
 	}
+	
+	c.closed = true
+	close(c.done)
+	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	c.conn.Close()
 }
+
 
 // CreateGameViaHTTP creates a game using the HTTP API
 func (c *TestClient) CreateGameViaHTTP() (string, error) {
@@ -176,7 +266,7 @@ func (c *TestClient) CreateGameViaHTTP() (string, error) {
 	if err := setupTestServer(); err != nil {
 		return "", fmt.Errorf("failed to setup test server: %w", err)
 	}
-	
+
 	// Create request payload
 	requestBody := dto.CreateGameRequest{
 		MaxPlayers: 4,
@@ -210,7 +300,7 @@ func (c *TestClient) CreateGameViaHTTP() (string, error) {
 // JoinGameViaWebSocket joins a game via WebSocket
 func (c *TestClient) JoinGameViaWebSocket(gameID, playerName string) error {
 	c.gameID = gameID
-	
+
 	message := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
@@ -220,6 +310,26 @@ func (c *TestClient) JoinGameViaWebSocket(gameID, playerName string) error {
 		},
 	}
 
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	return c.conn.WriteJSON(message)
+}
+
+// ReconnectToGame sends a player-reconnect message via WebSocket
+func (c *TestClient) ReconnectToGame(gameID, playerName string) error {
+	c.gameID = gameID
+
+	message := dto.WebSocketMessage{
+		Type:   dto.MessageTypePlayerReconnect,
+		GameID: gameID,
+		Payload: dto.PlayerReconnectPayload{
+			PlayerName: playerName,
+			GameID:     gameID,
+		},
+	}
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 	return c.conn.WriteJSON(message)
 }
 
@@ -233,6 +343,8 @@ func (c *TestClient) SendAction(action interface{}) error {
 		},
 	}
 
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 	return c.conn.WriteJSON(message)
 }
 
@@ -274,7 +386,7 @@ func (c *TestClient) PlayCard(cardID string) error {
 // WaitForMessage waits for a specific message type with timeout
 func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocketMessage, error) {
 	timeout := time.After(messageTimeout)
-	
+
 	for {
 		select {
 		case message := <-c.messages:
@@ -294,7 +406,7 @@ func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocket
 // WaitForAnyMessage waits for any message with timeout
 func (c *TestClient) WaitForAnyMessage() (*dto.WebSocketMessage, error) {
 	timeout := time.After(messageTimeout)
-	
+
 	select {
 	case message := <-c.messages:
 		return &message, nil
@@ -305,29 +417,76 @@ func (c *TestClient) WaitForAnyMessage() (*dto.WebSocketMessage, error) {
 	}
 }
 
+// WaitForAnyMessageWithTimeout waits for any message with a custom timeout
+func (c *TestClient) WaitForAnyMessageWithTimeout(timeout time.Duration) (dto.WebSocketMessage, error) {
+	timeoutChan := time.After(timeout)
+
+	select {
+	case message := <-c.messages:
+		return message, nil
+	case <-timeoutChan:
+		return dto.WebSocketMessage{}, fmt.Errorf("timeout waiting for any message")
+	case <-c.done:
+		return dto.WebSocketMessage{}, fmt.Errorf("client closed while waiting for message")
+	}
+}
+
+// WaitForMessageWithTimeout waits for a specific message type with custom timeout
+func (c *TestClient) WaitForMessageWithTimeout(messageType dto.MessageType, timeout time.Duration) (*dto.WebSocketMessage, error) {
+	timeoutChan := time.After(timeout)
+
+	for {
+		select {
+		case message := <-c.messages:
+			c.t.Logf("Looking for %s, got %s", messageType, message.Type)
+			if message.Type == messageType {
+				return &message, nil
+			}
+			// Continue waiting for the expected message type
+		case <-timeoutChan:
+			return nil, fmt.Errorf("timeout waiting for message type: %s", messageType)
+		case <-c.done:
+			return nil, fmt.Errorf("client closed while waiting for message")
+		}
+	}
+}
+
+// ClearMessageQueue drains all pending messages from the message channel
+func (c *TestClient) ClearMessageQueue() {
+	for {
+		select {
+		case msg := <-c.messages:
+			c.t.Logf("Cleared message from queue: %s", msg.Type)
+		default:
+			// No more messages in queue
+			return
+		}
+	}
+}
+
 // SetupBasicGameFlow sets up a basic game flow: connect, create, join
 // Returns the client with established connection and joined game
 func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 	client := NewTestClient(t)
-	
+
 	// Connect to WebSocket
 	err := client.Connect()
 	require.NoError(t, err, "Failed to connect to WebSocket server")
-	
+
 	// Create game via HTTP API
 	gameID, err := client.CreateGameViaHTTP()
 	require.NoError(t, err, "Failed to create game via HTTP")
 	require.NotEmpty(t, gameID, "Game ID should not be empty")
-	
+
 	// Join the created game via WebSocket
 	err = client.JoinGameViaWebSocket(gameID, playerName)
 	require.NoError(t, err, "Failed to join game via WebSocket")
-	
+
 	// Wait for player connected confirmation
 	message, err := client.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err, "Failed to receive player connected message")
 	require.NotNil(t, message, "Player connected message should not be nil")
-	
+
 	// Extract player ID
 	payload, ok := message.Payload.(map[string]interface{})
 	require.True(t, ok, "Player connected payload should be a map")
@@ -335,6 +494,129 @@ func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 	require.True(t, ok, "Player ID should be present in payload")
 	require.NotEmpty(t, playerID, "Player ID should not be empty")
 	client.playerID = playerID
-	
+
 	return client, gameID
+}
+
+// ForceClose forces connection closure (for testing network interruptions)
+func (c *TestClient) ForceClose() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if c.closed || c.conn == nil {
+		return
+	}
+	
+	c.closed = true
+	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
+	c.conn.Close()
+	close(c.done)
+}
+
+// VerifyGameStatus extracts and verifies game status from a WebSocket message
+func VerifyGameStatus(t *testing.T, message dto.WebSocketMessage, expectedStatus string) {
+	payload, ok := message.Payload.(map[string]interface{})
+	require.True(t, ok, "Message payload should be a map")
+	gameData, ok := payload["game"].(map[string]interface{})
+	require.True(t, ok, "Game data should be present in payload")
+	status, ok := gameData["status"].(string)
+	require.True(t, ok, "Game status should be present")
+	require.Equal(t, expectedStatus, status, "Game status should be %s", expectedStatus)
+}
+
+// WaitForGameStatusChange waits for a game update message and verifies the status
+func (c *TestClient) WaitForGameStatusChange(expectedStatus string) error {
+	// Try multiple times to account for race conditions with async events
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		msg, err := c.WaitForMessage(dto.MessageTypeGameUpdated)
+		if err != nil {
+			return fmt.Errorf("failed to receive game update (attempt %d): %w", i+1, err)
+		}
+		
+		payload, ok := msg.Payload.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("game update payload should be a map")
+		}
+		
+		gameData, ok := payload["game"].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("game data should be present in payload")
+		}
+		
+		status, ok := gameData["status"].(string)
+		if !ok {
+			return fmt.Errorf("game status should be present")
+		}
+		
+		if status == expectedStatus {
+			return nil // Success!
+		}
+		
+		// If this is the last attempt, return error
+		if i == maxRetries-1 {
+			return fmt.Errorf("expected status %s, got %s after %d attempts", expectedStatus, status, maxRetries)
+		}
+		
+		// Small delay before trying again
+		time.Sleep(50 * time.Millisecond)
+	}
+	
+	return fmt.Errorf("failed to verify status change after %d attempts", maxRetries)
+}
+
+// WaitForStartGameComplete waits for StartGame action to complete and verifies game becomes active
+func (c *TestClient) WaitForStartGameComplete() error {
+	// Wait for game update message
+	err := c.WaitForGameStatusChange("active")
+	if err != nil {
+		return fmt.Errorf("failed to verify game became active: %w", err)
+	}
+	
+	// Allow extended time for all async operations to complete
+	// StartGame triggers multiple async events that need to finish
+	time.Sleep(500 * time.Millisecond)
+	
+	return nil
+}
+
+// SetPlayerID sets the player ID for this client
+func (c *TestClient) SetPlayerID(playerID string) {
+	c.playerID = playerID
+}
+
+// IsHost checks if this client is the host of the current game
+func (c *TestClient) IsHost() (bool, error) {
+	if c.gameID == "" || c.playerID == "" {
+		return false, fmt.Errorf("client not connected to a game")
+	}
+	
+	// Get game state via HTTP API
+	resp, err := http.Get(fmt.Sprintf("%s/api/v1/games/%s", testServerHTTP, c.gameID))
+	if err != nil {
+		return false, fmt.Errorf("failed to get game state: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("failed to get game state: status %d", resp.StatusCode)
+	}
+	
+	var response map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return false, fmt.Errorf("failed to decode game response: %w", err)
+	}
+	
+	// The response is wrapped in a "game" field
+	gameData, ok := response["game"].(map[string]interface{})
+	if !ok {
+		return false, fmt.Errorf("game field not found in response")
+	}
+	
+	hostPlayerID, ok := gameData["hostPlayerId"].(string)
+	if !ok {
+		return false, fmt.Errorf("hostPlayerId not found in game data")
+	}
+	
+	return hostPlayerID == c.playerID, nil
 }

@@ -54,7 +54,7 @@ func TestStartGameFlow(t *testing.T) {
 
 	// Step 6: Give a moment for the server to process the start game action
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Wait for any message and check if it's the correct game-updated message
 	// We might receive multiple game-updated messages, need to find the one with active status
 	var gameUpdatedMessage *dto.WebSocketMessage
@@ -63,7 +63,7 @@ func TestStartGameFlow(t *testing.T) {
 		if err != nil {
 			break
 		}
-		
+
 		if message.Type == dto.MessageTypeGameUpdated {
 			// Check if this message contains the active game state
 			if payload, ok := message.Payload.(map[string]interface{}); ok {
@@ -78,7 +78,7 @@ func TestStartGameFlow(t *testing.T) {
 			}
 		}
 	}
-	
+
 	require.NotNil(t, gameUpdatedMessage, "Failed to receive game updated message with active status")
 	message = gameUpdatedMessage
 	t.Log("✅ Received game-updated message with active status")
@@ -92,11 +92,11 @@ func TestStartGameFlow(t *testing.T) {
 
 	gameStatus, ok := gameData["status"].(string)
 	require.True(t, ok, "Game status should be present")
-	
+
 	// Verify game phase changed
 	currentPhase, ok := gameData["currentPhase"].(string)
 	require.True(t, ok, "Current phase should be present")
-	
+
 	t.Logf("📊 Game State: Status=%s, Phase=%s", gameStatus, currentPhase)
 
 	if gameStatus != "active" {

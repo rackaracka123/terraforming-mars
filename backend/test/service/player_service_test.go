@@ -23,7 +23,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	
+
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
 

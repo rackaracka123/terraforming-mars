@@ -97,7 +97,7 @@ func (h *Hub) Run(ctx context.Context) {
 			h.logger.Info("✅ Unregister request processed", zap.String("connection_id", connection.ID))
 
 		case hubMessage := <-h.Broadcast:
-			h.logger.Debug("📨 Processing Broadcast message", 
+			h.logger.Debug("📨 Processing Broadcast message",
 				zap.String("connection_id", hubMessage.Connection.ID),
 				zap.String("message_type", string(hubMessage.Message.Type)))
 			h.handleMessage(ctx, hubMessage)
@@ -168,6 +168,7 @@ func (h *Hub) unregisterConnection(connection *Connection) {
 				zap.String("game_id", gameID),
 				zap.Error(err))
 		} else {
+			// Player disconnection handled by repository layer
 			// Get updated game state and broadcast player-disconnected message
 			game, err := h.gameService.GetGame(ctx, gameID)
 			if err != nil {
@@ -328,10 +329,16 @@ func (h *Hub) closeAllConnections() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	h.logger.Info("🛑 Closing all active connections", zap.Int("connection_count", len(h.connections)))
+
 	for connection := range h.connections {
-		close(connection.Send)
-		connection.Conn.Close()
+		// Use the proper Close method to ensure all goroutines are signaled
+		connection.Close()
 	}
+
+	// Clear the connection maps
+	h.connections = make(map[*Connection]bool)
+	h.gameConnections = make(map[string]map[*Connection]bool)
 
 	h.logger.Info("⛓️‍💥 All client connections closed by server")
 }
@@ -340,17 +347,17 @@ func (h *Hub) closeAllConnections() {
 func (h *Hub) subscribeToEvents() {
 	// Subscribe to game state changes to broadcast updates to clients
 	h.eventBus.Subscribe(events.EventTypeGameStateChanged, h.handleGameStateChanged)
-	
+
 	// Subscribe to starting card options events to send available cards to players
 	h.eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, h.handlePlayerStartingCardOptions)
-	
+
 	h.logger.Info("📡 WebSocket hub subscribed to game state events")
 }
 
 // handleGameStateChanged handles game state change events by broadcasting to clients
 func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) error {
 	h.logger.Info("🔄 Event handler called: handleGameStateChanged - running async to prevent deadlock")
-	
+
 	// Run the event handler asynchronously to prevent deadlocks
 	go func() {
 		// Extract the game state changed event data
@@ -370,7 +377,7 @@ func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) er
 
 		// Create a new context for this async operation
 		asyncCtx := context.Background()
-		
+
 		// Get the current game state to send to clients
 		h.logger.Debug("🔍 Getting game state for broadcast (async)", zap.String("game_id", gameID))
 		game, err := h.gameService.GetGame(asyncCtx, gameID)
@@ -410,7 +417,7 @@ func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) er
 
 		h.logger.Debug("✅ Event handler completed successfully")
 	}()
-	
+
 	// Return immediately to prevent blocking the original operation
 	h.logger.Debug("✅ Event handler scheduled asynchronously")
 	return nil
@@ -419,28 +426,28 @@ func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) er
 // handlePlayerStartingCardOptions handles when starting cards are dealt to a player
 func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
 	h.logger.Info("🃏 Event handler called: handlePlayerStartingCardOptions - running async to prevent deadlock")
-	
+
 	// Create async context to prevent deadlock
 	go func() {
-		
+
 		// Parse event payload
 		payload := event.GetPayload().(events.PlayerStartingCardOptionsEventData)
 		gameID := payload.GameID
 		playerID := payload.PlayerID
 		cardOptions := payload.CardOptions
-		
-		h.logger.Debug("🃏 Processing starting card options for player", 
+
+		h.logger.Debug("🃏 Processing starting card options for player",
 			zap.String("game_id", gameID),
 			zap.String("player_id", playerID),
 			zap.Strings("card_options", cardOptions))
-		
+
 		// Get card details for the options
 		allStartingCards := model.GetStartingCards()
 		cardMap := make(map[string]model.Card)
 		for _, card := range allStartingCards {
 			cardMap[card.ID] = card
 		}
-		
+
 		// Build card DTOs for the available options
 		availableCards := make([]dto.CardDto, 0, len(cardOptions))
 		for _, cardID := range cardOptions {
@@ -455,7 +462,7 @@ func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.
 				availableCards = append(availableCards, cardDto)
 			}
 		}
-		
+
 		// Create available-cards message
 		message := dto.WebSocketMessage{
 			Type: dto.MessageTypeAvailableCards,
@@ -463,10 +470,10 @@ func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.
 				Cards: availableCards,
 			},
 		}
-		
+
 		// Send to the specific player
 		h.sendToPlayer(gameID, playerID, message)
-		
+
 		h.logger.Info("🃏 Available cards sent to player",
 			zap.String("game_id", gameID),
 			zap.String("player_id", playerID),

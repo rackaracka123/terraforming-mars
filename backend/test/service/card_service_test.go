@@ -19,14 +19,14 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	
+
 	ctx := context.Background()
 
 	// Create a test game
 	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
 	game.Status = model.GameStatusActive
 	game.CurrentPhase = model.GamePhaseStartingCardSelection
-	
+
 	// Create test player with starting credits
 	player := model.Player{
 		ID:   "player1",
@@ -45,16 +45,16 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 
 	// Add player to game
 	game.Players = []model.Player{player}
-	
+
 	// Store game and player
 	createdGame, err := gameRepo.Create(ctx, game.Settings)
 	require.NoError(t, err)
 	game.ID = createdGame.ID // Use the ID from the created game
-	
+
 	// Update game with our test data
 	err = gameRepo.Update(ctx, game)
 	require.NoError(t, err)
-	
+
 	err = playerRepo.AddPlayer(ctx, game.ID, player)
 	require.NoError(t, err)
 
@@ -64,11 +64,11 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
 
 	tests := []struct {
-		name           string
-		selectedCards  []string
-		expectedCost   int
-		expectedError  bool
-		errorMessage   string
+		name          string
+		selectedCards []string
+		expectedCost  int
+		expectedError bool
+		errorMessage  string
 	}{
 		{
 			name:          "Select no cards",
@@ -131,16 +131,16 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				Cards:           []string{},
 				PlayedCards:     []string{},
 			}
-			
+
 			err := playerRepo.UpdatePlayer(ctx, game.ID, &resetPlayer)
 			require.NoError(t, err)
-			
+
 			// Reset game state
 			resetGame := *game
 			resetGame.Players = []model.Player{resetPlayer}
 			err = gameRepo.Update(ctx, &resetGame)
 			require.NoError(t, err)
-			
+
 			// Reset card service selection status
 			cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
 
@@ -180,7 +180,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	
+
 	ctx := context.Background()
 
 	// Store starting card options
@@ -228,7 +228,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset selection status
 			cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
-			
+
 			err := cardService.ValidateStartingCardSelection(ctx, "test-game", "player1", tt.cardIDs)
 
 			if tt.expectedError {
@@ -249,43 +249,43 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	
+
 	ctx := context.Background()
 
 	// Create a test game with multiple players
 	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
 	game.Status = model.GameStatusActive
 	game.CurrentPhase = model.GamePhaseStartingCardSelection
-	
+
 	// Create test players
 	player1 := model.Player{
-		ID:   "player1",
-		Name: "Player 1",
-		Resources: model.Resources{Credits: 40},
-		Production: model.Production{Credits: 1},
+		ID:              "player1",
+		Name:            "Player 1",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive: true,
+		IsActive:        true,
 	}
-	
+
 	player2 := model.Player{
-		ID:   "player2",
-		Name: "Player 2", 
-		Resources: model.Resources{Credits: 40},
-		Production: model.Production{Credits: 1},
+		ID:              "player2",
+		Name:            "Player 2",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive: true,
+		IsActive:        true,
 	}
 
 	game.Players = []model.Player{player1, player2}
-	
+
 	// Store game
 	createdGame, err := gameRepo.Create(ctx, game.Settings)
 	require.NoError(t, err)
 	game.ID = createdGame.ID // Use the ID from the created game
-	
+
 	err = gameRepo.Update(ctx, game)
 	require.NoError(t, err)
-	
+
 	// Add players
 	err = playerRepo.AddPlayer(ctx, game.ID, player1)
 	require.NoError(t, err)
@@ -310,14 +310,14 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	// Test: Only one player completed selection
 	err = cardService.SelectStartingCards(ctx, game.ID, player1.ID, []string{"investment"})
 	require.NoError(t, err)
-	
+
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
 	assert.False(t, complete)
 
 	// Test: All players completed selection
 	err = cardService.SelectStartingCards(ctx, game.ID, player2.ID, []string{"early-settlement"})
 	require.NoError(t, err)
-	
+
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
 	assert.True(t, complete)
 }

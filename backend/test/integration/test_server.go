@@ -47,6 +47,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
+	
 
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -63,6 +64,13 @@ func NewTestServer(port int) (*TestServer, error) {
 	apiRouter := httpHandler.SetupRouter(gameService, playerService)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	
+	// Add health check endpoint
+	mainRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
 
 	// Create HTTP server
 	server := &http.Server{
@@ -101,11 +109,45 @@ func (ts *TestServer) Start() error {
 		}
 	}()
 
-	// Give the server a moment to start
-	time.Sleep(100 * time.Millisecond)
-	ts.started = true
+	// Wait for server to be ready with polling mechanism
+	if err := ts.waitForServerReady(); err != nil {
+		return fmt.Errorf("server failed to start: %w", err)
+	}
 
+	ts.started = true
 	return nil
+}
+
+// waitForServerReady polls the health endpoint until server is ready
+func (ts *TestServer) waitForServerReady() error {
+	healthURL := fmt.Sprintf("http://localhost:%d/health", ts.port)
+	
+	// Try for up to 5 seconds with exponential backoff  
+	maxAttempts := 15
+	baseDelay := 50 * time.Millisecond
+	
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// Use a fresh client for each attempt with shorter timeout
+		client := &http.Client{Timeout: 200 * time.Millisecond}
+		resp, err := client.Get(healthURL)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				// Give a small additional delay to ensure WebSocket handlers are ready
+				time.Sleep(100 * time.Millisecond)
+				return nil
+			}
+		}
+		
+		// Exponential backoff with cap
+		delay := time.Duration(1<<uint(attempt)) * baseDelay
+		if delay > 500*time.Millisecond {
+			delay = 500 * time.Millisecond
+		}
+		time.Sleep(delay)
+	}
+	
+	return fmt.Errorf("server did not become ready within timeout on port %d", ts.port)
 }
 
 // Stop stops the test server
@@ -120,6 +162,8 @@ func (ts *TestServer) Stop() error {
 	// Stop WebSocket hub
 	if ts.cancel != nil {
 		ts.cancel()
+		// Give time for all WebSocket connections and goroutines to properly terminate
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	// Stop HTTP server

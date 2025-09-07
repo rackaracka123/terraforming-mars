@@ -15,10 +15,10 @@ import (
 type CardService interface {
 	// Select starting cards for a player
 	SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
-	
+
 	// Validate starting card selection
 	ValidateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
-	
+
 	// Check if all players have completed card selection
 	IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool
 }
@@ -50,7 +50,7 @@ func (s *CardServiceImpl) StorePlayerCardOptions(gameID, playerID string, cardOp
 	if s.selectionStatus[gameID] == nil {
 		s.selectionStatus[gameID] = make(map[string]bool)
 	}
-	
+
 	s.playerCardOptions[gameID][playerID] = cardOptions
 	s.selectionStatus[gameID][playerID] = false
 }
@@ -87,7 +87,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	// Create updated player with selected cards and reduced credits
 	updatedPlayer := *player
 	updatedPlayer.Resources.Credits -= cost
-	
+
 	// Add selected cards to player's hand
 	updatedPlayer.Cards = append(updatedPlayer.Cards, cardIDs...)
 
@@ -125,11 +125,11 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 
 	// Create and log the starting card selected event
 	event := events.NewStartingCardSelectedEvent(gameID, playerID, cardIDs, cost)
-	log.Debug("Starting card selected event created", 
+	log.Debug("Starting card selected event created",
 		zap.String("event_type", event.GetType()),
 		zap.Int("cost", cost))
 
-	log.Info("Player completed starting card selection", 
+	log.Info("Player completed starting card selection",
 		zap.Strings("selected_cards", cardIDs),
 		zap.Int("cost_paid", cost),
 		zap.Int("remaining_credits", updatedPlayer.Resources.Credits))
@@ -220,6 +220,6 @@ func (s *CardServiceImpl) IsAllPlayersCardSelectionComplete(ctx context.Context,
 func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 	delete(s.playerCardOptions, gameID)
 	delete(s.selectionStatus, gameID)
-	
+
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
 }
