@@ -137,6 +137,12 @@ func (h *Hub) handlePlayAction(ctx context.Context, connection *Connection, mess
 		},
 		GameID: gameID,
 	})
+
+	h.logger.Info("✅ Action processed and game state broadcasted",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID),
+		zap.String("action_type", fmt.Sprintf("%T", payload.ActionRequest)))
 }
 
 // parseMessagePayload parses a message payload into the given destination

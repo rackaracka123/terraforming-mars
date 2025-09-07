@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"net"
 	"sync"
+	"time"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
@@ -133,8 +135,28 @@ func (c *Connection) WritePump() {
 				zap.String("connection_id", c.ID),
 				zap.String("message_type", string(message.Type)))
 
+			// Set write deadline for this specific message (10 seconds should be enough for any message)
+			if err := c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				c.logger.Error("Failed to set write deadline",
+					zap.Error(err),
+					zap.String("connection_id", c.ID),
+					zap.String("message_type", string(message.Type)))
+				return
+			}
+
 			if err := c.Conn.WriteJSON(message); err != nil {
-				c.logger.Error("WebSocket write error", zap.Error(err), zap.String("connection_id", c.ID))
+				// Check if it's a timeout error
+				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+					c.logger.Error("WebSocket write timeout - message too large or network too slow", 
+						zap.Error(err), 
+						zap.String("connection_id", c.ID),
+						zap.String("message_type", string(message.Type)))
+				} else {
+					c.logger.Error("WebSocket write error", 
+						zap.Error(err), 
+						zap.String("connection_id", c.ID),
+						zap.String("message_type", string(message.Type)))
+				}
 				return
 			}
 		}
