@@ -13,9 +13,13 @@ import {
   MessageTypePlayerReconnect,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
+  MessageTypeProductionPhaseStarted,
+  MessageTypeProductionPhaseReady,
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
+  ProductionPhaseStartedPayload,
+  ProductionPhaseReadyPayload,
   WebSocketMessage,
 } from "../types/generated/api-types.ts";
 
@@ -31,20 +35,41 @@ export class WebSocketService {
   private reconnectDelay = 1000;
   private currentGameId: string | null = null;
   private currentPlayerId: string | null = null;
+  private isPageReload = false;
 
   constructor(url: string = "ws://localhost:3001/ws") {
     this.url = url;
+
+    // Detect if this is a page reload by checking performance navigation timing
+    if (typeof window !== "undefined" && window.performance) {
+      const navEntries = window.performance.getEntriesByType(
+        "navigation",
+      ) as PerformanceNavigationTiming[];
+      if (navEntries.length > 0) {
+        this.isPageReload = navEntries[0].type === "reload";
+      }
+    }
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // On page reload, always force a fresh connection
+        if (this.isPageReload) {
+          console.log(
+            "🔄 Page reload detected, forcing fresh WebSocket connection",
+          );
+          this.forceDisconnect();
+        }
+
         // If already connected, resolve immediately
         if (
           this.isConnected &&
           this.ws &&
-          this.ws.readyState === WebSocket.OPEN
+          this.ws.readyState === WebSocket.OPEN &&
+          !this.isPageReload
         ) {
+          console.log("🔗 WebSocket already connected, reusing connection");
           resolve();
           return;
         }
@@ -59,6 +84,18 @@ export class WebSocketService {
         this.ws.onopen = () => {
           this.isConnected = true;
           this.reconnectAttempts = 0;
+
+          if (this.isPageReload) {
+            console.log(
+              "🔄 WebSocket connected after page reload - fresh connection established",
+            );
+            this.isPageReload = false; // Reset flag after successful connection
+          } else {
+            console.log(
+              "🔗 WebSocket connected - normal connection established",
+            );
+          }
+
           this.emit("connect");
           resolve();
         };
@@ -133,6 +170,12 @@ export class WebSocketService {
         this.emit("full-state", statePayload);
         break;
       }
+      case MessageTypeProductionPhaseStarted: {
+        const productionPayload =
+          message.payload as ProductionPhaseStartedPayload;
+        this.emit("production-phase-started", productionPayload);
+        break;
+      }
       default:
         console.warn("Unknown message type:", message.type);
     }
@@ -185,6 +228,10 @@ export class WebSocketService {
     gameId: string,
   ): Promise<PlayerReconnectedPayload> {
     return new Promise((resolve, reject) => {
+      console.log("🔄 Sending player-reconnect message", {
+        playerName,
+        gameId,
+      });
       this.send(MessageTypePlayerReconnect, { playerName, gameId }, gameId);
       this.currentGameId = gameId;
 
@@ -198,13 +245,26 @@ export class WebSocketService {
       }, 10000); // 10 second timeout
 
       const responseHandler = (payload: PlayerReconnectedPayload) => {
+        console.log("📨 Received player-reconnected message", {
+          payloadPlayerName: payload.playerName,
+          expectedPlayerName: playerName,
+          playerId: payload.playerId,
+        });
+
         // Only resolve if this is the reconnection for the current player
         if (payload.playerName === playerName) {
+          console.log(
+            "✅ Player reconnection confirmed - matching player name",
+          );
           clearTimeout(timeout);
           this.off("player-reconnected", responseHandler);
           this.off("error", errorHandler);
           this.currentPlayerId = payload.playerId;
           resolve(payload);
+        } else {
+          console.log(
+            "⚠️ Player reconnection received for different player, ignoring",
+          );
         }
       };
 
@@ -222,6 +282,25 @@ export class WebSocketService {
 
   playAction(actionPayload: object): string {
     return this.send(MessageTypePlayAction, { actionRequest: actionPayload });
+  }
+
+  productionPhaseReady(): string {
+    if (!this.currentPlayerId) {
+      throw new Error(
+        "Cannot send production-phase-ready: no current player ID",
+      );
+    }
+
+    const payload: ProductionPhaseReadyPayload = {
+      playerId: this.currentPlayerId,
+    };
+
+    console.log("📦 Sending production-phase-ready message", {
+      playerId: this.currentPlayerId,
+      gameId: this.currentGameId,
+    });
+
+    return this.send(MessageTypeProductionPhaseReady, payload);
   }
 
   on(event: string, callback: EventCallback) {
@@ -268,6 +347,30 @@ export class WebSocketService {
     this.isConnected = false;
     this.currentGameId = null;
     this.currentPlayerId = null;
+  }
+
+  forceDisconnect() {
+    console.log("🚨 Force disconnecting WebSocket connection");
+    this.isConnected = false;
+    this.currentGameId = null;
+    this.currentPlayerId = null;
+    this.reconnectAttempts = 0;
+
+    if (this.ws) {
+      // Remove all event listeners to prevent them from firing
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+
+      if (
+        this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING
+      ) {
+        this.ws.close();
+      }
+      this.ws = null;
+    }
   }
 
   get connected() {
