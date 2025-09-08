@@ -44,12 +44,24 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         }
 
         // Ensure WebSocket is ready and attempt reconnection
-        // Attempting to reconnect: playerName, gameId
+        console.log(
+          "🔄 ReconnectingPage: Ensuring WebSocket connection before reconnect",
+        );
+        await globalWebSocketManager.ensureConnected();
+
+        console.log("🔄 ReconnectingPage: Attempting to reconnect", {
+          playerName,
+          gameId,
+        });
         const reconnectionResult = await globalWebSocketManager.playerReconnect(
           playerName,
           gameId,
         );
-        // Reconnection successful
+        console.log("✅ ReconnectingPage: Reconnection successful", {
+          hasGame: !!reconnectionResult.game,
+          playerId: reconnectionResult.playerId,
+          playerName: reconnectionResult.playerName,
+        });
 
         if (reconnectionResult.game) {
           // Update localStorage with fresh data
@@ -64,6 +76,16 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
           );
 
           // Navigate to game with reconnected state
+          console.log(
+            "🔄 ReconnectingPage: Navigating back to game with reconnected state",
+            {
+              gameStatus: reconnectionResult.game.status,
+              currentPhase: reconnectionResult.game.currentPhase,
+              playerId: reconnectionResult.playerId,
+              isReconnection: true,
+            },
+          );
+
           navigate("/game", {
             state: {
               game: reconnectionResult.game,

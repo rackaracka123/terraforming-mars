@@ -6,6 +6,7 @@ import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
+import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
@@ -18,6 +19,7 @@ import {
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerReconnectedPayload,
+  ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
@@ -37,6 +39,12 @@ export default function GameInterface() {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+
+  // Production phase modal state
+  const [showProductionPhaseModal, setShowProductionPhaseModal] =
+    useState(false);
+  const [productionPhaseData, setProductionPhaseData] =
+    useState<ProductionPhaseStartedPayload | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -156,6 +164,21 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
+  const handleProductionPhaseStarted = useCallback(
+    (payload: ProductionPhaseStartedPayload) => {
+      // Production phase started - show modal with animation data
+      console.log("🏭 Production phase started", payload);
+      setProductionPhaseData(payload);
+      setShowProductionPhaseModal(true);
+
+      // Update game state
+      if (payload.game) {
+        handleGameUpdated(payload.game);
+      }
+    },
+    [handleGameUpdated],
+  );
+
   // Setup WebSocket listeners using global manager - only initialize once
   const setupWebSocketListeners = useCallback(() => {
     if (isWebSocketInitialized.current) {
@@ -167,6 +190,10 @@ export default function GameInterface() {
     globalWebSocketManager.on("player-connected", handlePlayerConnected);
     globalWebSocketManager.on("player-reconnected", handlePlayerReconnected);
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
+    globalWebSocketManager.on(
+      "production-phase-started",
+      handleProductionPhaseStarted,
+    );
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
 
@@ -181,6 +208,10 @@ export default function GameInterface() {
         "player-disconnected",
         handlePlayerDisconnected,
       );
+      globalWebSocketManager.off(
+        "production-phase-started",
+        handleProductionPhaseStarted,
+      );
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
       isWebSocketInitialized.current = false;
@@ -191,6 +222,7 @@ export default function GameInterface() {
     handlePlayerConnected,
     handlePlayerReconnected,
     handlePlayerDisconnected,
+    handleProductionPhaseStarted,
     handleError,
     handleDisconnect,
   ]);
@@ -257,6 +289,16 @@ export default function GameInterface() {
         isReconnection?: boolean;
       } | null;
 
+      console.log("🎮 GameInterface: Initializing with route state", {
+        hasRouteState: !!routeState,
+        hasGame: !!routeState?.game,
+        hasPlayerId: !!routeState?.playerId,
+        hasPlayerName: !!routeState?.playerName,
+        isReconnection: routeState?.isReconnection,
+        gameStatus: routeState?.game?.status,
+        currentPhase: routeState?.game?.currentPhase,
+      });
+
       if (
         !routeState?.game ||
         !routeState?.playerId ||
@@ -265,6 +307,9 @@ export default function GameInterface() {
         // No route state, check if we should route to reconnection page
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
+          console.log(
+            "🔄 GameInterface: No route state but found saved game data, routing to reconnection page",
+          );
           // Route to reconnecting page instead of attempting reconnection here
           navigate("/reconnecting", { replace: true });
           return;
@@ -476,6 +521,19 @@ export default function GameInterface() {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [showDebugDropdown]);
 
+  // Debug logging for game status (remove in production)
+  useEffect(() => {
+    if (game) {
+      console.log("🎮 GameInterface: Current game status", {
+        gameId: game.id,
+        status: game.status,
+        isLobbyPhase: game?.status === GameStatusLobby,
+        currentPhase: game.currentPhase,
+        playersCount: game.players.length,
+      });
+    }
+  }, [game?.status, game?.currentPhase]);
+
   if (!isConnected || !game || isReconnecting) {
     return (
       <div
@@ -501,7 +559,8 @@ export default function GameInterface() {
     showTagsModal ||
     showVictoryPointsModal ||
     showActionsModal ||
-    showCardEffectsModal;
+    showCardEffectsModal ||
+    showProductionPhaseModal;
 
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
@@ -562,6 +621,12 @@ export default function GameInterface() {
         effects={demoEffects}
         cards={demoCards}
         playerName={currentPlayer?.name}
+      />
+
+      <ProductionPhaseModal
+        isOpen={showProductionPhaseModal}
+        productionData={productionPhaseData}
+        onClose={() => setShowProductionPhaseModal(false)}
       />
 
       <DebugDropdown
