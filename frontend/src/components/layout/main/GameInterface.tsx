@@ -10,6 +10,7 @@ import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
+import { CardType, CardTag } from "../../../types/cards.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
   FullStatePayload,
@@ -334,31 +335,31 @@ export default function GameInterface() {
     {
       id: "card-1",
       name: "Mining Guild",
-      type: "corporation" as const,
+      type: CardType.CORPORATION,
       cost: 0,
       description:
         "You start with 30 M€, 5 steel, and 1 steel production. Increase steel production 1 step for each steel and titanium resource on the board.",
-      tags: ["building" as const, "space" as const],
+      tags: [CardTag.BUILDING, CardTag.SPACE],
       victoryPoints: 0,
       playOrder: 1,
     },
     {
       id: "card-2",
       name: "Power Plant",
-      type: "automated" as const,
+      type: CardType.AUTOMATED,
       cost: 4,
       description: "Increase your energy production 1 step.",
-      tags: ["power" as const, "building" as const],
+      tags: [CardTag.POWER, CardTag.BUILDING],
       victoryPoints: 0,
       playOrder: 2,
     },
     {
       id: "card-3",
       name: "Research",
-      type: "active" as const,
+      type: CardType.ACTIVE,
       cost: 11,
       description: "Action: Spend 1 M€ to draw a card.",
-      tags: ["science" as const],
+      tags: [CardTag.SCIENCE],
       victoryPoints: 1,
       playOrder: 3,
     },
@@ -400,7 +401,7 @@ export default function GameInterface() {
       id: "effect-1",
       cardId: "card-1",
       cardName: "Mining Guild",
-      cardType: "corporation" as const,
+      cardType: CardType.CORPORATION,
       effectType: "ongoing" as const,
       name: "Steel Production Bonus",
       description: "Get +1 steel production for each steel/titanium on board",
@@ -413,7 +414,7 @@ export default function GameInterface() {
       id: "effect-2",
       cardId: "card-3",
       cardName: "Research",
-      cardType: "active" as const,
+      cardType: CardType.ACTIVE,
       effectType: "triggered" as const,
       name: "Research Bonus",
       description: "Get bonus cards when researching",

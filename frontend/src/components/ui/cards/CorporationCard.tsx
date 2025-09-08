@@ -177,7 +177,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         <div className="expansion-badge">{corporation.expansion}</div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .corporation-card {
           background: linear-gradient(
             135deg,

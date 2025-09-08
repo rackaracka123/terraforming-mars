@@ -1,5 +1,3 @@
-import * as THREE from "three";
-
 export interface HexCoordinate {
   q: number;
   r: number;
@@ -23,61 +21,6 @@ export interface CartesianPosition {
  */
 export class GeodesicGrid {
   private static readonly SPHERE_RADIUS = 2;
-  private static readonly GOLDEN_RATIO = (1 + Math.sqrt(5)) / 2;
-
-  /**
-   * Generate icosahedron vertices in 3D space
-   */
-  private static generateIcosahedronVertices(): THREE.Vector3[] {
-    const t = GeodesicGrid.GOLDEN_RATIO;
-    const vertices = [
-      // 12 vertices of icosahedron
-      new THREE.Vector3(-1, t, 0),
-      new THREE.Vector3(1, t, 0),
-      new THREE.Vector3(-1, -t, 0),
-      new THREE.Vector3(1, -t, 0),
-      new THREE.Vector3(0, -1, t),
-      new THREE.Vector3(0, 1, t),
-      new THREE.Vector3(0, -1, -t),
-      new THREE.Vector3(0, 1, -t),
-      new THREE.Vector3(t, 0, -1),
-      new THREE.Vector3(t, 0, 1),
-      new THREE.Vector3(-t, 0, -1),
-      new THREE.Vector3(-t, 0, 1),
-    ];
-
-    // Normalize to unit sphere
-    return vertices.map((v) => v.normalize());
-  }
-
-  /**
-   * Generate icosahedron faces (triangles)
-   */
-  private static generateIcosahedronFaces(): number[][] {
-    return [
-      // 20 faces of icosahedron (each array contains 3 vertex indices)
-      [0, 11, 5],
-      [0, 5, 1],
-      [0, 1, 7],
-      [0, 7, 10],
-      [0, 10, 11],
-      [1, 5, 9],
-      [5, 11, 4],
-      [11, 10, 2],
-      [10, 7, 6],
-      [7, 1, 8],
-      [3, 9, 4],
-      [3, 4, 2],
-      [3, 2, 6],
-      [3, 6, 8],
-      [3, 8, 9],
-      [4, 9, 5],
-      [2, 4, 11],
-      [6, 2, 10],
-      [8, 6, 7],
-      [9, 8, 1],
-    ];
-  }
 
   /**
    * Create hexagonal grid positions on sphere surface

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { GeodesicGrid } from "../../../utils/geodesic.ts";
 import HexTile from "./HexTile.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
@@ -18,7 +18,7 @@ interface HexagonalGridProps {
 }
 
 export default function HexagonalGrid({
-  gameState,
+  gameState: _gameState,
   onHexClick,
 }: HexagonalGridProps) {
   // Generate the hexagonal grid positions
@@ -27,22 +27,9 @@ export default function HexagonalGrid({
   }, []);
 
   // Get tile data from game state or use default
-  const getTileData = (hexCoordinate: string) => {
-    // Try to get from game state board
-    if (gameState?.board?.tiles) {
-      const tile =
-        gameState.board.tiles.get?.(hexCoordinate) ||
-        gameState.board.tiles[hexCoordinate];
-      if (tile) {
-        return {
-          type: tile.type || TileType.EMPTY,
-          ownerId: tile.ownerId || null,
-          specialType: tile.specialType || null,
-        };
-      }
-    }
-
-    // Default to empty tile
+  const getTileData = (_hexCoordinate: string) => {
+    // For now, return default empty tile since board property doesn't exist in GameDto
+    // TODO: Update when board property is added to GameDto
     return {
       type: TileType.EMPTY,
       ownerId: null,

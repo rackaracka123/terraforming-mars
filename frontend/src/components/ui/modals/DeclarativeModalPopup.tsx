@@ -133,7 +133,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
   };
 
   const renderEffects = (effects: StandardProject["effects"]) => {
-    const elements = [];
+    const elements: React.ReactElement[] = [];
 
     if (effects.production) {
       effects.production.forEach((prod, idx) => {
@@ -300,7 +300,7 @@ const DeclarativeModalPopup: React.FC<DeclarativeModalPopupProps> = ({
       </button>
       <div className="modal-content">{renderContent()}</div>
 
-      <style jsx>{`
+      <style>{`
         .modal-popup {
           background: linear-gradient(
             135deg,

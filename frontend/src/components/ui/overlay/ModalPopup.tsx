@@ -224,6 +224,8 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
+
+    return undefined;
   }, [type, onClose]);
 
   if (!type) return null;
@@ -271,7 +273,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
   );
 
   const renderEffects = (effects: StandardProject["effects"]) => {
-    const elements = [];
+    const elements: React.ReactElement[] = [];
 
     if (effects.production) {
       effects.production.forEach((prod, idx) => {
@@ -434,7 +436,7 @@ const ModalPopup: React.FC<ModalPopupProps> = ({ type, onClose, onAction }) => {
         {type === "projects" && renderProjects()}
         {type === "awards" && renderAwards()}
 
-        <style jsx>{`
+        <style>{`
           .modal-overlay {
             position: fixed;
             top: 0;

@@ -39,7 +39,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   isVisible,
   onClose,
   actions,
-  _playerName = "Player",
+  playerName: _playerName = "Player",
   onActionSelect,
 }) => {
   const [selectedAction, setSelectedAction] = useState<GameAction | null>(null);
@@ -646,7 +646,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .actions-modal {
           position: fixed;
           top: 0;

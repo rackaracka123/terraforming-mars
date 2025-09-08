@@ -59,6 +59,8 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
         document.body.style.overflow = "";
       };
     }
+
+    return undefined;
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

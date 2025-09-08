@@ -130,7 +130,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderPlayedCards = () => {
-    const cards: Card[] = contentData?.cards || [];
+    const cards: Card[] = (contentData?.cards as Card[]) || [];
 
     return (
       <div className="main-content-container">
@@ -241,7 +241,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderAvailableActions = () => {
-    const actions: GameAction[] = contentData?.actions || [];
+    const actions: GameAction[] = (contentData?.actions as GameAction[]) || [];
     const availableActions = actions.filter((action) => action.available);
     const unavailableActions = actions.filter((action) => !action.available);
 
@@ -353,7 +353,8 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderMilestones = () => {
-    const milestones: Milestone[] = contentData?.milestones || [];
+    const milestones: Milestone[] =
+      (contentData?.milestones as Milestone[]) || [];
 
     return (
       <div className="main-content-container">
@@ -405,7 +406,8 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderProjects = () => {
-    const projects: StandardProject[] = contentData?.projects || [];
+    const projects: StandardProject[] =
+      (contentData?.projects as StandardProject[]) || [];
 
     return (
       <div className="main-content-container">
@@ -456,7 +458,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
   };
 
   const renderAwards = () => {
-    const awards: Award[] = contentData?.awards || [];
+    const awards: Award[] = (contentData?.awards as Award[]) || [];
 
     return (
       <div className="main-content-container">
@@ -524,7 +526,7 @@ const MainContentDisplay: React.FC<MainContentDisplayProps> = ({
       {contentType === "projects" && renderProjects()}
       {contentType === "awards" && renderAwards()}
 
-      <style jsx>{`
+      <style>{`
         .main-content-wrapper {
           width: 100%;
           height: 100%;

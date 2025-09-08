@@ -62,7 +62,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
   onClose,
   effects,
   cards: _cards,
-  playerName: _playerName = "Player",
+  playerName = "Player",
   onEffectActivate: _onEffectActivate,
 }) => {
   const [selectedEffect, setSelectedEffect] = useState<CardEffect | null>(null);
@@ -695,7 +695,7 @@ const CardEffectsModal: React.FC<CardEffectsModalProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .card-effects-modal {
           position: fixed;
           top: 0;
