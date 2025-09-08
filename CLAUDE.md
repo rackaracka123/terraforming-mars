@@ -293,15 +293,30 @@ The CLI tool is particularly useful for:
 - Rapid iteration on backend features
 - Automated testing scenarios
 
+## Terraforming Mars Game Rules Reference
+
+**CRITICAL**: For ANY task that involves Terraforming Mars game mechanics, rules, card effects, or gameplay logic, you MUST consult `TERRAFORMING_MARS_RULES.md` first. This includes:
+- Implementing game rules and logic
+- Validating game state transitions  
+- Creating card effects and interactions
+- Designing UI components for game elements
+- Debugging game behavior
+- Adding new features that interact with existing rules
+- Answering questions about game mechanics
+- Any feature that even SLIGHTLY touches game rules
+
+The `TERRAFORMING_MARS_RULES.md` file contains the complete, authoritative rulebook reference structured for AI consumption.
+
 ## Key Development Patterns
 
 ### Adding New Game Features
-1. **Define domain entities** in `internal/domain/` with proper `ts:` tags
-2. **Implement service logic** in `internal/service/`
-3. **Add WebSocket handlers** in `internal/delivery/websocket/`
-4. **Generate types**: Run `tygo generate` to update frontend types
-5. **Frontend integration**: Import generated types and implement UI
-6. **Format and lint**: **ALWAYS** run `make format` and `make lint` after completing any feature
+1. **Consult game rules**: Check `TERRAFORMING_MARS_RULES.md` for any game rule implications
+2. **Define domain entities** in `internal/domain/` with proper `ts:` tags
+3. **Implement service logic** in `internal/service/`
+4. **Add WebSocket handlers** in `internal/delivery/websocket/`
+5. **Generate types**: Run `tygo generate` to update frontend types
+6. **Frontend integration**: Import generated types and implement UI
+7. **Format and lint**: **ALWAYS** run `make format` and `make lint` after completing any feature
 
 ### Backend Development Flow
 1. Modify Go structs -> Add business logic -> Update handlers
