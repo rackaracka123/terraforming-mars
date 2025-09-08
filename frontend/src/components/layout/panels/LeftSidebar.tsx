@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { PlayerDto } from "../../../types/generated/api-types.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
+import ResourcePopout from "../../ui/popouts/ResourcePopout.tsx";
 import styles from "./LeftSidebar.module.css";
 import "./LeftSidebar.global.css";
 
@@ -76,6 +77,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     left: number;
   }>({ top: 0, left: 0 });
 
+  // State for resource popout management
+  const [hoveredPlayerResources, setHoveredPlayerResources] = useState<
+    string | null
+  >(null);
+  const [resourcePopoutPosition, setResourcePopoutPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
+
   const handleMilestoneHover = (
     playerId: string,
     milestoneIcon: string,
@@ -122,6 +132,51 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     setHoveredCorp(`${playerId}-${milestoneIcon}`);
   };
 
+  const handlePlayerResourceHover = (
+    playerId: string,
+    event: React.MouseEvent,
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popoutWidth = 320; // Max width of the resource popout
+    const popoutHeight = 200; // Approximate height of popout
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 15;
+
+    // Calculate preferred position (to the right of the player card)
+    let left = rect.right + margin;
+    let top = rect.top + window.scrollY - 10;
+
+    // Check if popout would overflow right edge of viewport
+    if (left + popoutWidth > viewportWidth) {
+      // Position to the left of the player card instead
+      left = rect.left - popoutWidth - margin;
+    }
+
+    // Ensure popout doesn't go off the left edge
+    if (left < margin) {
+      left = margin;
+    }
+
+    // Check vertical positioning and adjust if necessary
+    if (top + popoutHeight > window.scrollY + viewportHeight) {
+      top = rect.bottom + window.scrollY + 10;
+
+      // If still doesn't fit, position above the player card
+      if (top + popoutHeight > window.scrollY + viewportHeight) {
+        top = rect.top + window.scrollY - popoutHeight - 10;
+      }
+    }
+
+    // Ensure popout doesn't go above viewport
+    if (top < window.scrollY + margin) {
+      top = window.scrollY + margin;
+    }
+
+    setResourcePopoutPosition({ top, left });
+    setHoveredPlayerResources(playerId);
+  };
+
   return (
     <div className={styles.leftSidebar}>
       <div className={styles.playersList}>
@@ -140,6 +195,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 key={player.id || index}
                 className={`player-entry current ${isPassed ? "passed" : ""} ${isDisconnected ? "disconnected" : ""}`}
                 style={{ "--player-color": playerColor } as React.CSSProperties}
+                onMouseEnter={(e) => handlePlayerResourceHover(player.id, e)}
+                onMouseLeave={() => setHoveredPlayerResources(null)}
               >
                 <div className="player-content player-card">
                   <div className="player-avatar">
@@ -196,6 +253,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               key={player.id || index}
               className={`player-entry ${isPassed ? "passed" : ""} ${isDisconnected ? "disconnected" : ""}`}
               style={{ "--player-color": playerColor } as React.CSSProperties}
+              onMouseEnter={(e) => handlePlayerResourceHover(player.id, e)}
+              onMouseLeave={() => setHoveredPlayerResources(null)}
             >
               <div className="player-content">
                 <div className="player-avatar">
@@ -254,6 +313,34 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     <strong>Requirement:</strong> {milestoneData.requirement}
                   </div>
                 </>
+              ) : null;
+            })()}
+          </div>,
+          document.body,
+        )}
+
+      {/* Resource popout rendered as a portal to document body */}
+      {hoveredPlayerResources &&
+        ReactDOM.createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: resourcePopoutPosition.top,
+              left: resourcePopoutPosition.left,
+              zIndex: 1000,
+              pointerEvents: "none",
+            }}
+          >
+            {(() => {
+              const player = players.find(
+                (p) => p.id === hoveredPlayerResources,
+              );
+              return player ? (
+                <ResourcePopout
+                  resources={player.resources}
+                  production={player.production}
+                  playerName={player.name}
+                />
               ) : null;
             })()}
           </div>,
