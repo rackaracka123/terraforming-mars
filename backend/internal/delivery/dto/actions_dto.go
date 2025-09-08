@@ -8,6 +8,7 @@ const (
 	ActionTypeStartGame          ActionType = "start-game"
 	ActionTypeSkipAction         ActionType = "skip-action"
 	ActionTypePlayCard           ActionType = "play-card"
+	ActionTypeProductionPhase    ActionType = "production-phase"
 	// Standard Projects
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
@@ -30,6 +31,11 @@ type StartGameAction struct {
 
 // SkipAction represents skipping a player's turn
 type SkipAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// ProductionPhaseAction represents triggering the production phase
+type ProductionPhaseAction struct {
 	Type ActionType `json:"type" ts:"ActionType"`
 }
 
@@ -110,6 +116,16 @@ type ActionSkipActionRequest struct {
 // GetAction returns the skip action action
 func (ap *ActionSkipActionRequest) GetAction() *SkipAction {
 	return &SkipAction{Type: ap.Type}
+}
+
+// ActionProductionPhaseRequest contains the action data for production phase actions
+type ActionProductionPhaseRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the production phase action
+func (ap *ActionProductionPhaseRequest) GetAction() *ProductionPhaseAction {
+	return &ProductionPhaseAction{Type: ap.Type}
 }
 
 // ActionPlayCardRequest contains the action data for play card actions

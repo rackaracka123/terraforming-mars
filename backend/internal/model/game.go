@@ -4,18 +4,19 @@ import "time"
 
 // Game represents a unified game entity containing both metadata and state
 type Game struct {
-	ID               string           `json:"id" ts:"string"`
-	CreatedAt        time.Time        `json:"createdAt" ts:"string"`
-	UpdatedAt        time.Time        `json:"updatedAt" ts:"string"`
-	Status           GameStatus       `json:"status" ts:"GameStatus"`
-	Settings         GameSettings     `json:"settings" ts:"GameSettings"`
-	Players          []Player         `json:"players" ts:"Player[]"`
-	HostPlayerID     string           `json:"hostPlayerId" ts:"string"`
-	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
-	GlobalParameters GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
-	CurrentPlayerID  string           `json:"currentPlayerId" ts:"string"`
-	Generation       int              `json:"generation" ts:"number"`
-	RemainingActions int              `json:"remainingActions" ts:"number"`
+	ID                          string           `json:"id" ts:"string"`
+	CreatedAt                   time.Time        `json:"createdAt" ts:"string"`
+	UpdatedAt                   time.Time        `json:"updatedAt" ts:"string"`
+	Status                      GameStatus       `json:"status" ts:"GameStatus"`
+	Settings                    GameSettings     `json:"settings" ts:"GameSettings"`
+	Players                     []Player         `json:"players" ts:"Player[]"`
+	HostPlayerID                string           `json:"hostPlayerId" ts:"string"`
+	CurrentPhase                GamePhase        `json:"currentPhase" ts:"GamePhase"`
+	GlobalParameters            GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
+	CurrentPlayerID             string           `json:"currentPlayerId" ts:"string"`
+	Generation                  int              `json:"generation" ts:"number"`
+	RemainingActions            int              `json:"remainingActions" ts:"number"`
+	ProductionPhaseReadyPlayers []string         `json:"productionPhaseReadyPlayers" ts:"string[]"`
 }
 
 // NewGame creates a new game with the given settings
@@ -35,8 +36,9 @@ func NewGame(id string, settings GameSettings) *Game {
 			Oxygen:      0,
 			Oceans:      0,
 		},
-		Generation:       1,
-		RemainingActions: 0,
+		Generation:                  1,
+		RemainingActions:            0,
+		ProductionPhaseReadyPlayers: make([]string, 0),
 	}
 }
 
@@ -52,18 +54,23 @@ func (g *Game) DeepCopy() *Game {
 		playersCopy[i] = *player.DeepCopy()
 	}
 
+	// Copy ProductionPhaseReadyPlayers slice
+	readyPlayersCopy := make([]string, len(g.ProductionPhaseReadyPlayers))
+	copy(readyPlayersCopy, g.ProductionPhaseReadyPlayers)
+
 	return &Game{
-		ID:               g.ID,
-		CreatedAt:        g.CreatedAt,
-		UpdatedAt:        g.UpdatedAt,
-		Status:           g.Status,
-		Settings:         *g.Settings.DeepCopy(),
-		Players:          playersCopy,
-		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     g.CurrentPhase,
-		GlobalParameters: *g.GlobalParameters.DeepCopy(),
-		CurrentPlayerID:  g.CurrentPlayerID,
-		Generation:       g.Generation,
-		RemainingActions: g.RemainingActions,
+		ID:                          g.ID,
+		CreatedAt:                   g.CreatedAt,
+		UpdatedAt:                   g.UpdatedAt,
+		Status:                      g.Status,
+		Settings:                    *g.Settings.DeepCopy(),
+		Players:                     playersCopy,
+		HostPlayerID:                g.HostPlayerID,
+		CurrentPhase:                g.CurrentPhase,
+		GlobalParameters:            *g.GlobalParameters.DeepCopy(),
+		CurrentPlayerID:             g.CurrentPlayerID,
+		Generation:                  g.Generation,
+		RemainingActions:            g.RemainingActions,
+		ProductionPhaseReadyPlayers: readyPlayersCopy,
 	}
 }

@@ -11,6 +11,7 @@ export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
+export const ActionTypeProductionPhase: ActionType = "production-phase";
 /**
  * Standard Projects
  */
@@ -37,6 +38,12 @@ export interface StartGameAction {
  * SkipAction represents skipping a player's turn
  */
 export interface SkipAction {
+  type: ActionType;
+}
+/**
+ * ProductionPhaseAction represents triggering the production phase
+ */
+export interface ProductionPhaseAction {
   type: ActionType;
 }
 /**
@@ -110,6 +117,12 @@ export interface ActionStartGameRequest {
  * ActionSkipActionRequest contains the action data for skip action actions
  */
 export interface ActionSkipActionRequest {
+  type: ActionType;
+}
+/**
+ * ActionProductionPhaseRequest contains the action data for production phase actions
+ */
+export interface ActionProductionPhaseRequest {
   type: ActionType;
 }
 /**
@@ -360,6 +373,10 @@ export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
+export const MessageTypeProductionPhaseStarted: MessageType =
+  "production-phase-started";
+export const MessageTypeProductionPhaseReady: MessageType =
+  "production-phase-ready";
 /**
  * WebSocketMessage represents a WebSocket message
  */
@@ -437,4 +454,32 @@ export interface PlayerDisconnectedPayload {
   playerId: string;
   playerName: string;
   game: GameDto;
+}
+/**
+ * PlayerProductionData contains production data for a single player
+ */
+export interface PlayerProductionData {
+  playerId: string;
+  playerName: string;
+  playerColor: string;
+  beforeResources: ResourcesDto;
+  afterResources: ResourcesDto;
+  production: ProductionDto;
+  terraformRating: number /* int */;
+  energyConverted: number /* int */;
+  creditsIncome: number /* int */;
+}
+/**
+ * ProductionPhaseStartedPayload contains data when production phase begins
+ */
+export interface ProductionPhaseStartedPayload {
+  generation: number /* int */;
+  playersData: PlayerProductionData[];
+  game: GameDto;
+}
+/**
+ * ProductionPhaseReadyPayload contains acknowledgment data from client
+ */
+export interface ProductionPhaseReadyPayload {
+  playerId: string;
 }
