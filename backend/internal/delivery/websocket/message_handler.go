@@ -27,6 +27,8 @@ func (h *Hub) handleMessage(ctx context.Context, hubMessage HubMessage) {
 		h.handlePlayerReconnect(ctx, connection, message)
 	case dto.MessageTypePlayAction:
 		h.handlePlayAction(ctx, connection, message)
+	case dto.MessageTypeProductionPhaseReady:
+		h.handleProductionPhaseReady(ctx, connection, message)
 	default:
 		h.logger.Warn("Unknown message type received",
 			zap.String("connection_id", connection.ID),
@@ -195,6 +197,8 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 		return h.handleStartGame(ctx, gameID, playerID)
 	case dto.ActionTypeSkipAction:
 		return h.handleSkipAction(ctx, gameID, playerID)
+	case dto.ActionTypeProductionPhase:
+		return h.handleProductionPhase(ctx, gameID, playerID)
 	case dto.ActionTypeSellPatents:
 		return h.handleSellPatents(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildPowerPlant:
@@ -219,7 +223,120 @@ func (h *Hub) handleStartGame(ctx context.Context, gameID, playerID string) erro
 
 // handleSkipAction handles the skip action
 func (h *Hub) handleSkipAction(ctx context.Context, gameID, playerID string) error {
-	return h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
+	// Get game state before skip action to detect production phase
+	gameBeforeSkip, err := h.gameService.GetGame(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game state before skip: %w", err)
+	}
+
+	// Execute skip action
+	err = h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Get game state after skip action
+	gameAfterSkip, err := h.gameService.GetGame(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game state after skip: %w", err)
+	}
+
+	// Check if production phase occurred (generation increased)
+	if gameAfterSkip.Generation > gameBeforeSkip.Generation {
+		h.logger.Info("🏭 Production phase detected after skip action",
+			zap.String("game_id", gameID),
+			zap.Int("previous_generation", gameBeforeSkip.Generation),
+			zap.Int("new_generation", gameAfterSkip.Generation))
+
+		// Create animation data for production phase
+		playersData := h.createPlayersProductionData(gameBeforeSkip, gameAfterSkip)
+
+		// Broadcast production phase started
+		h.broadcastProductionPhaseStarted(gameID, gameAfterSkip, playersData)
+
+		// Note: Production phase completed is now handled via client ready acknowledgments
+		// Clients will send production-phase-ready messages after animations complete
+	}
+
+	return nil
+}
+
+// handleProductionPhase handles the production phase action (manual trigger)
+func (h *Hub) handleProductionPhase(ctx context.Context, gameID, playerID string) error {
+	// For now, production phase is automatically triggered by SkipPlayerTurn
+	// This handler exists for potential future manual triggers
+	h.logger.Debug("🏭 Manual production phase trigger requested",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
+
+	// Execute production phase directly
+	_, err := h.gameService.ExecuteProductionPhase(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to execute production phase: %w", err)
+	}
+
+	// Note: Production phase completion is now handled via client ready acknowledgments
+	// No longer broadcasting completion immediately
+	return nil
+}
+
+// createPlayersProductionData creates animation data for production phase
+func (h *Hub) createPlayersProductionData(gameBefore, gameAfter *model.Game) []dto.PlayerProductionData {
+	var playersData []dto.PlayerProductionData
+
+	// Player colors for the animation (matches frontend PlayerList colors)
+	playerColors := []string{"#b91c2b", "#232dc7", "#3abe3a", "#ffa502", "#a55eea", "#26d0ce"}
+
+	for i, playerAfter := range gameAfter.Players {
+		// Find corresponding player in before state
+		var playerBefore *model.Player
+		for j := range gameBefore.Players {
+			if gameBefore.Players[j].ID == playerAfter.ID {
+				playerBefore = &gameBefore.Players[j]
+				break
+			}
+		}
+
+		if playerBefore == nil {
+			h.logger.Warn("Player not found in before state", zap.String("player_id", playerAfter.ID))
+			continue
+		}
+
+		// Calculate energy converted (all energy becomes heat)
+		energyConverted := playerBefore.Resources.Energy
+
+		// Calculate credits income (TR + M€ production)
+		creditsIncome := playerAfter.TerraformRating + playerAfter.Production.Credits
+
+		// Get player color
+		playerColor := playerColors[i%len(playerColors)]
+
+		playerData := dto.PlayerProductionData{
+			PlayerID:        playerAfter.ID,
+			PlayerName:      playerAfter.Name,
+			PlayerColor:     playerColor,
+			BeforeResources: dto.ToResourcesDto(playerBefore.Resources),
+			AfterResources:  dto.ToResourcesDto(playerAfter.Resources),
+			Production:      dto.ToProductionDto(playerAfter.Production),
+			TerraformRating: playerAfter.TerraformRating,
+			EnergyConverted: energyConverted,
+			CreditsIncome:   creditsIncome,
+		}
+
+		playersData = append(playersData, playerData)
+
+		h.logger.Debug("📊 Created production data for player",
+			zap.String("player_name", playerAfter.Name),
+			zap.Int("energy_converted", energyConverted),
+			zap.Int("credits_income", creditsIncome),
+			zap.Int("steel_gained", playerAfter.Production.Steel),
+			zap.Int("titanium_gained", playerAfter.Production.Titanium),
+			zap.Int("plants_gained", playerAfter.Production.Plants),
+			zap.Int("energy_gained", playerAfter.Production.Energy),
+			zap.Int("heat_gained", playerAfter.Production.Heat))
+	}
+
+	return playersData
 }
 
 //err = s.actionHandlers.StartGame.Handle(game, player, request)

@@ -264,6 +264,101 @@ func (h *Hub) sendToConnection(connection *Connection, message dto.WebSocketMess
 		zap.String("message_type", string(message.Type)))
 }
 
+// broadcastProductionPhaseStarted broadcasts production phase started event
+func (h *Hub) broadcastProductionPhaseStarted(gameID string, game *model.Game, playersData []dto.PlayerProductionData) {
+	payload := dto.ProductionPhaseStartedPayload{
+		Generation:  game.Generation,
+		PlayersData: playersData,
+		Game:        dto.ToGameDto(game),
+	}
+
+	message := dto.WebSocketMessage{
+		Type:    dto.MessageTypeProductionPhaseStarted,
+		Payload: payload,
+		GameID:  gameID,
+	}
+
+	h.broadcastToGame(gameID, message)
+
+	h.logger.Info("🏭📢 Production phase started broadcast sent",
+		zap.String("game_id", gameID),
+		zap.Int("generation", game.Generation),
+		zap.Int("players_count", len(playersData)))
+}
+
+// handleProductionPhaseReady processes ready messages from clients during production phase
+func (h *Hub) handleProductionPhaseReady(ctx context.Context, connection *Connection, message dto.WebSocketMessage) {
+	var payload dto.ProductionPhaseReadyPayload
+	payloadBytes, ok := message.Payload.(map[string]interface{})
+	if !ok {
+		h.logger.Error("Invalid payload format for production-phase-ready message",
+			zap.String("connection_id", connection.ID))
+		return
+	}
+
+	playerID, exists := payloadBytes["playerId"].(string)
+	if !exists || playerID == "" {
+		h.logger.Error("Missing or invalid playerId in production-phase-ready message",
+			zap.String("connection_id", connection.ID))
+		return
+	}
+
+	payload.PlayerID = playerID
+	gameID := message.GameID
+
+	if gameID == "" {
+		h.logger.Error("Missing gameId in production-phase-ready message",
+			zap.String("connection_id", connection.ID),
+			zap.String("player_id", playerID))
+		return
+	}
+
+	h.logger.Info("📦 Processing production-phase-ready message",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
+
+	// Process the ready message through the game service
+	game, err := h.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
+	if err != nil {
+		h.logger.Error("Failed to process production-phase-ready",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Error(err))
+
+		// Send error message back to client
+		errorPayload := dto.ErrorPayload{
+			Message: "Failed to process production phase ready: " + err.Error(),
+		}
+		errorMessage := dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: errorPayload,
+			GameID:  gameID,
+		}
+		h.sendToConnection(connection, errorMessage)
+		return
+	}
+
+	// Broadcast updated game state to all players in the game
+	gameUpdatedPayload := dto.GameUpdatedPayload{
+		Game: dto.ToGameDto(game),
+	}
+
+	gameUpdatedMessage := dto.WebSocketMessage{
+		Type:    dto.MessageTypeGameUpdated,
+		Payload: gameUpdatedPayload,
+		GameID:  gameID,
+	}
+
+	h.broadcastToGame(gameID, gameUpdatedMessage)
+
+	h.logger.Info("✅ Production phase ready processed and game state broadcasted",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("current_phase", string(game.CurrentPhase)),
+		zap.Int("ready_players", len(game.ProductionPhaseReadyPlayers)))
+}
+
 // closeAllConnections closes all active connections
 func (h *Hub) closeAllConnections() {
 	h.mu.Lock()
