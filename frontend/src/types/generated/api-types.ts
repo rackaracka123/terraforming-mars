@@ -260,18 +260,17 @@ export interface OtherPlayerDto {
   connectionStatus: any /* model.ConnectionStatus */;
 }
 /**
- * GameDto represents a game for client consumption
+ * GameDto represents a game for client consumption (clean architecture)
  */
 export interface GameDto {
   id: string;
   status: GameStatus;
   settings: GameSettingsDto;
-  currentPlayer?: PlayerDto; // Full player data for the viewing player
-  otherPlayers: OtherPlayerDto[]; // Limited data for other players
-  players: PlayerDto[]; // Legacy field - kept for compatibility
   hostPlayerId: string;
   currentPhase: GamePhase;
   globalParameters: GlobalParametersDto;
+  currentPlayer: PlayerDto; // Viewing player's full data
+  otherPlayers: OtherPlayerDto[]; // Other players' limited data
   currentPlayerId: string;
   generation: number /* int */;
   remainingActions: number /* int */;
