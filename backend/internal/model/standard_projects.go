@@ -28,16 +28,3 @@ type HexPosition struct {
 	R int `json:"r" ts:"number"` // Row coordinate
 	S int `json:"s" ts:"number"` // Third coordinate (Q + R + S = 0)
 }
-
-// DeepCopy creates a deep copy of the HexPosition
-func (h *HexPosition) DeepCopy() *HexPosition {
-	if h == nil {
-		return nil
-	}
-
-	return &HexPosition{
-		Q: h.Q,
-		R: h.R,
-		S: h.S,
-	}
-}

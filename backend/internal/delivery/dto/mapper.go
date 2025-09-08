@@ -3,11 +3,7 @@ package dto
 import "terraforming-mars-backend/internal/model"
 
 // ToGameDto converts a model Game to GameDto
-func ToGameDto(game *model.Game) GameDto {
-	if game == nil {
-		return GameDto{}
-	}
-
+func ToGameDto(game model.Game) GameDto {
 	players := make([]PlayerDto, len(game.Players))
 	for i, player := range game.Players {
 		players[i] = ToPlayerDto(player)
@@ -108,7 +104,7 @@ func ToCardDtoSlice(cards []model.Card) []CardDto {
 }
 
 // ToGameDtoSlice converts a slice of model Games to GameDto slice
-func ToGameDtoSlice(games []*model.Game) []GameDto {
+func ToGameDtoSlice(games []model.Game) []GameDto {
 	dtos := make([]GameDto, len(games))
 	for i, game := range games {
 		dtos[i] = ToGameDto(game)

@@ -28,7 +28,7 @@ func NewAtmosphericProcessorsHandler() *AtmosphericProcessorsHandler {
 // Play executes the Atmospheric Processors card effect
 func (h *AtmosphericProcessorsHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Check current oxygen level before attempting to raise it
-	params, err := ctx.GlobalParametersService.GetGlobalParameters(ctx.Context, ctx.Game.ID)
+	params, err := ctx.GameService.GetGlobalParameters(ctx.Context, ctx.Game.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get global parameters: %w", err)
 	}
@@ -38,7 +38,7 @@ func (h *AtmosphericProcessorsHandler) Play(ctx *cards.CardHandlerContext) error
 	}
 
 	// Raise oxygen 1 step using the service
-	if err := ctx.GlobalParametersService.IncreaseOxygen(ctx.Context, ctx.Game.ID, 1); err != nil {
+	if err := ctx.GameService.IncreaseOxygen(ctx.Context, ctx.Game.ID, 1); err != nil {
 		return fmt.Errorf("failed to increase oxygen: %w", err)
 	}
 

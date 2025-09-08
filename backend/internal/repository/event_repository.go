@@ -27,4 +27,3 @@ func (r *EventRepository) Subscribe(eventType string, listener events.EventListe
 func (r *EventRepository) Publish(ctx context.Context, event events.Event) error {
 	return r.eventBus.Publish(ctx, event)
 }
-

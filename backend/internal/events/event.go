@@ -161,9 +161,9 @@ type GameDeletedEventData struct {
 
 // GameStateChangedEventData represents when a game's state is changed
 type GameStateChangedEventData struct {
-	GameID   string      `json:"gameId"`
-	OldState *model.Game `json:"oldState"`
-	NewState *model.Game `json:"newState"`
+	GameID   string     `json:"gameId"`
+	OldState model.Game `json:"oldState"`
+	NewState model.Game `json:"newState"`
 }
 
 // PlayerLeftEventData represents when a player leaves a game

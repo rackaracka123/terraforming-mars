@@ -36,24 +36,21 @@ type StandardProjectService interface {
 
 // StandardProjectServiceImpl implements StandardProjectService interface
 type StandardProjectServiceImpl struct {
-	gameRepo                repository.GameRepository
-	playerRepo              repository.PlayerRepository
-	globalParametersRepo    repository.GlobalParametersRepository
-	globalParametersService GlobalParametersService
+	gameRepo    repository.GameRepository
+	playerRepo  repository.PlayerRepository
+	gameService GameService
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
 func NewStandardProjectService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	globalParametersRepo repository.GlobalParametersRepository,
-	globalParametersService GlobalParametersService,
+	gameService GameService,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
-		gameRepo:                gameRepo,
-		playerRepo:              playerRepo,
-		globalParametersRepo:    globalParametersRepo,
-		globalParametersService: globalParametersService,
+		gameRepo:    gameRepo,
+		playerRepo:  playerRepo,
+		gameService: gameService,
 	}
 }
 
@@ -80,7 +77,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	creditsGained := cardCount
 
 	// Update player resources and remove cards from hand
-	updatedPlayer := *player
+	updatedPlayer := player
 	updatedPlayer.Resources.Credits += creditsGained
 
 	// Remove cards from hand (remove first N cards)
@@ -131,7 +128,7 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 		player.TerraformRating++
 
 		// Increase temperature by 1 step (2°C)
-		if err := s.globalParametersService.IncreaseTemperature(ctx, gameID, 1); err != nil {
+		if err := s.gameService.IncreaseTemperature(ctx, gameID, 1); err != nil {
 			log.Error("Failed to increase temperature", zap.Error(err))
 			return fmt.Errorf("failed to increase temperature: %w", err)
 		}
@@ -161,7 +158,7 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 		player.TerraformRating++
 
 		// Place ocean tile (increase ocean count)
-		if err := s.globalParametersService.PlaceOcean(ctx, gameID, 1); err != nil {
+		if err := s.gameService.PlaceOcean(ctx, gameID, 1); err != nil {
 			log.Error("Failed to place ocean", zap.Error(err))
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
@@ -192,7 +189,7 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 		player.TerraformRating++
 
 		// Increase oxygen by 1 step
-		if err := s.globalParametersService.IncreaseOxygen(ctx, gameID, 1); err != nil {
+		if err := s.gameService.IncreaseOxygen(ctx, gameID, 1); err != nil {
 			log.Error("Failed to increase oxygen", zap.Error(err))
 			return fmt.Errorf("failed to increase oxygen: %w", err)
 		}
@@ -255,7 +252,7 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	}
 
 	// Create updated player copy
-	updatedPlayer := *player
+	updatedPlayer := player
 
 	// Deduct cost
 	updatedPlayer.Resources.Credits -= cost
@@ -301,7 +298,7 @@ func (s *StandardProjectServiceImpl) updateGameWithPlayer(ctx context.Context, g
 	}
 
 	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
+	if err := s.gameRepo.Update(ctx, &game); err != nil {
 		return fmt.Errorf("failed to update game: %w", err)
 	}
 

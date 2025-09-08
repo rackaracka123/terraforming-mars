@@ -14,43 +14,47 @@ import (
 	"go.uber.org/zap"
 )
 
-// GameRepository manages game metadata and state
+// GameRepository manages game metadata and state with integrated global parameters
 type GameRepository interface {
 	// Create a new game
-	Create(ctx context.Context, settings model.GameSettings) (*model.Game, error)
+	Create(ctx context.Context, settings model.GameSettings) (model.Game, error)
 
 	// Get game by ID
-	Get(ctx context.Context, gameID string) (*model.Game, error)
+	Get(ctx context.Context, gameID string) (model.Game, error)
 
 	// Update game state
 	Update(ctx context.Context, game *model.Game) error
 
 	// List games with optional status filter
-	List(ctx context.Context, status string) ([]*model.Game, error)
+	List(ctx context.Context, status string) ([]model.Game, error)
 
 	// Delete game
 	Delete(ctx context.Context, gameID string) error
+
+	// Global parameters methods (merged from GlobalParametersRepository)
+	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
+	UpdateGlobalParameters(ctx context.Context, gameID string, params *model.GlobalParameters) error
 }
 
 // GameRepositoryImpl implements GameRepository interface
 type GameRepositoryImpl struct {
-	games      map[string]*model.Game
-	mutex      sync.RWMutex
-	eventBus   events.EventBus
-	playerRepo PlayerRepository
+	gameEntities map[string]*GameEntity // Use GameEntity for storage
+	mutex        sync.RWMutex
+	eventBus     events.EventBus
+	playerRepo   PlayerRepository
 }
 
 // NewGameRepository creates a new game repository
 func NewGameRepository(eventBus events.EventBus, playerRepo PlayerRepository) GameRepository {
 	return &GameRepositoryImpl{
-		games:      make(map[string]*model.Game),
-		eventBus:   eventBus,
-		playerRepo: playerRepo,
+		gameEntities: make(map[string]*GameEntity),
+		eventBus:     eventBus,
+		playerRepo:   playerRepo,
 	}
 }
 
 // Create creates a new game with the given settings
-func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSettings) (*model.Game, error) {
+func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSettings) (model.Game, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -60,11 +64,11 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	// Generate unique game ID
 	gameID := uuid.New().String()
 
-	// Create the game
-	game := model.NewGame(gameID, settings)
+	// Create the game entity
+	gameEntity := NewGameEntity(gameID, settings)
 
 	// Store in repository
-	r.games[gameID] = game
+	r.gameEntities[gameID] = gameEntity
 
 	log.Debug("Game created",
 		zap.String("game_id", gameID),
@@ -78,42 +82,42 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 		}
 	}
 
-	return game, nil
+	// Convert GameEntity to Game with empty players (will be populated by Get method)
+	game := gameEntity.ToGame([]model.Player{})
+	return *game, nil
 }
 
 // Get retrieves a game by ID with fresh player data
-func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (*model.Game, error) {
+func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	if gameID == "" {
-		return nil, fmt.Errorf("game ID cannot be empty")
+		return model.Game{}, fmt.Errorf("game ID cannot be empty")
 	}
 
-	game, exists := r.games[gameID]
+	gameEntity, exists := r.gameEntities[gameID]
 	if !exists {
-		return nil, fmt.Errorf("game with ID %s not found", gameID)
+		return model.Game{}, fmt.Errorf("game with ID %s not found", gameID)
 	}
-
-	// Create a deep copy of the game
-	gameCopy := game.DeepCopy()
 
 	// Fetch fresh player data from PlayerRepository to ensure synchronization
-	for i, player := range gameCopy.Players {
-		freshPlayer, err := r.playerRepo.GetPlayer(ctx, gameID, player.ID)
+	players := make([]model.Player, 0, len(gameEntity.PlayerIDs))
+	for _, playerID := range gameEntity.PlayerIDs {
+		freshPlayer, err := r.playerRepo.GetPlayer(ctx, gameID, playerID)
 		if err != nil {
 			// Log warning but don't fail - use stale data as fallback
 			logger.Get().Warn("Failed to fetch fresh player data, using stale data",
 				zap.String("game_id", gameID),
-				zap.String("player_id", player.ID),
+				zap.String("player_id", playerID),
 				zap.Error(err))
 			continue
 		}
-		// Update the game's player with fresh data
-		gameCopy.Players[i] = *freshPlayer
+		players = append(players, freshPlayer)
 	}
 
-	return gameCopy, nil
+	// Convert GameEntity to Game with populated players
+	return *gameEntity.ToGame(players), nil
 }
 
 // Update updates a game in the repository
@@ -127,25 +131,45 @@ func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error
 		return fmt.Errorf("game cannot be nil")
 	}
 
-	if _, exists := r.games[game.ID]; !exists {
+	oldGameEntity, exists := r.gameEntities[game.ID]
+	if !exists {
 		log.Error("Attempted to update non-existent game")
 		return fmt.Errorf("game with ID %s not found", game.ID)
 	}
 
 	// Capture old state for event
-	oldGame := *r.games[game.ID]
+	oldGame := oldGameEntity.ToGame(game.Players) // Use current players for old state
 
-	// Update timestamp
-	game.UpdatedAt = time.Now()
+	// Convert Game to GameEntity (extract player IDs)
+	playerIDs := make([]string, len(game.Players))
+	for i, player := range game.Players {
+		playerIDs[i] = player.ID
+	}
 
-	// Store updated game
-	r.games[game.ID] = game
+	// Create new GameEntity
+	newGameEntity := &GameEntity{
+		ID:               game.ID,
+		CreatedAt:        game.CreatedAt,
+		UpdatedAt:        time.Now(),
+		Status:           game.Status,
+		Settings:         game.Settings,
+		PlayerIDs:        playerIDs,
+		HostPlayerID:     game.HostPlayerID,
+		CurrentPhase:     game.CurrentPhase,
+		GlobalParameters: game.GlobalParameters,
+		CurrentPlayerID:  game.CurrentPlayerID,
+		Generation:       game.Generation,
+		RemainingActions: game.RemainingActions,
+	}
+
+	// Store updated game entity
+	r.gameEntities[game.ID] = newGameEntity
 
 	log.Debug("Game updated")
 
 	// Publish game updated event
 	if r.eventBus != nil {
-		gameUpdatedEvent := events.NewGameStateChangedEvent(game.ID, &oldGame, game)
+		gameUpdatedEvent := events.NewGameStateChangedEvent(game.ID, oldGame, game)
 		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
 			log.Warn("Failed to publish game updated event", zap.Error(err))
 		}
@@ -155,15 +179,17 @@ func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error
 }
 
 // List returns all games, optionally filtered by status
-func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]*model.Game, error) {
+func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	games := make([]*model.Game, 0)
+	games := make([]model.Game, 0)
 
-	for _, game := range r.games {
-		if status == "" || string(game.Status) == status {
-			games = append(games, game.DeepCopy())
+	for _, gameEntity := range r.gameEntities {
+		if status == "" || string(gameEntity.Status) == status {
+			// For list operations, we can return games with empty player arrays for performance
+			game := gameEntity.ToGame([]model.Player{})
+			games = append(games, *game)
 		}
 	}
 
@@ -181,12 +207,12 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 		return fmt.Errorf("game ID cannot be empty")
 	}
 
-	_, exists := r.games[gameID]
+	_, exists := r.gameEntities[gameID]
 	if !exists {
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	delete(r.games, gameID)
+	delete(r.gameEntities, gameID)
 
 	log.Info("Game deleted")
 
@@ -196,6 +222,119 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 		if err := r.eventBus.Publish(ctx, gameDeletedEvent); err != nil {
 			log.Warn("Failed to publish game deleted event", zap.Error(err))
 		}
+	}
+
+	return nil
+}
+
+// GetGlobalParameters retrieves global parameters for a game
+func (r *GameRepositoryImpl) GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if gameID == "" {
+		return model.GlobalParameters{}, fmt.Errorf("game ID cannot be empty")
+	}
+
+	gameEntity, exists := r.gameEntities[gameID]
+	if !exists {
+		// Return default parameters if game doesn't exist
+		defaultParams := model.GlobalParameters{
+			Temperature: -30,
+			Oxygen:      0,
+			Oceans:      0,
+		}
+		return defaultParams, nil
+	}
+
+	paramsCopy := gameEntity.GlobalParameters
+	return paramsCopy, nil
+}
+
+// UpdateGlobalParameters updates global parameters for a game
+func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID string, params *model.GlobalParameters) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	if gameID == "" {
+		return fmt.Errorf("game ID cannot be empty")
+	}
+
+	if params == nil {
+		return fmt.Errorf("global parameters cannot be nil")
+	}
+
+	// Validate parameter ranges
+	if err := r.validateGlobalParameters(params); err != nil {
+		log.Error("Invalid global parameters", zap.Error(err))
+		return fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	gameEntity, exists := r.gameEntities[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Capture old parameters for events
+	oldParams := gameEntity.GlobalParameters
+
+	// Update parameters in game entity
+	gameEntity.GlobalParameters = *params
+	gameEntity.UpdatedAt = time.Now()
+
+	log.Info("Global parameters updated",
+		zap.Int("temperature", params.Temperature),
+		zap.Int("oxygen", params.Oxygen),
+		zap.Int("oceans", params.Oceans),
+	)
+
+	// Publish events for each parameter that changed
+	if r.eventBus != nil {
+		if oldParams.Temperature != params.Temperature {
+			tempEvent := events.NewTemperatureChangedEvent(gameID, oldParams.Temperature, params.Temperature)
+			if err := r.eventBus.Publish(ctx, tempEvent); err != nil {
+				log.Warn("Failed to publish temperature changed event", zap.Error(err))
+			}
+		}
+
+		if oldParams.Oxygen != params.Oxygen {
+			oxygenEvent := events.NewOxygenChangedEvent(gameID, oldParams.Oxygen, params.Oxygen)
+			if err := r.eventBus.Publish(ctx, oxygenEvent); err != nil {
+				log.Warn("Failed to publish oxygen changed event", zap.Error(err))
+			}
+		}
+
+		if oldParams.Oceans != params.Oceans {
+			oceansEvent := events.NewOceansChangedEvent(gameID, oldParams.Oceans, params.Oceans)
+			if err := r.eventBus.Publish(ctx, oceansEvent); err != nil {
+				log.Warn("Failed to publish oceans changed event", zap.Error(err))
+			}
+		}
+
+		// Also publish a general parameters changed event
+		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, oldParams, *params)
+		if err := r.eventBus.Publish(ctx, parametersChangedEvent); err != nil {
+			log.Warn("Failed to publish global parameters changed event", zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
+// validateGlobalParameters ensures parameters are within valid game ranges
+func (r *GameRepositoryImpl) validateGlobalParameters(params *model.GlobalParameters) error {
+	if params.Temperature < -30 || params.Temperature > 8 {
+		return fmt.Errorf("temperature must be between -30 and 8, got %d", params.Temperature)
+	}
+
+	if params.Oxygen < 0 || params.Oxygen > 14 {
+		return fmt.Errorf("oxygen must be between 0 and 14, got %d", params.Oxygen)
+	}
+
+	if params.Oceans < 0 || params.Oceans > 9 {
+		return fmt.Errorf("oceans must be between 0 and 9, got %d", params.Oceans)
 	}
 
 	return nil

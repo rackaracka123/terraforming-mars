@@ -52,22 +52,17 @@ func main() {
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	log.Info("Game repository initialized")
 
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
-	log.Info("Global parameters repository initialized")
-
-
 	// Initialize new service architecture
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
-	
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+
 	log.Info("Services initialized with new architecture and reconnection system")
 
 	// Log service initialization
 	log.Info("Player service ready", zap.Any("service", playerService != nil))
-	log.Info("Global parameters service ready", zap.Any("service", globalParametersService != nil))
+	log.Info("Game service ready", zap.Any("service", gameService != nil))
 
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -88,7 +83,7 @@ func main() {
 	}
 
 	// Initialize WebSocket hub
-	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService, cardService, eventBus)
+	hub := wsHandler.NewHub(gameService, playerService, standardProjectService, cardService, eventBus)
 	wsHandlerInstance := wsHandler.NewHandler(hub)
 
 	// Start WebSocket hub in background

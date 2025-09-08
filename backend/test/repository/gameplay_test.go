@@ -24,12 +24,10 @@ func TestGameplayLogic(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
 
 	ctx := context.Background()
 
@@ -127,7 +125,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Test temperature increase
-		err = globalParametersService.IncreaseTemperature(ctx, game.ID, 3) // 3 steps = 6°C
+		err = gameService.IncreaseTemperature(ctx, game.ID, 3) // 3 steps = 6°C
 		assert.NoError(t, err)
 
 		updatedGame, err := gameService.GetGame(ctx, game.ID)
@@ -135,7 +133,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, -24, updatedGame.GlobalParameters.Temperature) // -30 + 6 = -24
 
 		// Test oxygen increase
-		err = globalParametersService.IncreaseOxygen(ctx, game.ID, 5)
+		err = gameService.IncreaseOxygen(ctx, game.ID, 5)
 		assert.NoError(t, err)
 
 		updatedGame, err = gameService.GetGame(ctx, game.ID)
@@ -143,7 +141,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 5, updatedGame.GlobalParameters.Oxygen)
 
 		// Test ocean placement
-		err = globalParametersService.PlaceOcean(ctx, game.ID, 2)
+		err = gameService.PlaceOcean(ctx, game.ID, 2)
 		assert.NoError(t, err)
 
 		finalGame, err := gameService.GetGame(ctx, game.ID)
@@ -157,7 +155,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Test maximum temperature (should cap at +8°C)
-		err = globalParametersService.IncreaseTemperature(ctx, game.ID, 20) // Way more than needed
+		err = gameService.IncreaseTemperature(ctx, game.ID, 20) // Way more than needed
 		assert.NoError(t, err)
 
 		updatedGame, err := gameService.GetGame(ctx, game.ID)
@@ -165,7 +163,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 8, updatedGame.GlobalParameters.Temperature) // Capped at +8
 
 		// Test maximum oxygen (should cap at 14%)
-		err = globalParametersService.IncreaseOxygen(ctx, game.ID, 20) // Way more than needed
+		err = gameService.IncreaseOxygen(ctx, game.ID, 20) // Way more than needed
 		assert.NoError(t, err)
 
 		updatedGame, err = gameService.GetGame(ctx, game.ID)
@@ -173,7 +171,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 14, updatedGame.GlobalParameters.Oxygen) // Capped at 14
 
 		// Test maximum oceans (should cap at 9)
-		err = globalParametersService.PlaceOcean(ctx, game.ID, 15) // Way more than possible
+		err = gameService.PlaceOcean(ctx, game.ID, 15) // Way more than possible
 		assert.NoError(t, err)
 
 		finalGame, err := gameService.GetGame(ctx, game.ID)

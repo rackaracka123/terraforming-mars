@@ -39,31 +39,3 @@ func NewGame(id string, settings GameSettings) *Game {
 		RemainingActions: 0,
 	}
 }
-
-// DeepCopy creates a deep copy of the Game
-func (g *Game) DeepCopy() *Game {
-	if g == nil {
-		return nil
-	}
-
-	// Copy players slice
-	playersCopy := make([]Player, len(g.Players))
-	for i, player := range g.Players {
-		playersCopy[i] = *player.DeepCopy()
-	}
-
-	return &Game{
-		ID:               g.ID,
-		CreatedAt:        g.CreatedAt,
-		UpdatedAt:        g.UpdatedAt,
-		Status:           g.Status,
-		Settings:         *g.Settings.DeepCopy(),
-		Players:          playersCopy,
-		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     g.CurrentPhase,
-		GlobalParameters: *g.GlobalParameters.DeepCopy(),
-		CurrentPlayerID:  g.CurrentPlayerID,
-		Generation:       g.Generation,
-		RemainingActions: g.RemainingActions,
-	}
-}
