@@ -6,6 +6,7 @@ type ActionType string
 const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
 	ActionTypeStartGame          ActionType = "start-game"
+	ActionTypeSkipAction         ActionType = "skip-action"
 	ActionTypePlayCard           ActionType = "play-card"
 	// Standard Projects
 	ActionTypeSellPatents     ActionType = "sell-patents"
@@ -24,6 +25,11 @@ type SelectStartingCardAction struct {
 
 // StartGameAction represents starting the game (host only)
 type StartGameAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// SkipAction represents skipping a player's turn
+type SkipAction struct {
 	Type ActionType `json:"type" ts:"ActionType"`
 }
 
@@ -94,6 +100,16 @@ type ActionStartGameRequest struct {
 // GetAction returns the start game action
 func (ap *ActionStartGameRequest) GetAction() *StartGameAction {
 	return &StartGameAction{Type: ap.Type}
+}
+
+// ActionSkipActionRequest contains the action data for skip action actions
+type ActionSkipActionRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the skip action action
+func (ap *ActionSkipActionRequest) GetAction() *SkipAction {
+	return &SkipAction{Type: ap.Type}
 }
 
 // ActionPlayCardRequest contains the action data for play card actions

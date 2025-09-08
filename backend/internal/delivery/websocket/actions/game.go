@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+
 	"terraforming-mars-backend/internal/service"
 )
 
@@ -20,4 +21,9 @@ func NewGameActions(gameService service.GameService) *GameActions {
 // StartGame handles the start game action
 func (ga *GameActions) StartGame(ctx context.Context, gameID, playerID string) error {
 	return ga.gameService.StartGame(ctx, gameID, playerID)
+}
+
+// handleSkipAction handles the skip action
+func (ga *GameActions) SkipAction(ctx context.Context, gameID, playerID string) error {
+	return ga.gameService.SkipPlayerTurn(ctx, gameID, playerID)
 }

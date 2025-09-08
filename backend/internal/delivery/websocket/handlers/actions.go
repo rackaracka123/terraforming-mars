@@ -103,6 +103,8 @@ func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, acti
 	// Game actions
 	case dto.ActionTypeStartGame:
 		return ah.gameActions.StartGame(ctx, gameID, playerID)
+	case dto.ActionTypeSkipAction:
+		return ah.gameActions.SkipAction(ctx, gameID, playerID)
 
 	// Card actions
 	case dto.ActionTypeSelectStartingCard:

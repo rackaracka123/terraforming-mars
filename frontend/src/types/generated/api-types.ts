@@ -9,6 +9,7 @@
 export type ActionType = string;
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
 export const ActionTypeStartGame: ActionType = "start-game";
+export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
 /**
  * Standard Projects
@@ -30,6 +31,12 @@ export interface SelectStartingCardAction {
  * StartGameAction represents starting the game (host only)
  */
 export interface StartGameAction {
+  type: ActionType;
+}
+/**
+ * SkipAction represents skipping a player's turn
+ */
+export interface SkipAction {
   type: ActionType;
 }
 /**
@@ -97,6 +104,12 @@ export interface ActionSelectStartingCardRequest {
  * ActionStartGameRequest contains the action data for start game actions
  */
 export interface ActionStartGameRequest {
+  type: ActionType;
+}
+/**
+ * ActionSkipActionRequest contains the action data for skip action actions
+ */
+export interface ActionSkipActionRequest {
   type: ActionType;
 }
 /**
