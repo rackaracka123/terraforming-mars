@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
@@ -13,17 +14,19 @@ import (
 
 // Broadcaster handles sending messages to WebSocket connections
 type Broadcaster struct {
-	manager     *Manager
-	gameService service.GameService
-	logger      *zap.Logger
+	manager       *Manager
+	gameService   service.GameService
+	playerService service.PlayerService
+	logger        *zap.Logger
 }
 
 // NewBroadcaster creates a new message broadcaster
-func NewBroadcaster(manager *Manager, gameService service.GameService) *Broadcaster {
+func NewBroadcaster(manager *Manager, gameService service.GameService, playerService service.PlayerService) *Broadcaster {
 	return &Broadcaster{
-		manager:     manager,
-		gameService: gameService,
-		logger:      logger.Get(),
+		manager:       manager,
+		gameService:   gameService,
+		playerService: playerService,
+		logger:        logger.Get(),
 	}
 }
 
@@ -43,7 +46,7 @@ func (b *Broadcaster) BroadcastToGame(gameID string, message dto.WebSocketMessag
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
 			zap.String("message_type", string(message.Type)))
-		
+
 		connection.SendMessage(message)
 		sentCount++
 	}
@@ -103,7 +106,7 @@ func (b *Broadcaster) SendErrorToConnection(connection *Connection, errorMessage
 // SendPersonalizedGameUpdates sends personalized game-updated messages to all connected players
 func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID string) {
 	b.logger.Debug("🔍 Getting connected players for personalized broadcast", zap.String("game_id", gameID))
-	
+
 	gameConns := b.manager.GetGameConnections(gameID)
 
 	if gameConns == nil {
@@ -113,8 +116,18 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 
 	sentCount := 0
 	connectionsWithoutPlayerID := 0
-	
+
 	for connection := range gameConns {
+		// Check if context is cancelled before processing each connection
+		select {
+		case <-ctx.Done():
+			b.logger.Warn("Context cancelled during personalized game updates",
+				zap.String("game_id", gameID),
+				zap.Error(ctx.Err()))
+			return
+		default:
+		}
+
 		playerID, _ := connection.GetPlayer()
 		if playerID == "" {
 			connectionsWithoutPlayerID++
@@ -129,18 +142,32 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 			continue
 		}
 
-		// Get personalized game state
-		playerGame, err := b.gameService.GetGameForPlayer(ctx, gameID, playerID)
+		// Get game state
+		playerGame, err := b.gameService.GetGame(ctx, gameID)
 		if err != nil {
-			b.logger.Error("❌ Failed to get personalized game state",
+			b.logger.Error("❌ Failed to get game state",
 				zap.String("game_id", gameID),
 				zap.String("player_id", playerID),
 				zap.Error(err))
 			continue
 		}
 
-		// Convert to DTO and send
-		gameDTO := dto.ToGameDto(playerGame)
+		// Get all players for the game using PlayerIDs from game
+		var gamePlayers []model.Player
+		for _, pID := range playerGame.PlayerIDs {
+			player, err := b.playerService.GetPlayer(ctx, gameID, pID)
+			if err != nil {
+				b.logger.Warn("⚠️ Failed to get player data",
+					zap.String("game_id", gameID),
+					zap.String("missing_player_id", pID),
+					zap.Error(err))
+				continue
+			}
+			gamePlayers = append(gamePlayers, player)
+		}
+
+		// Convert to personalized DTO and send
+		gameDTO := dto.ToGameDto(playerGame, gamePlayers, playerID)
 		message := dto.WebSocketMessage{
 			Type: dto.MessageTypeGameUpdated,
 			Payload: dto.GameUpdatedPayload{
@@ -150,7 +177,7 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 
 		connection.SendMessage(message)
 		sentCount++
-		
+
 		b.logger.Debug("📤 Sent personalized game-updated to player",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID))
@@ -165,8 +192,8 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 
 // BroadcastPlayerDisconnection handles player disconnection broadcasting
 func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID, gameID string, connection *Connection) {
-	// Get player info for the broadcast
-	player, err := b.gameService.GetGame(ctx, gameID)
+	// Get game info for the broadcast
+	game, err := b.gameService.GetGame(ctx, gameID)
 	if err != nil {
 		b.logger.Error("Failed to get game for player disconnection broadcast",
 			zap.String("game_id", gameID),
@@ -174,32 +201,92 @@ func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID
 		return
 	}
 
-	// Find player name
-	var playerName string
-	for _, p := range player.Players {
-		if p.ID == playerID {
-			playerName = p.Name
-			break
+	// Get player info using player service
+	player, err := b.playerService.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		b.logger.Error("Failed to get player for disconnection broadcast",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Error(err))
+		return
+	}
+	playerName := player.Name
+
+	// Get all players for personalized messages
+	var allPlayers []model.Player
+	for _, pID := range game.PlayerIDs {
+		p, err := b.playerService.GetPlayer(ctx, gameID, pID)
+		if err != nil {
+			b.logger.Warn("⚠️ Failed to get player for disconnection broadcast",
+				zap.String("game_id", gameID),
+				zap.String("player_id", pID),
+				zap.Error(err))
+			continue
+		}
+		allPlayers = append(allPlayers, p)
+	}
+
+	// Send personalized disconnection messages to remaining players
+	gameConns := b.manager.GetGameConnections(gameID)
+	if gameConns != nil {
+		for conn := range gameConns {
+			if conn == connection { // Skip the disconnected player
+				continue
+			}
+			
+			connPlayerID, _ := conn.GetPlayer()
+			if connPlayerID == "" || strings.HasPrefix(connPlayerID, "temp-") {
+				continue
+			}
+
+			// Create personalized disconnection payload for this player
+			personalizedGame := dto.ToGameDto(game, allPlayers, connPlayerID)
+			disconnectedPayload := dto.PlayerDisconnectedPayload{
+				PlayerID:   playerID,
+				PlayerName: playerName,
+				Game:       personalizedGame,
+			}
+
+			disconnectedMessage := dto.WebSocketMessage{
+				Type:    dto.MessageTypePlayerDisconnected,
+				Payload: disconnectedPayload,
+				GameID:  gameID,
+			}
+
+			conn.SendMessage(disconnectedMessage)
 		}
 	}
-
-	// Create disconnection payload
-	disconnectedPayload := dto.PlayerDisconnectedPayload{
-		PlayerID:   playerID,
-		PlayerName: playerName,
-		Game:       dto.ToGameDto(player),
-	}
-
-	disconnectedMessage := dto.WebSocketMessage{
-		Type:    dto.MessageTypePlayerDisconnected,
-		Payload: disconnectedPayload,
-		GameID:  gameID,
-	}
-
-	b.BroadcastToGameExcept(gameID, disconnectedMessage, connection)
 
 	b.logger.Info("📢 Player disconnected, broadcasted to other players in game",
 		zap.String("player_id", playerID),
 		zap.String("player_name", playerName),
 		zap.String("game_id", gameID))
+}
+
+// SendAvailableCardsToPlayer sends available starting cards to a specific player
+func (b *Broadcaster) SendAvailableCardsToPlayer(ctx context.Context, gameID, playerID string, cards []dto.CardDto) {
+	// Create available cards payload
+	availableCardsPayload := dto.AvailableCardsPayload{
+		Cards: cards,
+	}
+
+	availableCardsMessage := dto.WebSocketMessage{
+		Type:    dto.MessageTypeAvailableCards,
+		Payload: availableCardsPayload,
+		GameID:  gameID,
+	}
+
+	// Send to specific player
+	connection := b.manager.GetConnectionByPlayerID(gameID, playerID)
+	if connection != nil {
+		connection.SendMessage(availableCardsMessage)
+		b.logger.Info("📤 Sent available cards to player",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Int("card_count", len(cards)))
+	} else {
+		b.logger.Warn("⚠️ Player connection not found for available cards",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+	}
 }

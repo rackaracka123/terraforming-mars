@@ -67,7 +67,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	}
 
 	// Get current player
-	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
@@ -84,38 +84,20 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
 	}
 
-	// Create updated player with selected cards and reduced credits
-	updatedPlayer := player
-	updatedPlayer.Resources.Credits -= cost
-
-	// Add selected cards to player's hand
-	updatedPlayer.Cards = append(updatedPlayer.Cards, cardIDs...)
-
-	// Update player through repository
-	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update player with selected cards", zap.Error(err))
-		return fmt.Errorf("failed to update player: %w", err)
+	// Update player resources with granular update
+	updatedResources := player.Resources
+	updatedResources.Credits -= cost
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
-	// Update game state to keep main Game entity in sync
-	game, err := s.gameRepo.Get(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for player update", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Find and update player in game
-	for i, p := range game.Players {
-		if p.ID == playerID {
-			game.Players[i] = updatedPlayer
-			break
+	// Add selected cards to player's hand using granular updates
+	for _, cardID := range cardIDs {
+		if err := s.playerRepo.AddCard(ctx, gameID, playerID, cardID); err != nil {
+			log.Error("Failed to add card to player hand", zap.String("card_id", cardID), zap.Error(err))
+			return fmt.Errorf("failed to add card %s: %w", cardID, err)
 		}
-	}
-
-	// Update game state
-	if err := s.gameRepo.Update(ctx, &game); err != nil {
-		log.Error("Failed to update game after card selection", zap.Error(err))
-		return fmt.Errorf("failed to update game: %w", err)
 	}
 
 	// Mark player as having completed selection
@@ -131,8 +113,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 
 	log.Info("Player completed starting card selection",
 		zap.Strings("selected_cards", cardIDs),
-		zap.Int("cost_paid", cost),
-		zap.Int("remaining_credits", updatedPlayer.Resources.Credits))
+		zap.Int("cost_paid", cost))
 
 	return nil
 }
@@ -192,10 +173,10 @@ func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gam
 
 // IsAllPlayersCardSelectionComplete checks if all players in the game have completed card selection
 func (s *CardServiceImpl) IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool {
-	// Get game to find all players
-	game, err := s.gameRepo.Get(ctx, gameID)
+	// Get players for checking selection completion
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {
-		logger.WithGameContext(gameID, "").Error("Failed to get game for selection completion check", zap.Error(err))
+		logger.WithGameContext(gameID, "").Error("Failed to get players for selection completion check", zap.Error(err))
 		return false
 	}
 
@@ -206,7 +187,7 @@ func (s *CardServiceImpl) IsAllPlayersCardSelectionComplete(ctx context.Context,
 	}
 
 	// Check if all players have completed selection
-	for _, player := range game.Players {
+	for _, player := range players {
 		hasSelected, exists := gameStatus[player.ID]
 		if !exists || !hasSelected {
 			return false

@@ -53,18 +53,16 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the player ID of the newly joined player
+	// Find the player ID of the newly joined player - it's the last one added
 	var playerID string
-	for _, player := range game.Players {
-		if player.Name == req.PlayerName {
-			playerID = player.ID
-			break
-		}
+	if len(game.PlayerIDs) > 0 {
+		// The newly joined player is the last one in the list
+		playerID = game.PlayerIDs[len(game.PlayerIDs)-1]
 	}
 
 	// Convert to DTO and respond
 	response := dto.JoinGameResponse{
-		Game:     dto.ToGameDto(game),
+		Game:     dto.ToGameDtoBasic(game),
 		PlayerID: playerID,
 	}
 

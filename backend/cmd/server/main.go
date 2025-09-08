@@ -49,7 +49,7 @@ func main() {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	log.Info("Player repository initialized")
 
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	gameRepo := repository.NewGameRepository(eventBus)
 	log.Info("Game repository initialized")
 
 	// Initialize new service architecture
@@ -82,14 +82,13 @@ func main() {
 		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
-	// Initialize WebSocket hub
-	hub := wsHandler.NewHub(gameService, playerService, standardProjectService, cardService, eventBus)
-	wsHandlerInstance := wsHandler.NewHandler(hub)
+	// Initialize WebSocket service
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus)
 
-	// Start WebSocket hub in background
-	hubCtx, hubCancel := context.WithCancel(ctx)
-	defer hubCancel()
-	go hub.Run(hubCtx)
+	// Start WebSocket service in background
+	wsCtx, wsCancel := context.WithCancel(ctx)
+	defer wsCancel()
+	go webSocketService.Run(wsCtx)
 	log.Info("WebSocket hub started")
 
 	// Setup main router without middleware for WebSocket
@@ -102,7 +101,7 @@ func main() {
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 
 	// Add WebSocket endpoint directly to main router (no middleware)
-	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	mainRouter.HandleFunc("/ws", webSocketService.ServeWS)
 
 	// Setup HTTP server
 	server := &http.Server{
@@ -141,9 +140,9 @@ func main() {
 		log.Info("✅ HTTP server stopped")
 	}
 
-	// Cancel WebSocket hub context
-	hubCancel()
-	log.Info("✅ WebSocket hub stopped")
+	// Cancel WebSocket service context
+	wsCancel()
+	log.Info("✅ WebSocket service stopped")
 
 	log.Info("✅ Server shutdown complete")
 }

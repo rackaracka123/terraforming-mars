@@ -16,12 +16,12 @@ import (
 
 // ActionHandler handles game action requests
 type ActionHandler struct {
-	gameActions       *actions.GameActions
-	standardProjects  *actions.StandardProjects
-	cardActions       *actions.CardActions
-	parser            *utils.MessageParser
-	errorHandler      *utils.ErrorHandler
-	logger            *zap.Logger
+	gameActions      *actions.GameActions
+	standardProjects *actions.StandardProjects
+	cardActions      *actions.CardActions
+	parser           *utils.MessageParser
+	errorHandler     *utils.ErrorHandler
+	logger           *zap.Logger
 }
 
 // NewActionHandler creates a new action handler

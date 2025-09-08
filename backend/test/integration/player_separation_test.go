@@ -78,12 +78,12 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 		currentPlayer1, ok := game1["currentPlayer"].(map[string]interface{})
 		require.True(t, ok, "Player 1 should have currentPlayer data")
 		require.Equal(t, player1Name, currentPlayer1["name"], "Current player should be Player 1")
-		
+
 		// CARD INTEGRITY CHECK: Player 1 should see their own cards (hand cards array)
 		cards1, ok := currentPlayer1["cards"].([]interface{})
 		require.True(t, ok, "Player 1 should have cards array for their own hand")
 		t.Logf("Player 1 has %d cards in hand (private to Player 1)", len(cards1))
-		
+
 		// CRITICAL: Verify that cards array contains actual card identifiers (not empty/null)
 		for i, card := range cards1 {
 			cardStr, isString := card.(string)
@@ -100,11 +100,11 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 		// Check other player data (should be limited)
 		otherPlayer := otherPlayers1[0].(map[string]interface{})
 		require.Equal(t, player2Name, otherPlayer["name"], "Other player should be Player 2")
-		
+
 		// CARD INTEGRITY CHECK: Other player should NOT have access to hand cards
 		_, hasCards := otherPlayer["cards"]
 		require.False(t, hasCards, "Player 1 should NOT see Player 2's hand cards")
-		
+
 		// CARD INTEGRITY CHECK: Other player should have handCardCount instead of cards array
 		handCardCount, ok := otherPlayer["handCardCount"].(float64)
 		require.True(t, ok, "Other player should have handCardCount")
@@ -129,7 +129,7 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 		cards2, ok := currentPlayer2["cards"].([]interface{})
 		require.True(t, ok, "Player 2 should have cards array for their own hand")
 		t.Logf("Player 2 has %d cards in hand (private to Player 2)", len(cards2))
-		
+
 		// CRITICAL: Verify that cards array contains actual card identifiers (not empty/null)
 		for i, card := range cards2 {
 			cardStr, isString := card.(string)
@@ -137,11 +137,11 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 			require.NotEmpty(t, cardStr, "Card %d should not be empty", i)
 			t.Logf("Player 2's card %d: %s", i, cardStr)
 		}
-		
+
 		// CARD INTEGRITY VERIFICATION: Player 1 and Player 2 should have different hand cards
 		currentPlayer1, _ := game1["currentPlayer"].(map[string]interface{})
 		cards1, _ := currentPlayer1["cards"].([]interface{})
-		
+
 		// Ensure players don't have identical hands (privacy violation check)
 		if len(cards1) > 0 && len(cards2) > 0 {
 			allSame := true
@@ -149,7 +149,7 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 			if len(cards2) < minLen {
 				minLen = len(cards2)
 			}
-			
+
 			for i := 0; i < minLen; i++ {
 				if cards1[i] != cards2[i] {
 					allSame = false
@@ -168,11 +168,11 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 		// Check other player data (should be limited)
 		otherPlayer := otherPlayers2[0].(map[string]interface{})
 		require.Equal(t, player1Name, otherPlayer["name"], "Other player should be Player 1")
-		
+
 		// CARD INTEGRITY CHECK: Other player should NOT have access to hand cards
 		_, hasCards := otherPlayer["cards"]
 		require.False(t, hasCards, "Player 2 should NOT see Player 1's hand cards")
-		
+
 		// CARD INTEGRITY CHECK: Other player should have handCardCount instead of cards array
 		handCardCount, ok := otherPlayer["handCardCount"].(float64)
 		require.True(t, ok, "Other player should have handCardCount")
@@ -201,62 +201,62 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 		require.Equal(t, globalParams1["oxygen"], globalParams2["oxygen"], "Oxygen should match")
 		require.Equal(t, globalParams1["oceans"], globalParams2["oceans"], "Oceans should match")
 	})
-	
+
 	// Critical card integrity verification test
 	t.Run("CardIntegrityVerification", func(t *testing.T) {
 		// Extract all player data for comprehensive verification
 		currentPlayer1 := game1["currentPlayer"].(map[string]interface{})
 		otherPlayers1 := game1["otherPlayers"].([]interface{})
 		otherPlayer1 := otherPlayers1[0].(map[string]interface{})
-		
+
 		currentPlayer2 := game2["currentPlayer"].(map[string]interface{})
 		otherPlayers2 := game2["otherPlayers"].([]interface{})
 		otherPlayer2 := otherPlayers2[0].(map[string]interface{})
-		
+
 		// CRITICAL INTEGRITY CHECK 1: Current player should have cards array, others should not
 		_, player1HasCards := currentPlayer1["cards"]
 		_, player2HasCards := currentPlayer2["cards"]
 		_, other1HasCards := otherPlayer1["cards"]
 		_, other2HasCards := otherPlayer2["cards"]
-		
+
 		require.True(t, player1HasCards, "Player 1 should see their own cards")
-		require.True(t, player2HasCards, "Player 2 should see their own cards") 
+		require.True(t, player2HasCards, "Player 2 should see their own cards")
 		require.False(t, other1HasCards, "Player 1 should NOT see other player's cards")
 		require.False(t, other2HasCards, "Player 2 should NOT see other player's cards")
-		
+
 		// CRITICAL INTEGRITY CHECK 2: Other players should have handCardCount, current players should not need it
 		_, other1HasCount := otherPlayer1["handCardCount"]
 		_, other2HasCount := otherPlayer2["handCardCount"]
-		
+
 		require.True(t, other1HasCount, "Other players should have handCardCount visible")
 		require.True(t, other2HasCount, "Other players should have handCardCount visible")
-		
+
 		// CRITICAL INTEGRITY CHECK 3: Played cards should be visible to everyone
 		player1PlayedCards, p1HasPlayed := currentPlayer1["playedCards"]
 		player2PlayedCards, p2HasPlayed := currentPlayer2["playedCards"]
 		other1PlayedCards, o1HasPlayed := otherPlayer1["playedCards"]
 		other2PlayedCards, o2HasPlayed := otherPlayer2["playedCards"]
-		
+
 		require.True(t, p1HasPlayed, "Player 1 should see their own played cards")
 		require.True(t, p2HasPlayed, "Player 2 should see their own played cards")
 		require.True(t, o1HasPlayed, "Player 1 should see other player's played cards")
 		require.True(t, o2HasPlayed, "Player 2 should see other player's played cards")
-		
+
 		// Verify played cards are arrays (even if empty)
 		require.IsType(t, []interface{}{}, player1PlayedCards, "Played cards should be arrays")
 		require.IsType(t, []interface{}{}, player2PlayedCards, "Played cards should be arrays")
 		require.IsType(t, []interface{}{}, other1PlayedCards, "Played cards should be arrays")
 		require.IsType(t, []interface{}{}, other2PlayedCards, "Played cards should be arrays")
-		
+
 		// CRITICAL INTEGRITY CHECK 4: HandCardCount should match actual card count
 		player1Cards := currentPlayer1["cards"].([]interface{})
 		player2Cards := currentPlayer2["cards"].([]interface{})
 		other1Count := int(otherPlayer1["handCardCount"].(float64))
 		other2Count := int(otherPlayer2["handCardCount"].(float64))
-		
+
 		require.Equal(t, len(player2Cards), other1Count, "Player 2's actual card count should match what Player 1 sees")
 		require.Equal(t, len(player1Cards), other2Count, "Player 1's actual card count should match what Player 2 sees")
-		
+
 		t.Logf("✅ CARD INTEGRITY VERIFIED:")
 		t.Logf("   - Player 1 has %d private cards, Player 2 sees count only", len(player1Cards))
 		t.Logf("   - Player 2 has %d private cards, Player 1 sees count only", len(player2Cards))
@@ -305,12 +305,12 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 
 	// Drain intermediate game-updated messages and wait for final ones with all 3 players
 	var gameUpdates []*dto.WebSocketMessage
-	
+
 	// Each client will receive game-updated messages as players join
 	// Player1: gets messages when P1 joins, P2 joins, P3 joins (needs to drain first 2)
-	// Player2: gets messages when P2 joins, P3 joins (needs to drain first 1)  
+	// Player2: gets messages when P2 joins, P3 joins (needs to drain first 1)
 	// Player3: gets messages when P3 joins (gets final message immediately)
-	
+
 	for i, client := range clients {
 		// Drain intermediate messages based on player join order
 		if i == 0 { // Player1 - drain 2 intermediate messages
@@ -323,7 +323,7 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 			require.NoError(t, err, "Player2 failed to receive intermediate game update")
 		}
 		// Player3 (i == 2) gets final message immediately, no draining needed
-		
+
 		// Get the final game update message with all 3 players
 		gameUpdate, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
 		require.NoError(t, err, "Client %d failed to receive final game update", i+1)
@@ -353,11 +353,11 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 			otherPlayer := op.(map[string]interface{})
 			name := otherPlayer["name"].(string)
 			otherPlayerNames = append(otherPlayerNames, name)
-			
+
 			// Verify other players have handCardCount instead of cards
 			_, hasCards := otherPlayer["cards"]
 			require.False(t, hasCards, "Other players should not have 'cards' field")
-			
+
 			_, hasHandCardCount := otherPlayer["handCardCount"]
 			require.True(t, hasHandCardCount, "Other players should have 'handCardCount' field")
 		}
@@ -403,26 +403,26 @@ func TestPlayerSeparationCardVisibility(t *testing.T) {
 	require.NoError(t, err)
 	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err)
-	
+
 	// Drain Player1's first game-updated message (when they join alone)
 	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client1 should receive initial game-updated message")
-	
+
 	// Give a moment for Player1 to be fully registered before Player2 joins
 	time.Sleep(50 * time.Millisecond)
 
 	// Connect Player2 - this will trigger game state events that should reach both players
 	err = client2.JoinGameViaWebSocket(gameID, "Player2")
 	require.NoError(t, err)
-	
+
 	// Wait for player2 connected message first
 	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err, "Client2 should receive player-connected message")
-	
+
 	// Wait for the SECOND game-updated message for Player1 (after Player2 joins, with both players)
 	gameUpdate1, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client1 should receive second game-updated message with both players")
-	
+
 	gameUpdate2, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client2 should receive game-updated message")
 

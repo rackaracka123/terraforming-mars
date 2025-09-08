@@ -45,8 +45,8 @@ func (p *Player) DeepCopy() *Player {
 		Name:             p.Name,
 		Corporation:      p.Corporation,
 		Cards:            cardsCopy,
-		Resources:        p.Resources,        // Resources is a struct, so this is copied by value
-		Production:       p.Production,       // Production is a struct, so this is copied by value
+		Resources:        p.Resources,  // Resources is a struct, so this is copied by value
+		Production:       p.Production, // Production is a struct, so this is copied by value
 		TerraformRating:  p.TerraformRating,
 		IsActive:         p.IsActive,
 		PlayedCards:      playedCardsCopy,

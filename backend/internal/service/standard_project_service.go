@@ -59,7 +59,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
-	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for sell patents", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
@@ -76,26 +76,28 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	// Calculate credits gained (1 M€ per card)
 	creditsGained := cardCount
 
-	// Update player resources and remove cards from hand
+	// Update player resources
 	updatedPlayer := player
 	updatedPlayer.Resources.Credits += creditsGained
 
+	// Update player resources first
+	if err := s.playerRepo.UpdateResources(ctx, gameID, updatedPlayer.ID, updatedPlayer.Resources); err != nil {
+		log.Error("Failed to update player resources after selling patents", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
+	}
+
 	// Remove cards from hand (remove first N cards)
-	if len(updatedPlayer.Cards) >= cardCount {
-		updatedPlayer.Cards = updatedPlayer.Cards[cardCount:]
+	for i := 0; i < cardCount && i < len(player.Cards); i++ {
+		cardToRemove := player.Cards[i]
+		if err := s.playerRepo.RemoveCard(ctx, gameID, playerID, cardToRemove); err != nil {
+			log.Error("Failed to remove card after selling patents", 
+				zap.String("card_id", cardToRemove),
+				zap.Error(err))
+			return fmt.Errorf("failed to remove card %s: %w", cardToRemove, err)
+		}
 	}
 
-	// Update player
-	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update player after selling patents", zap.Error(err))
-		return fmt.Errorf("failed to update player: %w", err)
-	}
-
-	// Update game state
-	if err := s.updateGameWithPlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update game after selling patents", zap.Error(err))
-		return fmt.Errorf("failed to update game: %w", err)
-	}
+	// Clean architecture: no manual game state sync needed
 
 	log.Info("Player sold patents",
 		zap.Int("cards_sold", cardCount),
@@ -232,7 +234,7 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
-	player, err := s.playerRepo.GetPlayer(ctx, gameID, playerID)
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for standard project", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
@@ -262,17 +264,27 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 		return err
 	}
 
-	// Update player
-	if err := s.playerRepo.UpdatePlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update player after standard project", zap.Error(err))
-		return fmt.Errorf("failed to update player: %w", err)
+	// Update player resources
+	if err := s.playerRepo.UpdateResources(ctx, gameID, updatedPlayer.ID, updatedPlayer.Resources); err != nil {
+		log.Error("Failed to update player resources after standard project", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
-	// Update game state
-	if err := s.updateGameWithPlayer(ctx, gameID, &updatedPlayer); err != nil {
-		log.Error("Failed to update game after standard project", zap.Error(err))
-		return fmt.Errorf("failed to update game: %w", err)
+	// Update player production if it changed
+	if err := s.playerRepo.UpdateProduction(ctx, gameID, updatedPlayer.ID, updatedPlayer.Production); err != nil {
+		log.Error("Failed to update player production after standard project", zap.Error(err))
+		return fmt.Errorf("failed to update player production: %w", err)
 	}
+
+	// Update terraform rating if it changed
+	if updatedPlayer.TerraformRating != player.TerraformRating {
+		if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, updatedPlayer.ID, updatedPlayer.TerraformRating); err != nil {
+			log.Error("Failed to update player terraform rating after standard project", zap.Error(err))
+			return fmt.Errorf("failed to update player terraform rating: %w", err)
+		}
+	}
+
+	// Clean architecture: no manual game state sync needed
 
 	log.Info("Standard project executed",
 		zap.String("project", string(project)),
@@ -281,29 +293,6 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	return nil
 }
 
-// updateGameWithPlayer updates the game state with an updated player
-func (s *StandardProjectServiceImpl) updateGameWithPlayer(ctx context.Context, gameID string, updatedPlayer *model.Player) error {
-	// Get current game state
-	game, err := s.gameRepo.Get(ctx, gameID)
-	if err != nil {
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Find and update player in game
-	for i, p := range game.Players {
-		if p.ID == updatedPlayer.ID {
-			game.Players[i] = *updatedPlayer
-			break
-		}
-	}
-
-	// Update game state
-	if err := s.gameRepo.Update(ctx, &game); err != nil {
-		return fmt.Errorf("failed to update game: %w", err)
-	}
-
-	return nil
-}
 
 // StandardProjectRequiresHexPosition returns true if the standard project requires a hex position (business logic from StandardProject functions)
 func (s *StandardProjectServiceImpl) StandardProjectRequiresHexPosition(project model.StandardProject) bool {

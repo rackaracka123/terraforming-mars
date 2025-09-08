@@ -14,42 +14,38 @@ import (
 	"go.uber.org/zap"
 )
 
-// GameRepository manages game metadata and state with integrated global parameters
+// GameRepository provides clean CRUD operations and granular updates for games
 type GameRepository interface {
-	// Create a new game
+	// Basic CRUD operations
 	Create(ctx context.Context, settings model.GameSettings) (model.Game, error)
-
-	// Get game by ID
-	Get(ctx context.Context, gameID string) (model.Game, error)
-
-	// Update game state
-	Update(ctx context.Context, game *model.Game) error
-
-	// List games with optional status filter
+	GetByID(ctx context.Context, gameID string) (model.Game, error)
+	Delete(ctx context.Context, gameID string) error
 	List(ctx context.Context, status string) ([]model.Game, error)
 
-	// Delete game
-	Delete(ctx context.Context, gameID string) error
-
-	// Global parameters methods (merged from GlobalParametersRepository)
-	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
-	UpdateGlobalParameters(ctx context.Context, gameID string, params *model.GlobalParameters) error
+	// Granular update methods for specific fields
+	UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error
+	UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error
+	UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
+	SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error
+	AddPlayerID(ctx context.Context, gameID string, playerID string) error
+	RemovePlayerID(ctx context.Context, gameID string, playerID string) error
+	SetHostPlayer(ctx context.Context, gameID string, playerID string) error
+	UpdateGeneration(ctx context.Context, gameID string, generation int) error
+	UpdateRemainingActions(ctx context.Context, gameID string, actions int) error
 }
 
-// GameRepositoryImpl implements GameRepository interface
+// GameRepositoryImpl implements GameRepository with in-memory storage
 type GameRepositoryImpl struct {
-	gameEntities map[string]*GameEntity // Use GameEntity for storage
-	mutex        sync.RWMutex
-	eventBus     events.EventBus
-	playerRepo   PlayerRepository
+	games    map[string]*model.Game
+	mutex    sync.RWMutex
+	eventBus events.EventBus
 }
 
 // NewGameRepository creates a new game repository
-func NewGameRepository(eventBus events.EventBus, playerRepo PlayerRepository) GameRepository {
+func NewGameRepository(eventBus events.EventBus) GameRepository {
 	return &GameRepositoryImpl{
-		gameEntities: make(map[string]*GameEntity),
-		eventBus:     eventBus,
-		playerRepo:   playerRepo,
+		games:    make(map[string]*model.Game),
+		eventBus: eventBus,
 	}
 }
 
@@ -64,15 +60,13 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 	// Generate unique game ID
 	gameID := uuid.New().String()
 
-	// Create the game entity
-	gameEntity := NewGameEntity(gameID, settings)
+	// Create the game
+	game := model.NewGame(gameID, settings)
 
 	// Store in repository
-	r.gameEntities[gameID] = gameEntity
+	r.games[gameID] = game
 
-	log.Debug("Game created",
-		zap.String("game_id", gameID),
-	)
+	log.Debug("Game created", zap.String("game_id", gameID))
 
 	// Publish game created event
 	if r.eventBus != nil {
@@ -82,127 +76,29 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 		}
 	}
 
-	// Convert GameEntity to Game with empty players (will be populated by Get method)
-	game := gameEntity.ToGame([]model.Player{})
 	return *game, nil
 }
 
-// Get retrieves a game by ID with fresh player data
-func (r *GameRepositoryImpl) Get(ctx context.Context, gameID string) (model.Game, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
+// GetByID retrieves a game by ID
+func (r *GameRepositoryImpl) GetByID(ctx context.Context, gameID string) (model.Game, error) {
 	if gameID == "" {
 		return model.Game{}, fmt.Errorf("game ID cannot be empty")
 	}
 
-	gameEntity, exists := r.gameEntities[gameID]
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	game, exists := r.games[gameID]
 	if !exists {
 		return model.Game{}, fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	// Fetch fresh player data from PlayerRepository to ensure synchronization
-	players := make([]model.Player, 0, len(gameEntity.PlayerIDs))
-	for _, playerID := range gameEntity.PlayerIDs {
-		freshPlayer, err := r.playerRepo.GetPlayer(ctx, gameID, playerID)
-		if err != nil {
-			// Log warning but don't fail - use stale data as fallback
-			logger.Get().Warn("Failed to fetch fresh player data, using stale data",
-				zap.String("game_id", gameID),
-				zap.String("player_id", playerID),
-				zap.Error(err))
-			continue
-		}
-		players = append(players, freshPlayer)
-	}
+	// Return a copy to prevent external mutation
+	gameCopy := *game
+	gameCopy.PlayerIDs = make([]string, len(game.PlayerIDs))
+	copy(gameCopy.PlayerIDs, game.PlayerIDs)
 
-	// Convert GameEntity to Game with populated players
-	return *gameEntity.ToGame(players), nil
-}
-
-// Update updates a game in the repository
-func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(game.ID, "")
-	log.Info("GameRepository.Update called", 
-		zap.String("game_id", game.ID),
-		zap.Bool("eventBus_nil", r.eventBus == nil))
-
-	if game == nil {
-		return fmt.Errorf("game cannot be nil")
-	}
-
-	oldGameEntity, exists := r.gameEntities[game.ID]
-	if !exists {
-		log.Error("Attempted to update non-existent game")
-		return fmt.Errorf("game with ID %s not found", game.ID)
-	}
-
-	// Capture old state for event
-	oldGame := oldGameEntity.ToGame(game.Players) // Use current players for old state
-
-	// Convert Game to GameEntity (extract player IDs)
-	playerIDs := make([]string, len(game.Players))
-	for i, player := range game.Players {
-		playerIDs[i] = player.ID
-	}
-
-	// Create new GameEntity
-	newGameEntity := &GameEntity{
-		ID:               game.ID,
-		CreatedAt:        game.CreatedAt,
-		UpdatedAt:        time.Now(),
-		Status:           game.Status,
-		Settings:         game.Settings,
-		PlayerIDs:        playerIDs,
-		HostPlayerID:     game.HostPlayerID,
-		CurrentPhase:     game.CurrentPhase,
-		GlobalParameters: game.GlobalParameters,
-		CurrentPlayerID:  game.CurrentPlayerID,
-		Generation:       game.Generation,
-		RemainingActions: game.RemainingActions,
-	}
-
-	// Store updated game entity
-	r.gameEntities[game.ID] = newGameEntity
-
-	log.Debug("Game updated")
-
-	// Publish game updated event
-	if r.eventBus != nil {
-		log.Debug("Publishing GameStateChanged event", 
-			zap.String("game_id", game.ID),
-			zap.Int("old_players", len(oldGame.Players)),
-			zap.Int("new_players", len(game.Players)))
-		gameUpdatedEvent := events.NewGameStateChangedEvent(game.ID, oldGame, game)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		} else {
-			log.Debug("GameStateChanged event published successfully")
-		}
-	}
-
-	return nil
-}
-
-// List returns all games, optionally filtered by status
-func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]model.Game, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	games := make([]model.Game, 0)
-
-	for _, gameEntity := range r.gameEntities {
-		if status == "" || string(gameEntity.Status) == status {
-			// For list operations, we can return games with empty player arrays for performance
-			game := gameEntity.ToGame([]model.Player{})
-			games = append(games, *game)
-		}
-	}
-
-	return games, nil
+	return gameCopy, nil
 }
 
 // Delete removes a game from the repository
@@ -216,12 +112,12 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 		return fmt.Errorf("game ID cannot be empty")
 	}
 
-	_, exists := r.gameEntities[gameID]
+	_, exists := r.games[gameID]
 	if !exists {
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	delete(r.gameEntities, gameID)
+	delete(r.games, gameID)
 
 	log.Info("Game deleted")
 
@@ -236,62 +132,104 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 	return nil
 }
 
-// GetGlobalParameters retrieves global parameters for a game
-func (r *GameRepositoryImpl) GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error) {
+// List returns all games, optionally filtered by status
+func (r *GameRepositoryImpl) List(ctx context.Context, status string) ([]model.Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	if gameID == "" {
-		return model.GlobalParameters{}, fmt.Errorf("game ID cannot be empty")
-	}
+	games := make([]model.Game, 0)
 
-	gameEntity, exists := r.gameEntities[gameID]
-	if !exists {
-		// Return default parameters if game doesn't exist
-		defaultParams := model.GlobalParameters{
-			Temperature: -30,
-			Oxygen:      0,
-			Oceans:      0,
+	for _, game := range r.games {
+		if status == "" || string(game.Status) == status {
+			// Return a copy to prevent external mutation
+			gameCopy := *game
+			gameCopy.PlayerIDs = make([]string, len(game.PlayerIDs))
+			copy(gameCopy.PlayerIDs, game.PlayerIDs)
+			games = append(games, gameCopy)
 		}
-		return defaultParams, nil
 	}
 
-	paramsCopy := gameEntity.GlobalParameters
-	return paramsCopy, nil
+	return games, nil
 }
 
-// UpdateGlobalParameters updates global parameters for a game
-func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID string, params *model.GlobalParameters) error {
+// UpdateStatus updates a game's status
+func (r *GameRepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(gameID, "")
 
-	if gameID == "" {
-		return fmt.Errorf("game ID cannot be empty")
-	}
-
-	if params == nil {
-		return fmt.Errorf("global parameters cannot be nil")
-	}
-
-	// Validate parameter ranges
-	if err := r.validateGlobalParameters(params); err != nil {
-		log.Error("Invalid global parameters", zap.Error(err))
-		return fmt.Errorf("invalid parameters: %w", err)
-	}
-
-	gameEntity, exists := r.gameEntities[gameID]
+	game, exists := r.games[gameID]
 	if !exists {
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	// Capture old parameters for events
-	oldParams := gameEntity.GlobalParameters
+	oldStatus := game.Status
+	game.Status = status
+	game.UpdatedAt = time.Now()
 
-	// Update parameters in game entity
-	gameEntity.GlobalParameters = *params
-	gameEntity.UpdatedAt = time.Now()
+	log.Info("Game status updated", zap.String("old_status", string(oldStatus)), zap.String("new_status", string(status)))
+
+	// Publish event if status changed
+	if r.eventBus != nil && oldStatus != status {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
+// UpdatePhase updates a game's current phase
+func (r *GameRepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	oldPhase := game.CurrentPhase
+	game.CurrentPhase = phase
+	game.UpdatedAt = time.Now()
+
+	log.Info("Game phase updated", zap.String("old_phase", string(oldPhase)), zap.String("new_phase", string(phase)))
+
+	// Publish event if phase changed
+	if r.eventBus != nil && oldPhase != phase {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
+// UpdateGlobalParameters updates global parameters for a game
+func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	if err := r.validateGlobalParameters(&params); err != nil {
+		log.Error("Invalid global parameters", zap.Error(err))
+		return fmt.Errorf("invalid parameters: %w", err)
+	}
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	oldParams := game.GlobalParameters
+	game.GlobalParameters = params
+	game.UpdatedAt = time.Now()
 
 	log.Info("Global parameters updated",
 		zap.Int("temperature", params.Temperature),
@@ -299,7 +237,7 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 		zap.Int("oceans", params.Oceans),
 	)
 
-	// Publish events for each parameter that changed
+	// Publish specific events for each parameter that changed
 	if r.eventBus != nil {
 		if oldParams.Temperature != params.Temperature {
 			tempEvent := events.NewTemperatureChangedEvent(gameID, oldParams.Temperature, params.Temperature)
@@ -322,12 +260,177 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 			}
 		}
 
-		// Also publish a general parameters changed event
-		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, oldParams, *params)
+		// General parameters changed event
+		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, oldParams, params)
 		if err := r.eventBus.Publish(ctx, parametersChangedEvent); err != nil {
 			log.Warn("Failed to publish global parameters changed event", zap.Error(err))
 		}
 	}
+
+	return nil
+}
+
+// SetCurrentPlayer sets the current active player
+func (r *GameRepositoryImpl) SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	oldPlayerID := game.CurrentPlayerID
+	game.CurrentPlayerID = playerID
+	game.UpdatedAt = time.Now()
+
+	log.Info("Current player updated", zap.String("old_player", oldPlayerID), zap.String("new_player", playerID))
+
+	return nil
+}
+
+// AddPlayerID adds a player ID to the game
+func (r *GameRepositoryImpl) AddPlayerID(ctx context.Context, gameID string, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Check if player already exists
+	for _, existingPlayerID := range game.PlayerIDs {
+		if existingPlayerID == playerID {
+			return fmt.Errorf("player %s already exists in game %s", playerID, gameID)
+		}
+	}
+
+	game.PlayerIDs = append(game.PlayerIDs, playerID)
+	game.UpdatedAt = time.Now()
+
+	// Set as host if first player
+	if len(game.PlayerIDs) == 1 {
+		game.HostPlayerID = playerID
+		log.Info("Player added and set as host")
+	} else {
+		log.Info("Player added to game")
+	}
+
+	return nil
+}
+
+// RemovePlayerID removes a player ID from the game
+func (r *GameRepositoryImpl) RemovePlayerID(ctx context.Context, gameID string, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Find and remove player ID
+	for i, existingPlayerID := range game.PlayerIDs {
+		if existingPlayerID == playerID {
+			game.PlayerIDs = append(game.PlayerIDs[:i], game.PlayerIDs[i+1:]...)
+			game.UpdatedAt = time.Now()
+
+			// Clear host if they were the host
+			if game.HostPlayerID == playerID {
+				if len(game.PlayerIDs) > 0 {
+					game.HostPlayerID = game.PlayerIDs[0] // Set first remaining player as host
+					log.Info("Player removed and host transferred", zap.String("new_host", game.HostPlayerID))
+				} else {
+					game.HostPlayerID = ""
+					log.Info("Player removed and no host remaining")
+				}
+			} else {
+				log.Info("Player removed from game")
+			}
+
+			return nil
+		}
+	}
+
+	return fmt.Errorf("player %s not found in game %s", playerID, gameID)
+}
+
+// SetHostPlayer sets the host player for the game
+func (r *GameRepositoryImpl) SetHostPlayer(ctx context.Context, gameID string, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Verify player exists in game
+	playerExists := false
+	for _, existingPlayerID := range game.PlayerIDs {
+		if existingPlayerID == playerID {
+			playerExists = true
+			break
+		}
+	}
+
+	if !playerExists {
+		return fmt.Errorf("player %s not found in game %s", playerID, gameID)
+	}
+
+	game.HostPlayerID = playerID
+	game.UpdatedAt = time.Now()
+
+	log.Info("Host player updated")
+
+	return nil
+}
+
+// UpdateGeneration updates the game generation
+func (r *GameRepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, generation int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	game.Generation = generation
+	game.UpdatedAt = time.Now()
+
+	log.Info("Generation updated", zap.Int("generation", generation))
+
+	return nil
+}
+
+// UpdateRemainingActions updates the remaining actions count
+func (r *GameRepositoryImpl) UpdateRemainingActions(ctx context.Context, gameID string, actions int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	game.RemainingActions = actions
+	game.UpdatedAt = time.Now()
+
+	log.Debug("Remaining actions updated", zap.Int("actions", actions))
 
 	return nil
 }

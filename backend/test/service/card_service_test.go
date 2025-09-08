@@ -16,8 +16,8 @@ import (
 func TestCardService_SelectStartingCards(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 
 	ctx := context.Background()
@@ -43,25 +43,27 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		PlayedCards:     []string{},
 	}
 
-	// Add player to game
-	game.Players = []model.Player{player}
-
-	// Store game and player
+	// Create game using clean architecture
 	createdGame, err := gameRepo.Create(ctx, game.Settings)
 	require.NoError(t, err)
-	game.ID = createdGame.ID // Use the ID from the created game
+	gameID := createdGame.ID
 
-	// Update game with our test data
-	err = gameRepo.Update(ctx, game)
+	// Set game status and phase using granular updates
+	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	require.NoError(t, err)
+	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
-	err = playerRepo.AddPlayer(ctx, game.ID, player)
+	// Add player using clean architecture
+	err = playerRepo.Create(ctx, gameID, player)
+	require.NoError(t, err)
+	err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
 	require.NoError(t, err)
 
 	// Store starting card options
 	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
-	cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
+	cardServiceImpl.StorePlayerCardOptions(gameID, player.ID, availableCards)
 
 	tests := []struct {
 		name          string
@@ -132,20 +134,23 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				PlayedCards:     []string{},
 			}
 
-			err := playerRepo.UpdatePlayer(ctx, game.ID, &resetPlayer)
+			// Update player resources using granular update
+			err := playerRepo.UpdateResources(ctx, gameID, resetPlayer.ID, resetPlayer.Resources)
 			require.NoError(t, err)
-
-			// Reset game state
-			resetGame := *game
-			resetGame.Players = []model.Player{resetPlayer}
-			err = gameRepo.Update(ctx, &resetGame)
+			
+			// Clear any existing cards from previous test runs
+			currentPlayer, err := playerRepo.GetByID(ctx, gameID, resetPlayer.ID)
 			require.NoError(t, err)
+			for _, cardID := range currentPlayer.Cards {
+				err = playerRepo.RemoveCard(ctx, gameID, resetPlayer.ID, cardID)
+				require.NoError(t, err)
+			}
 
 			// Reset card service selection status
-			cardServiceImpl.StorePlayerCardOptions(game.ID, player.ID, availableCards)
+			cardServiceImpl.StorePlayerCardOptions(gameID, player.ID, availableCards)
 
 			// Execute
-			err = cardService.SelectStartingCards(ctx, game.ID, player.ID, tt.selectedCards)
+			err = cardService.SelectStartingCards(ctx, gameID, player.ID, tt.selectedCards)
 
 			// Assert
 			if tt.expectedError {
@@ -157,7 +162,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify player state after selection
-				updatedPlayer, err := playerRepo.GetPlayer(ctx, game.ID, player.ID)
+				updatedPlayer, err := playerRepo.GetByID(ctx, gameID, player.ID)
 				require.NoError(t, err)
 
 				// Check cards were added to player's hand
@@ -177,8 +182,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 
 	ctx := context.Background()
@@ -246,8 +251,8 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	// Setup
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 
 	ctx := context.Background()
@@ -276,48 +281,53 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 		IsActive:        true,
 	}
 
-	game.Players = []model.Player{player1, player2}
-
-	// Store game
+	// Create game using clean architecture
 	createdGame, err := gameRepo.Create(ctx, game.Settings)
 	require.NoError(t, err)
-	game.ID = createdGame.ID // Use the ID from the created game
+	gameID := createdGame.ID
 
-	err = gameRepo.Update(ctx, game)
+	// Set game status and phase
+	err = gameRepo.UpdateStatus(ctx, gameID, game.Status)
+	require.NoError(t, err)
+	err = gameRepo.UpdatePhase(ctx, gameID, game.CurrentPhase)
 	require.NoError(t, err)
 
-	// Add players
-	err = playerRepo.AddPlayer(ctx, game.ID, player1)
+	// Add players using clean architecture
+	err = playerRepo.Create(ctx, gameID, player1)
 	require.NoError(t, err)
-	err = playerRepo.AddPlayer(ctx, game.ID, player2)
+	err = gameRepo.AddPlayerID(ctx, gameID, player1.ID)
+	require.NoError(t, err)
+	err = playerRepo.Create(ctx, gameID, player2)
+	require.NoError(t, err)
+	err = gameRepo.AddPlayerID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
 
 	// Test: No players have selection data
-	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
 	// Setup card options for both players
 	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
-	cardServiceImpl.StorePlayerCardOptions(game.ID, player1.ID, availableCards)
-	cardServiceImpl.StorePlayerCardOptions(game.ID, player2.ID, availableCards)
+	cardServiceImpl.StorePlayerCardOptions(gameID, player1.ID, availableCards)
+	cardServiceImpl.StorePlayerCardOptions(gameID, player2.ID, availableCards)
 
 	// Test: No players have completed selection
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
 	// Test: Only one player completed selection
-	err = cardService.SelectStartingCards(ctx, game.ID, player1.ID, []string{"investment"})
+	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{"investment"})
 	require.NoError(t, err)
 
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
 	// Test: All players completed selection
-	err = cardService.SelectStartingCards(ctx, game.ID, player2.ID, []string{"early-settlement"})
+	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{"early-settlement"})
 	require.NoError(t, err)
 
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, game.ID)
+	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.True(t, complete)
 }

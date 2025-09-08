@@ -132,10 +132,12 @@ The backend follows Clean Architecture principles with strict separation of conc
 - **Dependency Rule**: Depends only on the Domain layer
 
 **Infrastructure Layer** (`internal/repository/`)
-- **Data Access**: Implement data persistence and retrieval
-- **Event Publishing**: Emit domain events when data changes occur
-- **External Services**: Handle integrations with external systems
-- **Dependency Implementation**: Implement interfaces defined in Application layer
+- **Simplified Repositories**: Direct storage of domain models with clean CRUD operations
+- **Immutable Getters**: All repository methods return values, not pointers, to maintain immutability
+- **Granular Updates**: Specific methods for updating individual fields (UpdateResources, UpdateTerraformRating)
+- **Clean Relationships**: Games store PlayerIDs, not embedded Player objects
+- **Event Publishing**: Precise events from specific update methods (temperature changed, resources updated)
+- **No Entity Classes**: Store domain models directly, eliminating conversion complexity
 
 **Presentation Layer** (`internal/cards/`, `internal/delivery/`)
 - **API Endpoints**: Handle HTTP requests and WebSocket connections
@@ -166,24 +168,35 @@ The backend follows Clean Architecture principles with strict separation of conc
 - Domain entities contain core business logic
 - Application services orchestrate domain operations
 
-### Event-Driven Architecture Patterns
+### Simplified Repository Pattern
 
-**Domain Events**
-- Published by Infrastructure layer when data changes
-- Carry rich payloads with before/after state
-- Enable loose coupling between domain concepts
-- Support audit trails and eventual consistency
+The backend implements a **Clean Repository Pattern** with the following design principles:
 
-**Event Handlers**
-- Implemented in Application services
-- React to domain events for cross-cutting concerns
-- Enable features like milestone tracking and notifications
-- Execute concurrently with proper error handling
+**Repository Design**
+- **Direct Model Storage**: Repositories store `model.Game` and `model.Player` directly (no entity classes)
+- **Immutable Interface**: All getters return values (`GetByID() (model.Game, error)`) not pointers
+- **Clean Relationships**: `model.Game` contains `PlayerIDs []string`, not embedded `Players []Player`
+- **Granular Updates**: Specific methods for each field to enable precise event handling:
+  ```go
+  UpdateResources(ctx, gameID, playerID, resources) error
+  UpdateTerraformRating(ctx, gameID, playerID, rating) error
+  UpdateStatus(ctx, gameID, status) error
+  ```
 
-**Event Flow**
-```
-Domain Entity → Repository (publishes event) → Event Bus → Service Handler
-```
+**Service Composition**
+- Services call specific repository methods when needed
+- When full data is required, services compose from multiple repositories:
+  ```go
+  game := gameRepo.GetByID(ctx, gameID)
+  players := playerRepo.ListByGameID(ctx, gameID)
+  // Compose response as needed
+  ```
+
+**Event-Driven Architecture**
+- **Precise Events**: Granular update methods publish specific events
+- **Event Flow**: `Repository Update Method → Specific Event → Event Bus → Service Handler`
+- **Examples**: `TemperatureChanged`, `PlayerResourcesChanged`, `PlayerTRChanged`
+- **Clean Separation**: Events published from infrastructure, handled in application layer
 
 ### Development Guidelines
 
@@ -199,11 +212,28 @@ Domain Entity → Repository (publishes event) → Event Bus → Service Handler
 - Handle domain events for cross-cutting functionality
 - Define interfaces for infrastructure dependencies
 
-**Infrastructure Layer**
-- Implement data persistence with defensive copying
-- Publish domain events when data changes
-- Handle external service integrations
-- Manage technical cross-cutting concerns
+**Infrastructure Layer (Repository Pattern)**
+- Store domain models directly with immutable interfaces
+- Implement granular update methods for specific field changes
+- Maintain clean relationships using IDs instead of embedded objects
+- Publish precise events from specific operations
+- Use defensive copying for data integrity
+
+**Repository Implementation Example**
+```go
+type GameRepository interface {
+    // Immutable getters
+    GetByID(ctx context.Context, gameID string) (model.Game, error)
+    
+    // Granular updates
+    UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error
+    AddPlayerID(ctx context.Context, gameID string, playerID string) error
+    
+    // Clean CRUD
+    Create(ctx context.Context, settings model.GameSettings) (model.Game, error)
+    Delete(ctx context.Context, gameID string) error
+}
+```
 
 **Presentation Layer**
 - Use Application services for all business operations
@@ -476,6 +506,11 @@ npm run lint           # Check for ESLint errors
 - **Data Synchronization**: Ensure related repositories stay synchronized (e.g., GameRepository fetches fresh PlayerRepository data)
 - **Complete Entity Copying**: When implementing `DeepCopy()` methods, include ALL struct fields to prevent data loss
 - **Dependency Injection**: Inject required repositories into constructor methods for data consistency
+
+#### Test Debugging
+- **JSON Output**: Use `go test -json` for easier to parse test output when debugging
+- **Verbose with JSON**: Use `go test -json -v` for detailed test output in JSON format
+- **Specific Package**: `cd backend && go test -json ./internal/service/` for focused testing
 
 ### Frontend Development (React)
 - **Generated Types**: Always use types from `src/types/generated/api-types.ts`

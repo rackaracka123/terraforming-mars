@@ -21,6 +21,11 @@ type HubMessage struct {
 	Message    dto.WebSocketMessage
 }
 
+// EventHandler interface for handling domain events
+type EventHandler interface {
+	HandlePlayerStartingCardOptions(ctx context.Context, event events.Event) error
+}
+
 // Hub manages WebSocket connections and message routing
 type Hub struct {
 	// Core channels
@@ -33,6 +38,7 @@ type Hub struct {
 	broadcaster       *Broadcaster
 	connectionHandler MessageHandler
 	actionHandler     MessageHandler
+	eventHandler      EventHandler // Delegate for domain events
 	logger            *zap.Logger
 
 	// Services (for routing to handlers)
@@ -52,9 +58,10 @@ func NewHub(
 	eventBus events.EventBus,
 	connectionHandler MessageHandler,
 	actionHandler MessageHandler,
+	eventHandler EventHandler,
 ) *Hub {
 	manager := NewManager()
-	broadcaster := NewBroadcaster(manager, gameService)
+	broadcaster := NewBroadcaster(manager, gameService, playerService)
 
 	return &Hub{
 		Register:               make(chan *Connection),
@@ -64,6 +71,7 @@ func NewHub(
 		broadcaster:            broadcaster,
 		connectionHandler:      connectionHandler,
 		actionHandler:          actionHandler,
+		eventHandler:           eventHandler,
 		logger:                 logger.Get(),
 		gameService:            gameService,
 		playerService:          playerService,
@@ -123,6 +131,11 @@ func (h *Hub) SetHandlers(connectionHandler, actionHandler MessageHandler) {
 	h.actionHandler = actionHandler
 }
 
+// SetEventHandler sets the event handler (used to break circular dependency)
+func (h *Hub) SetEventHandler(eventHandler EventHandler) {
+	h.eventHandler = eventHandler
+}
+
 // routeMessage routes incoming messages to appropriate handlers
 func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 	connection := hubMessage.Connection
@@ -159,36 +172,40 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 
 // subscribeToEvents sets up event listeners
 func (h *Hub) subscribeToEvents() {
-	// Subscribe to game state changes for broadcasting updates
-	h.eventBus.Subscribe(events.EventTypeGameStateChanged, h.handleGameStateChanged)
-	
+	// Subscribe to game updates for broadcasting updates
+	h.eventBus.Subscribe(events.EventTypeGameUpdated, h.handleGameUpdated)
+
 	// Subscribe to starting card options events
 	h.eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, h.handlePlayerStartingCardOptions)
 
 	h.logger.Info("📡 WebSocket hub subscribed to events")
 }
 
-// handleGameStateChanged processes game state change events
-func (h *Hub) handleGameStateChanged(ctx context.Context, event events.Event) error {
-	payload := event.GetPayload().(events.GameStateChangedEventData)
+// handleGameUpdated processes game updated events
+func (h *Hub) handleGameUpdated(ctx context.Context, event events.Event) error {
+	payload := event.GetPayload().(events.GameUpdatedEventData)
 	gameID := payload.GameID
 
-	h.logger.Info("🎮 Processing game state change broadcast",
-		zap.String("game_id", gameID),
-		zap.Int("old_players", len(payload.OldState.Players)),
-		zap.Int("new_players", len(payload.NewState.Players)))
+	h.logger.Info("🎮 Processing game updated broadcast",
+		zap.String("game_id", gameID))
 
 	// Delegate to broadcaster
 	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
 
-	h.logger.Info("✅ Game state change broadcast completed", zap.String("game_id", gameID))
+	h.logger.Info("✅ Game updated broadcast completed", zap.String("game_id", gameID))
 	return nil
 }
 
 // handlePlayerStartingCardOptions handles card option events
 func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
-	// This will be simplified and moved to handlers/events.go
 	h.logger.Debug("🃏 Card options event received - delegating to event handler")
+	
+	// Delegate to the proper event handler
+	if h.eventHandler != nil {
+		return h.eventHandler.HandlePlayerStartingCardOptions(ctx, event)
+	}
+	
+	h.logger.Warn("⚠️ No event handler configured")
 	return nil
 }
 

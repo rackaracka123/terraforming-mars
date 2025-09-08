@@ -94,9 +94,11 @@ func (ch *ConnectionHandler) handlePlayerConnect(ctx context.Context, connection
 
 	// Send confirmations and updates
 	ch.sendConnectionConfirmation(connection, finalPlayerID, payload.PlayerName, *game)
-	
+
 	if isNewPlayer {
-		ch.sendPersonalizedUpdate(ctx, connection, finalPlayerID, payload.GameID)
+		// Send game-updated to all players in the game (including the new player)
+		// This ensures all clients have the updated game state with the new player
+		ch.broadcaster.SendPersonalizedGameUpdates(ctx, payload.GameID)
 	}
 
 	ch.logger.Info("🎮 Player connected via WebSocket",
@@ -174,13 +176,12 @@ func (ch *ConnectionHandler) validateGameExists(ctx context.Context, connection 
 }
 
 func (ch *ConnectionHandler) findExistingPlayer(ctx context.Context, gameID, playerName string) string {
-	currentGame, _ := ch.gameService.GetGame(ctx, gameID)
-	for _, player := range currentGame.Players {
-		if player.Name == playerName {
-			return player.ID
-		}
+	// Use player service to find player by name
+	player, err := ch.playerService.GetPlayerByName(ctx, gameID, playerName)
+	if err != nil {
+		return ""
 	}
-	return ""
+	return player.ID
 }
 
 func (ch *ConnectionHandler) setupConnection(connection *core.Connection, gameID, playerID string, isNewPlayer bool) bool {
@@ -211,21 +212,20 @@ func (ch *ConnectionHandler) joinGame(ctx context.Context, connection *core.Conn
 		return nil, ""
 	}
 
-	// Find the player ID in the updated game
-	for _, player := range game.Players {
-		if player.Name == payload.PlayerName {
-			return &game, player.ID
-		}
+	// Find the player ID using player service
+	player, err := ch.playerService.GetPlayerByName(ctx, payload.GameID, payload.PlayerName)
+	if err != nil {
+		ch.logger.Error("❌ Player not found in game after join", zap.Error(err))
+		ch.errorHandler.SendError(connection, "Player not found in game")
+		return nil, ""
 	}
 
-	ch.logger.Error("❌ Player not found in game after join")
-	ch.errorHandler.SendError(connection, "Player not found in game")
-	return nil, ""
+	return &game, player.ID
 }
 
 func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connection, playerID, playerName string, game model.Game) {
-	gameDTO := dto.ToGameDto(game)
-	
+	gameDTO := dto.ToGameDtoBasic(game)
+
 	playerConnectedMsg := dto.WebSocketMessage{
 		Type: dto.MessageTypePlayerConnected,
 		Payload: dto.PlayerConnectedPayload{
@@ -240,20 +240,20 @@ func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connect
 }
 
 func (ch *ConnectionHandler) sendPersonalizedUpdate(ctx context.Context, connection *core.Connection, playerID, gameID string) {
-	playerGame, err := ch.gameService.GetGameForPlayer(ctx, gameID, playerID)
+	playerGame, err := ch.gameService.GetGame(ctx, gameID)
 	if err != nil {
-		ch.logger.Error("Failed to get personalized game state for new player", zap.Error(err))
+		ch.logger.Error("Failed to get game state for new player", zap.Error(err))
 		return
 	}
 
-	personalizedGameDTO := dto.ToGameDto(playerGame)
+	personalizedGameDTO := dto.ToGameDtoBasic(playerGame)
 	gameUpdateMessage := dto.WebSocketMessage{
 		Type: dto.MessageTypeGameUpdated,
 		Payload: dto.GameUpdatedPayload{
 			Game: personalizedGameDTO,
 		},
 	}
-	
+
 	ch.broadcaster.SendToConnection(connection, gameUpdateMessage)
 }
 
@@ -263,7 +263,7 @@ func (ch *ConnectionHandler) handleExistingConnection(playerID, gameID string) {
 }
 
 func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connection *core.Connection, game *model.Game, player *model.Player) {
-	gameDTO := dto.ToGameDto(*game)
+	gameDTO := dto.ToGameDtoBasic(*game)
 
 	// Send primary reconnection confirmation
 	primaryMessage := dto.WebSocketMessage{
@@ -294,7 +294,7 @@ func (ch *ConnectionHandler) broadcastPlayerReconnection(ctx context.Context, ga
 	reconnectedPayload := dto.PlayerReconnectedPayload{
 		PlayerID:   player.ID,
 		PlayerName: player.Name,
-		Game:       dto.ToGameDto(*game),
+		Game:       dto.ToGameDtoBasic(*game),
 	}
 
 	reconnectedMessage := dto.WebSocketMessage{

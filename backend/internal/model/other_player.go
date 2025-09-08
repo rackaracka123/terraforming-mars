@@ -6,12 +6,12 @@ type OtherPlayer struct {
 	ID               string           `json:"id" ts:"string"`
 	Name             string           `json:"name" ts:"string"`
 	Corporation      string           `json:"corporation" ts:"string"`
-	HandCardCount    int              `json:"handCardCount" ts:"number"`      // Number of cards in hand (private)
+	HandCardCount    int              `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
 	Resources        Resources        `json:"resources" ts:"Resources"`
 	Production       Production       `json:"production" ts:"Production"`
 	TerraformRating  int              `json:"terraformRating" ts:"number"`
 	IsActive         bool             `json:"isActive" ts:"boolean"`
-	PlayedCards      []string         `json:"playedCards" ts:"string[]"`      // Played cards are public
+	PlayedCards      []string         `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool             `json:"passed" ts:"boolean"`
 	AvailableActions int              `json:"availableActions" ts:"number"`
 	VictoryPoints    int              `json:"victoryPoints" ts:"number"`
@@ -59,8 +59,8 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		Name:             op.Name,
 		Corporation:      op.Corporation,
 		HandCardCount:    op.HandCardCount,
-		Resources:        op.Resources,        // Resources is a struct, so this is copied by value
-		Production:       op.Production,       // Production is a struct, so this is copied by value
+		Resources:        op.Resources,  // Resources is a struct, so this is copied by value
+		Production:       op.Production, // Production is a struct, so this is copied by value
 		TerraformRating:  op.TerraformRating,
 		IsActive:         op.IsActive,
 		PlayedCards:      playedCardsCopy,

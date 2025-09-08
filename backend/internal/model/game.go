@@ -9,9 +9,7 @@ type Game struct {
 	UpdatedAt        time.Time        `json:"updatedAt" ts:"string"`
 	Status           GameStatus       `json:"status" ts:"GameStatus"`
 	Settings         GameSettings     `json:"settings" ts:"GameSettings"`
-	CurrentPlayer    *Player          `json:"currentPlayer" ts:"Player"`      // Full player data for the viewing player
-	OtherPlayers     []OtherPlayer    `json:"otherPlayers" ts:"OtherPlayer[]"` // Limited data for other players
-	Players          []Player         `json:"players" ts:"Player[]"`           // Internal - full data for all players
+	PlayerIDs        []string         `json:"playerIds" ts:"string[]"` // Player IDs in this game
 	HostPlayerID     string           `json:"hostPlayerId" ts:"string"`
 	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
 	GlobalParameters GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
@@ -30,7 +28,7 @@ func NewGame(id string, settings GameSettings) *Game {
 		UpdatedAt:    now,
 		Status:       GameStatusLobby,
 		Settings:     settings,
-		Players:      make([]Player, 0),
+		PlayerIDs:    make([]string, 0),
 		CurrentPhase: GamePhaseWaitingForGameStart,
 		GlobalParameters: GlobalParameters{
 			Temperature: -30,
@@ -41,4 +39,3 @@ func NewGame(id string, settings GameSettings) *Game {
 		RemainingActions: 0,
 	}
 }
-

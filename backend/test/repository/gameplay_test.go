@@ -22,8 +22,8 @@ func TestGameplayLogic(t *testing.T) {
 
 	// Initialize services
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
@@ -43,14 +43,18 @@ func TestGameplayLogic(t *testing.T) {
 		// Join players
 		game, err = gameService.JoinGame(ctx, game.ID, "Alice")
 		assert.NoError(t, err)
-		assert.Len(t, game.Players, 1)
-		assert.Equal(t, "Alice", game.Players[0].Name)
-		assert.Equal(t, 20, game.Players[0].TerraformRating)   // Starting TR
-		assert.Equal(t, 1, game.Players[0].Production.Credits) // Base production
+		assert.Len(t, game.PlayerIDs, 1)
+		// Get player details separately using clean architecture
+		players, err := playerRepo.ListByGameID(ctx, game.ID)
+		assert.NoError(t, err)
+		assert.Len(t, players, 1)
+		assert.Equal(t, "Alice", players[0].Name)
+		assert.Equal(t, 20, players[0].TerraformRating)   // Starting TR
+		assert.Equal(t, 1, players[0].Production.Credits) // Base production
 
 		game, err = gameService.JoinGame(ctx, game.ID, "Bob")
 		assert.NoError(t, err)
-		assert.Len(t, game.Players, 2)
+		assert.Len(t, game.PlayerIDs, 2)
 	})
 
 	t.Run("Test Resource Management", func(t *testing.T) {
@@ -60,7 +64,7 @@ func TestGameplayLogic(t *testing.T) {
 
 		game, err = gameService.JoinGame(ctx, game.ID, "Player1")
 		assert.NoError(t, err)
-		playerID := game.Players[0].ID
+		playerID := game.PlayerIDs[0]
 
 		// Test resource updates
 		newResources := model.Resources{
@@ -75,15 +79,15 @@ func TestGameplayLogic(t *testing.T) {
 		err = playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
-		// Verify resources updated
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Verify resources updated using clean architecture
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		assert.NoError(t, err)
-		assert.Equal(t, 42, updatedGame.Players[0].Resources.Credits)
-		assert.Equal(t, 8, updatedGame.Players[0].Resources.Steel)
-		assert.Equal(t, 3, updatedGame.Players[0].Resources.Titanium)
-		assert.Equal(t, 15, updatedGame.Players[0].Resources.Plants)
-		assert.Equal(t, 6, updatedGame.Players[0].Resources.Energy)
-		assert.Equal(t, 12, updatedGame.Players[0].Resources.Heat)
+		assert.Equal(t, 42, updatedPlayer.Resources.Credits)
+		assert.Equal(t, 8, updatedPlayer.Resources.Steel)
+		assert.Equal(t, 3, updatedPlayer.Resources.Titanium)
+		assert.Equal(t, 15, updatedPlayer.Resources.Plants)
+		assert.Equal(t, 6, updatedPlayer.Resources.Energy)
+		assert.Equal(t, 12, updatedPlayer.Resources.Heat)
 	})
 
 	t.Run("Test Production Management", func(t *testing.T) {
@@ -93,7 +97,7 @@ func TestGameplayLogic(t *testing.T) {
 
 		game, err = gameService.JoinGame(ctx, game.ID, "Producer")
 		assert.NoError(t, err)
-		playerID := game.Players[0].ID
+		playerID := game.PlayerIDs[0]
 
 		// Test production updates
 		newProduction := model.Production{
@@ -108,15 +112,15 @@ func TestGameplayLogic(t *testing.T) {
 		err = playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
-		// Verify production updated
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Verify production updated using clean architecture
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		assert.NoError(t, err)
-		assert.Equal(t, 3, updatedGame.Players[0].Production.Credits)
-		assert.Equal(t, 2, updatedGame.Players[0].Production.Steel)
-		assert.Equal(t, 1, updatedGame.Players[0].Production.Titanium)
-		assert.Equal(t, 4, updatedGame.Players[0].Production.Plants)
-		assert.Equal(t, 3, updatedGame.Players[0].Production.Energy)
-		assert.Equal(t, 2, updatedGame.Players[0].Production.Heat)
+		assert.Equal(t, 3, updatedPlayer.Production.Credits)
+		assert.Equal(t, 2, updatedPlayer.Production.Steel)
+		assert.Equal(t, 1, updatedPlayer.Production.Titanium)
+		assert.Equal(t, 4, updatedPlayer.Production.Plants)
+		assert.Equal(t, 3, updatedPlayer.Production.Energy)
+		assert.Equal(t, 2, updatedPlayer.Production.Heat)
 	})
 
 	t.Run("Test Terraforming Progress", func(t *testing.T) {
@@ -187,11 +191,11 @@ func TestGameplayLogic(t *testing.T) {
 		// Join 2 players
 		game, err = gameService.JoinGame(ctx, game.ID, "Player1")
 		assert.NoError(t, err)
-		assert.Len(t, game.Players, 1)
+		assert.Len(t, game.PlayerIDs, 1)
 
 		game, err = gameService.JoinGame(ctx, game.ID, "Player2")
 		assert.NoError(t, err)
-		assert.Len(t, game.Players, 2)
+		assert.Len(t, game.PlayerIDs, 2)
 
 		// Try to join a third player (should fail)
 		_, err = gameService.JoinGame(ctx, game.ID, "Player3")

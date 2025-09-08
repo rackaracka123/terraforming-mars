@@ -1,13 +1,7 @@
 package initialization
 
 import (
-	"fmt"
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/cards/economy"
-	"terraforming-mars-backend/internal/cards/plants"
-	"terraforming-mars-backend/internal/cards/power"
-	"terraforming-mars-backend/internal/cards/science"
-	"terraforming-mars-backend/internal/cards/space"
 	"terraforming-mars-backend/internal/events"
 )
 
@@ -40,58 +34,18 @@ func RegisterCardsWithRegistry(registry *cards.CardHandlerRegistry) error {
 // RegisterCardListeners registers event listeners for all cards that need them
 // This automatically detects which cards implement the ListenerRegistrar interface
 func RegisterCardListeners(eventBus events.EventBus) error {
-	handlers := getAllCardHandlers()
-
-	for _, handler := range handlers {
-		// Check if this handler implements ListenerRegistrar
-		if registrar, ok := handler.(cards.ListenerRegistrar); ok {
-			if err := registrar.RegisterListeners(eventBus); err != nil {
-				return fmt.Errorf("failed to register listeners for card %s: %w", handler.GetCardID(), err)
-			}
-		}
-	}
-
+	// Since we're using mock cards, no listeners to register
 	return nil
 }
 
 // UnregisterCardListeners cleans up event listeners for all cards
 func UnregisterCardListeners(eventBus events.EventBus) error {
-	handlers := getAllCardHandlers()
-
-	for _, handler := range handlers {
-		// Check if this handler implements ListenerRegistrar
-		if registrar, ok := handler.(cards.ListenerRegistrar); ok {
-			if err := registrar.UnregisterListeners(eventBus); err != nil {
-				return fmt.Errorf("failed to unregister listeners for card %s: %w", handler.GetCardID(), err)
-			}
-		}
-	}
-
+	// Since we're using mock cards, no listeners to unregister
 	return nil
 }
 
 // getAllCardHandlers returns all card handlers for use in registration functions
 func getAllCardHandlers() []cards.CardHandler {
-	return []cards.CardHandler{
-		// Economy cards
-		economy.NewEarlySettlementHandler(),
-		economy.NewInvestmentHandler(),
-		economy.NewMiningOperationHandler(),
-		economy.NewMiningGuildHandler(), // With listeners
-
-		// Power cards
-		power.NewPowerPlantHandler(),
-		power.NewHeatGeneratorsHandler(),
-		power.NewSpaceMirrorsHandler(),
-
-		// Science cards
-		science.NewResearchGrantHandler(),
-		science.NewAtmosphericProcessorsHandler(), // With listeners
-
-		// Space cards
-		space.NewWaterImportHandler(),
-
-		// Plant cards
-		plants.NewNitrogenPlantsHandler(),
-	}
+	// Since we're using mock cards, no handlers to register
+	return []cards.CardHandler{}
 }

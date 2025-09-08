@@ -56,7 +56,7 @@ func (m *Manager) UnregisterConnection(connection *Connection) (playerID, gameID
 	// Remove from game connections
 	if gameConns, exists := m.gameConnections[gameID]; exists {
 		delete(gameConns, connection)
-		
+
 		if len(gameConns) == 0 {
 			delete(m.gameConnections, gameID)
 			m.logger.Debug("Removed empty game connections map", zap.String("game_id", gameID))
@@ -140,4 +140,24 @@ func (m *Manager) CloseAllConnections() {
 	m.gameConnections = make(map[string]map[*Connection]bool)
 
 	m.logger.Info("⛓️‍💥 All client connections closed by server")
+}
+
+// GetConnectionByPlayerID finds a connection for a specific player in a game
+func (m *Manager) GetConnectionByPlayerID(gameID, playerID string) *Connection {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	gameConnections, exists := m.gameConnections[gameID]
+	if !exists {
+		return nil
+	}
+
+	// Search through connections in the game for the matching player
+	for connection := range gameConnections {
+		if connection.PlayerID == playerID {
+			return connection
+		}
+	}
+
+	return nil
 }

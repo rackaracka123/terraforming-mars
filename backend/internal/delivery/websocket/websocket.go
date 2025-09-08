@@ -24,18 +24,20 @@ func NewWebSocketService(
 	cardService service.CardService,
 	eventBus events.EventBus,
 ) *WebSocketService {
-	// Create hub first (without handlers to break circular dependency)  
-	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil, nil)
-	
+	// Create hub first (without handlers to break circular dependency)
+	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil, nil, nil)
+
 	// Now create message handlers with hub components
 	manager := hub.GetManager()
 	broadcaster := hub.GetBroadcaster()
 	connectionHandler := handlers.NewConnectionHandler(gameService, playerService, broadcaster, manager)
 	actionHandler := handlers.NewActionHandler(gameService, playerService, standardProjectService, cardService)
-	
+	eventHandler := handlers.NewEventHandler(broadcaster)
+
 	// Set handlers in hub
 	hub.SetHandlers(connectionHandler, actionHandler)
-	
+	hub.SetEventHandler(eventHandler)
+
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)
 
