@@ -1,5 +1,6 @@
 import React from "react";
 import { CardType, CardTag } from "../../../types/cards.ts";
+import { PlayerDto } from "../../../types/generated/api-types.ts";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -12,14 +13,7 @@ interface ResourceData {
 }
 
 interface BottomResourceBarProps {
-  currentPlayer?: {
-    id: string;
-    name: string;
-    victoryPoints: number;
-    availableActions: number;
-    playedCards: Array<{ type: CardType }>;
-    tags: Array<{ tag: CardTag; count: number }>;
-  } | null;
+  currentPlayer?: PlayerDto | null;
   onOpenCardEffectsModal?: () => void;
   onOpenActionsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
@@ -49,53 +43,58 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     );
   };
 
-  // Mock resource data with dedicated asset paths
-  const mockResources: ResourceData[] = [
+  // Early return if no player data available
+  if (!currentPlayer?.resources || !currentPlayer?.production) {
+    return null;
+  }
+
+  // Create resources from current player data
+  const playerResources: ResourceData[] = [
     {
       id: "credits",
       name: "Credits",
-      current: 45,
-      production: 12,
+      current: currentPlayer.resources.credits,
+      production: currentPlayer.production.credits,
       icon: "/assets/resources/megacredit.png",
       color: "#f1c40f",
     },
     {
       id: "steel",
       name: "Steel",
-      current: 8,
-      production: 3,
+      current: currentPlayer.resources.steel,
+      production: currentPlayer.production.steel,
       icon: "/assets/resources/steel.png",
       color: "#95a5a6",
     },
     {
       id: "titanium",
       name: "Titanium",
-      current: 4,
-      production: 1,
+      current: currentPlayer.resources.titanium,
+      production: currentPlayer.production.titanium,
       icon: "/assets/resources/titanium.png",
       color: "#e74c3c",
     },
     {
       id: "plants",
       name: "Plants",
-      current: 12,
-      production: 5,
+      current: currentPlayer.resources.plants,
+      production: currentPlayer.production.plants,
       icon: "/assets/resources/plant.png",
       color: "#27ae60",
     },
     {
       id: "energy",
       name: "Energy",
-      current: 6,
-      production: 2,
+      current: currentPlayer.resources.energy,
+      production: currentPlayer.production.energy,
       icon: "/assets/resources/power.png",
       color: "#3498db",
     },
     {
       id: "heat",
       name: "Heat",
-      current: 9,
-      production: 1,
+      current: currentPlayer.resources.heat,
+      production: currentPlayer.production.heat,
       icon: "/assets/resources/heat.png",
       color: "#e67e22",
     },
@@ -242,7 +241,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   ];
 
   const playedCardsToShow = currentPlayer?.playedCards?.length
-    ? currentPlayer.playedCards
+    ? mockPlayedCards // Use mock cards for display until we have proper card data structure
     : mockPlayedCards;
   const availableEffects =
     playedCardsToShow?.filter((card) => card.type === CardType.ACTIVE)
@@ -281,7 +280,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       {/* Resource Grid */}
       <div className="resources-section">
         <div className="resources-grid">
-          {mockResources.map((resource) => (
+          {playerResources.map((resource) => (
             <div
               key={resource.id}
               className="resource-item"
@@ -342,7 +341,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           title="View Tags"
         >
           <div className="button-icon">🏷️</div>
-          <div className="button-count">{currentPlayer?.tags?.length || 0}</div>
+          <div className="button-count">{0}</div>
           <div className="button-label">Tags</div>
         </button>
 
