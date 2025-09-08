@@ -18,7 +18,7 @@ interface HexagonalGridProps {
 }
 
 export default function HexagonalGrid({
-  gameState,
+  gameState: _gameState,
   onHexClick,
 }: HexagonalGridProps) {
   // Generate the hexagonal grid positions

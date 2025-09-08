@@ -448,7 +448,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .steam-cards-played-modal {
           position: fixed;
           top: 0;

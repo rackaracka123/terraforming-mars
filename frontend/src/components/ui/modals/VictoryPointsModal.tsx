@@ -563,7 +563,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .victory-points-modal {
           position: fixed;
           top: 0;

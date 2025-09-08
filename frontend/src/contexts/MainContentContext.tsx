@@ -23,7 +23,7 @@ export const MainContentProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [contentType, setContentType] = useState<MainContentType>("game");
-  const [contentData, setContentData] = useState<Record<string, unknown>>(null);
+  const [contentData, setContentData] = useState<Record<string, unknown>>({});
 
   return (
     <MainContentContext.Provider

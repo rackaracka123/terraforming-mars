@@ -17,7 +17,7 @@ interface Milestone {
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
-  currentPlayer?: PlayerDto;
+  currentPlayer?: PlayerDto | null;
   temperatureMilestones?: Milestone[];
   oxygenMilestones?: Milestone[];
 }

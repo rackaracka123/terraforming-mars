@@ -56,7 +56,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     if (hex.type === "special") return "#e74c3c";
 
     // Temperature-based coloring for Mars surface
-    const temp = hex.temperature;
+    const temp = hex.temperature ?? 0; // Default to 0 if undefined
     if (temp < -20) return "#8b4513"; // Cold brown
     if (temp < 0) return "#cd853f"; // Warmer brown
     return "#daa520"; // Desert gold

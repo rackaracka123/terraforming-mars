@@ -479,7 +479,7 @@ const TagsModal: React.FC<TagsModalProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .steam-tags-modal {
           position: fixed;
           top: 0;
