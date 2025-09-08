@@ -27,6 +27,9 @@ type GameService interface {
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
+	// Skip a player's turn (advance to next player)
+	SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error
+
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (*model.Game, error)
 }
@@ -113,6 +116,13 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	// Transition game status to active
 	game.Status = model.GameStatusActive
 
+	// Set the first player as the starting current player for testing purposes
+	if len(game.Players) > 0 {
+		game.CurrentPlayerID = game.Players[0].ID
+		game.CurrentPhase = model.GamePhaseCorporationSelection
+		log.Debug("Set starting player", zap.String("current_player_id", game.CurrentPlayerID))
+	}
+
 	// Update game through repository
 	if err := s.gameRepo.Update(ctx, game); err != nil {
 		log.Error("Failed to update game status to active", zap.Error(err))
@@ -120,6 +130,61 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	}
 
 	log.Info("Game started", zap.String("game_id", gameID))
+	return nil
+}
+
+func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Skipping player turn via GameService")
+
+	// Get current game state
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for skip turn", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Validate game is active
+	if game.Status != model.GameStatusActive {
+		log.Warn("Attempted to skip turn in non-active game", zap.String("current_status", string(game.Status)))
+		return fmt.Errorf("game is not active")
+	}
+
+	// Validate requesting player is the current player
+	if game.CurrentPlayerID != playerID {
+		log.Warn("Non-current player attempted to skip turn",
+			zap.String("current_player", game.CurrentPlayerID),
+			zap.String("requesting_player", playerID))
+		return fmt.Errorf("only the current player can skip their turn")
+	}
+
+	// Find next player in turn order
+	currentPlayerIndex := -1
+	for i, player := range game.Players {
+		if player.ID == playerID {
+			currentPlayerIndex = i
+			break
+		}
+	}
+
+	if currentPlayerIndex == -1 {
+		log.Error("Current player not found in game", zap.String("player_id", playerID))
+		return fmt.Errorf("player not found in game")
+	}
+
+	// Advance to next player (cycle back to 0 if at end)
+	nextPlayerIndex := (currentPlayerIndex + 1) % len(game.Players)
+	game.CurrentPlayerID = game.Players[nextPlayerIndex].ID
+
+	// Update game through repository
+	if err := s.gameRepo.Update(ctx, game); err != nil {
+		log.Error("Failed to update game after skip turn", zap.Error(err))
+		return fmt.Errorf("failed to update game: %w", err)
+	}
+
+	log.Info("Player turn skipped, advanced to next player",
+		zap.String("previous_player", playerID),
+		zap.String("current_player", game.CurrentPlayerID))
 	return nil
 }
 

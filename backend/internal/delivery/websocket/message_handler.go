@@ -193,6 +193,8 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 	switch dto.ActionType(actionType) {
 	case dto.ActionTypeStartGame:
 		return h.handleStartGame(ctx, gameID, playerID)
+	case dto.ActionTypeSkipAction:
+		return h.handleSkipAction(ctx, gameID, playerID)
 	case dto.ActionTypeSellPatents:
 		return h.handleSellPatents(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildPowerPlant:
@@ -213,6 +215,11 @@ func (h *Hub) processAction(ctx context.Context, gameID, playerID string, action
 // handleStartGame handles the start game action
 func (h *Hub) handleStartGame(ctx context.Context, gameID, playerID string) error {
 	return h.gameService.StartGame(ctx, gameID, playerID)
+}
+
+// handleSkipAction handles the skip action
+func (h *Hub) handleSkipAction(ctx context.Context, gameID, playerID string) error {
+	return h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
 }
 
 //err = s.actionHandlers.StartGame.Handle(game, player, request)
