@@ -48,6 +48,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     hasForest: boolean;
     hasCity: boolean;
     type: string;
+    temperature?: number;
   }) => {
     if (hex.hasOcean) return "#3498db";
     if (hex.hasForest) return "#27ae60";
@@ -126,7 +127,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .game-board {
           flex: 1;
           position: relative;
