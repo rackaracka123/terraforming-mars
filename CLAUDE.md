@@ -507,6 +507,13 @@ npm run lint           # Check for ESLint errors
 - When creating mock data, abstract it from the UI to enable easier refactoring later
 - NEVER set default values - if you expect something, fail explicitly if it's missing
 
+### Pull Request Workflow
+- **Pipeline Validation**: After creating a PR, ALWAYS verify that all CI/CD pipeline checks pass
+- **Required Checks**: Ensure Frontend TypeCheck, Backend Tests, Linting, and Format checks are successful
+- **Fix Failures Immediately**: If pipeline checks fail, fix issues and amend commits before proceeding
+- **Force Push Policy**: Use `git push --force-with-lease` when amending commits to avoid conflicts
+- **Pipeline Monitoring**: Use `gh pr view <PR#> --json statusCheckRollup` to check pipeline status
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
