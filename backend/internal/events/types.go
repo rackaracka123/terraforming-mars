@@ -207,8 +207,8 @@ type GameStateChangedEvent struct {
 func NewGameStateChangedEvent(gameID string, oldState, newState *model.Game) *GameStateChangedEvent {
 	payload := GameStateChangedEventData{
 		GameID:   gameID,
-		OldState: oldState,
-		NewState: newState,
+		OldState: *oldState,
+		NewState: *newState,
 	}
 
 	return &GameStateChangedEvent{

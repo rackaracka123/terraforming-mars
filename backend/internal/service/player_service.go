@@ -20,8 +20,8 @@ type PlayerService interface {
 	UpdatePlayerProduction(ctx context.Context, gameID, playerID string, newProduction model.Production) error
 
 	// Get player information
-	GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error)
-	GetPlayerByName(ctx context.Context, gameID, playerName string) (*model.Player, error)
+	GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error)
+	GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error)
 
 	// Connection management
 	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
@@ -71,7 +71,7 @@ func (s *PlayerServiceImpl) UpdatePlayerResources(ctx context.Context, gameID, p
 	}
 
 	// Create a copy of the player to avoid modifying the stored one
-	updatedPlayer := *player
+	updatedPlayer := player
 	updatedPlayer.Resources = newResources
 
 	// Update through PlayerRepository (this will publish events)
@@ -96,7 +96,7 @@ func (s *PlayerServiceImpl) UpdatePlayerResources(ctx context.Context, gameID, p
 	}
 
 	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
+	if err := s.gameRepo.Update(ctx, &game); err != nil {
 		log.Error("Failed to update game after player resource change", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
 	}
@@ -117,7 +117,7 @@ func (s *PlayerServiceImpl) UpdatePlayerProduction(ctx context.Context, gameID, 
 	}
 
 	// Create a copy of the player to avoid modifying the stored one
-	updatedPlayer := *player
+	updatedPlayer := player
 	updatedPlayer.Production = newProduction
 
 	// Update through PlayerRepository (this will publish events)
@@ -142,7 +142,7 @@ func (s *PlayerServiceImpl) UpdatePlayerProduction(ctx context.Context, gameID, 
 	}
 
 	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
+	if err := s.gameRepo.Update(ctx, &game); err != nil {
 		log.Error("Failed to update game after player production change", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
 	}
@@ -152,7 +152,7 @@ func (s *PlayerServiceImpl) UpdatePlayerProduction(ctx context.Context, gameID, 
 }
 
 // GetPlayer retrieves player information
-func (s *PlayerServiceImpl) GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error) {
+func (s *PlayerServiceImpl) GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error) {
 	return s.playerRepo.GetPlayer(ctx, gameID, playerID)
 }
 
@@ -292,7 +292,7 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 	}
 
 	// Create a copy of the player to avoid modifying the stored one
-	updatedPlayer := *player
+	updatedPlayer := player
 	updatedPlayer.TerraformRating = newTR
 
 	// Update through PlayerRepository
@@ -317,7 +317,7 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 	}
 
 	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
+	if err := s.gameRepo.Update(ctx, &game); err != nil {
 		log.Error("Failed to update game after player TR change", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
 	}
@@ -342,7 +342,7 @@ func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, ga
 	player.ConnectionStatus = status
 
 	// Save the updated player
-	err = s.playerRepo.UpdatePlayer(ctx, gameID, player)
+	err = s.playerRepo.UpdatePlayer(ctx, gameID, &player)
 	if err != nil {
 		log.Error("Failed to update player connection status", zap.Error(err))
 		return fmt.Errorf("failed to update player: %w", err)
@@ -366,14 +366,14 @@ func (s *PlayerServiceImpl) AddPlayerTR(ctx context.Context, gameID, playerID st
 }
 
 // GetPlayerByName finds a player by name in a specific game
-func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (*model.Player, error) {
+func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error) {
 	log := logger.WithGameContext(gameID, playerName)
 
 	// Get the game to access its players
 	game, err := s.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for player lookup", zap.Error(err))
-		return nil, fmt.Errorf("failed to get game: %w", err)
+		return model.Player{}, fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Search for player by name
@@ -382,10 +382,10 @@ func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerN
 			log.Debug("Found player by name",
 				zap.String("player_id", player.ID),
 				zap.String("player_name", player.Name))
-			return &player, nil
+			return player, nil
 		}
 	}
 
 	log.Warn("Player not found by name", zap.String("player_name", playerName))
-	return nil, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
+	return model.Player{}, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
 }

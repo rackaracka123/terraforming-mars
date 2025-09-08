@@ -19,36 +19,6 @@ func TestResources_InitialState(t *testing.T) {
 	assert.Equal(t, 0, resources.Heat)
 }
 
-func TestResources_DeepCopy(t *testing.T) {
-	original := &model.Resources{
-		Credits:  40,
-		Steel:    8,
-		Titanium: 3,
-		Plants:   12,
-		Energy:   6,
-		Heat:     15,
-	}
-
-	copy := original.DeepCopy()
-
-	// Should be equal but different pointers
-	assert.Equal(t, original.Credits, copy.Credits)
-	assert.Equal(t, original.Steel, copy.Steel)
-	assert.Equal(t, original.Titanium, copy.Titanium)
-	assert.Equal(t, original.Plants, copy.Plants)
-	assert.Equal(t, original.Energy, copy.Energy)
-	assert.Equal(t, original.Heat, copy.Heat)
-	assert.NotSame(t, original, copy)
-
-	// Modifying copy should not affect original
-	copy.Credits = 100
-	copy.Steel = 20
-	assert.Equal(t, 40, original.Credits)
-	assert.Equal(t, 100, copy.Credits)
-	assert.Equal(t, 8, original.Steel)
-	assert.Equal(t, 20, copy.Steel)
-}
-
 func TestProduction_InitialState(t *testing.T) {
 	production := model.Production{}
 
@@ -59,36 +29,6 @@ func TestProduction_InitialState(t *testing.T) {
 	assert.Equal(t, 0, production.Plants)
 	assert.Equal(t, 0, production.Energy)
 	assert.Equal(t, 0, production.Heat)
-}
-
-func TestProduction_DeepCopy(t *testing.T) {
-	original := &model.Production{
-		Credits:  1,
-		Steel:    2,
-		Titanium: 1,
-		Plants:   0,
-		Energy:   3,
-		Heat:     0,
-	}
-
-	copy := original.DeepCopy()
-
-	// Should be equal but different pointers
-	assert.Equal(t, original.Credits, copy.Credits)
-	assert.Equal(t, original.Steel, copy.Steel)
-	assert.Equal(t, original.Titanium, copy.Titanium)
-	assert.Equal(t, original.Plants, copy.Plants)
-	assert.Equal(t, original.Energy, copy.Energy)
-	assert.Equal(t, original.Heat, copy.Heat)
-	assert.NotSame(t, original, copy)
-
-	// Modifying copy should not affect original
-	copy.Credits = 5
-	copy.Energy = 10
-	assert.Equal(t, 1, original.Credits)
-	assert.Equal(t, 5, copy.Credits)
-	assert.Equal(t, 3, original.Energy)
-	assert.Equal(t, 10, copy.Energy)
 }
 
 func TestResources_AllFields(t *testing.T) {

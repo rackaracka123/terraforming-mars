@@ -18,10 +18,8 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
-
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
 	// Track events
 	var receivedEvents []events.Event

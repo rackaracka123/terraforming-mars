@@ -85,7 +85,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	}
 
 	// Create updated player with selected cards and reduced credits
-	updatedPlayer := *player
+	updatedPlayer := player
 	updatedPlayer.Resources.Credits -= cost
 
 	// Add selected cards to player's hand
@@ -113,7 +113,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	}
 
 	// Update game state
-	if err := s.gameRepo.Update(ctx, game); err != nil {
+	if err := s.gameRepo.Update(ctx, &game); err != nil {
 		log.Error("Failed to update game after card selection", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
 	}

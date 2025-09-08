@@ -39,15 +39,12 @@ func NewTestServer(port int) (*TestServer, error) {
 	// Initialize repositories
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	// Initialize services with proper event bus wiring
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
-	
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	// Register card-specific listeners
 	if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -55,7 +52,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	}
 
 	// Initialize WebSocket hub with proper event bus
-	hub := wsHandler.NewHub(gameService, playerService, globalParametersService, standardProjectService, cardService, eventBus)
+	hub := wsHandler.NewHub(gameService, playerService, standardProjectService, cardService, eventBus)
 
 	wsHandlerInstance := wsHandler.NewHandler(hub)
 
@@ -64,7 +61,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	apiRouter := httpHandler.SetupRouter(gameService, playerService)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
-	
+
 	// Add health check endpoint
 	mainRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -121,11 +118,11 @@ func (ts *TestServer) Start() error {
 // waitForServerReady polls the health endpoint until server is ready
 func (ts *TestServer) waitForServerReady() error {
 	healthURL := fmt.Sprintf("http://localhost:%d/health", ts.port)
-	
-	// Try for up to 5 seconds with exponential backoff  
+
+	// Try for up to 5 seconds with exponential backoff
 	maxAttempts := 15
 	baseDelay := 50 * time.Millisecond
-	
+
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		// Use a fresh client for each attempt with shorter timeout
 		client := &http.Client{Timeout: 200 * time.Millisecond}
@@ -138,7 +135,7 @@ func (ts *TestServer) waitForServerReady() error {
 				return nil
 			}
 		}
-		
+
 		// Exponential backoff with cap
 		delay := time.Duration(1<<uint(attempt)) * baseDelay
 		if delay > 500*time.Millisecond {
@@ -146,7 +143,7 @@ func (ts *TestServer) waitForServerReady() error {
 		}
 		time.Sleep(delay)
 	}
-	
+
 	return fmt.Errorf("server did not become ready within timeout on port %d", ts.port)
 }
 

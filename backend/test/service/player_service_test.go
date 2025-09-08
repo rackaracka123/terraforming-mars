@@ -15,17 +15,15 @@ import (
 func setupPlayerServiceTest(t *testing.T) (
 	service.PlayerService,
 	service.GameService,
-	*model.Game,
+	model.Game,
 ) {
 	eventBus := events.NewInMemoryEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
-
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
 	ctx := context.Background()
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})

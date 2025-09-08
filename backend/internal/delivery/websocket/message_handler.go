@@ -393,7 +393,7 @@ func (h *Hub) parseActionRequest(actionRequest interface{}, dest interface{}) er
 
 // sendComprehensiveReconnectionData sends all relevant data to a reconnecting player
 func (h *Hub) sendComprehensiveReconnectionData(ctx context.Context, connection *Connection, game *model.Game, player *model.Player) {
-	gameDTO := dto.ToGameDto(game)
+	gameDTO := dto.ToGameDto(*game)
 
 	// 1. Send primary reconnection confirmation with full game state
 	primaryReconnectionPayload := dto.PlayerConnectedPayload{
@@ -409,7 +409,7 @@ func (h *Hub) sendComprehensiveReconnectionData(ctx context.Context, connection 
 	}
 
 	h.sendToConnection(connection, primaryMessage)
-	h.logger.Debug("✅ Sent primary reconnection data", 
+	h.logger.Debug("✅ Sent primary reconnection data",
 		zap.String("player_id", player.ID),
 		zap.String("message_type", string(dto.MessageTypePlayerConnected)))
 
@@ -426,7 +426,7 @@ func (h *Hub) sendComprehensiveReconnectionData(ctx context.Context, connection 
 	}
 
 	h.sendToConnection(connection, fullStateMessage)
-	h.logger.Debug("✅ Sent full state data", 
+	h.logger.Debug("✅ Sent full state data",
 		zap.String("player_id", player.ID),
 		zap.String("message_type", string(dto.MessageTypeFullState)))
 
@@ -445,7 +445,7 @@ func (h *Hub) sendComprehensiveReconnectionData(ctx context.Context, connection 
 	}
 
 	h.sendToConnection(connection, gameUpdateMessage)
-	h.logger.Debug("✅ Sent game update data", 
+	h.logger.Debug("✅ Sent game update data",
 		zap.String("player_id", player.ID),
 		zap.String("message_type", string(dto.MessageTypeGameUpdated)))
 
@@ -509,7 +509,7 @@ func (h *Hub) sendActionPhaseData(ctx context.Context, connection *Connection, g
 		zap.String("player_id", player.ID))
 }
 
-// sendProductionPhaseData sends production phase specific data  
+// sendProductionPhaseData sends production phase specific data
 func (h *Hub) sendProductionPhaseData(ctx context.Context, connection *Connection, game *model.Game, player *model.Player) {
 	// During production phase, the full state should be sufficient
 	// Additional production-specific data could be added here if needed
@@ -583,7 +583,7 @@ func (h *Hub) handlePlayerReconnect(ctx context.Context, connection *Connection,
 	connection.SetPlayer(player.ID, payload.GameID)
 	h.addToGame(connection, payload.GameID)
 
-	h.logger.Debug("🔗 Player associated with connection", 
+	h.logger.Debug("🔗 Player associated with connection",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", player.ID),
 		zap.String("game_id", payload.GameID))
@@ -614,8 +614,8 @@ func (h *Hub) handlePlayerReconnect(ctx context.Context, connection *Connection,
 		zap.String("game_phase", string(game.CurrentPhase)),
 		zap.String("game_status", string(game.Status)))
 
-	// Send comprehensive reconnection data directly  
-	h.sendComprehensiveReconnectionData(ctx, connection, game, player)
+	// Send comprehensive reconnection data directly
+	h.sendComprehensiveReconnectionData(ctx, connection, &game, &player)
 
 	// Notify OTHER players that this player has reconnected (exclude the reconnecting player)
 	reconnectedPayload := dto.PlayerReconnectedPayload{
@@ -639,8 +639,3 @@ func (h *Hub) handlePlayerReconnect(ctx context.Context, connection *Connection,
 		zap.String("player_name", player.Name),
 		zap.String("game_id", payload.GameID))
 }
-
-
-
-
-

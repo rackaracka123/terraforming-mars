@@ -18,7 +18,7 @@ type PlayerRepository interface {
 	AddPlayer(ctx context.Context, gameID string, player model.Player) error
 
 	// Get player by game and player ID
-	GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error)
+	GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error)
 
 	// Update player
 	UpdatePlayer(ctx context.Context, gameID string, player *model.Player) error
@@ -32,8 +32,8 @@ type PlayerRepository interface {
 
 // PlayerRepositoryImpl implements PlayerRepository interface
 type PlayerRepositoryImpl struct {
-	// Map of gameID -> map of playerID -> Player
-	players  map[string]map[string]*model.Player
+	// Map of gameID -> map of playerID -> PlayerEntity
+	players  map[string]map[string]*PlayerEntity
 	mutex    sync.RWMutex
 	eventBus events.EventBus
 }
@@ -41,7 +41,7 @@ type PlayerRepositoryImpl struct {
 // NewPlayerRepository creates a new player repository
 func NewPlayerRepository(eventBus events.EventBus) PlayerRepository {
 	return &PlayerRepositoryImpl{
-		players:  make(map[string]map[string]*model.Player),
+		players:  make(map[string]map[string]*PlayerEntity),
 		eventBus: eventBus,
 	}
 }
@@ -63,7 +63,7 @@ func (r *PlayerRepositoryImpl) AddPlayer(ctx context.Context, gameID string, pla
 
 	// Initialize game players map if it doesn't exist
 	if r.players[gameID] == nil {
-		r.players[gameID] = make(map[string]*model.Player)
+		r.players[gameID] = make(map[string]*PlayerEntity)
 	}
 
 	// Check if player already exists
@@ -72,8 +72,9 @@ func (r *PlayerRepositoryImpl) AddPlayer(ctx context.Context, gameID string, pla
 		return fmt.Errorf("player with ID %s already exists in game %s", player.ID, gameID)
 	}
 
-	// Add player
-	r.players[gameID][player.ID] = &player
+	// Convert Player to PlayerEntity and add
+	playerEntity := PlayerEntityFromPlayer(player)
+	r.players[gameID][player.ID] = &playerEntity
 
 	log.Debug("Player added to game",
 		zap.String("player_name", player.Name),
@@ -91,29 +92,31 @@ func (r *PlayerRepositoryImpl) AddPlayer(ctx context.Context, gameID string, pla
 }
 
 // GetPlayer retrieves a player by game and player ID
-func (r *PlayerRepositoryImpl) GetPlayer(ctx context.Context, gameID, playerID string) (*model.Player, error) {
+func (r *PlayerRepositoryImpl) GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
 	if gameID == "" {
-		return nil, fmt.Errorf("game ID cannot be empty")
+		return model.Player{}, fmt.Errorf("game ID cannot be empty")
 	}
 
 	if playerID == "" {
-		return nil, fmt.Errorf("player ID cannot be empty")
+		return model.Player{}, fmt.Errorf("player ID cannot be empty")
 	}
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return nil, fmt.Errorf("no players found for game %s", gameID)
+		return model.Player{}, fmt.Errorf("no players found for game %s", gameID)
 	}
 
-	player, exists := gamePlayers[playerID]
+	playerEntity, exists := gamePlayers[playerID]
 	if !exists {
-		return nil, fmt.Errorf("player with ID %s not found in game %s", playerID, gameID)
+		return model.Player{}, fmt.Errorf("player with ID %s not found in game %s", playerID, gameID)
 	}
 
-	return player.DeepCopy(), nil
+	// Convert PlayerEntity to Player
+	player := playerEntity.ToPlayer()
+	return player, nil
 }
 
 // UpdatePlayer updates a player
@@ -140,19 +143,19 @@ func (r *PlayerRepositoryImpl) UpdatePlayer(ctx context.Context, gameID string, 
 		return fmt.Errorf("no players found for game %s", gameID)
 	}
 
-	oldPlayer, exists := gamePlayers[player.ID]
+	oldPlayerEntity, exists := gamePlayers[player.ID]
 	if !exists {
 		return fmt.Errorf("player with ID %s not found in game %s", player.ID, gameID)
 	}
 
-	// Capture old state for events (make copies to avoid pointer issues)
-	oldResources := oldPlayer.Resources
-	oldProduction := oldPlayer.Production
-	oldTR := oldPlayer.TerraformRating
+	// Capture old state for events
+	oldResources := oldPlayerEntity.Resources
+	oldProduction := oldPlayerEntity.Production
+	oldTR := oldPlayerEntity.TerraformRating
 
-	// Update player (store a copy to avoid pointer issues)
-	playerCopy := *player
-	r.players[gameID][player.ID] = &playerCopy
+	// Convert Player to PlayerEntity and store
+	playerEntity := PlayerEntityFromPlayer(*player)
+	r.players[gameID][player.ID] = &playerEntity
 
 	log.Info("Player updated")
 
@@ -198,8 +201,8 @@ func (r *PlayerRepositoryImpl) ListPlayers(ctx context.Context, gameID string) (
 	}
 
 	players := make([]model.Player, 0, len(gamePlayers))
-	for _, player := range gamePlayers {
-		players = append(players, *player.DeepCopy())
+	for _, playerEntity := range gamePlayers {
+		players = append(players, playerEntity.ToPlayer())
 	}
 
 	return players, nil
@@ -225,7 +228,7 @@ func (r *PlayerRepositoryImpl) RemovePlayer(ctx context.Context, gameID, playerI
 		return fmt.Errorf("no players found for game %s", gameID)
 	}
 
-	player, exists := gamePlayers[playerID]
+	playerEntity, exists := gamePlayers[playerID]
 	if !exists {
 		return fmt.Errorf("player with ID %s not found in game %s", playerID, gameID)
 	}
@@ -238,12 +241,12 @@ func (r *PlayerRepositoryImpl) RemovePlayer(ctx context.Context, gameID, playerI
 	}
 
 	log.Info("Player removed from game",
-		zap.String("player_name", player.Name),
+		zap.String("player_name", playerEntity.Name),
 	)
 
 	// Publish player removed event
 	if r.eventBus != nil {
-		playerRemovedEvent := events.NewPlayerLeftEvent(gameID, playerID, player.Name)
+		playerRemovedEvent := events.NewPlayerLeftEvent(gameID, playerID, playerEntity.Name)
 		if err := r.eventBus.Publish(ctx, playerRemovedEvent); err != nil {
 			log.Warn("Failed to publish player removed event", zap.Error(err))
 		}

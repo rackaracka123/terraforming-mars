@@ -37,11 +37,10 @@ type Hub struct {
 	Broadcast chan HubMessage
 
 	// Services for handling business logic
-	gameService             service.GameService
-	playerService           service.PlayerService
-	globalParametersService service.GlobalParametersService
-	standardProjectService  service.StandardProjectService
-	cardService             service.CardService
+	gameService            service.GameService
+	playerService          service.PlayerService
+	standardProjectService service.StandardProjectService
+	cardService            service.CardService
 
 	// Event system
 	eventBus events.EventBus
@@ -52,20 +51,19 @@ type Hub struct {
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub(gameService service.GameService, playerService service.PlayerService, globalParametersService service.GlobalParametersService, standardProjectService service.StandardProjectService, cardService service.CardService, eventBus events.EventBus) *Hub {
+func NewHub(gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, eventBus events.EventBus) *Hub {
 	hub := &Hub{
-		connections:             make(map[*Connection]bool),
-		gameConnections:         make(map[string]map[*Connection]bool),
-		Register:                make(chan *Connection, 256),
-		Unregister:              make(chan *Connection, 256),
-		Broadcast:               make(chan HubMessage, 256),
-		gameService:             gameService,
-		playerService:           playerService,
-		globalParametersService: globalParametersService,
-		standardProjectService:  standardProjectService,
-		cardService:             cardService,
-		eventBus:                eventBus,
-		logger:                  logger.Get(),
+		connections:            make(map[*Connection]bool),
+		gameConnections:        make(map[string]map[*Connection]bool),
+		Register:               make(chan *Connection, 256),
+		Unregister:             make(chan *Connection, 256),
+		Broadcast:              make(chan HubMessage, 256),
+		gameService:            gameService,
+		playerService:          playerService,
+		standardProjectService: standardProjectService,
+		cardService:            cardService,
+		eventBus:               eventBus,
+		logger:                 logger.Get(),
 	}
 
 	// Subscribe to game state changes

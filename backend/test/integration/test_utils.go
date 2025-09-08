@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 func setupTestServer() error {
 	setupMu.Lock()
 	defer setupMu.Unlock()
-	
+
 	// If server is already running, return
 	if serverStarted && testServer != nil {
 		return nil
@@ -100,7 +100,7 @@ func setupTestServer() error {
 	testServerHTTP = testServer.GetBaseURL()
 	testServerWS = testServer.GetWebSocketURL()
 	serverStarted = true
-	
+
 	return nil
 }
 
@@ -161,7 +161,7 @@ func (c *TestClient) Connect() error {
 			if delay > 2*time.Second {
 				delay = 2 * time.Second
 			}
-			c.t.Logf("WebSocket connection attempt %d/%d failed: %v. Retrying in %v...", 
+			c.t.Logf("WebSocket connection attempt %d/%d failed: %v. Retrying in %v...",
 				attempt+1, maxRetries+1, err, delay)
 			time.Sleep(delay)
 		}
@@ -185,7 +185,7 @@ func (c *TestClient) readMessages() {
 				c.mu.Lock()
 				closed := c.closed
 				c.mu.Unlock()
-				
+
 				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					c.t.Logf("WebSocket read error: %v", err)
 				}
@@ -196,13 +196,13 @@ func (c *TestClient) readMessages() {
 			c.mu.Lock()
 			closed := c.closed
 			c.mu.Unlock()
-			
+
 			if closed {
 				return
 			}
-			
+
 			c.t.Logf("Received message: %s", message.Type)
-			
+
 			// Non-blocking send to prevent goroutine hanging if channel is full
 			select {
 			case c.messages <- message:
@@ -215,11 +215,11 @@ func (c *TestClient) readMessages() {
 				c.mu.Lock()
 				closed = c.closed
 				c.mu.Unlock()
-				
+
 				if closed {
 					return
 				}
-				
+
 				// Channel is full, drop oldest messages and try again
 				c.t.Logf("Warning: Message channel full, dropping oldest message")
 				select {
@@ -248,17 +248,16 @@ func (c *TestClient) readMessages() {
 func (c *TestClient) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if c.closed || c.conn == nil {
 		return
 	}
-	
+
 	c.closed = true
 	close(c.done)
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	c.conn.Close()
 }
-
 
 // CreateGameViaHTTP creates a game using the HTTP API
 func (c *TestClient) CreateGameViaHTTP() (string, error) {
@@ -502,11 +501,11 @@ func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 func (c *TestClient) ForceClose() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if c.closed || c.conn == nil {
 		return
 	}
-	
+
 	c.closed = true
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
 	c.conn.Close()
@@ -533,35 +532,35 @@ func (c *TestClient) WaitForGameStatusChange(expectedStatus string) error {
 		if err != nil {
 			return fmt.Errorf("failed to receive game update (attempt %d): %w", i+1, err)
 		}
-		
+
 		payload, ok := msg.Payload.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("game update payload should be a map")
 		}
-		
+
 		gameData, ok := payload["game"].(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("game data should be present in payload")
 		}
-		
+
 		status, ok := gameData["status"].(string)
 		if !ok {
 			return fmt.Errorf("game status should be present")
 		}
-		
+
 		if status == expectedStatus {
 			return nil // Success!
 		}
-		
+
 		// If this is the last attempt, return error
 		if i == maxRetries-1 {
 			return fmt.Errorf("expected status %s, got %s after %d attempts", expectedStatus, status, maxRetries)
 		}
-		
+
 		// Small delay before trying again
 		time.Sleep(50 * time.Millisecond)
 	}
-	
+
 	return fmt.Errorf("failed to verify status change after %d attempts", maxRetries)
 }
 
@@ -572,11 +571,11 @@ func (c *TestClient) WaitForStartGameComplete() error {
 	if err != nil {
 		return fmt.Errorf("failed to verify game became active: %w", err)
 	}
-	
+
 	// Allow extended time for all async operations to complete
 	// StartGame triggers multiple async events that need to finish
 	time.Sleep(500 * time.Millisecond)
-	
+
 	return nil
 }
 
@@ -590,33 +589,33 @@ func (c *TestClient) IsHost() (bool, error) {
 	if c.gameID == "" || c.playerID == "" {
 		return false, fmt.Errorf("client not connected to a game")
 	}
-	
+
 	// Get game state via HTTP API
 	resp, err := http.Get(fmt.Sprintf("%s/api/v1/games/%s", testServerHTTP, c.gameID))
 	if err != nil {
 		return false, fmt.Errorf("failed to get game state: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return false, fmt.Errorf("failed to get game state: status %d", resp.StatusCode)
 	}
-	
+
 	var response map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return false, fmt.Errorf("failed to decode game response: %w", err)
 	}
-	
+
 	// The response is wrapped in a "game" field
 	gameData, ok := response["game"].(map[string]interface{})
 	if !ok {
 		return false, fmt.Errorf("game field not found in response")
 	}
-	
+
 	hostPlayerID, ok := gameData["hostPlayerId"].(string)
 	if !ok {
 		return false, fmt.Errorf("hostPlayerId not found in game data")
 	}
-	
+
 	return hostPlayerID == c.playerID, nil
 }

@@ -26,7 +26,7 @@ func NewWaterImportHandler() *WaterImportHandler {
 // Play executes the Water Import card effect
 func (h *WaterImportHandler) Play(ctx *cards.CardHandlerContext) error {
 	// Check if oceans can be raised using service
-	params, err := ctx.GlobalParametersService.GetGlobalParameters(ctx.Context, ctx.Game.ID)
+	params, err := ctx.GameService.GetGlobalParameters(ctx.Context, ctx.Game.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get global parameters: %w", err)
 	}
@@ -36,7 +36,7 @@ func (h *WaterImportHandler) Play(ctx *cards.CardHandlerContext) error {
 	}
 
 	// Use service methods to update oceans and player TR
-	if err := ctx.GlobalParametersService.PlaceOcean(ctx.Context, ctx.Game.ID, 1); err != nil {
+	if err := ctx.GameService.PlaceOcean(ctx.Context, ctx.Game.ID, 1); err != nil {
 		return fmt.Errorf("failed to place ocean: %w", err)
 	}
 

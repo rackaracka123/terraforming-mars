@@ -23,7 +23,7 @@ func TestInvalidJSONMessage(t *testing.T) {
 	// Send invalid JSON message directly to the WebSocket connection
 	// Note: We need to access the connection directly for this test
 	// Since TestClient.SendAction only sends valid DTOs, we'll test the protocol layer
-	
+
 	// For now, let's test that valid messages work properly as a baseline
 	gameID, err := client.CreateGameViaHTTP()
 	require.NoError(t, err, "Should be able to create game")
@@ -98,7 +98,7 @@ func TestMalformedPayload(t *testing.T) {
 	// Join game first to make the malformed action more realistic
 	err = client.JoinGameViaWebSocket(gameID, "TestPlayer")
 	require.NoError(t, err, "Should be able to join game")
-	
+
 	// Wait for player connected
 	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err, "Should receive player connected message")
@@ -109,7 +109,7 @@ func TestMalformedPayload(t *testing.T) {
 		"type": string(dto.ActionTypePlayCard),
 		// Missing cardId field that would normally be required
 	}
-	
+
 	// This should not cause the connection to fail, but might generate an error response
 	err = client.SendAction(malformedAction)
 	require.NoError(t, err, "Should be able to send malformed action")
@@ -168,10 +168,10 @@ func TestMessageSequence(t *testing.T) {
 	// The game should be in lobby status initially
 	payload, ok := message.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
-	
+
 	gameData, ok := payload["game"].(map[string]interface{})
 	require.True(t, ok, "Game data should be present")
-	
+
 	status, ok := gameData["status"].(string)
 	require.True(t, ok, "Game status should be present")
 	require.Equal(t, "lobby", status, "Game should be in lobby status")
@@ -262,13 +262,13 @@ func TestMessageTypeValidation(t *testing.T) {
 	testCases := []map[string]interface{}{
 		// Missing type field entirely
 		{"data": "test"},
-		
+
 		// Type field is not a string
 		{"type": 123, "data": "test"},
-		
+
 		// Type field is null
 		{"type": nil, "data": "test"},
-		
+
 		// Type field is empty string
 		{"type": "", "data": "test"},
 	}
@@ -277,7 +277,7 @@ func TestMessageTypeValidation(t *testing.T) {
 		err := client.SendAction(testCase)
 		require.NoError(t, err, "Should be able to send test case %d", i)
 		t.Logf("✅ Sent invalid message type test case %d", i)
-		
+
 		// Small delay between test cases
 		time.Sleep(10 * time.Millisecond)
 	}

@@ -18,9 +18,9 @@ func createTestStandardProjectService() service.StandardProjectService {
 	eventBus := events.NewInMemoryEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
-	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
-	return service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
+	cardService := service.NewCardService(gameRepo, playerRepo)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 }
 
 func createTestPlayerService() service.PlayerService {
@@ -34,9 +34,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	service.StandardProjectService,
 	service.GameService,
 	service.PlayerService,
-	service.GlobalParametersService,
 	repository.PlayerRepository,
-	*model.Game,
+	model.Game,
 	string, // playerID
 ) {
 	// Initialize logger for testing
@@ -47,13 +46,11 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	eventBus := events.NewInMemoryEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
-	parametersRepo := repository.NewGlobalParametersRepository(eventBus)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, parametersRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	globalParametersService := service.NewGlobalParametersService(gameRepo, parametersRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, parametersRepo, globalParametersService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	ctx := context.Background()
 
@@ -89,7 +86,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	require.NoError(t, err)
 
 	player.Cards = []string{"card1", "card2", "card3", "card4", "card5"}
-	err = playerRepo.UpdatePlayer(ctx, game.ID, player)
+	err = playerRepo.UpdatePlayer(ctx, game.ID, &player)
 	require.NoError(t, err)
 
 	// Also update the game state to reflect the cards
@@ -100,14 +97,14 @@ func setupStandardProjectServiceTest(t *testing.T) (
 		}
 	}
 	// Update the game directly through repository instead of removed UpdateGame method
-	err = gameRepo.Update(ctx, updatedGame)
+	err = gameRepo.Update(ctx, &updatedGame)
 	require.NoError(t, err)
 
-	return standardProjectService, gameService, playerService, globalParametersService, playerRepo, updatedGame, playerID
+	return standardProjectService, gameService, playerService, playerRepo, updatedGame, playerID
 }
 
 func TestStandardProjectService_SellPatents(t *testing.T) {
-	standardProjectService, gameService, _, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful sell patents", func(t *testing.T) {
@@ -141,7 +138,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
-	standardProjectService, gameService, playerService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, playerService, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build power plant", func(t *testing.T) {
@@ -175,7 +172,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 }
 
 func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
-	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful launch asteroid", func(t *testing.T) {
@@ -184,7 +181,7 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 		expectedCost := 14
 
 		// Get initial temperature
-		initialParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		initialParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		initialTemp := initialParams.Temperature
 
@@ -201,14 +198,14 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
 		// Verify temperature increase
-		updatedParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		updatedParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		assert.Equal(t, initialTemp+2, updatedParams.Temperature) // Each step = 2°C
 	})
 }
 
 func TestStandardProjectService_BuildAquifer(t *testing.T) {
-	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 1, R: -1, S: 0}
@@ -219,7 +216,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		expectedCost := 18
 
 		// Get initial ocean count
-		initialParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		initialParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		initialOceans := initialParams.Oceans
 
@@ -236,7 +233,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
 		// Verify ocean count increase
-		updatedParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		updatedParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		assert.Equal(t, initialOceans+1, updatedParams.Oceans)
 	})
@@ -251,7 +248,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 }
 
 func TestStandardProjectService_PlantGreenery(t *testing.T) {
-	standardProjectService, gameService, _, globalParametersService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 2, R: -1, S: -1}
@@ -262,7 +259,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		expectedCost := 23
 
 		// Get initial oxygen level
-		initialParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		initialParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		initialOxygen := initialParams.Oxygen
 
@@ -279,7 +276,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
 		// Verify oxygen level increase
-		updatedParams, err := globalParametersService.GetGlobalParameters(ctx, game.ID)
+		updatedParams, err := gameService.GetGlobalParameters(ctx, game.ID)
 		require.NoError(t, err)
 		assert.Equal(t, initialOxygen+1, updatedParams.Oxygen)
 	})
@@ -294,7 +291,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildCity(t *testing.T) {
-	standardProjectService, gameService, _, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: -2, R: 1, S: 1}

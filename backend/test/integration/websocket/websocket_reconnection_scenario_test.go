@@ -42,10 +42,10 @@ func TestLobbyReconnectionScenario(t *testing.T) {
 	// Extract initial game state
 	payload, ok := playerConnectedMsg.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
-	
+
 	initialGameData, ok := payload["game"].(map[string]interface{})
 	require.True(t, ok, "Game data should be present")
-	
+
 	initialStatus, ok := initialGameData["status"].(string)
 	require.True(t, ok, "Game status should be present")
 	require.Equal(t, "lobby", initialStatus, "Game should be in lobby status")
@@ -136,7 +136,7 @@ func TestLobbyReconnectionScenario(t *testing.T) {
 		// Check if reconnected player can act as host
 		reconnectedPlayerID, ok := reconnectedPayload["playerId"].(string)
 		require.True(t, ok, "Reconnected player ID should be present")
-		
+
 		if hostPlayerID == reconnectedPlayerID {
 			t.Log("✅ Reconnected player is the host - can start game")
 		} else {
@@ -175,7 +175,7 @@ func TestReconnectionWithGameStateChanges(t *testing.T) {
 	// Wait for initial connection confirmations and extract player IDs
 	msg1, err := client1.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err)
-	
+
 	// Extract player ID for client1
 	payload1, ok := msg1.Payload.(map[string]interface{})
 	require.True(t, ok, "Player connected payload should be a map")
@@ -183,11 +183,11 @@ func TestReconnectionWithGameStateChanges(t *testing.T) {
 	require.True(t, ok, "Player ID should be present in payload")
 	require.NotEmpty(t, playerID1, "Player ID should not be empty")
 	client1.SetPlayerID(playerID1)
-	
+
 	msg2, err := client2.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err)
-	
-	// Extract player ID for client2  
+
+	// Extract player ID for client2
 	payload2, ok := msg2.Payload.(map[string]interface{})
 	require.True(t, ok, "Player connected payload should be a map")
 	playerID2, ok := payload2["playerId"].(string)
@@ -198,7 +198,7 @@ func TestReconnectionWithGameStateChanges(t *testing.T) {
 	// Determine which client is the host
 	client1IsHost, err := client1.IsHost()
 	require.NoError(t, err, "Should be able to check if client1 is host")
-	
+
 	var hostClient *integration.TestClient
 	if client1IsHost {
 		hostClient = client1

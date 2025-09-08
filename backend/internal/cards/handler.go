@@ -9,15 +9,14 @@ import (
 
 // CardHandlerContext provides the context needed for card handlers to execute
 type CardHandlerContext struct {
-	Context                 context.Context
-	Game                    *model.Game
-	PlayerID                string
-	Card                    *model.Card
-	EventBus                events.EventBus
-	PlayerService           service.PlayerService
-	GameService             service.GameService
-	GlobalParametersService service.GlobalParametersService
-	StandardProjectService  service.StandardProjectService
+	Context                context.Context
+	Game                   *model.Game
+	PlayerID               string
+	Card                   *model.Card
+	EventBus               events.EventBus
+	PlayerService          service.PlayerService
+	GameService            service.GameService
+	StandardProjectService service.StandardProjectService
 }
 
 // CardHandler defines the interface that all card implementations must satisfy
