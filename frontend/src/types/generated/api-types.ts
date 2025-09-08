@@ -155,8 +155,7 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseSetup: GamePhase = "setup";
-export const GamePhaseStartingCardSelection: GamePhase =
-  "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseCorporationSelection: GamePhase = "corporation_selection";
 export const GamePhaseAction: GamePhase = "action";
 export const GamePhaseProduction: GamePhase = "production";
@@ -242,13 +241,34 @@ export interface PlayerDto {
   connectionStatus: any /* model.ConnectionStatus */;
 }
 /**
+ * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
+ */
+export interface OtherPlayerDto {
+  id: string;
+  name: string;
+  corporation: string;
+  handCardCount: number /* int */; // Number of cards in hand (private)
+  resources: ResourcesDto;
+  production: ProductionDto;
+  terraformRating: number /* int */;
+  isActive: boolean;
+  playedCards: string[]; // Played cards are public
+  passed: boolean;
+  availableActions: number /* int */;
+  victoryPoints: number /* int */;
+  milestoneIcon: string;
+  connectionStatus: any /* model.ConnectionStatus */;
+}
+/**
  * GameDto represents a game for client consumption
  */
 export interface GameDto {
   id: string;
   status: GameStatus;
   settings: GameSettingsDto;
-  players: PlayerDto[];
+  currentPlayer?: PlayerDto; // Full player data for the viewing player
+  otherPlayers: OtherPlayerDto[]; // Limited data for other players
+  players: PlayerDto[]; // Legacy field - kept for compatibility
   hostPlayerId: string;
   currentPhase: GamePhase;
   globalParameters: GlobalParametersDto;

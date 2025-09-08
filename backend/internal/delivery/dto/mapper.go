@@ -4,16 +4,32 @@ import "terraforming-mars-backend/internal/model"
 
 // ToGameDto converts a model Game to GameDto
 func ToGameDto(game model.Game) GameDto {
+	// Legacy players field for compatibility
 	players := make([]PlayerDto, len(game.Players))
 	for i, player := range game.Players {
 		players[i] = ToPlayerDto(player)
+	}
+
+	// Convert CurrentPlayer to DTO
+	var currentPlayerDto *PlayerDto
+	if game.CurrentPlayer != nil {
+		dto := ToPlayerDto(*game.CurrentPlayer)
+		currentPlayerDto = &dto
+	}
+
+	// Convert OtherPlayers to DTOs
+	otherPlayers := make([]OtherPlayerDto, len(game.OtherPlayers))
+	for i, otherPlayer := range game.OtherPlayers {
+		otherPlayers[i] = ToOtherPlayerDto(otherPlayer)
 	}
 
 	return GameDto{
 		ID:               game.ID,
 		Status:           GameStatus(game.Status),
 		Settings:         ToGameSettingsDto(game.Settings),
-		Players:          players,
+		CurrentPlayer:    currentPlayerDto,
+		OtherPlayers:     otherPlayers,
+		Players:          players, // Legacy field for compatibility
 		HostPlayerID:     game.HostPlayerID,
 		CurrentPhase:     GamePhase(game.CurrentPhase),
 		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
@@ -40,6 +56,26 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		VictoryPoints:    player.VictoryPoints,
 		MilestoneIcon:    player.MilestoneIcon,
 		ConnectionStatus: player.ConnectionStatus,
+	}
+}
+
+// ToOtherPlayerDto converts a model OtherPlayer to OtherPlayerDto
+func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
+	return OtherPlayerDto{
+		ID:               otherPlayer.ID,
+		Name:             otherPlayer.Name,
+		Corporation:      otherPlayer.Corporation,
+		HandCardCount:    otherPlayer.HandCardCount,
+		Resources:        ToResourcesDto(otherPlayer.Resources),
+		Production:       ToProductionDto(otherPlayer.Production),
+		TerraformRating:  otherPlayer.TerraformRating,
+		IsActive:         otherPlayer.IsActive,
+		PlayedCards:      otherPlayer.PlayedCards,
+		Passed:           otherPlayer.Passed,
+		AvailableActions: otherPlayer.AvailableActions,
+		VictoryPoints:    otherPlayer.VictoryPoints,
+		MilestoneIcon:    otherPlayer.MilestoneIcon,
+		ConnectionStatus: otherPlayer.ConnectionStatus,
 	}
 }
 

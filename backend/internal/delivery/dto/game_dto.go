@@ -94,12 +94,32 @@ type PlayerDto struct {
 	ConnectionStatus model.ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
 }
 
+// OtherPlayerDto represents another player from the viewing player's perspective (limited data)
+type OtherPlayerDto struct {
+	ID               string                 `json:"id" ts:"string"`
+	Name             string                 `json:"name" ts:"string"`
+	Corporation      string                 `json:"corporation" ts:"string"`
+	HandCardCount    int                    `json:"handCardCount" ts:"number"`    // Number of cards in hand (private)
+	Resources        ResourcesDto           `json:"resources" ts:"ResourcesDto"`
+	Production       ProductionDto          `json:"production" ts:"ProductionDto"`
+	TerraformRating  int                    `json:"terraformRating" ts:"number"`
+	IsActive         bool                   `json:"isActive" ts:"boolean"`
+	PlayedCards      []string               `json:"playedCards" ts:"string[]"`    // Played cards are public
+	Passed           bool                   `json:"passed" ts:"boolean"`
+	AvailableActions int                    `json:"availableActions" ts:"number"`
+	VictoryPoints    int                    `json:"victoryPoints" ts:"number"`
+	MilestoneIcon    string                 `json:"milestoneIcon" ts:"string"`
+	ConnectionStatus model.ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
+}
+
 // GameDto represents a game for client consumption
 type GameDto struct {
 	ID               string              `json:"id" ts:"string"`
 	Status           GameStatus          `json:"status" ts:"GameStatus"`
 	Settings         GameSettingsDto     `json:"settings" ts:"GameSettingsDto"`
-	Players          []PlayerDto         `json:"players" ts:"PlayerDto[]"`
+	CurrentPlayer    *PlayerDto          `json:"currentPlayer" ts:"PlayerDto"`         // Full player data for the viewing player
+	OtherPlayers     []OtherPlayerDto    `json:"otherPlayers" ts:"OtherPlayerDto[]"`   // Limited data for other players
+	Players          []PlayerDto         `json:"players" ts:"PlayerDto[]"`             // Legacy field - kept for compatibility
 	HostPlayerID     string              `json:"hostPlayerId" ts:"string"`
 	CurrentPhase     GamePhase           `json:"currentPhase" ts:"GamePhase"`
 	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`

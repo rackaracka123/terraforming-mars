@@ -23,6 +23,9 @@ type GameService interface {
 	// Get game by ID
 	GetGame(ctx context.Context, gameID string) (model.Game, error)
 
+	// Get game prepared for a specific player's perspective
+	GetGameForPlayer(ctx context.Context, gameID string, playerID string) (model.Game, error)
+
 	// List games by status
 	ListGames(ctx context.Context, status string) ([]model.Game, error)
 
@@ -91,6 +94,40 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 // GetGame retrieves a game by ID
 func (s *GameServiceImpl) GetGame(ctx context.Context, gameID string) (model.Game, error) {
 	return s.gameRepo.Get(ctx, gameID)
+}
+
+// GetGameForPlayer gets a game prepared for a specific player's perspective
+func (s *GameServiceImpl) GetGameForPlayer(ctx context.Context, gameID string, playerID string) (model.Game, error) {
+	// Get the full game data
+	game, err := s.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		return model.Game{}, err
+	}
+
+	// Create a copy of the game to modify
+	gameCopy := game
+
+	// Find the viewing player and set as CurrentPlayer
+	gameCopy.CurrentPlayer = nil
+	for i := range game.Players {
+		if game.Players[i].ID == playerID {
+			gameCopy.CurrentPlayer = game.Players[i].DeepCopy()
+			break
+		}
+	}
+
+	// Populate OtherPlayers with limited data for all players except the viewing player
+	gameCopy.OtherPlayers = make([]model.OtherPlayer, 0, len(game.Players)-1)
+	for i := range game.Players {
+		if game.Players[i].ID != playerID {
+			otherPlayer := model.NewOtherPlayerFromPlayer(&game.Players[i])
+			if otherPlayer != nil {
+				gameCopy.OtherPlayers = append(gameCopy.OtherPlayers, *otherPlayer)
+			}
+		}
+	}
+
+	return gameCopy, nil
 }
 
 // ListGames lists games by status

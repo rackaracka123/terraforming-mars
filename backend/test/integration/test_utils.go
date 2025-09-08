@@ -402,6 +402,63 @@ func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocket
 	}
 }
 
+// WaitForMessageTypes waits for any of the specified message types with timeout
+func (c *TestClient) WaitForMessageTypes(messageTypes ...dto.MessageType) (*dto.WebSocketMessage, error) {
+	timeout := time.After(messageTimeout)
+	
+	// Create a map for quick lookup
+	typeMap := make(map[dto.MessageType]bool)
+	for _, msgType := range messageTypes {
+		typeMap[msgType] = true
+	}
+
+	for {
+		select {
+		case message := <-c.messages:
+			c.t.Logf("Looking for %v, got %s", messageTypes, message.Type)
+			if typeMap[message.Type] {
+				return &message, nil
+			}
+			// Continue waiting for one of the expected message types
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for message types: %v", messageTypes)
+		case <-c.done:
+			return nil, fmt.Errorf("client closed while waiting for message")
+		}
+	}
+}
+
+// WaitForBothMessages waits for both player-connected and game-updated messages
+func (c *TestClient) WaitForBothMessages() (playerConnected, gameUpdated *dto.WebSocketMessage, err error) {
+	timeout := time.After(messageTimeout * 2) // Double timeout since we need 2 messages
+	messagesNeeded := 2
+	
+	for messagesNeeded > 0 {
+		select {
+		case message := <-c.messages:
+			c.t.Logf("Received message: %s", message.Type)
+			switch message.Type {
+			case dto.MessageTypePlayerConnected:
+				if playerConnected == nil {
+					playerConnected = &message
+					messagesNeeded--
+				}
+			case dto.MessageTypeGameUpdated:
+				if gameUpdated == nil {
+					gameUpdated = &message
+					messagesNeeded--
+				}
+			}
+		case <-timeout:
+			return nil, nil, fmt.Errorf("timeout waiting for both player-connected and game-updated messages")
+		case <-c.done:
+			return nil, nil, fmt.Errorf("client closed while waiting for messages")
+		}
+	}
+	
+	return playerConnected, gameUpdated, nil
+}
+
 // WaitForAnyMessage waits for any message with timeout
 func (c *TestClient) WaitForAnyMessage() (*dto.WebSocketMessage, error) {
 	timeout := time.After(messageTimeout)

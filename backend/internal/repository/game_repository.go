@@ -126,6 +126,9 @@ func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error
 	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(game.ID, "")
+	log.Info("GameRepository.Update called", 
+		zap.String("game_id", game.ID),
+		zap.Bool("eventBus_nil", r.eventBus == nil))
 
 	if game == nil {
 		return fmt.Errorf("game cannot be nil")
@@ -169,9 +172,15 @@ func (r *GameRepositoryImpl) Update(ctx context.Context, game *model.Game) error
 
 	// Publish game updated event
 	if r.eventBus != nil {
+		log.Debug("Publishing GameStateChanged event", 
+			zap.String("game_id", game.ID),
+			zap.Int("old_players", len(oldGame.Players)),
+			zap.Int("new_players", len(game.Players)))
 		gameUpdatedEvent := events.NewGameStateChangedEvent(game.ID, oldGame, game)
 		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
 			log.Warn("Failed to publish game updated event", zap.Error(err))
+		} else {
+			log.Debug("GameStateChanged event published successfully")
 		}
 	}
 
