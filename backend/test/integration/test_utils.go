@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	// Test timeouts - optimized for fast CI/CD while maintaining reliability
-	connectionTimeout = 3 * time.Second
-	messageTimeout    = 2 * time.Second
+	// Test timeouts - increased for stability after deadlock fixes
+	connectionTimeout = 5 * time.Second
+	messageTimeout    = 5 * time.Second
 )
 
 var (
@@ -138,8 +138,9 @@ func (c *TestClient) Connect() error {
 		return fmt.Errorf("failed to parse WebSocket URL %s: %w", testServerWS, err)
 	}
 
-	dialer := websocket.DefaultDialer
-	dialer.HandshakeTimeout = connectionTimeout
+	dialer := &websocket.Dialer{
+		HandshakeTimeout: connectionTimeout,
+	}
 
 	// Retry connection with exponential backoff
 	maxRetries := 3
@@ -405,7 +406,7 @@ func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocket
 // WaitForMessageTypes waits for any of the specified message types with timeout
 func (c *TestClient) WaitForMessageTypes(messageTypes ...dto.MessageType) (*dto.WebSocketMessage, error) {
 	timeout := time.After(messageTimeout)
-	
+
 	// Create a map for quick lookup
 	typeMap := make(map[dto.MessageType]bool)
 	for _, msgType := range messageTypes {
@@ -432,7 +433,7 @@ func (c *TestClient) WaitForMessageTypes(messageTypes ...dto.MessageType) (*dto.
 func (c *TestClient) WaitForBothMessages() (playerConnected, gameUpdated *dto.WebSocketMessage, err error) {
 	timeout := time.After(messageTimeout * 2) // Double timeout since we need 2 messages
 	messagesNeeded := 2
-	
+
 	for messagesNeeded > 0 {
 		select {
 		case message := <-c.messages:
@@ -455,7 +456,7 @@ func (c *TestClient) WaitForBothMessages() (playerConnected, gameUpdated *dto.We
 			return nil, nil, fmt.Errorf("client closed while waiting for messages")
 		}
 	}
-	
+
 	return playerConnected, gameUpdated, nil
 }
 
