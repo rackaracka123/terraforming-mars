@@ -6,9 +6,9 @@ type GamePhase string
 const (
 	GamePhaseWaitingForGameStart   GamePhase = "waiting_for_game_start"
 	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
-	GamePhaseCorporationSelection  GamePhase = "corporation_selection"
+	GamePhaseStartGameSelection    GamePhase = "start_game_selection"
 	GamePhaseAction                GamePhase = "action"
-	GamePhaseProduction            GamePhase = "production"
+	GamePhaseProductionAndCardDraw GamePhase = "production_and_card_draw"
 	GamePhaseComplete              GamePhase = "complete"
 )
 

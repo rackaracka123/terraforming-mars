@@ -42,6 +42,7 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		Production:       ToProductionDto(player.Production),
 		TerraformRating:  player.TerraformRating,
 		IsActive:         player.IsActive,
+		IsReady:          player.IsReady,
 		PlayedCards:      player.PlayedCards,
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,
@@ -62,6 +63,7 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 		Production:       ToProductionDto(otherPlayer.Production),
 		TerraformRating:  otherPlayer.TerraformRating,
 		IsActive:         otherPlayer.IsActive,
+		IsReady:          otherPlayer.IsReady,
 		PlayedCards:      otherPlayer.PlayedCards,
 		Passed:           otherPlayer.Passed,
 		AvailableActions: otherPlayer.AvailableActions,
@@ -82,6 +84,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		Production:       ToProductionDto(player.Production),
 		TerraformRating:  player.TerraformRating,
 		IsActive:         player.IsActive,
+		IsReady:          player.IsReady,
 		PlayedCards:      player.PlayedCards, // Played cards are public
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,

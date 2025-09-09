@@ -175,12 +175,13 @@ export interface ActionBuildCityRequest {
  * GamePhase represents the current phase of the game
  */
 export type GamePhase = string;
-export const GamePhaseSetup: GamePhase = "setup";
+export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
 export const GamePhaseStartingCardSelection: GamePhase =
   "starting_card_selection";
-export const GamePhaseCorporationSelection: GamePhase = "corporation_selection";
+export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProduction: GamePhase = "production";
+export const GamePhaseProductionAndCardDraw: GamePhase =
+  "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -255,6 +256,7 @@ export interface PlayerDto {
   production: ProductionDto;
   terraformRating: number /* int */;
   isActive: boolean;
+  isReady: boolean;
   playedCards: string[];
   passed: boolean;
   availableActions: number /* int */;
@@ -274,6 +276,7 @@ export interface OtherPlayerDto {
   production: ProductionDto;
   terraformRating: number /* int */;
   isActive: boolean;
+  isReady: boolean;
   playedCards: string[]; // Played cards are public
   passed: boolean;
   availableActions: number /* int */;
