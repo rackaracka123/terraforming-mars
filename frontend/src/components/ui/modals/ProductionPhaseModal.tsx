@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ProductionPhaseStartedPayload } from "@/types/generated/api-types.ts";
-import { webSocketService } from "@/services/webSocketService.ts";
 import styles from "./ProductionPhaseModal.module.css";
 
 interface ProductionPhaseModalProps {
@@ -58,13 +57,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
             // Send production-phase-ready message to server
             try {
-              webSocketService.productionPhaseReady();
-              console.log("✅ Sent production-phase-ready message to server");
+              // webSocketService.productionPhaseReady();
             } catch (error) {
-              console.error(
-                "❌ Failed to send production-phase-ready message:",
-                error,
-              );
+              void error;
             }
 
             onClose();

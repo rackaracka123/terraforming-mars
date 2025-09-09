@@ -13,7 +13,6 @@ import {
   MessageTypePlayerReconnect,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
-  MessageTypeProductionPhaseReady,
   MessageTypeProductionPhaseStarted,
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
@@ -110,10 +109,6 @@ export class WebSocketService {
       }
       case MessageTypePlayerConnected: {
         const playerPayload = message.payload as PlayerConnectedPayload;
-        console.log(
-          "📨 WebSocket: Received player-connected message",
-          playerPayload,
-        );
         this.currentPlayerId = playerPayload.playerId;
         this.emit("player-connected", playerPayload);
         break;
@@ -141,7 +136,8 @@ export class WebSocketService {
         break;
       }
       case MessageTypeProductionPhaseStarted: {
-        const productionPayload = message.payload as ProductionPhaseStartedPayload;
+        const productionPayload =
+          message.payload as ProductionPhaseStartedPayload;
         this.emit("production-phase-started", productionPayload);
         break;
       }
@@ -173,10 +169,6 @@ export class WebSocketService {
     gameId: string,
   ): Promise<PlayerConnectedPayload> {
     return new Promise((resolve, reject) => {
-      console.log("🔌 PlayerConnect: Sending player-connect message", {
-        playerName,
-        gameId,
-      });
       this.send(MessageTypePlayerConnect, { playerName, gameId }, gameId);
       this.currentGameId = gameId;
 
@@ -190,18 +182,11 @@ export class WebSocketService {
       }, 5000); // 5 second timeout
 
       const responseHandler = (payload: PlayerConnectedPayload) => {
-        console.log(
-          "✅ PlayerConnect: Received player-connected response",
-          payload,
-        );
         clearTimeout(timeout);
         this.off("player-connected", responseHandler);
         resolve(payload);
       };
 
-      console.log(
-        "👂 PlayerConnect: Setting up listener for player-connected events",
-      );
       this.on("player-connected", responseHandler);
     });
   }
@@ -250,15 +235,15 @@ export class WebSocketService {
     return this.send(MessageTypePlayAction, { actionRequest: actionPayload });
   }
 
-  productionPhaseReady(): string {
-    if (!this.currentPlayerId) {
-      throw new Error("Cannot send production phase ready without player ID");
-    }
-    
-    return this.send(MessageTypeProductionPhaseReady, { 
-      playerId: this.currentPlayerId 
-    });
-  }
+  // productionPhaseReady(): string {
+  //   if (!this.currentPlayerId) {
+  //     throw new Error("Cannot send production phase ready without player ID");
+  //   }
+
+  //   return this.send(MessageTypeProductionPhaseReady, {
+  //     playerId: this.currentPlayerId,
+  //   });
+  // }
 
   on(event: string, callback: EventCallback) {
     if (!this.listeners[event]) {
