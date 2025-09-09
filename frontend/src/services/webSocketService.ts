@@ -107,6 +107,7 @@ export class WebSocketService {
       }
       case MessageTypePlayerConnected: {
         const playerPayload = message.payload as PlayerConnectedPayload;
+        console.log("📨 WebSocket: Received player-connected message", playerPayload);
         this.currentPlayerId = playerPayload.playerId;
         this.emit("player-connected", playerPayload);
         break;
@@ -161,21 +162,25 @@ export class WebSocketService {
     gameId: string,
   ): Promise<PlayerConnectedPayload> {
     return new Promise((resolve, reject) => {
+      console.log("🔌 PlayerConnect: Sending player-connect message", { playerName, gameId });
       this.send(MessageTypePlayerConnect, { playerName, gameId }, gameId);
       this.currentGameId = gameId;
 
       // Set up one-time listener for player-connected response
       const timeout = setTimeout(() => {
+        console.error("⏰ PlayerConnect: Timeout waiting for player-connected response");
         this.off("player-connected", responseHandler);
         reject(new Error("Timeout waiting for player connection confirmation"));
-      }, 10000); // 10 second timeout
+      }, 5000); // 5 second timeout
 
       const responseHandler = (payload: PlayerConnectedPayload) => {
+        console.log("✅ PlayerConnect: Received player-connected response", payload);
         clearTimeout(timeout);
         this.off("player-connected", responseHandler);
         resolve(payload);
       };
 
+      console.log("👂 PlayerConnect: Setting up listener for player-connected events");
       this.on("player-connected", responseHandler);
     });
   }

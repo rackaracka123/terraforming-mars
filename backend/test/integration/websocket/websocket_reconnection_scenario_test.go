@@ -238,7 +238,7 @@ func TestReconnectionWithGameStateChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify core reconnection messages (reduced from complex multi-message flow)
-	reconnectMsg, err := client3.WaitForMessage(dto.MessageTypePlayerConnected)
+	reconnectMsg, err := client3.WaitForMessage(dto.MessageTypePlayerReconnected)
 	require.NoError(t, err, "Should receive reconnection confirmation")
 
 	// Verify we got current game state, not stale data

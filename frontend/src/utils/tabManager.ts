@@ -3,7 +3,7 @@
  * Ensures only one tab can have an active game session at a time.
  */
 
-const TAB_STORAGE_KEY = "terraforming-mars-active-tab";
+const TAB_STORAGE_KEY_PREFIX = "terraforming-mars-active-tab";
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
 const TAB_TIMEOUT = 10000; // 10 seconds
 
@@ -54,7 +54,7 @@ export class TabManager {
         return;
       }
 
-      // Another tab is active and not expired
+      // Another tab for the same player is active and not expired
       resolve(false);
     });
   }
@@ -113,8 +113,11 @@ export class TabManager {
   }
 
   private getActiveTab(): TabState | null {
+    if (!this.playerName) return null;
+    
     try {
-      const stored = localStorage.getItem(TAB_STORAGE_KEY);
+      const key = `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`;
+      const stored = localStorage.getItem(key);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -122,6 +125,8 @@ export class TabManager {
   }
 
   private setActiveTab(): void {
+    if (!this.playerName) return;
+    
     const tabState: TabState = {
       tabId: this.tabId,
       timestamp: Date.now(),
@@ -129,14 +134,18 @@ export class TabManager {
       playerName: this.playerName,
     };
 
-    localStorage.setItem(TAB_STORAGE_KEY, JSON.stringify(tabState));
+    const key = `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`;
+    localStorage.setItem(key, JSON.stringify(tabState));
   }
 
   private removeActiveTab(): void {
+    if (!this.playerName) return;
+    
     const activeTab = this.getActiveTab();
     // Only remove if this tab is the active one
     if (activeTab?.tabId === this.tabId) {
-      localStorage.removeItem(TAB_STORAGE_KEY);
+      const key = `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`;
+      localStorage.removeItem(key);
     }
   }
 
@@ -182,7 +191,9 @@ export class TabManager {
 
     // Handle storage events to detect when another tab takes over
     window.addEventListener("storage", (event) => {
-      if (event.key === TAB_STORAGE_KEY && this.isActive) {
+      const expectedKey = this.playerName ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}` : null;
+      
+      if (event.key === expectedKey && this.isActive) {
         const newTabState = event.newValue ? JSON.parse(event.newValue) : null;
 
         // If another tab has taken over, release this tab

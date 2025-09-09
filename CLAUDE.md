@@ -560,5 +560,6 @@ NEVER proactively create documentation files (*.md) or README files. Only create
   ```
 - When working with energy, its refrenced using power.png
 - Use playwright to test UI components.
+- **Local Development**: Everything runs locally, so playwright waits only need to be 1 second max.
 - Whenever you create a new feature in backend. Write a test for it.
 - Whenever you move something that is checked into git. use git mv
