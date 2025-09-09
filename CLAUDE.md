@@ -200,6 +200,11 @@ The backend implements a **Clean Repository Pattern** with the following design 
 
 ### Development Guidelines
 
+**Model and DTO Synchronization**
+- Whenever you update model structs in `/internal/model/`, check if corresponding DTOs in `/internal/delivery/dto/` also need updating
+- Always run `make generate` after model changes to sync TypeScript types
+- Ensure all new fields are properly included in DTO mapping functions in `/internal/delivery/dto/mapper.go`
+
 **Domain Layer**
 - Keep entities focused on business invariants
 - Use defensive copying to protect entity state

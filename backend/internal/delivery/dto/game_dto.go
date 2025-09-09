@@ -8,11 +8,11 @@ import (
 type GamePhase string
 
 const (
-	GamePhaseSetup                 GamePhase = "setup"
+	GamePhaseWaitingForGameStart   GamePhase = "waiting_for_game_start"
 	GamePhaseStartingCardSelection GamePhase = "starting_card_selection"
-	GamePhaseCorporationSelection  GamePhase = "corporation_selection"
+	GamePhaseStartGameSelection    GamePhase = "start_game_selection"
 	GamePhaseAction                GamePhase = "action"
-	GamePhaseProduction            GamePhase = "production"
+	GamePhaseProductionAndCardDraw GamePhase = "production_and_card_draw"
 	GamePhaseComplete              GamePhase = "complete"
 )
 
@@ -86,6 +86,7 @@ type PlayerDto struct {
 	Production       ProductionDto          `json:"production" ts:"ProductionDto"`
 	TerraformRating  int                    `json:"terraformRating" ts:"number"`
 	IsActive         bool                   `json:"isActive" ts:"boolean"`
+	IsReady          bool                   `json:"isReady" ts:"boolean"`
 	PlayedCards      []string               `json:"playedCards" ts:"string[]"`
 	Passed           bool                   `json:"passed" ts:"boolean"`
 	AvailableActions int                    `json:"availableActions" ts:"number"`
@@ -104,6 +105,7 @@ type OtherPlayerDto struct {
 	Production       ProductionDto          `json:"production" ts:"ProductionDto"`
 	TerraformRating  int                    `json:"terraformRating" ts:"number"`
 	IsActive         bool                   `json:"isActive" ts:"boolean"`
+	IsReady          bool                   `json:"isReady" ts:"boolean"`
 	PlayedCards      []string               `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool                   `json:"passed" ts:"boolean"`
 	AvailableActions int                    `json:"availableActions" ts:"number"`

@@ -18,6 +18,7 @@ type Player struct {
 	Production       Production       `json:"production" ts:"Production"`
 	TerraformRating  int              `json:"terraformRating" ts:"number"`
 	IsActive         bool             `json:"isActive" ts:"boolean"`
+	IsReady          bool             `json:"isReady" ts:"boolean"`
 	PlayedCards      []string         `json:"playedCards" ts:"string[]"`
 	Passed           bool             `json:"passed" ts:"boolean"`
 	AvailableActions int              `json:"availableActions" ts:"number"`
@@ -49,6 +50,7 @@ func (p *Player) DeepCopy() *Player {
 		Production:       p.Production, // Production is a struct, so this is copied by value
 		TerraformRating:  p.TerraformRating,
 		IsActive:         p.IsActive,
+		IsReady:          p.IsReady,
 		PlayedCards:      playedCardsCopy,
 		Passed:           p.Passed,
 		AvailableActions: p.AvailableActions,

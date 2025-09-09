@@ -11,6 +11,7 @@ type OtherPlayer struct {
 	Production       Production       `json:"production" ts:"Production"`
 	TerraformRating  int              `json:"terraformRating" ts:"number"`
 	IsActive         bool             `json:"isActive" ts:"boolean"`
+	IsReady          bool             `json:"isReady" ts:"boolean"`
 	PlayedCards      []string         `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool             `json:"passed" ts:"boolean"`
 	AvailableActions int              `json:"availableActions" ts:"number"`
@@ -35,6 +36,7 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		Production:       player.Production,
 		TerraformRating:  player.TerraformRating,
 		IsActive:         player.IsActive,
+		IsReady:          player.IsReady,
 		PlayedCards:      append([]string{}, player.PlayedCards...), // Copy played cards (public)
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,
@@ -63,6 +65,7 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		Production:       op.Production, // Production is a struct, so this is copied by value
 		TerraformRating:  op.TerraformRating,
 		IsActive:         op.IsActive,
+		IsReady:          op.IsReady,
 		PlayedCards:      playedCardsCopy,
 		Passed:           op.Passed,
 		AvailableActions: op.AvailableActions,

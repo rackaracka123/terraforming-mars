@@ -157,7 +157,7 @@ export type PlayerPhase =
   | "drafting"
   | "research"
   | "action"
-  | "production"
+  | "production_and_card_draw"
   | "passed";
 
 export interface PlayerAction {
@@ -199,15 +199,16 @@ export interface GameState {
 }
 
 export type GamePhase =
-  | "setup"
-  | "corporation_selection"
+  | "waiting_for_game_start"
+  | "starting_card_selection"
+  | "start_game_selection"
   | "initial_research"
   | "prelude"
   | "research"
   | "action"
-  | "production"
+  | "production_and_card_draw"
   | "draft"
-  | "game_end";
+  | "complete";
 
 export type DraftDirection = "clockwise" | "counter_clockwise";
 
@@ -282,7 +283,7 @@ export type GameEventType =
   | "award_funded"
   | "generation_end"
   | "game_end"
-  | "production_phase"
+  | "production_and_card_draw_phase"
   | "research_phase";
 
 export interface StandardProject {
