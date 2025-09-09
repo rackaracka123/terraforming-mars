@@ -1,0 +1,15 @@
+.playerList {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: visible;
+  max-height: calc(100vh - 200px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.playerList::-webkit-scrollbar {
+  display: none;
+}

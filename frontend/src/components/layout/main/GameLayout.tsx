@@ -55,7 +55,13 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         <TopMenuBar />
 
         <div className={styles.gameContent}>
-          <LeftSidebar players={allPlayers} currentPlayer={currentPlayer} />
+          <LeftSidebar
+            players={allPlayers}
+            currentPlayer={currentPlayer}
+            currentPlayerId={gameState?.currentPlayer.id || ""}
+            currentPhase={gameState?.currentPhase}
+            gameState={gameState}
+          />
 
           <MainContentDisplay gameState={gameState} />
 
