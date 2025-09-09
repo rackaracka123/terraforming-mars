@@ -178,6 +178,10 @@ func (h *Hub) subscribeToEvents() {
 	// Subscribe to starting card options events
 	h.eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, h.handlePlayerStartingCardOptions)
 
+	// Subscribe to global parameter changes to trigger game updates
+	h.eventBus.Subscribe(events.EventTypeTemperatureChanged, h.handleGlobalParameterChange)
+	h.eventBus.Subscribe(events.EventTypeGlobalParametersChanged, h.handleGlobalParameterChange)
+
 	h.logger.Info("📡 WebSocket hub subscribed to events")
 }
 
@@ -206,6 +210,33 @@ func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.
 	}
 	
 	h.logger.Warn("⚠️ No event handler configured")
+	return nil
+}
+
+// handleGlobalParameterChange handles global parameter changes (temperature, oceans, etc.)
+func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Event) error {
+	// Extract game ID from the event payload
+	var gameID string
+	
+	// Handle different global parameter event types
+	switch event.GetType() {
+	case events.EventTypeTemperatureChanged:
+		payload := event.GetPayload().(events.TemperatureChangedEventData)
+		gameID = payload.GameID
+		h.logger.Debug("🌡️ Processing temperature change event", zap.String("game_id", gameID))
+	case events.EventTypeGlobalParametersChanged:
+		payload := event.GetPayload().(events.GlobalParametersChangedEventData)
+		gameID = payload.GameID
+		h.logger.Debug("🌍 Processing global parameters change event", zap.String("game_id", gameID))
+	default:
+		h.logger.Warn("⚠️ Unknown global parameter event type", zap.String("event_type", event.GetType()))
+		return nil
+	}
+	
+	// Trigger game update broadcast to notify clients of parameter changes
+	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
+	
+	h.logger.Debug("✅ Global parameter change broadcast completed", zap.String("game_id", gameID))
 	return nil
 }
 

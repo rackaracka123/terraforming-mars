@@ -180,22 +180,32 @@ func (c *TestClient) readMessages() {
 		case <-c.done:
 			return
 		default:
+			// Check if connection is closed before trying to read
+			c.mu.Lock()
+			closed := c.closed
+			conn := c.conn
+			c.mu.Unlock()
+
+			if closed || conn == nil {
+				return
+			}
+
 			var message dto.WebSocketMessage
-			if err := c.conn.ReadJSON(&message); err != nil {
+			if err := conn.ReadJSON(&message); err != nil {
 				// Check if client is closed before logging
 				c.mu.Lock()
-				closed := c.closed
+				closed = c.closed
 				c.mu.Unlock()
 
-				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					c.t.Logf("WebSocket read error: %v", err)
 				}
 				return
 			}
 
-			// Check if client is closed before logging
+			// Check if client is closed before processing
 			c.mu.Lock()
-			closed := c.closed
+			closed = c.closed
 			c.mu.Unlock()
 
 			if closed {
@@ -204,41 +214,26 @@ func (c *TestClient) readMessages() {
 
 			c.t.Logf("Received message: %s", message.Type)
 
-			// Non-blocking send to prevent goroutine hanging if channel is full
+			// Try to send message with timeout
 			select {
 			case c.messages <- message:
 				// Message sent successfully
 			case <-c.done:
-				// Client is being closed, exit
 				return
-			default:
-				// Check if client is closed before warning
-				c.mu.Lock()
-				closed = c.closed
-				c.mu.Unlock()
-
-				if closed {
-					return
-				}
-
-				// Channel is full, drop oldest messages and try again
-				c.t.Logf("Warning: Message channel full, dropping oldest message")
+			case <-time.After(50 * time.Millisecond):
+				// Channel might be full, try to drop oldest and retry once
 				select {
 				case <-c.messages:
-					// Dropped oldest message
+					// Dropped one message
 				default:
-					// Channel empty now, nothing to drop
 				}
-				// Try to send again
 				select {
 				case c.messages <- message:
-					// Message sent successfully after making space
+					// Sent after making space
 				case <-c.done:
 					return
 				default:
-					if !closed {
-						c.t.Logf("Warning: Unable to send message, dropping it")
-					}
+					c.t.Logf("Warning: Dropping message due to full channel: %s", message.Type)
 				}
 			}
 		}
@@ -255,10 +250,18 @@ func (c *TestClient) Close() {
 	}
 
 	c.closed = true
+	
+	// Close done channel to signal goroutines to stop
 	close(c.done)
+	
+	// Send close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	
+	// Close the connection  
 	c.conn.Close()
+	c.conn = nil
 }
+
 
 // CreateGameViaHTTP creates a game using the HTTP API
 func (c *TestClient) CreateGameViaHTTP() (string, error) {
@@ -565,8 +568,11 @@ func (c *TestClient) ForceClose() {
 	}
 
 	c.closed = true
+	
+	// Send abnormal close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
 	c.conn.Close()
+	c.conn = nil
 	close(c.done)
 }
 

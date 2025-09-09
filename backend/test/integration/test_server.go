@@ -142,7 +142,7 @@ func (ts *TestServer) waitForServerReady() error {
 	return fmt.Errorf("server did not become ready within timeout on port %d", ts.port)
 }
 
-// Stop stops the test server
+// Stop stops the test server with proper cleanup
 func (ts *TestServer) Stop() error {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
@@ -151,19 +151,25 @@ func (ts *TestServer) Stop() error {
 		return nil
 	}
 
-	// Stop WebSocket hub
+	// Stop WebSocket hub first to prevent new connections
 	if ts.cancel != nil {
 		ts.cancel()
-		// Give time for all WebSocket connections and goroutines to properly terminate
-		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Stop HTTP server
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Stop HTTP server with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	ts.started = false
-	return ts.server.Shutdown(ctx)
+	
+	// Shutdown server
+	if err := ts.server.Shutdown(ctx); err != nil {
+		// Force close if graceful shutdown fails
+		ts.server.Close()
+		return err
+	}
+	
+	return nil
 }
 
 // GetBaseURL returns the base URL for HTTP requests
