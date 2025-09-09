@@ -22,7 +22,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
 	ctx := context.Background()

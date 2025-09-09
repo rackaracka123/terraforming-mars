@@ -61,41 +61,7 @@ export interface Corporation {
   tags: string[];
 }
 
-// Mock corporations
-const mockCorporations: Corporation[] = [
-  {
-    id: "mining-guild",
-    name: "Mining Guild",
-    description:
-      "You start with 30 M€, 5 steel, and 1 steel production. Increase steel production 1 step for each steel and titanium resource on the board.",
-    startingResources: { credits: 30, steel: 5 },
-    startingProduction: { steel: 1 },
-    tags: ["building", "space"],
-  },
-  {
-    id: "ecoline",
-    name: "Ecoline",
-    description: "You start with 36 M€, 3 plants, and 2 plant production.",
-    startingResources: { credits: 36, plants: 3 },
-    startingProduction: { plants: 2 },
-    tags: ["plant"],
-  },
-  {
-    id: "helion",
-    name: "Helion",
-    description: "You start with 42 M€ and 3 heat production.",
-    startingResources: { credits: 42 },
-    startingProduction: { heat: 3 },
-    tags: ["space"],
-  },
-  {
-    id: "credicor",
-    name: "Credicor",
-    description: "You start with 57 M€.",
-    startingResources: { credits: 57 },
-    tags: [],
-  },
-];
+const mockCorporations: Corporation[] = [];
 
 // Mock game state
 const createMockGameState = (): GameState => ({

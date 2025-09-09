@@ -29,19 +29,90 @@ const (
 type CardType string
 
 const (
-	CardTypeEffect      CardType = "effect"
+	CardTypeAutomated   CardType = "automated"   // Updated from "effect" to match JSON data
 	CardTypeActive      CardType = "active"
 	CardTypeEvent       CardType = "event"
 	CardTypeCorporation CardType = "corporation"
+	CardTypePrelude     CardType = "prelude"
 )
+
+// CardTag represents different card categories and attributes
+type CardTag string
+
+const (
+	TagSpace    CardTag = "space"
+	TagEarth    CardTag = "earth"
+	TagScience  CardTag = "science"
+	TagPower    CardTag = "power"
+	TagBuilding CardTag = "building"
+	TagMicrobe  CardTag = "microbe"
+	TagAnimal   CardTag = "animal"
+	TagPlant    CardTag = "plant"
+	TagEvent    CardTag = "event"
+	TagCity     CardTag = "city"
+	TagVenus    CardTag = "venus"
+	TagJovian   CardTag = "jovian"
+	TagWildlife CardTag = "wildlife"
+	TagWild     CardTag = "wild"
+)
+
+// ResourceSet represents a collection of resources and their amounts
+type ResourceSet struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// CardRequirements defines what conditions must be met to play a card
+type CardRequirements struct {
+	MinTemperature     *int       `json:"minTemperature,omitempty" ts:"number | undefined"`
+	MaxTemperature     *int       `json:"maxTemperature,omitempty" ts:"number | undefined"`
+	MinOxygen          *int       `json:"minOxygen,omitempty" ts:"number | undefined"`
+	MaxOxygen          *int       `json:"maxOxygen,omitempty" ts:"number | undefined"`
+	MinOceans          *int       `json:"minOceans,omitempty" ts:"number | undefined"`
+	MaxOceans          *int       `json:"maxOceans,omitempty" ts:"number | undefined"`
+	RequiredTags       []CardTag  `json:"requiredTags" ts:"CardTag[]"`
+	RequiredProduction *ResourceSet `json:"requiredProduction,omitempty" ts:"ResourceSet | undefined"`
+}
+
+// ProductionEffects represents changes to resource production
+type ProductionEffects struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID          string   `json:"id" ts:"string"`
-	Name        string   `json:"name" ts:"string"`
-	Type        CardType `json:"type" ts:"CardType"`
-	Cost        int      `json:"cost" ts:"number"`
-	Description string   `json:"description" ts:"string"`
+	ID               string              `json:"id" ts:"string"`
+	Name             string              `json:"name" ts:"string"`
+	Type             CardType            `json:"type" ts:"CardType"`
+	Cost             int                 `json:"cost" ts:"number"`
+	Description      string              `json:"description" ts:"string"`
+	Tags             []CardTag           `json:"tags" ts:"CardTag[]"`
+	Requirements     CardRequirements    `json:"requirements" ts:"CardRequirements"`
+	VictoryPoints    int                 `json:"victoryPoints" ts:"number"`
+	Number           string              `json:"number" ts:"string"`
+	ProductionEffects *ProductionEffects `json:"productionEffects,omitempty" ts:"ProductionEffects | undefined"`
+}
+
+// CorporationDto represents a corporation for client consumption
+type CorporationDto struct {
+	ID                 string      `json:"id" ts:"string"`
+	Name               string      `json:"name" ts:"string"`
+	Description        string      `json:"description" ts:"string"`
+	StartingCredits    int         `json:"startingCredits" ts:"number"`
+	StartingResources  ResourceSet `json:"startingResources" ts:"ResourceSet"`
+	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"`
+	Tags               []CardTag   `json:"tags" ts:"CardTag[]"`
+	SpecialEffects     []string    `json:"specialEffects" ts:"string[]"`
+	Number             string      `json:"number" ts:"string"`
 }
 
 // GameSettingsDto contains configurable game parameters

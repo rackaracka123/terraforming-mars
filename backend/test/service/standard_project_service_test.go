@@ -21,7 +21,8 @@ func createTestStandardProjectService() service.StandardProjectService {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 }
@@ -50,7 +51,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

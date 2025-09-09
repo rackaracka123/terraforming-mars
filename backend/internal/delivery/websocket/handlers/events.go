@@ -2,26 +2,29 @@ package handlers
 
 import (
 	"context"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // EventHandler handles domain events that need WebSocket broadcasting
 type EventHandler struct {
-	broadcaster *core.Broadcaster
-	logger      *zap.Logger
+	broadcaster     *core.Broadcaster
+	cardDataService service.CardDataService
+	logger          *zap.Logger
 }
 
 // NewEventHandler creates a new event handler
-func NewEventHandler(broadcaster *core.Broadcaster) *EventHandler {
+func NewEventHandler(broadcaster *core.Broadcaster, cardDataService service.CardDataService) *EventHandler {
 	return &EventHandler{
-		broadcaster: broadcaster,
-		logger:      logger.Get(),
+		broadcaster:     broadcaster,
+		cardDataService: cardDataService,
+		logger:          logger.Get(),
 	}
 }
 
@@ -37,8 +40,15 @@ func (h *EventHandler) HandlePlayerStartingCardOptions(ctx context.Context, even
 		zap.String("player_id", playerID),
 		zap.Strings("card_ids", cardIDs))
 
-	// Get card details from mock database
-	cardModels := cards.GetCardsByIDs(cardIDs)
+	// Get card details from card data service
+	cardModels := make([]model.Card, 0, len(cardIDs))
+	for _, cardID := range cardIDs {
+		if card, err := h.cardDataService.GetCardByID(cardID); err == nil {
+			cardModels = append(cardModels, *card)
+		} else {
+			h.logger.Warn("Card not found", zap.String("card_id", cardID), zap.Error(err))
+		}
+	}
 
 	// Convert to DTOs
 	cardDtos := make([]dto.CardDto, len(cardModels))
