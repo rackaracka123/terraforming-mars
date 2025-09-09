@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -15,6 +16,9 @@ import (
 type CardService interface {
 	// Select starting cards for a player
 	SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
+
+	// SelectProductionCards stores the starting card options for a player (called during game start)
+	SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
 	// Validate starting card selection
 	ValidateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
@@ -114,6 +118,33 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	log.Info("Player completed starting card selection",
 		zap.Strings("selected_cards", cardIDs),
 		zap.Int("cost_paid", cost))
+
+	return nil
+}
+
+// SelectProductionCards handles the card selection during production phase (stub implementation)
+func (s *CardServiceImpl) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+	// For simplicity, assume any selection is valid during production phase
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Processing production card selection", zap.Strings("card_ids", cardIDs))
+
+	// Get current player
+	_, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Add selected cards to player's hand using granular updates
+	for _, cardID := range cardIDs {
+		if err := s.playerRepo.AddCard(ctx, gameID, playerID, cardID); err != nil {
+			log.Error("Failed to add card to player hand", zap.String("card_id", cardID), zap.Error(err))
+			return fmt.Errorf("failed to add card %s: %w", cardID, err)
+		}
+	}
+
+	log.Info("Player completed production card selection",
+		zap.Strings("selected_cards", cardIDs))
 
 	return nil
 }

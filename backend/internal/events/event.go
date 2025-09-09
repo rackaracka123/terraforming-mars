@@ -16,6 +16,7 @@ const (
 	EventTypeGameStarted               = "game.started"
 	EventTypePlayerStartingCardOptions = "player.starting_card_options"
 	EventTypeStartingCardSelected      = "starting_card.selected"
+	EventTypeProductionCardsSelected   = "production_cards.selected"
 	EventTypePhaseChanged              = "game.phase_changed"
 	EventTypeGameUpdated               = "game.updated"
 	EventTypeCardPlayed                = "card.played"
@@ -105,6 +106,13 @@ type GameStartedEventData struct {
 
 // PlayerStartingCardOptionsEventData represents when starting cards are dealt to a player
 type PlayerStartingCardOptionsEventData struct {
+	GameID      string   `json:"gameId"`
+	PlayerID    string   `json:"playerId"`
+	CardOptions []string `json:"cardOptions"`
+}
+
+// PlayerProductionCardsOptionsEventData represents when production cards are dealt to a player
+type PlayerProductionCardsOptionsEventData struct {
 	GameID      string   `json:"gameId"`
 	PlayerID    string   `json:"playerId"`
 	CardOptions []string `json:"cardOptions"`

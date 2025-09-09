@@ -6,6 +6,7 @@ import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
+import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
@@ -18,6 +19,7 @@ import {
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerReconnectedPayload,
+  ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
@@ -37,6 +39,10 @@ export default function GameInterface() {
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+  
+  // Production phase modal state
+  const [showProductionPhaseModal, setShowProductionPhaseModal] = useState(false);
+  const [productionPhaseData, setProductionPhaseData] = useState<ProductionPhaseStartedPayload | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -156,6 +162,20 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
+  const handleProductionPhaseStarted = useCallback(
+    (payload: ProductionPhaseStartedPayload) => {
+      // Show production phase modal with animation data
+      setProductionPhaseData(payload);
+      setShowProductionPhaseModal(true);
+
+      // Update game state if provided
+      if (payload.game) {
+        handleGameUpdated(payload.game);
+      }
+    },
+    [handleGameUpdated],
+  );
+
   // Setup WebSocket listeners using global manager - only initialize once
   const setupWebSocketListeners = useCallback(() => {
     if (isWebSocketInitialized.current) {
@@ -167,6 +187,7 @@ export default function GameInterface() {
     globalWebSocketManager.on("player-connected", handlePlayerConnected);
     globalWebSocketManager.on("player-reconnected", handlePlayerReconnected);
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
+    globalWebSocketManager.on("production-phase-started", handleProductionPhaseStarted);
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
 
@@ -181,6 +202,7 @@ export default function GameInterface() {
         "player-disconnected",
         handlePlayerDisconnected,
       );
+      globalWebSocketManager.off("production-phase-started", handleProductionPhaseStarted);
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
       isWebSocketInitialized.current = false;
@@ -191,6 +213,7 @@ export default function GameInterface() {
     handlePlayerConnected,
     handlePlayerReconnected,
     handlePlayerDisconnected,
+    handleProductionPhaseStarted,
     handleError,
     handleDisconnect,
   ]);
@@ -427,7 +450,8 @@ export default function GameInterface() {
     showTagsModal ||
     showVictoryPointsModal ||
     showActionsModal ||
-    showCardEffectsModal;
+    showCardEffectsModal ||
+    showProductionPhaseModal;
 
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
@@ -488,6 +512,15 @@ export default function GameInterface() {
         effects={[]}
         cards={[]}
         playerName={currentPlayer?.name}
+      />
+
+      <ProductionPhaseModal
+        isOpen={showProductionPhaseModal}
+        productionData={productionPhaseData}
+        onClose={() => {
+          setShowProductionPhaseModal(false);
+          setProductionPhaseData(null);
+        }}
       />
 
       <DebugDropdown

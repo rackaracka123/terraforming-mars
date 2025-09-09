@@ -8,6 +8,7 @@ interface PlayerCardProps {
   isCurrentPlayer: boolean;
   isActivePlayer: boolean;
   isCurrentTurn: boolean;
+  isActionPhase: boolean;
   onSkipAction?: () => void;
   actionsUsed?: number;
   totalActions?: number;
@@ -19,6 +20,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   isCurrentPlayer,
   isActivePlayer,
   isCurrentTurn,
+  isActionPhase,
   onSkipAction,
   actionsUsed = 0,
   totalActions = 2,
@@ -54,7 +56,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 DISCONNECTED
               </span>
             )}
-            {isCurrentTurn && (
+            {isCurrentTurn && isActionPhase && (
               <span className={`${styles.chip} ${styles.chipActions}`}>
                 {actionsRemaining}{" "}
                 {actionsRemaining === 1 ? "action" : "actions"} left
@@ -63,7 +65,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
           <span className={styles.playerName}>{player.name}</span>
         </div>
-        {isActivePlayer && isCurrentTurn && (
+        {isActivePlayer && isCurrentTurn && isActionPhase && (
           <button className={styles.actionButton} onClick={onSkipAction}>
             {buttonText}
           </button>

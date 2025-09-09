@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, GamePhase } from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import PlayerCard from "../cards/PlayerCard.tsx";
 import styles from "./PlayerList.module.css";
@@ -8,6 +8,7 @@ interface PlayerListProps {
   players: PlayerDto[];
   currentPlayer: PlayerDto | null;
   currentPlayerId: string;
+  currentPhase?: GamePhase;
   remainingActions?: number;
 }
 
@@ -15,12 +16,16 @@ const PlayerList: React.FC<PlayerListProps> = ({
   players,
   currentPlayer,
   currentPlayerId,
+  currentPhase,
   remainingActions = 2,
 }) => {
   const [previousTurnPlayer, setPreviousTurnPlayer] = useState<string | null>(
     null,
   );
   const [actionsUsed, setActionsUsed] = useState(0);
+
+  // Calculate if we're in the action phase where action UI should be visible
+  const isActionPhase = currentPhase === "action";
 
   // Player color system - 6 distinct colors for up to 6 players
   const playerColors = [
@@ -77,6 +82,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
             isCurrentPlayer={isCurrentPlayer}
             isActivePlayer={isCurrentPlayer}
             isCurrentTurn={isCurrentTurn}
+            isActionPhase={isActionPhase}
             onSkipAction={handleSkipAction}
             actionsUsed={actionsUsed}
             totalActions={2}

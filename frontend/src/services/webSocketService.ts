@@ -13,9 +13,12 @@ import {
   MessageTypePlayerReconnect,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
+  MessageTypeProductionPhaseReady,
+  MessageTypeProductionPhaseStarted,
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
+  ProductionPhaseStartedPayload,
   WebSocketMessage,
 } from "../types/generated/api-types.ts";
 
@@ -137,6 +140,11 @@ export class WebSocketService {
         this.emit("full-state", statePayload);
         break;
       }
+      case MessageTypeProductionPhaseStarted: {
+        const productionPayload = message.payload as ProductionPhaseStartedPayload;
+        this.emit("production-phase-started", productionPayload);
+        break;
+      }
       default:
         console.warn("Unknown message type:", message.type);
     }
@@ -240,6 +248,16 @@ export class WebSocketService {
 
   playAction(actionPayload: object): string {
     return this.send(MessageTypePlayAction, { actionRequest: actionPayload });
+  }
+
+  productionPhaseReady(): string {
+    if (!this.currentPlayerId) {
+      throw new Error("Cannot send production phase ready without player ID");
+    }
+    
+    return this.send(MessageTypeProductionPhaseReady, { 
+      playerId: this.currentPlayerId 
+    });
   }
 
   on(event: string, callback: EventCallback) {

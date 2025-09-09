@@ -5,18 +5,20 @@ type MessageType string
 
 const (
 	// Client -> Server messages
-	MessageTypePlayerConnect   MessageType = "player-connect"
-	MessageTypePlayerReconnect MessageType = "player-reconnect"
-	MessageTypePlayAction      MessageType = "do-action"
+	MessageTypePlayerConnect           MessageType = "player-connect"
+	MessageTypePlayerReconnect         MessageType = "player-reconnect"
+	MessageTypePlayAction              MessageType = "do-action"
+	MessageTypeProductionCardsSelected MessageType = "production-cards-selected"
 
 	// Server -> Client messages
-	MessageTypeGameUpdated        MessageType = "game-updated"
-	MessageTypePlayerConnected    MessageType = "player-connected"
-	MessageTypePlayerReconnected  MessageType = "player-reconnected"
-	MessageTypePlayerDisconnected MessageType = "player-disconnected"
-	MessageTypeError              MessageType = "error"
-	MessageTypeFullState          MessageType = "full-state"
-	MessageTypeAvailableCards     MessageType = "available-cards"
+	MessageTypeGameUpdated            MessageType = "game-updated"
+	MessageTypePlayerConnected        MessageType = "player-connected"
+	MessageTypePlayerReconnected      MessageType = "player-reconnected"
+	MessageTypePlayerDisconnected     MessageType = "player-disconnected"
+	MessageTypeError                  MessageType = "error"
+	MessageTypeFullState              MessageType = "full-state"
+	MessageTypeAvailableCards         MessageType = "available-cards"
+	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 )
 
 // WebSocketMessage represents a WebSocket message
@@ -84,4 +86,31 @@ type PlayerDisconnectedPayload struct {
 	PlayerID   string  `json:"playerId" ts:"string"`
 	PlayerName string  `json:"playerName" ts:"string"`
 	Game       GameDto `json:"game" ts:"GameDto"`
+}
+
+// PlayerProductionData contains production data for a single player
+type PlayerProductionData struct {
+	PlayerID        string        `json:"playerId" ts:"string"`
+	PlayerName      string        `json:"playerName" ts:"string"`
+	PlayerColor     string        `json:"playerColor" ts:"string"`
+	BeforeResources ResourcesDto  `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources  ResourcesDto  `json:"afterResources" ts:"ResourcesDto"`
+	Production      ProductionDto `json:"production" ts:"ProductionDto"`
+	TerraformRating int           `json:"terraformRating" ts:"number"`
+	EnergyConverted int           `json:"energyConverted" ts:"number"`
+	CreditsIncome   int           `json:"creditsIncome" ts:"number"`
+}
+
+// ProductionPhaseStartedPayload contains data when production phase begins
+type ProductionPhaseStartedPayload struct {
+	Generation  int                    `json:"generation" ts:"number"`
+	PlayersData []PlayerProductionData `json:"playersData" ts:"PlayerProductionData[]"`
+	Game        GameDto                `json:"game" ts:"GameDto"`
+}
+
+// ProductionCardsSelected contains acknowledgment data from client
+type ProductionCardsSelected struct {
+	PlayerID      string   `json:"playerId" ts:"string"`
+	PlayerName    string   `json:"playerName" ts:"string"`
+	CardsSelected []string `json:"cardsSelected" ts:"string[]"`
 }

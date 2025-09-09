@@ -1,5 +1,5 @@
 import React from "react";
-import { PlayerDto, GameDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, GameDto, GamePhase } from "@/types/generated/api-types.ts";
 import PlayerList from "@/components/ui/list/PlayerList.tsx";
 import styles from "./LeftSidebar.module.css";
 import "./LeftSidebar.global.css";
@@ -8,6 +8,7 @@ interface LeftSidebarProps {
   players: PlayerDto[];
   currentPlayer: PlayerDto | null;
   currentPlayerId: string;
+  currentPhase?: GamePhase;
   gameState?: GameDto;
   onPass?: () => void;
 }
@@ -16,6 +17,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   players,
   currentPlayer,
   currentPlayerId,
+  currentPhase,
   gameState,
 }) => {
   return (
@@ -25,6 +27,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         players={players}
         currentPlayer={currentPlayer}
         currentPlayerId={currentPlayerId}
+        currentPhase={currentPhase}
         remainingActions={gameState?.remainingActions}
       />
     </div>
