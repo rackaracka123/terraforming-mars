@@ -23,15 +23,15 @@ type ProductionEffects struct {
 
 // Card represents a game card
 type Card struct {
-	ID               string              `json:"id" ts:"string"`
-	Name             string              `json:"name" ts:"string"`
-	Type             CardType            `json:"type" ts:"CardType"`
-	Cost             int                 `json:"cost" ts:"number"`
-	Description      string              `json:"description" ts:"string"`
-	Tags             []CardTag           `json:"tags" ts:"CardTag[]"`
-	Requirements     CardRequirements    `json:"requirements" ts:"CardRequirements"`
-	VictoryPoints    int                 `json:"victoryPoints" ts:"number"`
-	Number           string              `json:"number" ts:"string"`                             // Card number (e.g., "#001")
+	ID                string             `json:"id" ts:"string"`
+	Name              string             `json:"name" ts:"string"`
+	Type              CardType           `json:"type" ts:"CardType"`
+	Cost              int                `json:"cost" ts:"number"`
+	Description       string             `json:"description" ts:"string"`
+	Tags              []CardTag          `json:"tags" ts:"CardTag[]"`
+	Requirements      CardRequirements   `json:"requirements" ts:"CardRequirements"`
+	VictoryPoints     int                `json:"victoryPoints" ts:"number"`
+	Number            string             `json:"number" ts:"string"`                                             // Card number (e.g., "#001")
 	ProductionEffects *ProductionEffects `json:"productionEffects,omitempty" ts:"ProductionEffects | undefined"` // Production changes
 }
 

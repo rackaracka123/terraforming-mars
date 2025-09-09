@@ -64,10 +64,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	// Load cards and get real card IDs for testing
 	err = cardDataService.LoadCards()
 	require.NoError(t, err, "Should load card data for testing")
-	
+
 	startingCards := cardDataService.GetStartingCardPool()
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
-	
+
 	// Use real card IDs from loaded data
 	availableCards := []string{
 		startingCards[0].ID,
@@ -205,7 +205,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	// Load cards and get real card IDs for testing
 	err := cardDataService.LoadCards()
 	require.NoError(t, err, "Should load card data for testing")
-	
+
 	startingCards := cardDataService.GetStartingCardPool()
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
@@ -216,7 +216,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		startingCards[2].ID,
 		startingCards[3].ID,
 	}
-	
+
 	// Get a card that exists but is NOT in the player's options
 	var cardNotInOptions string
 	for _, card := range startingCards {
@@ -232,7 +232,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 			break
 		}
 	}
-	
+
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
 	cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
 
@@ -349,7 +349,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	// Load cards and get real card IDs for testing
 	err = cardDataService.LoadCards()
 	require.NoError(t, err, "Should load card data for testing")
-	
+
 	startingCards := cardDataService.GetStartingCardPool()
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 

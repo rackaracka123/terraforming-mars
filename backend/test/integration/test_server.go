@@ -41,12 +41,12 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	// Initialize services with proper event bus wiring
 	cardDataService := service.NewCardDataService()
-	
+
 	// Load card data for integration testing
 	if err := cardDataService.LoadCards(); err != nil {
 		logger.Warn("Failed to load card data in test server, using fallback", zap.Error(err))
 	}
-	
+
 	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)

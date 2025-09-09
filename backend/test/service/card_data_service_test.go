@@ -1,9 +1,9 @@
 package service_test
 
 import (
-	"testing"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,7 +50,7 @@ func TestCardDataService_GetCardByID(t *testing.T) {
 	// Test with first card
 	firstCard := allCards[0]
 	foundCard, err := cardService.GetCardByID(firstCard.ID)
-	
+
 	require.NoError(t, err, "Should find existing card")
 	assert.Equal(t, firstCard.ID, foundCard.ID)
 	assert.Equal(t, firstCard.Name, foundCard.Name)
@@ -208,7 +208,7 @@ func TestCardDataService_GetCardsByAllTags(t *testing.T) {
 	// Verify each card has ALL requested tags
 	for _, card := range buildingPowerCards {
 		for _, requiredTag := range commonTags {
-			assert.Contains(t, card.Tags, requiredTag, 
+			assert.Contains(t, card.Tags, requiredTag,
 				"Card %s should have all required tags", card.Name)
 		}
 	}
@@ -218,7 +218,7 @@ func TestCardDataService_GetCardsByAllTags(t *testing.T) {
 
 func TestCardDataService_ConvertJSONCard(t *testing.T) {
 	cardService := service.NewCardDataService()
-	
+
 	// This is an integration test - load the cards and verify structure
 	err := cardService.LoadCards()
 	require.NoError(t, err)
@@ -236,7 +236,7 @@ func TestCardDataService_ConvertJSONCard(t *testing.T) {
 			// Description can be empty for some cards, so we don't assert on it
 			// Tags can be empty, so we don't assert on it
 			// VictoryPoints can be 0, so we don't assert on it
-			
+
 			// If card has requirements, they should be properly parsed
 			// This is mostly tested by the loading not failing
 		})

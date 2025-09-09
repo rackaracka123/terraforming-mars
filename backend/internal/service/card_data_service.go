@@ -23,11 +23,11 @@ type CardDataService interface {
 	GetCardsByTag(tag model.CardTag) []model.Card
 	GetStartingCardPool() []model.Card // Returns cards suitable for starting selection
 	GetCardsByCostRange(minCost, maxCost int) []model.Card
-	GetCardsByTags(tags []model.CardTag) []model.Card  // Cards that have ANY of the specified tags
-	GetCardsByAllTags(tags []model.CardTag) []model.Card // Cards that have ALL of the specified tags
+	GetCardsByTags(tags []model.CardTag) []model.Card                                 // Cards that have ANY of the specified tags
+	GetCardsByAllTags(tags []model.CardTag) []model.Card                              // Cards that have ALL of the specified tags
 	FilterCardsByRequirements(cards []model.Card, gameState interface{}) []model.Card // Filter cards by requirements
-	GetCorporations() []model.Corporation // Returns corporations converted from corporation cards
-	GetCorporationByID(id string) (*model.Corporation, error) // Returns a specific corporation
+	GetCorporations() []model.Corporation                                             // Returns corporations converted from corporation cards
+	GetCorporationByID(id string) (*model.Corporation, error)                         // Returns a specific corporation
 }
 
 // CardDataServiceImpl implements CardDataService
@@ -42,12 +42,12 @@ type CardDataServiceImpl struct {
 // JSONCardData represents the structure of the JSON file
 type JSONCardData struct {
 	Metadata struct {
-		Source              string `json:"source"`
-		ExtractionDate      string `json:"extraction_date"`
-		TotalProjectCards   int    `json:"total_project_cards"`
-		TotalCorporationCards int  `json:"total_corporation_cards"`
-		TotalPreludeCards   int    `json:"total_prelude_cards"`
-		Description         string `json:"description"`
+		Source                string `json:"source"`
+		ExtractionDate        string `json:"extraction_date"`
+		TotalProjectCards     int    `json:"total_project_cards"`
+		TotalCorporationCards int    `json:"total_corporation_cards"`
+		TotalPreludeCards     int    `json:"total_prelude_cards"`
+		Description           string `json:"description"`
 	} `json:"metadata"`
 	Cards struct {
 		ProjectCards     []JSONCard `json:"project_cards"`
@@ -58,17 +58,17 @@ type JSONCardData struct {
 
 // JSONCard represents a card in the enhanced JSON format
 type JSONCard struct {
-	Name             string                 `json:"name"`
-	Cost             int                    `json:"cost"`
-	Number           string                 `json:"number"`
-	Type             string                 `json:"type"`
-	Tags             []string               `json:"tags"`
-	Requirements     map[string]interface{} `json:"requirements,omitempty"`
-	VictoryPoints    JSONVictoryPoints      `json:"victory_points,omitempty"`
-	Description      string                 `json:"description,omitempty"`
-	ProductionEffects JSONProductionEffects `json:"production_effects,omitempty"`
-	ImmediateEffects JSONImmediateEffects   `json:"immediate_effects,omitempty"`
-	Action           map[string]interface{} `json:"action,omitempty"`
+	Name              string                 `json:"name"`
+	Cost              int                    `json:"cost"`
+	Number            string                 `json:"number"`
+	Type              string                 `json:"type"`
+	Tags              []string               `json:"tags"`
+	Requirements      map[string]interface{} `json:"requirements,omitempty"`
+	VictoryPoints     JSONVictoryPoints      `json:"victory_points,omitempty"`
+	Description       string                 `json:"description,omitempty"`
+	ProductionEffects JSONProductionEffects  `json:"production_effects,omitempty"`
+	ImmediateEffects  JSONImmediateEffects   `json:"immediate_effects,omitempty"`
+	Action            map[string]interface{} `json:"action,omitempty"`
 }
 
 // JSONVictoryPoints represents victory point structure in JSON
@@ -110,10 +110,10 @@ func (s *CardDataServiceImpl) LoadCards() error {
 		filepath.Join("..", "backend", "assets", "terraforming_mars_cards.json"),
 		filepath.Join("..", "..", "..", "assets", "terraforming_mars_cards.json"), // For integration tests
 	}
-	
+
 	var data []byte
 	var err error
-	
+
 	// Try each path until we find the file
 	for _, path := range possiblePaths {
 		data, err = os.ReadFile(path)
@@ -121,7 +121,7 @@ func (s *CardDataServiceImpl) LoadCards() error {
 			break
 		}
 	}
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to read card data file from any location: %w", err)
 	}
@@ -235,15 +235,15 @@ func (s *CardDataServiceImpl) convertJSONCard(jsonCard JSONCard) (model.Card, er
 	}
 
 	card := model.Card{
-		ID:               id,
-		Name:             jsonCard.Name,
-		Type:             cardType,
-		Cost:             jsonCard.Cost,
-		Description:      jsonCard.Description,
-		Tags:             tags,
-		Requirements:     requirements,
-		VictoryPoints:    jsonCard.VictoryPoints.BasePoints,
-		Number:           jsonCard.Number,
+		ID:                id,
+		Name:              jsonCard.Name,
+		Type:              cardType,
+		Cost:              jsonCard.Cost,
+		Description:       jsonCard.Description,
+		Tags:              tags,
+		Requirements:      requirements,
+		VictoryPoints:     jsonCard.VictoryPoints.BasePoints,
+		Number:            jsonCard.Number,
 		ProductionEffects: productionEffects,
 	}
 
@@ -259,7 +259,7 @@ func (s *CardDataServiceImpl) generateCardID(number, name string) string {
 		re := regexp.MustCompile(`[^a-z0-9]+`)
 		return re.ReplaceAllString(id, "_")
 	}
-	
+
 	// Fall back to name-based ID
 	id := strings.ToLower(name)
 	re := regexp.MustCompile(`[^a-z0-9]+`)
@@ -291,7 +291,7 @@ func (s *CardDataServiceImpl) convertCardType(typeStr string) (model.CardType, e
 // convertTags converts string slice to CardTag slice
 func (s *CardDataServiceImpl) convertTags(tagStrs []string) []model.CardTag {
 	tags := make([]model.CardTag, 0, len(tagStrs))
-	
+
 	tagMapping := map[string]model.CardTag{
 		"space":    model.TagSpace,
 		"earth":    model.TagEarth,
@@ -307,24 +307,24 @@ func (s *CardDataServiceImpl) convertTags(tagStrs []string) []model.CardTag {
 		"jovian":   model.TagJovian,
 		"wild":     model.TagWild,
 	}
-	
+
 	for _, tagStr := range tagStrs {
 		if tag, exists := tagMapping[tagStr]; exists {
 			tags = append(tags, tag)
 		}
 	}
-	
+
 	return tags
 }
 
 // parseEnhancedRequirements converts enhanced JSON requirements to CardRequirements struct
 func (s *CardDataServiceImpl) parseEnhancedRequirements(reqMap map[string]interface{}) model.CardRequirements {
 	requirements := model.CardRequirements{}
-	
+
 	if reqMap == nil {
 		return requirements
 	}
-	
+
 	// Parse structured requirements
 	if val, ok := reqMap["min_oxygen"]; ok {
 		if oxygen, ok := val.(float64); ok {
@@ -332,53 +332,53 @@ func (s *CardDataServiceImpl) parseEnhancedRequirements(reqMap map[string]interf
 			requirements.MinOxygen = &oxygenInt
 		}
 	}
-	
+
 	if val, ok := reqMap["max_oxygen"]; ok {
 		if oxygen, ok := val.(float64); ok {
 			oxygenInt := int(oxygen)
 			requirements.MaxOxygen = &oxygenInt
 		}
 	}
-	
+
 	if val, ok := reqMap["min_temperature"]; ok {
 		if temp, ok := val.(float64); ok {
 			tempInt := int(temp)
 			requirements.MinTemperature = &tempInt
 		}
 	}
-	
+
 	if val, ok := reqMap["max_temperature"]; ok {
 		if temp, ok := val.(float64); ok {
 			tempInt := int(temp)
 			requirements.MaxTemperature = &tempInt
 		}
 	}
-	
+
 	if val, ok := reqMap["min_oceans"]; ok {
 		if oceans, ok := val.(float64); ok {
 			oceansInt := int(oceans)
 			requirements.MinOceans = &oceansInt
 		}
 	}
-	
+
 	if val, ok := reqMap["max_oceans"]; ok {
 		if oceans, ok := val.(float64); ok {
 			oceansInt := int(oceans)
 			requirements.MaxOceans = &oceansInt
 		}
 	}
-	
+
 	return requirements
 }
 
 // parseRequirements converts requirement string to CardRequirements struct (legacy)
 func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequirements, error) {
 	requirements := model.CardRequirements{}
-	
+
 	if reqStr == "" {
 		return requirements, nil
 	}
-	
+
 	// Parse oxygen requirements (e.g., "max 5% O2", "6% O2")
 	oxygenRegex := regexp.MustCompile(`(?i)(max\s+)?(\d+)%\s*o2`)
 	if matches := oxygenRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
@@ -389,7 +389,7 @@ func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequir
 			requirements.MinOxygen = &oxygen
 		}
 	}
-	
+
 	// Parse temperature requirements (e.g., "max -14°C", "-6°C")
 	tempRegex := regexp.MustCompile(`(?i)(max\s+)?(-?\d+)°?c`)
 	if matches := tempRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
@@ -400,7 +400,7 @@ func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequir
 			requirements.MinTemperature = &temp
 		}
 	}
-	
+
 	// Parse ocean requirements (e.g., "3 Oceans", "max 3 oceans")
 	oceanRegex := regexp.MustCompile(`(?i)(max\s+)?(\d+)\s*oceans?`)
 	if matches := oceanRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
@@ -411,13 +411,13 @@ func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequir
 			requirements.MinOceans = &oceans
 		}
 	}
-	
+
 	// Parse production requirements (e.g., "Titanium production")
 	if strings.Contains(strings.ToLower(reqStr), "production") {
 		// Simplified - in full implementation you'd parse specific production types
 		requirements.RequiredProduction = &model.ResourceSet{}
 	}
-	
+
 	return requirements, nil
 }
 
@@ -478,14 +478,14 @@ func (s *CardDataServiceImpl) GetCardsByTag(tag model.CardTag) []model.Card {
 // This includes lower-cost cards that are good for game start
 func (s *CardDataServiceImpl) GetStartingCardPool() []model.Card {
 	var startingCards []model.Card
-	
+
 	// Include automated and active cards with reasonable cost (up to 15 MC)
 	for _, card := range s.projectCards {
 		if card.Cost <= 15 && (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive) {
 			startingCards = append(startingCards, card)
 		}
 	}
-	
+
 	return startingCards
 }
 
@@ -505,13 +505,13 @@ func (s *CardDataServiceImpl) GetCardsByTags(tags []model.CardTag) []model.Card 
 	if len(tags) == 0 {
 		return []model.Card{}
 	}
-	
+
 	var cards []model.Card
 	tagSet := make(map[model.CardTag]bool)
 	for _, tag := range tags {
 		tagSet[tag] = true
 	}
-	
+
 	for _, card := range s.allCards {
 		for _, cardTag := range card.Tags {
 			if tagSet[cardTag] {
@@ -520,7 +520,7 @@ func (s *CardDataServiceImpl) GetCardsByTags(tags []model.CardTag) []model.Card 
 			}
 		}
 	}
-	
+
 	return cards
 }
 
@@ -529,9 +529,9 @@ func (s *CardDataServiceImpl) GetCardsByAllTags(tags []model.CardTag) []model.Ca
 	if len(tags) == 0 {
 		return s.allCards // If no tags specified, return all cards
 	}
-	
+
 	var cards []model.Card
-	
+
 	for _, card := range s.allCards {
 		hasAllTags := true
 		for _, requiredTag := range tags {
@@ -547,12 +547,12 @@ func (s *CardDataServiceImpl) GetCardsByAllTags(tags []model.CardTag) []model.Ca
 				break
 			}
 		}
-		
+
 		if hasAllTags {
 			cards = append(cards, card)
 		}
 	}
-	
+
 	return cards
 }
 
@@ -566,33 +566,33 @@ func (s *CardDataServiceImpl) FilterCardsByRequirements(cards []model.Card, game
 	// 2. Check each card's requirements against current game parameters
 	// 3. Check player's production requirements
 	// 4. Filter out cards that cannot be played
-	
+
 	var playableCards []model.Card
 	for _, card := range cards {
 		// For now, include all cards except those with complex requirements
-		if card.Requirements.MinTemperature == nil && 
-		   card.Requirements.MaxTemperature == nil &&
-		   card.Requirements.MinOxygen == nil &&
-		   card.Requirements.MaxOxygen == nil &&
-		   card.Requirements.MinOceans == nil &&
-		   card.Requirements.MaxOceans == nil &&
-		   card.Requirements.RequiredProduction == nil {
+		if card.Requirements.MinTemperature == nil &&
+			card.Requirements.MaxTemperature == nil &&
+			card.Requirements.MinOxygen == nil &&
+			card.Requirements.MaxOxygen == nil &&
+			card.Requirements.MinOceans == nil &&
+			card.Requirements.MaxOceans == nil &&
+			card.Requirements.RequiredProduction == nil {
 			playableCards = append(playableCards, card)
 		}
 	}
-	
+
 	return playableCards
 }
 
 // GetCorporations converts corporation cards to Corporation structs
 func (s *CardDataServiceImpl) GetCorporations() []model.Corporation {
 	var corporations []model.Corporation
-	
+
 	for _, card := range s.corporationCards {
 		corp := s.convertCardToCorporation(card)
 		corporations = append(corporations, corp)
 	}
-	
+
 	return corporations
 }
 
@@ -604,22 +604,22 @@ func (s *CardDataServiceImpl) GetCorporationByID(id string) (*model.Corporation,
 			return &corp, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("corporation not found: %s", id)
 }
 
 // convertCardToCorporation converts a Corporation Card to a Corporation struct
 func (s *CardDataServiceImpl) convertCardToCorporation(card model.Card) model.Corporation {
 	corp := model.Corporation{
-		ID:               card.ID,
-		Name:             card.Name,
-		Description:      card.Description,
-		StartingCredits:  42, // Default starting credits
-		StartingResources: model.ResourceSet{Credits: 42},
+		ID:                 card.ID,
+		Name:               card.Name,
+		Description:        card.Description,
+		StartingCredits:    42, // Default starting credits
+		StartingResources:  model.ResourceSet{Credits: 42},
 		StartingProduction: model.ResourceSet{},
-		Tags:             card.Tags,
-		SpecialEffects:   []string{card.Description},
-		Number:           card.Number,
+		Tags:               card.Tags,
+		SpecialEffects:     []string{card.Description},
+		Number:             card.Number,
 	}
 
 	// Parse corporation-specific starting conditions from JSON production effects
@@ -636,9 +636,9 @@ func (s *CardDataServiceImpl) convertCardToCorporation(card model.Card) model.Co
 
 	// TODO: Parse starting resources and credits from JSON immediate effects
 	// For now, we'll use some hardcoded logic based on well-known corporations
-	// This should be replaced with proper JSON parsing once the JSON structure 
+	// This should be replaced with proper JSON parsing once the JSON structure
 	// includes starting bonuses for corporations
-	
+
 	switch corp.Name {
 	case "Credicor":
 		corp.StartingCredits = 57

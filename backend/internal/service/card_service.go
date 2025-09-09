@@ -27,7 +27,7 @@ type CardService interface {
 
 	// Generate starting card options for a player
 	GenerateStartingCardOptions(gameID, playerID string) []string
-	
+
 	// Get the underlying card data service
 	GetCardDataService() CardDataService
 }
@@ -224,7 +224,7 @@ func (s *CardServiceImpl) GetStartingCards() []model.Card {
 // GenerateStartingCardOptions generates 4 random starting card options for a player
 func (s *CardServiceImpl) GenerateStartingCardOptions(gameID, playerID string) []string {
 	startingCards := s.cardDataService.GetStartingCardPool()
-	
+
 	// For now, return first 4 cards as options
 	// In a full implementation, you'd randomize this selection
 	var options []string
@@ -234,10 +234,10 @@ func (s *CardServiceImpl) GenerateStartingCardOptions(gameID, playerID string) [
 		}
 		options = append(options, card.ID)
 	}
-	
+
 	// Store the options for validation
 	s.StorePlayerCardOptions(gameID, playerID, options)
-	
+
 	return options
 }
 

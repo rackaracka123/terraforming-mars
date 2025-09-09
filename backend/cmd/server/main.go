@@ -58,7 +58,7 @@ func main() {
 		log.Warn("Failed to load card data, using fallback cards", zap.Error(err))
 	} else {
 		allCards := cardDataService.GetAllCards()
-		log.Info("📚 Card data loaded successfully", 
+		log.Info("📚 Card data loaded successfully",
 			zap.Int("project_cards", len(cardDataService.GetProjectCards())),
 			zap.Int("corporation_cards", len(cardDataService.GetCorporationCards())),
 			zap.Int("prelude_cards", len(cardDataService.GetPreludeCards())),

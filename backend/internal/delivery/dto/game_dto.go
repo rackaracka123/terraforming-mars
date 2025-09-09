@@ -29,7 +29,7 @@ const (
 type CardType string
 
 const (
-	CardTypeAutomated   CardType = "automated"   // Updated from "effect" to match JSON data
+	CardTypeAutomated   CardType = "automated" // Updated from "effect" to match JSON data
 	CardTypeActive      CardType = "active"
 	CardTypeEvent       CardType = "event"
 	CardTypeCorporation CardType = "corporation"
@@ -68,13 +68,13 @@ type ResourceSet struct {
 
 // CardRequirements defines what conditions must be met to play a card
 type CardRequirements struct {
-	MinTemperature     *int       `json:"minTemperature,omitempty" ts:"number | undefined"`
-	MaxTemperature     *int       `json:"maxTemperature,omitempty" ts:"number | undefined"`
-	MinOxygen          *int       `json:"minOxygen,omitempty" ts:"number | undefined"`
-	MaxOxygen          *int       `json:"maxOxygen,omitempty" ts:"number | undefined"`
-	MinOceans          *int       `json:"minOceans,omitempty" ts:"number | undefined"`
-	MaxOceans          *int       `json:"maxOceans,omitempty" ts:"number | undefined"`
-	RequiredTags       []CardTag  `json:"requiredTags" ts:"CardTag[]"`
+	MinTemperature     *int         `json:"minTemperature,omitempty" ts:"number | undefined"`
+	MaxTemperature     *int         `json:"maxTemperature,omitempty" ts:"number | undefined"`
+	MinOxygen          *int         `json:"minOxygen,omitempty" ts:"number | undefined"`
+	MaxOxygen          *int         `json:"maxOxygen,omitempty" ts:"number | undefined"`
+	MinOceans          *int         `json:"minOceans,omitempty" ts:"number | undefined"`
+	MaxOceans          *int         `json:"maxOceans,omitempty" ts:"number | undefined"`
+	RequiredTags       []CardTag    `json:"requiredTags" ts:"CardTag[]"`
 	RequiredProduction *ResourceSet `json:"requiredProduction,omitempty" ts:"ResourceSet | undefined"`
 }
 
@@ -90,15 +90,15 @@ type ProductionEffects struct {
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID               string              `json:"id" ts:"string"`
-	Name             string              `json:"name" ts:"string"`
-	Type             CardType            `json:"type" ts:"CardType"`
-	Cost             int                 `json:"cost" ts:"number"`
-	Description      string              `json:"description" ts:"string"`
-	Tags             []CardTag           `json:"tags" ts:"CardTag[]"`
-	Requirements     CardRequirements    `json:"requirements" ts:"CardRequirements"`
-	VictoryPoints    int                 `json:"victoryPoints" ts:"number"`
-	Number           string              `json:"number" ts:"string"`
+	ID                string             `json:"id" ts:"string"`
+	Name              string             `json:"name" ts:"string"`
+	Type              CardType           `json:"type" ts:"CardType"`
+	Cost              int                `json:"cost" ts:"number"`
+	Description       string             `json:"description" ts:"string"`
+	Tags              []CardTag          `json:"tags" ts:"CardTag[]"`
+	Requirements      CardRequirements   `json:"requirements" ts:"CardRequirements"`
+	VictoryPoints     int                `json:"victoryPoints" ts:"number"`
+	Number            string             `json:"number" ts:"string"`
 	ProductionEffects *ProductionEffects `json:"productionEffects,omitempty" ts:"ProductionEffects | undefined"`
 }
 

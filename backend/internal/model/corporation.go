@@ -2,30 +2,29 @@ package model
 
 // Corporation represents a corporation card with special abilities
 type Corporation struct {
-	ID               string           `json:"id" ts:"string"`
-	Name             string           `json:"name" ts:"string"`
-	Description      string           `json:"description" ts:"string"`
-	StartingCredits  int              `json:"startingCredits" ts:"number"`
-	StartingResources ResourceSet      `json:"startingResources" ts:"ResourceSet"`
-	StartingProduction ResourceSet     `json:"startingProduction" ts:"ResourceSet"`
-	Tags             []CardTag        `json:"tags" ts:"CardTag[]"`
-	SpecialEffects   []string         `json:"specialEffects" ts:"string[]"` // Descriptions of special abilities
-	Number           string           `json:"number" ts:"string"`
+	ID                 string      `json:"id" ts:"string"`
+	Name               string      `json:"name" ts:"string"`
+	Description        string      `json:"description" ts:"string"`
+	StartingCredits    int         `json:"startingCredits" ts:"number"`
+	StartingResources  ResourceSet `json:"startingResources" ts:"ResourceSet"`
+	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"`
+	Tags               []CardTag   `json:"tags" ts:"CardTag[]"`
+	SpecialEffects     []string    `json:"specialEffects" ts:"string[]"` // Descriptions of special abilities
+	Number             string      `json:"number" ts:"string"`
 }
-
 
 // ConvertCardToCorporation converts a corporation Card to a Corporation struct
 func ConvertCardToCorporation(card Card) Corporation {
 	corp := Corporation{
-		ID:               card.ID,
-		Name:             card.Name,
-		Description:      card.Description,
-		StartingCredits:  42, // Default starting credits
-		StartingResources: ResourceSet{Credits: 42},
+		ID:                 card.ID,
+		Name:               card.Name,
+		Description:        card.Description,
+		StartingCredits:    42, // Default starting credits
+		StartingResources:  ResourceSet{Credits: 42},
 		StartingProduction: ResourceSet{},
-		Tags:             card.Tags,
-		SpecialEffects:   []string{card.Description},
-		Number:           card.Number,
+		Tags:               card.Tags,
+		SpecialEffects:     []string{card.Description},
+		Number:             card.Number,
 	}
 
 	// Parse corporation-specific starting conditions from description
