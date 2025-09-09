@@ -6,30 +6,26 @@ import (
 	"terraforming-mars-backend/internal/model"
 )
 
-// Event type constants
+// Event type constants - Simplified event system
 const (
-	EventTypeGameCreated               = "game.created"
-	EventTypeGameDeleted               = "game.deleted"
-	EventTypeGameStateChanged          = "game.state_changed"
-	EventTypePlayerJoined              = "player.joined"
-	EventTypePlayerLeft                = "player.left"
-	EventTypeGameStarted               = "game.started"
-	EventTypePlayerStartingCardOptions = "player.starting_card_options"
-	EventTypeStartingCardSelected      = "starting_card.selected"
-	EventTypePhaseChanged              = "game.phase_changed"
-	EventTypeGameUpdated               = "game.updated"
-	EventTypeCardPlayed                = "card.played"
+	// Core Game Events - Game lifecycle management
+	EventTypeGameCreated = "game.created" // When a game is created
+	EventTypeGameStarted = "game.started" // When a game transitions from lobby to active
+	EventTypeGameUpdated = "game.updated" // When any game state changes (consolidated from GameStateChanged)
+	EventTypeGameDeleted = "game.deleted" // When a game is removed
 
-	// Player Changed
-	EventTypePlayerResourcesChanged  = "player.resources_changed"
-	EventTypePlayerProductionChanged = "player.production_changed"
-	EventTypePlayerTRChanged         = "player.tr_changed"
+	// Player Events - Player lifecycle and state changes
+	EventTypePlayerJoined  = "player.joined"  // When a player joins a game
+	EventTypePlayerLeft    = "player.left"    // When a player leaves a game
+	EventTypePlayerChanged = "player.changed" // When player resources, production, or TR changes (consolidated)
 
-	// Global Parameter Changed
-	EventTypeTemperatureChanged      = "global-parameters.temperature_changed"
-	EventTypeOxygenChanged           = "global-parameters.oxygen_changed"
-	EventTypeOceansChanged           = "global-parameters.oceans_changed"
-	EventTypeGlobalParametersChanged = "global-parameters.parameters_changed"
+	// Card Events - Card-related game actions
+	EventTypeCardDealt    = "card.dealt"    // Starting cards dealt to player (renamed from PlayerStartingCardOptions)
+	EventTypeCardSelected = "card.selected" // Player selects starting cards (renamed from StartingCardSelected)
+	EventTypeCardPlayed   = "card.played"   // Player plays a card during game
+
+	// Global Events - Terraforming parameters
+	EventTypeGlobalParametersChanged = "global.parameters_changed" // Any global parameter changes (consolidated)
 )
 
 // Event represents a domain event that can be published and consumed
@@ -41,15 +37,15 @@ type Event interface {
 	// GetTimestamp returns when the event occurred
 	GetTimestamp() time.Time
 	// GetPayload returns the event-specific data
-	GetPayload() interface{}
+	GetPayload() any
 }
 
 // BaseEvent provides common event functionality
 type BaseEvent struct {
-	Type      string      `json:"type"`
-	GameID    string      `json:"gameId"`
-	Timestamp time.Time   `json:"timestamp"`
-	Payload   interface{} `json:"payload"`
+	Type      string    `json:"type"`
+	GameID    string    `json:"gameId"`
+	Timestamp time.Time `json:"timestamp"`
+	Payload   any       `json:"payload"`
 }
 
 // GetType returns the event type
@@ -68,12 +64,12 @@ func (e *BaseEvent) GetTimestamp() time.Time {
 }
 
 // GetPayload returns the event payload
-func (e *BaseEvent) GetPayload() interface{} {
+func (e *BaseEvent) GetPayload() any {
 	return e.Payload
 }
 
 // NewBaseEvent creates a new base event
-func NewBaseEvent(eventType, gameID string, payload interface{}) BaseEvent {
+func NewBaseEvent(eventType, gameID string, payload any) BaseEvent {
 	return BaseEvent{
 		Type:      eventType,
 		GameID:    gameID,
@@ -82,19 +78,14 @@ func NewBaseEvent(eventType, gameID string, payload interface{}) BaseEvent {
 	}
 }
 
-// Event data types - moved from model package
+// Event data types - Simplified payloads for consolidated events
+
+// Core Game Event Data
 
 // GameCreatedEventData represents when a game is created
 type GameCreatedEventData struct {
 	GameID       string             `json:"gameId"`
 	GameSettings model.GameSettings `json:"gameSettings"`
-}
-
-// PlayerJoinedEventData represents when a player joins a game
-type PlayerJoinedEventData struct {
-	GameID     string `json:"gameId"`
-	PlayerID   string `json:"playerId"`
-	PlayerName string `json:"playerName"`
 }
 
 // GameStartedEventData represents when a game starts
@@ -103,55 +94,9 @@ type GameStartedEventData struct {
 	PlayerCount int    `json:"playerCount"`
 }
 
-// PlayerStartingCardOptionsEventData represents when starting cards are dealt to a player
-type PlayerStartingCardOptionsEventData struct {
-	GameID      string   `json:"gameId"`
-	PlayerID    string   `json:"playerId"`
-	CardOptions []string `json:"cardOptions"`
-}
-
-// StartingCardSelectedEventData represents when a player selects starting cards
-type StartingCardSelectedEventData struct {
-	GameID        string   `json:"gameId"`
-	PlayerID      string   `json:"playerId"`
-	SelectedCards []string `json:"selectedCards"`
-	Cost          int      `json:"cost"`
-}
-
-// GameUpdatedEventData represents when a game's state is updated
+// GameUpdatedEventData represents when any game state changes (simplified from GameStateChanged)
 type GameUpdatedEventData struct {
 	GameID string `json:"gameId"`
-}
-
-// CardPlayedEventData represents when a player plays a card
-type CardPlayedEventData struct {
-	GameID   string `json:"gameId"`
-	PlayerID string `json:"playerId"`
-	CardID   string `json:"cardId"`
-}
-
-// PlayerResourcesChangedEventData represents when a player's resources are modified
-type PlayerResourcesChangedEventData struct {
-	GameID          string          `json:"gameId"`
-	PlayerID        string          `json:"playerId"`
-	BeforeResources model.Resources `json:"beforeResources"`
-	AfterResources  model.Resources `json:"afterResources"`
-}
-
-// PlayerProductionChangedEventData represents when a player's production is modified
-type PlayerProductionChangedEventData struct {
-	GameID           string           `json:"gameId"`
-	PlayerID         string           `json:"playerId"`
-	BeforeProduction model.Production `json:"beforeProduction"`
-	AfterProduction  model.Production `json:"afterProduction"`
-}
-
-// PlayerTRChangedEventData represents when a player's terraform rating is modified
-type PlayerTRChangedEventData struct {
-	GameID   string `json:"gameId"`
-	PlayerID string `json:"playerId"`
-	BeforeTR int    `json:"beforeTR"`
-	AfterTR  int    `json:"afterTR"`
 }
 
 // GameDeletedEventData represents when a game is deleted
@@ -159,11 +104,13 @@ type GameDeletedEventData struct {
 	GameID string `json:"gameId"`
 }
 
-// GameStateChangedEventData represents when a game's state is changed
-type GameStateChangedEventData struct {
-	GameID   string     `json:"gameId"`
-	OldState model.Game `json:"oldState"`
-	NewState model.Game `json:"newState"`
+// Player Event Data
+
+// PlayerJoinedEventData represents when a player joins a game
+type PlayerJoinedEventData struct {
+	GameID     string `json:"gameId"`
+	PlayerID   string `json:"playerId"`
+	PlayerName string `json:"playerName"`
 }
 
 // PlayerLeftEventData represents when a player leaves a game
@@ -173,30 +120,41 @@ type PlayerLeftEventData struct {
 	PlayerName string `json:"playerName"`
 }
 
-// TemperatureChangedEventData represents when global temperature changes
-type TemperatureChangedEventData struct {
-	GameID         string `json:"gameId"`
-	OldTemperature int    `json:"oldTemperature"`
-	NewTemperature int    `json:"newTemperature"`
+// PlayerChangedEventData represents when player resources, production, or TR changes (consolidated)
+type PlayerChangedEventData struct {
+	GameID     string `json:"gameId"`
+	PlayerID   string `json:"playerId"`
+	ChangeType string `json:"changeType"` // "resources", "production", "terraform_rating"
 }
 
-// OxygenChangedEventData represents when global oxygen level changes
-type OxygenChangedEventData struct {
-	GameID    string `json:"gameId"`
-	OldOxygen int    `json:"oldOxygen"`
-	NewOxygen int    `json:"newOxygen"`
+// Card Event Data
+
+// CardDealtEventData represents when starting cards are dealt to a player (renamed from PlayerStartingCardOptions)
+type CardDealtEventData struct {
+	GameID      string   `json:"gameId"`
+	PlayerID    string   `json:"playerId"`
+	CardOptions []string `json:"cardOptions"`
 }
 
-// OceansChangedEventData represents when ocean count changes
-type OceansChangedEventData struct {
-	GameID    string `json:"gameId"`
-	OldOceans int    `json:"oldOceans"`
-	NewOceans int    `json:"newOceans"`
+// CardSelectedEventData represents when a player selects starting cards (renamed from StartingCardSelected)
+type CardSelectedEventData struct {
+	GameID        string   `json:"gameId"`
+	PlayerID      string   `json:"playerId"`
+	SelectedCards []string `json:"selectedCards"`
+	Cost          int      `json:"cost"`
 }
 
-// GlobalParametersChangedEventData represents when any global parameters change
+// CardPlayedEventData represents when a player plays a card
+type CardPlayedEventData struct {
+	GameID   string `json:"gameId"`
+	PlayerID string `json:"playerId"`
+	CardID   string `json:"cardId"`
+}
+
+// Global Event Data
+
+// GlobalParametersChangedEventData represents when any global parameters change (consolidated from individual parameter events)
 type GlobalParametersChangedEventData struct {
-	GameID        string                 `json:"gameId"`
-	OldParameters model.GlobalParameters `json:"oldParameters"`
-	NewParameters model.GlobalParameters `json:"newParameters"`
+	GameID      string   `json:"gameId"`
+	ChangeTypes []string `json:"changeTypes"` // ["temperature", "oxygen", "oceans"] - which parameters changed
 }

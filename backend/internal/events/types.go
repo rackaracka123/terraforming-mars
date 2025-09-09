@@ -2,6 +2,8 @@ package events
 
 import "terraforming-mars-backend/internal/model"
 
+// Core Game Events
+
 // GameCreatedEvent represents when a game is created
 type GameCreatedEvent struct {
 	BaseEvent
@@ -16,24 +18,6 @@ func NewGameCreatedEvent(gameID string, settings model.GameSettings) *GameCreate
 
 	return &GameCreatedEvent{
 		BaseEvent: NewBaseEvent(EventTypeGameCreated, gameID, payload),
-	}
-}
-
-// PlayerJoinedEvent represents when a player joins a game
-type PlayerJoinedEvent struct {
-	BaseEvent
-}
-
-// NewPlayerJoinedEvent creates a new player joined event
-func NewPlayerJoinedEvent(gameID, playerID, playerName string) *PlayerJoinedEvent {
-	payload := PlayerJoinedEventData{
-		GameID:     gameID,
-		PlayerID:   playerID,
-		PlayerName: playerName,
-	}
-
-	return &PlayerJoinedEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerJoined, gameID, payload),
 	}
 }
 
@@ -54,49 +38,12 @@ func NewGameStartedEvent(gameID string, playerCount int) *GameStartedEvent {
 	}
 }
 
-// PlayerStartingCardOptionsEvent represents when starting cards are dealt to a player
-type PlayerStartingCardOptionsEvent struct {
-	BaseEvent
-}
-
-// NewPlayerStartingCardOptionsEvent creates a new player starting card options event
-func NewPlayerStartingCardOptionsEvent(gameID, playerID string, cardOptions []string) *PlayerStartingCardOptionsEvent {
-	payload := PlayerStartingCardOptionsEventData{
-		GameID:      gameID,
-		PlayerID:    playerID,
-		CardOptions: cardOptions,
-	}
-
-	return &PlayerStartingCardOptionsEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerStartingCardOptions, gameID, payload),
-	}
-}
-
-// StartingCardSelectedEvent represents when a player selects starting cards
-type StartingCardSelectedEvent struct {
-	BaseEvent
-}
-
-// NewStartingCardSelectedEvent creates a new starting card selected event
-func NewStartingCardSelectedEvent(gameID, playerID string, selectedCards []string, cost int) *StartingCardSelectedEvent {
-	payload := StartingCardSelectedEventData{
-		GameID:        gameID,
-		PlayerID:      playerID,
-		SelectedCards: selectedCards,
-		Cost:          cost,
-	}
-
-	return &StartingCardSelectedEvent{
-		BaseEvent: NewBaseEvent(EventTypeStartingCardSelected, gameID, payload),
-	}
-}
-
-// GameUpdatedEvent represents when a game's state is updated
+// GameUpdatedEvent represents when any game state changes (consolidated from GameStateChangedEvent)
 type GameUpdatedEvent struct {
 	BaseEvent
 }
 
-// NewGameUpdatedEvent creates a new game updated event
+// NewGameUpdatedEvent creates a new game updated event (simplified payload)
 func NewGameUpdatedEvent(gameID string) *GameUpdatedEvent {
 	payload := GameUpdatedEventData{
 		GameID: gameID,
@@ -104,81 +51,6 @@ func NewGameUpdatedEvent(gameID string) *GameUpdatedEvent {
 
 	return &GameUpdatedEvent{
 		BaseEvent: NewBaseEvent(EventTypeGameUpdated, gameID, payload),
-	}
-}
-
-// CardPlayedEvent represents when a player plays a card
-type CardPlayedEvent struct {
-	BaseEvent
-}
-
-// NewCardPlayedEvent creates a new card played event
-func NewCardPlayedEvent(gameID, playerID, cardID string) *CardPlayedEvent {
-	payload := CardPlayedEventData{
-		GameID:   gameID,
-		PlayerID: playerID,
-		CardID:   cardID,
-	}
-
-	return &CardPlayedEvent{
-		BaseEvent: NewBaseEvent(EventTypeCardPlayed, gameID, payload),
-	}
-}
-
-// PlayerResourcesChangedEvent represents when a player's resources are modified
-type PlayerResourcesChangedEvent struct {
-	BaseEvent
-}
-
-// NewPlayerResourcesChangedEvent creates a new player resources changed event
-func NewPlayerResourcesChangedEvent(gameID, playerID string, beforeResources, afterResources model.Resources) *PlayerResourcesChangedEvent {
-	payload := PlayerResourcesChangedEventData{
-		GameID:          gameID,
-		PlayerID:        playerID,
-		BeforeResources: beforeResources,
-		AfterResources:  afterResources,
-	}
-
-	return &PlayerResourcesChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerResourcesChanged, gameID, payload),
-	}
-}
-
-// PlayerProductionChangedEvent represents when a player's production is modified
-type PlayerProductionChangedEvent struct {
-	BaseEvent
-}
-
-// NewPlayerProductionChangedEvent creates a new player production changed event
-func NewPlayerProductionChangedEvent(gameID, playerID string, beforeProduction, afterProduction model.Production) *PlayerProductionChangedEvent {
-	payload := PlayerProductionChangedEventData{
-		GameID:           gameID,
-		PlayerID:         playerID,
-		BeforeProduction: beforeProduction,
-		AfterProduction:  afterProduction,
-	}
-
-	return &PlayerProductionChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerProductionChanged, gameID, payload),
-	}
-}
-
-// PlayerTRChangedEvent represents when a player's terraform rating is modified
-type PlayerTRChangedEvent struct {
-	BaseEvent
-}
-
-// NewPlayerTRChangedEvent creates a new player TR changed event
-func NewPlayerTRChangedEvent(gameID, playerID string, beforeTR, afterTR int) *PlayerTRChangedEvent {
-	payload := PlayerTRChangedEventData{
-		GameID:   gameID,
-		PlayerID: playerID,
-		BeforeTR: beforeTR,
-		AfterTR:  afterTR,
-	}
-
-	return &PlayerTRChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerTRChanged, gameID, payload),
 	}
 }
 
@@ -198,21 +70,23 @@ func NewGameDeletedEvent(gameID string) *GameDeletedEvent {
 	}
 }
 
-// GameStateChangedEvent represents when a game's state is changed
-type GameStateChangedEvent struct {
+// Player Events
+
+// PlayerJoinedEvent represents when a player joins a game
+type PlayerJoinedEvent struct {
 	BaseEvent
 }
 
-// NewGameStateChangedEvent creates a new game state changed event
-func NewGameStateChangedEvent(gameID string, oldState, newState *model.Game) *GameStateChangedEvent {
-	payload := GameStateChangedEventData{
-		GameID:   gameID,
-		OldState: *oldState,
-		NewState: *newState,
+// NewPlayerJoinedEvent creates a new player joined event
+func NewPlayerJoinedEvent(gameID, playerID, playerName string) *PlayerJoinedEvent {
+	payload := PlayerJoinedEventData{
+		GameID:     gameID,
+		PlayerID:   playerID,
+		PlayerName: playerName,
 	}
 
-	return &GameStateChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypeGameStateChanged, gameID, payload),
+	return &PlayerJoinedEvent{
+		BaseEvent: NewBaseEvent(EventTypePlayerJoined, gameID, payload),
 	}
 }
 
@@ -234,71 +108,106 @@ func NewPlayerLeftEvent(gameID, playerID, playerName string) *PlayerLeftEvent {
 	}
 }
 
-// TemperatureChangedEvent represents when global temperature changes
-type TemperatureChangedEvent struct {
+// PlayerChangedEvent represents when player resources, production, or TR changes (consolidated event)
+type PlayerChangedEvent struct {
 	BaseEvent
 }
 
-// NewTemperatureChangedEvent creates a new temperature changed event
-func NewTemperatureChangedEvent(gameID string, oldTemperature, newTemperature int) *TemperatureChangedEvent {
-	payload := TemperatureChangedEventData{
-		GameID:         gameID,
-		OldTemperature: oldTemperature,
-		NewTemperature: newTemperature,
+// NewPlayerChangedEvent creates a new consolidated player changed event
+func NewPlayerChangedEvent(gameID, playerID, changeType string) *PlayerChangedEvent {
+	payload := PlayerChangedEventData{
+		GameID:     gameID,
+		PlayerID:   playerID,
+		ChangeType: changeType,
 	}
 
-	return &TemperatureChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypeTemperatureChanged, gameID, payload),
+	return &PlayerChangedEvent{
+		BaseEvent: NewBaseEvent(EventTypePlayerChanged, gameID, payload),
 	}
 }
 
-// OxygenChangedEvent represents when global oxygen level changes
-type OxygenChangedEvent struct {
+// Convenience constructors for specific player change types
+func NewPlayerResourcesChangedEvent(gameID, playerID string) *PlayerChangedEvent {
+	return NewPlayerChangedEvent(gameID, playerID, "resources")
+}
+
+func NewPlayerProductionChangedEvent(gameID, playerID string) *PlayerChangedEvent {
+	return NewPlayerChangedEvent(gameID, playerID, "production")
+}
+
+func NewPlayerTRChangedEvent(gameID, playerID string) *PlayerChangedEvent {
+	return NewPlayerChangedEvent(gameID, playerID, "terraform_rating")
+}
+
+// Card Events
+
+// CardDealtEvent represents when starting cards are dealt to a player (renamed from PlayerStartingCardOptionsEvent)
+type CardDealtEvent struct {
 	BaseEvent
 }
 
-// NewOxygenChangedEvent creates a new oxygen changed event
-func NewOxygenChangedEvent(gameID string, oldOxygen, newOxygen int) *OxygenChangedEvent {
-	payload := OxygenChangedEventData{
-		GameID:    gameID,
-		OldOxygen: oldOxygen,
-		NewOxygen: newOxygen,
+// NewCardDealtEvent creates a new card dealt event
+func NewCardDealtEvent(gameID, playerID string, cardOptions []string) *CardDealtEvent {
+	payload := CardDealtEventData{
+		GameID:      gameID,
+		PlayerID:    playerID,
+		CardOptions: cardOptions,
 	}
 
-	return &OxygenChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypeOxygenChanged, gameID, payload),
+	return &CardDealtEvent{
+		BaseEvent: NewBaseEvent(EventTypeCardDealt, gameID, payload),
 	}
 }
 
-// OceansChangedEvent represents when ocean count changes
-type OceansChangedEvent struct {
+// CardSelectedEvent represents when a player selects starting cards (renamed from StartingCardSelectedEvent)
+type CardSelectedEvent struct {
 	BaseEvent
 }
 
-// NewOceansChangedEvent creates a new oceans changed event
-func NewOceansChangedEvent(gameID string, oldOceans, newOceans int) *OceansChangedEvent {
-	payload := OceansChangedEventData{
-		GameID:    gameID,
-		OldOceans: oldOceans,
-		NewOceans: newOceans,
+// NewCardSelectedEvent creates a new card selected event
+func NewCardSelectedEvent(gameID, playerID string, selectedCards []string, cost int) *CardSelectedEvent {
+	payload := CardSelectedEventData{
+		GameID:        gameID,
+		PlayerID:      playerID,
+		SelectedCards: selectedCards,
+		Cost:          cost,
 	}
 
-	return &OceansChangedEvent{
-		BaseEvent: NewBaseEvent(EventTypeOceansChanged, gameID, payload),
+	return &CardSelectedEvent{
+		BaseEvent: NewBaseEvent(EventTypeCardSelected, gameID, payload),
 	}
 }
 
-// GlobalParametersChangedEvent represents when any global parameters change
+// CardPlayedEvent represents when a player plays a card
+type CardPlayedEvent struct {
+	BaseEvent
+}
+
+// NewCardPlayedEvent creates a new card played event
+func NewCardPlayedEvent(gameID, playerID, cardID string) *CardPlayedEvent {
+	payload := CardPlayedEventData{
+		GameID:   gameID,
+		PlayerID: playerID,
+		CardID:   cardID,
+	}
+
+	return &CardPlayedEvent{
+		BaseEvent: NewBaseEvent(EventTypeCardPlayed, gameID, payload),
+	}
+}
+
+// Global Events
+
+// GlobalParametersChangedEvent represents when any global parameters change (consolidated from individual parameter events)
 type GlobalParametersChangedEvent struct {
 	BaseEvent
 }
 
 // NewGlobalParametersChangedEvent creates a new global parameters changed event
-func NewGlobalParametersChangedEvent(gameID string, oldParameters, newParameters model.GlobalParameters) *GlobalParametersChangedEvent {
+func NewGlobalParametersChangedEvent(gameID string, changeTypes []string) *GlobalParametersChangedEvent {
 	payload := GlobalParametersChangedEventData{
-		GameID:        gameID,
-		OldParameters: oldParameters,
-		NewParameters: newParameters,
+		GameID:      gameID,
+		ChangeTypes: changeTypes,
 	}
 
 	return &GlobalParametersChangedEvent{

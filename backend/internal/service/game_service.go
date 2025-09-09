@@ -380,7 +380,7 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		s.cardService.StorePlayerCardOptions(gameID, player.ID, cardOptions)
 
 		// Create and publish event
-		event := events.NewPlayerStartingCardOptionsEvent(gameID, player.ID, cardOptions)
+		event := events.NewCardDealtEvent(gameID, player.ID, cardOptions)
 
 		// Publish the event through the event bus
 		if s.eventBus != nil {
