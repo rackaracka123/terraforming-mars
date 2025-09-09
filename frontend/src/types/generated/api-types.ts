@@ -8,7 +8,9 @@
  */
 export type ActionType = string;
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
+export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
+export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
 /**
  * Standard Projects
@@ -30,6 +32,12 @@ export interface SelectStartingCardAction {
  * StartGameAction represents starting the game (host only)
  */
 export interface StartGameAction {
+  type: ActionType;
+}
+/**
+ * SkipAction represents skipping a player's turn
+ */
+export interface SkipAction {
   type: ActionType;
 }
 /**
@@ -94,9 +102,22 @@ export interface ActionSelectStartingCardRequest {
   cardIds: string[];
 }
 /**
+ * ActionSelectProductionCardsRequest contains the action data for select production card actions
+ */
+export interface ActionSelectProductionCardsRequest {
+  type: ActionType;
+  cardIds: string[];
+}
+/**
  * ActionStartGameRequest contains the action data for start game actions
  */
 export interface ActionStartGameRequest {
+  type: ActionType;
+}
+/**
+ * ActionSkipActionRequest contains the action data for skip action actions
+ */
+export interface ActionSkipActionRequest {
   type: ActionType;
 }
 /**
@@ -278,7 +299,7 @@ export interface GameDto {
   viewingPlayerId: string; // The player viewing this game state
   currentTurn?: string; // Whose turn it is (nullable)
   generation: number /* int */;
-  remainingActions: number /* int */;
+  remainingActions: number /* int */; // Remaining actions in the current turn
 }
 
 //////////
@@ -371,6 +392,8 @@ export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
+export const MessageTypeProductionPhaseStarted: MessageType =
+  "production-phase-started";
 /**
  * WebSocketMessage represents a WebSocket message
  */
@@ -447,5 +470,26 @@ export interface PlayerReconnectedPayload {
 export interface PlayerDisconnectedPayload {
   playerId: string;
   playerName: string;
+  game: GameDto;
+}
+/**
+ * PlayerProductionData contains production data for a single player
+ */
+export interface PlayerProductionData {
+  playerId: string;
+  playerName: string;
+  beforeResources: ResourcesDto;
+  afterResources: ResourcesDto;
+  production: ProductionDto;
+  terraformRating: number /* int */;
+  energyConverted: number /* int */;
+  creditsIncome: number /* int */;
+}
+/**
+ * ProductionPhaseStartedPayload contains data when production phase begins
+ */
+export interface ProductionPhaseStartedPayload {
+  generation: number /* int */;
+  playersData: PlayerProductionData[];
   game: GameDto;
 }

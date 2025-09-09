@@ -26,6 +26,8 @@ type GameRepository interface {
 	UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error
 	UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error
 	UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
+	UpdateCurrentTurn(ctx context.Context, gameID string, playerID *string) error
+
 	SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error
 	SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error
 	AddPlayerID(ctx context.Context, gameID string, playerID string) error
@@ -262,6 +264,11 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 	}
 
 	return nil
+}
+
+// UpdateCurrentTurn updates the current turn (whose turn it is to play)
+func (r *GameRepositoryImpl) UpdateCurrentTurn(ctx context.Context, gameID string, playerID *string) error {
+	return r.SetCurrentTurn(ctx, gameID, playerID)
 }
 
 // SetCurrentPlayer sets the current active player

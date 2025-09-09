@@ -5,8 +5,11 @@ type ActionType string
 
 const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
-	ActionTypeStartGame          ActionType = "start-game"
-	ActionTypePlayCard           ActionType = "play-card"
+	ActionTypeSelectCards        ActionType = "select-cards"
+
+	ActionTypeStartGame  ActionType = "start-game"
+	ActionTypeSkipAction ActionType = "skip-action"
+	ActionTypePlayCard   ActionType = "play-card"
 	// Standard Projects
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
@@ -24,6 +27,11 @@ type SelectStartingCardAction struct {
 
 // StartGameAction represents starting the game (host only)
 type StartGameAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// SkipAction represents skipping a player's turn
+type SkipAction struct {
 	Type ActionType `json:"type" ts:"ActionType"`
 }
 
@@ -81,6 +89,12 @@ type ActionSelectStartingCardRequest struct {
 	CardIDs []string   `json:"cardIds" ts:"string[]"`
 }
 
+// ActionSelectProductionCardsRequest contains the action data for select production card actions
+type ActionSelectProductionCardsRequest struct {
+	Type    ActionType `json:"type" ts:"ActionType"`
+	CardIDs []string   `json:"cardIds" ts:"string[]"`
+}
+
 // GetAction returns the select starting card action
 func (ap *ActionSelectStartingCardRequest) GetAction() *SelectStartingCardAction {
 	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
@@ -94,6 +108,16 @@ type ActionStartGameRequest struct {
 // GetAction returns the start game action
 func (ap *ActionStartGameRequest) GetAction() *StartGameAction {
 	return &StartGameAction{Type: ap.Type}
+}
+
+// ActionSkipActionRequest contains the action data for skip action actions
+type ActionSkipActionRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the skip action action
+func (ap *ActionSkipActionRequest) GetAction() *SkipAction {
+	return &SkipAction{Type: ap.Type}
 }
 
 // ActionPlayCardRequest contains the action data for play card actions

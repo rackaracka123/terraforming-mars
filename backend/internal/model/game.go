@@ -16,7 +16,7 @@ type Game struct {
 	ViewingPlayerID  string           `json:"viewingPlayerId" ts:"string"`  // The player viewing this game state
 	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
 	Generation       int              `json:"generation" ts:"number"`
-	RemainingActions int              `json:"remainingActions" ts:"number"`
+	RemainingActions int              `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
 }
 
 // NewGame creates a new game with the given settings
@@ -36,7 +36,6 @@ func NewGame(id string, settings GameSettings) *Game {
 			Oxygen:      0,
 			Oceans:      0,
 		},
-		Generation:       1,
-		RemainingActions: 0,
+		Generation: 1,
 	}
 }
