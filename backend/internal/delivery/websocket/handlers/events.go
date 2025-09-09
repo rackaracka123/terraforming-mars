@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"

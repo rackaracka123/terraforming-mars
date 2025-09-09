@@ -21,6 +21,7 @@ type ActionHandler struct {
 	cardActions      *actions.CardActions
 	parser           *utils.MessageParser
 	errorHandler     *utils.ErrorHandler
+	broadcaster      *core.Broadcaster
 	logger           *zap.Logger
 }
 
@@ -30,13 +31,15 @@ func NewActionHandler(
 	playerService service.PlayerService,
 	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
+	broadcaster *core.Broadcaster,
 ) *ActionHandler {
 	return &ActionHandler{
-		gameActions:      actions.NewGameActions(gameService),
+		gameActions:      actions.NewGameActions(gameService, playerService, broadcaster),
 		standardProjects: actions.NewStandardProjects(standardProjectService),
 		cardActions:      actions.NewCardActions(cardService, gameService),
 		parser:           utils.NewMessageParser(),
 		errorHandler:     utils.NewErrorHandler(),
+		broadcaster:      broadcaster,
 		logger:           logger.Get(),
 	}
 }
@@ -103,10 +106,14 @@ func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, acti
 	// Game actions
 	case dto.ActionTypeStartGame:
 		return ah.gameActions.StartGame(ctx, gameID, playerID)
+	case dto.ActionTypeSkipAction:
+		return ah.gameActions.SkipAction(ctx, gameID, playerID)
 
 	// Card actions
 	case dto.ActionTypeSelectStartingCard:
 		return ah.cardActions.SelectStartingCards(ctx, gameID, playerID, actionRequest)
+	case dto.ActionTypeSelectCards:
+		return ah.cardActions.SelectProductionCards(ctx, gameID, playerID, actionRequest)
 
 	// Standard projects
 	case dto.ActionTypeSellPatents:

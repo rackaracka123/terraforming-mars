@@ -65,3 +65,27 @@ func (ca *CardActions) SelectStartingCards(ctx context.Context, gameID, playerID
 
 	return nil
 }
+
+// SelectProductionCards handles card selection during the game (i.e. after production)
+func (ca *CardActions) SelectProductionCards(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionSelectProductionCardsRequest
+	if err := ca.parser.ParsePayload(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid select card request: %w", err)
+	}
+
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Player selecting production cards",
+		zap.Strings("card_ids", request.CardIDs),
+		zap.Int("count", len(request.CardIDs)))
+
+	// Process the card selection through CardService
+	if err := ca.cardService.SelectProductionCards(ctx, gameID, playerID, request.CardIDs); err != nil {
+		log.Error("Failed to select production cards", zap.Error(err))
+		return fmt.Errorf("card selection failed: %w", err)
+	}
+
+	log.Info("Player completed production card selection",
+		zap.Strings("selected_cards", request.CardIDs))
+
+	return nil
+}
