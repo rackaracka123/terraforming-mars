@@ -527,7 +527,7 @@ func (s *GameServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID str
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProduction); err != nil {
+	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProductionAndCardDraw); err != nil {
 		log.Error("Failed to update game phase to production", zap.Error(err))
 		return nil, fmt.Errorf("failed to update game phase: %w", err)
 	}
@@ -564,7 +564,7 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		return nil, fmt.Errorf("game is not active")
 	}
 
-	if game.CurrentPhase != model.GamePhaseProduction {
+	if game.CurrentPhase != model.GamePhaseProductionAndCardDraw {
 		log.Warn("Attempted to mark ready in non-production phase", zap.String("current_phase", string(game.CurrentPhase)))
 		return nil, fmt.Errorf("game is not in production phase")
 	}
