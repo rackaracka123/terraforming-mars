@@ -21,6 +21,7 @@ type ActionHandler struct {
 	cardActions      *actions.CardActions
 	parser           *utils.MessageParser
 	errorHandler     *utils.ErrorHandler
+	broadcaster      *core.Broadcaster
 	logger           *zap.Logger
 }
 
@@ -30,13 +31,15 @@ func NewActionHandler(
 	playerService service.PlayerService,
 	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
+	broadcaster *core.Broadcaster,
 ) *ActionHandler {
 	return &ActionHandler{
-		gameActions:      actions.NewGameActions(gameService),
+		gameActions:      actions.NewGameActions(gameService, playerService, broadcaster),
 		standardProjects: actions.NewStandardProjects(standardProjectService),
 		cardActions:      actions.NewCardActions(cardService, gameService),
 		parser:           utils.NewMessageParser(),
 		errorHandler:     utils.NewErrorHandler(),
+		broadcaster:      broadcaster,
 		logger:           logger.Get(),
 	}
 }
@@ -46,8 +49,6 @@ func (ah *ActionHandler) HandleMessage(ctx context.Context, connection *core.Con
 	switch message.Type {
 	case dto.MessageTypePlayAction:
 		ah.handlePlayAction(ctx, connection, message)
-	case dto.MessageTypeProductionCardsSelected:
-		ah.handleProductionCardsSelected(ctx, connection, message)
 	}
 }
 
@@ -132,60 +133,6 @@ func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, acti
 		ah.logger.Warn("Unsupported action type", zap.String("action_type", actionType))
 		return ErrUnsupportedActionType
 	}
-}
-
-// ProductionPhaseReady handles production phase ready acknowledgments from clients
-func (ah *ActionHandler) handleProductionCardsSelected(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
-	playerID, gameID := connection.GetPlayer()
-	if playerID == "" || gameID == "" {
-		ah.logger.Warn("Production phase ready received from unassigned connection",
-			zap.String("connection_id", connection.ID))
-		ah.errorHandler.SendError(connection, "You must connect to a game first")
-		return
-	}
-
-	var payload dto.ProductionCardsSelected
-	if err := ah.parser.ParsePayload(message.Payload, &payload); err != nil {
-		ah.logger.Error("Failed to parse production phase ready payload",
-			zap.Error(err),
-			zap.String("connection_id", connection.ID))
-		ah.errorHandler.SendError(connection, "Invalid production phase ready payload")
-		return
-	}
-
-	// Validate that the player ID in the payload matches the connection's player ID
-	if payload.PlayerID != playerID {
-		ah.logger.Warn("Production phase ready payload player ID mismatch",
-			zap.String("connection_player_id", playerID),
-			zap.String("payload_player_id", payload.PlayerID),
-			zap.String("connection_id", connection.ID))
-		ah.errorHandler.SendError(connection, "Player ID mismatch")
-		return
-	}
-
-	ah.logger.Info("🎯 Processing production phase ready from player",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
-
-	// Process the ready acknowledgment through game service
-	game, err := ah.cardActions.SelectProductionCards(ctx, gameID, playerID)
-	if err != nil {
-		ah.logger.Error("Failed to process production phase ready",
-			zap.Error(err),
-			zap.String("connection_id", connection.ID),
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID))
-		ah.errorHandler.SendError(connection, fmt.Sprintf("Production phase ready failed: %v", err))
-		return
-	}
-
-	ah.logger.Info("✅ Production phase ready processed and game state broadcasted",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.Int("ready_players", readyCount),
-		zap.Int("total_players", len(game.Players)))
 }
 
 // Custom errors

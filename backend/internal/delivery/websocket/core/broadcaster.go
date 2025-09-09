@@ -290,3 +290,24 @@ func (b *Broadcaster) SendAvailableCardsToPlayer(ctx context.Context, gameID, pl
 			zap.String("player_id", playerID))
 	}
 }
+
+// BroadcastProductionPhaseStarted sends production phase started messages to all players in the game
+func (b *Broadcaster) BroadcastProductionPhaseStarted(ctx context.Context, gameID string, playersData []dto.PlayerProductionData) {
+	// Create production phase started payload
+	productionPayload := dto.ProductionPhaseStartedPayload{
+		PlayersData: playersData,
+	}
+
+	productionMessage := dto.WebSocketMessage{
+		Type:    dto.MessageTypeProductionPhaseStarted,
+		Payload: productionPayload,
+		GameID:  gameID,
+	}
+
+	// Broadcast to all players in the game
+	b.BroadcastToGame(gameID, productionMessage)
+
+	b.logger.Info("📢 Broadcasted production phase started to all players",
+		zap.String("game_id", gameID),
+		zap.Int("players_data_count", len(playersData)))
+}

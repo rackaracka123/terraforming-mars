@@ -8,6 +8,7 @@
  */
 export type ActionType = string;
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
+export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
@@ -97,6 +98,13 @@ export interface BuildCityAction {
  * ActionSelectStartingCardRequest contains the action data for select starting card actions
  */
 export interface ActionSelectStartingCardRequest {
+  type: ActionType;
+  cardIds: string[];
+}
+/**
+ * ActionSelectProductionCardsRequest contains the action data for select production card actions
+ */
+export interface ActionSelectProductionCardsRequest {
   type: ActionType;
   cardIds: string[];
 }
@@ -287,6 +295,7 @@ export interface GameDto {
   viewingPlayerId: string; // The player viewing this game state
   currentTurn?: string; // Whose turn it is (nullable)
   generation: number /* int */;
+  remainingActions: number /* int */; // Remaining actions in the current turn
 }
 
 //////////
@@ -369,7 +378,6 @@ export type MessageType = string;
 export const MessageTypePlayerConnect: MessageType = "player-connect";
 export const MessageTypePlayerReconnect: MessageType = "player-reconnect";
 export const MessageTypePlayAction: MessageType = "do-action";
-export const MessageTypeProductionPhaseReady: MessageType = "production-phase-ready";
 /**
  * Server -> Client messages
  */
@@ -465,7 +473,6 @@ export interface PlayerDisconnectedPayload {
 export interface PlayerProductionData {
   playerId: string;
   playerName: string;
-  playerColor: string;
   beforeResources: ResourcesDto;
   afterResources: ResourcesDto;
   production: ProductionDto;
@@ -480,10 +487,4 @@ export interface ProductionPhaseStartedPayload {
   generation: number /* int */;
   playersData: PlayerProductionData[];
   game: GameDto;
-}
-/**
- * ProductionPhaseReadyPayload contains acknowledgment data from client
- */
-export interface ProductionPhaseReadyPayload {
-  playerId: string;
 }

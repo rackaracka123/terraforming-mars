@@ -5,10 +5,9 @@ type MessageType string
 
 const (
 	// Client -> Server messages
-	MessageTypePlayerConnect           MessageType = "player-connect"
-	MessageTypePlayerReconnect         MessageType = "player-reconnect"
-	MessageTypePlayAction              MessageType = "do-action"
-	MessageTypeProductionCardsSelected MessageType = "production-cards-selected"
+	MessageTypePlayerConnect   MessageType = "player-connect"
+	MessageTypePlayerReconnect MessageType = "player-reconnect"
+	MessageTypePlayAction      MessageType = "do-action"
 
 	// Server -> Client messages
 	MessageTypeGameUpdated            MessageType = "game-updated"
@@ -92,7 +91,6 @@ type PlayerDisconnectedPayload struct {
 type PlayerProductionData struct {
 	PlayerID        string        `json:"playerId" ts:"string"`
 	PlayerName      string        `json:"playerName" ts:"string"`
-	PlayerColor     string        `json:"playerColor" ts:"string"`
 	BeforeResources ResourcesDto  `json:"beforeResources" ts:"ResourcesDto"`
 	AfterResources  ResourcesDto  `json:"afterResources" ts:"ResourcesDto"`
 	Production      ProductionDto `json:"production" ts:"ProductionDto"`
@@ -106,11 +104,4 @@ type ProductionPhaseStartedPayload struct {
 	Generation  int                    `json:"generation" ts:"number"`
 	PlayersData []PlayerProductionData `json:"playersData" ts:"PlayerProductionData[]"`
 	Game        GameDto                `json:"game" ts:"GameDto"`
-}
-
-// ProductionCardsSelected contains acknowledgment data from client
-type ProductionCardsSelected struct {
-	PlayerID      string   `json:"playerId" ts:"string"`
-	PlayerName    string   `json:"playerName" ts:"string"`
-	CardsSelected []string `json:"cardsSelected" ts:"string[]"`
 }
