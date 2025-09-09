@@ -7,7 +7,11 @@ import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
-import { GameDto, PlayerDto, OtherPlayerDto } from "../../../types/generated/api-types.ts";
+import {
+  GameDto,
+  PlayerDto,
+  OtherPlayerDto,
+} from "../../../types/generated/api-types.ts";
 import styles from "./GameLayout.module.css";
 
 interface GameLayoutProps {
@@ -34,7 +38,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenVictoryPointsModal,
 }) => {
   // Convert OtherPlayerDto to PlayerDto for LeftSidebar compatibility
-  const convertOtherPlayerToPlayerDto = (otherPlayer: OtherPlayerDto): PlayerDto => ({
+  const convertOtherPlayerToPlayerDto = (
+    otherPlayer: OtherPlayerDto,
+  ): PlayerDto => ({
     ...otherPlayer,
     cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
   });
@@ -49,10 +55,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         <TopMenuBar />
 
         <div className={styles.gameContent}>
-          <LeftSidebar
-            players={allPlayers}
-            currentPlayer={currentPlayer}
-          />
+          <LeftSidebar players={allPlayers} currentPlayer={currentPlayer} />
 
           <MainContentDisplay gameState={gameState} />
 
