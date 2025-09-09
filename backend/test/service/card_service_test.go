@@ -18,7 +18,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 
 	ctx := context.Background()
 
@@ -60,8 +61,20 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
 	require.NoError(t, err)
 
-	// Store starting card options
-	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	// Load cards and get real card IDs for testing
+	err = cardDataService.LoadCards()
+	require.NoError(t, err, "Should load card data for testing")
+
+	startingCards := cardDataService.GetStartingCardPool()
+	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
+
+	// Use real card IDs from loaded data
+	availableCards := []string{
+		startingCards[0].ID,
+		startingCards[1].ID,
+		startingCards[2].ID,
+		startingCards[3].ID,
+	}
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
 	cardServiceImpl.StorePlayerCardOptions(gameID, player.ID, availableCards)
 
@@ -80,25 +93,25 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		},
 		{
 			name:          "Select one card (free)",
-			selectedCards: []string{"investment"},
+			selectedCards: []string{availableCards[0]},
 			expectedCost:  0,
 			expectedError: false,
 		},
 		{
 			name:          "Select two cards (3 MC for second)",
-			selectedCards: []string{"investment", "early-settlement"},
+			selectedCards: []string{availableCards[0], availableCards[1]},
 			expectedCost:  3,
 			expectedError: false,
 		},
 		{
 			name:          "Select three cards (6 MC total)",
-			selectedCards: []string{"investment", "early-settlement", "research-grant"},
+			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2]},
 			expectedCost:  6,
 			expectedError: false,
 		},
 		{
 			name:          "Select four cards (9 MC total)",
-			selectedCards: []string{"investment", "early-settlement", "research-grant", "power-plant"},
+			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3]},
 			expectedCost:  9,
 			expectedError: false,
 		},
@@ -184,12 +197,42 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 
 	ctx := context.Background()
 
-	// Store starting card options
-	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	// Load cards and get real card IDs for testing
+	err := cardDataService.LoadCards()
+	require.NoError(t, err, "Should load card data for testing")
+
+	startingCards := cardDataService.GetStartingCardPool()
+	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
+
+	// Store starting card options using real card IDs
+	availableCards := []string{
+		startingCards[0].ID,
+		startingCards[1].ID,
+		startingCards[2].ID,
+		startingCards[3].ID,
+	}
+
+	// Get a card that exists but is NOT in the player's options
+	var cardNotInOptions string
+	for _, card := range startingCards {
+		found := false
+		for _, available := range availableCards {
+			if card.ID == available {
+				found = true
+				break
+			}
+		}
+		if !found {
+			cardNotInOptions = card.ID
+			break
+		}
+	}
+
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
 	cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
 
@@ -201,7 +244,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	}{
 		{
 			name:          "Valid selection from options",
-			cardIDs:       []string{"investment", "early-settlement"},
+			cardIDs:       []string{availableCards[0], availableCards[1]},
 			expectedError: false,
 		},
 		{
@@ -211,13 +254,13 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		},
 		{
 			name:          "Card not in player's options",
-			cardIDs:       []string{"heat-generators"}, // Valid card but not in player's available options
+			cardIDs:       []string{cardNotInOptions}, // Real card but not in player's options
 			expectedError: true,
-			errorMessage:  "card heat-generators is not in player's available options",
+			errorMessage:  "not in player's available options",
 		},
 		{
 			name:          "Too many cards",
-			cardIDs:       []string{"investment", "early-settlement", "research-grant", "power-plant", "extra"},
+			cardIDs:       []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3], "extra"},
 			expectedError: true,
 			errorMessage:  "cannot select more than 4 cards, got 5",
 		},
@@ -253,7 +296,8 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 
 	ctx := context.Background()
 
@@ -302,14 +346,26 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	err = gameRepo.AddPlayerID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 
+	// Load cards and get real card IDs for testing
+	err = cardDataService.LoadCards()
+	require.NoError(t, err, "Should load card data for testing")
+
+	startingCards := cardDataService.GetStartingCardPool()
+	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
+
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
 
 	// Test: No players have selection data
 	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
-	// Setup card options for both players
-	availableCards := []string{"investment", "early-settlement", "research-grant", "power-plant"}
+	// Setup card options for both players using real card IDs
+	availableCards := []string{
+		startingCards[0].ID,
+		startingCards[1].ID,
+		startingCards[2].ID,
+		startingCards[3].ID,
+	}
 	cardServiceImpl.StorePlayerCardOptions(gameID, player1.ID, availableCards)
 	cardServiceImpl.StorePlayerCardOptions(gameID, player2.ID, availableCards)
 
@@ -318,14 +374,14 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	assert.False(t, complete)
 
 	// Test: Only one player completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{"investment"})
+	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCards[0]})
 	require.NoError(t, err)
 
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
 	// Test: All players completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{"early-settlement"})
+	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCards[1]})
 	require.NoError(t, err)
 
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)

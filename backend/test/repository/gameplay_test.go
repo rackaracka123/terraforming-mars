@@ -25,7 +25,8 @@ func TestGameplayLogic(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
-	cardService := service.NewCardService(gameRepo, playerRepo)
+	cardDataService := service.NewCardDataService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 

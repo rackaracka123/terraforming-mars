@@ -17,6 +17,7 @@ const (
 	TagVenus    CardTag = "venus"
 	TagJovian   CardTag = "jovian"
 	TagWildlife CardTag = "wildlife"
+	TagWild     CardTag = "wild"
 )
 
 // ResourceSet represents a collection of resources and their amounts

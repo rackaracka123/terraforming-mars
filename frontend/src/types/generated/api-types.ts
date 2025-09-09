@@ -194,10 +194,64 @@ export const GameStatusCompleted: GameStatus = "completed";
  * CardType represents different types of cards
  */
 export type CardType = string;
-export const CardTypeEffect: CardType = "effect";
+export const CardTypeAutomated: CardType = "automated"; // Updated from "effect" to match JSON data
 export const CardTypeActive: CardType = "active";
 export const CardTypeEvent: CardType = "event";
 export const CardTypeCorporation: CardType = "corporation";
+export const CardTypePrelude: CardType = "prelude";
+/**
+ * CardTag represents different card categories and attributes
+ */
+export type CardTag = string;
+export const TagSpace: CardTag = "space";
+export const TagEarth: CardTag = "earth";
+export const TagScience: CardTag = "science";
+export const TagPower: CardTag = "power";
+export const TagBuilding: CardTag = "building";
+export const TagMicrobe: CardTag = "microbe";
+export const TagAnimal: CardTag = "animal";
+export const TagPlant: CardTag = "plant";
+export const TagEvent: CardTag = "event";
+export const TagCity: CardTag = "city";
+export const TagVenus: CardTag = "venus";
+export const TagJovian: CardTag = "jovian";
+export const TagWildlife: CardTag = "wildlife";
+export const TagWild: CardTag = "wild";
+/**
+ * ResourceSet represents a collection of resources and their amounts
+ */
+export interface ResourceSet {
+  credits: number /* int */;
+  steel: number /* int */;
+  titanium: number /* int */;
+  plants: number /* int */;
+  energy: number /* int */;
+  heat: number /* int */;
+}
+/**
+ * CardRequirements defines what conditions must be met to play a card
+ */
+export interface CardRequirements {
+  minTemperature?: number /* int */;
+  maxTemperature?: number /* int */;
+  minOxygen?: number /* int */;
+  maxOxygen?: number /* int */;
+  minOceans?: number /* int */;
+  maxOceans?: number /* int */;
+  requiredTags: CardTag[];
+  requiredProduction?: ResourceSet;
+}
+/**
+ * ProductionEffects represents changes to resource production
+ */
+export interface ProductionEffects {
+  credits: number /* int */;
+  steel: number /* int */;
+  titanium: number /* int */;
+  plants: number /* int */;
+  energy: number /* int */;
+  heat: number /* int */;
+}
 /**
  * CardDto represents a card for client consumption
  */
@@ -207,6 +261,25 @@ export interface CardDto {
   type: CardType;
   cost: number /* int */;
   description: string;
+  tags: CardTag[];
+  requirements: CardRequirements;
+  victoryPoints: number /* int */;
+  number: string;
+  productionEffects?: ProductionEffects;
+}
+/**
+ * CorporationDto represents a corporation for client consumption
+ */
+export interface CorporationDto {
+  id: string;
+  name: string;
+  description: string;
+  startingCredits: number /* int */;
+  startingResources: ResourceSet;
+  startingProduction: ResourceSet;
+  tags: CardTag[];
+  specialEffects: string[];
+  number: string;
 }
 /**
  * GameSettingsDto contains configurable game parameters

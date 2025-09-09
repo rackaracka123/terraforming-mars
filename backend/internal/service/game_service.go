@@ -637,8 +637,8 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
 
-	// Get all available starting cards
-	allStartingCards := model.GetStartingCards()
+	// Get all available starting cards from CardService (which uses loaded data)
+	allStartingCards := s.cardService.GetStartingCards()
 	startingCardIDs := make([]string, len(allStartingCards))
 	for i, card := range allStartingCards {
 		startingCardIDs[i] = card.ID
