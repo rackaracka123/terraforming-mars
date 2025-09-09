@@ -48,6 +48,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     hasForest: boolean;
     hasCity: boolean;
     type: string;
+    temperature?: number;
   }) => {
     if (hex.hasOcean) return "#3498db";
     if (hex.hasForest) return "#27ae60";
@@ -55,7 +56,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
     if (hex.type === "special") return "#e74c3c";
 
     // Temperature-based coloring for Mars surface
-    const temp = hex.temperature;
+    const temp = hex.temperature ?? 0; // Default to 0 if undefined
     if (temp < -20) return "#8b4513"; // Cold brown
     if (temp < 0) return "#cd853f"; // Warmer brown
     return "#daa520"; // Desert gold
@@ -126,7 +127,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .game-board {
           flex: 1;
           position: relative;

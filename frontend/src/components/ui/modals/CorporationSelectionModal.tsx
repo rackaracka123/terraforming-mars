@@ -98,7 +98,7 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
           </button>
         </div>
 
-        <style jsx>{`
+        <style>{`
           .modal-overlay {
             position: fixed;
             top: 0;
