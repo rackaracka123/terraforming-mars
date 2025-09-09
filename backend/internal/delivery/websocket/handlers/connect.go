@@ -95,11 +95,9 @@ func (ch *ConnectionHandler) handlePlayerConnect(ctx context.Context, connection
 	// Send confirmations and updates
 	ch.sendConnectionConfirmation(connection, finalPlayerID, payload.PlayerName, *game)
 
-	if isNewPlayer {
-		// Send game-updated to all players in the game (including the new player)
-		// This ensures all clients have the updated game state with the new player
-		ch.broadcaster.SendPersonalizedGameUpdates(ctx, payload.GameID)
-	}
+	// Send game-updated to all players in the game (including the new player)
+	// This ensures all clients have the updated game state when any player connects/reconnects
+	ch.broadcaster.SendPersonalizedGameUpdates(ctx, payload.GameID)
 
 	ch.logger.Info("🎮 Player connected via WebSocket",
 		zap.String("connection_id", connection.ID),
@@ -224,7 +222,28 @@ func (ch *ConnectionHandler) joinGame(ctx context.Context, connection *core.Conn
 }
 
 func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connection, playerID, playerName string, game model.Game) {
-	gameDTO := dto.ToGameDtoBasic(game)
+	// Get all players for the game to create personalized view
+	players, err := ch.playerService.GetPlayersForGame(context.Background(), game.ID)
+	if err != nil {
+		ch.logger.Error("❌ CRITICAL: Failed to get players for game - this should not happen", 
+			zap.Error(err), zap.String("game_id", game.ID), zap.String("player_id", playerID))
+		// Continue with basic DTO to avoid breaking the connection
+		gameDTO := dto.ToGameDtoBasic(game)
+		playerConnectedMsg := dto.WebSocketMessage{
+			Type: dto.MessageTypePlayerConnected,
+			Payload: dto.PlayerConnectedPayload{
+				PlayerID:   playerID,
+				PlayerName: playerName,
+				Game:       gameDTO,
+			},
+			GameID: game.ID,
+		}
+		ch.broadcaster.BroadcastToGame(game.ID, playerConnectedMsg)
+		return
+	}
+
+	// Create personalized game DTO for the connecting player
+	gameDTO := dto.ToGameDto(game, players, playerID)
 
 	playerConnectedMsg := dto.WebSocketMessage{
 		Type: dto.MessageTypePlayerConnected,
@@ -236,7 +255,11 @@ func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connect
 		GameID: game.ID,
 	}
 
-	ch.broadcaster.BroadcastToGame(game.ID, playerConnectedMsg)
+	// Send direct confirmation to the connecting player
+	ch.broadcaster.SendToConnection(connection, playerConnectedMsg)
+	
+	// Also broadcast to other players in the game
+	ch.broadcaster.BroadcastToGameExcept(game.ID, playerConnectedMsg, connection)
 }
 
 func (ch *ConnectionHandler) sendPersonalizedUpdate(ctx context.Context, connection *core.Connection, playerID, gameID string) {
@@ -263,12 +286,33 @@ func (ch *ConnectionHandler) handleExistingConnection(playerID, gameID string) {
 }
 
 func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connection *core.Connection, game *model.Game, player *model.Player) {
-	gameDTO := dto.ToGameDtoBasic(*game)
+	// Get all players for the game to create personalized view
+	players, err := ch.playerService.GetPlayersForGame(ctx, game.ID)
+	if err != nil {
+		ch.logger.Error("❌ CRITICAL: Failed to get players for reconnection - this should not happen", 
+			zap.Error(err), zap.String("game_id", game.ID), zap.String("player_id", player.ID))
+		// Continue with basic DTO to avoid breaking the reconnection
+		gameDTO := dto.ToGameDtoBasic(*game)
+		reconnectedMessage := dto.WebSocketMessage{
+			Type: dto.MessageTypePlayerReconnected,
+			Payload: dto.PlayerReconnectedPayload{
+				PlayerID:   player.ID,
+				PlayerName: player.Name,
+				Game:       gameDTO,
+			},
+			GameID: game.ID,
+		}
+		ch.broadcaster.SendToConnection(connection, reconnectedMessage)
+		return
+	}
 
-	// Send primary reconnection confirmation
-	primaryMessage := dto.WebSocketMessage{
-		Type: dto.MessageTypePlayerConnected,
-		Payload: dto.PlayerConnectedPayload{
+	// Create personalized game DTO for the reconnecting player
+	gameDTO := dto.ToGameDto(*game, players, player.ID)
+
+	// Send reconnection confirmation message that frontend expects
+	reconnectedMessage := dto.WebSocketMessage{
+		Type: dto.MessageTypePlayerReconnected,
+		Payload: dto.PlayerReconnectedPayload{
 			PlayerID:   player.ID,
 			PlayerName: player.Name,
 			Game:       gameDTO,
@@ -276,7 +320,7 @@ func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connectio
 		GameID: game.ID,
 	}
 
-	ch.broadcaster.SendToConnection(connection, primaryMessage)
+	ch.broadcaster.SendToConnection(connection, reconnectedMessage)
 
 	// Send current game update
 	gameUpdateMessage := dto.WebSocketMessage{
@@ -291,6 +335,8 @@ func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connectio
 }
 
 func (ch *ConnectionHandler) broadcastPlayerReconnection(ctx context.Context, game *model.Game, player *model.Player, gameID string, connection *core.Connection) {
+	// For broadcasting to other players, we can use basic DTO since each client will get their own personalized view 
+	// through the regular game-updated messages
 	reconnectedPayload := dto.PlayerReconnectedPayload{
 		PlayerID:   player.ID,
 		PlayerName: player.Name,

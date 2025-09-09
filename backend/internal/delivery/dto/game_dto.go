@@ -122,7 +122,8 @@ type GameDto struct {
 	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`
 	CurrentPlayer    PlayerDto           `json:"currentPlayer" ts:"PlayerDto"`      // Viewing player's full data
 	OtherPlayers     []OtherPlayerDto    `json:"otherPlayers" ts:"OtherPlayerDto[]"` // Other players' limited data
-	CurrentPlayerID  string              `json:"currentPlayerId" ts:"string"`
+	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`       // The player viewing this game state
+	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`      // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
 	RemainingActions int                 `json:"remainingActions" ts:"number"`
 }

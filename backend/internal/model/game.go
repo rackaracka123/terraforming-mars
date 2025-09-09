@@ -13,7 +13,8 @@ type Game struct {
 	HostPlayerID     string           `json:"hostPlayerId" ts:"string"`
 	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
 	GlobalParameters GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
-	CurrentPlayerID  string           `json:"currentPlayerId" ts:"string"`
+	ViewingPlayerID  string           `json:"viewingPlayerId" ts:"string"`  // The player viewing this game state
+	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
 	Generation       int              `json:"generation" ts:"number"`
 	RemainingActions int              `json:"remainingActions" ts:"number"`
 }

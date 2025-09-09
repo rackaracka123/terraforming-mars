@@ -22,6 +22,7 @@ type PlayerService interface {
 	// Get player information
 	GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error)
 	GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error)
+	GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error)
 
 	// Connection management
 	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
@@ -290,4 +291,9 @@ func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerN
 
 	log.Warn("Player not found by name", zap.String("player_name", playerName))
 	return model.Player{}, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
+}
+
+// GetPlayersForGame returns all players in a specific game
+func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error) {
+	return s.playerRepo.ListByGameID(ctx, gameID)
 }

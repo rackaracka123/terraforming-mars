@@ -27,6 +27,7 @@ type GameRepository interface {
 	UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error
 	UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
 	SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error
+	SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error
 	AddPlayerID(ctx context.Context, gameID string, playerID string) error
 	RemovePlayerID(ctx context.Context, gameID string, playerID string) error
 	SetHostPlayer(ctx context.Context, gameID string, playerID string) error
@@ -282,11 +283,53 @@ func (r *GameRepositoryImpl) SetCurrentPlayer(ctx context.Context, gameID string
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	oldPlayerID := game.CurrentPlayerID
-	game.CurrentPlayerID = playerID
+	oldPlayerID := game.ViewingPlayerID
+	game.ViewingPlayerID = playerID
 	game.UpdatedAt = time.Now()
 
 	log.Info("Current player updated", zap.String("old_player", oldPlayerID), zap.String("new_player", playerID))
+
+	return nil
+}
+
+// SetCurrentTurn sets the current turn (whose turn it is to play)
+func (r *GameRepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	var oldTurnPlayer string
+	if game.CurrentTurn != nil {
+		oldTurnPlayer = *game.CurrentTurn
+	} else {
+		oldTurnPlayer = "none"
+	}
+
+	game.CurrentTurn = playerID
+	game.UpdatedAt = time.Now()
+
+	var newTurnPlayer string
+	if playerID != nil {
+		newTurnPlayer = *playerID
+		log.Info("Current turn updated", zap.String("old_turn", oldTurnPlayer), zap.String("new_turn", newTurnPlayer))
+	} else {
+		newTurnPlayer = "none"
+		log.Info("Current turn cleared", zap.String("old_turn", oldTurnPlayer))
+	}
+
+	// Publish game updated event if turn changed
+	if r.eventBus != nil {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
 
 	return nil
 }

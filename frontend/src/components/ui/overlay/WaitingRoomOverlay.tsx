@@ -51,9 +51,25 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
           <div className={styles.waitingStatus}>
             <h2>Waiting for players to join...</h2>
             <p>
-              {game.players?.length || 0} / {game.settings?.maxPlayers || 4}{" "}
+              {(game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0)} / {game.settings?.maxPlayers || 4}{" "}
               players
             </p>
+            
+            {/* Player List */}
+            <div className={styles.playerList}>
+              {game.currentPlayer && (
+                <div className={styles.playerItem}>
+                  <span className={styles.playerName}>{game.currentPlayer.name}</span>
+                  {isHost && <span className={styles.hostBadge}>Host</span>}
+                </div>
+              )}
+              {game.otherPlayers?.map((player) => (
+                <div key={player.id} className={styles.playerItem}>
+                  <span className={styles.playerName}>{player.name}</span>
+                  {game.hostPlayerId === player.id && <span className={styles.hostBadge}>Host</span>}
+                </div>
+              ))}
+            </div>
           </div>
 
           {isHost && (
@@ -61,7 +77,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
               <button
                 className={styles.startGameButton}
                 onClick={handleStartGame}
-                disabled={!game.players || game.players.length < 1}
+                disabled={!game.currentPlayer}
               >
                 <span>Start Game</span>
               </button>

@@ -175,6 +175,16 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
 
+	// Set the first player's turn (typically the host)
+	if len(players) > 0 {
+		firstPlayerID := players[0].ID
+		if err := s.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID); err != nil {
+			log.Error("Failed to set initial current turn", zap.Error(err))
+			return fmt.Errorf("failed to set current turn: %w", err)
+		}
+		log.Info("Set initial current turn", zap.String("first_player_id", firstPlayerID))
+	}
+
 	// Distribute starting cards to all players
 	if err := s.distributeStartingCards(ctx, gameID, players); err != nil {
 		log.Error("Failed to distribute starting cards", zap.Error(err))

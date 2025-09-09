@@ -25,7 +25,8 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
 		CurrentPlayer:    currentPlayer,
 		OtherPlayers:     otherPlayers,
-		CurrentPlayerID:  game.CurrentPlayerID,
+		ViewingPlayerID:  viewingPlayerID,
+		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		RemainingActions: game.RemainingActions,
 	}
@@ -164,7 +165,8 @@ func ToGameDtoBasic(game model.Game) GameDto {
 		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
 		CurrentPlayer:    PlayerDto{},        // Empty for non-personalized view
 		OtherPlayers:     []OtherPlayerDto{}, // Empty for non-personalized view
-		CurrentPlayerID:  game.CurrentPlayerID,
+		ViewingPlayerID:  "",                 // No viewing player for basic view
+		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		RemainingActions: game.RemainingActions,
 	}

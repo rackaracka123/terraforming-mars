@@ -271,7 +271,8 @@ export interface GameDto {
   globalParameters: GlobalParametersDto;
   currentPlayer: PlayerDto; // Viewing player's full data
   otherPlayers: OtherPlayerDto[]; // Other players' limited data
-  currentPlayerId: string;
+  viewingPlayerId: string; // The player viewing this game state
+  currentTurn?: string; // Whose turn it is (nullable)
   generation: number /* int */;
   remainingActions: number /* int */;
 }
