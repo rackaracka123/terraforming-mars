@@ -10,7 +10,6 @@ import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
-import { CardType, CardTag } from "../../../types/cards.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
   FullStatePayload,
