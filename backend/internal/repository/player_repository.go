@@ -212,9 +212,9 @@ func (r *PlayerRepositoryImpl) UpdateResources(ctx context.Context, gameID, play
 
 	log.Info("Player resources updated")
 
-	// Publish event if resources changed
+	// Publish consolidated player changed event for resources
 	if r.eventBus != nil && oldResources != resources {
-		resourcesChangedEvent := events.NewPlayerResourcesChangedEvent(gameID, playerID, oldResources, resources)
+		resourcesChangedEvent := events.NewPlayerResourcesChangedEvent(gameID, playerID)
 		if err := r.eventBus.Publish(ctx, resourcesChangedEvent); err != nil {
 			log.Warn("Failed to publish player resources changed event", zap.Error(err))
 		}
@@ -240,9 +240,9 @@ func (r *PlayerRepositoryImpl) UpdateProduction(ctx context.Context, gameID, pla
 
 	log.Info("Player production updated")
 
-	// Publish event if production changed
+	// Publish consolidated player changed event for production
 	if r.eventBus != nil && oldProduction != production {
-		productionChangedEvent := events.NewPlayerProductionChangedEvent(gameID, playerID, oldProduction, production)
+		productionChangedEvent := events.NewPlayerProductionChangedEvent(gameID, playerID)
 		if err := r.eventBus.Publish(ctx, productionChangedEvent); err != nil {
 			log.Warn("Failed to publish player production changed event", zap.Error(err))
 		}
@@ -268,9 +268,9 @@ func (r *PlayerRepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID
 
 	log.Info("Player terraform rating updated", zap.Int("old_tr", oldTR), zap.Int("new_tr", rating))
 
-	// Publish event if TR changed
+	// Publish consolidated player changed event for terraform rating
 	if r.eventBus != nil && oldTR != rating {
-		trChangedEvent := events.NewPlayerTRChangedEvent(gameID, playerID, oldTR, rating)
+		trChangedEvent := events.NewPlayerTRChangedEvent(gameID, playerID)
 		if err := r.eventBus.Publish(ctx, trChangedEvent); err != nil {
 			log.Warn("Failed to publish player TR changed event", zap.Error(err))
 		}

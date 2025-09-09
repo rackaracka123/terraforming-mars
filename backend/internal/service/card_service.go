@@ -110,7 +110,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	}
 
 	// Create and log the starting card selected event
-	event := events.NewStartingCardSelectedEvent(gameID, playerID, cardIDs, cost)
+	event := events.NewCardSelectedEvent(gameID, playerID, cardIDs, cost)
 	log.Debug("Starting card selected event created",
 		zap.String("event_type", event.GetType()),
 		zap.Int("cost", cost))

@@ -240,34 +240,27 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 		zap.Int("oceans", params.Oceans),
 	)
 
-	// Publish specific events for each parameter that changed
-	if r.eventBus != nil {
+	// Publish consolidated global parameters changed event (simplified approach)
+	if r.eventBus != nil && (oldParams.Temperature != params.Temperature || oldParams.Oxygen != params.Oxygen || oldParams.Oceans != params.Oceans) {
+		// Determine which parameters changed
+		var changeTypes []string
 		if oldParams.Temperature != params.Temperature {
-			tempEvent := events.NewTemperatureChangedEvent(gameID, oldParams.Temperature, params.Temperature)
-			if err := r.eventBus.Publish(ctx, tempEvent); err != nil {
-				log.Warn("Failed to publish temperature changed event", zap.Error(err))
-			}
+			changeTypes = append(changeTypes, "temperature")
 		}
-
 		if oldParams.Oxygen != params.Oxygen {
-			oxygenEvent := events.NewOxygenChangedEvent(gameID, oldParams.Oxygen, params.Oxygen)
-			if err := r.eventBus.Publish(ctx, oxygenEvent); err != nil {
-				log.Warn("Failed to publish oxygen changed event", zap.Error(err))
-			}
+			changeTypes = append(changeTypes, "oxygen")
 		}
-
 		if oldParams.Oceans != params.Oceans {
-			oceansEvent := events.NewOceansChangedEvent(gameID, oldParams.Oceans, params.Oceans)
-			if err := r.eventBus.Publish(ctx, oceansEvent); err != nil {
-				log.Warn("Failed to publish oceans changed event", zap.Error(err))
-			}
+			changeTypes = append(changeTypes, "oceans")
 		}
 
-		// General parameters changed event
-		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, oldParams, params)
+		// Publish single consolidated event
+		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, changeTypes)
 		if err := r.eventBus.Publish(ctx, parametersChangedEvent); err != nil {
 			log.Warn("Failed to publish global parameters changed event", zap.Error(err))
 		}
+
+		log.Debug("Global parameters change event published", zap.Strings("change_types", changeTypes))
 	}
 
 	return nil

@@ -28,7 +28,7 @@ func NewEventHandler(broadcaster *core.Broadcaster) *EventHandler {
 
 // HandlePlayerStartingCardOptions handles starting card options events
 func (h *EventHandler) HandlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
-	payload := event.GetPayload().(events.PlayerStartingCardOptionsEventData)
+	payload := event.GetPayload().(events.CardDealtEventData)
 	gameID := payload.GameID
 	playerID := payload.PlayerID
 	cardIDs := payload.CardOptions

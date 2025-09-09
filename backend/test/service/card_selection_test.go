@@ -24,12 +24,12 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	// Track events
 	var receivedEvents []events.Event
-	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
+	eventBus.Subscribe(events.EventTypeCardDealt, func(ctx context.Context, event events.Event) error {
 		receivedEvents = append(receivedEvents, event)
 		t.Logf("✅ Received event: %s", event.GetType())
 		return nil
 	})
-	t.Logf("📬 Subscribed to event: %s", events.EventTypePlayerStartingCardOptions)
+	t.Logf("📬 Subscribed to event: %s", events.EventTypeCardDealt)
 
 	// Create game
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
@@ -62,9 +62,9 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.Len(t, receivedEvents, 1, "Should have received exactly 1 starting card options event after waiting %v", waited)
 
 	event := receivedEvents[0]
-	require.Equal(t, events.EventTypePlayerStartingCardOptions, event.GetType())
+	require.Equal(t, events.EventTypeCardDealt, event.GetType())
 
-	payload := event.GetPayload().(events.PlayerStartingCardOptionsEventData)
+	payload := event.GetPayload().(events.CardDealtEventData)
 	require.Equal(t, game.ID, payload.GameID)
 	require.Equal(t, playerID, payload.PlayerID)
 	require.Len(t, payload.CardOptions, 4, "Should have received 4 card options")
