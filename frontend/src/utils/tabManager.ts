@@ -114,7 +114,7 @@ export class TabManager {
 
   private getActiveTab(): TabState | null {
     if (!this.playerName) return null;
-    
+
     try {
       const key = `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`;
       const stored = localStorage.getItem(key);
@@ -126,7 +126,7 @@ export class TabManager {
 
   private setActiveTab(): void {
     if (!this.playerName) return;
-    
+
     const tabState: TabState = {
       tabId: this.tabId,
       timestamp: Date.now(),
@@ -140,7 +140,7 @@ export class TabManager {
 
   private removeActiveTab(): void {
     if (!this.playerName) return;
-    
+
     const activeTab = this.getActiveTab();
     // Only remove if this tab is the active one
     if (activeTab?.tabId === this.tabId) {
@@ -191,8 +191,10 @@ export class TabManager {
 
     // Handle storage events to detect when another tab takes over
     window.addEventListener("storage", (event) => {
-      const expectedKey = this.playerName ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}` : null;
-      
+      const expectedKey = this.playerName
+        ? `${TAB_STORAGE_KEY_PREFIX}-${this.playerName}`
+        : null;
+
       if (event.key === expectedKey && this.isActive) {
         const newTabState = event.newValue ? JSON.parse(event.newValue) : null;
 

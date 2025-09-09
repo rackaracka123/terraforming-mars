@@ -90,7 +90,7 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	for i := 0; i < cardCount && i < len(player.Cards); i++ {
 		cardToRemove := player.Cards[i]
 		if err := s.playerRepo.RemoveCard(ctx, gameID, playerID, cardToRemove); err != nil {
-			log.Error("Failed to remove card after selling patents", 
+			log.Error("Failed to remove card after selling patents",
 				zap.String("card_id", cardToRemove),
 				zap.Error(err))
 			return fmt.Errorf("failed to remove card %s: %w", cardToRemove, err)
@@ -292,7 +292,6 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 
 	return nil
 }
-
 
 // StandardProjectRequiresHexPosition returns true if the standard project requires a hex position (business logic from StandardProject functions)
 func (s *StandardProjectServiceImpl) StandardProjectRequiresHexPosition(project model.StandardProject) bool {

@@ -233,7 +233,7 @@ func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID
 			if conn == connection { // Skip the disconnected player
 				continue
 			}
-			
+
 			connPlayerID, _ := conn.GetPlayer()
 			if connPlayerID == "" || strings.HasPrefix(connPlayerID, "temp-") {
 				continue

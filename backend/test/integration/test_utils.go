@@ -250,18 +250,17 @@ func (c *TestClient) Close() {
 	}
 
 	c.closed = true
-	
+
 	// Close done channel to signal goroutines to stop
 	close(c.done)
-	
+
 	// Send close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	
-	// Close the connection  
+
+	// Close the connection
 	c.conn.Close()
 	c.conn = nil
 }
-
 
 // CreateGameViaHTTP creates a game using the HTTP API
 func (c *TestClient) CreateGameViaHTTP() (string, error) {
@@ -568,7 +567,7 @@ func (c *TestClient) ForceClose() {
 	}
 
 	c.closed = true
-	
+
 	// Send abnormal close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
 	c.conn.Close()

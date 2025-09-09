@@ -117,13 +117,13 @@ func TestLobbyReconnectionScenario(t *testing.T) {
 	// Verify players are present in the new DTO structure (currentPlayer + otherPlayers)
 	currentPlayer, hasCurrentPlayer := reconnectedGameData["currentPlayer"].(map[string]interface{})
 	otherPlayers, hasOtherPlayers := reconnectedGameData["otherPlayers"].([]interface{})
-	
+
 	// Count total players: currentPlayer (if present) + otherPlayers
 	totalPlayers := len(otherPlayers)
 	if hasCurrentPlayer && currentPlayer["id"] != nil {
 		totalPlayers++
 	}
-	
+
 	require.True(t, hasCurrentPlayer || hasOtherPlayers, "Player data should be present (currentPlayer or otherPlayers)")
 	require.GreaterOrEqual(t, totalPlayers, 1, "Should have at least one player in game")
 	t.Logf("✅ Game has %d total players after reconnection (current: %v, others: %d)", totalPlayers, hasCurrentPlayer, len(otherPlayers))

@@ -42,7 +42,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           <LeftSidebar
             players={[
               ...(gameState?.currentPlayer ? [gameState.currentPlayer] : []),
-              ...(gameState?.otherPlayers || [])
+              ...(gameState?.otherPlayers || []),
             ]}
             currentPlayer={currentPlayer}
           />
@@ -60,7 +60,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         <PlayerOverlay
           players={[
             ...(gameState?.currentPlayer ? [gameState.currentPlayer] : []),
-            ...(gameState?.otherPlayers || [])
+            ...(gameState?.otherPlayers || []),
           ]}
           currentPlayer={currentPlayer}
         />

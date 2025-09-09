@@ -88,7 +88,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	cardPrefix := make([]byte, 4)
 	rand.Read(cardPrefix)
 	prefix := hex.EncodeToString(cardPrefix)
-	
+
 	cards := []string{
 		fmt.Sprintf("card1-%s", prefix),
 		fmt.Sprintf("card2-%s", prefix),

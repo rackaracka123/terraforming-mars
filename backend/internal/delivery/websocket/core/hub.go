@@ -203,12 +203,12 @@ func (h *Hub) handleGameUpdated(ctx context.Context, event events.Event) error {
 // handlePlayerStartingCardOptions handles card option events
 func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
 	h.logger.Debug("🃏 Card options event received - delegating to event handler")
-	
+
 	// Delegate to the proper event handler
 	if h.eventHandler != nil {
 		return h.eventHandler.HandlePlayerStartingCardOptions(ctx, event)
 	}
-	
+
 	h.logger.Warn("⚠️ No event handler configured")
 	return nil
 }
@@ -217,7 +217,7 @@ func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.
 func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Event) error {
 	// Extract game ID from the event payload
 	var gameID string
-	
+
 	// Handle different global parameter event types
 	switch event.GetType() {
 	case events.EventTypeTemperatureChanged:
@@ -232,10 +232,10 @@ func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Even
 		h.logger.Warn("⚠️ Unknown global parameter event type", zap.String("event_type", event.GetType()))
 		return nil
 	}
-	
+
 	// Trigger game update broadcast to notify clients of parameter changes
 	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
-	
+
 	h.logger.Debug("✅ Global parameter change broadcast completed", zap.String("game_id", gameID))
 	return nil
 }

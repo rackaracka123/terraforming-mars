@@ -225,7 +225,7 @@ func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connect
 	// Get all players for the game to create personalized view
 	players, err := ch.playerService.GetPlayersForGame(context.Background(), game.ID)
 	if err != nil {
-		ch.logger.Error("❌ CRITICAL: Failed to get players for game - this should not happen", 
+		ch.logger.Error("❌ CRITICAL: Failed to get players for game - this should not happen",
 			zap.Error(err), zap.String("game_id", game.ID), zap.String("player_id", playerID))
 		// Continue with basic DTO to avoid breaking the connection
 		gameDTO := dto.ToGameDtoBasic(game)
@@ -257,7 +257,7 @@ func (ch *ConnectionHandler) sendConnectionConfirmation(connection *core.Connect
 
 	// Send direct confirmation to the connecting player
 	ch.broadcaster.SendToConnection(connection, playerConnectedMsg)
-	
+
 	// Also broadcast to other players in the game
 	ch.broadcaster.BroadcastToGameExcept(game.ID, playerConnectedMsg, connection)
 }
@@ -289,7 +289,7 @@ func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connectio
 	// Get all players for the game to create personalized view
 	players, err := ch.playerService.GetPlayersForGame(ctx, game.ID)
 	if err != nil {
-		ch.logger.Error("❌ CRITICAL: Failed to get players for reconnection - this should not happen", 
+		ch.logger.Error("❌ CRITICAL: Failed to get players for reconnection - this should not happen",
 			zap.Error(err), zap.String("game_id", game.ID), zap.String("player_id", player.ID))
 		// Continue with basic DTO to avoid breaking the reconnection
 		gameDTO := dto.ToGameDtoBasic(*game)
@@ -335,7 +335,7 @@ func (ch *ConnectionHandler) sendReconnectionData(ctx context.Context, connectio
 }
 
 func (ch *ConnectionHandler) broadcastPlayerReconnection(ctx context.Context, game *model.Game, player *model.Player, gameID string, connection *core.Connection) {
-	// For broadcasting to other players, we can use basic DTO since each client will get their own personalized view 
+	// For broadcasting to other players, we can use basic DTO since each client will get their own personalized view
 	// through the regular game-updated messages
 	reconnectedPayload := dto.PlayerReconnectedPayload{
 		PlayerID:   player.ID,

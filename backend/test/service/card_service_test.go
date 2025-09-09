@@ -137,7 +137,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			// Update player resources using granular update
 			err := playerRepo.UpdateResources(ctx, gameID, resetPlayer.ID, resetPlayer.Resources)
 			require.NoError(t, err)
-			
+
 			// Clear any existing cards from previous test runs
 			currentPlayer, err := playerRepo.GetByID(ctx, gameID, resetPlayer.ID)
 			require.NoError(t, err)

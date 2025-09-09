@@ -39,7 +39,7 @@ func (h *EventHandler) HandlePlayerStartingCardOptions(ctx context.Context, even
 
 	// Get card details from mock database
 	cardModels := cards.GetCardsByIDs(cardIDs)
-	
+
 	// Convert to DTOs
 	cardDtos := make([]dto.CardDto, len(cardModels))
 	for i, card := range cardModels {

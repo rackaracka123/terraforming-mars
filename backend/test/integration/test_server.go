@@ -161,14 +161,14 @@ func (ts *TestServer) Stop() error {
 	defer cancel()
 
 	ts.started = false
-	
+
 	// Shutdown server
 	if err := ts.server.Shutdown(ctx); err != nil {
 		// Force close if graceful shutdown fails
 		ts.server.Close()
 		return err
 	}
-	
+
 	return nil
 }
 

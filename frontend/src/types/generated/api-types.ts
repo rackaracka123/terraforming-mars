@@ -155,7 +155,8 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseSetup: GamePhase = "setup";
-export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase =
+  "starting_card_selection";
 export const GamePhaseCorporationSelection: GamePhase = "corporation_selection";
 export const GamePhaseAction: GamePhase = "action";
 export const GamePhaseProduction: GamePhase = "production";

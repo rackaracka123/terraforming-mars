@@ -43,7 +43,8 @@ const JoinGamePage: React.FC = () => {
 
       // Check if game is full
       if (
-        (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0) >= (game.settings?.maxPlayers || 4)
+        (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0) >=
+        (game.settings?.maxPlayers || 4)
       ) {
         throw new Error("Game is full");
       }
@@ -104,7 +105,8 @@ const JoinGamePage: React.FC = () => {
 
       // Check if game is full
       if (
-        (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0) >= (game.settings?.maxPlayers || 4)
+        (game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0) >=
+        (game.settings?.maxPlayers || 4)
       ) {
         throw new Error("Game is full");
       }

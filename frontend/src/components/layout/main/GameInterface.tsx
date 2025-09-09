@@ -255,14 +255,19 @@ export default function GameInterface() {
         isReconnection?: boolean;
       } | null;
 
-      console.log("🎮 GameInterface: Initializing with route state", routeState);
+      console.log(
+        "🎮 GameInterface: Initializing with route state",
+        routeState,
+      );
 
       if (
         !routeState?.game ||
         !routeState?.playerId ||
         !routeState?.playerName
       ) {
-        console.log("❌ GameInterface: Missing route state, checking localStorage");
+        console.log(
+          "❌ GameInterface: Missing route state, checking localStorage",
+        );
         // No route state, check if we should route to reconnection page
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
@@ -277,7 +282,10 @@ export default function GameInterface() {
       }
 
       // We have route state, try to claim the tab for this game session
-      console.log("🔗 GameInterface: Attempting to claim tab", { gameId: routeState.game.id, playerName: routeState.playerName });
+      console.log("🔗 GameInterface: Attempting to claim tab", {
+        gameId: routeState.game.id,
+        playerName: routeState.playerName,
+      });
       const tabManager = getTabManager();
       const canClaim = await tabManager.claimTab(
         routeState.game.id,
@@ -288,7 +296,9 @@ export default function GameInterface() {
       if (!canClaim) {
         // Another tab has this game open, show conflict overlay
         const activeTabInfo = tabManager.getActiveTabInfo();
-        console.log("⚠️ GameInterface: Tab conflict detected", { activeTabInfo });
+        console.log("⚠️ GameInterface: Tab conflict detected", {
+          activeTabInfo,
+        });
         if (activeTabInfo) {
           setConflictingTabInfo(activeTabInfo);
           setShowTabConflict(true);
@@ -297,11 +307,11 @@ export default function GameInterface() {
       }
 
       // Successfully claimed tab or no conflict, initialize game
-      console.log("✅ GameInterface: Successfully initializing game", { 
-        gameId: routeState.game.id, 
+      console.log("✅ GameInterface: Successfully initializing game", {
+        gameId: routeState.game.id,
         playerId: routeState.playerId,
         playerName: routeState.playerName,
-        hasCurrentPlayer: !!routeState.game.currentPlayer 
+        hasCurrentPlayer: !!routeState.game.currentPlayer,
       });
       setGame(routeState.game);
       setIsConnected(true);

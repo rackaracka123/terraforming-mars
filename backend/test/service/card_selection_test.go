@@ -52,12 +52,12 @@ func TestCardSelectionFlow(t *testing.T) {
 	maxWaitTime := 100 * time.Millisecond
 	waitInterval := 5 * time.Millisecond
 	waited := time.Duration(0)
-	
+
 	for len(receivedEvents) == 0 && waited < maxWaitTime {
 		time.Sleep(waitInterval)
 		waited += waitInterval
 	}
-	
+
 	// Verify that starting card options event was published
 	require.Len(t, receivedEvents, 1, "Should have received exactly 1 starting card options event after waiting %v", waited)
 
