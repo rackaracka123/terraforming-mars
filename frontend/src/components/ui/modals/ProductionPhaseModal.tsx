@@ -100,7 +100,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
 
-    return () => { };
+    return () => {};
   }, [isOpen, onClose]);
 
   if (!isOpen || !productionData) return null;
@@ -123,7 +123,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         className={`${styles.resourceItem} ${isActive ? styles.active : ""}`}
         style={
           {
-            "--player-color": 'red',//currentPlayerData.playerColor,
+            "--player-color": "red", //currentPlayerData.playerColor,
           } as React.CSSProperties
         }
       >
@@ -208,7 +208,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           {renderResourceAnimation(
             "heat",
             currentPlayerData.beforeResources.heat +
-            currentPlayerData.energyConverted,
+              currentPlayerData.energyConverted,
             currentPlayerData.afterResources.heat,
             animationStep === "production",
           )}
@@ -241,11 +241,12 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           {productionData.playersData.map((player, index) => (
             <div
               key={player.playerId}
-              className={`${styles.progressDot} ${index === currentPlayerIndex ? styles.current : ""
-                } ${index < currentPlayerIndex ? styles.completed : ""}`}
+              className={`${styles.progressDot} ${
+                index === currentPlayerIndex ? styles.current : ""
+              } ${index < currentPlayerIndex ? styles.completed : ""}`}
               style={
                 {
-                  "--player-color": 'red',//currentPlayerData.playerColor
+                  "--player-color": "red", //currentPlayerData.playerColor
                 } as React.CSSProperties
               }
             />
@@ -257,7 +258,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             className={styles.playerHeader}
             style={
               {
-                "--player-color": 'red',//currentPlayerData.playerColor,
+                "--player-color": "red", //currentPlayerData.playerColor,
               } as React.CSSProperties
             }
           >
