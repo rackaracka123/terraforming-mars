@@ -10,7 +10,6 @@ import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
-import { CardType, CardTag } from "../../../types/cards.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
   FullStatePayload,
@@ -77,8 +76,8 @@ export default function GameInterface() {
 
     setGame(updatedGame);
 
-    // Find current player in the updated game
-    const updatedPlayer = updatedGame.players.find((p) => p.id === playerId);
+    // Set current player from updated game data
+    const updatedPlayer = updatedGame.currentPlayer;
     setCurrentPlayer(updatedPlayer || null);
 
     // Show corporation modal if player hasn't selected a corporation yet
@@ -229,10 +228,8 @@ export default function GameInterface() {
           }),
         );
 
-        // Find current player in the game
-        const player = routeState.game.players.find(
-          (p) => p.id === routeState.playerId,
-        );
+        // Set current player from game data
+        const player = routeState.game.currentPlayer;
         setCurrentPlayer(player || null);
 
         // Store player ID for WebSocket handlers
@@ -258,11 +255,19 @@ export default function GameInterface() {
         isReconnection?: boolean;
       } | null;
 
+      console.log(
+        "🎮 GameInterface: Initializing with route state",
+        routeState,
+      );
+
       if (
         !routeState?.game ||
         !routeState?.playerId ||
         !routeState?.playerName
       ) {
+        console.log(
+          "❌ GameInterface: Missing route state, checking localStorage",
+        );
         // No route state, check if we should route to reconnection page
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
@@ -277,15 +282,23 @@ export default function GameInterface() {
       }
 
       // We have route state, try to claim the tab for this game session
+      console.log("🔗 GameInterface: Attempting to claim tab", {
+        gameId: routeState.game.id,
+        playerName: routeState.playerName,
+      });
       const tabManager = getTabManager();
       const canClaim = await tabManager.claimTab(
         routeState.game.id,
         routeState.playerName,
       );
+      console.log("🔗 GameInterface: Tab claim result", { canClaim });
 
       if (!canClaim) {
         // Another tab has this game open, show conflict overlay
         const activeTabInfo = tabManager.getActiveTabInfo();
+        console.log("⚠️ GameInterface: Tab conflict detected", {
+          activeTabInfo,
+        });
         if (activeTabInfo) {
           setConflictingTabInfo(activeTabInfo);
           setShowTabConflict(true);
@@ -294,6 +307,12 @@ export default function GameInterface() {
       }
 
       // Successfully claimed tab or no conflict, initialize game
+      console.log("✅ GameInterface: Successfully initializing game", {
+        gameId: routeState.game.id,
+        playerId: routeState.playerId,
+        playerName: routeState.playerName,
+        hasCurrentPlayer: !!routeState.game.currentPlayer,
+      });
       setGame(routeState.game);
       setIsConnected(true);
 
@@ -308,10 +327,8 @@ export default function GameInterface() {
         }),
       );
 
-      // Find current player in the game
-      const player = routeState.game.players.find(
-        (p) => p.id === routeState.playerId,
-      );
+      // Set current player from game data
+      const player = routeState.game.currentPlayer;
       setCurrentPlayer(player || null);
 
       // Store player ID for WebSocket handlers
@@ -330,98 +347,6 @@ export default function GameInterface() {
 
     return setupWebSocketListeners();
   }, [setupWebSocketListeners]);
-
-  const demoCards = [
-    {
-      id: "card-1",
-      name: "Mining Guild",
-      type: CardType.CORPORATION,
-      cost: 0,
-      description:
-        "You start with 30 M€, 5 steel, and 1 steel production. Increase steel production 1 step for each steel and titanium resource on the board.",
-      tags: [CardTag.BUILDING, CardTag.SPACE],
-      victoryPoints: 0,
-      playOrder: 1,
-    },
-    {
-      id: "card-2",
-      name: "Power Plant",
-      type: CardType.AUTOMATED,
-      cost: 4,
-      description: "Increase your energy production 1 step.",
-      tags: [CardTag.POWER, CardTag.BUILDING],
-      victoryPoints: 0,
-      playOrder: 2,
-    },
-    {
-      id: "card-3",
-      name: "Research",
-      type: CardType.ACTIVE,
-      cost: 11,
-      description: "Action: Spend 1 M€ to draw a card.",
-      tags: [CardTag.SCIENCE],
-      victoryPoints: 1,
-      playOrder: 3,
-    },
-  ];
-
-  const demoActions = [
-    {
-      id: "action-1",
-      name: "Power Plant",
-      type: "standard" as const,
-      cost: 11,
-      description: "Increase energy production 1 step.",
-      available: true,
-      immediate: true,
-    },
-    {
-      id: "action-2",
-      name: "Draw Cards",
-      type: "card" as const,
-      cost: 1,
-      description: "Draw 1 card from the deck.",
-      source: "Research",
-      available: true,
-      immediate: true,
-    },
-    {
-      id: "action-3",
-      name: "Diversifier",
-      type: "milestone" as const,
-      cost: 8,
-      description: "Claim the Diversifier milestone.",
-      requirement: "Have 8 different types of production",
-      available: false,
-    },
-  ];
-
-  const demoEffects = [
-    {
-      id: "effect-1",
-      cardId: "card-1",
-      cardName: "Mining Guild",
-      cardType: CardType.CORPORATION,
-      effectType: "ongoing" as const,
-      name: "Steel Production Bonus",
-      description: "Get +1 steel production for each steel/titanium on board",
-      isActive: true,
-      category: "production" as const,
-      resource: "steel",
-      value: 1,
-    },
-    {
-      id: "effect-2",
-      cardId: "card-3",
-      cardName: "Research",
-      cardType: CardType.ACTIVE,
-      effectType: "triggered" as const,
-      name: "Research Bonus",
-      description: "Get bonus cards when researching",
-      isActive: true,
-      category: "bonus" as const,
-    },
-  ];
 
   const handleActionSelect = () => {
     // In a real app, emit to server
@@ -530,21 +455,21 @@ export default function GameInterface() {
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
-        cards={demoCards}
+        cards={[]}
         playerName={currentPlayer?.name}
       />
 
       <TagsModal
         isVisible={showTagsModal}
         onClose={() => setShowTagsModal(false)}
-        cards={demoCards}
+        cards={[]}
         playerName={currentPlayer?.name}
       />
 
       <VictoryPointsModal
         isVisible={showVictoryPointsModal}
         onClose={() => setShowVictoryPointsModal(false)}
-        cards={demoCards}
+        cards={[]}
         terraformRating={currentPlayer?.terraformRating}
         playerName={currentPlayer?.name}
       />
@@ -552,7 +477,7 @@ export default function GameInterface() {
       <ActionsModal
         isVisible={showActionsModal}
         onClose={() => setShowActionsModal(false)}
-        actions={demoActions}
+        actions={[]}
         playerName={currentPlayer?.name}
         onActionSelect={handleActionSelect}
       />
@@ -560,8 +485,8 @@ export default function GameInterface() {
       <CardEffectsModal
         isVisible={showCardEffectsModal}
         onClose={() => setShowCardEffectsModal(false)}
-        effects={demoEffects}
-        cards={demoCards}
+        effects={[]}
+        cards={[]}
         playerName={currentPlayer?.name}
       />
 

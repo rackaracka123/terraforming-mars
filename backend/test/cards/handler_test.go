@@ -36,6 +36,11 @@ func (m *MockPlayerService) GetPlayerByName(ctx context.Context, gameID, playerN
 	return args.Get(0).(model.Player), args.Error(1)
 }
 
+func (m *MockPlayerService) GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error) {
+	args := m.Called(ctx, gameID)
+	return args.Get(0).([]model.Player), args.Error(1)
+}
+
 func (m *MockPlayerService) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
 	args := m.Called(ctx, gameID, playerID, status)
 	return args.Error(0)

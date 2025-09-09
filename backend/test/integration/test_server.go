@@ -8,7 +8,6 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/initialization"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"time"
@@ -19,14 +18,14 @@ import (
 
 // TestServer represents a test server instance
 type TestServer struct {
-	server  *http.Server
-	hub     *wsHandler.Hub
-	hubCtx  context.Context
-	cancel  context.CancelFunc
-	port    int
-	logger  *zap.Logger
-	started bool
-	mu      sync.Mutex
+	server    *http.Server
+	wsService *wsHandler.WebSocketService
+	hubCtx    context.Context
+	cancel    context.CancelFunc
+	port      int
+	logger    *zap.Logger
+	started   bool
+	mu        sync.Mutex
 }
 
 // NewTestServer creates a new test server on the specified port
@@ -38,7 +37,7 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	// Initialize repositories
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	gameRepo := repository.NewGameRepository(eventBus)
 
 	// Initialize services with proper event bus wiring
 	cardService := service.NewCardService(gameRepo, playerRepo)
@@ -46,21 +45,19 @@ func NewTestServer(port int) (*TestServer, error) {
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
-	// Register card-specific listeners
-	if err := initialization.RegisterCardListeners(eventBus); err != nil {
-		return nil, fmt.Errorf("failed to register card listeners: %w", err)
-	}
+	// Register card-specific listeners (removed since we're using mock cards)
+	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
+	// 	return nil, fmt.Errorf("failed to register card listeners: %w", err)
+	// }
 
-	// Initialize WebSocket hub with proper event bus
-	hub := wsHandler.NewHub(gameService, playerService, standardProjectService, cardService, eventBus)
-
-	wsHandlerInstance := wsHandler.NewHandler(hub)
+	// Initialize WebSocket service with proper event bus and event handler
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
 	apiRouter := httpHandler.SetupRouter(gameService, playerService)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
-	mainRouter.HandleFunc("/ws", wsHandlerInstance.ServeWS)
+	mainRouter.HandleFunc("/ws", wsService.ServeWS)
 
 	// Add health check endpoint
 	mainRouter.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -79,10 +76,10 @@ func NewTestServer(port int) (*TestServer, error) {
 	}
 
 	return &TestServer{
-		server: server,
-		hub:    hub,
-		port:   port,
-		logger: logger,
+		server:    server,
+		wsService: wsService,
+		port:      port,
+		logger:    logger,
 	}, nil
 }
 
@@ -95,9 +92,9 @@ func (ts *TestServer) Start() error {
 		return nil
 	}
 
-	// Start WebSocket hub
+	// Start WebSocket service
 	ts.hubCtx, ts.cancel = context.WithCancel(context.Background())
-	go ts.hub.Run(ts.hubCtx)
+	go ts.wsService.Run(ts.hubCtx)
 
 	// Start HTTP server in background
 	go func() {
@@ -130,8 +127,6 @@ func (ts *TestServer) waitForServerReady() error {
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				// Give a small additional delay to ensure WebSocket handlers are ready
-				time.Sleep(100 * time.Millisecond)
 				return nil
 			}
 		}
@@ -147,7 +142,7 @@ func (ts *TestServer) waitForServerReady() error {
 	return fmt.Errorf("server did not become ready within timeout on port %d", ts.port)
 }
 
-// Stop stops the test server
+// Stop stops the test server with proper cleanup
 func (ts *TestServer) Stop() error {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
@@ -156,19 +151,25 @@ func (ts *TestServer) Stop() error {
 		return nil
 	}
 
-	// Stop WebSocket hub
+	// Stop WebSocket hub first to prevent new connections
 	if ts.cancel != nil {
 		ts.cancel()
-		// Give time for all WebSocket connections and goroutines to properly terminate
-		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Stop HTTP server
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Stop HTTP server with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	ts.started = false
-	return ts.server.Shutdown(ctx)
+
+	// Shutdown server
+	if err := ts.server.Shutdown(ctx); err != nil {
+		// Force close if graceful shutdown fails
+		ts.server.Close()
+		return err
+	}
+
+	return nil
 }
 
 // GetBaseURL returns the base URL for HTTP requests

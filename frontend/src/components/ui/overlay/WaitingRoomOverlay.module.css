@@ -181,3 +181,45 @@
     align-self: stretch;
   }
 }
+
+/* Player List Styles */
+.playerList {
+  margin-top: 20px;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.playerItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid #4a90e2;
+}
+
+.playerItem:last-child {
+  margin-bottom: 0;
+}
+
+.playerName {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.hostBadge {
+  background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
+}

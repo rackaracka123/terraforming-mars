@@ -242,17 +242,38 @@ export interface PlayerDto {
   connectionStatus: any /* model.ConnectionStatus */;
 }
 /**
- * GameDto represents a game for client consumption
+ * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
+ */
+export interface OtherPlayerDto {
+  id: string;
+  name: string;
+  corporation: string;
+  handCardCount: number /* int */; // Number of cards in hand (private)
+  resources: ResourcesDto;
+  production: ProductionDto;
+  terraformRating: number /* int */;
+  isActive: boolean;
+  playedCards: string[]; // Played cards are public
+  passed: boolean;
+  availableActions: number /* int */;
+  victoryPoints: number /* int */;
+  milestoneIcon: string;
+  connectionStatus: any /* model.ConnectionStatus */;
+}
+/**
+ * GameDto represents a game for client consumption (clean architecture)
  */
 export interface GameDto {
   id: string;
   status: GameStatus;
   settings: GameSettingsDto;
-  players: PlayerDto[];
   hostPlayerId: string;
   currentPhase: GamePhase;
   globalParameters: GlobalParametersDto;
-  currentPlayerId: string;
+  currentPlayer: PlayerDto; // Viewing player's full data
+  otherPlayers: OtherPlayerDto[]; // Other players' limited data
+  viewingPlayerId: string; // The player viewing this game state
+  currentTurn?: string; // Whose turn it is (nullable)
   generation: number /* int */;
   remainingActions: number /* int */;
 }

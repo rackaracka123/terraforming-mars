@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,8 +17,8 @@ func TestCardSelectionFlow(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewInMemoryEventBus()
 
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
@@ -25,9 +26,10 @@ func TestCardSelectionFlow(t *testing.T) {
 	var receivedEvents []events.Event
 	eventBus.Subscribe(events.EventTypePlayerStartingCardOptions, func(ctx context.Context, event events.Event) error {
 		receivedEvents = append(receivedEvents, event)
-		t.Logf("Received event: %s", event.GetType())
+		t.Logf("✅ Received event: %s", event.GetType())
 		return nil
 	})
+	t.Logf("📬 Subscribed to event: %s", events.EventTypePlayerStartingCardOptions)
 
 	// Create game
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
@@ -37,8 +39,8 @@ func TestCardSelectionFlow(t *testing.T) {
 	// Join player
 	updatedGame, err := gameService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
-	require.Len(t, updatedGame.Players, 1)
-	playerID := updatedGame.Players[0].ID
+	require.Len(t, updatedGame.PlayerIDs, 1)
+	playerID := updatedGame.PlayerIDs[0]
 	t.Logf("Player joined: %s", playerID)
 
 	// Start game (this should distribute starting cards)
@@ -46,8 +48,18 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.NoError(t, err)
 	t.Log("Game started")
 
+	// Wait for the event to be processed by the async worker pool
+	maxWaitTime := 100 * time.Millisecond
+	waitInterval := 5 * time.Millisecond
+	waited := time.Duration(0)
+
+	for len(receivedEvents) == 0 && waited < maxWaitTime {
+		time.Sleep(waitInterval)
+		waited += waitInterval
+	}
+
 	// Verify that starting card options event was published
-	require.Len(t, receivedEvents, 1, "Should have received exactly 1 starting card options event")
+	require.Len(t, receivedEvents, 1, "Should have received exactly 1 starting card options event after waiting %v", waited)
 
 	event := receivedEvents[0]
 	require.Equal(t, events.EventTypePlayerStartingCardOptions, event.GetType())
@@ -66,7 +78,7 @@ func TestCardSelectionFlow(t *testing.T) {
 	t.Logf("✅ Cards selected successfully: %v", selectedCards)
 
 	// Verify player has the selected cards
-	player, err := playerRepo.GetPlayer(ctx, game.ID, playerID)
+	player, err := playerRepo.GetByID(ctx, game.ID, playerID)
 	require.NoError(t, err)
 	require.Equal(t, selectedCards, player.Cards, "Player should have the selected cards")
 

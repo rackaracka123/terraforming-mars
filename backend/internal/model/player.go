@@ -25,3 +25,35 @@ type Player struct {
 	MilestoneIcon    string           `json:"milestoneIcon" ts:"string"`
 	ConnectionStatus ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
 }
+
+// DeepCopy creates a deep copy of the Player
+func (p *Player) DeepCopy() *Player {
+	if p == nil {
+		return nil
+	}
+
+	// Copy cards slice
+	cardsCopy := make([]string, len(p.Cards))
+	copy(cardsCopy, p.Cards)
+
+	// Copy played cards slice
+	playedCardsCopy := make([]string, len(p.PlayedCards))
+	copy(playedCardsCopy, p.PlayedCards)
+
+	return &Player{
+		ID:               p.ID,
+		Name:             p.Name,
+		Corporation:      p.Corporation,
+		Cards:            cardsCopy,
+		Resources:        p.Resources,  // Resources is a struct, so this is copied by value
+		Production:       p.Production, // Production is a struct, so this is copied by value
+		TerraformRating:  p.TerraformRating,
+		IsActive:         p.IsActive,
+		PlayedCards:      playedCardsCopy,
+		Passed:           p.Passed,
+		AvailableActions: p.AvailableActions,
+		VictoryPoints:    p.VictoryPoints,
+		MilestoneIcon:    p.MilestoneIcon,
+		ConnectionStatus: p.ConnectionStatus,
+	}
+}

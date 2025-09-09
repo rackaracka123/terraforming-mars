@@ -1,4 +1,4 @@
-package websocket
+package core
 
 import (
 	"net/http"
@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler handles WebSocket connections
+// Handler handles WebSocket HTTP upgrade requests
 type Handler struct {
 	hub    *Hub
 	logger *zap.Logger
@@ -34,7 +34,7 @@ func NewHandler(hub *Hub) *Handler {
 	}
 }
 
-// ServeWS handles WebSocket requests from clients
+// ServeWS handles WebSocket upgrade requests from clients
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
 
@@ -45,20 +45,17 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create connection ID
+	// Create connection ID and connection object
 	connectionID := uuid.New().String()
+	connection := NewConnection(connectionID, conn, h.hub)
 
 	h.logger.Info("✅ New WebSocket connection established",
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 
-	// Create new connection
-	connection := NewConnection(connectionID, conn, h.hub)
-
 	// Register connection with hub
-	h.logger.Info("📤 Registering connection with hub", zap.String("connection_id", connectionID))
 	h.hub.Register <- connection
-	h.logger.Info("✅ Connection sent to Register channel successfully", zap.String("connection_id", connectionID))
+
 	// Configure connection timeouts
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
@@ -69,40 +66,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
-	h.logger.Debug("🚀 Starting connection pumps", zap.String("connection_id", connectionID))
-	// Start read and write pumps without context (they'll manage their own lifecycle)
+	// Start connection pumps
 	go connection.WritePump()
 	go connection.ReadPump()
 
-	// Send periodic pings to keep connection alive
-	go h.pingLoop(connection)
-
 	h.logger.Info("🎉 WebSocket connection fully initialized", zap.String("connection_id", connectionID))
-}
-
-// pingLoop sends periodic ping messages to keep the connection alive
-func (h *Handler) pingLoop(connection *Connection) {
-	ticker := time.NewTicker(54 * time.Second) // Ping every 54 seconds
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-connection.Done:
-			h.logger.Debug("Ping loop stopping - connection closed", zap.String("connection_id", connection.ID))
-			return
-		case <-ticker.C:
-			if err := connection.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
-				h.logger.Error("Failed to set write deadline for ping",
-					zap.Error(err),
-					zap.String("connection_id", connection.ID))
-				return
-			}
-			if err := connection.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				h.logger.Error("Failed to send ping message",
-					zap.Error(err),
-					zap.String("connection_id", connection.ID))
-				return
-			}
-		}
-	}
 }

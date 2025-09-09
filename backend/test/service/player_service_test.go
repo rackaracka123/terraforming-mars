@@ -19,7 +19,7 @@ func setupPlayerServiceTest(t *testing.T) (
 ) {
 	eventBus := events.NewInMemoryEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
@@ -36,9 +36,9 @@ func setupPlayerServiceTest(t *testing.T) (
 }
 
 func TestPlayerService_UpdatePlayerResources(t *testing.T) {
-	playerService, gameService, game := setupPlayerServiceTest(t)
+	playerService, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
-	playerID := game.Players[0].ID
+	playerID := game.PlayerIDs[0]
 
 	t.Run("Valid resource update", func(t *testing.T) {
 		newResources := model.Resources{
@@ -53,10 +53,10 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, 50, player.Resources.Credits)
 		assert.Equal(t, 10, player.Resources.Steel)
 		assert.Equal(t, 5, player.Resources.Titanium)
@@ -82,10 +82,10 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, 0, player.Resources.Credits)
 		assert.Equal(t, 0, player.Resources.Steel)
 		assert.Equal(t, 0, player.Resources.Titanium)
@@ -96,9 +96,9 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 }
 
 func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
-	playerService, gameService, game := setupPlayerServiceTest(t)
+	playerService, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
-	playerID := game.Players[0].ID
+	playerID := game.PlayerIDs[0]
 
 	t.Run("Valid production update", func(t *testing.T) {
 		newProduction := model.Production{
@@ -113,10 +113,10 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 		err := playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, 3, player.Production.Credits)
 		assert.Equal(t, 2, player.Production.Steel)
 		assert.Equal(t, 1, player.Production.Titanium)
@@ -138,10 +138,10 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 		err := playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, -1, player.Production.Credits)
 		assert.Equal(t, -2, player.Production.Steel)
 		assert.Equal(t, 1, player.Production.Titanium)
@@ -166,7 +166,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 func TestPlayerService_GetPlayer(t *testing.T) {
 	playerService, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
-	playerID := game.Players[0].ID
+	playerID := game.PlayerIDs[0]
 
 	t.Run("Get existing player", func(t *testing.T) {
 		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
@@ -190,7 +190,7 @@ func TestPlayerService_GetPlayer(t *testing.T) {
 func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
 	playerService, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
-	playerID := game.Players[0].ID
+	playerID := game.PlayerIDs[0]
 
 	t.Run("Update to connected status", func(t *testing.T) {
 		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, model.ConnectionStatusConnected)
@@ -236,7 +236,7 @@ func TestPlayerService_FindPlayerByName(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, player)
 		assert.Equal(t, "TestPlayer", player.Name)
-		assert.Equal(t, game.Players[0].ID, player.ID)
+		assert.Equal(t, game.PlayerIDs[0], player.ID)
 	})
 
 	t.Run("Find second player by name", func(t *testing.T) {
@@ -244,7 +244,7 @@ func TestPlayerService_FindPlayerByName(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, player)
 		assert.Equal(t, "TestPlayer2", player.Name)
-		assert.Equal(t, game.Players[1].ID, player.ID)
+		assert.Equal(t, game.PlayerIDs[1], player.ID)
 	})
 
 	t.Run("Player not found", func(t *testing.T) {

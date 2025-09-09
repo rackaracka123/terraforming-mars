@@ -114,11 +114,19 @@ func TestLobbyReconnectionScenario(t *testing.T) {
 	require.Equal(t, "lobby", reconnectedStatus, "Game should still be in lobby status after reconnection")
 	t.Log("✅ Game status correctly refreshed: lobby")
 
-	// Verify players are present in the game data
-	players, ok := reconnectedGameData["players"].([]interface{})
-	require.True(t, ok, "Players data should be present")
-	require.GreaterOrEqual(t, len(players), 1, "Should have at least the second player still in game")
-	t.Logf("✅ Game has %d players after reconnection", len(players))
+	// Verify players are present in the new DTO structure (currentPlayer + otherPlayers)
+	currentPlayer, hasCurrentPlayer := reconnectedGameData["currentPlayer"].(map[string]interface{})
+	otherPlayers, hasOtherPlayers := reconnectedGameData["otherPlayers"].([]interface{})
+
+	// Count total players: currentPlayer (if present) + otherPlayers
+	totalPlayers := len(otherPlayers)
+	if hasCurrentPlayer && currentPlayer["id"] != nil {
+		totalPlayers++
+	}
+
+	require.True(t, hasCurrentPlayer || hasOtherPlayers, "Player data should be present (currentPlayer or otherPlayers)")
+	require.GreaterOrEqual(t, totalPlayers, 1, "Should have at least one player in game")
+	t.Logf("✅ Game has %d total players after reconnection (current: %v, others: %d)", totalPlayers, hasCurrentPlayer, len(otherPlayers))
 
 	// Verify game phase (optional field)
 	if gamePhase, ok := reconnectedGameData["gamePhase"].(string); ok {
@@ -230,7 +238,7 @@ func TestReconnectionWithGameStateChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify core reconnection messages (reduced from complex multi-message flow)
-	reconnectMsg, err := client3.WaitForMessage(dto.MessageTypePlayerConnected)
+	reconnectMsg, err := client3.WaitForMessage(dto.MessageTypePlayerReconnected)
 	require.NoError(t, err, "Should receive reconnection confirmation")
 
 	// Verify we got current game state, not stale data

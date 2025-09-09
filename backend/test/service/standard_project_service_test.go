@@ -2,6 +2,9 @@ package service_test
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -16,8 +19,8 @@ import (
 // Helper functions for creating test services
 func createTestStandardProjectService() service.StandardProjectService {
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
@@ -25,8 +28,8 @@ func createTestStandardProjectService() service.StandardProjectService {
 
 func createTestPlayerService() service.PlayerService {
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 	return service.NewPlayerService(gameRepo, playerRepo)
 }
 
@@ -44,8 +47,8 @@ func setupStandardProjectServiceTest(t *testing.T) (
 
 	// Initialize services
 	eventBus := events.NewInMemoryEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus, playerRepo)
 
 	cardService := service.NewCardService(gameRepo, playerRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
@@ -61,9 +64,9 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	// Add a test player with sufficient resources
 	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
-	require.Len(t, game.Players, 1)
+	require.Len(t, game.PlayerIDs, 1)
 
-	playerID := game.Players[0].ID
+	playerID := game.PlayerIDs[0]
 
 	// Give the player sufficient credits and cards for testing
 	updatedResources := model.Resources{
@@ -81,30 +84,28 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	updatedGame, err := gameService.GetGame(ctx, game.ID)
 	require.NoError(t, err)
 
-	// Update player to have cards through player repository
-	player, err := playerRepo.GetPlayer(ctx, game.ID, playerID)
-	require.NoError(t, err)
+	// Add cards to player for testing - using unique card IDs to avoid duplicates across tests
+	cardPrefix := make([]byte, 4)
+	rand.Read(cardPrefix)
+	prefix := hex.EncodeToString(cardPrefix)
 
-	player.Cards = []string{"card1", "card2", "card3", "card4", "card5"}
-	err = playerRepo.UpdatePlayer(ctx, game.ID, &player)
-	require.NoError(t, err)
-
-	// Also update the game state to reflect the cards
-	for i := range updatedGame.Players {
-		if updatedGame.Players[i].ID == playerID {
-			updatedGame.Players[i].Cards = []string{"card1", "card2", "card3", "card4", "card5"}
-			break
-		}
+	cards := []string{
+		fmt.Sprintf("card1-%s", prefix),
+		fmt.Sprintf("card2-%s", prefix),
+		fmt.Sprintf("card3-%s", prefix),
+		fmt.Sprintf("card4-%s", prefix),
+		fmt.Sprintf("card5-%s", prefix),
 	}
-	// Update the game directly through repository instead of removed UpdateGame method
-	err = gameRepo.Update(ctx, &updatedGame)
-	require.NoError(t, err)
+	for _, cardID := range cards {
+		err = playerRepo.AddCard(ctx, game.ID, playerID, cardID)
+		require.NoError(t, err)
+	}
 
 	return standardProjectService, gameService, playerService, playerRepo, updatedGame, playerID
 }
 
 func TestStandardProjectService_SellPatents(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful sell patents", func(t *testing.T) {
@@ -116,10 +117,11 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and cards
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits+cardsToSell, player.Resources.Credits)
 		assert.Equal(t, 2, len(player.Cards)) // 5 - 3 = 2 cards remaining
 	})
@@ -138,7 +140,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
-	standardProjectService, gameService, playerService, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, playerService, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build power plant", func(t *testing.T) {
@@ -151,10 +153,11 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and production
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits-expectedCost, player.Resources.Credits)
 		assert.Equal(t, initialEnergyProduction+1, player.Production.Energy)
 	})
@@ -172,7 +175,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 }
 
 func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful launch asteroid", func(t *testing.T) {
@@ -190,10 +193,11 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits-expectedCost, player.Resources.Credits)
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
@@ -205,7 +209,7 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildAquifer(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 1, R: -1, S: 0}
@@ -225,10 +229,11 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits-expectedCost, player.Resources.Credits)
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
@@ -248,7 +253,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 }
 
 func TestStandardProjectService_PlantGreenery(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: 2, R: -1, S: -1}
@@ -268,10 +273,11 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits-expectedCost, player.Resources.Credits)
 		assert.Equal(t, initialTR+1, player.TerraformRating)
 
@@ -291,7 +297,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildCity(t *testing.T) {
-	standardProjectService, gameService, _, _, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	validHexPosition := model.HexPosition{Q: -2, R: 1, S: 1}
@@ -306,10 +312,11 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify player resources and production
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
+		// Get updated player directly from repository
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
 		require.NoError(t, err)
 
-		player := updatedGame.Players[0]
+		player := updatedPlayer
 		assert.Equal(t, initialCredits-expectedCost, player.Resources.Credits)
 		assert.Equal(t, initialCreditProduction+1, player.Production.Credits)
 	})

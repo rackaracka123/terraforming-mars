@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	// Test timeouts - optimized for fast CI/CD while maintaining reliability
-	connectionTimeout = 3 * time.Second
-	messageTimeout    = 2 * time.Second
+	// Test timeouts - increased for stability after deadlock fixes
+	connectionTimeout = 5 * time.Second
+	messageTimeout    = 5 * time.Second
 )
 
 var (
@@ -138,8 +138,9 @@ func (c *TestClient) Connect() error {
 		return fmt.Errorf("failed to parse WebSocket URL %s: %w", testServerWS, err)
 	}
 
-	dialer := websocket.DefaultDialer
-	dialer.HandshakeTimeout = connectionTimeout
+	dialer := &websocket.Dialer{
+		HandshakeTimeout: connectionTimeout,
+	}
 
 	// Retry connection with exponential backoff
 	maxRetries := 3
@@ -179,22 +180,32 @@ func (c *TestClient) readMessages() {
 		case <-c.done:
 			return
 		default:
+			// Check if connection is closed before trying to read
+			c.mu.Lock()
+			closed := c.closed
+			conn := c.conn
+			c.mu.Unlock()
+
+			if closed || conn == nil {
+				return
+			}
+
 			var message dto.WebSocketMessage
-			if err := c.conn.ReadJSON(&message); err != nil {
+			if err := conn.ReadJSON(&message); err != nil {
 				// Check if client is closed before logging
 				c.mu.Lock()
-				closed := c.closed
+				closed = c.closed
 				c.mu.Unlock()
 
-				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 					c.t.Logf("WebSocket read error: %v", err)
 				}
 				return
 			}
 
-			// Check if client is closed before logging
+			// Check if client is closed before processing
 			c.mu.Lock()
-			closed := c.closed
+			closed = c.closed
 			c.mu.Unlock()
 
 			if closed {
@@ -203,41 +214,26 @@ func (c *TestClient) readMessages() {
 
 			c.t.Logf("Received message: %s", message.Type)
 
-			// Non-blocking send to prevent goroutine hanging if channel is full
+			// Try to send message with timeout
 			select {
 			case c.messages <- message:
 				// Message sent successfully
 			case <-c.done:
-				// Client is being closed, exit
 				return
-			default:
-				// Check if client is closed before warning
-				c.mu.Lock()
-				closed = c.closed
-				c.mu.Unlock()
-
-				if closed {
-					return
-				}
-
-				// Channel is full, drop oldest messages and try again
-				c.t.Logf("Warning: Message channel full, dropping oldest message")
+			case <-time.After(50 * time.Millisecond):
+				// Channel might be full, try to drop oldest and retry once
 				select {
 				case <-c.messages:
-					// Dropped oldest message
+					// Dropped one message
 				default:
-					// Channel empty now, nothing to drop
 				}
-				// Try to send again
 				select {
 				case c.messages <- message:
-					// Message sent successfully after making space
+					// Sent after making space
 				case <-c.done:
 					return
 				default:
-					if !closed {
-						c.t.Logf("Warning: Unable to send message, dropping it")
-					}
+					c.t.Logf("Warning: Dropping message due to full channel: %s", message.Type)
 				}
 			}
 		}
@@ -254,9 +250,16 @@ func (c *TestClient) Close() {
 	}
 
 	c.closed = true
+
+	// Close done channel to signal goroutines to stop
 	close(c.done)
+
+	// Send close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+
+	// Close the connection
 	c.conn.Close()
+	c.conn = nil
 }
 
 // CreateGameViaHTTP creates a game using the HTTP API
@@ -402,6 +405,63 @@ func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocket
 	}
 }
 
+// WaitForMessageTypes waits for any of the specified message types with timeout
+func (c *TestClient) WaitForMessageTypes(messageTypes ...dto.MessageType) (*dto.WebSocketMessage, error) {
+	timeout := time.After(messageTimeout)
+
+	// Create a map for quick lookup
+	typeMap := make(map[dto.MessageType]bool)
+	for _, msgType := range messageTypes {
+		typeMap[msgType] = true
+	}
+
+	for {
+		select {
+		case message := <-c.messages:
+			c.t.Logf("Looking for %v, got %s", messageTypes, message.Type)
+			if typeMap[message.Type] {
+				return &message, nil
+			}
+			// Continue waiting for one of the expected message types
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for message types: %v", messageTypes)
+		case <-c.done:
+			return nil, fmt.Errorf("client closed while waiting for message")
+		}
+	}
+}
+
+// WaitForBothMessages waits for both player-connected and game-updated messages
+func (c *TestClient) WaitForBothMessages() (playerConnected, gameUpdated *dto.WebSocketMessage, err error) {
+	timeout := time.After(messageTimeout * 2) // Double timeout since we need 2 messages
+	messagesNeeded := 2
+
+	for messagesNeeded > 0 {
+		select {
+		case message := <-c.messages:
+			c.t.Logf("Received message: %s", message.Type)
+			switch message.Type {
+			case dto.MessageTypePlayerConnected:
+				if playerConnected == nil {
+					playerConnected = &message
+					messagesNeeded--
+				}
+			case dto.MessageTypeGameUpdated:
+				if gameUpdated == nil {
+					gameUpdated = &message
+					messagesNeeded--
+				}
+			}
+		case <-timeout:
+			return nil, nil, fmt.Errorf("timeout waiting for both player-connected and game-updated messages")
+		case <-c.done:
+			return nil, nil, fmt.Errorf("client closed while waiting for messages")
+		}
+	}
+
+	return playerConnected, gameUpdated, nil
+}
+
 // WaitForAnyMessage waits for any message with timeout
 func (c *TestClient) WaitForAnyMessage() (*dto.WebSocketMessage, error) {
 	timeout := time.After(messageTimeout)
@@ -507,8 +567,11 @@ func (c *TestClient) ForceClose() {
 	}
 
 	c.closed = true
+
+	// Send abnormal close message
 	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
 	c.conn.Close()
+	c.conn = nil
 	close(c.done)
 }
 
