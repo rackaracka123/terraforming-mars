@@ -583,3 +583,36 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - **Local Development**: Everything runs locally, so playwright waits only need to be 1 second max.
 - Whenever you create a new feature in backend. Write a test for it.
 - Whenever you move something that is checked into git. use git mv
+
+## Frontend Debugging with Playwright
+
+**CRITICAL**: When the user asks to "debug frontend", you must launch a Playwright MCP session to interactively debug the application:
+
+### Debugging Protocol
+1. **Preparation**: Make sure backend and frontend are running
+2. **Launch Playwright**: Use the Playwright MCP server to navigate to `http://localhost:3000` (Playwright config automatically starts frontend via webServer)
+3. **Interactive Debugging**: Use Playwright MCP tools to:
+   - Navigate through the application
+   - Interact with UI elements (click, type, etc.)
+   - Take snapshots to inspect page state
+   - Capture screenshots for documentation
+   - Examine console messages and errors
+   - Test user flows and game mechanics
+
+### Playwright MCP Tools Available
+- `mcp__playwright__browser_navigate`: Navigate to URLs
+- `mcp__playwright__browser_snapshot`: Capture page accessibility snapshot
+- `mcp__playwright__browser_click`: Click on UI elements
+- `mcp__playwright__browser_type`: Type into form fields
+- `mcp__playwright__browser_take_screenshot`: Capture visual screenshots
+- `mcp__playwright__browser_evaluate`: Execute JavaScript in browser context
+
+### Debugging Use Cases
+- **UI Issues**: Inspect component rendering and layout problems
+- **State Problems**: Use the Debug panel to examine real-time game state
+- **User Flow Testing**: Navigate through game creation, joining, and gameplay
+- **WebSocket Debugging**: Monitor real-time game state updates
+- **Performance Issues**: Identify rendering bottlenecks or slow interactions
+- **Visual Regressions**: Compare screenshots across different states
+
+**Important**: This is different from writing Playwright tests. When debugging, you should actively use the MCP server to interact with the live application and provide real-time insights about its behavior.
