@@ -25,7 +25,8 @@ func TestCardSelectionFlow(t *testing.T) {
 	err := cardDataService.LoadCards()
 	require.NoError(t, err, "Should load card data for testing")
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	paymentService := service.NewPaymentService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, paymentService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
 	// Track events

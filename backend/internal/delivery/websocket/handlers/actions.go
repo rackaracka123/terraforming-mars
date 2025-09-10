@@ -115,14 +115,16 @@ func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, acti
 		return ah.cardActions.SelectStartingCards(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeSelectCards:
 		return ah.cardActions.SelectProductionCards(ctx, gameID, playerID, actionRequest)
+	case dto.ActionTypePlayCard:
+		return ah.cardActions.PlayCard(ctx, gameID, playerID, actionRequest)
 
 	// Standard projects
 	case dto.ActionTypeSellPatents:
 		return ah.standardProjects.SellPatents(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildPowerPlant:
-		return ah.standardProjects.BuildPowerPlant(ctx, gameID, playerID)
+		return ah.standardProjects.BuildPowerPlant(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeLaunchAsteroid:
-		return ah.standardProjects.LaunchAsteroid(ctx, gameID, playerID)
+		return ah.standardProjects.LaunchAsteroid(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypeBuildAquifer:
 		return ah.standardProjects.BuildAquifer(ctx, gameID, playerID, actionRequest)
 	case dto.ActionTypePlantGreenery:

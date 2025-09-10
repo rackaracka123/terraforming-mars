@@ -22,9 +22,10 @@ func createTestStandardProjectService() service.StandardProjectService {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	paymentService := service.NewPaymentService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, paymentService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
-	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	return service.NewStandardProjectService(gameRepo, playerRepo, gameService, paymentService)
 }
 
 func createTestPlayerService() service.PlayerService {
@@ -52,10 +53,11 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	paymentService := service.NewPaymentService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, paymentService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, paymentService)
 
 	ctx := context.Background()
 
@@ -151,7 +153,8 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 		expectedCost := 11
 
 		// Execute build power plant
-		err := standardProjectService.BuildPowerPlant(ctx, game.ID, playerID)
+		payment := &model.Payment{Credits: 11, Steel: 0, Titanium: 0}
+		err := standardProjectService.BuildPowerPlant(ctx, game.ID, playerID, payment)
 		assert.NoError(t, err)
 
 		// Verify player resources and production
@@ -170,7 +173,8 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, insufficientResources)
 		require.NoError(t, err)
 
-		err = standardProjectService.BuildPowerPlant(ctx, game.ID, playerID)
+		payment := &model.Payment{Credits: 11, Steel: 0, Titanium: 0}
+		err = standardProjectService.BuildPowerPlant(ctx, game.ID, playerID, payment)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "insufficient credits")
 	})
@@ -191,7 +195,8 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 		initialTemp := initialParams.Temperature
 
 		// Execute launch asteroid
-		err = standardProjectService.LaunchAsteroid(ctx, game.ID, playerID)
+		payment := &model.Payment{Credits: 14, Steel: 0, Titanium: 0}
+		err = standardProjectService.LaunchAsteroid(ctx, game.ID, playerID, payment)
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
@@ -227,7 +232,8 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		initialOceans := initialParams.Oceans
 
 		// Execute build aquifer
-		err = standardProjectService.BuildAquifer(ctx, game.ID, playerID, validHexPosition)
+		payment := &model.Payment{Credits: 18, Steel: 0, Titanium: 0}
+		err = standardProjectService.BuildAquifer(ctx, game.ID, playerID, validHexPosition, payment)
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
@@ -248,7 +254,8 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 	t.Run("Invalid hex position", func(t *testing.T) {
 		invalidHexPosition := model.HexPosition{Q: 1, R: 1, S: 1} // Sum != 0
 
-		err := standardProjectService.BuildAquifer(ctx, game.ID, playerID, invalidHexPosition)
+		payment := &model.Payment{Credits: 18, Steel: 0, Titanium: 0}
+		err := standardProjectService.BuildAquifer(ctx, game.ID, playerID, invalidHexPosition, payment)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid hex position")
 	})
@@ -271,7 +278,8 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		initialOxygen := initialParams.Oxygen
 
 		// Execute plant greenery
-		err = standardProjectService.PlantGreenery(ctx, game.ID, playerID, validHexPosition)
+		payment := &model.Payment{Credits: 23, Steel: 0, Titanium: 0}
+		err = standardProjectService.PlantGreenery(ctx, game.ID, playerID, validHexPosition, payment)
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
@@ -292,7 +300,8 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 	t.Run("Invalid hex position", func(t *testing.T) {
 		invalidHexPosition := model.HexPosition{Q: 1, R: 2, S: 3} // Sum != 0
 
-		err := standardProjectService.PlantGreenery(ctx, game.ID, playerID, invalidHexPosition)
+		payment := &model.Payment{Credits: 23, Steel: 0, Titanium: 0}
+		err := standardProjectService.PlantGreenery(ctx, game.ID, playerID, invalidHexPosition, payment)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid hex position")
 	})
@@ -310,7 +319,8 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 		expectedCost := 25
 
 		// Execute build city
-		err := standardProjectService.BuildCity(ctx, game.ID, playerID, validHexPosition)
+		payment := &model.Payment{Credits: 25, Steel: 0, Titanium: 0}
+		err := standardProjectService.BuildCity(ctx, game.ID, playerID, validHexPosition, payment)
 		assert.NoError(t, err)
 
 		// Verify player resources and production
@@ -326,7 +336,8 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 	t.Run("Invalid hex position", func(t *testing.T) {
 		invalidHexPosition := model.HexPosition{Q: 0, R: 0, S: 1} // Sum != 0
 
-		err := standardProjectService.BuildCity(ctx, game.ID, playerID, invalidHexPosition)
+		payment := &model.Payment{Credits: 25, Steel: 0, Titanium: 0}
+		err := standardProjectService.BuildCity(ctx, game.ID, playerID, invalidHexPosition, payment)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid hex position")
 	})

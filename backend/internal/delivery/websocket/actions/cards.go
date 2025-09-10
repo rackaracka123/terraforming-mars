@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
@@ -87,6 +88,37 @@ func (ca *CardActions) SelectProductionCards(ctx context.Context, gameID, player
 
 	log.Info("Player completed production card selection",
 		zap.Strings("selected_cards", request.CardIDs))
+
+	return nil
+}
+
+// PlayCard handles playing a card with payment
+func (ca *CardActions) PlayCard(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionPlayCardRequest
+	if err := ca.parser.ParsePayload(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid play card request: %w", err)
+	}
+
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Player playing card",
+		zap.String("card_id", request.CardID),
+		zap.Any("payment", request.Payment))
+
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	// Process the card play through CardService
+	if err := ca.cardService.PlayCard(ctx, gameID, playerID, request.CardID, payment); err != nil {
+		log.Error("Failed to play card", zap.Error(err))
+		return fmt.Errorf("card play failed: %w", err)
+	}
+
+	log.Info("Player played card successfully",
+		zap.String("card_id", request.CardID))
 
 	return nil
 }

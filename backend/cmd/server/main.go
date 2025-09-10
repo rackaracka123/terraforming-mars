@@ -66,10 +66,11 @@ func main() {
 	}
 
 	// Initialize new service architecture
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	paymentService := service.NewPaymentService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, paymentService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, paymentService)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 

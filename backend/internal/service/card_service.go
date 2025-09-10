@@ -34,6 +34,15 @@ type CardService interface {
 
 	// Get the underlying card data service
 	GetCardDataService() CardDataService
+
+	// Play a card with multi-currency payment
+	PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.Payment) error
+
+	// Get payment cost for a specific card
+	GetCardPaymentCost(cardID string) (*model.PaymentCost, error)
+
+	// Validate if a payment is valid for a card
+	ValidateCardPayment(cardID string, payment *model.Payment, playerResources *model.Resources) error
 }
 
 // CardServiceImpl implements CardService interface
@@ -41,17 +50,19 @@ type CardServiceImpl struct {
 	gameRepo        repository.GameRepository
 	playerRepo      repository.PlayerRepository
 	cardDataService CardDataService
+	paymentService  PaymentService
 	// Store starting card options temporarily during selection phase
 	playerCardOptions map[string]map[string][]string // gameID -> playerID -> cardOptions
 	selectionStatus   map[string]map[string]bool     // gameID -> playerID -> hasSelected
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDataService CardDataService) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDataService CardDataService, paymentService PaymentService) CardService {
 	return &CardServiceImpl{
 		gameRepo:          gameRepo,
 		playerRepo:        playerRepo,
 		cardDataService:   cardDataService,
+		paymentService:    paymentService,
 		playerCardOptions: make(map[string]map[string][]string),
 		selectionStatus:   make(map[string]map[string]bool),
 	}
@@ -275,4 +286,89 @@ func (s *CardServiceImpl) GenerateStartingCardOptions(gameID, playerID string) [
 // GetCardDataService returns the underlying card data service
 func (s *CardServiceImpl) GetCardDataService() CardDataService {
 	return s.cardDataService
+}
+
+// PlayCard handles playing a card with multi-currency payment
+func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.Payment) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Processing card play", zap.String("card_id", cardID))
+
+	// Get the card details
+	card, err := s.cardDataService.GetCardByID(cardID)
+	if err != nil {
+		log.Error("Failed to get card details", zap.String("card_id", cardID), zap.Error(err))
+		return fmt.Errorf("failed to get card details: %w", err)
+	}
+
+	// Get current player
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Validate the payment
+	if err := s.ValidateCardPayment(cardID, payment, &player.Resources); err != nil {
+		log.Error("Payment validation failed", zap.Error(err))
+		return fmt.Errorf("invalid payment: %w", err)
+	}
+
+	// Process the payment
+	newResources, err := s.paymentService.ProcessPayment(payment, &player.Resources)
+	if err != nil {
+		log.Error("Failed to process payment", zap.Error(err))
+		return fmt.Errorf("failed to process payment: %w", err)
+	}
+
+	// Update player resources
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, *newResources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
+	}
+
+	// Play the card (moves from hand to played cards)
+	if err := s.playerRepo.PlayCard(ctx, gameID, playerID, cardID); err != nil {
+		log.Error("Failed to play card", zap.String("card_id", cardID), zap.Error(err))
+		return fmt.Errorf("failed to play card: %w", err)
+	}
+
+	log.Info("Player played card successfully",
+		zap.String("card_name", card.Name),
+		zap.String("card_id", cardID),
+		zap.Int("credits_paid", payment.Credits),
+		zap.Int("steel_paid", payment.Steel),
+		zap.Int("titanium_paid", payment.Titanium))
+
+	return nil
+}
+
+// GetCardPaymentCost returns the payment cost structure for a specific card
+func (s *CardServiceImpl) GetCardPaymentCost(cardID string) (*model.PaymentCost, error) {
+	card, err := s.cardDataService.GetCardByID(cardID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get card details: %w", err)
+	}
+
+	return s.paymentService.GetCardPaymentCost(card), nil
+}
+
+// ValidateCardPayment validates if a payment is valid for a card and player resources
+func (s *CardServiceImpl) ValidateCardPayment(cardID string, payment *model.Payment, playerResources *model.Resources) error {
+	// Get the card payment cost
+	paymentCost, err := s.GetCardPaymentCost(cardID)
+	if err != nil {
+		return fmt.Errorf("failed to get payment cost: %w", err)
+	}
+
+	// Check if player can afford the payment
+	if !s.paymentService.CanAfford(payment, playerResources) {
+		return fmt.Errorf("insufficient resources for payment")
+	}
+
+	// Check if the payment is valid for this card
+	if !s.paymentService.IsValidPayment(payment, paymentCost) {
+		return fmt.Errorf("invalid payment method for this card")
+	}
+
+	return nil
 }

@@ -45,6 +45,7 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+  payment: PaymentDto;
 }
 /**
  * HexPositionDto represents a position on the Mars board
@@ -66,12 +67,14 @@ export interface SellPatentsAction {
  */
 export interface BuildPowerPlantAction {
   type: ActionType;
+  payment: PaymentDto;
 }
 /**
  * LaunchAsteroidAction represents launching an asteroid
  */
 export interface LaunchAsteroidAction {
   type: ActionType;
+  payment: PaymentDto;
 }
 /**
  * BuildAquiferAction represents building an aquifer
@@ -79,6 +82,7 @@ export interface LaunchAsteroidAction {
 export interface BuildAquiferAction {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 /**
  * PlantGreeneryAction represents planting greenery
@@ -86,6 +90,7 @@ export interface BuildAquiferAction {
 export interface PlantGreeneryAction {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 /**
  * BuildCityAction represents building a city
@@ -93,6 +98,7 @@ export interface PlantGreeneryAction {
 export interface BuildCityAction {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 /**
  * ActionSelectStartingCardRequest contains the action data for select starting card actions
@@ -126,6 +132,7 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+  payment: PaymentDto;
 }
 /**
  * ActionSellPatentsRequest contains the action data for sell patents actions
@@ -139,12 +146,14 @@ export interface ActionSellPatentsRequest {
  */
 export interface ActionBuildPowerPlantRequest {
   type: ActionType;
+  payment: PaymentDto;
 }
 /**
  * ActionLaunchAsteroidRequest contains the action data for launch asteroid actions
  */
 export interface ActionLaunchAsteroidRequest {
   type: ActionType;
+  payment: PaymentDto;
 }
 /**
  * ActionBuildAquiferRequest contains the action data for build aquifer actions
@@ -152,6 +161,7 @@ export interface ActionLaunchAsteroidRequest {
 export interface ActionBuildAquiferRequest {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 /**
  * ActionPlantGreeneryRequest contains the action data for plant greenery actions
@@ -159,6 +169,7 @@ export interface ActionBuildAquiferRequest {
 export interface ActionPlantGreeneryRequest {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 /**
  * ActionBuildCityRequest contains the action data for build city actions
@@ -166,6 +177,7 @@ export interface ActionPlantGreeneryRequest {
 export interface ActionBuildCityRequest {
   type: ActionType;
   hexPosition: HexPositionDto;
+  payment: PaymentDto;
 }
 
 //////////
@@ -176,12 +188,10 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase =
-  "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase =
-  "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -443,6 +453,33 @@ export interface ErrorResponse {
 }
 
 //////////
+// source: payment_dto.go
+
+/**
+ * PaymentMethodDto represents different ways to pay for cards and actions
+ */
+export type PaymentMethodDto = string;
+export const PaymentMethodCreditsDto: PaymentMethodDto = "credits";
+export const PaymentMethodSteelDto: PaymentMethodDto = "steel";
+export const PaymentMethodTitaniumDto: PaymentMethodDto = "titanium";
+/**
+ * PaymentDto represents how a player wants to pay for something
+ */
+export interface PaymentDto {
+  credits: number /* int */; // MegaCredits to spend
+  steel: number /* int */; // Steel to spend (2 MC discount per steel for buildings)
+  titanium: number /* int */; // Titanium to spend (3 MC discount per titanium for space projects)
+}
+/**
+ * PaymentCostDto represents the different ways something can be paid for
+ */
+export interface PaymentCostDto {
+  baseCost: number /* int */; // Base MegaCredit cost
+  canUseSteel: boolean; // Can use steel for discount (building cards)
+  canUseTitanium: boolean; // Can use titanium for discount (space cards)
+}
+
+//////////
 // source: websocket_dto.go
 
 /**
@@ -465,8 +502,7 @@ export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
-export const MessageTypeProductionPhaseStarted: MessageType =
-  "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
 /**
  * WebSocketMessage represents a WebSocket message
  */

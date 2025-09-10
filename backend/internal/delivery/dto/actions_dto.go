@@ -37,7 +37,8 @@ type SkipAction struct {
 
 // PlayCardAction represents playing a card from hand
 type PlayCardAction struct {
-	CardID string `json:"cardId" ts:"string"`
+	CardID  string     `json:"cardId" ts:"string"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // HexPositionDto represents a position on the Mars board
@@ -57,30 +58,35 @@ type SellPatentsAction struct {
 
 // BuildPowerPlantAction represents building a power plant
 type BuildPowerPlantAction struct {
-	Type ActionType `json:"type" ts:"ActionType"`
+	Type    ActionType `json:"type" ts:"ActionType"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // LaunchAsteroidAction represents launching an asteroid
 type LaunchAsteroidAction struct {
-	Type ActionType `json:"type" ts:"ActionType"`
+	Type    ActionType `json:"type" ts:"ActionType"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // BuildAquiferAction represents building an aquifer
 type BuildAquiferAction struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // PlantGreeneryAction represents planting greenery
 type PlantGreeneryAction struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // BuildCityAction represents building a city
 type BuildCityAction struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // ActionSelectStartingCardRequest contains the action data for select starting card actions
@@ -122,8 +128,9 @@ func (ap *ActionSkipActionRequest) GetAction() *SkipAction {
 
 // ActionPlayCardRequest contains the action data for play card actions
 type ActionPlayCardRequest struct {
-	Type   ActionType `json:"type" ts:"ActionType"`
-	CardID string     `json:"cardId" ts:"string"`
+	Type    ActionType `json:"type" ts:"ActionType"`
+	CardID  string     `json:"cardId" ts:"string"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the play card action
@@ -146,7 +153,8 @@ func (ap *ActionSellPatentsRequest) GetAction() *SellPatentsAction {
 
 // ActionBuildPowerPlantRequest contains the action data for build power plant actions
 type ActionBuildPowerPlantRequest struct {
-	Type ActionType `json:"type" ts:"ActionType"`
+	Type    ActionType `json:"type" ts:"ActionType"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the build power plant action
@@ -156,7 +164,8 @@ func (ap *ActionBuildPowerPlantRequest) GetAction() *BuildPowerPlantAction {
 
 // ActionLaunchAsteroidRequest contains the action data for launch asteroid actions
 type ActionLaunchAsteroidRequest struct {
-	Type ActionType `json:"type" ts:"ActionType"`
+	Type    ActionType `json:"type" ts:"ActionType"`
+	Payment PaymentDto `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the launch asteroid action
@@ -168,6 +177,7 @@ func (ap *ActionLaunchAsteroidRequest) GetAction() *LaunchAsteroidAction {
 type ActionBuildAquiferRequest struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the build aquifer action
@@ -179,6 +189,7 @@ func (ap *ActionBuildAquiferRequest) GetAction() *BuildAquiferAction {
 type ActionPlantGreeneryRequest struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the plant greenery action
@@ -190,6 +201,7 @@ func (ap *ActionPlantGreeneryRequest) GetAction() *PlantGreeneryAction {
 type ActionBuildCityRequest struct {
 	Type        ActionType     `json:"type" ts:"ActionType"`
 	HexPosition HexPositionDto `json:"hexPosition" ts:"HexPositionDto"`
+	Payment     PaymentDto     `json:"payment" ts:"PaymentDto"`
 }
 
 // GetAction returns the build city action

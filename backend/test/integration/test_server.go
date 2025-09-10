@@ -47,10 +47,11 @@ func NewTestServer(port int) (*TestServer, error) {
 		logger.Warn("Failed to load card data in test server, using fallback", zap.Error(err))
 	}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	paymentService := service.NewPaymentService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, paymentService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, paymentService)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {

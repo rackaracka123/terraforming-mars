@@ -35,13 +35,37 @@ func (sp *StandardProjects) SellPatents(ctx context.Context, gameID, playerID st
 }
 
 // BuildPowerPlant handles build power plant standard project
-func (sp *StandardProjects) BuildPowerPlant(ctx context.Context, gameID, playerID string) error {
-	return sp.standardProjectService.BuildPowerPlant(ctx, gameID, playerID)
+func (sp *StandardProjects) BuildPowerPlant(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionBuildPowerPlantRequest
+	if err := sp.parser.ParsePayload(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid build power plant request: %w", err)
+	}
+
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	return sp.standardProjectService.BuildPowerPlant(ctx, gameID, playerID, payment)
 }
 
 // LaunchAsteroid handles launch asteroid standard project
-func (sp *StandardProjects) LaunchAsteroid(ctx context.Context, gameID, playerID string) error {
-	return sp.standardProjectService.LaunchAsteroid(ctx, gameID, playerID)
+func (sp *StandardProjects) LaunchAsteroid(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+	var request dto.ActionLaunchAsteroidRequest
+	if err := sp.parser.ParsePayload(actionRequest, &request); err != nil {
+		return fmt.Errorf("invalid launch asteroid request: %w", err)
+	}
+
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	return sp.standardProjectService.LaunchAsteroid(ctx, gameID, playerID, payment)
 }
 
 // BuildAquifer handles build aquifer standard project
@@ -57,7 +81,14 @@ func (sp *StandardProjects) BuildAquifer(ctx context.Context, gameID, playerID s
 		S: request.HexPosition.S,
 	}
 
-	return sp.standardProjectService.BuildAquifer(ctx, gameID, playerID, hexPosition)
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	return sp.standardProjectService.BuildAquifer(ctx, gameID, playerID, hexPosition, payment)
 }
 
 // PlantGreenery handles plant greenery standard project
@@ -73,7 +104,14 @@ func (sp *StandardProjects) PlantGreenery(ctx context.Context, gameID, playerID 
 		S: request.HexPosition.S,
 	}
 
-	return sp.standardProjectService.PlantGreenery(ctx, gameID, playerID, hexPosition)
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	return sp.standardProjectService.PlantGreenery(ctx, gameID, playerID, hexPosition, payment)
 }
 
 // BuildCity handles build city standard project
@@ -89,5 +127,12 @@ func (sp *StandardProjects) BuildCity(ctx context.Context, gameID, playerID stri
 		S: request.HexPosition.S,
 	}
 
-	return sp.standardProjectService.BuildCity(ctx, gameID, playerID, hexPosition)
+	// Convert DTO payment to model payment
+	payment := &model.Payment{
+		Credits:  request.Payment.Credits,
+		Steel:    request.Payment.Steel,
+		Titanium: request.Payment.Titanium,
+	}
+
+	return sp.standardProjectService.BuildCity(ctx, gameID, playerID, hexPosition, payment)
 }

@@ -15,20 +15,23 @@ type StandardProjectService interface {
 	// SellPatents exchanges hand cards for megacredits (1 M€ per card)
 	SellPatents(ctx context.Context, gameID, playerID string, cardCount int) error
 
-	// BuildPowerPlant increases energy production for 11 M€
-	BuildPowerPlant(ctx context.Context, gameID, playerID string) error
+	// BuildPowerPlant increases energy production with payment
+	BuildPowerPlant(ctx context.Context, gameID, playerID string, payment *model.Payment) error
 
-	// LaunchAsteroid raises temperature for 14 M€ and grants TR
-	LaunchAsteroid(ctx context.Context, gameID, playerID string) error
+	// LaunchAsteroid raises temperature with payment and grants TR
+	LaunchAsteroid(ctx context.Context, gameID, playerID string, payment *model.Payment) error
 
-	// BuildAquifer places ocean tile for 18 M€ and grants TR
-	BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// BuildAquifer places ocean tile with payment and grants TR
+	BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error
 
-	// PlantGreenery places greenery tile for 23 M€ and grants TR
-	PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// PlantGreenery places greenery tile with payment and grants TR
+	PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error
 
-	// BuildCity places city tile for 25 M€
-	BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// BuildCity places city tile with payment
+	BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error
+
+	// GetStandardProjectCost returns the payment cost for a standard project
+	GetStandardProjectCost(project model.StandardProject) *model.PaymentCost
 
 	// IsValidHexPosition validates hex coordinate positioning
 	IsValidHexPosition(h *model.HexPosition) bool
@@ -36,9 +39,10 @@ type StandardProjectService interface {
 
 // StandardProjectServiceImpl implements StandardProjectService interface
 type StandardProjectServiceImpl struct {
-	gameRepo    repository.GameRepository
-	playerRepo  repository.PlayerRepository
-	gameService GameService
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	gameService    GameService
+	paymentService PaymentService
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
@@ -46,11 +50,13 @@ func NewStandardProjectService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	gameService GameService,
+	paymentService PaymentService,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
-		gameRepo:    gameRepo,
-		playerRepo:  playerRepo,
-		gameService: gameService,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		gameService:    gameService,
+		paymentService: paymentService,
 	}
 }
 
@@ -106,11 +112,11 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 	return nil
 }
 
-// BuildPowerPlant increases energy production for 11 M€
-func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID, playerID string) error {
+// BuildPowerPlant increases energy production with payment
+func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID, playerID string, payment *model.Payment) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectPowerPlant, func(player *model.Player) error {
+	return s.executeStandardProjectWithPayment(ctx, gameID, playerID, model.StandardProjectPowerPlant, payment, func(player *model.Player) error {
 		// Increase energy production by 1
 		player.Production.Energy++
 
@@ -121,11 +127,11 @@ func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID
 	})
 }
 
-// LaunchAsteroid raises temperature for 14 M€ and grants TR
-func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID, playerID string) error {
+// LaunchAsteroid raises temperature with payment and grants TR
+func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID, playerID string, payment *model.Payment) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAsteroid, func(player *model.Player) error {
+	return s.executeStandardProjectWithPayment(ctx, gameID, playerID, model.StandardProjectAsteroid, payment, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -142,8 +148,8 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 	})
 }
 
-// BuildAquifer places ocean tile for 18 M€ and grants TR
-func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+// BuildAquifer places ocean tile with payment and grants TR
+func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
@@ -155,7 +161,7 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
 	}
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAquifer, func(player *model.Player) error {
+	return s.executeStandardProjectWithPayment(ctx, gameID, playerID, model.StandardProjectAquifer, payment, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -174,7 +180,7 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 }
 
 // PlantGreenery places greenery tile for 23 M€ and grants TR
-func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
@@ -186,7 +192,7 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
 	}
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectGreenery, func(player *model.Player) error {
+	return s.executeStandardProjectWithPayment(ctx, gameID, playerID, model.StandardProjectGreenery, payment, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -205,7 +211,7 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 }
 
 // BuildCity places city tile for 25 M€
-func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition, payment *model.Payment) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Validate hex position
@@ -217,7 +223,7 @@ func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, play
 		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
 	}
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectCity, func(player *model.Player) error {
+	return s.executeStandardProjectWithPayment(ctx, gameID, playerID, model.StandardProjectCity, payment, func(player *model.Player) error {
 		// Increase megacredit production by 1 (cities provide income)
 		player.Production.Credits++
 
@@ -229,8 +235,8 @@ func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, play
 	})
 }
 
-// executeStandardProject executes a standard project with common validation and resource deduction
-func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context, gameID, playerID string, project model.StandardProject, projectAction func(*model.Player) error) error {
+// executeStandardProjectWithPayment executes a standard project with payment validation and resource deduction
+func (s *StandardProjectServiceImpl) executeStandardProjectWithPayment(ctx context.Context, gameID, playerID string, project model.StandardProject, payment *model.Payment, projectAction func(*model.Player) error) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
@@ -240,24 +246,35 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Validate player can afford the project
-	cost, exists := model.StandardProjectCost[project]
-	if !exists {
-		return fmt.Errorf("unknown standard project: %s", project)
-	}
-	if player.Resources.Credits < cost {
-		log.Warn("Player cannot afford standard project",
+	// Get payment cost for this standard project
+	paymentCost := s.GetStandardProjectCost(project)
+	
+	// Validate payment is valid and player can afford it
+	if !s.paymentService.CanAfford(payment, &player.Resources) {
+		log.Warn("Player cannot afford payment",
 			zap.String("project", string(project)),
-			zap.Int("cost", cost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
+			zap.Any("payment", payment),
+			zap.Any("player_resources", player.Resources))
+		return fmt.Errorf("insufficient resources for payment")
+	}
+	
+	if !s.paymentService.IsValidPayment(payment, paymentCost) {
+		log.Warn("Invalid payment for standard project",
+			zap.String("project", string(project)),
+			zap.Any("payment", payment))
+		return fmt.Errorf("invalid payment method for standard project")
+	}
+
+	// Process payment
+	newResources, err := s.paymentService.ProcessPayment(payment, &player.Resources)
+	if err != nil {
+		log.Error("Failed to process payment", zap.Error(err))
+		return fmt.Errorf("failed to process payment: %w", err)
 	}
 
 	// Create updated player copy
 	updatedPlayer := player
-
-	// Deduct cost
-	updatedPlayer.Resources.Credits -= cost
+	updatedPlayer.Resources = *newResources
 
 	// Execute project-specific action
 	if err := projectAction(&updatedPlayer); err != nil {
@@ -288,7 +305,9 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 
 	log.Info("Standard project executed",
 		zap.String("project", string(project)),
-		zap.Int("cost", cost))
+		zap.Int("credits_paid", payment.Credits),
+		zap.Int("steel_paid", payment.Steel),
+		zap.Int("titanium_paid", payment.Titanium))
 
 	return nil
 }
@@ -344,6 +363,21 @@ func (s *StandardProjectServiceImpl) GetHexNeighbors(h *model.HexPosition) []mod
 	}
 
 	return neighbors
+}
+
+// GetStandardProjectCost returns the payment cost for a standard project
+func (s *StandardProjectServiceImpl) GetStandardProjectCost(project model.StandardProject) *model.PaymentCost {
+	baseCost, exists := model.StandardProjectCost[project]
+	if !exists {
+		baseCost = 0
+	}
+	
+	// Standard projects only accept MegaCredits (no steel/titanium discounts)
+	return &model.PaymentCost{
+		BaseCost:       baseCost,
+		CanUseSteel:    false,
+		CanUseTitanium: false,
+	}
 }
 
 // abs returns the absolute value of an integer (helper function)
