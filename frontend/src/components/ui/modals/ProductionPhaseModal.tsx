@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { ProductionPhaseStartedPayload } from "@/types/generated/api-types.ts";
+import {
+  RESOURCE_COLORS,
+  RESOURCE_ICONS,
+  RESOURCE_NAMES,
+  ResourceType,
+} from "../../../utils/resourceColors.ts";
 import styles from "./ProductionPhaseModal.module.css";
 
 interface ProductionPhaseModalProps {
@@ -14,10 +20,16 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   onClose,
 }) => {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [animationStep, setAnimationStep] = useState<"energy" | "production">(
-    "energy",
-  );
+  const [animationStep, setAnimationStep] = useState<
+    "energyConversion" | "production"
+  >("energyConversion");
   const [isAnimating, setIsAnimating] = useState(false);
+  const [resourceAnimationState, setResourceAnimationState] = useState<
+    "initial" | "fadeInResources" | "showProduction" | "fadeOut" | "fadeIn"
+  >("initial");
+  const [energyAnimationState, setEnergyAnimationState] = useState<
+    "initial" | "fadeOut" | "fadeIn"
+  >("initial");
 
   // Fake data for testing
   const fakeProductionData: ProductionPhaseStartedPayload = {
@@ -37,11 +49,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         },
         afterResources: {
           credits: 27, // +12 from TR + production
-          steel: 5,    // +2 from production
+          steel: 5, // +2 from production
           titanium: 2, // no change
-          plants: 9,   // +1 from production
-          energy: 3,   // reset + production
-          heat: 10,    // +6 from energy conversion
+          plants: 9, // +1 from production
+          energy: 3, // reset + production
+          heat: 10, // +6 from energy conversion
         },
         production: {
           credits: 4,
@@ -68,11 +80,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         },
         afterResources: {
           credits: 18, // +10 from TR + production
-          steel: 4,    // +3 from production
+          steel: 4, // +3 from production
           titanium: 6, // +2 from production
-          plants: 2,   // no change
-          energy: 2,   // reset + production
-          heat: 5,     // +4 from energy conversion
+          plants: 2, // no change
+          energy: 2, // reset + production
+          heat: 5, // +4 from energy conversion
         },
         production: {
           credits: 2,
@@ -99,11 +111,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         },
         afterResources: {
           credits: 35, // +13 from TR + production
-          steel: 1,    // +1 from production
+          steel: 1, // +1 from production
           titanium: 1, // no change
-          plants: 15,  // +3 from production
-          energy: 1,   // reset + production
-          heat: 10,    // +2 from energy conversion
+          plants: 15, // +3 from production
+          energy: 1, // reset + production
+          heat: 10, // +2 from energy conversion
         },
         production: {
           credits: 1,
@@ -120,73 +132,111 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     ],
   };
 
-  // Use fake data for testing, fallback to actual data
-  const modalProductionData = fakeProductionData;
+  // Use real production data when available, fallback to fake data for testing
+  const modalProductionData = productionData || fakeProductionData;
 
-  // Resource icons mapping
-  const resourceIcons = {
-    credits: "/assets/resources/megacredit.png",
-    steel: "/assets/resources/steel.png",
-    titanium: "/assets/resources/titanium.png",
-    plants: "/assets/resources/plant.png",
-    energy: "/assets/resources/power.png",
-    heat: "/assets/resources/heat.png",
-  };
+  // Resource configuration from utility
+  const resourceIcons = RESOURCE_ICONS;
+  const resourceNames = RESOURCE_NAMES;
 
-  const resourceNames = {
-    credits: "Credits",
-    steel: "Steel",
-    titanium: "Titanium",
-    plants: "Plants",
-    energy: "Energy",
-    heat: "Heat",
-  };
-
-  // Auto-advance through players and animation steps
+  // Auto-advance through animation steps within each player (but not between players)
   useEffect(() => {
     if (!isAnimating) return;
 
-    const timer = setTimeout(() => {
-      if (animationStep === "energy") {
-        setAnimationStep("production");
-      } else {
-        // Move to next player or close
-        if (currentPlayerIndex < modalProductionData.playersData.length - 1) {
-          setCurrentPlayerIndex(currentPlayerIndex + 1);
-          setAnimationStep("energy");
+    const timer = setTimeout(
+      () => {
+        if (animationStep === "energyConversion") {
+          setAnimationStep("production");
         } else {
-          // Animation complete - send ready message and close
-          setTimeout(() => {
-            setIsAnimating(false);
-
-            // Send production-phase-ready message to server
-            try {
-              // webSocketService.productionPhaseReady();
-            } catch (error) {
-              void error;
-            }
-
-            onClose();
-          }, 1500);
+          // Production phase is done for this player, stop animating
+          setIsAnimating(false);
         }
-      }
-    }, 2500); // 2.5 seconds per animation step
+      },
+      animationStep === "energyConversion" ? 4500 : 4000,
+    ); // 4.5 seconds for energy (includes 1.5s hold time), 4 seconds for production (with pause)
 
     return () => clearTimeout(timer);
-  }, [
-    currentPlayerIndex,
-    animationStep,
-    isAnimating,
-    modalProductionData.playersData.length,
-    onClose,
-  ]);
+  }, [currentPlayerIndex, animationStep, isAnimating]);
+
+  // Handle player selection
+  const handlePlayerSelect = (playerIndex: number) => {
+    if (playerIndex !== currentPlayerIndex) {
+      setCurrentPlayerIndex(playerIndex);
+      setAnimationStep("energyConversion");
+      setIsAnimating(true);
+      setResourceAnimationState("initial");
+      setEnergyAnimationState("initial");
+    }
+  };
+
+  // Energy conversion animation sequence
+  useEffect(() => {
+    if (!isAnimating || animationStep !== "energyConversion") return;
+
+    let timeoutId: NodeJS.Timeout;
+
+    if (energyAnimationState === "initial") {
+      // Wait 2 seconds to show change indicators longer, then start fade out
+      timeoutId = setTimeout(() => {
+        setEnergyAnimationState("fadeOut");
+      }, 2000);
+    } else if (energyAnimationState === "fadeOut") {
+      // After 400ms of fade out, fade in new values
+      timeoutId = setTimeout(() => {
+        setEnergyAnimationState("fadeIn");
+      }, 400);
+    }
+    // Note: fadeIn state persists until next phase (no further transitions needed)
+
+    return () => clearTimeout(timeoutId);
+  }, [energyAnimationState, animationStep, isAnimating]);
 
   // Auto-start animation when component mounts
   useEffect(() => {
     setCurrentPlayerIndex(0);
-    setAnimationStep("energy");
+    setAnimationStep("energyConversion");
     setIsAnimating(true);
+    setResourceAnimationState("initial");
+    setEnergyAnimationState("initial");
   }, []);
+
+  // Enhanced resource animation sequence
+  useEffect(() => {
+    if (!isAnimating || animationStep !== "production") return;
+
+    let timeoutId: NodeJS.Timeout;
+
+    if (resourceAnimationState === "initial") {
+      // Wait 500ms, then fade in other resources
+      timeoutId = setTimeout(() => {
+        setResourceAnimationState("fadeInResources");
+      }, 500);
+    } else if (resourceAnimationState === "fadeInResources") {
+      // Wait 500ms for fade in to complete, then show production indicators
+      timeoutId = setTimeout(() => {
+        setResourceAnimationState("showProduction");
+      }, 500);
+    } else if (resourceAnimationState === "showProduction") {
+      // Wait 1500ms showing production indicators, then fade out old values
+      timeoutId = setTimeout(() => {
+        setResourceAnimationState("fadeOut");
+      }, 1500);
+    } else if (resourceAnimationState === "fadeOut") {
+      // After 400ms of fade out, fade in new values
+      timeoutId = setTimeout(() => {
+        setResourceAnimationState("fadeIn");
+      }, 400);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [resourceAnimationState, animationStep, isAnimating]);
+
+  // Reset resource animation state when changing players or phases
+  useEffect(() => {
+    if (animationStep === "production") {
+      setResourceAnimationState("initial");
+    }
+  }, [currentPlayerIndex, animationStep]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -204,28 +254,240 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return () => {};
   }, [isOpen, onClose]);
 
-  // Always show modal for testing
-  // if (!isOpen || !productionData) return null;
+  // Normal visibility check
+  if (!isOpen) return null;
 
   const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
   if (!currentPlayerData) return null;
 
   const renderResourceAnimation = (
-    resourceType: keyof typeof resourceIcons,
+    resourceType: ResourceType,
     beforeAmount: number,
     afterAmount: number,
-    isActive: boolean,
   ) => {
-    const change = afterAmount - beforeAmount;
-    if (change === 0 && resourceType !== "energy") return null;
+    let displayBeforeAmount = beforeAmount;
+    let displayAfterAmount = afterAmount;
+    let change = afterAmount - beforeAmount;
+    let shouldAnimate;
+
+    // Handle energy-to-heat conversion values
+    if (animationStep === "energyConversion") {
+      if (resourceType === "energy") {
+        displayBeforeAmount = currentPlayerData.beforeResources.energy;
+        displayAfterAmount = 0; // Energy goes to 0
+        change = -currentPlayerData.beforeResources.energy;
+        shouldAnimate = true;
+      } else if (resourceType === "heat") {
+        displayBeforeAmount = currentPlayerData.beforeResources.heat;
+        displayAfterAmount =
+          currentPlayerData.beforeResources.heat +
+          currentPlayerData.energyConverted;
+        change = currentPlayerData.energyConverted;
+        shouldAnimate = true;
+      } else {
+        // Other resources don't change during energy conversion
+        shouldAnimate = false;
+      }
+    } else {
+      // During production phase, energy starts from 0 and heat starts from post-conversion value
+      if (resourceType === "energy") {
+        displayBeforeAmount = 0;
+        displayAfterAmount = currentPlayerData.production.energy;
+        change = currentPlayerData.production.energy;
+        // Energy should animate if it has production and after showing production indicators
+        shouldAnimate =
+          change !== 0 &&
+          resourceAnimationState !== "initial" &&
+          resourceAnimationState !== "fadeInResources" &&
+          resourceAnimationState !== "showProduction";
+      } else if (resourceType === "heat") {
+        displayBeforeAmount =
+          currentPlayerData.beforeResources.heat +
+          currentPlayerData.energyConverted;
+        displayAfterAmount = currentPlayerData.afterResources.heat;
+        change = displayAfterAmount - displayBeforeAmount;
+        // Heat should animate if it has additional production and after showing production indicators
+        shouldAnimate =
+          change !== 0 &&
+          resourceAnimationState !== "initial" &&
+          resourceAnimationState !== "fadeInResources" &&
+          resourceAnimationState !== "showProduction";
+      } else {
+        // Other resources animate normally during production phase after showing production indicators
+        shouldAnimate =
+          change !== 0 &&
+          resourceAnimationState !== "initial" &&
+          resourceAnimationState !== "fadeInResources" &&
+          resourceAnimationState !== "showProduction";
+      }
+    }
+
+    const getAnimationStateClass = () => {
+      switch (resourceAnimationState) {
+        case "initial":
+          return styles.initialState;
+        case "fadeOut":
+          return styles.fadeOutState;
+        case "fadeIn":
+          return styles.fadeInState;
+        default:
+          return "";
+      }
+    };
+
+    const renderAmounts = () => {
+      // During production phase initial and fadeInResources state, show clean values
+      if (
+        animationStep === "production" &&
+        (resourceAnimationState === "initial" ||
+          resourceAnimationState === "fadeInResources")
+      ) {
+        return (
+          <div className={styles.enhancedResourceAmounts}>
+            <div
+              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+            >
+              {displayBeforeAmount}
+            </div>
+          </div>
+        );
+      }
+
+      // During showProduction state, show change indicators for all resources with changes
+      if (
+        animationStep === "production" &&
+        resourceAnimationState === "showProduction" &&
+        change !== 0
+      ) {
+        return (
+          <div className={styles.enhancedResourceAmounts}>
+            <div
+              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+            >
+              {displayBeforeAmount}
+            </div>
+            <div
+              className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+            >
+              {change > 0 ? `+${change}` : change}
+            </div>
+          </div>
+        );
+      }
+
+      // Handle energy conversion animation for energy and heat
+      if (animationStep === "energyConversion" && shouldAnimate) {
+        if (energyAnimationState === "fadeIn") {
+          return (
+            <div
+              className={`${styles.enhancedResourceAmounts} ${styles.fadeInState}`}
+            >
+              <div
+                className={`${styles.finalValue} ${displayAfterAmount < 0 ? styles.negative : ""}`}
+              >
+                {displayAfterAmount}
+              </div>
+            </div>
+          );
+        } else if (energyAnimationState === "fadeOut") {
+          return (
+            <div
+              className={`${styles.enhancedResourceAmounts} ${styles.fadeOutState}`}
+            >
+              <div
+                className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+              >
+                {displayBeforeAmount}
+              </div>
+              <div
+                className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+              >
+                {change > 0 ? `+${change}` : change}
+              </div>
+            </div>
+          );
+        } else {
+          // Initial state for energy conversion
+          return (
+            <div className={styles.enhancedResourceAmounts}>
+              <div
+                className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+              >
+                {displayBeforeAmount}
+              </div>
+              <div
+                className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+              >
+                {change > 0 ? `+${change}` : change}
+              </div>
+            </div>
+          );
+        }
+      }
+
+      // For resources that don't animate, just show the current value
+      if (!shouldAnimate) {
+        return (
+          <div className={styles.enhancedResourceAmounts}>
+            <div
+              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+            >
+              {displayBeforeAmount}
+            </div>
+          </div>
+        );
+      }
+
+      if (resourceAnimationState === "fadeIn") {
+        return (
+          <div
+            className={`${styles.enhancedResourceAmounts} ${getAnimationStateClass()}`}
+          >
+            <div
+              className={`${styles.finalValue} ${displayAfterAmount < 0 ? styles.negative : ""}`}
+            >
+              {displayAfterAmount}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div
+          className={`${styles.enhancedResourceAmounts} ${getAnimationStateClass()}`}
+        >
+          <div className={styles.beforeAmount}>{displayBeforeAmount}</div>
+          <div
+            className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+          >
+            {change > 0 ? `+${change}` : change}
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div
         key={resourceType}
-        className={`${styles.resourceItem} ${isActive ? styles.active : ""}`}
+        className={`${styles.resourceItem} ${shouldAnimate ? styles.active : ""} ${
+          (animationStep === "energyConversion" && !shouldAnimate) ||
+          (animationStep === "production" &&
+            resourceAnimationState === "initial" &&
+            !shouldAnimate &&
+            resourceType !== "energy" &&
+            resourceType !== "heat")
+            ? styles.dimmed
+            : ""
+        } ${
+          animationStep === "energyConversion" &&
+          resourceType === "energy" &&
+          energyAnimationState === "initial"
+            ? styles.overheating
+            : ""
+        }`}
         style={
           {
-            "--player-color": "red", //currentPlayerData.playerColor,
+            "--resource-color": RESOURCE_COLORS[resourceType],
           } as React.CSSProperties
         }
       >
@@ -235,38 +497,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             alt={resourceNames[resourceType]}
           />
         </div>
-        <div className={styles.resourceAmounts}>
-          <div className={styles.beforeAmount}>{beforeAmount}</div>
-          <div className={styles.arrow}>→</div>
-          <div className={styles.afterAmount}>{afterAmount}</div>
-          {change > 0 && (
-            <div className={styles.changeIndicator}>+{change}</div>
-          )}
-        </div>
+        {renderAmounts()}
         <div className={styles.resourceLabel}>
           {resourceNames[resourceType]}
-        </div>
-      </div>
-    );
-  };
-
-  const renderEnergyConversion = () => {
-    const energyConverted = currentPlayerData.energyConverted;
-    if (energyConverted === 0) return null;
-
-    return (
-      <div className={styles.energyConversion}>
-        <div className={styles.conversionTitle}>Energy → Heat Conversion</div>
-        <div className={styles.conversionAnimation}>
-          <div className={styles.conversionItem}>
-            <img src={resourceIcons.energy} alt="Energy" />
-            <span>{energyConverted}</span>
-          </div>
-          <div className={styles.conversionArrow}>⚡→🔥</div>
-          <div className={styles.conversionItem}>
-            <img src={resourceIcons.heat} alt="Heat" />
-            <span>+{energyConverted}</span>
-          </div>
         </div>
       </div>
     );
@@ -275,44 +508,41 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   const renderProductionPhase = () => {
     return (
       <div className={styles.productionPhase}>
-        <div className={styles.productionTitle}>Resource Production</div>
+        <div className={styles.productionTitle}>
+          {animationStep === "energyConversion"
+            ? "Energy → Heat Conversion"
+            : "Resource Production"}
+        </div>
         <div className={styles.resourcesGrid}>
           {renderResourceAnimation(
-            "credits",
+            "credits" as ResourceType,
             currentPlayerData.beforeResources.credits,
             currentPlayerData.afterResources.credits,
-            animationStep === "production",
           )}
           {renderResourceAnimation(
-            "steel",
+            "steel" as ResourceType,
             currentPlayerData.beforeResources.steel,
             currentPlayerData.afterResources.steel,
-            animationStep === "production",
           )}
           {renderResourceAnimation(
-            "titanium",
+            "titanium" as ResourceType,
             currentPlayerData.beforeResources.titanium,
             currentPlayerData.afterResources.titanium,
-            animationStep === "production",
           )}
           {renderResourceAnimation(
-            "plants",
+            "plants" as ResourceType,
             currentPlayerData.beforeResources.plants,
             currentPlayerData.afterResources.plants,
-            animationStep === "production",
           )}
           {renderResourceAnimation(
-            "energy",
-            0, // Energy starts at 0 after conversion
-            currentPlayerData.production.energy,
-            animationStep === "production",
+            "energy" as ResourceType,
+            currentPlayerData.beforeResources.energy,
+            currentPlayerData.afterResources.energy,
           )}
           {renderResourceAnimation(
-            "heat",
-            currentPlayerData.beforeResources.heat +
-              currentPlayerData.energyConverted,
+            "heat" as ResourceType,
+            currentPlayerData.beforeResources.heat,
             currentPlayerData.afterResources.heat,
-            animationStep === "production",
           )}
         </div>
         <div className={styles.productionInfo}>
@@ -341,43 +571,32 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
         <div className={styles.playerProgress}>
           {modalProductionData.playersData.map((player, index) => (
-            <div
+            <button
               key={player.playerId}
-              className={`${styles.progressDot} ${
+              className={`${styles.playerTab} ${
                 index === currentPlayerIndex ? styles.current : ""
-              } ${index < currentPlayerIndex ? styles.completed : ""}`}
-              style={
-                {
-                  "--player-color": "red", //currentPlayerData.playerColor
-                } as React.CSSProperties
-              }
-            />
+              }`}
+              onClick={() => handlePlayerSelect(index)}
+            >
+              {player.playerName}
+            </button>
           ))}
         </div>
 
         <div className={styles.currentPlayerSection}>
-          <div
-            className={styles.playerHeader}
-            style={
-              {
-                "--player-color": "red", //currentPlayerData.playerColor,
-              } as React.CSSProperties
-            }
-          >
+          <div className={styles.playerHeader}>
             <div className={styles.playerName}>
               {currentPlayerData.playerName}
             </div>
             <div className={styles.animationStep}>
-              {animationStep === "energy"
-                ? "Energy Conversion"
+              {animationStep === "energyConversion"
+                ? "Energy → Heat Conversion"
                 : "Resource Production"}
             </div>
           </div>
 
           <div className={styles.animationContent}>
-            {animationStep === "energy"
-              ? renderEnergyConversion()
-              : renderProductionPhase()}
+            {renderProductionPhase()}
           </div>
         </div>
       </div>
