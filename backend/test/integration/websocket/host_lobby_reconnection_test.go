@@ -64,12 +64,12 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 
 	// === VERIFY INITIAL STATE: Both players see each other ===
 	// Wait for all connection messages to be processed
-	time.Sleep(100 * time.Millisecond) 
-	
+	time.Sleep(100 * time.Millisecond)
+
 	// Get the latest game-updated message for each client (should be the last message received)
 	var initialHostGameState map[string]interface{}
 	var initialPlayer2GameState map[string]interface{}
-	
+
 	// Process all remaining messages and keep the latest game-updated
 	for {
 		msg, err := hostClient.WaitForAnyMessageWithTimeout(50 * time.Millisecond)
@@ -84,7 +84,7 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 			}
 		}
 	}
-	
+
 	for {
 		msg, err := player2Client.WaitForAnyMessageWithTimeout(50 * time.Millisecond)
 		if err != nil {
@@ -98,13 +98,13 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 			}
 		}
 	}
-	
+
 	require.NotNil(t, initialHostGameState, "Host should have game state")
 	require.NotNil(t, initialPlayer2GameState, "Player 2 should have game state")
-	
+
 	hostPlayerCount := CountPlayersInGameState(t, initialHostGameState)
 	player2PlayerCount := CountPlayersInGameState(t, initialPlayer2GameState)
-	
+
 	require.Equal(t, 2, hostPlayerCount, "Host should see 2 players initially")
 	require.Equal(t, 2, player2PlayerCount, "Player 2 should see 2 players initially")
 	t.Logf("✅ Both clients see 2 players initially")
@@ -140,7 +140,7 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 	require.Equal(t, hostPlayerID, reconnectedPlayerID, "Host player ID should be preserved")
 
 	// === VERIFY BUG FIX: Both players still see each other after host reconnection ===
-	
+
 	// Get current state from both clients
 	reconnectedHostGameState, ok := reconnectPayload["game"].(map[string]interface{})
 	require.True(t, ok, "Reconnected game state should be present")
@@ -164,16 +164,16 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 	reconnectedHostPlayerCount := CountPlayersInGameState(t, reconnectedHostGameState)
 	currentPlayer2PlayerCount := CountPlayersInGameState(t, currentPlayer2State)
 
-	require.Equal(t, 2, reconnectedHostPlayerCount, 
+	require.Equal(t, 2, reconnectedHostPlayerCount,
 		"BUG FIX: Host should still see 2 players after reconnection (was seeing fewer)")
 	require.Equal(t, 2, currentPlayer2PlayerCount,
 		"Player 2 should still see 2 players after host reconnection")
 
-	t.Logf("✅ BUG FIX VERIFIED: Host sees %d players, Player2 sees %d players", 
+	t.Logf("✅ BUG FIX VERIFIED: Host sees %d players, Player2 sees %d players",
 		reconnectedHostPlayerCount, currentPlayer2PlayerCount)
 
 	// === VERIFY STATE CONSISTENCY ===
-	
+
 	// Both clients should see the same game status
 	reconnectedStatus := ExtractGameStatus(t, reconnectedHostGameState)
 	player2Status := ExtractGameStatus(t, currentPlayer2State)
@@ -183,7 +183,7 @@ func TestHostLobbyReconnectionBug(t *testing.T) {
 	// Both clients should see the same set of players
 	hostPlayerIDs := ExtractPlayerIDs(t, reconnectedHostGameState)
 	player2PlayerIDs := ExtractPlayerIDs(t, currentPlayer2State)
-	require.ElementsMatch(t, hostPlayerIDs, player2PlayerIDs, 
+	require.ElementsMatch(t, hostPlayerIDs, player2PlayerIDs,
 		"Both clients should see identical player IDs")
 
 	// Host should still be the host
@@ -277,7 +277,7 @@ func TestPlayer2LobbyReconnectionAsymmetry(t *testing.T) {
 	require.Equal(t, 2, reconnectedPlayer2PlayerCount, "Player2 should see 2 players after reconnection")
 	require.Equal(t, 2, currentHostPlayerCount, "Host should still see 2 players after player2 reconnection")
 
-	t.Logf("✅ Player2 reconnection works correctly: Player2 sees %d players, Host sees %d players", 
+	t.Logf("✅ Player2 reconnection works correctly: Player2 sees %d players, Host sees %d players",
 		reconnectedPlayer2PlayerCount, currentHostPlayerCount)
 
 	t.Log("🎉 Player2 reconnection test completed - no asymmetry issues detected")

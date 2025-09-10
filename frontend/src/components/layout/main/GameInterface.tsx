@@ -342,7 +342,7 @@ export default function GameInterface() {
 
       // Store player ID for WebSocket handlers
       currentPlayerIdRef.current = routeState.playerId;
-      
+
       // CRITICAL FIX: Ensure globalWebSocketManager knows the current player ID
       // This is essential for reconnection scenarios where the player ID must be preserved
       globalWebSocketManager.setCurrentPlayerId(routeState.playerId);

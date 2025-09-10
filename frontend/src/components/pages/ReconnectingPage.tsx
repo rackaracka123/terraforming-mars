@@ -54,7 +54,9 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         if (reconnectionResult.game) {
           // CRITICAL FIX: Set the current player ID in globalWebSocketManager
           // This ensures the GameInterface component knows which player this client represents
-          globalWebSocketManager.setCurrentPlayerId(reconnectionResult.playerId);
+          globalWebSocketManager.setCurrentPlayerId(
+            reconnectionResult.playerId,
+          );
 
           // Update localStorage with fresh data
           localStorage.setItem(

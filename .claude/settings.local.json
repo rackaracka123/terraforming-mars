@@ -9,7 +9,11 @@
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_tabs",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "Bash(make:*)",
+      "mcp__playwright__browser_network_requests"
     ],
     "deny": [],
     "ask": []

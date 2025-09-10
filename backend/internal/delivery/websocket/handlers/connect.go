@@ -272,6 +272,16 @@ func (ch *ConnectionHandler) handlePlayerReconnectionLogic(ctx context.Context, 
 		return nil, err
 	}
 
+	// Clean up any existing connections for this player before adding new one
+	existingConnection := ch.manager.RemoveExistingPlayerConnection(playerID, gameID)
+	if existingConnection != nil {
+		ch.logger.Info("🔄 Replaced existing connection for reconnecting player",
+			zap.String("old_connection_id", existingConnection.ID),
+			zap.String("new_connection_id", connection.ID),
+			zap.String("player_id", playerID),
+			zap.String("player_name", playerName))
+	}
+
 	// Associate connection with player
 	connection.SetPlayer(playerID, gameID)
 	ch.manager.AddToGame(connection, gameID)

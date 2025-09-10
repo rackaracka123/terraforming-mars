@@ -124,6 +124,56 @@ func (m *Manager) FindConnectionByPlayer(playerID, gameID string) *Connection {
 	return nil
 }
 
+// RemoveExistingPlayerConnection removes any existing connection for the given player
+// This is used during reconnection to clean up old connections before adding new ones
+func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string) *Connection {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var existingConnection *Connection
+
+	// Find existing connection for this player
+	for connection := range m.connections {
+		existingPlayerID, existingGameID := connection.GetPlayer()
+		if existingPlayerID == playerID && existingGameID == gameID {
+			existingConnection = connection
+			break
+		}
+	}
+
+	if existingConnection == nil {
+		return nil
+	}
+
+	m.logger.Debug("🧹 Cleaning up existing connection for reconnecting player",
+		zap.String("connection_id", existingConnection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
+
+	// Remove from main connections
+	delete(m.connections, existingConnection)
+	existingConnection.CloseSend()
+
+	// Remove from game connections
+	if gameConns, exists := m.gameConnections[gameID]; exists {
+		delete(gameConns, existingConnection)
+
+		if len(gameConns) == 0 {
+			delete(m.gameConnections, gameID)
+			m.logger.Debug("Removed empty game connections map after cleanup", zap.String("game_id", gameID))
+		}
+	}
+
+	// Close connection
+	existingConnection.Close()
+
+	m.logger.Debug("✅ Existing connection cleaned up for reconnecting player",
+		zap.String("old_connection_id", existingConnection.ID),
+		zap.String("player_id", playerID))
+
+	return existingConnection
+}
+
 // CloseAllConnections closes all active connections
 func (m *Manager) CloseAllConnections() {
 	m.mu.Lock()
