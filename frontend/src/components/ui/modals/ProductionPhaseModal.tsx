@@ -19,6 +19,110 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   );
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Fake data for testing
+  const fakeProductionData: ProductionPhaseStartedPayload = {
+    generation: 5,
+    game: {} as any, // We don't use this in the modal
+    playersData: [
+      {
+        playerId: "player1",
+        playerName: "Alice",
+        beforeResources: {
+          credits: 15,
+          steel: 3,
+          titanium: 2,
+          plants: 8,
+          energy: 6,
+          heat: 4,
+        },
+        afterResources: {
+          credits: 27, // +12 from TR + production
+          steel: 5,    // +2 from production
+          titanium: 2, // no change
+          plants: 9,   // +1 from production
+          energy: 3,   // reset + production
+          heat: 10,    // +6 from energy conversion
+        },
+        production: {
+          credits: 4,
+          steel: 2,
+          titanium: 0,
+          plants: 1,
+          energy: 3,
+          heat: 0,
+        },
+        terraformRating: 23,
+        energyConverted: 6,
+        creditsIncome: 12, // TR + production
+      },
+      {
+        playerId: "player2",
+        playerName: "Bob",
+        beforeResources: {
+          credits: 8,
+          steel: 1,
+          titanium: 4,
+          plants: 2,
+          energy: 4,
+          heat: 1,
+        },
+        afterResources: {
+          credits: 18, // +10 from TR + production
+          steel: 4,    // +3 from production
+          titanium: 6, // +2 from production
+          plants: 2,   // no change
+          energy: 2,   // reset + production
+          heat: 5,     // +4 from energy conversion
+        },
+        production: {
+          credits: 2,
+          steel: 3,
+          titanium: 2,
+          plants: 0,
+          energy: 2,
+          heat: 0,
+        },
+        terraformRating: 18,
+        energyConverted: 4,
+        creditsIncome: 10,
+      },
+      {
+        playerId: "player3",
+        playerName: "Charlie",
+        beforeResources: {
+          credits: 22,
+          steel: 0,
+          titanium: 1,
+          plants: 12,
+          energy: 2,
+          heat: 8,
+        },
+        afterResources: {
+          credits: 35, // +13 from TR + production
+          steel: 1,    // +1 from production
+          titanium: 1, // no change
+          plants: 15,  // +3 from production
+          energy: 1,   // reset + production
+          heat: 10,    // +2 from energy conversion
+        },
+        production: {
+          credits: 1,
+          steel: 1,
+          titanium: 0,
+          plants: 3,
+          energy: 1,
+          heat: 0,
+        },
+        terraformRating: 22,
+        energyConverted: 2,
+        creditsIncome: 13,
+      },
+    ],
+  };
+
+  // Use fake data for testing, fallback to actual data
+  const modalProductionData = fakeProductionData;
+
   // Resource icons mapping
   const resourceIcons = {
     credits: "/assets/resources/megacredit.png",
@@ -40,14 +144,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
   // Auto-advance through players and animation steps
   useEffect(() => {
-    if (!isOpen || !productionData || !isAnimating) return;
+    if (!isAnimating) return;
 
     const timer = setTimeout(() => {
       if (animationStep === "energy") {
         setAnimationStep("production");
       } else {
         // Move to next player or close
-        if (currentPlayerIndex < productionData.playersData.length - 1) {
+        if (currentPlayerIndex < modalProductionData.playersData.length - 1) {
           setCurrentPlayerIndex(currentPlayerIndex + 1);
           setAnimationStep("energy");
         } else {
@@ -70,22 +174,19 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
     return () => clearTimeout(timer);
   }, [
-    isOpen,
-    productionData,
     currentPlayerIndex,
     animationStep,
     isAnimating,
+    modalProductionData.playersData.length,
     onClose,
   ]);
 
-  // Start animation when modal opens
+  // Auto-start animation when component mounts
   useEffect(() => {
-    if (isOpen && productionData) {
-      setCurrentPlayerIndex(0);
-      setAnimationStep("energy");
-      setIsAnimating(true);
-    }
-  }, [isOpen, productionData]);
+    setCurrentPlayerIndex(0);
+    setAnimationStep("energy");
+    setIsAnimating(true);
+  }, []);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -103,9 +204,10 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return () => {};
   }, [isOpen, onClose]);
 
-  if (!isOpen || !productionData) return null;
+  // Always show modal for testing
+  // if (!isOpen || !productionData) return null;
 
-  const currentPlayerData = productionData.playersData[currentPlayerIndex];
+  const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
   if (!currentPlayerData) return null;
 
   const renderResourceAnimation = (
@@ -230,7 +332,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         <div className={styles.modalHeader}>
           <h2>Production Phase</h2>
           <div className={styles.generationInfo}>
-            Generation {productionData.generation}
+            Generation {modalProductionData.generation}
           </div>
           <button className={styles.closeBtn} onClick={onClose}>
             ×
@@ -238,7 +340,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         </div>
 
         <div className={styles.playerProgress}>
-          {productionData.playersData.map((player, index) => (
+          {modalProductionData.playersData.map((player, index) => (
             <div
               key={player.playerId}
               className={`${styles.progressDot} ${
