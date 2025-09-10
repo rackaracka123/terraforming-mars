@@ -85,8 +85,16 @@ func (ca *CardActions) SelectProductionCards(ctx context.Context, gameID, player
 		return fmt.Errorf("card selection failed: %w", err)
 	}
 
-	log.Info("Player completed production card selection",
-		zap.Strings("selected_cards", request.CardIDs))
+	// Mark player as ready for production phase and check if all players are ready
+	updatedGame, err := ca.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to process production phase ready", zap.Error(err))
+		return fmt.Errorf("failed to process production phase ready: %w", err)
+	}
+
+	log.Info("Player completed production card selection and marked as ready",
+		zap.Strings("selected_cards", request.CardIDs),
+		zap.String("game_phase", string(updatedGame.CurrentPhase)))
 
 	return nil
 }

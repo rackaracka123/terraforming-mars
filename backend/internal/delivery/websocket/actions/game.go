@@ -57,7 +57,7 @@ func (ga *GameActions) SkipAction(ctx context.Context, gameID, playerID string) 
 		// Generate the production data for each player
 		playersData := make([]dto.PlayerProductionData, len(gameAfterProduction.PlayerIDs))
 		for idx, playerId := range gameAfterProduction.PlayerIDs {
-			data, err := ga.ComputeProduction(ctx, gameID, playerID)
+			data, err := ga.ComputeProduction(ctx, gameID, playerId)
 			if err != nil {
 				return fmt.Errorf("failed to compute production for player %s: %w", playerId, err)
 			}
