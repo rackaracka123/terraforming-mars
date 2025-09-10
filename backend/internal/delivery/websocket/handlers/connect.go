@@ -83,10 +83,40 @@ func (ch *ConnectionHandler) handlePlayerConnect(ctx context.Context, connection
 		return
 	}
 
-	// Join/rejoin game
-	game, finalPlayerID := ch.joinGame(ctx, connection, payload, isNewPlayer)
-	if game == nil || finalPlayerID == "" {
-		return
+	// Handle existing vs new player logic
+	var game *model.Game
+	var finalPlayerID string
+	
+	if !isNewPlayer {
+		// Existing player reconnecting - update connection status and get game
+		ch.logger.Debug("🔄 Handling existing player reconnection",
+			zap.String("player_id", playerID),
+			zap.String("player_name", payload.PlayerName))
+		
+		// Update player connection status
+		err := ch.playerService.UpdatePlayerConnectionStatus(ctx, payload.GameID, playerID, model.ConnectionStatusConnected)
+		if err != nil {
+			ch.logger.Error("Failed to update player connection status", zap.Error(err))
+		}
+		
+		// Get current game state
+		gameState, err := ch.gameService.GetGame(ctx, payload.GameID)
+		if err != nil {
+			ch.logger.Error("Failed to get game for existing player", zap.Error(err))
+			ch.errorHandler.SendError(connection, utils.ErrGameNotFound)
+			return
+		}
+		
+		game = &gameState
+		finalPlayerID = playerID
+	} else {
+		// New player joining - use existing join game logic
+		gameState, newPlayerID := ch.joinGame(ctx, connection, payload, isNewPlayer)
+		if gameState == nil || newPlayerID == "" {
+			return
+		}
+		game = gameState
+		finalPlayerID = newPlayerID
 	}
 
 	// Update connection with final player ID
