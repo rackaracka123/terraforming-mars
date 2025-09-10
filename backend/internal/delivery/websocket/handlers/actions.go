@@ -33,11 +33,12 @@ func NewActionHandler(
 	cardService service.CardService,
 	broadcaster *core.Broadcaster,
 ) *ActionHandler {
+	parser := utils.NewMessageParser()
 	return &ActionHandler{
 		gameActions:      actions.NewGameActions(gameService, playerService, broadcaster),
-		standardProjects: actions.NewStandardProjects(standardProjectService),
-		cardActions:      actions.NewCardActions(cardService, gameService),
-		parser:           utils.NewMessageParser(),
+		standardProjects: actions.NewStandardProjects(standardProjectService, parser),
+		cardActions:      actions.NewCardActions(cardService, gameService, parser),
+		parser:           parser,
 		errorHandler:     utils.NewErrorHandler(),
 		broadcaster:      broadcaster,
 		logger:           logger.Get(),

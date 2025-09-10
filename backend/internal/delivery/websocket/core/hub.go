@@ -153,7 +153,7 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 			h.connectionHandler.HandleMessage(ctx, connection, message)
 		} else {
 			h.logger.Error("Connection handler not set")
-			h.broadcaster.SendErrorToConnection(connection, "Handler not available")
+			h.sendError(connection, "Handler not available")
 		}
 	case dto.MessageTypePlayAction:
 		if h.actionHandler != nil {
@@ -161,12 +161,12 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 			h.actionHandler.HandleMessage(ctx, connection, message)
 		} else {
 			h.logger.Error("Action handler not set")
-			h.broadcaster.SendErrorToConnection(connection, "Handler not available")
+			h.sendError(connection, "Handler not available")
 		}
 	default:
 		h.logger.Warn("❓ Unknown message type",
 			zap.String("message_type", string(message.Type)))
-		h.broadcaster.SendErrorToConnection(connection, "Unknown message type")
+		h.sendError(connection, "Unknown message type")
 	}
 }
 
@@ -240,4 +240,19 @@ func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Even
 // handlePlayerDisconnection handles player disconnection broadcasting
 func (h *Hub) handlePlayerDisconnection(ctx context.Context, playerID, gameID string, connection *Connection) {
 	h.broadcaster.BroadcastPlayerDisconnection(ctx, playerID, gameID, connection)
+}
+
+// sendError sends an error message to a connection
+func (h *Hub) sendError(connection *Connection, errorMessage string) {
+	_, gameID := connection.GetPlayer()
+
+	message := dto.WebSocketMessage{
+		Type: dto.MessageTypeError,
+		Payload: dto.ErrorPayload{
+			Message: errorMessage,
+		},
+		GameID: gameID,
+	}
+
+	h.broadcaster.SendToConnection(connection, message)
 }

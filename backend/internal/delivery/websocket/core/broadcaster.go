@@ -88,21 +88,6 @@ func (b *Broadcaster) SendToConnection(connection *Connection, message dto.WebSo
 		zap.String("message_type", string(message.Type)))
 }
 
-// SendErrorToConnection sends an error message to a connection
-func (b *Broadcaster) SendErrorToConnection(connection *Connection, errorMessage string) {
-	_, gameID := connection.GetPlayer()
-
-	message := dto.WebSocketMessage{
-		Type: dto.MessageTypeError,
-		Payload: dto.ErrorPayload{
-			Message: errorMessage,
-		},
-		GameID: gameID,
-	}
-
-	b.SendToConnection(connection, message)
-}
-
 // SendPersonalizedGameUpdates sends personalized game-updated messages to all connected players
 func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID string) {
 	b.logger.Debug("🔍 Getting connected players for personalized broadcast", zap.String("game_id", gameID))
