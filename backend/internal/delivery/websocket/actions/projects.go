@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 )
@@ -12,14 +13,14 @@ import (
 // StandardProjects handles standard project actions
 type StandardProjects struct {
 	standardProjectService service.StandardProjectService
-	parser                 *MessageParser
+	parser                 *utils.MessageParser
 }
 
 // NewStandardProjects creates a new standard projects handler
-func NewStandardProjects(standardProjectService service.StandardProjectService) *StandardProjects {
+func NewStandardProjects(standardProjectService service.StandardProjectService, parser *utils.MessageParser) *StandardProjects {
 	return &StandardProjects{
 		standardProjectService: standardProjectService,
-		parser:                 NewMessageParser(),
+		parser:                 parser,
 	}
 }
 

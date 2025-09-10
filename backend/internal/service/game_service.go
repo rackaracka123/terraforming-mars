@@ -434,6 +434,23 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		return model.Game{}, fmt.Errorf("game is full")
 	}
 
+	// Check if player with this name already exists to prevent duplicates
+	existingPlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for duplicate check", zap.Error(err))
+		// Continue with player creation if we can't check for duplicates
+	} else {
+		for _, player := range existingPlayers {
+			if player.Name == playerName {
+				log.Debug("Player with this name already exists, returning existing player",
+					zap.String("existing_player_id", player.ID),
+					zap.String("player_name", playerName))
+				// Return existing game state since player already exists
+				return game, nil
+			}
+		}
+	}
+
 	// Create new player
 	playerID := uuid.New().String()
 	player := model.Player{

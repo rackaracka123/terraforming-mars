@@ -88,21 +88,6 @@ func (b *Broadcaster) SendToConnection(connection *Connection, message dto.WebSo
 		zap.String("message_type", string(message.Type)))
 }
 
-// SendErrorToConnection sends an error message to a connection
-func (b *Broadcaster) SendErrorToConnection(connection *Connection, errorMessage string) {
-	_, gameID := connection.GetPlayer()
-
-	message := dto.WebSocketMessage{
-		Type: dto.MessageTypeError,
-		Payload: dto.ErrorPayload{
-			Message: errorMessage,
-		},
-		GameID: gameID,
-	}
-
-	b.SendToConnection(connection, message)
-}
-
 // SendPersonalizedGameUpdates sends personalized game-updated messages to all connected players
 func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID string) {
 	b.logger.Debug("🔍 Getting connected players for personalized broadcast", zap.String("game_id", gameID))
@@ -113,6 +98,21 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 		b.logger.Debug("No connections found for game", zap.String("game_id", gameID))
 		return
 	}
+
+	// Enhanced logging: track all connections before processing
+	connectionList := make([]string, 0, len(gameConns))
+	playerIDList := make([]string, 0, len(gameConns))
+	for connection := range gameConns {
+		connectionList = append(connectionList, connection.ID)
+		playerID, _ := connection.GetPlayer()
+		playerIDList = append(playerIDList, playerID)
+	}
+
+	b.logger.Debug("📊 Connection state before personalized broadcast",
+		zap.String("game_id", gameID),
+		zap.Int("total_connections", len(gameConns)),
+		zap.Strings("connection_ids", connectionList),
+		zap.Strings("player_ids", playerIDList))
 
 	sentCount := 0
 	connectionsWithoutPlayerID := 0
@@ -131,6 +131,9 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 		playerID, _ := connection.GetPlayer()
 		if playerID == "" {
 			connectionsWithoutPlayerID++
+			b.logger.Debug("⚠️ Skipping connection without player ID",
+				zap.String("connection_id", connection.ID),
+				zap.String("game_id", gameID))
 			continue
 		}
 
@@ -153,6 +156,11 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 		}
 
 		// Get all players for the game using PlayerIDs from game
+		b.logger.Debug("🔍 Getting players for personalized DTO",
+			zap.String("game_id", gameID),
+			zap.String("viewing_player_id", playerID),
+			zap.Strings("game_player_ids", playerGame.PlayerIDs))
+
 		var gamePlayers []model.Player
 		for _, pID := range playerGame.PlayerIDs {
 			player, err := b.playerService.GetPlayer(ctx, gameID, pID)
@@ -163,8 +171,15 @@ func (b *Broadcaster) SendPersonalizedGameUpdates(ctx context.Context, gameID st
 					zap.Error(err))
 				continue
 			}
+			b.logger.Debug("✅ Retrieved player for DTO",
+				zap.String("player_id", player.ID),
+				zap.String("player_name", player.Name))
 			gamePlayers = append(gamePlayers, player)
 		}
+
+		b.logger.Debug("📋 Players retrieved for DTO conversion",
+			zap.String("viewing_player_id", playerID),
+			zap.Int("total_players", len(gamePlayers)))
 
 		// Convert to personalized DTO and send
 		gameDTO := dto.ToGameDto(playerGame, gamePlayers, playerID)

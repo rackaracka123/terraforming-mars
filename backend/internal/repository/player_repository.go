@@ -316,6 +316,15 @@ func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameI
 
 	log.Info("Player connection status updated", zap.String("old_status", string(oldStatus)), zap.String("new_status", string(status)))
 
+	// Publish game updated event if connection status changed OR if reconnecting
+	// Always publish when a player connects/reconnects to ensure all clients get updated state
+	if r.eventBus != nil && (oldStatus != status || status == model.ConnectionStatusConnected) {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
+
 	return nil
 }
 

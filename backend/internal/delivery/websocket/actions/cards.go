@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
 
@@ -15,16 +16,16 @@ import (
 type CardActions struct {
 	cardService service.CardService
 	gameService service.GameService
-	parser      *MessageParser
+	parser      *utils.MessageParser
 	logger      *zap.Logger
 }
 
 // NewCardActions creates a new card actions handler
-func NewCardActions(cardService service.CardService, gameService service.GameService) *CardActions {
+func NewCardActions(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *CardActions {
 	return &CardActions{
 		cardService: cardService,
 		gameService: gameService,
-		parser:      NewMessageParser(),
+		parser:      parser,
 		logger:      logger.Get(),
 	}
 }

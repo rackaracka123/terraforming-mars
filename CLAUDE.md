@@ -616,3 +616,29 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - **Visual Regressions**: Compare screenshots across different states
 
 **Important**: This is different from writing Playwright tests. When debugging, you should actively use the MCP server to interact with the live application and provide real-time insights about its behavior.
+
+## Code Quality and Architecture Principles
+
+### State Management Rules
+
+**CRITICAL**: Timeouts and temporary fixes ARE NOT SOLUTIONS TO BAD STATE MANAGEMENT.
+
+- **Race Conditions**: Fix the root cause, don't add delays
+- **State Synchronization Issues**: Implement proper event handling and state flow
+- **Timing Problems**: Design deterministic state transitions
+- **Async Coordination**: Use proper synchronization primitives, not arbitrary waits
+
+**Examples of BAD approaches:**
+- Adding `setTimeout()` to wait for state updates
+- Using `sleep()` in tests to "fix" timing issues  
+- Arbitrary retry loops without understanding why they're needed
+- Polling instead of proper event-driven updates
+
+**Correct approaches:**
+- Implement proper event listeners and callbacks
+- Use Promise/async-await patterns correctly
+- Design predictable state machines
+- Create atomic operations and proper transaction boundaries
+- Use proper synchronization (channels, mutexes, etc.) when needed
+
+When encountering timing or state issues, always ask: "What is the proper state flow here?" rather than "How long should I wait?"
