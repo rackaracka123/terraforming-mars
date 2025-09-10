@@ -589,7 +589,7 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 **CRITICAL**: When the user asks to "debug frontend", you must launch a Playwright MCP session to interactively debug the application:
 
 ### Debugging Protocol
-1. **Start Backend**: Launch backend server using its instructions
+1. **Preparation**: Make sure backend and frontend are running
 2. **Launch Playwright**: Use the Playwright MCP server to navigate to `http://localhost:3000` (Playwright config automatically starts frontend via webServer)
 3. **Interactive Debugging**: Use Playwright MCP tools to:
    - Navigate through the application
