@@ -14,6 +14,7 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
+  CardDto,
   FullStatePayload,
   GameDto,
   GameStatusLobby,
@@ -49,7 +50,7 @@ export default function GameInterface() {
 
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
-  const [availableCards, setAvailableCards] = useState<any[]>([]);
+  const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -199,39 +200,77 @@ export default function GameInterface() {
   );
 
   // DEBUG: Always show card selection overlay with example data
-  const debugCards = [
+  const debugCards: CardDto[] = [
     {
       id: "card-1",
       name: "Solar Wind Power",
       cost: 11,
-      tags: ["Energy", "Space"],
+      type: "automated",
+      tags: ["power", "space"],
       description: "Gain 1 energy production and 2 titanium.",
-      requirements: "None"
+      requirements: { requiredTags: [] },
+      victoryPoints: 0,
+      number: "001",
     },
     {
-      id: "card-2", 
+      id: "card-2",
       name: "Underground City",
       cost: 18,
-      tags: ["City", "Building"],
-      description: "Increase your steel production by 2 steps and place a city tile.",
-      requirements: "2 energy production"
+      type: "automated",
+      tags: ["city", "building"],
+      description:
+        "Increase your steel production by 2 steps and place a city tile.",
+      requirements: {
+        requiredTags: [],
+        minOxygen: 8,
+        requiredProduction: {
+          credits: 0,
+          steel: 0,
+          titanium: 0,
+          plants: 0,
+          energy: 2,
+          heat: 0,
+        },
+      },
+      victoryPoints: 0,
+      number: "002",
     },
     {
       id: "card-3",
       name: "Research",
       cost: 11,
-      tags: ["Science"],
+      type: "event",
+      tags: ["science"],
       description: "Draw 2 cards.",
-      requirements: "None"
+      requirements: { requiredTags: [] },
+      victoryPoints: 0,
+      number: "003",
     },
     {
       id: "card-4",
-      name: "Asteroid Mining Consortium", 
+      name: "Asteroid Mining Consortium",
       cost: 13,
-      tags: ["Jovian", "Space"],
+      type: "automated",
+      tags: ["jovian", "space"],
       description: "Increase your titanium production by 1 step.",
-      requirements: "None"
-    }
+      requirements: {
+        requiredTags: [],
+        minTemperature: -18,
+      },
+      victoryPoints: 0,
+      number: "004",
+    },
+    {
+      id: "card-5",
+      name: "University",
+      cost: 8,
+      type: "active",
+      tags: ["science", "building"],
+      description: "When you play a Science tag, including this, draw a card.",
+      requirements: { requiredTags: [] },
+      victoryPoints: 1,
+      number: "005",
+    },
   ];
 
   // Force show overlay for debugging
@@ -242,23 +281,20 @@ export default function GameInterface() {
     }
   }, [game]);
 
-  const handleCardSelection = useCallback(
-    async (selectedCardIds: string[]) => {
-      try {
-        // Send card selection to server
-        await globalWebSocketManager.playAction({
-          type: "select-starting-cards",
-          cardIds: selectedCardIds,
-        });
-        // Close the overlay
-        setShowCardSelection(false);
-        setAvailableCards([]);
-      } catch (error) {
-        console.error("Failed to select cards:", error);
-      }
-    },
-    [],
-  );
+  const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
+    try {
+      // Send card selection to server
+      await globalWebSocketManager.playAction({
+        type: "select-starting-cards",
+        cardIds: selectedCardIds,
+      });
+      // Close the overlay
+      setShowCardSelection(false);
+      setAvailableCards([]);
+    } catch (error) {
+      console.error("Failed to select cards:", error);
+    }
+  }, []);
 
   // Setup WebSocket listeners using global manager - only initialize once
   const setupWebSocketListeners = useCallback(() => {

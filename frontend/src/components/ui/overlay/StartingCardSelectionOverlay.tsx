@@ -1,51 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
+import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
+import { CardDto } from "../../../types/generated/api-types.ts";
 import styles from "./StartingCardSelectionOverlay.module.css";
-
-interface Card {
-  id: string;
-  name: string;
-  cost: number;
-  tags?: string[];
-  description?: string;
-  requirements?: string;
-}
 
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
-  cards: Card[];
+  cards: CardDto[];
   playerCredits: number;
   onConfirmSelection: (selectedCardIds: string[]) => void;
 }
 
-const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> = ({
-  isOpen,
-  cards,
-  playerCredits,
-  onConfirmSelection,
-}) => {
+const StartingCardSelectionOverlay: React.FC<
+  StartingCardSelectionOverlayProps
+> = ({ isOpen, cards, playerCredits, onConfirmSelection }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Reset selection when overlay opens with new cards
   useEffect(() => {
     if (isOpen && cards.length > 0) {
       setSelectedCardIds([]);
       setTotalCost(0);
+      setShowConfirmation(false);
     }
   }, [isOpen, cards]);
 
   // Calculate total cost whenever selection changes
   useEffect(() => {
-    let cost = 0;
-    selectedCardIds.forEach((cardId, index) => {
-      // First selected card is free, others cost 3 MC each
-      if (index > 0) {
-        cost += 3;
-      }
-    });
+    const cost = selectedCardIds.length * 3; // Each card costs 3 MC
     setTotalCost(cost);
-  }, [selectedCardIds]);
+    // Reset confirmation state when cards are selected
+    if (selectedCardIds.length > 0 && showConfirmation) {
+      setShowConfirmation(false);
+    }
+  }, [selectedCardIds, showConfirmation]);
 
   if (!isOpen || cards.length === 0) return null;
 
@@ -59,7 +49,7 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
         const newSelection = [...prev, cardId];
         const costForNewCard = newSelection.length > 1 ? 3 : 0;
         const newTotalCost = totalCost + costForNewCard;
-        
+
         if (newTotalCost <= playerCredits) {
           return newSelection;
         } else {
@@ -72,11 +62,17 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
 
   const handleConfirm = () => {
     if (selectedCardIds.length > 0) {
+      // Player has selected cards, confirm normally
       onConfirmSelection(selectedCardIds);
+    } else if (!showConfirmation) {
+      // First click with no selection - show confirmation
+      setShowConfirmation(true);
+    } else {
+      // Second click with no selection - confirm with empty selection
+      onConfirmSelection([]);
     }
   };
 
-  const canAffordMore = totalCost + 3 <= playerCredits || selectedCardIds.length === 0;
 
   return (
     <div className={styles.overlay}>
@@ -89,7 +85,8 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
         <div className={styles.header}>
           <h2 className={styles.title}>Select Starting Cards</h2>
           <p className={styles.subtitle}>
-            Choose your starting cards. First card is FREE, additional cards cost 3 MC each.
+            Choose your starting cards. First card is FREE, additional cards
+            cost 3 MC each.
           </p>
         </div>
 
@@ -100,7 +97,7 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
               const cardIndex = selectedCardIds.indexOf(card.id);
               const isSelected = cardIndex !== -1;
               const isFree = isSelected && cardIndex === 0;
-              
+
               return (
                 <SimpleGameCard
                   key={card.id}
@@ -120,52 +117,41 @@ const StartingCardSelectionOverlay: React.FC<StartingCardSelectionOverlayProps> 
           <div className={styles.costInfo}>
             <div className={styles.creditsDisplay}>
               <span className={styles.label}>Your Credits:</span>
-              <div className={styles.creditsAmount}>
-                <img
-                  src="/assets/resources/megacredit.png"
-                  alt="MC"
-                  className={styles.creditsIcon}
-                />
-                <span>{playerCredits}</span>
-              </div>
+              <MegaCreditIcon value={playerCredits} size="large" />
             </div>
             <div className={styles.totalCost}>
               <span className={styles.label}>Total Cost:</span>
-              <div className={styles.costAmount}>
-                {totalCost > 0 ? (
-                  <>
-                    <img
-                      src="/assets/resources/megacredit.png"
-                      alt="MC"
-                      className={styles.creditsIcon}
-                    />
-                    <span className={totalCost > playerCredits ? styles.insufficientFunds : ""}>
-                      {totalCost}
-                    </span>
-                  </>
-                ) : (
-                  <span className={styles.free}>FREE</span>
-                )}
-              </div>
+              {totalCost > 0 ? (
+                <MegaCreditIcon value={totalCost} size="large" />
+              ) : (
+                <span className={styles.free}>FREE</span>
+              )}
             </div>
           </div>
 
           <div className={styles.actions}>
             <div className={styles.selectionInfo}>
               {selectedCardIds.length === 0 ? (
-                <span className={styles.warning}>Select at least one card to continue</span>
+                showConfirmation ? (
+                  <span className={styles.warning}>
+                    Are you sure you don't want to select any cards?
+                  </span>
+                ) : (
+                  <span className={styles.info}>No cards selected</span>
+                )
               ) : (
                 <span className={styles.info}>
-                  {selectedCardIds.length} card{selectedCardIds.length !== 1 ? 's' : ''} selected
+                  {selectedCardIds.length} card
+                  {selectedCardIds.length !== 1 ? "s" : ""} selected
                 </span>
               )}
             </div>
             <button
               className={styles.confirmButton}
               onClick={handleConfirm}
-              disabled={selectedCardIds.length === 0 || totalCost > playerCredits}
+              disabled={totalCost > playerCredits}
             >
-              Confirm Selection
+              {showConfirmation ? "Confirm Skip" : "Confirm Selection"}
             </button>
           </div>
         </div>

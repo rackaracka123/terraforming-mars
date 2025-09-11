@@ -1,0 +1,74 @@
+@font-face {
+  font-family: "Prototype";
+  src: url("/assets/Prototype.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(0.7) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  color: #000000;
+  font-weight: 700;
+  font-family: "Prototype", "Arial Black", "Arial", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+  text-shadow:
+    -1px -1px 0 #d2691e,
+    1px -1px 0 #d2691e,
+    -1px 1px 0 #d2691e,
+    1px 1px 0 #d2691e,
+    0 0 3px rgba(210, 105, 30, 0.5);
+  letter-spacing: 0.3px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Size variants */
+.small {
+  width: 32px;
+  height: 32px;
+}
+
+.small .value {
+  font-size: calc(32px * 0.7);
+}
+
+.medium {
+  width: 40px;
+  height: 40px;
+}
+
+.medium .value {
+  font-size: calc(40px * 0.7);
+}
+
+.large {
+  width: 48px;
+  height: 48px;
+}
+
+.large .value {
+  font-size: calc(48px * 0.7);
+}
