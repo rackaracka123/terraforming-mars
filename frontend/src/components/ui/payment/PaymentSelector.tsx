@@ -250,7 +250,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         <div className="remaining-cost">Remaining Cost: {remainingCost} MC</div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .payment-selector {
           background: rgba(0, 0, 0, 0.8);
           border: 1px solid #444;

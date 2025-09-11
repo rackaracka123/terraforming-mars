@@ -1,20 +1,17 @@
 import React from "react";
 import type {
   PaymentCostDto,
-  CardTag,
 } from "../../../types/generated/api-types";
 import CostDisplay from "../display/CostDisplay";
 
 interface PaymentDisplayProps {
   cost: PaymentCostDto;
-  tags?: CardTag[];
   size?: "small" | "medium" | "large";
   className?: string;
 }
 
 const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
   cost,
-  tags = [],
   size = "medium",
   className = "",
 }) => {
@@ -50,7 +47,7 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .payment-display {
           display: flex;
           align-items: center;

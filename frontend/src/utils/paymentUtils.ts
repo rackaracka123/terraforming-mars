@@ -2,12 +2,7 @@ import type {
   PaymentCostDto,
   CardDto,
   CardTag,
-  TagBuilding,
-  TagSpace,
 } from "../types/generated/api-types";
-
-// Re-export tag constants for easier use
-export { TagBuilding, TagSpace } from "../types/generated/api-types";
 
 /**
  * Determines the payment cost structure for a card based on its tags
