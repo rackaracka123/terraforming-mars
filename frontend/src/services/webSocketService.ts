@@ -14,6 +14,7 @@ import {
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
+  MessageTypeAvailableCards,
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
@@ -139,6 +140,10 @@ export class WebSocketService {
         const productionPayload =
           message.payload as ProductionPhaseStartedPayload;
         this.emit("production-phase-started", productionPayload);
+        break;
+      }
+      case MessageTypeAvailableCards: {
+        this.emit("available-cards", message.payload);
         break;
       }
       default:

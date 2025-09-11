@@ -1,0 +1,198 @@
+.cardContainer {
+  position: relative;
+  width: 200px;
+  min-height: 280px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.fadeIn {
+  animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cardContainer:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.cardContainer.selected {
+  border-color: #4CAF50;
+  background: linear-gradient(135deg, #1a2e1a 0%, #0f1e0f 100%);
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.selectionIndicator {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #2a2a3e;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.cardContainer.selected .checkbox {
+  background: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.checkmark {
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.cardContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.costDisplay {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.freeLabel {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.costIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.costAmount {
+  color: #FFD700;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.requirements {
+  padding: 8px;
+  background: rgba(255, 0, 0, 0.1);
+  border-left: 2px solid rgba(255, 0, 0, 0.5);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.requirementLabel {
+  color: rgba(255, 100, 100, 0.9);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.requirementText {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.description {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hoverBorder {
+  position: absolute;
+  inset: -1px;
+  border-radius: 8px;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.cardContainer:hover .hoverBorder {
+  opacity: 1;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .cardContainer {
+    width: 160px;
+    min-height: 240px;
+    padding: 12px;
+  }
+
+  .cardName {
+    font-size: 14px;
+    min-height: 32px;
+  }
+
+  .costIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .description {
+    font-size: 12px;
+  }
+}
