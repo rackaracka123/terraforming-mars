@@ -73,7 +73,6 @@ const StartingCardSelectionOverlay: React.FC<
     }
   };
 
-
   return (
     <div className={styles.overlay}>
       {/* Translucent background */}
@@ -96,14 +95,12 @@ const StartingCardSelectionOverlay: React.FC<
             {cards.map((card, index) => {
               const cardIndex = selectedCardIds.indexOf(card.id);
               const isSelected = cardIndex !== -1;
-              const isFree = isSelected && cardIndex === 0;
 
               return (
                 <SimpleGameCard
                   key={card.id}
                   card={card}
                   isSelected={isSelected}
-                  isFree={isFree}
                   onSelect={handleCardSelect}
                   animationDelay={index * 100}
                 />
