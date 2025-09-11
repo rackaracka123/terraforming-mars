@@ -252,7 +252,7 @@ func GetGameStateFromClient(t *testing.T, client *integration.TestClient) map[st
 		}
 
 		return gameData
-	} else if msg.Type == dto.MessageTypePlayerConnected || msg.Type == dto.MessageTypePlayerReconnected {
+	} else if msg.Type == dto.MessageTypePlayerConnected {
 		payload, ok := msg.Payload.(map[string]interface{})
 		if !ok {
 			t.Logf("Player message payload is not a map")
