@@ -255,7 +255,7 @@ func (s *StandardProjectServiceImpl) executeStandardProjectWithPayment(ctx conte
 			zap.String("project", string(project)),
 			zap.Any("payment", payment),
 			zap.Any("player_resources", player.Resources))
-		return fmt.Errorf("insufficient resources for payment")
+		return fmt.Errorf("insufficient credits")
 	}
 	
 	if !s.paymentService.IsValidPayment(payment, paymentCost) {
