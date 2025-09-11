@@ -30,6 +30,7 @@ export default function GameInterface() {
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
 
   // New modal states
@@ -263,8 +264,9 @@ export default function GameInterface() {
         const player = routeState.game.currentPlayer;
         setCurrentPlayer(player || null);
 
-        // Store player ID for WebSocket handlers
+        // Store player ID for WebSocket handlers and component state
         currentPlayerIdRef.current = routeState.playerId;
+        setPlayerId(routeState.playerId);
       }
     }
   };
@@ -340,12 +342,22 @@ export default function GameInterface() {
       const player = routeState.game.currentPlayer;
       setCurrentPlayer(player || null);
 
-      // Store player ID for WebSocket handlers
+      // Store player ID for WebSocket handlers and component state
       currentPlayerIdRef.current = routeState.playerId;
+      setPlayerId(routeState.playerId);
 
       // CRITICAL FIX: Ensure globalWebSocketManager knows the current player ID
       // This is essential for reconnection scenarios where the player ID must be preserved
       globalWebSocketManager.setCurrentPlayerId(routeState.playerId);
+
+      // CRITICAL FIX: Send the player-connect WebSocket message to complete reconnection
+      // This is necessary after page refresh when we have the game state from route
+      // but need to re-establish the WebSocket connection with the backend
+      void globalWebSocketManager.playerConnect(
+        routeState.playerName,
+        routeState.game.id,
+        routeState.playerId,
+      );
     };
 
     void initializeGame();
@@ -520,8 +532,8 @@ export default function GameInterface() {
         changedPaths={changedPaths}
       />
 
-      {isLobbyPhase && game && (
-        <WaitingRoomOverlay game={game} playerId={currentPlayer?.id || ""} />
+      {isLobbyPhase && game && playerId && (
+        <WaitingRoomOverlay game={game} playerId={playerId} />
       )}
 
       {showTabConflict && conflictingTabInfo && (

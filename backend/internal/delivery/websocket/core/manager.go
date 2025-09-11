@@ -3,6 +3,7 @@ package core
 import (
 	"sync"
 	"terraforming-mars-backend/internal/logger"
+	"unsafe"
 
 	"go.uber.org/zap"
 )
@@ -112,29 +113,59 @@ func (m *Manager) GetConnectionCount() int {
 
 // RemoveExistingPlayerConnection removes any existing connection for the given player
 // This is used during reconnection to clean up old connections before adding new ones
-func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string) *Connection {
+// CRITICAL: excludeConnection should be the current connection making the request to avoid cleaning it up
+func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string, excludeConnection *Connection) *Connection {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	var existingConnection *Connection
+	var matchingConnections []*Connection
 
-	// Find existing connection for this player
+	m.logger.Debug("🔍 Starting connection cleanup search",
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID),
+		zap.String("exclude_connection_id", excludeConnection.ID),
+		zap.Uintptr("exclude_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
+
+	// Find existing connection for this player, but exclude the current one
 	for connection := range m.connections {
 		existingPlayerID, existingGameID := connection.GetPlayer()
 		if existingPlayerID == playerID && existingGameID == gameID {
-			existingConnection = connection
-			break
+			matchingConnections = append(matchingConnections, connection)
+
+			m.logger.Debug("🔎 Found matching connection",
+				zap.String("connection_id", connection.ID),
+				zap.Uintptr("connection_ptr", uintptr(unsafe.Pointer(connection))),
+				zap.Bool("is_excluded", connection == excludeConnection),
+				zap.String("player_id", existingPlayerID),
+				zap.String("game_id", existingGameID))
+
+			if connection != excludeConnection {
+				existingConnection = connection
+				break
+			}
 		}
 	}
 
+	m.logger.Debug("🔎 Connection search complete",
+		zap.Int("total_matching", len(matchingConnections)),
+		zap.Bool("found_to_cleanup", existingConnection != nil))
+
 	if existingConnection == nil {
+		m.logger.Debug("🔍 No existing connection to clean up for reconnecting player",
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID),
+			zap.String("current_connection_id", excludeConnection.ID))
 		return nil
 	}
 
 	m.logger.Debug("🧹 Cleaning up existing connection for reconnecting player",
-		zap.String("connection_id", existingConnection.ID),
+		zap.String("existing_connection_id", existingConnection.ID),
+		zap.String("current_connection_id", excludeConnection.ID),
 		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+		zap.String("game_id", gameID),
+		zap.Uintptr("existing_connection_ptr", uintptr(unsafe.Pointer(existingConnection))),
+		zap.Uintptr("current_connection_ptr", uintptr(unsafe.Pointer(excludeConnection))))
 
 	// Remove from main connections
 	delete(m.connections, existingConnection)
@@ -155,6 +186,7 @@ func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string) *Conne
 
 	m.logger.Debug("✅ Existing connection cleaned up for reconnecting player",
 		zap.String("old_connection_id", existingConnection.ID),
+		zap.String("current_connection_id", excludeConnection.ID),
 		zap.String("player_id", playerID))
 
 	return existingConnection

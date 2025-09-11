@@ -10,7 +10,6 @@ import {
   MessageTypePlayAction,
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
-  MessageTypePlayerReconnect,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
@@ -167,66 +166,62 @@ export class WebSocketService {
   playerConnect(
     playerName: string,
     gameId: string,
-  ): Promise<PlayerConnectedPayload> {
+    playerId?: string,
+  ): Promise<PlayerConnectedPayload | PlayerReconnectedPayload> {
     return new Promise((resolve, reject) => {
-      this.send(MessageTypePlayerConnect, { playerName, gameId }, gameId);
+      // Send the connect message with playerId if available (for reconnection)
+      const payload: any = { playerName, gameId };
+      if (playerId) {
+        payload.playerId = playerId;
+      }
+
+      this.send(MessageTypePlayerConnect, payload, gameId);
       this.currentGameId = gameId;
 
-      // Set up one-time listener for player-connected response
+      // Set up timeout
       const timeout = setTimeout(() => {
-        console.error(
-          "⏰ PlayerConnect: Timeout waiting for player-connected response",
-        );
-        this.off("player-connected", responseHandler);
-        reject(new Error("Timeout waiting for player connection confirmation"));
-      }, 5000); // 5 second timeout
-
-      const responseHandler = (payload: PlayerConnectedPayload) => {
-        clearTimeout(timeout);
-        this.off("player-connected", responseHandler);
-        resolve(payload);
-      };
-
-      this.on("player-connected", responseHandler);
-    });
-  }
-
-  playerReconnect(
-    playerName: string,
-    gameId: string,
-  ): Promise<PlayerReconnectedPayload> {
-    return new Promise((resolve, reject) => {
-      this.send(MessageTypePlayerReconnect, { playerName, gameId }, gameId);
-      this.currentGameId = gameId;
-
-      // Set up one-time listener for player-reconnected response
-      const timeout = setTimeout(() => {
-        this.off("player-reconnected", responseHandler);
+        this.off("player-connected", connectedHandler);
+        this.off("player-reconnected", reconnectedHandler);
         this.off("error", errorHandler);
-        reject(
-          new Error("Timeout waiting for player reconnection confirmation"),
-        );
+        reject(new Error("Timeout waiting for player connection confirmation"));
       }, 10000); // 10 second timeout
 
-      const responseHandler = (payload: PlayerReconnectedPayload) => {
-        // Only resolve if this is the reconnection for the current player
+      // Handler for new connections
+      const connectedHandler = (payload: PlayerConnectedPayload) => {
         if (payload.playerName === playerName) {
           clearTimeout(timeout);
-          this.off("player-reconnected", responseHandler);
+          this.off("player-connected", connectedHandler);
+          this.off("player-reconnected", reconnectedHandler);
           this.off("error", errorHandler);
           this.currentPlayerId = payload.playerId;
           resolve(payload);
         }
       };
 
-      const errorHandler = (errorPayload: ErrorPayload) => {
-        clearTimeout(timeout);
-        this.off("player-reconnected", responseHandler);
-        this.off("error", errorHandler);
-        reject(new Error(errorPayload.message || "Reconnection failed"));
+      // Handler for reconnections
+      const reconnectedHandler = (payload: PlayerReconnectedPayload) => {
+        if (payload.playerName === playerName) {
+          clearTimeout(timeout);
+          this.off("player-connected", connectedHandler);
+          this.off("player-reconnected", reconnectedHandler);
+          this.off("error", errorHandler);
+          this.currentPlayerId = payload.playerId;
+          resolve(payload);
+        }
       };
 
-      this.on("player-reconnected", responseHandler);
+      // Error handler
+      const errorHandler = (errorPayload: ErrorPayload) => {
+        clearTimeout(timeout);
+        this.off("player-connected", connectedHandler);
+        this.off("player-reconnected", reconnectedHandler);
+        this.off("error", errorHandler);
+        reject(new Error(errorPayload.message || "Connection failed"));
+      };
+
+      // Listen for both types of responses
+      this.on("player-connected", connectedHandler);
+      this.on("player-reconnected", reconnectedHandler);
       this.on("error", errorHandler);
     });
   }

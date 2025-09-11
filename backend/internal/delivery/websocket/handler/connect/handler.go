@@ -55,7 +55,7 @@ func NewConnectionHandler(
 // HandleMessage implements the MessageHandler interface
 func (ch *ConnectionHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	switch message.Type {
-	case dto.MessageTypePlayerConnect, dto.MessageTypePlayerReconnect:
+	case dto.MessageTypePlayerConnect:
 		ch.handleConnection(ctx, connection, message)
 	}
 }
@@ -105,8 +105,25 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 		return nil, err
 	}
 
-	// Check if player already exists
-	playerID := ch.findExistingPlayer(ctx, payload.GameID, payload.PlayerName)
+	// Check if player already exists - prioritize ID for reconnection
+	var playerID string
+	if payload.PlayerID != "" {
+		// Try to find by ID first (for reconnection)
+		playerID = ch.findExistingPlayerByID(ctx, payload.GameID, payload.PlayerID)
+		// If player found by ID, this is a reconnection
+		if playerID != "" {
+			ch.logger.Debug("🔄 Found player by ID - treating as reconnection",
+				zap.String("player_id", playerID),
+				zap.String("player_name", payload.PlayerName))
+		}
+	}
+
+	// Only check by name if no playerID was provided or found
+	// This prevents creating duplicate players when reconnecting
+	if playerID == "" && payload.PlayerID == "" {
+		// Fall back to finding by name only for new connections
+		playerID = ch.findExistingPlayer(ctx, payload.GameID, payload.PlayerName)
+	}
 
 	return &connectionContext{
 		ctx:        ctx,
@@ -120,12 +137,13 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 
 // processConnection handles the connection setup for new or existing players
 func (ch *ConnectionHandler) processConnection(connCtx *connectionContext) error {
-	// Setup temporary connection first
-	ch.setupTemporaryConnection(connCtx)
-
 	if connCtx.isNew {
+		// Setup temporary connection for new players
+		ch.setupTemporaryConnection(connCtx)
 		return ch.processNewPlayer(connCtx)
 	}
+
+	// For reconnections, clean up existing connections BEFORE setting up the new one
 	return ch.processReconnection(connCtx)
 }
 
@@ -163,10 +181,19 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 		zap.String("player_id", connCtx.playerID),
 		zap.String("player_name", connCtx.payload.PlayerName))
 
-	// Clean up any existing connections for this player
+	// Clean up any existing connections for this player BEFORE setting up the new one
 	ch.cleanupExistingConnection(connCtx)
 
-	// Update player connection status
+	// Set up the current connection with the real player ID (not temporary)
+	connCtx.connection.SetPlayer(connCtx.playerID, connCtx.payload.GameID)
+	ch.manager.AddToGame(connCtx.connection, connCtx.payload.GameID)
+
+	ch.logger.Debug("🔗 Connection set up for reconnecting player",
+		zap.String("connection_id", connCtx.connection.ID),
+		zap.String("player_id", connCtx.playerID))
+
+	// Update player connection status BEFORE getting game state
+	// This ensures the player is marked as connected in the database
 	err := ch.playerService.UpdatePlayerConnectionStatus(
 		connCtx.ctx,
 		connCtx.payload.GameID,
@@ -178,6 +205,21 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 			zap.Error(err))
 		// Non-critical error, continue
 	}
+
+	// Get the latest game state for reconnection
+	// This should now include the reconnected player with correct status
+	game, err := ch.gameService.GetGame(connCtx.ctx, connCtx.payload.GameID)
+	if err != nil {
+		ch.logger.Error("Failed to get game state for reconnection",
+			zap.Error(err))
+		return err
+	}
+	connCtx.game = &game
+
+	ch.logger.Info("✅ Player reconnection processed successfully",
+		zap.String("player_id", connCtx.playerID),
+		zap.String("player_name", connCtx.payload.PlayerName),
+		zap.String("game_id", connCtx.game.ID))
 
 	return nil
 }
@@ -209,6 +251,7 @@ func (ch *ConnectionHandler) cleanupExistingConnection(connCtx *connectionContex
 	existingConnection := ch.manager.RemoveExistingPlayerConnection(
 		connCtx.playerID,
 		connCtx.payload.GameID,
+		connCtx.connection, // Pass current connection to avoid cleaning it up
 	)
 
 	if existingConnection != nil {
@@ -245,14 +288,25 @@ func (ch *ConnectionHandler) sendStateUpdates(connCtx *connectionContext) {
 	// Send connection confirmation
 	ch.sendConnectionConfirmation(connCtx, gameDTO)
 
-	// Send game state update
+	// Send game state update to the connecting player
 	ch.sendGameStateUpdate(connCtx, gameDTO)
 
-	// Broadcast to other players
-	ch.broadcastConnectionEvent(connCtx)
+	// For reconnections, we need to ensure all players get the updated state
+	if !connCtx.isNew {
+		ch.logger.Info("🔄 Broadcasting game state to all players after reconnection",
+			zap.String("player_id", connCtx.playerID),
+			zap.String("game_id", connCtx.game.ID))
 
-	// Trigger personalized updates for all players
-	ch.broadcaster.SendPersonalizedGameUpdates(connCtx.ctx, connCtx.game.ID)
+		// Trigger personalized updates for ALL players including the reconnected one
+		// This ensures everyone has the correct player list
+		ch.broadcaster.SendPersonalizedGameUpdates(connCtx.ctx, connCtx.game.ID)
+	} else {
+		// For new connections, just notify other players
+		ch.broadcastConnectionEvent(connCtx)
+
+		// Then send personalized updates to all
+		ch.broadcaster.SendPersonalizedGameUpdates(connCtx.ctx, connCtx.game.ID)
+	}
 }
 
 // getPersonalizedGameState creates a personalized game DTO for the player
@@ -273,14 +327,26 @@ func (ch *ConnectionHandler) getPersonalizedGameState(connCtx *connectionContext
 func (ch *ConnectionHandler) sendConnectionConfirmation(connCtx *connectionContext, gameDTO dto.GameDto) {
 	messageType := ch.getConnectionMessageType(connCtx.isNew)
 
-	message := dto.WebSocketMessage{
-		Type: messageType,
-		Payload: dto.PlayerConnectedPayload{
+	var payload any
+	if connCtx.isNew {
+		payload = dto.PlayerConnectedPayload{
 			PlayerID:   connCtx.playerID,
 			PlayerName: connCtx.payload.PlayerName,
 			Game:       gameDTO,
-		},
-		GameID: connCtx.game.ID,
+		}
+	} else {
+		// For reconnection, use PlayerReconnectedPayload
+		payload = dto.PlayerReconnectedPayload{
+			PlayerID:   connCtx.playerID,
+			PlayerName: connCtx.payload.PlayerName,
+			Game:       gameDTO,
+		}
+	}
+
+	message := dto.WebSocketMessage{
+		Type:    messageType,
+		Payload: payload,
+		GameID:  connCtx.game.ID,
 	}
 
 	ch.broadcaster.SendToConnection(connCtx.connection, message)
@@ -303,14 +369,26 @@ func (ch *ConnectionHandler) sendGameStateUpdate(connCtx *connectionContext, gam
 func (ch *ConnectionHandler) broadcastConnectionEvent(connCtx *connectionContext) {
 	messageType := ch.getConnectionMessageType(connCtx.isNew)
 
-	message := dto.WebSocketMessage{
-		Type: messageType,
-		Payload: dto.PlayerConnectedPayload{
+	var payload any
+	if connCtx.isNew {
+		payload = dto.PlayerConnectedPayload{
 			PlayerID:   connCtx.playerID,
 			PlayerName: connCtx.payload.PlayerName,
 			Game:       dto.ToGameDtoBasic(*connCtx.game),
-		},
-		GameID: connCtx.game.ID,
+		}
+	} else {
+		// For reconnection, use PlayerReconnectedPayload
+		payload = dto.PlayerReconnectedPayload{
+			PlayerID:   connCtx.playerID,
+			PlayerName: connCtx.payload.PlayerName,
+			Game:       dto.ToGameDtoBasic(*connCtx.game),
+		}
+	}
+
+	message := dto.WebSocketMessage{
+		Type:    messageType,
+		Payload: payload,
+		GameID:  connCtx.game.ID,
 	}
 
 	ch.broadcaster.BroadcastToGameExcept(connCtx.game.ID, message, connCtx.connection)
@@ -324,6 +402,23 @@ func (ch *ConnectionHandler) findExistingPlayer(ctx context.Context, gameID, pla
 	if err != nil {
 		return ""
 	}
+	return player.ID
+}
+
+// findExistingPlayerByID checks if a player with the given ID exists in the game
+func (ch *ConnectionHandler) findExistingPlayerByID(ctx context.Context, gameID, playerID string) string {
+	player, err := ch.playerService.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		ch.logger.Debug("Player not found by ID",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Error(err))
+		return ""
+	}
+	ch.logger.Debug("Found existing player by ID",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("player_name", player.Name))
 	return player.ID
 }
 

@@ -5,7 +5,10 @@ export interface WebSocketConnection {
   gameId: string | null;
 
   // Game actions
-  playerConnect(playerName: string, gameId: string): Promise<any>;
-  playerReconnect(playerName: string, gameId: string): Promise<any>;
+  playerConnect(
+    playerName: string,
+    gameId: string,
+    playerId?: string,
+  ): Promise<any>;
   playAction(actionPayload: object): Promise<string>;
 }

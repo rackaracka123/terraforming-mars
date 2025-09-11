@@ -453,7 +453,6 @@ export type MessageType = string;
  * Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
-export const MessageTypePlayerReconnect: MessageType = "player-reconnect";
 export const MessageTypePlayAction: MessageType = "do-action";
 /**
  * Server -> Client messages
@@ -481,6 +480,7 @@ export interface WebSocketMessage {
 export interface PlayerConnectPayload {
   playerName: string;
   gameId: string;
+  playerId?: string; // Optional: used for reconnection
 }
 /**
  * PlayActionPayload contains game action data

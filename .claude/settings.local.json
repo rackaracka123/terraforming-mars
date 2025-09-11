@@ -31,7 +31,12 @@
       "Bash(git rm:*)",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Read(//tmp/**)",
+      "Read(//dev/pts/**)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill:*)",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": [],
     "ask": []

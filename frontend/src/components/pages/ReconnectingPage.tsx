@@ -32,9 +32,9 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
           throw new Error("No saved game data found");
         }
 
-        const { gameId, playerName } = JSON.parse(savedGameData);
-        if (!gameId || !playerName) {
-          throw new Error("Invalid saved game data");
+        const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+        if (!gameId || !playerName || !playerId) {
+          throw new Error("Invalid saved game data - missing required fields");
         }
 
         // Verify game still exists
@@ -44,10 +44,11 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         }
 
         // Ensure WebSocket is ready and attempt reconnection
-        // Attempting to reconnect: playerName, gameId
-        const reconnectionResult = await globalWebSocketManager.playerReconnect(
+        // Attempting to reconnect: playerName, gameId, playerId
+        const reconnectionResult = await globalWebSocketManager.playerConnect(
           playerName,
           gameId,
+          playerId,
         );
         // Reconnection successful
 
