@@ -27,6 +27,7 @@ type PlayerRepository interface {
 	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation string) error
 	UpdateConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
 	UpdateIsActive(ctx context.Context, gameID, playerID string, isActive bool) error
+	UpdateIsReady(ctx context.Context, gameID, playerID string, isReady bool) error
 	UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
@@ -343,6 +344,25 @@ func (r *PlayerRepositoryImpl) UpdateIsActive(ctx context.Context, gameID, playe
 	player.IsActive = isActive
 
 	log.Info("Player active status updated", zap.Bool("is_active", isActive))
+
+	return nil
+}
+
+// UpdateIsReady updates a player's ready status
+func (r *PlayerRepositoryImpl) UpdateIsReady(ctx context.Context, gameID, playerID string, isReady bool) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.IsReady = isReady
+
+	log.Info("Player ready status updated", zap.Bool("is_ready", isReady))
 
 	return nil
 }
