@@ -1,4 +1,4 @@
-package handlers
+package connect
 
 import (
 	"context"

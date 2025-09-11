@@ -110,20 +110,6 @@ func (m *Manager) GetConnectionCount() int {
 	return len(m.connections)
 }
 
-// FindConnectionByPlayer finds an existing connection for the given player
-func (m *Manager) FindConnectionByPlayer(playerID, gameID string) *Connection {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	for connection := range m.connections {
-		existingPlayerID, existingGameID := connection.GetPlayer()
-		if existingPlayerID == playerID && existingGameID == gameID {
-			return connection
-		}
-	}
-	return nil
-}
-
 // RemoveExistingPlayerConnection removes any existing connection for the given player
 // This is used during reconnection to clean up old connections before adding new ones
 func (m *Manager) RemoveExistingPlayerConnection(playerID, gameID string) *Connection {

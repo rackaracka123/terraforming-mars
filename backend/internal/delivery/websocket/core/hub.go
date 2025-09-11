@@ -153,7 +153,7 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 			h.connectionHandler.HandleMessage(ctx, connection, message)
 		} else {
 			h.logger.Error("Connection handler not set")
-			h.sendError(connection, "Handler not available")
+			h.sendError(connection, ErrHandlerNotAvailable)
 		}
 	case dto.MessageTypePlayAction:
 		if h.actionHandler != nil {
@@ -161,12 +161,12 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 			h.actionHandler.HandleMessage(ctx, connection, message)
 		} else {
 			h.logger.Error("Action handler not set")
-			h.sendError(connection, "Handler not available")
+			h.sendError(connection, ErrHandlerNotAvailable)
 		}
 	default:
 		h.logger.Warn("❓ Unknown message type",
 			zap.String("message_type", string(message.Type)))
-		h.sendError(connection, "Unknown message type")
+		h.sendError(connection, ErrUnknownMessageType)
 	}
 }
 
@@ -256,3 +256,9 @@ func (h *Hub) sendError(connection *Connection, errorMessage string) {
 
 	h.broadcaster.SendToConnection(connection, message)
 }
+
+// Standard error messages for hub operations
+const (
+	ErrHandlerNotAvailable = "Handler not available"
+	ErrUnknownMessageType  = "Unknown message type"
+)

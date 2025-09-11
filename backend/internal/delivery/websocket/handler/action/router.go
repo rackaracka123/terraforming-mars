@@ -1,11 +1,10 @@
-package handlers
+package action
 
 import (
 	"context"
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/delivery/websocket/actions"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
@@ -16,13 +15,10 @@ import (
 
 // ActionHandler handles game action requests
 type ActionHandler struct {
-	gameActions      *actions.GameActions
-	standardProjects *actions.StandardProjects
-	cardActions      *actions.CardActions
-	parser           *utils.MessageParser
-	errorHandler     *utils.ErrorHandler
-	broadcaster      *core.Broadcaster
-	logger           *zap.Logger
+	actionRegistry *core.ActionRegistry
+	parser         *utils.MessageParser
+	errorHandler   *utils.ErrorHandler
+	logger         *zap.Logger
 }
 
 // NewActionHandler creates a new action handler
@@ -34,14 +30,13 @@ func NewActionHandler(
 	broadcaster *core.Broadcaster,
 ) *ActionHandler {
 	parser := utils.NewMessageParser()
+	actionRegistry := SetupActionRegistry(gameService, playerService, standardProjectService, cardService, broadcaster)
+
 	return &ActionHandler{
-		gameActions:      actions.NewGameActions(gameService, playerService, broadcaster),
-		standardProjects: actions.NewStandardProjects(standardProjectService, parser),
-		cardActions:      actions.NewCardActions(cardService, gameService, parser),
-		parser:           parser,
-		errorHandler:     utils.NewErrorHandler(),
-		broadcaster:      broadcaster,
-		logger:           logger.Get(),
+		actionRegistry: actionRegistry,
+		parser:         parser,
+		errorHandler:   utils.NewErrorHandler(),
+		logger:         logger.Get(),
 	}
 }
 
@@ -101,42 +96,13 @@ func (ah *ActionHandler) handlePlayAction(ctx context.Context, connection *core.
 		zap.String("action_type", actionType))
 }
 
-// routeAction routes actions to the appropriate handler
+// routeAction routes actions to the appropriate handler using the registry
 func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, actionType string, actionRequest interface{}) error {
-	switch dto.ActionType(actionType) {
-	// Game actions
-	case dto.ActionTypeStartGame:
-		return ah.gameActions.StartGame(ctx, gameID, playerID)
-	case dto.ActionTypeSkipAction:
-		return ah.gameActions.SkipAction(ctx, gameID, playerID)
-
-	// Card actions
-	case dto.ActionTypeSelectStartingCard:
-		return ah.cardActions.SelectStartingCards(ctx, gameID, playerID, actionRequest)
-	case dto.ActionTypeSelectCards:
-		return ah.cardActions.SelectProductionCards(ctx, gameID, playerID, actionRequest)
-
-	// Standard projects
-	case dto.ActionTypeSellPatents:
-		return ah.standardProjects.SellPatents(ctx, gameID, playerID, actionRequest)
-	case dto.ActionTypeBuildPowerPlant:
-		return ah.standardProjects.BuildPowerPlant(ctx, gameID, playerID)
-	case dto.ActionTypeLaunchAsteroid:
-		return ah.standardProjects.LaunchAsteroid(ctx, gameID, playerID)
-	case dto.ActionTypeBuildAquifer:
-		return ah.standardProjects.BuildAquifer(ctx, gameID, playerID, actionRequest)
-	case dto.ActionTypePlantGreenery:
-		return ah.standardProjects.PlantGreenery(ctx, gameID, playerID, actionRequest)
-	case dto.ActionTypeBuildCity:
-		return ah.standardProjects.BuildCity(ctx, gameID, playerID, actionRequest)
-
-	default:
+	handler, err := ah.actionRegistry.GetHandler(dto.ActionType(actionType))
+	if err != nil {
 		ah.logger.Warn("Unsupported action type", zap.String("action_type", actionType))
-		return ErrUnsupportedActionType
+		return fmt.Errorf("unsupported action type: %s", actionType)
 	}
-}
 
-// Custom errors
-var (
-	ErrUnsupportedActionType = fmt.Errorf("unsupported action type")
-)
+	return handler.Handle(ctx, gameID, playerID, actionRequest)
+}
