@@ -109,6 +109,16 @@ class GlobalWebSocketManager implements WebSocketConnection {
       },
     );
 
+    webSocketService.on("available-cards", (payload: any) => {
+      // WebSocket: Available cards received
+      this.emit("available-cards", payload);
+    });
+
+    webSocketService.on("production-phase-started", (payload: any) => {
+      // WebSocket: Production phase started
+      this.emit("production-phase-started", payload);
+    });
+
     webSocketService.on("error", (error: any) => {
       console.error("WebSocket: Error received", error);
       this.emit("error", error);

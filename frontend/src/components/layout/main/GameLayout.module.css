@@ -35,3 +35,11 @@
     grid-template-rows: auto 1fr auto;
   }
 }
+
+.victoryPointsOverlay {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
