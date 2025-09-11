@@ -82,15 +82,28 @@ The Go backend follows clean architecture principles with clear separation of co
 
 ```
 backend/
-├── cmd/server/              # Application entry point with dependency injection
+├── cmd/                    # Application entry points
+│   ├── cli/               # Interactive CLI tool for testing
+│   ├── server/            # Main server application with dependency injection
+│   └── watch/             # Development file watching utility
 ├── internal/
-│   ├── domain/             # Core business entities (GameState, Player, Corporation)
-│   ├── service/            # Application business rules and game logic  
-│   ├── repository/         # Data access layer (in-memory game storage)
-│   └── delivery/           # HTTP handlers and WebSocket hub
-├── pkg/typegen/            # TypeScript type generation utilities
-├── tools/                  # Code generation tools
-└── docs/swagger/           # Auto-generated API documentation
+│   ├── cards/             # Card system, validation, and registry
+│   ├── delivery/          # Presentation layer
+│   │   ├── dto/           # Data Transfer Objects and mappers
+│   │   ├── http/          # HTTP handlers, middleware, and routing
+│   │   └── websocket/     # WebSocket architecture
+│   │       ├── core/      # Hub, connection manager, broadcaster
+│   │       └── handler/   # Action-specific message handlers
+│   ├── events/            # Event bus and domain event definitions
+│   ├── initialization/    # Application setup and card loading
+│   ├── logger/            # Structured logging utilities
+│   ├── model/             # Domain entities and business objects
+│   ├── repository/        # Data access layer with immutable interfaces
+│   └── service/           # Application business logic and use cases
+├── pkg/typegen/           # TypeScript type generation utilities
+├── test/                  # Comprehensive test suite
+├── tools/                 # Code generation and development tools
+└── docs/swagger/          # Auto-generated API documentation
 ```
 
 ### Full-Stack Communication Flow
@@ -139,11 +152,23 @@ The backend follows Clean Architecture principles with strict separation of conc
 - **Event Publishing**: Precise events from specific update methods (temperature changed, resources updated)
 - **No Entity Classes**: Store domain models directly, eliminating conversion complexity
 
-**Presentation Layer** (`internal/cards/`, `internal/delivery/`)
-- **API Endpoints**: Handle HTTP requests and WebSocket connections
-- **Request/Response Models**: DTOs for external communication
-- **Card Handlers**: Implement game card effects using Application services
+**Presentation Layer** (`internal/delivery/`)
+- **HTTP Endpoints**: Handle REST API requests with middleware and routing
+- **WebSocket System**: Sophisticated hub-manager-handler architecture for real-time communication
+- **Request/Response Models**: DTOs for external communication with proper mapping
 - **Dependency Direction**: Depends on Application layer, not Infrastructure
+
+**Card System Layer** (`internal/cards/`)
+- **Card Registry**: Centralized registration and lookup for all game cards
+- **Card Validation**: Comprehensive validation system for card plays and requirements
+- **Effect Implementation**: Card-specific business logic integrated with game services
+- **Modular Design**: Each card type has dedicated handler with consistent interface
+
+**Event System** (`internal/events/`)
+- **Event Bus**: Centralized event publishing and subscription system
+- **Domain Events**: Consolidated event types (EventTypeGameUpdated, etc.)
+- **Event Flow**: Repository operations trigger events → EventBus → WebSocket broadcasting
+- **Decoupled Architecture**: Services publish events without knowing about subscribers
 
 ### Clean Architecture Principles
 
@@ -168,35 +193,19 @@ The backend follows Clean Architecture principles with strict separation of conc
 - Domain entities contain core business logic
 - Application services orchestrate domain operations
 
-### Simplified Repository Pattern
+### Repository Architecture
 
-The backend implements a **Clean Repository Pattern** with the following design principles:
+The backend implements a **Clean Repository Pattern** optimized for real-time game state management:
 
-**Repository Design**
-- **Direct Model Storage**: Repositories store `model.Game` and `model.Player` directly (no entity classes)
-- **Immutable Interface**: All getters return values (`GetByID() (model.Game, error)`) not pointers
-- **Clean Relationships**: `model.Game` contains `PlayerIDs []string`, not embedded `Players []Player`
-- **Granular Updates**: Specific methods for each field to enable precise event handling:
-  ```go
-  UpdateResources(ctx, gameID, playerID, resources) error
-  UpdateTerraformRating(ctx, gameID, playerID, rating) error
-  UpdateStatus(ctx, gameID, status) error
-  ```
+**Core Design Principles**
+- **Direct Model Storage**: Repositories store domain models (`model.Game`, `model.Player`) without entity classes
+- **Immutable Interface**: All getters return values, not pointers, preventing external mutation
+- **Clean Relationships**: Games reference players via `PlayerIDs []string` instead of embedded objects
+- **Granular Updates**: Specific methods for targeted updates enable precise event handling
+- **Event Integration**: Repository operations automatically trigger domain events via EventBus
 
-**Service Composition**
-- Services call specific repository methods when needed
-- When full data is required, services compose from multiple repositories:
-  ```go
-  game := gameRepo.GetByID(ctx, gameID)
-  players := playerRepo.ListByGameID(ctx, gameID)
-  // Compose response as needed
-  ```
-
-**Event-Driven Architecture**
-- **Precise Events**: Granular update methods publish specific events
-- **Event Flow**: `Repository Update Method → Specific Event → Event Bus → Service Handler`
-- **Examples**: `TemperatureChanged`, `PlayerResourcesChanged`, `PlayerTRChanged`
-- **Clean Separation**: Events published from infrastructure, handled in application layer
+**Service-Repository Coordination**
+Services compose data from multiple repositories as needed, maintaining clean separation between business logic and data access while ensuring consistent state management through the event-driven architecture.
 
 ### Development Guidelines
 
@@ -217,53 +226,55 @@ The backend implements a **Clean Repository Pattern** with the following design 
 - Handle domain events for cross-cutting functionality
 - Define interfaces for infrastructure dependencies
 
-**Infrastructure Layer (Repository Pattern)**
-- Store domain models directly with immutable interfaces
-- Implement granular update methods for specific field changes
-- Maintain clean relationships using IDs instead of embedded objects
-- Publish precise events from specific operations
-- Use defensive copying for data integrity
-
-**Repository Implementation Example**
-```go
-type GameRepository interface {
-    // Immutable getters
-    GetByID(ctx context.Context, gameID string) (model.Game, error)
-    
-    // Granular updates
-    UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error
-    AddPlayerID(ctx context.Context, gameID string, playerID string) error
-    
-    // Clean CRUD
-    Create(ctx context.Context, settings model.GameSettings) (model.Game, error)
-    Delete(ctx context.Context, gameID string) error
-}
-```
 
 **Presentation Layer**
 - Use Application services for all business operations
-- Never access Infrastructure layer directly
+- Never access Infrastructure layer directly  
 - Implement proper error handling and validation
 - Keep presentation logic separate from business logic
 
-Reference existing code implementations for concrete examples of these architectural patterns.
+**Card System Integration**
+- Use card registry for centralized card management
+- Implement card validation before processing effects
+- Integrate card actions with existing service layer
+- Follow modular design patterns for new card types
 
 ## Game State Flow
 
 ### WebSocket Event Architecture
+
+**Modern Handler System**
+The backend uses a sophisticated action handler system for WebSocket messages:
+
 ```
-Client -> 'join-game' -> GameService.JoinGame -> Broadcasts 'game-updated'
-Client -> 'select-corporation' -> GameService.SelectCorporation -> Broadcasts updated state
-Client -> 'raise-temperature' -> GameService.RaiseTemperature -> Visual feedback
-Client -> 'skip-action' -> GameUseCase.SkipAction -> Turn progression
+Client Message -> Hub.HandleMessage() -> Manager.RouteMessage() -> ActionHandler.Handle()
+                                                                        ↓
+                                                              Service Layer (Business Logic)
+                                                                        ↓
+                                                              Repository Updates + Events
+                                                                        ↓
+                                                              EventBus -> Hub -> Broadcaster
+                                                                        ↓
+                                                              All Clients Receive Updates
 ```
 
-### Backend Request Flow
-1. WebSocket message received -> Hub.handleMessage() -> Client.handleMessage()
-2. Use case method called (e.g., JoinGame, SelectCorporation)  
-3. Domain logic executed -> Game state updated in repository
-4. Updated GameState broadcast to all game clients
-5. Frontend receives state update -> React components re-render
+**Handler Registration**
+Each action type has a dedicated handler in `internal/delivery/websocket/handler/`:
+- `JoinGameHandler`: Player joining game sessions
+- `StartGameHandler`: Host starting games from lobby
+- `SelectCorporationHandler`: Corporation selection logic
+- `RaiseTemperatureHandler`: Global parameter modifications
+- `SkipActionHandler`: Turn progression and phase management
+
+**Message Flow Architecture**
+1. **WebSocket Connection**: Client establishes connection -> Hub registers client
+2. **Message Reception**: Hub.HandleMessage() receives raw WebSocket message
+3. **Action Routing**: Manager.RouteMessage() identifies action type and routes to handler
+4. **Handler Processing**: Dedicated ActionHandler validates message and calls services
+5. **Business Logic**: Service layer executes domain operations via repositories
+6. **Event Publishing**: Repository operations trigger domain events via EventBus
+7. **State Broadcasting**: Hub receives events and broadcasts updates to all game clients
+8. **Frontend Updates**: React components receive state changes and re-render UI
 
 ## Type System Overview
 
@@ -346,9 +357,9 @@ The `TERRAFORMING_MARS_RULES.md` file contains the complete, authoritative ruleb
 
 ### Adding New Game Features
 1. **Consult game rules**: Check `TERRAFORMING_MARS_RULES.md` for any game rule implications
-2. **Define domain entities** in `internal/domain/` with proper `ts:` tags
+2. **Define domain entities** in `internal/model/` with proper `ts:` tags
 3. **Implement service logic** in `internal/service/`
-4. **Add WebSocket handlers** in `internal/delivery/websocket/`
+4. **Add WebSocket handlers** in `internal/delivery/websocket/handler/`
 5. **Generate types**: Run `tygo generate` to update frontend types
 6. **Frontend integration**: Import generated types and implement UI
 7. **Format and lint**: **ALWAYS** run `make format` and `make lint` after completing any feature
@@ -371,19 +382,28 @@ Uses cube coordinates (q, r, s) where q + r + s = 0. Utilities in `HexMath` clas
 ### Multiplayer State Synchronization
 Game state is authoritative on Go backend. All clients receive full state updates via WebSocket 'game-updated' events. No client-side game logic to prevent desync.
 
-### WebSocket Message Types
-Current supported messages:
-- `join-game`: Player joins a game session
-- `player-reconnect`: Player reconnects to existing game session
-- `select-corporation`: Choose starting corporation
-- `raise-temperature`: Spend heat to increase global temperature
-- `skip-action`: Pass current turn
-- `start-game`: Host starts the game (transitions from lobby to active status)
+### WebSocket Message System
 
-#### Connection Status Events
-- `player-connected`: Sent when a new player joins
-- `player-reconnected`: Sent when an existing player reconnects
-- `player-disconnected`: Sent when a player disconnects (includes accurate connection status)
+**Inbound Message Types (Client → Server)**
+- `join-game`: Player joins or creates a game session
+- `player-reconnect`: Existing player reconnects to game session
+- `select-corporation`: Choose starting corporation during setup
+- `raise-temperature`: Spend heat to increase global temperature parameter
+- `skip-action`: Pass current turn and advance game phase
+- `start-game`: Host transitions game from lobby to active status
+
+**Outbound Event Types (Server → Client)**
+- `game-updated`: Complete game state synchronization (primary event)
+- `player-connected`: Notification when new player joins
+- `player-reconnected`: Notification when existing player reconnects  
+- `player-disconnected`: Real-time connection status updates
+
+**Event-Driven Broadcasting**
+The system uses consolidated event types for efficient state synchronization:
+- **Primary Event**: `EventTypeGameUpdated` carries complete game state
+- **Event Flow**: Service Action → Repository Update → EventBus → Hub → Broadcast
+- **State Consistency**: All clients receive identical state snapshots
+- **Connection Management**: Hub tracks client connections and handles disconnections gracefully
 
 ### Go Struct Tags for Type Generation
 Use both `json:` and `ts:` tags on all domain structs:
@@ -446,11 +466,11 @@ type Resource struct {
 - **Component architecture** for modular game UI development
 
 ### Key Missing Pieces
-- **Full card system** implementation in Go backend
 - **Tile placement** logic and adjacency bonuses
-- **Turn phases** and action state machine
-- **Victory condition** checking
-- **Milestones and awards** game mechanics
+- **Advanced turn phases** and complex action state machine
+- **Victory condition** checking and game end detection
+- **Milestones and awards** tracking and validation
+- **Advanced card effects** requiring complex game state interactions
 
 ## UI Component Standards
 
@@ -517,15 +537,28 @@ npm run lint           # Check for ESLint errors
 ### Backend Development (Go)
 - **Clean Architecture**: Always implement new features following the domain -> service -> delivery pattern
 - **Type Tags**: Add both `json:` and `ts:` tags to all domain structs for frontend sync
-- **WebSocket Events**: Add new game actions in `internal/delivery/websocket/game_hub.go`
+- **WebSocket Events**: Add new action handlers in `internal/delivery/websocket/handler/` and register in the manager
 - **Testing**: Use `go test ./...` to run all backend tests
 - **API Documentation**: Add Swagger comments to HTTP handlers for auto-generated docs
 
-#### Repository Pattern Best Practices
-- **Defensive Copying**: All repository methods must return deep copies to prevent external mutation
-- **Data Synchronization**: Ensure related repositories stay synchronized (e.g., GameRepository fetches fresh PlayerRepository data)
-- **Complete Entity Copying**: When implementing `DeepCopy()` methods, include ALL struct fields to prevent data loss
-- **Dependency Injection**: Inject required repositories into constructor methods for data consistency
+#### Modern Backend Patterns
+
+**Repository Layer**
+- **Immutable Interfaces**: Return values, not pointers, to prevent external state mutation
+- **Event Integration**: Repository updates automatically trigger EventBus notifications
+- **Clean Relationships**: Use ID references instead of embedded objects for maintainable data flow
+
+**WebSocket Handler Development**
+- **Action Handlers**: Create dedicated handlers in `internal/delivery/websocket/handler/`
+- **Handler Registration**: Register new handlers in the WebSocket manager for message routing
+- **Service Integration**: Use application services for business logic, not direct repository access
+- **Event Response**: Let the event system handle state broadcasting to clients
+
+**Card System Development** 
+- **Card Registration**: Register new cards in the card registry for centralized management
+- **Effect Implementation**: Create card effects that integrate with existing game services
+- **Validation**: Implement comprehensive validation for card requirements and effects
+- **Modular Design**: Follow established patterns for consistent card behavior
 
 #### Test Debugging
 - **JSON Output**: Use `go test -json` for easier to parse test output when debugging
