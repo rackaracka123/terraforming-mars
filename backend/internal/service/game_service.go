@@ -179,7 +179,7 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection); err != nil {
+	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
@@ -515,22 +515,45 @@ func (s *GameServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID str
 		return nil, fmt.Errorf("failed to list players: %w", err)
 	}
 
-	// Convert energy to heat and apply production to all players
+	// Convert energy to heat and apply production to all players using repository methods
 	for i := range gamePlayers {
 		player := &gamePlayers[i]
 
-		// Convert all energy to heat
+		// Get current resources to calculate energy conversion
 		energyConverted := player.Resources.Energy
-		player.Resources.Heat += energyConverted
-		player.Resources.Energy = 0
 
-		// Apply production to resources
-		player.Resources.Credits += player.Production.Credits + player.TerraformRating // TR provides 1 credit per point
-		player.Resources.Steel += player.Production.Steel
-		player.Resources.Titanium += player.Production.Titanium
-		player.Resources.Plants += player.Production.Plants
-		player.Resources.Energy += player.Production.Energy
-		player.Resources.Heat += player.Production.Heat
+		// Calculate new resources after production
+		newResources := model.Resources{
+			Credits:  player.Resources.Credits + player.Production.Credits + player.TerraformRating, // TR provides 1 credit per point
+			Steel:    player.Resources.Steel + player.Production.Steel,
+			Titanium: player.Resources.Titanium + player.Production.Titanium,
+			Plants:   player.Resources.Plants + player.Production.Plants,
+			Energy:   player.Production.Energy,                                         // Energy resets to production value (old energy converted to heat)
+			Heat:     player.Resources.Heat + energyConverted + player.Production.Heat, // Add converted energy + heat production
+		}
+
+		// Update player resources through repository (follows clean architecture)
+		if err := s.playerRepo.UpdateResources(ctx, gameID, player.ID, newResources); err != nil {
+			log.Error("Failed to update player resources during production",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return nil, fmt.Errorf("failed to update player resources: %w", err)
+		}
+
+		// Reset player state for next generation
+		if err := s.playerRepo.UpdatePassed(ctx, gameID, player.ID, false); err != nil {
+			log.Error("Failed to reset player passed status",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return nil, fmt.Errorf("failed to reset player passed status: %w", err)
+		}
+
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, player.ID, 2); err != nil {
+			log.Error("Failed to reset player available actions",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return nil, fmt.Errorf("failed to reset player available actions: %w", err)
+		}
 
 		log.Debug("Applied production to player",
 			zap.String("player_id", player.ID),
@@ -606,13 +629,91 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		return nil, fmt.Errorf("player not found in game")
 	}
 
-	// Validate readiness check state
-
 	// Check if player is already marked as ready
+	var currentPlayer *model.Player
+	for _, player := range gamePlayers {
+		if player.ID == playerID {
+			currentPlayer = &player
+			break
+		}
+	}
+
+	if currentPlayer != nil && currentPlayer.IsReady {
+		log.Debug("Player already marked as ready", zap.String("player_id", playerID))
+		// Player already ready, just return current game state
+		game, err = s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game state", zap.Error(err))
+			return nil, fmt.Errorf("failed to get game: %w", err)
+		}
+		return &game, nil
+	}
 
 	// Mark player as ready
+	if err := s.playerRepo.UpdateIsReady(ctx, gameID, playerID, true); err != nil {
+		log.Error("Failed to mark player as ready", zap.Error(err))
+		return nil, fmt.Errorf("failed to mark player as ready: %w", err)
+	}
+
+	log.Debug("Player marked as ready for production phase", zap.String("player_id", playerID))
 
 	// Check if all players are ready
+	updatedPlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to list players to check readiness", zap.Error(err))
+		return nil, fmt.Errorf("failed to list players: %w", err)
+	}
+
+	allReady := true
+	readyCount := 0
+	for _, player := range updatedPlayers {
+		if player.IsReady {
+			readyCount++
+		} else {
+			allReady = false
+		}
+	}
+
+	log.Debug("Checking production phase readiness",
+		zap.Int("ready_count", readyCount),
+		zap.Int("total_players", len(updatedPlayers)),
+		zap.Bool("all_ready", allReady))
+
+	if allReady {
+		// All players are ready - advance to next phase (action phase)
+		log.Info("🎯 All players ready for next phase - advancing from production to action",
+			zap.String("game_id", gameID),
+			zap.Int("generation", game.Generation))
+
+		// Reset all players ready status and advance phase
+		for _, player := range updatedPlayers {
+			if err := s.playerRepo.UpdateIsReady(ctx, gameID, player.ID, false); err != nil {
+				log.Error("Failed to reset player ready status",
+					zap.String("player_id", player.ID),
+					zap.Error(err))
+				return nil, fmt.Errorf("failed to reset player ready status: %w", err)
+			}
+		}
+
+		// Set first player's turn for new generation
+		if len(updatedPlayers) > 0 {
+			firstPlayerID := updatedPlayers[0].ID
+			if err := s.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID); err != nil {
+				log.Error("Failed to set current turn for new generation", zap.Error(err))
+				return nil, fmt.Errorf("failed to set current turn: %w", err)
+			}
+		}
+
+		// Advance to action phase
+		if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
+			log.Error("Failed to advance game phase to action", zap.Error(err))
+			return nil, fmt.Errorf("failed to advance game phase: %w", err)
+		}
+
+		log.Info("Production phase completed, advanced to action phase",
+			zap.String("game_id", gameID),
+			zap.Int("generation", game.Generation))
+	}
 
 	game, err = s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
