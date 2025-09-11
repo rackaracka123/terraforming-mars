@@ -171,9 +171,9 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.playerConnect(playerName, gameId);
   }
 
-  async playerReconnect(playerName: string, gameId: string) {
+  async playerReconnect(playerName: string, gameId: string, playerId?: string) {
     await this.ensureConnected();
-    return webSocketService.playerReconnect(playerName, gameId);
+    return webSocketService.playerReconnect(playerName, gameId, playerId);
   }
 
   async playAction(actionPayload: object): Promise<string> {

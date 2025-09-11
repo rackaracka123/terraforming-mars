@@ -31,7 +31,9 @@
       "Bash(git rm:*)",
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(lsof:*)"
+      "Bash(lsof:*)",
+      "Read(//tmp/**)",
+      "Read(//dev/pts/**)"
     ],
     "deny": [],
     "ask": []

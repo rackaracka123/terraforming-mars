@@ -10,7 +10,6 @@ import {
   MessageTypePlayAction,
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
-  MessageTypePlayerReconnect,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
@@ -194,9 +193,14 @@ export class WebSocketService {
   playerReconnect(
     playerName: string,
     gameId: string,
+    playerId?: string,
   ): Promise<PlayerReconnectedPayload> {
     return new Promise((resolve, reject) => {
-      this.send(MessageTypePlayerReconnect, { playerName, gameId }, gameId);
+      const payload: any = { playerName, gameId };
+      if (playerId) {
+        payload.playerId = playerId;
+      }
+      this.send(MessageTypePlayerConnect, payload, gameId);
       this.currentGameId = gameId;
 
       // Set up one-time listener for player-reconnected response
