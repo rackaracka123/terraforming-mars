@@ -165,15 +165,10 @@ class GlobalWebSocketManager implements WebSocketConnection {
     }
   }
 
-  // Proxy methods to underlying WebSocket service
-  async playerConnect(playerName: string, gameId: string) {
+  // Proxy method to underlying WebSocket service
+  async playerConnect(playerName: string, gameId: string, playerId?: string) {
     await this.ensureConnected();
-    return webSocketService.playerConnect(playerName, gameId);
-  }
-
-  async playerReconnect(playerName: string, gameId: string, playerId?: string) {
-    await this.ensureConnected();
-    return webSocketService.playerReconnect(playerName, gameId, playerId);
+    return webSocketService.playerConnect(playerName, gameId, playerId);
   }
 
   async playAction(actionPayload: object): Promise<string> {

@@ -349,6 +349,15 @@ export default function GameInterface() {
       // CRITICAL FIX: Ensure globalWebSocketManager knows the current player ID
       // This is essential for reconnection scenarios where the player ID must be preserved
       globalWebSocketManager.setCurrentPlayerId(routeState.playerId);
+
+      // CRITICAL FIX: Send the player-connect WebSocket message to complete reconnection
+      // This is necessary after page refresh when we have the game state from route
+      // but need to re-establish the WebSocket connection with the backend
+      void globalWebSocketManager.playerConnect(
+        routeState.playerName,
+        routeState.game.id,
+        routeState.playerId,
+      );
     };
 
     void initializeGame();

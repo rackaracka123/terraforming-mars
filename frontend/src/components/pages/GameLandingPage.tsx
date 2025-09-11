@@ -23,8 +23,12 @@ const GameLandingPage: React.FC = () => {
               throw new Error("Saved game not found on server");
             }
 
-            // Reconnect to the game using global WebSocket manager
-            await globalWebSocketManager.playerConnect(playerName, gameId);
+            // Reconnect to the game using global WebSocket manager with playerId for proper reconnection
+            await globalWebSocketManager.playerConnect(
+              playerName,
+              gameId,
+              playerId,
+            );
 
             // Navigate to game interface with the retrieved game state
             navigate("/game", {
