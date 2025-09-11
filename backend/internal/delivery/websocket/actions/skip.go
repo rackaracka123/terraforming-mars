@@ -61,7 +61,6 @@ func (sa *SkipActions) triggerProductionPhase(ctx context.Context, gameID string
 	// Note: The production data broadcasting should be handled by the service layer
 	// via events rather than directly in the delivery layer. This is a temporary approach.
 	// TODO: Remove this when proper event-driven production broadcasting is implemented.
-	
+
 	return nil
 }
-

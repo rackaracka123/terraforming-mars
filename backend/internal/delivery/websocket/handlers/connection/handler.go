@@ -14,16 +14,16 @@ import (
 
 // Handler handles player connection and reconnection logic
 type Handler struct {
-	gameService     service.GameService
-	playerService   service.PlayerService
-	broadcaster     *core.Broadcaster
-	manager         *core.Manager
-	parser          *utils.MessageParser
-	errorHandler    *utils.ErrorHandler
-	logger          *zap.Logger
-	newPlayerFlow   *NewPlayerFlow
-	reconnectFlow   *ReconnectFlow
-	validator       *Validator
+	gameService   service.GameService
+	playerService service.PlayerService
+	broadcaster   *core.Broadcaster
+	manager       *core.Manager
+	parser        *utils.MessageParser
+	errorHandler  *utils.ErrorHandler
+	logger        *zap.Logger
+	newPlayerFlow *NewPlayerFlow
+	reconnectFlow *ReconnectFlow
+	validator     *Validator
 }
 
 // NewHandler creates a new connection handler
@@ -99,4 +99,3 @@ func (h *Handler) handlePlayerReconnect(ctx context.Context, connection *core.Co
 
 	h.reconnectFlow.HandleReconnect(ctx, connection, payload)
 }
-

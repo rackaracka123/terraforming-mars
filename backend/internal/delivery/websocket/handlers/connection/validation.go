@@ -71,4 +71,3 @@ func (v *Validator) ParseAndValidateConnectPayload(connection *core.Connection, 
 		zap.String("player_name", payload.PlayerName))
 	return true
 }
-

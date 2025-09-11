@@ -27,7 +27,7 @@ type Broadcaster struct {
 // NewBroadcaster creates a new message broadcaster
 func NewBroadcaster(manager *core.Manager, gameService service.GameService, playerService service.PlayerService) *Broadcaster {
 	logger := logger.Get()
-	
+
 	b := &Broadcaster{
 		manager:       manager,
 		gameService:   gameService,

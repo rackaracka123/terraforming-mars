@@ -61,4 +61,3 @@ func (ga *GameActions) SkipAction(ctx context.Context, gameID, playerID string) 
 
 	return nil
 }
-

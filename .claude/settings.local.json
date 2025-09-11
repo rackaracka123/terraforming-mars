@@ -14,12 +14,10 @@
       "mcp__playwright__browser_evaluate",
       "Bash(make:*)",
       "mcp__playwright__browser_network_requests",
-<<<<<<< Updated upstream
       "Bash(npm run typecheck:*)",
-      "Bash(npm run lint)"
-=======
-      "Bash(find:*)"
->>>>>>> Stashed changes
+      "Bash(npm run lint)",
+      "Bash(find:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []

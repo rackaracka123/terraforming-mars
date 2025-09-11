@@ -22,4 +22,3 @@ func NewLifecycleActions(gameService service.GameService) *LifecycleActions {
 func (la *LifecycleActions) StartGame(ctx context.Context, gameID, playerID string) error {
 	return la.gameService.StartGame(ctx, gameID, playerID)
 }
-
