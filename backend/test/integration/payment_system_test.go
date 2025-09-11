@@ -13,7 +13,7 @@ import (
 func TestPaymentSystem_Integration(t *testing.T) {
 	// Create payment service
 	paymentService := service.NewPaymentService()
-	
+
 	// Test player resources
 	initialResources := model.Resources{
 		Credits:  50,
@@ -82,10 +82,10 @@ func TestPaymentSystem_Integration(t *testing.T) {
 		// Test processing a valid payment
 		payment := &model.Payment{Credits: 15, Steel: 2, Titanium: 1}
 		newResources, err := paymentService.ProcessPayment(payment, &initialResources)
-		
+
 		require.NoError(t, err)
-		assert.Equal(t, 35, newResources.Credits)  // 50 - 15 = 35
-		assert.Equal(t, 8, newResources.Steel)     // 10 - 2 = 8
+		assert.Equal(t, 35, newResources.Credits) // 50 - 15 = 35
+		assert.Equal(t, 8, newResources.Steel)    // 10 - 2 = 8
 		assert.Equal(t, 4, newResources.Titanium) // 5 - 1 = 4
 		assert.Equal(t, initialResources.Plants, newResources.Plants)
 		assert.Equal(t, initialResources.Energy, newResources.Energy)
@@ -100,10 +100,10 @@ func TestPaymentSystem_Integration(t *testing.T) {
 	t.Run("Card Play with Payments", func(t *testing.T) {
 		// Create a test card and add it to player's hand
 		buildingCard := createTestCard("test-building", 16, []model.CardTag{model.TagBuilding})
-		
+
 		// Add card to card data service (mock implementation would be needed for full test)
 		// For now, test the service interface
-		
+
 		// Test different payment methods for the same card
 		testCases := []struct {
 			name    string
@@ -137,11 +137,11 @@ func TestPaymentSystem_Integration(t *testing.T) {
 				cost := paymentService.GetCardPaymentCost(&buildingCard)
 				canAfford := paymentService.CanAfford(tc.payment, &initialResources)
 				isValid := paymentService.IsValidPayment(tc.payment, cost)
-				
+
 				if tc.valid {
 					assert.True(t, canAfford, "Should be able to afford payment")
 					assert.True(t, isValid, "Payment should be valid")
-					
+
 					// Test effective cost calculation
 					effectiveCost := paymentService.GetEffectiveCost(tc.payment, cost)
 					assert.Equal(t, tc.payment.Credits, effectiveCost, "Effective cost should match credits paid")
@@ -191,7 +191,7 @@ func TestPaymentSystem_Integration(t *testing.T) {
 			{
 				name:    "All titanium",
 				payment: &model.Payment{Credits: 0, Steel: 0, Titanium: 7}, // 7*3 = 21
-				valid:   false, // Player only has 5 titanium
+				valid:   false,                                             // Player only has 5 titanium
 			},
 			{
 				name:    "Invalid steel for space card",
@@ -204,7 +204,7 @@ func TestPaymentSystem_Integration(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				canAfford := paymentService.CanAfford(tc.payment, &initialResources)
 				isValid := paymentService.IsValidPayment(tc.payment, cost)
-				
+
 				if tc.valid {
 					assert.True(t, canAfford, "Should be able to afford payment")
 					assert.True(t, isValid, "Payment should be valid")

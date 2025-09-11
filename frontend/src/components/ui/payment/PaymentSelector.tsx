@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import type { PaymentDto, PaymentCostDto, ResourcesDto } from '../../../types/generated/api-types';
-import CostDisplay from '../display/CostDisplay';
+import React, { useState, useEffect } from "react";
+import type {
+  PaymentDto,
+  PaymentCostDto,
+  ResourcesDto,
+} from "../../../types/generated/api-types";
+import CostDisplay from "../display/CostDisplay";
 
 interface PaymentSelectorProps {
   cost: PaymentCostDto;
@@ -13,7 +17,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
   cost,
   playerResources,
   onPaymentChange,
-  className = '',
+  className = "",
 }) => {
   const [payment, setPayment] = useState<PaymentDto>({
     credits: 0,
@@ -24,15 +28,15 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
   // Calculate remaining cost after applying discounts
   const calculateRemainingCost = (currentPayment: PaymentDto): number => {
     let remaining = cost.baseCost;
-    
+
     if (cost.canUseSteel) {
       remaining -= currentPayment.steel * 2; // Steel provides 2 MC discount
     }
-    
+
     if (cost.canUseTitanium) {
       remaining -= currentPayment.titanium * 3; // Titanium provides 3 MC discount
     }
-    
+
     return Math.max(0, remaining);
   };
 
@@ -42,7 +46,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
     if (currentPayment.credits > playerResources.credits) return false;
     if (currentPayment.steel > playerResources.steel) return false;
     if (currentPayment.titanium > playerResources.titanium) return false;
-    
+
     // Check if remaining cost is covered by credits
     const remainingCost = calculateRemainingCost(currentPayment);
     return currentPayment.credits >= remainingCost;
@@ -55,7 +59,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
       ...payment,
       credits: remainingCost,
     };
-    
+
     if (newPayment.credits !== payment.credits) {
       setPayment(newPayment);
     }
@@ -69,7 +73,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
   }, [payment, onPaymentChange]);
 
   const updatePayment = (field: keyof PaymentDto, value: number) => {
-    setPayment(prev => ({
+    setPayment((prev) => ({
       ...prev,
       [field]: Math.max(0, value),
     }));
@@ -91,13 +95,18 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         {/* MegaCredits */}
         <div className="payment-option">
           <div className="payment-label">
-            <img src="/assets/resources/megacredit.png" alt="MegaCredits" width="24" height="24" />
+            <img
+              src="/assets/resources/megacredit.png"
+              alt="MegaCredits"
+              width="24"
+              height="24"
+            />
             <span>MegaCredits</span>
           </div>
           <div className="payment-controls">
-            <button 
+            <button
               type="button"
-              onClick={() => updatePayment('credits', payment.credits - 1)}
+              onClick={() => updatePayment("credits", payment.credits - 1)}
               disabled={payment.credits <= remainingCost}
               className="payment-button"
             >
@@ -106,14 +115,16 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
             <input
               type="number"
               value={payment.credits}
-              onChange={(e) => updatePayment('credits', parseInt(e.target.value) || 0)}
+              onChange={(e) =>
+                updatePayment("credits", parseInt(e.target.value) || 0)
+              }
               min={remainingCost}
               max={playerResources.credits}
               className="payment-input"
             />
             <button
               type="button"
-              onClick={() => updatePayment('credits', payment.credits + 1)}
+              onClick={() => updatePayment("credits", payment.credits + 1)}
               disabled={payment.credits >= playerResources.credits}
               className="payment-button"
             >
@@ -129,14 +140,19 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         {cost.canUseSteel && (
           <div className="payment-option">
             <div className="payment-label">
-              <img src="/assets/resources/steel.png" alt="Steel" width="24" height="24" />
+              <img
+                src="/assets/resources/steel.png"
+                alt="Steel"
+                width="24"
+                height="24"
+              />
               <span>Steel</span>
               <span className="discount-info">(2 MC each)</span>
             </div>
             <div className="payment-controls">
               <button
                 type="button"
-                onClick={() => updatePayment('steel', payment.steel - 1)}
+                onClick={() => updatePayment("steel", payment.steel - 1)}
                 disabled={payment.steel <= 0}
                 className="payment-button"
               >
@@ -145,15 +161,23 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
               <input
                 type="number"
                 value={payment.steel}
-                onChange={(e) => updatePayment('steel', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  updatePayment("steel", parseInt(e.target.value) || 0)
+                }
                 min={0}
-                max={Math.min(playerResources.steel, Math.ceil(cost.baseCost / 2))}
+                max={Math.min(
+                  playerResources.steel,
+                  Math.ceil(cost.baseCost / 2),
+                )}
                 className="payment-input"
               />
               <button
                 type="button"
-                onClick={() => updatePayment('steel', payment.steel + 1)}
-                disabled={payment.steel >= playerResources.steel || payment.steel >= Math.ceil(cost.baseCost / 2)}
+                onClick={() => updatePayment("steel", payment.steel + 1)}
+                disabled={
+                  payment.steel >= playerResources.steel ||
+                  payment.steel >= Math.ceil(cost.baseCost / 2)
+                }
                 className="payment-button"
               >
                 +
@@ -169,14 +193,19 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         {cost.canUseTitanium && (
           <div className="payment-option">
             <div className="payment-label">
-              <img src="/assets/resources/titanium.png" alt="Titanium" width="24" height="24" />
+              <img
+                src="/assets/resources/titanium.png"
+                alt="Titanium"
+                width="24"
+                height="24"
+              />
               <span>Titanium</span>
               <span className="discount-info">(3 MC each)</span>
             </div>
             <div className="payment-controls">
               <button
                 type="button"
-                onClick={() => updatePayment('titanium', payment.titanium - 1)}
+                onClick={() => updatePayment("titanium", payment.titanium - 1)}
                 disabled={payment.titanium <= 0}
                 className="payment-button"
               >
@@ -185,15 +214,23 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
               <input
                 type="number"
                 value={payment.titanium}
-                onChange={(e) => updatePayment('titanium', parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  updatePayment("titanium", parseInt(e.target.value) || 0)
+                }
                 min={0}
-                max={Math.min(playerResources.titanium, Math.ceil(cost.baseCost / 3))}
+                max={Math.min(
+                  playerResources.titanium,
+                  Math.ceil(cost.baseCost / 3),
+                )}
                 className="payment-input"
               />
               <button
                 type="button"
-                onClick={() => updatePayment('titanium', payment.titanium + 1)}
-                disabled={payment.titanium >= playerResources.titanium || payment.titanium >= Math.ceil(cost.baseCost / 3)}
+                onClick={() => updatePayment("titanium", payment.titanium + 1)}
+                disabled={
+                  payment.titanium >= playerResources.titanium ||
+                  payment.titanium >= Math.ceil(cost.baseCost / 3)
+                }
                 className="payment-button"
               >
                 +
@@ -207,12 +244,10 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
       </div>
 
       <div className="payment-summary">
-        <div className={`payment-status ${valid ? 'valid' : 'invalid'}`}>
-          {valid ? '✓ Payment Valid' : '✗ Invalid Payment'}
+        <div className={`payment-status ${valid ? "valid" : "invalid"}`}>
+          {valid ? "✓ Payment Valid" : "✗ Invalid Payment"}
         </div>
-        <div className="remaining-cost">
-          Remaining Cost: {remainingCost} MC
-        </div>
+        <div className="remaining-cost">Remaining Cost: {remainingCost} MC</div>
       </div>
 
       <style jsx>{`
@@ -321,7 +356,7 @@ const PaymentSelector: React.FC<PaymentSelectorProps> = ({
         }
 
         .payment-status.valid {
-          color: #4CAF50;
+          color: #4caf50;
         }
 
         .payment-status.invalid {

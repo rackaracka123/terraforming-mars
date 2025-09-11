@@ -18,7 +18,7 @@ type PaymentDto struct {
 
 // PaymentCostDto represents the different ways something can be paid for
 type PaymentCostDto struct {
-	BaseCost       int  `json:"baseCost" ts:"number"`       // Base MegaCredit cost
-	CanUseSteel    bool `json:"canUseSteel" ts:"boolean"`   // Can use steel for discount (building cards)
+	BaseCost       int  `json:"baseCost" ts:"number"`        // Base MegaCredit cost
+	CanUseSteel    bool `json:"canUseSteel" ts:"boolean"`    // Can use steel for discount (building cards)
 	CanUseTitanium bool `json:"canUseTitanium" ts:"boolean"` // Can use titanium for discount (space cards)
 }

@@ -9,16 +9,16 @@ import (
 type PaymentService interface {
 	// CanAfford checks if a player can afford a payment with their current resources
 	CanAfford(payment *model.Payment, playerResources *model.Resources) bool
-	
+
 	// IsValidPayment checks if a payment is valid for the given cost requirements
 	IsValidPayment(payment *model.Payment, cost *model.PaymentCost) bool
-	
+
 	// GetEffectiveCost calculates the actual MegaCredits needed after applying discounts
 	GetEffectiveCost(payment *model.Payment, cost *model.PaymentCost) int
-	
+
 	// ProcessPayment deducts resources from player for a payment
 	ProcessPayment(payment *model.Payment, playerResources *model.Resources) (*model.Resources, error)
-	
+
 	// GetCardPaymentCost determines the payment options for a specific card based on its tags
 	GetCardPaymentCost(card *model.Card) *model.PaymentCost
 }
@@ -38,7 +38,7 @@ func (ps *PaymentServiceImpl) GetCardPaymentCost(card *model.Card) *model.Paymen
 		CanUseSteel:    false,
 		CanUseTitanium: false,
 	}
-	
+
 	// Check card tags to determine payment methods
 	for _, tag := range card.Tags {
 		switch tag {
@@ -48,7 +48,7 @@ func (ps *PaymentServiceImpl) GetCardPaymentCost(card *model.Card) *model.Paymen
 			cost.CanUseTitanium = true
 		}
 	}
-	
+
 	return cost
 }
 
@@ -65,12 +65,12 @@ func (ps *PaymentServiceImpl) IsValidPayment(payment *model.Payment, cost *model
 	if payment.Steel > 0 && !cost.CanUseSteel {
 		return false
 	}
-	
+
 	// Check if trying to use titanium when not allowed
 	if payment.Titanium > 0 && !cost.CanUseTitanium {
 		return false
 	}
-	
+
 	// Check if the effective cost is covered
 	effectiveCost := ps.GetEffectiveCost(payment, cost)
 	return payment.Credits >= effectiveCost
@@ -79,19 +79,19 @@ func (ps *PaymentServiceImpl) IsValidPayment(payment *model.Payment, cost *model
 // GetEffectiveCost calculates the actual MegaCredits needed after applying discounts
 func (ps *PaymentServiceImpl) GetEffectiveCost(payment *model.Payment, cost *model.PaymentCost) int {
 	effectiveCost := cost.BaseCost
-	
+
 	if cost.CanUseSteel {
 		effectiveCost -= payment.Steel * 2 // Steel provides 2 MC discount per unit
 	}
-	
+
 	if cost.CanUseTitanium {
 		effectiveCost -= payment.Titanium * 3 // Titanium provides 3 MC discount per unit
 	}
-	
+
 	if effectiveCost < 0 {
 		effectiveCost = 0
 	}
-	
+
 	return effectiveCost
 }
 
@@ -101,12 +101,12 @@ func (ps *PaymentServiceImpl) ProcessPayment(payment *model.Payment, playerResou
 	if !ps.CanAfford(payment, playerResources) {
 		return nil, fmt.Errorf("insufficient resources for payment")
 	}
-	
+
 	// Create a copy of resources and deduct payment amounts
 	newResources := *playerResources
 	newResources.Credits -= payment.Credits
 	newResources.Steel -= payment.Steel
 	newResources.Titanium -= payment.Titanium
-	
+
 	return &newResources, nil
 }

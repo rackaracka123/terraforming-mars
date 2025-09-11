@@ -248,7 +248,7 @@ func (s *StandardProjectServiceImpl) executeStandardProjectWithPayment(ctx conte
 
 	// Get payment cost for this standard project
 	paymentCost := s.GetStandardProjectCost(project)
-	
+
 	// Validate payment is valid and player can afford it
 	if !s.paymentService.CanAfford(payment, &player.Resources) {
 		log.Warn("Player cannot afford payment",
@@ -257,7 +257,7 @@ func (s *StandardProjectServiceImpl) executeStandardProjectWithPayment(ctx conte
 			zap.Any("player_resources", player.Resources))
 		return fmt.Errorf("insufficient credits")
 	}
-	
+
 	if !s.paymentService.IsValidPayment(payment, paymentCost) {
 		log.Warn("Invalid payment for standard project",
 			zap.String("project", string(project)),
@@ -371,7 +371,7 @@ func (s *StandardProjectServiceImpl) GetStandardProjectCost(project model.Standa
 	if !exists {
 		baseCost = 0
 	}
-	
+
 	// Standard projects only accept MegaCredits (no steel/titanium discounts)
 	return &model.PaymentCost{
 		BaseCost:       baseCost,

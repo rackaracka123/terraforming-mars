@@ -19,7 +19,7 @@ func TestPaymentService(t *testing.T) {
 			Cost: 15,
 			Tags: []model.CardTag{model.TagBuilding},
 		}
-		
+
 		buildingCost := paymentService.GetCardPaymentCost(buildingCard)
 		assert.Equal(t, 15, buildingCost.BaseCost)
 		assert.True(t, buildingCost.CanUseSteel)
@@ -31,7 +31,7 @@ func TestPaymentService(t *testing.T) {
 			Cost: 20,
 			Tags: []model.CardTag{model.TagSpace},
 		}
-		
+
 		spaceCost := paymentService.GetCardPaymentCost(spaceCard)
 		assert.Equal(t, 20, spaceCost.BaseCost)
 		assert.False(t, spaceCost.CanUseSteel)
@@ -43,7 +43,7 @@ func TestPaymentService(t *testing.T) {
 			Cost: 25,
 			Tags: []model.CardTag{model.TagBuilding, model.TagSpace},
 		}
-		
+
 		hybridCost := paymentService.GetCardPaymentCost(hybridCard)
 		assert.Equal(t, 25, hybridCost.BaseCost)
 		assert.True(t, hybridCost.CanUseSteel)
@@ -55,7 +55,7 @@ func TestPaymentService(t *testing.T) {
 			Cost: 12,
 			Tags: []model.CardTag{model.TagScience},
 		}
-		
+
 		regularCost := paymentService.GetCardPaymentCost(regularCard)
 		assert.Equal(t, 12, regularCost.BaseCost)
 		assert.False(t, regularCost.CanUseSteel)
@@ -214,12 +214,12 @@ func TestPaymentService(t *testing.T) {
 
 		newResources, err := paymentService.ProcessPayment(payment, initialResources)
 		assert.NoError(t, err)
-		assert.Equal(t, 25, newResources.Credits)  // 40 - 15 = 25
-		assert.Equal(t, 5, newResources.Steel)     // 8 - 3 = 5
-		assert.Equal(t, 4, newResources.Titanium) // 6 - 2 = 4
-		assert.Equal(t, initialResources.Plants, newResources.Plants)   // Unchanged
-		assert.Equal(t, initialResources.Energy, newResources.Energy)   // Unchanged
-		assert.Equal(t, initialResources.Heat, newResources.Heat)       // Unchanged
+		assert.Equal(t, 25, newResources.Credits)                     // 40 - 15 = 25
+		assert.Equal(t, 5, newResources.Steel)                        // 8 - 3 = 5
+		assert.Equal(t, 4, newResources.Titanium)                     // 6 - 2 = 4
+		assert.Equal(t, initialResources.Plants, newResources.Plants) // Unchanged
+		assert.Equal(t, initialResources.Energy, newResources.Energy) // Unchanged
+		assert.Equal(t, initialResources.Heat, newResources.Heat)     // Unchanged
 
 		// Test payment with insufficient resources
 		expensivePayment := &model.Payment{
