@@ -13,8 +13,9 @@ import (
 
 // TestBasicConnection tests the most basic WebSocket connection scenario
 func TestBasicConnection(t *testing.T) {
-	client := integration.NewTestClient(t)
-	defer client.Close()
+	integration.VerifyTestIsolation(t)
+
+	client := integration.CreateTestClientWithCleanup(t)
 
 	// Test connection establishment
 	err := client.Connect()
@@ -28,8 +29,9 @@ func TestBasicConnection(t *testing.T) {
 
 // TestConnectionTimeout tests connection timeout scenarios
 func TestConnectionTimeout(t *testing.T) {
-	client := integration.NewTestClient(t)
-	defer client.Close()
+	integration.VerifyTestIsolation(t)
+
+	client := integration.CreateTestClientWithCleanup(t)
 
 	// Connect normally first to ensure server is running
 	err := client.Connect()
@@ -85,7 +87,9 @@ func TestMultipleConnections(t *testing.T) {
 
 // TestConnectionCleanup tests that connections are properly cleaned up
 func TestConnectionCleanup(t *testing.T) {
-	client := integration.NewTestClient(t)
+	integration.VerifyTestIsolation(t)
+
+	client := integration.CreateTestClientWithCleanup(t)
 
 	// Connect
 	err := client.Connect()
@@ -104,8 +108,9 @@ func TestConnectionCleanup(t *testing.T) {
 
 // TestForceDisconnection tests forced disconnection scenarios
 func TestForceDisconnection(t *testing.T) {
-	client := integration.NewTestClient(t)
-	defer client.Close()
+	integration.VerifyTestIsolation(t)
+
+	client := integration.CreateTestClientWithCleanup(t)
 
 	// Connect
 	err := client.Connect()
@@ -123,9 +128,10 @@ func TestForceDisconnection(t *testing.T) {
 
 // TestConnectionRecovery tests connection recovery patterns
 func TestConnectionRecovery(t *testing.T) {
+	integration.VerifyTestIsolation(t)
+
 	// First connection
-	client1 := integration.NewTestClient(t)
-	defer client1.Close()
+	client1 := integration.CreateTestClientWithCleanup(t)
 
 	err := client1.Connect()
 	require.NoError(t, err, "Should be able to establish first WebSocket connection")
@@ -154,8 +160,7 @@ func TestConnectionRecovery(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Second connection (simulating recovery)
-	client2 := integration.NewTestClient(t)
-	defer client2.Close()
+	client2 := integration.CreateTestClientWithCleanup(t)
 
 	err = client2.Connect()
 	require.NoError(t, err, "Should be able to establish recovery WebSocket connection")
@@ -169,10 +174,16 @@ func TestConnectionRecovery(t *testing.T) {
 
 // TestRapidConnectDisconnect tests rapid connect/disconnect cycles
 func TestRapidConnectDisconnect(t *testing.T) {
+	integration.VerifyTestIsolation(t)
+
 	const cycles = 10
 
 	for i := 0; i < cycles; i++ {
 		client := integration.NewTestClient(t)
+		defer func(c *integration.TestClient) {
+			c.Close()
+			c.VerifyConnectionCleanup(t)
+		}(client)
 
 		// Connect
 		err := client.Connect()

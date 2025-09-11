@@ -12,17 +12,22 @@ import (
 
 // TestMultipleClientsJoinSameGame tests multiple clients joining the same game (simplified)
 func TestMultipleClientsJoinSameGame(t *testing.T) {
+	integration.VerifyTestIsolation(t)
+
 	const numClients = 2 // Reduced for faster execution
 	clients := make([]*integration.TestClient, numClients)
 
 	// Create and connect clients
 	for i := 0; i < numClients; i++ {
-		clients[i] = integration.NewTestClient(t)
-		defer clients[i].Close()
+		clients[i] = integration.CreateTestClientWithCleanup(t)
 
 		err := clients[i].Connect()
 		require.NoError(t, err, "Client %d should connect", i)
+		require.True(t, clients[i].IsConnected(), "Client %d should be connected", i)
 	}
+
+	// Ensure cleanup happens
+	defer integration.CleanupTestClients(t, clients...)
 
 	// Create game
 	gameID, err := clients[0].CreateGameViaHTTP()
@@ -44,17 +49,21 @@ func TestMultipleClientsJoinSameGame(t *testing.T) {
 
 // TestConcurrentMessageBroadcasting tests broadcasting messages to multiple clients (simplified)
 func TestConcurrentMessageBroadcasting(t *testing.T) {
+	integration.VerifyTestIsolation(t)
+
 	const numClients = 2 // Reduced for faster execution
 	clients := make([]*integration.TestClient, numClients)
 
 	// Setup clients and game
 	for i := 0; i < numClients; i++ {
-		clients[i] = integration.NewTestClient(t)
-		defer clients[i].Close()
+		clients[i] = integration.CreateTestClientWithCleanup(t)
 
 		err := clients[i].Connect()
 		require.NoError(t, err, "Client %d should connect", i)
 	}
+
+	// Ensure cleanup happens
+	defer integration.CleanupTestClients(t, clients...)
 
 	// Create and join game
 	gameID, err := clients[0].CreateGameViaHTTP()
@@ -84,10 +93,10 @@ func TestConcurrentMessageBroadcasting(t *testing.T) {
 
 // TestClientDisconnectionHandling tests how disconnections are handled with multiple clients
 func TestClientDisconnectionHandling(t *testing.T) {
-	client1 := integration.NewTestClient(t)
-	client2 := integration.NewTestClient(t)
-	defer client1.Close()
-	defer client2.Close()
+	integration.VerifyTestIsolation(t)
+
+	client1 := integration.CreateTestClientWithCleanup(t)
+	client2 := integration.CreateTestClientWithCleanup(t)
 
 	// Setup
 	err := client1.Connect()

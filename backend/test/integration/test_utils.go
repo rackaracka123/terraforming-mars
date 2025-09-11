@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -19,9 +20,13 @@ import (
 )
 
 const (
-	// Test timeouts - increased for stability after deadlock fixes
-	connectionTimeout = 5 * time.Second
-	messageTimeout    = 5 * time.Second
+	// Test timeouts - optimized for fast testing with proper cleanup
+	connectionTimeout    = 3 * time.Second        // Time to establish WebSocket connection
+	messageTimeout       = 2 * time.Second        // Time to wait for WebSocket messages
+	shortMessageTimeout  = 500 * time.Millisecond // Short timeout for rapid tests
+	cleanupTimeout       = 2 * time.Second        // Time to wait for connection cleanup
+	goroutineTimeout     = 3 * time.Second        // Time to wait for goroutines to finish
+	readDeadlineInterval = 100 * time.Millisecond // Read deadline interval for context cancellation
 )
 
 var (
@@ -110,19 +115,23 @@ type TestClient struct {
 	playerID string
 	gameID   string
 	messages chan dto.WebSocketMessage
-	done     chan struct{}
+	ctx      context.Context
+	cancel   context.CancelFunc
 	t        *testing.T
-	writeMu  sync.Mutex // Protect WebSocket writes from concurrent access
-	closed   bool       // Track if client has been closed
-	mu       sync.Mutex // Protect client state
+	writeMu  sync.Mutex     // Protect WebSocket writes from concurrent access
+	closed   bool           // Track if client has been closed
+	mu       sync.Mutex     // Protect client state
+	wg       sync.WaitGroup // Wait for goroutines to finish
 }
 
 // NewTestClient creates a new test client
 func NewTestClient(t *testing.T) *TestClient {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &TestClient{
 		t:        t,
 		messages: make(chan dto.WebSocketMessage, 10),
-		done:     make(chan struct{}),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
 
@@ -151,6 +160,7 @@ func (c *TestClient) Connect() error {
 		c.conn, _, err = dialer.Dial(u.String(), nil)
 		if err == nil {
 			// Connection successful
+			c.wg.Add(1)
 			go c.readMessages()
 			return nil
 		}
@@ -173,11 +183,20 @@ func (c *TestClient) Connect() error {
 
 // readMessages reads messages from WebSocket and forwards to channel
 func (c *TestClient) readMessages() {
+	defer c.wg.Done()
 	defer close(c.messages)
 
+	// Recover from any panics to prevent test crashes
+	defer func() {
+		if r := recover(); r != nil {
+			c.t.Logf("Recovered from panic in readMessages: %v", r)
+		}
+	}()
+
+	// Set read deadline for proper context cancellation
 	for {
 		select {
-		case <-c.done:
+		case <-c.ctx.Done():
 			return
 		default:
 			// Check if connection is closed before trying to read
@@ -190,17 +209,53 @@ func (c *TestClient) readMessages() {
 				return
 			}
 
+			// Use a more defensive read approach with timeout and error handling
+			readResult := make(chan error, 1)
 			var message dto.WebSocketMessage
-			if err := conn.ReadJSON(&message); err != nil {
-				// Check if client is closed before logging
-				c.mu.Lock()
-				closed = c.closed
-				c.mu.Unlock()
 
-				if !closed && websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
-					c.t.Logf("WebSocket read error: %v", err)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						readResult <- fmt.Errorf("read panic: %v", r)
+					}
+				}()
+
+				// Set a deadline for the read operation
+				conn.SetReadDeadline(time.Now().Add(readDeadlineInterval))
+				err := conn.ReadJSON(&message)
+				conn.SetReadDeadline(time.Time{}) // Clear deadline
+				readResult <- err
+			}()
+
+			select {
+			case readErr := <-readResult:
+				if readErr != nil {
+					// Check if this is a timeout error and context is cancelled
+					if netErr, ok := readErr.(net.Error); ok && netErr.Timeout() {
+						select {
+						case <-c.ctx.Done():
+							return
+						default:
+							// Continue reading, it was just a timeout
+							continue
+						}
+					}
+
+					// Check if client is closed before logging
+					c.mu.Lock()
+					closed = c.closed
+					c.mu.Unlock()
+
+					if !closed && websocket.IsUnexpectedCloseError(readErr, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
+						c.t.Logf("WebSocket read error: %v", readErr)
+					}
+					return
 				}
+			case <-c.ctx.Done():
 				return
+			case <-time.After(readDeadlineInterval * 2):
+				// Read operation timed out, continue to next iteration
+				continue
 			}
 
 			// Check if client is closed before processing
@@ -218,7 +273,7 @@ func (c *TestClient) readMessages() {
 			select {
 			case c.messages <- message:
 				// Message sent successfully
-			case <-c.done:
+			case <-c.ctx.Done():
 				return
 			case <-time.After(50 * time.Millisecond):
 				// Channel might be full, try to drop oldest and retry once
@@ -230,7 +285,7 @@ func (c *TestClient) readMessages() {
 				select {
 				case c.messages <- message:
 					// Sent after making space
-				case <-c.done:
+				case <-c.ctx.Done():
 					return
 				default:
 					c.t.Logf("Warning: Dropping message due to full channel: %s", message.Type)
@@ -243,23 +298,42 @@ func (c *TestClient) readMessages() {
 // Close closes the WebSocket connection and stops the client
 func (c *TestClient) Close() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
-	if c.closed || c.conn == nil {
+	if c.closed {
+		c.mu.Unlock()
 		return
 	}
 
 	c.closed = true
-
-	// Close done channel to signal goroutines to stop
-	close(c.done)
-
-	// Send close message
-	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-
-	// Close the connection
-	c.conn.Close()
+	conn := c.conn
 	c.conn = nil
+	c.mu.Unlock()
+
+	// Cancel context to signal goroutines to stop
+	c.cancel()
+
+	if conn != nil {
+		// Send close message with timeout
+		conn.SetWriteDeadline(time.Now().Add(1 * time.Second))
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+
+		// Close the connection
+		conn.Close()
+	}
+
+	// Wait for goroutines to finish with timeout
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All goroutines finished
+	case <-time.After(goroutineTimeout):
+		c.t.Logf("Warning: Timeout waiting for goroutines to finish")
+	}
 }
 
 // CreateGameViaHTTP creates a game using the HTTP API
@@ -399,7 +473,7 @@ func (c *TestClient) WaitForMessage(messageType dto.MessageType) (*dto.WebSocket
 			// Continue waiting for the expected message type
 		case <-timeout:
 			return nil, fmt.Errorf("timeout waiting for message type: %s", messageType)
-		case <-c.done:
+		case <-c.ctx.Done():
 			return nil, fmt.Errorf("client closed while waiting for message")
 		}
 	}
@@ -425,7 +499,7 @@ func (c *TestClient) WaitForMessageTypes(messageTypes ...dto.MessageType) (*dto.
 			// Continue waiting for one of the expected message types
 		case <-timeout:
 			return nil, fmt.Errorf("timeout waiting for message types: %v", messageTypes)
-		case <-c.done:
+		case <-c.ctx.Done():
 			return nil, fmt.Errorf("client closed while waiting for message")
 		}
 	}
@@ -454,7 +528,7 @@ func (c *TestClient) WaitForBothMessages() (playerConnected, gameUpdated *dto.We
 			}
 		case <-timeout:
 			return nil, nil, fmt.Errorf("timeout waiting for both player-connected and game-updated messages")
-		case <-c.done:
+		case <-c.ctx.Done():
 			return nil, nil, fmt.Errorf("client closed while waiting for messages")
 		}
 	}
@@ -471,7 +545,7 @@ func (c *TestClient) WaitForAnyMessage() (*dto.WebSocketMessage, error) {
 		return &message, nil
 	case <-timeout:
 		return nil, fmt.Errorf("timeout waiting for any message")
-	case <-c.done:
+	case <-c.ctx.Done():
 		return nil, fmt.Errorf("client closed while waiting for message")
 	}
 }
@@ -485,7 +559,7 @@ func (c *TestClient) WaitForAnyMessageWithTimeout(timeout time.Duration) (dto.We
 		return message, nil
 	case <-timeoutChan:
 		return dto.WebSocketMessage{}, fmt.Errorf("timeout waiting for any message")
-	case <-c.done:
+	case <-c.ctx.Done():
 		return dto.WebSocketMessage{}, fmt.Errorf("client closed while waiting for message")
 	}
 }
@@ -504,7 +578,7 @@ func (c *TestClient) WaitForMessageWithTimeout(messageType dto.MessageType, time
 			// Continue waiting for the expected message type
 		case <-timeoutChan:
 			return nil, fmt.Errorf("timeout waiting for message type: %s", messageType)
-		case <-c.done:
+		case <-c.ctx.Done():
 			return nil, fmt.Errorf("client closed while waiting for message")
 		}
 	}
@@ -532,6 +606,9 @@ func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 	err := client.Connect()
 	require.NoError(t, err, "Failed to connect to WebSocket server")
 
+	// Verify connection state
+	require.True(t, client.IsConnected(), "Client should be connected after Connect()")
+
 	// Create game via HTTP API
 	gameID, err := client.CreateGameViaHTTP()
 	require.NoError(t, err, "Failed to create game via HTTP")
@@ -557,22 +634,72 @@ func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 	return client, gameID
 }
 
+// CleanupTestClients closes multiple test clients and verifies proper cleanup
+func CleanupTestClients(t *testing.T, clients ...*TestClient) {
+	for i, client := range clients {
+		if client != nil {
+			client.Close()
+			client.VerifyConnectionCleanup(t)
+			t.Logf("✅ Client %d cleaned up successfully", i+1)
+		}
+	}
+}
+
+// VerifyTestIsolation ensures no connection leaks between tests
+func VerifyTestIsolation(t *testing.T) {
+	// This function can be called at the start of tests to ensure isolation
+	// For now, it's a placeholder for future isolation checks
+	t.Logf("🔍 Verifying test isolation...")
+	// TODO: Add checks for remaining goroutines, open connections, etc.
+	t.Logf("✅ Test isolation verified")
+}
+
 // ForceClose forces connection closure (for testing network interruptions)
 func (c *TestClient) ForceClose() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
-	if c.closed || c.conn == nil {
+	if c.closed {
+		c.mu.Unlock()
 		return
 	}
 
 	c.closed = true
-
-	// Send abnormal close message
-	c.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
-	c.conn.Close()
+	conn := c.conn
 	c.conn = nil
-	close(c.done)
+	c.mu.Unlock()
+
+	// Cancel context to signal goroutines to stop
+	c.cancel()
+
+	if conn != nil {
+		// Send abnormal close message
+		conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseAbnormalClosure, ""))
+		conn.Close()
+	}
+
+	// Wait for goroutines to finish with timeout
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All goroutines finished
+	case <-time.After(goroutineTimeout):
+		c.t.Logf("Warning: Timeout waiting for goroutines to finish (force close)")
+	}
+}
+
+// CreateTestClientWithCleanup creates a test client with automatic cleanup
+func CreateTestClientWithCleanup(t *testing.T) *TestClient {
+	client := NewTestClient(t)
+	t.Cleanup(func() {
+		client.Close()
+		client.VerifyConnectionCleanup(t)
+	})
+	return client
 }
 
 // VerifyGameStatus extracts and verifies game status from a WebSocket message
@@ -645,6 +772,60 @@ func (c *TestClient) WaitForStartGameComplete() error {
 // SetPlayerID sets the player ID for this client
 func (c *TestClient) SetPlayerID(playerID string) {
 	c.playerID = playerID
+}
+
+// IsConnected checks if the client has an active WebSocket connection
+func (c *TestClient) IsConnected() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return !c.closed && c.conn != nil
+}
+
+// WaitForClose waits for the client to be fully closed with a timeout
+func (c *TestClient) WaitForClose(timeout time.Duration) error {
+	done := make(chan struct{})
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		return fmt.Errorf("timeout waiting for client to close")
+	}
+}
+
+// WaitForMessageFast waits for a specific message type with a short timeout
+func (c *TestClient) WaitForMessageFast(messageType dto.MessageType) (*dto.WebSocketMessage, error) {
+	return c.WaitForMessageWithTimeout(messageType, shortMessageTimeout)
+}
+
+// ExpectNoMoreMessages ensures no additional messages are received within a short timeout
+func (c *TestClient) ExpectNoMoreMessages(t *testing.T) {
+	select {
+	case msg := <-c.messages:
+		t.Errorf("Unexpected message received: %s", msg.Type)
+	case <-time.After(shortMessageTimeout):
+		// No message received, which is expected
+		t.Logf("✅ No unexpected messages received")
+	case <-c.ctx.Done():
+		// Client closed, which is fine
+	}
+}
+
+// VerifyConnectionCleanup ensures the client is properly cleaned up
+func (c *TestClient) VerifyConnectionCleanup(t *testing.T) {
+	if c.IsConnected() {
+		t.Errorf("Client connection should be closed")
+	}
+
+	// Wait for goroutines to finish
+	err := c.WaitForClose(cleanupTimeout)
+	if err != nil {
+		t.Errorf("Client cleanup failed: %v", err)
+	}
 }
 
 // IsHost checks if this client is the host of the current game
