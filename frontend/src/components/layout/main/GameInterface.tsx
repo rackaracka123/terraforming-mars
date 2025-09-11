@@ -198,6 +198,50 @@ export default function GameInterface() {
     [game],
   );
 
+  // DEBUG: Always show card selection overlay with example data
+  const debugCards = [
+    {
+      id: "card-1",
+      name: "Solar Wind Power",
+      cost: 11,
+      tags: ["Energy", "Space"],
+      description: "Gain 1 energy production and 2 titanium.",
+      requirements: "None"
+    },
+    {
+      id: "card-2", 
+      name: "Underground City",
+      cost: 18,
+      tags: ["City", "Building"],
+      description: "Increase your steel production by 2 steps and place a city tile.",
+      requirements: "2 energy production"
+    },
+    {
+      id: "card-3",
+      name: "Research",
+      cost: 11,
+      tags: ["Science"],
+      description: "Draw 2 cards.",
+      requirements: "None"
+    },
+    {
+      id: "card-4",
+      name: "Asteroid Mining Consortium", 
+      cost: 13,
+      tags: ["Jovian", "Space"],
+      description: "Increase your titanium production by 1 step.",
+      requirements: "None"
+    }
+  ];
+
+  // Force show overlay for debugging
+  useEffect(() => {
+    if (game && game.currentPhase === "starting_card_selection") {
+      setAvailableCards(debugCards);
+      setShowCardSelection(true);
+    }
+  }, [game]);
+
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[]) => {
       try {
