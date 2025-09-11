@@ -25,7 +25,12 @@
       "Bash(tree:*)",
       "Bash(go list:*)",
       "Bash(go mod:*)",
-      "Bash(go vet:*)"
+      "Bash(go vet:*)",
+      "Bash(tygo generate:*)",
+      "Bash(go fmt:*)",
+      "Bash(git rm:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []

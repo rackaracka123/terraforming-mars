@@ -54,12 +54,20 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 	require.NoError(t, err, "Failed to receive player 2 connected message")
 	t.Log("✅ Player 2 connected")
 
-	// Both clients should receive game-updated messages after player 2 joins (with both players)
+	// Client 2 gets their initial game-updated
+	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Client 2 should receive initial game-updated message")
+
+	// Client 1 should receive player-connected notification for Player 2
+	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
+	require.NoError(t, err, "Client 1 should receive player-connected notification for Player 2")
+
+	// Both clients should receive personalized game-updated messages with both players
 	gameUpdate1, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client 1 failed to receive game update with both players")
 
 	gameUpdate2, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client 2 failed to receive game update")
+	require.NoError(t, err, "Client 2 failed to receive game update with both players")
 
 	// Extract game data from both perspectives
 	payload1, ok := gameUpdate1.Payload.(map[string]interface{})
@@ -206,11 +214,15 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 	t.Run("CardIntegrityVerification", func(t *testing.T) {
 		// Extract all player data for comprehensive verification
 		currentPlayer1 := game1["currentPlayer"].(map[string]interface{})
-		otherPlayers1 := game1["otherPlayers"].([]interface{})
+		otherPlayers1, ok := game1["otherPlayers"].([]interface{})
+		require.True(t, ok, "Player 1 should have otherPlayers array")
+		require.NotEmpty(t, otherPlayers1, "Player 1 should have at least one other player")
 		otherPlayer1 := otherPlayers1[0].(map[string]interface{})
 
 		currentPlayer2 := game2["currentPlayer"].(map[string]interface{})
-		otherPlayers2 := game2["otherPlayers"].([]interface{})
+		otherPlayers2, ok := game2["otherPlayers"].([]interface{})
+		require.True(t, ok, "Player 2 should have otherPlayers array")
+		require.NotEmpty(t, otherPlayers2, "Player 2 should have at least one other player")
 		otherPlayer2 := otherPlayers2[0].(map[string]interface{})
 
 		// CRITICAL INTEGRITY CHECK 1: Current player should have cards array, others should not
@@ -307,26 +319,29 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 	var gameUpdates []*dto.WebSocketMessage
 
 	// Each client will receive game-updated messages as players join
-	// Player1: gets messages when P1 joins, P2 joins, P3 joins (needs to drain first 2)
-	// Player2: gets messages when P2 joins, P3 joins (needs to drain first 1)
-	// Player3: gets messages when P3 joins (gets final message immediately)
+	// Due to the connection flow, we need to properly drain messages:
+	// - Each player gets their initial game-updated when they join
+	// - Each player gets player-connected notifications for other players
+	// - Each player gets personalized game-updated messages after each player joins
 
+	// Wait for all players to be connected and get final state
+	// Player 1 needs to wait for player 2 and 3 to connect
+	_, err = clients[0].WaitForMessage(dto.MessageTypePlayerConnected) // Player 2 connected
+	require.NoError(t, err, "Player 1 should receive Player 2 connected notification")
+	_, err = clients[0].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 2
+	require.NoError(t, err, "Player 1 should receive game update after Player 2")
+
+	_, err = clients[0].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
+	require.NoError(t, err, "Player 1 should receive Player 3 connected notification")
+
+	// Player 2 needs to wait for player 3 to connect
+	_, err = clients[1].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
+	require.NoError(t, err, "Player 2 should receive Player 3 connected notification")
+
+	// Now all players should get the final game-updated with all 3 players
 	for i, client := range clients {
-		// Drain intermediate messages based on player join order
-		if i == 0 { // Player1 - drain 2 intermediate messages
-			_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
-			require.NoError(t, err, "Player1 failed to receive first game update")
-			_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
-			require.NoError(t, err, "Player1 failed to receive second game update")
-		} else if i == 1 { // Player2 - drain 1 intermediate message
-			_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
-			require.NoError(t, err, "Player2 failed to receive intermediate game update")
-		}
-		// Player3 (i == 2) gets final message immediately, no draining needed
-
-		// Get the final game update message with all 3 players
 		gameUpdate, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
-		require.NoError(t, err, "Client %d failed to receive final game update", i+1)
+		require.NoError(t, err, "Client %d failed to receive final game update with all players", i+1)
 		gameUpdates = append(gameUpdates, gameUpdate)
 	}
 
@@ -419,12 +434,20 @@ func TestPlayerSeparationCardVisibility(t *testing.T) {
 	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
 	require.NoError(t, err, "Client2 should receive player-connected message")
 
-	// Wait for the SECOND game-updated message for Player1 (after Player2 joins, with both players)
+	// Client 2 gets their initial game-updated
+	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Client 2 should receive initial game-updated message")
+
+	// Client 1 should receive player-connected notification for Player 2
+	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
+	require.NoError(t, err, "Client 1 should receive player-connected notification for Player 2")
+
+	// Both clients should receive personalized game-updated messages with both players
 	gameUpdate1, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client1 should receive second game-updated message with both players")
+	require.NoError(t, err, "Client1 should receive game-updated message with both players")
 
 	gameUpdate2, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client2 should receive game-updated message")
+	require.NoError(t, err, "Client2 should receive game-updated message with both players")
 
 	// Extract and verify card visibility rules
 	payload1 := gameUpdate1.Payload.(map[string]interface{})

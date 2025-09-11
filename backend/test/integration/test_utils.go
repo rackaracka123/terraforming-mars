@@ -317,14 +317,14 @@ func (c *TestClient) JoinGameViaWebSocket(gameID, playerName string) error {
 	return c.conn.WriteJSON(message)
 }
 
-// ReconnectToGame sends a player-reconnect message via WebSocket
+// ReconnectToGame sends a player-connect message via WebSocket (unified connection flow)
 func (c *TestClient) ReconnectToGame(gameID, playerName string) error {
 	c.gameID = gameID
 
 	message := dto.WebSocketMessage{
-		Type:   dto.MessageTypePlayerReconnect,
+		Type:   dto.MessageTypePlayerConnect,
 		GameID: gameID,
-		Payload: dto.PlayerReconnectPayload{
+		Payload: dto.PlayerConnectPayload{
 			PlayerName: playerName,
 			GameID:     gameID,
 		},

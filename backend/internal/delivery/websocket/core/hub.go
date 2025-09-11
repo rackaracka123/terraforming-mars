@@ -147,7 +147,7 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 
 	// Route to appropriate handler based on message type
 	switch message.Type {
-	case dto.MessageTypePlayerConnect, dto.MessageTypePlayerReconnect:
+	case dto.MessageTypePlayerConnect:
 		if h.connectionHandler != nil {
 			h.logger.Debug("🚪 Routing to connection handler")
 			h.connectionHandler.HandleMessage(ctx, connection, message)

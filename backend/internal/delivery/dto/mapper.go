@@ -6,7 +6,8 @@ import "terraforming-mars-backend/internal/model"
 func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) GameDto {
 	// Find the viewing player and other players
 	var currentPlayer PlayerDto
-	var otherPlayers []OtherPlayerDto
+	// Initialize as empty slice instead of nil to prevent interface conversion panics
+	otherPlayers := []OtherPlayerDto{}
 
 	for _, player := range players {
 		if player.ID == viewingPlayerID {

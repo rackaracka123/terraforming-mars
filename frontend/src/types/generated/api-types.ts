@@ -453,7 +453,6 @@ export type MessageType = string;
  * Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
-export const MessageTypePlayerReconnect: MessageType = "player-reconnect";
 export const MessageTypePlayAction: MessageType = "do-action";
 /**
  * Server -> Client messages
@@ -521,13 +520,6 @@ export interface FullStatePayload {
  */
 export interface AvailableCardsPayload {
   cards: CardDto[];
-}
-/**
- * PlayerReconnectPayload contains player reconnection data
- */
-export interface PlayerReconnectPayload {
-  playerName: string;
-  gameId: string;
 }
 /**
  * PlayerReconnectedPayload contains data about a reconnected player
