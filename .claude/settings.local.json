@@ -30,7 +30,8 @@
       "Bash(go fmt:*)",
       "Bash(git rm:*)",
       "Bash(git push:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

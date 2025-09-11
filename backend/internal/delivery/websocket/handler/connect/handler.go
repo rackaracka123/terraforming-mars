@@ -55,7 +55,7 @@ func NewConnectionHandler(
 // HandleMessage implements the MessageHandler interface
 func (ch *ConnectionHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	switch message.Type {
-	case dto.MessageTypePlayerConnect:
+	case dto.MessageTypePlayerConnect, dto.MessageTypePlayerReconnect:
 		ch.handleConnection(ctx, connection, message)
 	}
 }
