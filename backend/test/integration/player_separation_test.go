@@ -330,14 +330,14 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 	require.NoError(t, err, "Player 1 should receive Player 2 connected notification")
 	_, err = clients[0].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 2
 	require.NoError(t, err, "Player 1 should receive game update after Player 2")
-	
+
 	_, err = clients[0].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
 	require.NoError(t, err, "Player 1 should receive Player 3 connected notification")
-	
+
 	// Player 2 needs to wait for player 3 to connect
 	_, err = clients[1].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
 	require.NoError(t, err, "Player 2 should receive Player 3 connected notification")
-	
+
 	// Now all players should get the final game-updated with all 3 players
 	for i, client := range clients {
 		gameUpdate, err := client.WaitForMessage(dto.MessageTypeGameUpdated)

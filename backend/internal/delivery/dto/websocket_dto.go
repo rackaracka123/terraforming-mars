@@ -5,9 +5,8 @@ type MessageType string
 
 const (
 	// Client -> Server messages
-	MessageTypePlayerConnect   MessageType = "player-connect"
-	MessageTypePlayerReconnect MessageType = "player-reconnect"
-	MessageTypePlayAction      MessageType = "do-action"
+	MessageTypePlayerConnect MessageType = "player-connect"
+	MessageTypePlayAction    MessageType = "do-action"
 
 	// Server -> Client messages
 	MessageTypeGameUpdated            MessageType = "game-updated"
@@ -65,12 +64,6 @@ type FullStatePayload struct {
 // AvailableCardsPayload contains available starting cards
 type AvailableCardsPayload struct {
 	Cards []CardDto `json:"cards" ts:"CardDto[]"`
-}
-
-// PlayerReconnectPayload contains player reconnection data
-type PlayerReconnectPayload struct {
-	PlayerName string `json:"playerName" ts:"string"`
-	GameID     string `json:"gameId" ts:"string"`
 }
 
 // PlayerReconnectedPayload contains data about a reconnected player
