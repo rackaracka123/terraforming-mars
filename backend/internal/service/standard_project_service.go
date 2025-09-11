@@ -326,12 +326,12 @@ func (s *StandardProjectServiceImpl) DistanceHexPosition(h1, h2 *model.HexPositi
 // GetHexNeighbors returns all adjacent hex positions (business logic from HexPosition model)
 func (s *StandardProjectServiceImpl) GetHexNeighbors(h *model.HexPosition) []model.HexPosition {
 	directions := []model.HexPosition{
-		{1, -1, 0}, // East
-		{1, 0, -1}, // Southeast
-		{0, 1, -1}, // Southwest
-		{-1, 1, 0}, // West
-		{-1, 0, 1}, // Northwest
-		{0, -1, 1}, // Northeast
+		{Q: 1, R: -1, S: 0}, // East
+		{Q: 1, R: 0, S: -1}, // Southeast
+		{Q: 0, R: 1, S: -1}, // Southwest
+		{Q: -1, R: 1, S: 0}, // West
+		{Q: -1, R: 0, S: 1}, // Northwest
+		{Q: 0, R: -1, S: 1}, // Northeast
 	}
 
 	neighbors := make([]model.HexPosition, 6)
