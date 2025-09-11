@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/delivery/websocket/actions/specialized"
+	"terraforming-mars-backend/internal/delivery/websocket/actions"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/core/broadcast"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
@@ -18,11 +18,11 @@ import (
 // ModularActionHandler handles game action requests using specialized action handlers
 type ModularActionHandler struct {
 	// Specialized action handlers
-	lifecycleActions *specialized.LifecycleActions
-	skipActions      *specialized.SkipActions
-	cardActions      *specialized.CardActions
-	resourceActions  *specialized.ResourceActions
-	placementActions *specialized.PlacementActions
+	lifecycleActions *actions.LifecycleActions
+	skipActions      *actions.SkipActions
+	cardActions      *actions.CardActions
+	resourceActions  *actions.ResourceActions
+	placementActions *actions.PlacementActions
 
 	// Utilities
 	parser       *utils.MessageParser
@@ -43,11 +43,11 @@ func NewModularActionHandler(
 	logger := logger.Get()
 
 	return &ModularActionHandler{
-		lifecycleActions: specialized.NewLifecycleActions(gameService),
-		skipActions:      specialized.NewSkipActions(gameService, playerService, broadcaster),
-		cardActions:      specialized.NewCardActions(cardService, gameService, parser),
-		resourceActions:  specialized.NewResourceActions(standardProjectService, parser),
-		placementActions: specialized.NewPlacementActions(standardProjectService, parser),
+		lifecycleActions: actions.NewLifecycleActions(gameService),
+		skipActions:      actions.NewSkipActions(gameService, playerService, broadcaster),
+		cardActions:      actions.NewCardActions(cardService, gameService, parser),
+		resourceActions:  actions.NewResourceActions(standardProjectService, parser),
+		placementActions: actions.NewPlacementActions(standardProjectService, parser),
 		parser:           parser,
 		errorHandler:     errorHandler,
 		logger:           logger,

@@ -1,4 +1,4 @@
-package specialized
+package actions
 
 import (
 	"context"
