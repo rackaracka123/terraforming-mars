@@ -1,7 +1,5 @@
 import React from "react";
-import type {
-  PaymentCostDto,
-} from "../../../types/generated/api-types";
+import type { PaymentCostDto } from "../../../types/generated/api-types";
 import CostDisplay from "../display/CostDisplay";
 
 interface PaymentDisplayProps {

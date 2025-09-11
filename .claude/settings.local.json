@@ -17,7 +17,8 @@
       "Bash(npm run typecheck:*)",
       "Bash(npm run lint)",
       "Bash(find:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(time go test:*)"
     ],
     "deny": [],
     "ask": []
