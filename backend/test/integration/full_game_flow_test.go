@@ -11,13 +11,10 @@ import (
 
 // TestFullGameFlow tests the complete flow: create, join, start, select cards, asteroid, play card
 func TestFullGameFlow(t *testing.T) {
-	// Create test client
-	client := NewTestClient(t)
-	defer client.Close()
-
 	// Step 1-5: Create game, join, and start (using helper function)
 	playerName := "TestPlayer"
 	client, gameID := SetupBasicGameFlow(t, playerName)
+	defer client.Close()
 	t.Log("✅ Connected to WebSocket server")
 	t.Logf("✅ Game created with ID: %s", gameID)
 	t.Log("✅ Joined game")

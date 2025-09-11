@@ -15,7 +15,11 @@
       "Bash(make:*)",
       "mcp__playwright__browser_network_requests",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(git checkout:*)",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
