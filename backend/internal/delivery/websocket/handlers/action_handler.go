@@ -19,6 +19,7 @@ import (
 type ModularActionHandler struct {
 	// Specialized action handlers
 	lifecycleActions *specialized.LifecycleActions
+	skipActions      *specialized.SkipActions
 	cardActions      *specialized.CardActions
 	resourceActions  *specialized.ResourceActions
 	placementActions *specialized.PlacementActions
@@ -42,7 +43,8 @@ func NewModularActionHandler(
 	logger := logger.Get()
 
 	return &ModularActionHandler{
-		lifecycleActions: specialized.NewLifecycleActions(gameService, playerService, broadcaster),
+		lifecycleActions: specialized.NewLifecycleActions(gameService),
+		skipActions:      specialized.NewSkipActions(gameService, playerService, broadcaster),
 		cardActions:      specialized.NewCardActions(cardService, gameService, parser),
 		resourceActions:  specialized.NewResourceActions(standardProjectService, parser),
 		placementActions: specialized.NewPlacementActions(standardProjectService, parser),
@@ -115,7 +117,7 @@ func (ah *ModularActionHandler) routeAction(ctx context.Context, gameID, playerI
 	case dto.ActionTypeStartGame:
 		return ah.lifecycleActions.StartGame(ctx, gameID, playerID)
 	case dto.ActionTypeSkipAction:
-		return ah.lifecycleActions.SkipAction(ctx, gameID, playerID)
+		return ah.skipActions.SkipAction(ctx, gameID, playerID)
 
 	// Card actions
 	case dto.ActionTypeSelectStartingCard:
