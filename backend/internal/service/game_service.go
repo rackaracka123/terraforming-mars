@@ -179,7 +179,7 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
+	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
