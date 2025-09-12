@@ -59,7 +59,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           <LeftSidebar
             players={allPlayers}
             currentPlayer={currentPlayer}
-            currentPlayerId={gameState?.currentPlayer.id || ""}
+            currentPlayerId={gameState?.currentTurn || ""}
             currentPhase={gameState?.currentPhase}
             gameState={gameState}
           />

@@ -266,7 +266,8 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 	return nil
 }
 
-// UpdateCurrentTurn updates the current turn (whose turn it is to play)
+// UpdateCurrentTurn updates the current turn during ongoing gameplay (turn progression)
+// Use this when advancing turns during normal game flow (e.g., after a player skips their turn)
 func (r *GameRepositoryImpl) UpdateCurrentTurn(ctx context.Context, gameID string, playerID *string) error {
 	return r.SetCurrentTurn(ctx, gameID, playerID)
 }
@@ -292,7 +293,8 @@ func (r *GameRepositoryImpl) SetCurrentPlayer(ctx context.Context, gameID string
 	return nil
 }
 
-// SetCurrentTurn sets the current turn (whose turn it is to play)
+// SetCurrentTurn sets the initial current turn at game setup (who starts the game)
+// Use this when initially setting who begins the game or when resetting turns for new phases
 func (r *GameRepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
