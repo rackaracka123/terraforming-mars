@@ -29,6 +29,7 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 		ViewingPlayerID:  viewingPlayerID,
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
+		TurnOrder:        game.PlayerIDs,
 	}
 }
 
@@ -172,6 +173,7 @@ func ToGameDtoBasic(game model.Game) GameDto {
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		RemainingActions: game.RemainingActions,
+		TurnOrder:        game.PlayerIDs,
 	}
 }
 
