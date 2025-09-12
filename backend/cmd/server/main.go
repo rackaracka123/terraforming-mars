@@ -52,23 +52,26 @@ func main() {
 	gameRepo := repository.NewGameRepository(eventBus)
 	log.Info("Game repository initialized")
 
-	// Initialize card data service and load cards
-	cardDataService := service.NewCardDataService()
-	if err := cardDataService.LoadCards(); err != nil {
+	// Initialize card repository and load cards
+	cardRepo := repository.NewCardRepository()
+	if err := cardRepo.LoadCards(context.Background()); err != nil {
 		log.Warn("Failed to load card data, using fallback cards", zap.Error(err))
 	} else {
-		allCards := cardDataService.GetAllCards()
+		allCards, _ := cardRepo.GetAllCards(context.Background())
+		projectCards, _ := cardRepo.GetProjectCards(context.Background())
+		corporationCards, _ := cardRepo.GetCorporationCards(context.Background())
+		preludeCards, _ := cardRepo.GetPreludeCards(context.Background())
 		log.Info("📚 Card data loaded successfully",
-			zap.Int("project_cards", len(cardDataService.GetProjectCards())),
-			zap.Int("corporation_cards", len(cardDataService.GetCorporationCards())),
-			zap.Int("prelude_cards", len(cardDataService.GetPreludeCards())),
+			zap.Int("project_cards", len(projectCards)),
+			zap.Int("corporation_cards", len(corporationCards)),
+			zap.Int("prelude_cards", len(preludeCards)),
 			zap.Int("total_cards", len(allCards)))
 	}
 
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

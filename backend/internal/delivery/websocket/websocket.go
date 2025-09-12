@@ -34,7 +34,7 @@ func NewWebSocketService(
 	broadcaster := hub.GetBroadcaster()
 	connectionHandler := connect.NewConnectionHandler(gameService, playerService, broadcaster, manager)
 	actionHandler := action.NewActionHandler(gameService, playerService, standardProjectService, cardService, broadcaster)
-	eventHandler := event.NewEventHandler(broadcaster, cardService.GetCardDataService())
+	eventHandler := event.NewEventHandler(broadcaster, cardService)
 
 	// Set handlers in hub
 	hub.SetHandlers(connectionHandler, actionHandler)

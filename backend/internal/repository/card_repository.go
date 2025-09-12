@@ -1,6 +1,7 @@
-package service
+package repository
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,35 +9,67 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"terraforming-mars-backend/internal/model"
 )
 
-// CardDataService handles loading and managing card data from JSON
-type CardDataService interface {
-	LoadCards() error
-	GetAllCards() []model.Card
-	GetProjectCards() []model.Card
-	GetCorporationCards() []model.Card
-	GetPreludeCards() []model.Card
-	GetCardByID(id string) (*model.Card, error)
-	GetCardsByType(cardType model.CardType) []model.Card
-	GetCardsByTag(tag model.CardTag) []model.Card
-	GetStartingCardPool() []model.Card // Returns cards suitable for starting selection
-	GetCardsByCostRange(minCost, maxCost int) []model.Card
-	GetCardsByTags(tags []model.CardTag) []model.Card                                 // Cards that have ANY of the specified tags
-	GetCardsByAllTags(tags []model.CardTag) []model.Card                              // Cards that have ALL of the specified tags
-	FilterCardsByRequirements(cards []model.Card, gameState interface{}) []model.Card // Filter cards by requirements
-	GetCorporations() []model.Corporation                                             // Returns corporations converted from corporation cards
-	GetCorporationByID(id string) (*model.Corporation, error)                         // Returns a specific corporation
+// CardRepository manages card data as the single source of truth
+type CardRepository interface {
+	// LoadCards loads all cards from JSON into memory
+	LoadCards(ctx context.Context) error
+
+	// GetCardByID finds a card by its ID
+	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
+
+	// GetAllCards returns all loaded cards
+	GetAllCards(ctx context.Context) ([]model.Card, error)
+
+	// GetProjectCards returns only project cards (automated, active, event)
+	GetProjectCards(ctx context.Context) ([]model.Card, error)
+
+	// GetCorporationCards returns only corporation cards
+	GetCorporationCards(ctx context.Context) ([]model.Card, error)
+
+	// GetPreludeCards returns only prelude cards
+	GetPreludeCards(ctx context.Context) ([]model.Card, error)
+
+	// GetCardsByType returns cards of a specific type
+	GetCardsByType(ctx context.Context, cardType model.CardType) ([]model.Card, error)
+
+	// GetCardsByTag returns cards with a specific tag
+	GetCardsByTag(ctx context.Context, tag model.CardTag) ([]model.Card, error)
+
+	// GetStartingCardPool returns cards suitable for starting selection
+	GetStartingCardPool(ctx context.Context) ([]model.Card, error)
+
+	// GetCardsByCostRange returns cards within a specific cost range
+	GetCardsByCostRange(ctx context.Context, minCost, maxCost int) ([]model.Card, error)
+
+	// GetCardsByTags returns cards that have ANY of the specified tags
+	GetCardsByTags(ctx context.Context, tags []model.CardTag) ([]model.Card, error)
+
+	// GetCardsByAllTags returns cards that have ALL of the specified tags
+	GetCardsByAllTags(ctx context.Context, tags []model.CardTag) ([]model.Card, error)
+
+	// FilterCardsByRequirements filters cards based on current game state requirements
+	FilterCardsByRequirements(ctx context.Context, cards []model.Card, gameState interface{}) ([]model.Card, error)
+
+	// GetCorporations converts corporation cards to Corporation structs
+	GetCorporations(ctx context.Context) ([]model.Corporation, error)
+
+	// GetCorporationByID returns a specific corporation by ID
+	GetCorporationByID(ctx context.Context, id string) (*model.Corporation, error)
 }
 
-// CardDataServiceImpl implements CardDataService
-type CardDataServiceImpl struct {
+// CardRepositoryImpl implements CardRepository
+type CardRepositoryImpl struct {
+	mutex            sync.RWMutex
 	allCards         []model.Card
 	projectCards     []model.Card
 	corporationCards []model.Card
 	preludeCards     []model.Card
 	cardLookup       map[string]*model.Card
+	loaded           bool
 }
 
 // JSONCardData represents the structure of the JSON file
@@ -93,15 +126,22 @@ type JSONImmediateEffects struct {
 	OtherEffects     []string       `json:"other_effects"`
 }
 
-// NewCardDataService creates a new CardDataService instance
-func NewCardDataService() CardDataService {
-	return &CardDataServiceImpl{
+// NewCardRepository creates a new card repository
+func NewCardRepository() CardRepository {
+	return &CardRepositoryImpl{
 		cardLookup: make(map[string]*model.Card),
 	}
 }
 
-// LoadCards loads all cards from the JSON file
-func (s *CardDataServiceImpl) LoadCards() error {
+// LoadCards loads all cards from the JSON file into memory
+func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if r.loaded {
+		return nil // Already loaded
+	}
+
 	// Get the path to the JSON file - look in multiple possible locations
 	possiblePaths := []string{
 		filepath.Join("assets", "terraforming_mars_cards.json"),
@@ -132,66 +172,67 @@ func (s *CardDataServiceImpl) LoadCards() error {
 		return fmt.Errorf("failed to parse card data: %w", err)
 	}
 
-	// Convert and store cards
-	s.allCards = make([]model.Card, 0)
-	s.projectCards = make([]model.Card, 0)
-	s.corporationCards = make([]model.Card, 0)
-	s.preludeCards = make([]model.Card, 0)
+	// Initialize slices
+	r.allCards = make([]model.Card, 0)
+	r.projectCards = make([]model.Card, 0)
+	r.corporationCards = make([]model.Card, 0)
+	r.preludeCards = make([]model.Card, 0)
 
 	// Process project cards
 	for _, jsonCard := range jsonData.Cards.ProjectCards {
-		card, err := s.convertJSONCard(jsonCard)
+		card, err := r.convertJSONCard(jsonCard)
 		if err != nil {
 			return fmt.Errorf("failed to convert project card %s: %w", jsonCard.Name, err)
 		}
-		s.projectCards = append(s.projectCards, card)
-		s.allCards = append(s.allCards, card)
-		s.cardLookup[card.ID] = &card
+		r.projectCards = append(r.projectCards, card)
+		r.allCards = append(r.allCards, card)
+		r.cardLookup[card.ID] = &card
 	}
 
 	// Process corporation cards
 	for _, jsonCard := range jsonData.Cards.CorporationCards {
-		card, err := s.convertJSONCard(jsonCard)
+		card, err := r.convertJSONCard(jsonCard)
 		if err != nil {
 			return fmt.Errorf("failed to convert corporation card %s: %w", jsonCard.Name, err)
 		}
 		card.Type = model.CardTypeCorporation
-		s.corporationCards = append(s.corporationCards, card)
-		s.allCards = append(s.allCards, card)
-		s.cardLookup[card.ID] = &card
+		r.corporationCards = append(r.corporationCards, card)
+		r.allCards = append(r.allCards, card)
+		r.cardLookup[card.ID] = &card
 	}
 
 	// Process prelude cards
 	for _, jsonCard := range jsonData.Cards.PreludeCards {
-		card, err := s.convertJSONCard(jsonCard)
+		card, err := r.convertJSONCard(jsonCard)
 		if err != nil {
 			return fmt.Errorf("failed to convert prelude card %s: %w", jsonCard.Name, err)
 		}
 		card.Type = model.CardTypePrelude
-		s.preludeCards = append(s.preludeCards, card)
-		s.allCards = append(s.allCards, card)
-		s.cardLookup[card.ID] = &card
+		r.preludeCards = append(r.preludeCards, card)
+		r.allCards = append(r.allCards, card)
+		r.cardLookup[card.ID] = &card
 	}
 
+	r.loaded = true
 	return nil
 }
 
 // convertJSONCard converts a JSONCard to a model.Card
-func (s *CardDataServiceImpl) convertJSONCard(jsonCard JSONCard) (model.Card, error) {
+func (r *CardRepositoryImpl) convertJSONCard(jsonCard JSONCard) (model.Card, error) {
 	// Generate ID from card number or name
-	id := s.generateCardID(jsonCard.Number, jsonCard.Name)
+	id := r.generateCardID(jsonCard.Number, jsonCard.Name)
 
 	// Convert type
-	cardType, err := s.convertCardType(jsonCard.Type)
+	cardType, err := r.convertCardType(jsonCard.Type)
 	if err != nil {
 		return model.Card{}, err
 	}
 
 	// Convert tags
-	tags := s.convertTags(jsonCard.Tags)
+	tags := r.convertTags(jsonCard.Tags)
 
 	// Parse requirements from enhanced JSON structure
-	requirements := s.parseEnhancedRequirements(jsonCard.Requirements)
+	requirements := r.parseEnhancedRequirements(jsonCard.Requirements)
 
 	// Parse production effects from enhanced JSON structure
 	var productionEffects *model.ProductionEffects
@@ -251,7 +292,7 @@ func (s *CardDataServiceImpl) convertJSONCard(jsonCard JSONCard) (model.Card, er
 }
 
 // generateCardID creates a unique ID from card number or name
-func (s *CardDataServiceImpl) generateCardID(number, name string) string {
+func (r *CardRepositoryImpl) generateCardID(number, name string) string {
 	if number != "" {
 		// Remove # and convert to lowercase
 		id := strings.ToLower(strings.TrimPrefix(number, "#"))
@@ -267,7 +308,7 @@ func (s *CardDataServiceImpl) generateCardID(number, name string) string {
 }
 
 // convertCardType converts string type to model.CardType
-func (s *CardDataServiceImpl) convertCardType(typeStr string) (model.CardType, error) {
+func (r *CardRepositoryImpl) convertCardType(typeStr string) (model.CardType, error) {
 	switch typeStr {
 	case "automated":
 		return model.CardTypeAutomated, nil
@@ -289,7 +330,7 @@ func (s *CardDataServiceImpl) convertCardType(typeStr string) (model.CardType, e
 }
 
 // convertTags converts string slice to CardTag slice
-func (s *CardDataServiceImpl) convertTags(tagStrs []string) []model.CardTag {
+func (r *CardRepositoryImpl) convertTags(tagStrs []string) []model.CardTag {
 	tags := make([]model.CardTag, 0, len(tagStrs))
 
 	tagMapping := map[string]model.CardTag{
@@ -318,7 +359,7 @@ func (s *CardDataServiceImpl) convertTags(tagStrs []string) []model.CardTag {
 }
 
 // parseEnhancedRequirements converts enhanced JSON requirements to CardRequirements struct
-func (s *CardDataServiceImpl) parseEnhancedRequirements(reqMap map[string]interface{}) model.CardRequirements {
+func (r *CardRepositoryImpl) parseEnhancedRequirements(reqMap map[string]interface{}) model.CardRequirements {
 	requirements := model.CardRequirements{}
 
 	if reqMap == nil {
@@ -372,7 +413,7 @@ func (s *CardDataServiceImpl) parseEnhancedRequirements(reqMap map[string]interf
 }
 
 // parseRequirements converts requirement string to CardRequirements struct (legacy)
-func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequirements, error) {
+func (r *CardRepositoryImpl) parseRequirements(reqStr string) (model.CardRequirements, error) {
 	requirements := model.CardRequirements{}
 
 	if reqStr == "" {
@@ -421,49 +462,101 @@ func (s *CardDataServiceImpl) parseRequirements(reqStr string) (model.CardRequir
 	return requirements, nil
 }
 
+// GetCardByID finds a card by its ID
+func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	if card, exists := r.cardLookup[cardID]; exists {
+		// Return a copy to prevent external mutation
+		cardCopy := *card
+		return &cardCopy, nil
+	}
+	return nil, fmt.Errorf("card not found: %s", cardID)
+}
+
 // GetAllCards returns all loaded cards
-func (s *CardDataServiceImpl) GetAllCards() []model.Card {
-	return s.allCards
+func (r *CardRepositoryImpl) GetAllCards(ctx context.Context) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	// Return a copy to prevent external mutation
+	return r.copyCards(r.allCards), nil
 }
 
 // GetProjectCards returns only project cards (automated, active, event)
-func (s *CardDataServiceImpl) GetProjectCards() []model.Card {
-	return s.projectCards
+func (r *CardRepositoryImpl) GetProjectCards(ctx context.Context) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	return r.copyCards(r.projectCards), nil
 }
 
 // GetCorporationCards returns only corporation cards
-func (s *CardDataServiceImpl) GetCorporationCards() []model.Card {
-	return s.corporationCards
+func (r *CardRepositoryImpl) GetCorporationCards(ctx context.Context) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	return r.copyCards(r.corporationCards), nil
 }
 
 // GetPreludeCards returns only prelude cards
-func (s *CardDataServiceImpl) GetPreludeCards() []model.Card {
-	return s.preludeCards
-}
+func (r *CardRepositoryImpl) GetPreludeCards(ctx context.Context) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
-// GetCardByID finds a card by its ID
-func (s *CardDataServiceImpl) GetCardByID(id string) (*model.Card, error) {
-	if card, exists := s.cardLookup[id]; exists {
-		return card, nil
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
 	}
-	return nil, fmt.Errorf("card not found: %s", id)
+
+	return r.copyCards(r.preludeCards), nil
 }
 
 // GetCardsByType returns cards of a specific type
-func (s *CardDataServiceImpl) GetCardsByType(cardType model.CardType) []model.Card {
+func (r *CardRepositoryImpl) GetCardsByType(ctx context.Context, cardType model.CardType) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	var cards []model.Card
-	for _, card := range s.allCards {
+	for _, card := range r.allCards {
 		if card.Type == cardType {
 			cards = append(cards, card)
 		}
 	}
-	return cards
+	return cards, nil
 }
 
 // GetCardsByTag returns cards with a specific tag
-func (s *CardDataServiceImpl) GetCardsByTag(tag model.CardTag) []model.Card {
+func (r *CardRepositoryImpl) GetCardsByTag(ctx context.Context, tag model.CardTag) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	var cards []model.Card
-	for _, card := range s.allCards {
+	for _, card := range r.allCards {
 		for _, cardTag := range card.Tags {
 			if cardTag == tag {
 				cards = append(cards, card)
@@ -471,39 +564,60 @@ func (s *CardDataServiceImpl) GetCardsByTag(tag model.CardTag) []model.Card {
 			}
 		}
 	}
-	return cards
+	return cards, nil
 }
 
 // GetStartingCardPool returns cards suitable for starting selection
 // This includes lower-cost cards that are good for game start
-func (s *CardDataServiceImpl) GetStartingCardPool() []model.Card {
+func (r *CardRepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	var startingCards []model.Card
 
 	// Include automated and active cards with reasonable cost (up to 15 MC)
-	for _, card := range s.projectCards {
+	for _, card := range r.projectCards {
 		if card.ID != "" && card.Cost <= 15 && (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive) {
 			startingCards = append(startingCards, card)
 		}
 	}
 
-	return startingCards
+	return startingCards, nil
 }
 
 // GetCardsByCostRange returns cards within a specific cost range
-func (s *CardDataServiceImpl) GetCardsByCostRange(minCost, maxCost int) []model.Card {
+func (r *CardRepositoryImpl) GetCardsByCostRange(ctx context.Context, minCost, maxCost int) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	var cards []model.Card
-	for _, card := range s.allCards {
+	for _, card := range r.allCards {
 		if card.Cost >= minCost && card.Cost <= maxCost {
 			cards = append(cards, card)
 		}
 	}
-	return cards
+	return cards, nil
 }
 
 // GetCardsByTags returns cards that have ANY of the specified tags
-func (s *CardDataServiceImpl) GetCardsByTags(tags []model.CardTag) []model.Card {
+func (r *CardRepositoryImpl) GetCardsByTags(ctx context.Context, tags []model.CardTag) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	if len(tags) == 0 {
-		return []model.Card{}
+		return []model.Card{}, nil
 	}
 
 	var cards []model.Card
@@ -512,7 +626,7 @@ func (s *CardDataServiceImpl) GetCardsByTags(tags []model.CardTag) []model.Card 
 		tagSet[tag] = true
 	}
 
-	for _, card := range s.allCards {
+	for _, card := range r.allCards {
 		for _, cardTag := range card.Tags {
 			if tagSet[cardTag] {
 				cards = append(cards, card)
@@ -521,18 +635,25 @@ func (s *CardDataServiceImpl) GetCardsByTags(tags []model.CardTag) []model.Card 
 		}
 	}
 
-	return cards
+	return cards, nil
 }
 
 // GetCardsByAllTags returns cards that have ALL of the specified tags
-func (s *CardDataServiceImpl) GetCardsByAllTags(tags []model.CardTag) []model.Card {
+func (r *CardRepositoryImpl) GetCardsByAllTags(ctx context.Context, tags []model.CardTag) ([]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	if len(tags) == 0 {
-		return s.allCards // If no tags specified, return all cards
+		return r.copyCards(r.allCards), nil // If no tags specified, return all cards
 	}
 
 	var cards []model.Card
 
-	for _, card := range s.allCards {
+	for _, card := range r.allCards {
 		hasAllTags := true
 		for _, requiredTag := range tags {
 			hasTag := false
@@ -553,13 +674,13 @@ func (s *CardDataServiceImpl) GetCardsByAllTags(tags []model.CardTag) []model.Ca
 		}
 	}
 
-	return cards
+	return cards, nil
 }
 
 // FilterCardsByRequirements filters cards based on current game state requirements
 // For now, this is a simplified implementation that just returns all cards
 // In a full implementation, you would check temperature, oxygen, oceans, etc.
-func (s *CardDataServiceImpl) FilterCardsByRequirements(cards []model.Card, gameState interface{}) []model.Card {
+func (r *CardRepositoryImpl) FilterCardsByRequirements(ctx context.Context, cards []model.Card, gameState interface{}) ([]model.Card, error) {
 	// Simplified implementation - just return all cards for now
 	// In a full implementation, you would:
 	// 1. Cast gameState to the appropriate type
@@ -581,26 +702,40 @@ func (s *CardDataServiceImpl) FilterCardsByRequirements(cards []model.Card, game
 		}
 	}
 
-	return playableCards
+	return playableCards, nil
 }
 
 // GetCorporations converts corporation cards to Corporation structs
-func (s *CardDataServiceImpl) GetCorporations() []model.Corporation {
+func (r *CardRepositoryImpl) GetCorporations(ctx context.Context) ([]model.Corporation, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
 	var corporations []model.Corporation
 
-	for _, card := range s.corporationCards {
-		corp := s.convertCardToCorporation(card)
+	for _, card := range r.corporationCards {
+		corp := r.convertCardToCorporation(card)
 		corporations = append(corporations, corp)
 	}
 
-	return corporations
+	return corporations, nil
 }
 
 // GetCorporationByID returns a specific corporation by ID
-func (s *CardDataServiceImpl) GetCorporationByID(id string) (*model.Corporation, error) {
-	for _, card := range s.corporationCards {
+func (r *CardRepositoryImpl) GetCorporationByID(ctx context.Context, id string) (*model.Corporation, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	for _, card := range r.corporationCards {
 		if card.ID == id {
-			corp := s.convertCardToCorporation(card)
+			corp := r.convertCardToCorporation(card)
 			return &corp, nil
 		}
 	}
@@ -609,7 +744,7 @@ func (s *CardDataServiceImpl) GetCorporationByID(id string) (*model.Corporation,
 }
 
 // convertCardToCorporation converts a Corporation Card to a Corporation struct
-func (s *CardDataServiceImpl) convertCardToCorporation(card model.Card) model.Corporation {
+func (r *CardRepositoryImpl) convertCardToCorporation(card model.Card) model.Corporation {
 	corp := model.Corporation{
 		ID:                 card.ID,
 		Name:               card.Name,
@@ -661,4 +796,11 @@ func (s *CardDataServiceImpl) convertCardToCorporation(card model.Card) model.Co
 	}
 
 	return corp
+}
+
+// copyCards creates a deep copy of a slice of cards to prevent external mutation
+func (r *CardRepositoryImpl) copyCards(cards []model.Card) []model.Card {
+	result := make([]model.Card, len(cards))
+	copy(result, cards)
+	return result
 }

@@ -18,10 +18,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardDataService := service.NewCardDataService()
+	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -64,10 +64,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load cards and get real card IDs for testing
-	err = cardDataService.LoadCards()
+	err = cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
-	startingCards := cardDataService.GetStartingCardPool()
+	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
 	// Use real card IDs from loaded data
@@ -199,18 +199,18 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardDataService := service.NewCardDataService()
+	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
 	// Load cards and get real card IDs for testing
-	err := cardDataService.LoadCards()
+	err := cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
-	startingCards := cardDataService.GetStartingCardPool()
+	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
 	// Store starting card options using real card IDs
@@ -300,10 +300,10 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	eventBus := events.NewInMemoryEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardDataService := service.NewCardDataService()
+	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -353,10 +353,10 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Load cards and get real card IDs for testing
-	err = cardDataService.LoadCards()
+	err = cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
-	startingCards := cardDataService.GetStartingCardPool()
+	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
 	cardServiceImpl := cardService.(*service.CardServiceImpl)

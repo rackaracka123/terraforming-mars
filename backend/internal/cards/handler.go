@@ -4,6 +4,7 @@ import (
 	"context"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
 
@@ -17,6 +18,7 @@ type CardHandlerContext struct {
 	PlayerService          service.PlayerService
 	GameService            service.GameService
 	StandardProjectService service.StandardProjectService
+	CardRepository         repository.CardRepository
 }
 
 // CardHandler defines the interface that all card implementations must satisfy
@@ -67,7 +69,7 @@ func (b *BaseCardHandler) GetRequirements() model.CardRequirements {
 
 // CanPlay performs basic requirement checking that all cards need
 func (b *BaseCardHandler) CanPlay(ctx *CardHandlerContext) error {
-	return ValidateCardRequirements(ctx.Context, ctx.Game, ctx.PlayerID, ctx.PlayerService, b.Requirements)
+	return ValidateCardRequirements(ctx.Context, ctx.Game, ctx.PlayerID, ctx.PlayerService, ctx.CardRepository, b.Requirements)
 }
 
 // RegisterListeners provides a default implementation that does nothing
