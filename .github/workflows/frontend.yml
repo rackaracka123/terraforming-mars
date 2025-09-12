@@ -1,0 +1,95 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'Makefile'
+      - '.github/workflows/frontend.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'Makefile'
+      - '.github/workflows/frontend.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.19.0'
+
+jobs:
+  # Frontend Lint
+  frontend-lint:
+    runs-on: ubuntu-latest
+    name: Frontend Lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        run: make lint-frontend
+
+  # Frontend TypeScript Type Check
+  frontend-typecheck:
+    runs-on: ubuntu-latest
+    name: Frontend TypeCheck
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run TypeScript type check
+        working-directory: ./frontend
+        run: npm run typecheck
+
+  # Build Frontend
+  build-frontend:
+    runs-on: ubuntu-latest
+    name: Build Frontend
+    needs: [frontend-lint, frontend-typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend for production
+        run: make build-frontend
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 7
