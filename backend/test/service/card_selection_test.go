@@ -19,15 +19,15 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardDataService := service.NewCardDataService()
+	cardRepo := repository.NewCardRepository()
 
 	// Load card data for testing
-	err := cardDataService.LoadCards()
+	err := cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
 	// Track events

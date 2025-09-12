@@ -27,31 +27,31 @@ type CardService interface {
 	IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool
 
 	// Get starting cards for selection
-	GetStartingCards() []model.Card
+	GetStartingCards(ctx context.Context) ([]model.Card, error)
 
 	// Generate starting card options for a player
-	GenerateStartingCardOptions(gameID, playerID string) []string
+	GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]string, error)
 
-	// Get the underlying card data service
-	GetCardDataService() CardDataService
+	// Get card by ID
+	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 }
 
 // CardServiceImpl implements CardService interface
 type CardServiceImpl struct {
 	gameRepo          repository.GameRepository
 	playerRepo        repository.PlayerRepository
-	cardDataService   CardDataService
+	cardRepo          repository.CardRepository
 	eventBus          events.EventBus
 	cardDeckRepo      repository.CardDeckRepository
 	cardSelectionRepo repository.CardSelectionRepository
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDataService CardDataService, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository, cardSelectionRepo repository.CardSelectionRepository) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository, cardSelectionRepo repository.CardSelectionRepository) CardService {
 	return &CardServiceImpl{
 		gameRepo:          gameRepo,
 		playerRepo:        playerRepo,
-		cardDataService:   cardDataService,
+		cardRepo:          cardRepo,
 		eventBus:          eventBus,
 		cardDeckRepo:      cardDeckRepo,
 		cardSelectionRepo: cardSelectionRepo,
@@ -182,7 +182,10 @@ func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gam
 	}
 
 	// Validate card IDs exist in the starting cards pool first
-	allStartingCards := s.cardDataService.GetStartingCardPool()
+	allStartingCards, err := s.cardRepo.GetStartingCardPool(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get starting card pool: %w", err)
+	}
 	cardMap := make(map[string]bool)
 	for _, card := range allStartingCards {
 		cardMap[card.ID] = true
@@ -230,13 +233,16 @@ func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 }
 
 // GetStartingCards returns cards available for starting selection
-func (s *CardServiceImpl) GetStartingCards() []model.Card {
-	return s.cardDataService.GetStartingCardPool()
+func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]model.Card, error) {
+	return s.cardRepo.GetStartingCardPool(ctx)
 }
 
 // GenerateStartingCardOptions generates 4 random starting card options for a player
-func (s *CardServiceImpl) GenerateStartingCardOptions(gameID, playerID string) []string {
-	startingCards := s.cardDataService.GetStartingCardPool()
+func (s *CardServiceImpl) GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]string, error) {
+	startingCards, err := s.cardRepo.GetStartingCardPool(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get starting card pool: %w", err)
+	}
 
 	// For now, return first 4 cards as options
 	// In a full implementation, you'd randomize this selection
@@ -251,10 +257,10 @@ func (s *CardServiceImpl) GenerateStartingCardOptions(gameID, playerID string) [
 	// Store the options for validation
 	s.StorePlayerCardOptions(gameID, playerID, options)
 
-	return options
+	return options, nil
 }
 
-// GetCardDataService returns the underlying card data service
-func (s *CardServiceImpl) GetCardDataService() CardDataService {
-	return s.cardDataService
+// GetCardByID returns a card by its ID
+func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
+	return s.cardRepo.GetCardByID(ctx, cardID)
 }

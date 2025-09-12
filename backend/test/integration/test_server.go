@@ -40,16 +40,16 @@ func NewTestServer(port int) (*TestServer, error) {
 	gameRepo := repository.NewGameRepository(eventBus)
 
 	// Initialize services with proper event bus wiring
-	cardDataService := service.NewCardDataService()
+	cardRepo := repository.NewCardRepository()
 
 	// Load card data for integration testing
-	if err := cardDataService.LoadCards(); err != nil {
+	if err := cardRepo.LoadCards(context.Background()); err != nil {
 		logger.Warn("Failed to load card data in test server, using fallback", zap.Error(err))
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

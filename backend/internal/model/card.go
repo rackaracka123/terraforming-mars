@@ -34,11 +34,3 @@ type Card struct {
 	Number            string             `json:"number" ts:"string"`                                             // Card number (e.g., "#001")
 	ProductionEffects *ProductionEffects `json:"productionEffects,omitempty" ts:"ProductionEffects | undefined"` // Production changes
 }
-
-// GetStartingCards returns simple starting cards for players to choose from
-// This function is deprecated - use CardDataService.GetStartingCardPool() instead
-// Kept for backward compatibility during transition
-func GetStartingCards() []Card {
-	// Return empty slice - actual cards will come from CardDataService
-	return []Card{}
-}

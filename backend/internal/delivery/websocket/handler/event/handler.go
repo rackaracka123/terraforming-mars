@@ -15,17 +15,17 @@ import (
 
 // EventHandler handles domain events that need WebSocket broadcasting
 type EventHandler struct {
-	broadcaster     *core.Broadcaster
-	cardDataService service.CardDataService
-	logger          *zap.Logger
+	broadcaster *core.Broadcaster
+	cardService service.CardService
+	logger      *zap.Logger
 }
 
 // NewEventHandler creates a new event handler
-func NewEventHandler(broadcaster *core.Broadcaster, cardDataService service.CardDataService) *EventHandler {
+func NewEventHandler(broadcaster *core.Broadcaster, cardService service.CardService) *EventHandler {
 	return &EventHandler{
-		broadcaster:     broadcaster,
-		cardDataService: cardDataService,
-		logger:          logger.Get(),
+		broadcaster: broadcaster,
+		cardService: cardService,
+		logger:      logger.Get(),
 	}
 }
 
@@ -41,10 +41,10 @@ func (h *EventHandler) HandlePlayerStartingCardOptions(ctx context.Context, even
 		zap.String("player_id", playerID),
 		zap.Strings("card_ids", cardIDs))
 
-	// Get card details from card data service
+	// Get card details from card service
 	cardModels := make([]model.Card, 0, len(cardIDs))
 	for _, cardID := range cardIDs {
-		if card, err := h.cardDataService.GetCardByID(cardID); err == nil {
+		if card, err := h.cardService.GetCardByID(ctx, cardID); err == nil {
 			cardModels = append(cardModels, *card)
 		} else {
 			h.logger.Warn("Card not found", zap.String("card_id", cardID), zap.Error(err))

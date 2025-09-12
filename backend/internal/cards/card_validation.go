@@ -7,7 +7,7 @@ import (
 )
 
 // ValidateCardRequirements checks if a card's requirements are met using PlayerService
-func ValidateCardRequirements(ctx context.Context, game *model.Game, playerID string, playerService PlayerService, requirements model.CardRequirements) error {
+func ValidateCardRequirements(ctx context.Context, game *model.Game, playerID string, playerService PlayerService, cardRepo CardRepository, requirements model.CardRequirements) error {
 	// Check temperature requirements
 	if requirements.MinTemperature != nil && game.GlobalParameters.Temperature < *requirements.MinTemperature {
 		return fmt.Errorf("temperature too low: need %d°C, current %d°C", *requirements.MinTemperature, game.GlobalParameters.Temperature)
@@ -37,7 +37,7 @@ func ValidateCardRequirements(ctx context.Context, game *model.Game, playerID st
 
 	// Check tag requirements
 	if len(requirements.RequiredTags) > 0 {
-		playerTags, err := GetPlayerTags(ctx, game, playerID, playerService)
+		playerTags, err := GetPlayerTags(ctx, game, playerID, playerService, cardRepo)
 		if err != nil {
 			return fmt.Errorf("failed to get player tags: %w", err)
 		}
@@ -59,27 +59,23 @@ func ValidateCardRequirements(ctx context.Context, game *model.Game, playerID st
 }
 
 // GetPlayerTags returns all tags from cards the player has played
-func GetPlayerTags(ctx context.Context, game *model.Game, playerID string, playerService PlayerService) ([]model.CardTag, error) {
+func GetPlayerTags(ctx context.Context, game *model.Game, playerID string, playerService PlayerService, cardRepo CardRepository) ([]model.CardTag, error) {
 	// Get the player using service (which returns a deep copy)
 	player, err := playerService.GetPlayer(ctx, game.ID, playerID)
 	if err != nil {
 		return nil, fmt.Errorf("player not found in game: %w", err)
 	}
 	tagMap := make(map[model.CardTag]bool)
-	cards := model.GetStartingCards()
-
-	// Create a map for quick card lookup
-	cardMap := make(map[string]model.Card)
-	for _, card := range cards {
-		cardMap[card.ID] = card
-	}
 
 	// Collect unique tags from all played cards
 	for _, playedCardID := range player.PlayedCards {
-		if card, exists := cardMap[playedCardID]; exists {
-			for _, tag := range card.Tags {
-				tagMap[tag] = true
-			}
+		card, err := cardRepo.GetCardByID(ctx, playedCardID)
+		if err != nil {
+			// Log the error but continue with other cards
+			continue
+		}
+		for _, tag := range card.Tags {
+			tagMap[tag] = true
 		}
 	}
 
