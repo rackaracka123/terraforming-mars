@@ -46,13 +46,24 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
   });
 
-  const allPlayers: PlayerDto[] = [
-    ...(gameState?.currentPlayer ? [gameState.currentPlayer] : []),
-    ...(gameState?.otherPlayers?.map(convertOtherPlayerToPlayerDto) || []),
-  ];
+  // Create a map of all players (current + others) for easy lookup
+  const playerMap = new Map<string, PlayerDto>();
+  if (gameState?.currentPlayer) {
+    playerMap.set(gameState.currentPlayer.id, gameState.currentPlayer);
+  }
+  gameState?.otherPlayers?.forEach((otherPlayer) => {
+    playerMap.set(otherPlayer.id, convertOtherPlayerToPlayerDto(otherPlayer));
+  });
+
+  // Construct allPlayers using the turn order from the backend
+  const allPlayers: PlayerDto[] =
+    (gameState?.turnOrder
+      ?.map((playerId) => playerMap.get(playerId))
+      .filter((player) => player !== undefined) as PlayerDto[]) || [];
 
   // Find the current turn player for the right sidebar
-  const currentTurnPlayer = allPlayers.find(player => player.id === gameState?.currentTurn) || null;
+  const currentTurnPlayer =
+    allPlayers.find((player) => player.id === gameState?.currentTurn) || null;
 
   return (
     <MainContentProvider>

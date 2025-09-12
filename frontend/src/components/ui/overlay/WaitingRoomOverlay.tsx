@@ -57,22 +57,31 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
             {/* Player List */}
             <div className={styles.playerList}>
-              {game.currentPlayer && (
-                <div className={styles.playerItem}>
-                  <span className={styles.playerName}>
-                    {game.currentPlayer.name}
-                  </span>
-                  {isHost && <span className={styles.hostBadge}>Host</span>}
-                </div>
-              )}
-              {game.otherPlayers?.map((player) => (
-                <div key={player.id} className={styles.playerItem}>
-                  <span className={styles.playerName}>{player.name}</span>
-                  {game.hostPlayerId === player.id && (
-                    <span className={styles.hostBadge}>Host</span>
-                  )}
-                </div>
-              ))}
+              {(() => {
+                // Create a map of all players (current + others) for easy lookup
+                const playerMap = new Map();
+                if (game.currentPlayer) {
+                  playerMap.set(game.currentPlayer.id, game.currentPlayer);
+                }
+                game.otherPlayers?.forEach((otherPlayer) => {
+                  playerMap.set(otherPlayer.id, otherPlayer);
+                });
+
+                // Use turnOrder to display players in correct order
+                const orderedPlayers =
+                  game.turnOrder
+                    ?.map((playerId) => playerMap.get(playerId))
+                    .filter((player) => player !== undefined) || [];
+
+                return orderedPlayers.map((player) => (
+                  <div key={player.id} className={styles.playerItem}>
+                    <span className={styles.playerName}>{player.name}</span>
+                    {game.hostPlayerId === player.id && (
+                      <span className={styles.hostBadge}>Host</span>
+                    )}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
 

@@ -199,4 +199,5 @@ type GameDto struct {
 	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
 	RemainingActions int                 `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
+	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`      // Turn order of all players in game
 }
