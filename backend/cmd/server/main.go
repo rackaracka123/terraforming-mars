@@ -66,7 +66,9 @@ func main() {
 	}
 
 	// Initialize new service architecture
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

@@ -481,7 +481,7 @@ func (s *CardDataServiceImpl) GetStartingCardPool() []model.Card {
 
 	// Include automated and active cards with reasonable cost (up to 15 MC)
 	for _, card := range s.projectCards {
-		if card.Cost <= 15 && (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive) {
+		if card.ID != "" && card.Cost <= 15 && (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive) {
 			startingCards = append(startingCards, card)
 		}
 	}

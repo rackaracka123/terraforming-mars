@@ -14,9 +14,12 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
+  ActionTypeSelectStartingCard,
   CardDto,
   FullStatePayload,
   GameDto,
+  GamePhaseStartingCardSelection,
+  GameStatusActive,
   GameStatusLobby,
   PlayerDisconnectedPayload,
   PlayerDto,
@@ -101,6 +104,7 @@ export default function GameInterface() {
     } else {
       setShowCorporationModal(false);
     }
+
   }, []);
 
   const handleFullState = useCallback(
@@ -187,106 +191,45 @@ export default function GameInterface() {
 
   const handleAvailableCards = useCallback(
     (payload: any) => {
-      // Available cards received - show selection overlay if in correct phase
+      console.log("🃏 Available cards received:", payload);
+      console.log("🎮 Current game phase:", game?.currentPhase);
+      console.log("🎯 Game status:", game?.status);
+      
+      // Available cards received - store them and show overlay when ready
       if (payload?.cards && Array.isArray(payload.cards)) {
+        console.log("✅ Setting available cards:", payload.cards);
         setAvailableCards(payload.cards);
-        // Only show overlay if we're in the starting card selection phase
+        
+        // Show overlay immediately if we're already in the correct phase
         const currentGamePhase = game?.currentPhase;
-        if (currentGamePhase === "starting_card_selection") {
+        const currentGameStatus = game?.status;
+        
+        if (currentGamePhase === GamePhaseStartingCardSelection && currentGameStatus === GameStatusActive) {
+          console.log("🎪 Showing card selection overlay immediately");
           setShowCardSelection(true);
+        } else {
+          console.log("⏳ Cards stored, waiting for correct phase...", {
+            currentPhase: currentGamePhase,
+            currentStatus: currentGameStatus,
+            needsPhase: GamePhaseStartingCardSelection,
+            needsStatus: GameStatusActive
+          });
+          // The overlay will be shown when the game state updates via handleGameUpdated
         }
+      } else {
+        console.log("❌ Invalid payload format:", payload);
       }
     },
     [game],
   );
 
-  // DEBUG: Always show card selection overlay with example data
-  const debugCards: CardDto[] = [
-    {
-      id: "card-1",
-      name: "Solar Wind Power",
-      cost: 11,
-      type: "automated",
-      tags: ["power", "space"],
-      description: "Gain 1 energy production and 2 titanium.",
-      requirements: { requiredTags: [] },
-      victoryPoints: 0,
-      number: "001",
-    },
-    {
-      id: "card-2",
-      name: "Underground City",
-      cost: 18,
-      type: "automated",
-      tags: ["city", "building"],
-      description:
-        "Increase your steel production by 2 steps and place a city tile.",
-      requirements: {
-        requiredTags: [],
-        minOxygen: 8,
-        requiredProduction: {
-          credits: 0,
-          steel: 0,
-          titanium: 0,
-          plants: 0,
-          energy: 2,
-          heat: 0,
-        },
-      },
-      victoryPoints: 0,
-      number: "002",
-    },
-    {
-      id: "card-3",
-      name: "Research",
-      cost: 11,
-      type: "event",
-      tags: ["science"],
-      description: "Draw 2 cards.",
-      requirements: { requiredTags: [] },
-      victoryPoints: 0,
-      number: "003",
-    },
-    {
-      id: "card-4",
-      name: "Asteroid Mining Consortium",
-      cost: 13,
-      type: "automated",
-      tags: ["jovian", "space"],
-      description: "Increase your titanium production by 1 step.",
-      requirements: {
-        requiredTags: [],
-        minTemperature: -18,
-      },
-      victoryPoints: 0,
-      number: "004",
-    },
-    {
-      id: "card-5",
-      name: "University",
-      cost: 8,
-      type: "active",
-      tags: ["science", "building"],
-      description: "When you play a Science tag, including this, draw a card.",
-      requirements: { requiredTags: [] },
-      victoryPoints: 1,
-      number: "005",
-    },
-  ];
 
-  // Force show overlay for debugging
-  useEffect(() => {
-    if (game && game.currentPhase === "starting_card_selection") {
-      setAvailableCards(debugCards);
-      setShowCardSelection(true);
-    }
-  }, [game]);
 
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
       // Send card selection to server
       await globalWebSocketManager.playAction({
-        type: "select-starting-cards",
+        type: ActionTypeSelectStartingCard,
         cardIds: selectedCardIds,
       });
       // Close the overlay
@@ -509,6 +452,24 @@ export default function GameInterface() {
       window.removeEventListener("toggle-debug-dropdown", handleToggleDebug);
     };
   }, []);
+
+  // Show starting card selection overlay when both conditions are met
+  useEffect(() => {
+    console.log("🔍 Checking overlay conditions:", {
+      gamePhase: game?.currentPhase,
+      gameStatus: game?.status,
+      hasCards: availableCards?.length > 0,
+      currentlyShowing: showCardSelection
+    });
+
+    if (game?.currentPhase === GamePhaseStartingCardSelection && 
+        game?.status === GameStatusActive && 
+        availableCards?.length > 0 && 
+        !showCardSelection) {
+      console.log("🎪 All conditions met - showing card selection overlay");
+      setShowCardSelection(true);
+    }
+  }, [game?.currentPhase, game?.status, availableCards, showCardSelection]);
 
   // Demo keyboard shortcuts
   useEffect(() => {

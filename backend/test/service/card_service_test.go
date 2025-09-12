@@ -19,7 +19,9 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -198,7 +200,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -297,7 +301,9 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
