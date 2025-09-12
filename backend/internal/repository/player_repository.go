@@ -447,6 +447,14 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 
 	log.Info("Card added to player hand", zap.String("card_id", cardID))
 
+	// Publish game updated event to notify all clients
+	if r.eventBus != nil {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
+
 	return nil
 }
 

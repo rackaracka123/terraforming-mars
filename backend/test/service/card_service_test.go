@@ -19,7 +19,9 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -92,27 +94,27 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:          "Select one card (free)",
+			name:          "Select one card (3 MC)",
 			selectedCards: []string{availableCards[0]},
-			expectedCost:  0,
-			expectedError: false,
-		},
-		{
-			name:          "Select two cards (3 MC for second)",
-			selectedCards: []string{availableCards[0], availableCards[1]},
 			expectedCost:  3,
 			expectedError: false,
 		},
 		{
-			name:          "Select three cards (6 MC total)",
-			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2]},
+			name:          "Select two cards (6 MC total)",
+			selectedCards: []string{availableCards[0], availableCards[1]},
 			expectedCost:  6,
 			expectedError: false,
 		},
 		{
-			name:          "Select four cards (9 MC total)",
-			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3]},
+			name:          "Select three cards (9 MC total)",
+			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2]},
 			expectedCost:  9,
+			expectedError: false,
+		},
+		{
+			name:          "Select four cards (12 MC total)",
+			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3]},
+			expectedCost:  12,
 			expectedError: false,
 		},
 		{
@@ -198,7 +200,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
@@ -297,7 +301,9 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDataService := service.NewCardDataService()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardSelectionRepo := repository.NewCardSelectionRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardDataService, eventBus, cardDeckRepo, cardSelectionRepo)
 
 	ctx := context.Background()
 
