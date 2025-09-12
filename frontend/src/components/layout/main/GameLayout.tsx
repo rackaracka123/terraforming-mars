@@ -50,6 +50,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     ...(gameState?.currentPlayer ? [gameState.currentPlayer] : []),
     ...(gameState?.otherPlayers?.map(convertOtherPlayerToPlayerDto) || []),
   ];
+
+  // Find the current turn player for the right sidebar
+  const currentTurnPlayer = allPlayers.find(player => player.id === gameState?.currentTurn) || null;
+
   return (
     <MainContentProvider>
       <div className={styles.gameLayout}>
@@ -69,7 +73,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           <RightSidebar
             globalParameters={gameState?.globalParameters}
             generation={gameState?.generation}
-            currentPlayer={currentPlayer}
+            currentPlayer={currentTurnPlayer}
           />
         </div>
 
