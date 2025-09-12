@@ -82,7 +82,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Calculate cost (first card free, 3 MC per additional card)
+	// Calculate cost (3 MC per card)
 	cost := len(cardIDs) * 3
 
 	// Check if player can afford the selection
