@@ -39,3 +39,29 @@ func NewGame(id string, settings GameSettings) *Game {
 		Generation: 1,
 	}
 }
+
+// Next returns the next player ID in turn order based on current turn
+// Returns nil if CurrentTurn is nil or no players exist
+func (g *Game) Next() *string {
+	if g.CurrentTurn == nil || len(g.PlayerIDs) == 0 {
+		return nil
+	}
+
+	// Find current player index
+	currentIndex := -1
+	for i, playerID := range g.PlayerIDs {
+		if playerID == *g.CurrentTurn {
+			currentIndex = i
+			break
+		}
+	}
+
+	if currentIndex == -1 {
+		// Current turn player not found, return first player
+		return &g.PlayerIDs[0]
+	}
+
+	// Calculate next player index (wrap around)
+	nextIndex := (currentIndex + 1) % len(g.PlayerIDs)
+	return &g.PlayerIDs[nextIndex]
+}
