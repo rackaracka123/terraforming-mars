@@ -104,7 +104,6 @@ export default function GameInterface() {
     } else {
       setShowCorporationModal(false);
     }
-
   }, []);
 
   const handleFullState = useCallback(
@@ -191,39 +190,25 @@ export default function GameInterface() {
 
   const handleAvailableCards = useCallback(
     (payload: any) => {
-      console.log("🃏 Available cards received:", payload);
-      console.log("🎮 Current game phase:", game?.currentPhase);
-      console.log("🎯 Game status:", game?.status);
-      
       // Available cards received - store them and show overlay when ready
       if (payload?.cards && Array.isArray(payload.cards)) {
-        console.log("✅ Setting available cards:", payload.cards);
         setAvailableCards(payload.cards);
-        
+
         // Show overlay immediately if we're already in the correct phase
         const currentGamePhase = game?.currentPhase;
         const currentGameStatus = game?.status;
-        
-        if (currentGamePhase === GamePhaseStartingCardSelection && currentGameStatus === GameStatusActive) {
-          console.log("🎪 Showing card selection overlay immediately");
+
+        if (
+          currentGamePhase === GamePhaseStartingCardSelection &&
+          currentGameStatus === GameStatusActive
+        ) {
           setShowCardSelection(true);
-        } else {
-          console.log("⏳ Cards stored, waiting for correct phase...", {
-            currentPhase: currentGamePhase,
-            currentStatus: currentGameStatus,
-            needsPhase: GamePhaseStartingCardSelection,
-            needsStatus: GameStatusActive
-          });
-          // The overlay will be shown when the game state updates via handleGameUpdated
         }
-      } else {
-        console.log("❌ Invalid payload format:", payload);
+        // The overlay will be shown when the game state updates via useEffect
       }
     },
     [game],
   );
-
-
 
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
@@ -459,13 +444,15 @@ export default function GameInterface() {
       gamePhase: game?.currentPhase,
       gameStatus: game?.status,
       hasCards: availableCards?.length > 0,
-      currentlyShowing: showCardSelection
+      currentlyShowing: showCardSelection,
     });
 
-    if (game?.currentPhase === GamePhaseStartingCardSelection && 
-        game?.status === GameStatusActive && 
-        availableCards?.length > 0 && 
-        !showCardSelection) {
+    if (
+      game?.currentPhase === GamePhaseStartingCardSelection &&
+      game?.status === GameStatusActive &&
+      availableCards?.length > 0 &&
+      !showCardSelection
+    ) {
       console.log("🎪 All conditions met - showing card selection overlay");
       setShowCardSelection(true);
     }
