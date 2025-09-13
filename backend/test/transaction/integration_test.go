@@ -38,7 +38,7 @@ func TestCompleteTransactionScenarios(t *testing.T) {
 		cost := model.Resources{Credits: 23}
 
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessTurnAction(gameID, playerID, cost)
+			return tx.ProcessTurnAction(ctx, gameID, playerID, cost)
 		})
 
 		if err != nil {
@@ -76,7 +76,7 @@ func TestCompleteTransactionScenarios(t *testing.T) {
 		cardCost := model.Resources{Credits: 12}
 
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, cardCost)
+			return tx.ProcessPurchase(ctx, gameID, playerID, cardCost)
 		})
 
 		if err != nil {
@@ -122,17 +122,17 @@ func TestCompleteTransactionScenarios(t *testing.T) {
 		// Try complex transaction that should fail on second operation
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
 			// First: deduct small amount (should succeed)
-			if err := tx.DeductResources(gameID, playerID, model.Resources{Credits: 5}); err != nil {
+			if err := tx.DeductResources(ctx, gameID, playerID, model.Resources{Credits: 5}); err != nil {
 				return err
 			}
 
 			// Second: deduct more than remaining (should fail)
-			if err := tx.DeductResources(gameID, playerID, model.Resources{Credits: 20}); err != nil {
+			if err := tx.DeductResources(ctx, gameID, playerID, model.Resources{Credits: 20}); err != nil {
 				return err
 			}
 
 			// Third: consume action (should not execute due to previous failure)
-			return tx.ConsumePlayerAction(gameID, playerID)
+			return tx.ConsumePlayerAction(ctx, gameID, playerID)
 		})
 
 		if err == nil {
@@ -179,7 +179,7 @@ func TestCompleteTransactionScenarios(t *testing.T) {
 		complexCost := model.Resources{Credits: 20, Steel: 3, Titanium: 2, Energy: 4}
 
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessTurnAction(gameID, playerID, complexCost)
+			return tx.ProcessTurnAction(ctx, gameID, playerID, complexCost)
 		})
 
 		if err != nil {
@@ -225,7 +225,7 @@ func TestConcurrentTransactions(t *testing.T) {
 				defer wg.Done()
 
 				err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-					return tx.ProcessPurchase(gameID, playerID, model.Resources{Credits: cost})
+					return tx.ProcessPurchase(ctx, gameID, playerID, model.Resources{Credits: cost})
 				})
 
 				if err != nil {
@@ -279,7 +279,7 @@ func TestEdgeCases(t *testing.T) {
 		zeroCost := model.Resources{} // All zeros
 
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessTurnAction(gameID, playerID, zeroCost)
+			return tx.ProcessTurnAction(ctx, gameID, playerID, zeroCost)
 		})
 
 		if err != nil {
@@ -342,7 +342,7 @@ func TestEdgeCases(t *testing.T) {
 
 		// Execute transaction using exact amount
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessTurnAction(gameID, playerID, exactAmount)
+			return tx.ProcessTurnAction(ctx, gameID, playerID, exactAmount)
 		})
 
 		if err != nil {

@@ -216,7 +216,7 @@ func TestExecuteAtomicSuccess(t *testing.T) {
 
 	// Execute atomic transaction
 	err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-		return tx.ProcessTurnAction(gameID, playerID, cost)
+		return tx.ProcessTurnAction(ctx, gameID, playerID, cost)
 	})
 
 	if err != nil {
@@ -270,7 +270,7 @@ func TestExecuteAtomicFailureAndRollback(t *testing.T) {
 
 	// Execute atomic transaction (should fail)
 	err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-		return tx.ProcessTurnAction(gameID, playerID, cost)
+		return tx.ProcessTurnAction(ctx, gameID, playerID, cost)
 	})
 
 	if err == nil {
