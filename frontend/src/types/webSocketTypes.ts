@@ -13,7 +13,6 @@ export interface WebSocketConnection {
     playerId?: string,
   ): Promise<any>;
 
-
   // Standard project actions
   sellPatents(cardCount: number): Promise<string>;
   launchAsteroid(): Promise<string>;

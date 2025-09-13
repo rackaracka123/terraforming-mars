@@ -182,7 +182,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.playerConnect(playerName, gameId, playerId);
   }
 
-
   // Standard project actions
   async sellPatents(cardCount: number): Promise<string> {
     await this.ensureConnected();

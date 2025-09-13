@@ -244,7 +244,6 @@ export class WebSocketService {
     });
   }
 
-
   // Standard project actions
   sellPatents(cardCount: number): string {
     return this.send(MessageTypeActionSellPatents, { cardCount });
