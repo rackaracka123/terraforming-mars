@@ -5,13 +5,10 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/connect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/event"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
-	"terraforming-mars-backend/internal/transaction"
 )
 
 // WebSocketService provides the main WebSocket functionality
@@ -31,21 +28,17 @@ func NewWebSocketService(
 	playerRepo repository.PlayerRepository,
 ) *WebSocketService {
 	// Create hub first (without handlers to break circular dependency)
-	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil, nil, nil)
+	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil)
 
-	// Create transaction manager for middleware
-	transactionManager := transaction.NewManager(playerRepo, gameRepo)
-
-	// Now create message handlers with hub components
-	manager := hub.GetManager()
+	// Now create event handler with hub components
 	broadcaster := hub.GetBroadcaster()
-	connectionHandler := connect.NewConnectionHandler(gameService, playerService, broadcaster, manager)
-	actionHandler := action.NewActionHandler(gameService, playerService, standardProjectService, cardService, broadcaster, transactionManager)
 	eventHandler := event.NewEventHandler(broadcaster, cardService)
 
-	// Set handlers in hub
-	hub.SetHandlers(connectionHandler, actionHandler)
+	// Set event handler in hub
 	hub.SetEventHandler(eventHandler)
+
+	// Register specific message type handlers with middleware support
+	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

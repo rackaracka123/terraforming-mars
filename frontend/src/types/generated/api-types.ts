@@ -444,19 +444,18 @@ export interface ErrorResponse {
 }
 
 //////////
-// source: websocket_dto.go
+// source: message_types.go
 
 /**
  * MessageType represents different types of WebSocket messages
  */
 export type MessageType = string;
 /**
- * Client -> Server messages
+ * Existing Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
-export const MessageTypePlayAction: MessageType = "do-action";
 /**
- * Server -> Client messages
+ * Existing Server -> Client messages
  */
 export const MessageTypeGameUpdated: MessageType = "game-updated";
 export const MessageTypePlayerConnected: MessageType = "player-connected";
@@ -467,6 +466,41 @@ export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
 export const MessageTypeProductionPhaseStarted: MessageType =
   "production-phase-started";
+/**
+ * New action-specific message types using composed constants
+ * Standard project message types
+ */
+export const MessageTypeActionSellPatents: MessageType =
+  "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType =
+  "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType =
+  "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType =
+  "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType =
+  "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType =
+  "action.standard-project.build-city";
+/**
+ * Game management message types
+ */
+export const MessageTypeActionStartGame: MessageType =
+  "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType =
+  "action.game-management.skip-action";
+/**
+ * Card message types
+ */
+export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
+export const MessageTypeActionSelectStartingCard: MessageType =
+  "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType =
+  "action.card.select-cards";
+
+//////////
+// source: websocket_dto.go
+
 /**
  * WebSocketMessage represents a WebSocket message
  */
@@ -482,12 +516,6 @@ export interface PlayerConnectPayload {
   playerName: string;
   gameId: string;
   playerId?: string; // Optional: used for reconnection
-}
-/**
- * PlayActionPayload contains game action data
- */
-export interface PlayActionPayload {
-  actionRequest: any;
 }
 /**
  * GameUpdatedPayload contains updated game state

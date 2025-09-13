@@ -40,7 +40,8 @@
       "Bash(go run:*)",
       "Bash(gh issue:*)",
       "Bash(mkdir:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

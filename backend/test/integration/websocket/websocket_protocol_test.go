@@ -65,12 +65,12 @@ func TestUnknownMessageType(t *testing.T) {
 	require.NoError(t, err, "Should receive player connected message")
 	t.Log("✅ Player connected confirmed")
 
-	// Send a message with unknown type using SendAction (which accepts interface{})
+	// Send a message with unknown type using SendRawMessage
 	unknownAction := map[string]interface{}{
 		"type": "unknown-message-type",
 		"data": "test-data",
 	}
-	err = client.SendAction(unknownAction)
+	err = client.SendRawMessage(dto.MessageType("unknown-message-type"), unknownAction)
 	require.NoError(t, err, "Should be able to send unknown message type")
 	t.Log("✅ Unknown message type sent")
 
@@ -106,12 +106,12 @@ func TestMalformedPayload(t *testing.T) {
 
 	// Send a message with malformed payload (missing required fields)
 	malformedAction := map[string]interface{}{
-		"type": string(dto.ActionTypePlayCard),
+		"type": "play-card",
 		// Missing cardId field that would normally be required
 	}
 
 	// This should not cause the connection to fail, but might generate an error response
-	err = client.SendAction(malformedAction)
+	err = client.SendRawMessage(dto.MessageTypeActionPlayCard, malformedAction)
 	require.NoError(t, err, "Should be able to send malformed action")
 	t.Log("✅ Malformed payload sent")
 
@@ -132,7 +132,7 @@ func TestEmptyMessage(t *testing.T) {
 
 	// Send empty action
 	emptyAction := map[string]interface{}{}
-	err = client.SendAction(emptyAction)
+	err = client.SendRawMessage(dto.MessageType("legacy-test-action"), emptyAction)
 	require.NoError(t, err, "Should be able to send empty action")
 	t.Log("✅ Empty message sent")
 
@@ -207,7 +207,7 @@ func TestConcurrentMessages(t *testing.T) {
 			"type": "test-action",
 			"id":   i,
 		}
-		err := client.SendAction(action)
+		err := client.SendRawMessage(dto.MessageType("legacy-test-action"), action)
 		require.NoError(t, err, "Should be able to send rapid message %d", i)
 	}
 	t.Logf("✅ Sent %d rapid messages successfully", numMessages)
@@ -239,7 +239,7 @@ func TestLargeMessage(t *testing.T) {
 	}
 
 	// Send large message
-	err = client.SendAction(largeAction)
+	err = client.SendRawMessage(dto.MessageType("legacy-test-action"), largeAction)
 	require.NoError(t, err, "Should be able to send large message")
 	t.Log("✅ Large message sent successfully")
 
@@ -274,7 +274,7 @@ func TestMessageTypeValidation(t *testing.T) {
 	}
 
 	for i, testCase := range testCases {
-		err := client.SendAction(testCase)
+		err := client.SendRawMessage(dto.MessageType("legacy-test-action"), testCase)
 		require.NoError(t, err, "Should be able to send test case %d", i)
 		t.Logf("✅ Sent invalid message type test case %d", i)
 
@@ -309,7 +309,7 @@ func TestConnectionStability(t *testing.T) {
 	}
 
 	for i, invalidMsg := range invalidMessages {
-		err := client.SendAction(invalidMsg)
+		err := client.SendRawMessage(dto.MessageType("legacy-test-action"), invalidMsg)
 		require.NoError(t, err, "Should be able to send invalid message %d", i)
 		time.Sleep(10 * time.Millisecond)
 	}

@@ -5,6 +5,7 @@ import type {
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
   FullStatePayload,
+  HexPositionDto,
 } from "../types/generated/api-types.ts";
 
 class GlobalWebSocketManager implements WebSocketConnection {
@@ -181,9 +182,62 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.playerConnect(playerName, gameId, playerId);
   }
 
-  async playAction(actionPayload: object): Promise<string> {
+  // Standard project actions
+  async sellPatents(cardCount: number): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playAction(actionPayload);
+    return webSocketService.sellPatents(cardCount);
+  }
+
+  async launchAsteroid(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.launchAsteroid();
+  }
+
+  async buildPowerPlant(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.buildPowerPlant();
+  }
+
+  async buildAquifer(hexPosition: HexPositionDto): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.buildAquifer(hexPosition);
+  }
+
+  async plantGreenery(hexPosition: HexPositionDto): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.plantGreenery(hexPosition);
+  }
+
+  async buildCity(hexPosition: HexPositionDto): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.buildCity(hexPosition);
+  }
+
+  // Game management actions
+  async startGame(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.startGame();
+  }
+
+  async skipAction(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.skipAction();
+  }
+
+  // Card actions
+  async playCard(cardId: string): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.playCard(cardId);
+  }
+
+  async selectStartingCard(cardIds: string[]): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.selectStartingCard(cardIds);
+  }
+
+  async selectCards(cardIds: string[]): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.selectCards(cardIds);
   }
 
   get connected() {

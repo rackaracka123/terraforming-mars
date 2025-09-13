@@ -59,9 +59,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
   const handleSkipAction = async () => {
     try {
-      await globalWebSocketManager.playAction({
-        type: "skip-action",
-      });
+      await globalWebSocketManager.skipAction();
     } catch (error) {
       console.error("Failed to skip action:", error);
     }

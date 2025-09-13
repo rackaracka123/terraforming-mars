@@ -14,7 +14,6 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
-  ActionTypeSelectStartingCard,
   CardDto,
   FullStatePayload,
   GameDto,
@@ -213,10 +212,7 @@ export default function GameInterface() {
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
       // Send card selection to server
-      await globalWebSocketManager.playAction({
-        type: ActionTypeSelectStartingCard,
-        cardIds: selectedCardIds,
-      });
+      await globalWebSocketManager.selectStartingCard(selectedCardIds);
       // Close the overlay
       setShowCardSelection(false);
       setAvailableCards([]);

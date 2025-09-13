@@ -7,18 +7,31 @@ import {
   MessageTypeError,
   MessageTypeFullState,
   MessageTypeGameUpdated,
-  MessageTypePlayAction,
   MessageTypePlayerConnect,
   MessageTypePlayerConnected,
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
   MessageTypeAvailableCards,
+  // New message types
+  MessageTypeActionSellPatents,
+  MessageTypeActionLaunchAsteroid,
+  MessageTypeActionBuildPowerPlant,
+  MessageTypeActionBuildAquifer,
+  MessageTypeActionPlantGreenery,
+  MessageTypeActionBuildCity,
+  MessageTypeActionStartGame,
+  MessageTypeActionSkipAction,
+  MessageTypeActionPlayCard,
+  MessageTypeActionSelectStartingCard,
+  MessageTypeActionSelectCards,
+  // Payload types
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
   ProductionPhaseStartedPayload,
   WebSocketMessage,
+  HexPositionDto,
 } from "../types/generated/api-types.ts";
 
 type EventCallback = (data: any) => void;
@@ -231,8 +244,51 @@ export class WebSocketService {
     });
   }
 
-  playAction(actionPayload: object): string {
-    return this.send(MessageTypePlayAction, { actionRequest: actionPayload });
+  // Standard project actions
+  sellPatents(cardCount: number): string {
+    return this.send(MessageTypeActionSellPatents, { cardCount });
+  }
+
+  launchAsteroid(): string {
+    return this.send(MessageTypeActionLaunchAsteroid, {});
+  }
+
+  buildPowerPlant(): string {
+    return this.send(MessageTypeActionBuildPowerPlant, {});
+  }
+
+  buildAquifer(hexPosition: HexPositionDto): string {
+    return this.send(MessageTypeActionBuildAquifer, { hexPosition });
+  }
+
+  plantGreenery(hexPosition: HexPositionDto): string {
+    return this.send(MessageTypeActionPlantGreenery, { hexPosition });
+  }
+
+  buildCity(hexPosition: HexPositionDto): string {
+    return this.send(MessageTypeActionBuildCity, { hexPosition });
+  }
+
+  // Game management actions
+  startGame(): string {
+    return this.send(MessageTypeActionStartGame, {});
+  }
+
+  skipAction(): string {
+    return this.send(MessageTypeActionSkipAction, {});
+  }
+
+  // Card actions
+  playCard(cardId: string): string {
+    return this.send(MessageTypeActionPlayCard, { cardId });
+  }
+
+  selectStartingCard(cardIds: string[]): string {
+    return this.send(MessageTypeActionSelectStartingCard, { cardIds });
+  }
+
+  selectCards(cardIds: string[]): string {
+    return this.send(MessageTypeActionSelectCards, { cardIds });
   }
 
   // productionPhaseReady(): string {
