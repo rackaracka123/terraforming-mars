@@ -32,6 +32,8 @@ make test-coverage# Generate test coverage report (backend/coverage.html)
 make test-quick   # Fast test suite for development iteration
 ```
 
+**IMPORTANT**: Test files should always be created in the test directory (e.g., `test/middleware/validator_test.go` tests `internal/middleware/validator.go`).
+
 ### 🔧 Code Quality
 ```bash
 make lint         # Run all linters (Go fmt + ESLint)

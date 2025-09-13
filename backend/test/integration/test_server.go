@@ -60,7 +60,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with proper event bus and event handler
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
