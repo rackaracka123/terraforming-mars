@@ -89,10 +89,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         </div>
 
         {/* Overlay Components */}
-        <PlayerOverlay
-          players={allPlayers}
-          currentPlayer={currentPlayer}
-        />
+        <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
 
         {!isLobbyPhase && (
           <>

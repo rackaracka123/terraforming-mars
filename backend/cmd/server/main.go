@@ -94,7 +94,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

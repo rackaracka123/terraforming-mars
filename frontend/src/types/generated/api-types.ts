@@ -176,10 +176,12 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase =
+  "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase =
+  "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -463,7 +465,8 @@ export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeAvailableCards: MessageType = "available-cards";
-export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType =
+  "production-phase-started";
 /**
  * WebSocketMessage represents a WebSocket message
  */

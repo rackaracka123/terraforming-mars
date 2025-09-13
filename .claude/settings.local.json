@@ -38,7 +38,9 @@
       "Bash(xargs kill:*)",
       "mcp__playwright__browser_press_key",
       "Bash(go run:*)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(mkdir:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,19 +6,24 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/game"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/transaction"
 
 	"go.uber.org/zap"
 )
 
 // ActionHandler handles game action requests
 type ActionHandler struct {
-	actionRegistry *core.ActionRegistry
-	parser         *utils.MessageParser
-	errorHandler   *utils.ErrorHandler
-	logger         *zap.Logger
+	actionRegistry        *core.ActionRegistry
+	gameRegistry          *core.ActionRegistry
+	cardSelectionRegistry *core.ActionRegistry
+	parser                *utils.MessageParser
+	errorHandler          *utils.ErrorHandler
+	logger                *zap.Logger
 }
 
 // NewActionHandler creates a new action handler
@@ -28,15 +33,20 @@ func NewActionHandler(
 	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
 	broadcaster *core.Broadcaster,
+	transactionManager *transaction.Manager,
 ) *ActionHandler {
 	parser := utils.NewMessageParser()
-	actionRegistry := SetupActionRegistry(gameService, playerService, standardProjectService, cardService, broadcaster)
+	actionRegistry := SetupActionRegistry(standardProjectService, transactionManager)
+	gameRegistry := game.SetupGameRegistry(gameService, playerService, broadcaster, transactionManager)
+	cardSelectionRegistry := card_selection.SetupCardSelectionRegistry(cardService, gameService)
 
 	return &ActionHandler{
-		actionRegistry: actionRegistry,
-		parser:         parser,
-		errorHandler:   utils.NewErrorHandler(),
-		logger:         logger.Get(),
+		actionRegistry:        actionRegistry,
+		gameRegistry:          gameRegistry,
+		cardSelectionRegistry: cardSelectionRegistry,
+		parser:                parser,
+		errorHandler:          utils.NewErrorHandler(),
+		logger:                logger.Get(),
 	}
 }
 
@@ -96,13 +106,25 @@ func (ah *ActionHandler) handlePlayAction(ctx context.Context, connection *core.
 		zap.String("action_type", actionType))
 }
 
-// routeAction routes actions to the appropriate handler using the registry
+// routeAction routes actions to the appropriate handler using the registries
 func (ah *ActionHandler) routeAction(ctx context.Context, gameID, playerID, actionType string, actionRequest interface{}) error {
-	handler, err := ah.actionRegistry.GetHandler(dto.ActionType(actionType))
-	if err != nil {
-		ah.logger.Warn("Unsupported action type", zap.String("action_type", actionType))
-		return fmt.Errorf("unsupported action type: %s", actionType)
+	actionTypeEnum := dto.ActionType(actionType)
+
+	// Try action registry first (game actions)
+	if handler, err := ah.actionRegistry.GetHandler(actionTypeEnum); err == nil {
+		return handler.Handle(ctx, gameID, playerID, actionRequest)
 	}
 
-	return handler.Handle(ctx, gameID, playerID, actionRequest)
+	// Try game registry (game management)
+	if handler, err := ah.gameRegistry.GetHandler(actionTypeEnum); err == nil {
+		return handler.Handle(ctx, gameID, playerID, actionRequest)
+	}
+
+	// Try card selection registry (card selection)
+	if handler, err := ah.cardSelectionRegistry.GetHandler(actionTypeEnum); err == nil {
+		return handler.Handle(ctx, gameID, playerID, actionRequest)
+	}
+
+	ah.logger.Warn("Unsupported action type", zap.String("action_type", actionType))
+	return fmt.Errorf("unsupported action type: %s", actionType)
 }

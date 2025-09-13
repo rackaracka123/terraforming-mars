@@ -8,41 +8,66 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_power_plant"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/launch_asteroid"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/plant_greenery"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/select_cards"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/select_starting_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/sell_patents"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/skip_action"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/start_game"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	websocketmiddleware "terraforming-mars-backend/internal/middleware/websocket"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/transaction"
 )
 
-// SetupActionRegistry registers all action handlers with the registry
+// SetupActionRegistry registers all game action handlers with the registry (standard projects only)
 func SetupActionRegistry(
-	gameService service.GameService,
-	playerService service.PlayerService,
 	standardProjectService service.StandardProjectService,
-	cardService service.CardService,
-	broadcaster *core.Broadcaster,
+	transactionManager *transaction.Manager,
 ) *core.ActionRegistry {
 	registry := core.NewActionRegistry()
 	parser := utils.NewMessageParser()
 
-	// Register game actions
-	registry.Register(dto.ActionTypeStartGame, start_game.NewHandler(gameService))
-	registry.Register(dto.ActionTypeSkipAction, skip_action.NewHandler(gameService, playerService, broadcaster))
+	// Create the middleware that validates turn + actions
+	turnValidator := websocketmiddleware.CreateTurnValidatorMiddleware(transactionManager)
+	actionValidator := websocketmiddleware.CreateActionValidatorMiddleware(transactionManager)
 
-	// Register card actions
-	registry.Register(dto.ActionTypeSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
-	registry.Register(dto.ActionTypeSelectCards, select_cards.NewHandler(cardService, gameService, parser))
+	// Chain both middleware together - turn validation + action consumption
+	chainedMiddleware := websocketmiddleware.ChainMiddleware(turnValidator, actionValidator)
 
-	// Register standard project actions
-	registry.Register(dto.ActionTypeSellPatents, sell_patents.NewHandler(standardProjectService, parser))
-	registry.Register(dto.ActionTypeBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
-	registry.Register(dto.ActionTypeLaunchAsteroid, launch_asteroid.NewHandler(standardProjectService))
-	registry.Register(dto.ActionTypeBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
-	registry.Register(dto.ActionTypePlantGreenery, plant_greenery.NewHandler(standardProjectService, parser))
-	registry.Register(dto.ActionTypeBuildCity, build_city.NewHandler(standardProjectService, parser))
+	// Register standard project actions with middleware
+	// Each action gets wrapped with turn validation + action consumption middleware
+
+	registry.Register(dto.ActionTypeSellPatents,
+		websocketmiddleware.WrapWithMiddleware(
+			sell_patents.NewHandler(standardProjectService, parser),
+			chainedMiddleware,
+		))
+
+	registry.Register(dto.ActionTypeBuildPowerPlant,
+		websocketmiddleware.WrapWithMiddleware(
+			build_power_plant.NewHandler(standardProjectService),
+			chainedMiddleware,
+		))
+
+	registry.Register(dto.ActionTypeLaunchAsteroid,
+		websocketmiddleware.WrapWithMiddleware(
+			launch_asteroid.NewHandler(standardProjectService),
+			chainedMiddleware,
+		))
+
+	registry.Register(dto.ActionTypeBuildAquifer,
+		websocketmiddleware.WrapWithMiddleware(
+			build_aquifer.NewHandler(standardProjectService, parser),
+			chainedMiddleware,
+		))
+
+	registry.Register(dto.ActionTypePlantGreenery,
+		websocketmiddleware.WrapWithMiddleware(
+			plant_greenery.NewHandler(standardProjectService, parser),
+			chainedMiddleware,
+		))
+
+	registry.Register(dto.ActionTypeBuildCity,
+		websocketmiddleware.WrapWithMiddleware(
+			build_city.NewHandler(standardProjectService, parser),
+			chainedMiddleware,
+		))
 
 	return registry
 }
