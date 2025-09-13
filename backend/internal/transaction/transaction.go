@@ -127,21 +127,27 @@ func (t *Transaction) ValidateResources(gameID, playerID string, cost model.Reso
 }
 
 // DeductResources creates an operation to deduct resources from a player (for purchases)
-func (t *Transaction) DeductResources(gameID, playerID string, cost model.Resources) error {
-	op := operations.NewDeductResourcesOperation(t.manager.GetPlayerRepo(), gameID, playerID, cost)
+func (t *Transaction) DeductResources(ctx context.Context, gameID, playerID string, cost model.Resources) error {
+	op, err := operations.NewDeductResourcesOperation(ctx, t.manager.GetPlayerRepo(), gameID, playerID, cost)
+	if err != nil {
+		return fmt.Errorf("failed to create deduct resources operation: %w", err)
+	}
 	t.AddOperation(op)
 	return nil
 }
 
 // ConsumePlayerAction creates an operation to consume a player action (for turn actions)
-func (t *Transaction) ConsumePlayerAction(gameID, playerID string) error {
-	op := operations.NewConsumeActionOperation(t.manager.GetPlayerRepo(), gameID, playerID)
+func (t *Transaction) ConsumePlayerAction(ctx context.Context, gameID, playerID string) error {
+	op, err := operations.NewConsumeActionOperation(ctx, t.manager.GetPlayerRepo(), gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to create consume action operation: %w", err)
+	}
 	t.AddOperation(op)
 	return nil
 }
 
 // ProcessTurnAction combines turn validation, resource deduction, and action consumption
-func (t *Transaction) ProcessTurnAction(gameID, playerID string, cost model.Resources) error {
+func (t *Transaction) ProcessTurnAction(ctx context.Context, gameID, playerID string, cost model.Resources) error {
 	// Validate turn first
 	if err := t.ValidateTurn(gameID, playerID); err != nil {
 		return err
@@ -149,13 +155,13 @@ func (t *Transaction) ProcessTurnAction(gameID, playerID string, cost model.Reso
 
 	// Deduct resources if there's a cost
 	if !cost.IsZero() {
-		if err := t.DeductResources(gameID, playerID, cost); err != nil {
+		if err := t.DeductResources(ctx, gameID, playerID, cost); err != nil {
 			return err
 		}
 	}
 
 	// Consume one action
-	if err := t.ConsumePlayerAction(gameID, playerID); err != nil {
+	if err := t.ConsumePlayerAction(ctx, gameID, playerID); err != nil {
 		return err
 	}
 
@@ -163,7 +169,7 @@ func (t *Transaction) ProcessTurnAction(gameID, playerID string, cost model.Reso
 }
 
 // ProcessPurchase combines resource validation and deduction (no action consumed)
-func (t *Transaction) ProcessPurchase(gameID, playerID string, cost model.Resources) error {
+func (t *Transaction) ProcessPurchase(ctx context.Context, gameID, playerID string, cost model.Resources) error {
 	// Just deduct resources for purchases
-	return t.DeductResources(gameID, playerID, cost)
+	return t.DeductResources(ctx, gameID, playerID, cost)
 }

@@ -71,7 +71,7 @@ func TestRepositoryFailureScenarios(t *testing.T) {
 
 		// Execute transaction that should fail during resource update
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessTurnAction(gameID, playerID, model.Resources{Credits: 10})
+			return tx.ProcessTurnAction(ctx, gameID, playerID, model.Resources{Credits: 10})
 		})
 
 		if err == nil {
@@ -118,7 +118,7 @@ func TestRepositoryFailureScenarios(t *testing.T) {
 		// Execute transaction that fails on second operation
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
 			// First operation: deduct resources (should succeed)
-			if err := tx.DeductResources(gameID, playerID, model.Resources{Credits: 10}); err != nil {
+			if err := tx.DeductResources(ctx, gameID, playerID, model.Resources{Credits: 10}); err != nil {
 				return err
 			}
 
@@ -126,7 +126,7 @@ func TestRepositoryFailureScenarios(t *testing.T) {
 			playerRepo.failOnUpdate = true
 
 			// Second operation: consume action (should fail and trigger rollback)
-			return tx.ConsumePlayerAction(gameID, playerID)
+			return tx.ConsumePlayerAction(ctx, gameID, playerID)
 		})
 
 		if err == nil {
@@ -166,7 +166,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// Try to spend zero (should succeed)
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, model.Resources{})
+			return tx.ProcessPurchase(ctx, gameID, playerID, model.Resources{})
 		})
 
 		if err != nil {
@@ -175,7 +175,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// Try to spend one credit (should fail)
 		err = manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, model.Resources{Credits: 1})
+			return tx.ProcessPurchase(ctx, gameID, playerID, model.Resources{Credits: 1})
 		})
 
 		if err == nil {
@@ -211,7 +211,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// Execute large transaction
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, largeCost)
+			return tx.ProcessPurchase(ctx, gameID, playerID, largeCost)
 		})
 
 		if err != nil {
@@ -251,7 +251,7 @@ func TestBoundaryConditions(t *testing.T) {
 		negativeCost := model.Resources{Credits: -10}
 
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, negativeCost)
+			return tx.ProcessPurchase(ctx, gameID, playerID, negativeCost)
 		})
 
 		// The behavior with negative costs should be well-defined
@@ -294,7 +294,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// First consumption should succeed
 		err := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ConsumePlayerAction(gameID, playerID)
+			return tx.ConsumePlayerAction(ctx, gameID, playerID)
 		})
 
 		if err != nil {
@@ -309,7 +309,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// Second consumption should fail
 		err = manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ConsumePlayerAction(gameID, playerID)
+			return tx.ConsumePlayerAction(ctx, gameID, playerID)
 		})
 
 		if err == nil {
@@ -339,7 +339,7 @@ func TestErrorRecovery(t *testing.T) {
 		// First attempt fails
 		playerRepo.failOnUpdate = true
 		err1 := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, cost)
+			return tx.ProcessPurchase(ctx, gameID, playerID, cost)
 		})
 
 		if err1 == nil {
@@ -349,7 +349,7 @@ func TestErrorRecovery(t *testing.T) {
 		// Second attempt succeeds
 		playerRepo.failOnUpdate = false
 		err2 := manager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
-			return tx.ProcessPurchase(gameID, playerID, cost)
+			return tx.ProcessPurchase(ctx, gameID, playerID, cost)
 		})
 
 		if err2 != nil {
@@ -384,8 +384,8 @@ func TestErrorRecovery(t *testing.T) {
 		tx2 := manager.NewTransaction()
 
 		// Add different operations to each
-		tx1.DeductResources(gameID, playerID, model.Resources{Credits: 10})
-		tx2.DeductResources(gameID, playerID, model.Resources{Credits: 20})
+		tx1.DeductResources(ctx, gameID, playerID, model.Resources{Credits: 10})
+		tx2.DeductResources(ctx, gameID, playerID, model.Resources{Credits: 20})
 
 		// Execute tx1
 		err1 := tx1.Execute(ctx)

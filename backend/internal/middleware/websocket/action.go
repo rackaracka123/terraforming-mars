@@ -15,7 +15,7 @@ func CreateActionValidatorMiddleware(transactionManager *transaction.Manager) Mi
 		// Execute the handler within a transaction that includes action consumption
 		return transactionManager.ExecuteAtomic(ctx, func(tx *transaction.Transaction) error {
 			// First consume the action (this validates the player has actions available)
-			if err := tx.ConsumePlayerAction(gameID, playerID); err != nil {
+			if err := tx.ConsumePlayerAction(ctx, gameID, playerID); err != nil {
 				return fmt.Errorf("action validation failed: %w", err)
 			}
 

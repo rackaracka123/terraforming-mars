@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/transaction/operations"
 )
@@ -155,8 +156,9 @@ func TestDeductResourcesOperation(t *testing.T) {
 			playerRepo.SetPlayer(gameID, playerID, player)
 
 			// Create and execute operation
-			op := operations.NewDeductResourcesOperation(playerRepo, gameID, playerID, tt.cost)
-			err := op.Execute(context.Background())
+			op, err := operations.NewDeductResourcesOperation(context.Background(), playerRepo, gameID, playerID, tt.cost)
+			require.NoError(t, err, "Failed to create operation")
+			err = op.Execute(context.Background())
 
 			if tt.expectError {
 				if err == nil {
@@ -221,8 +223,9 @@ func TestConsumeActionOperation(t *testing.T) {
 			playerRepo.SetPlayer(gameID, playerID, player)
 
 			// Create and execute operation
-			op := operations.NewConsumeActionOperation(playerRepo, gameID, playerID)
-			err := op.Execute(context.Background())
+			op, err := operations.NewConsumeActionOperation(context.Background(), playerRepo, gameID, playerID)
+			require.NoError(t, err, "Failed to create operation")
+			err = op.Execute(context.Background())
 
 			if tt.expectError {
 				if err == nil {
@@ -258,10 +261,11 @@ func TestOperationRollback(t *testing.T) {
 
 		// Create and execute operation
 		cost := model.Resources{Credits: 30, Steel: 5}
-		op := operations.NewDeductResourcesOperation(playerRepo, gameID, playerID, cost)
+		op, err := operations.NewDeductResourcesOperation(context.Background(), playerRepo, gameID, playerID, cost)
+		require.NoError(t, err, "Failed to create operation")
 
 		// Execute then rollback
-		err := op.Execute(context.Background())
+		err = op.Execute(context.Background())
 		if err != nil {
 			t.Fatalf("Execute failed: %v", err)
 		}
@@ -300,10 +304,11 @@ func TestOperationRollback(t *testing.T) {
 		playerRepo.SetPlayer(gameID, playerID, player)
 
 		// Create and execute operation
-		op := operations.NewConsumeActionOperation(playerRepo, gameID, playerID)
+		op, err := operations.NewConsumeActionOperation(context.Background(), playerRepo, gameID, playerID)
+		require.NoError(t, err, "Failed to create operation")
 
 		// Execute then rollback
-		err := op.Execute(context.Background())
+		err = op.Execute(context.Background())
 		if err != nil {
 			t.Fatalf("Execute failed: %v", err)
 		}

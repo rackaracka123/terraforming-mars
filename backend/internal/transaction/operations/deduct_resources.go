@@ -18,28 +18,33 @@ type DeductResourcesOperation struct {
 }
 
 // NewDeductResourcesOperation creates a new deduct resources operation
-func NewDeductResourcesOperation(playerRepo repository.PlayerRepository, gameID, playerID string, cost model.Resources) *DeductResourcesOperation {
+func NewDeductResourcesOperation(ctx context.Context, playerRepo repository.PlayerRepository, gameID, playerID string, cost model.Resources) (*DeductResourcesOperation, error) {
+	// Fetch current player state to store original resources for rollback
+	player, err := playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get player state: %w", err)
+	}
+
+	// Store original state for rollback
+	originalResources := player.Resources.DeepCopy()
+
 	return &DeductResourcesOperation{
 		playerRepo:    playerRepo,
 		gameID:        gameID,
 		playerID:      playerID,
 		cost:          cost,
-		originalState: nil, // Will be populated during execution
-	}
+		originalState: &originalResources,
+	}, nil
 }
 
 func (op *DeductResourcesOperation) Execute(ctx context.Context) error {
-	// Get current player state
+	// Get current player state for validation and calculation
 	player, err := op.playerRepo.GetByID(ctx, op.gameID, op.playerID)
 	if err != nil {
-		return fmt.Errorf("failed to get player state: %w", err)
+		return fmt.Errorf("failed to get current player state: %w", err)
 	}
 
-	// Store original state for rollback
-	originalResources := player.Resources.DeepCopy()
-	op.originalState = &originalResources
-
-	// Validate sufficient resources
+	// Validate sufficient resources using current state
 	if player.Resources.Credits < op.cost.Credits {
 		return fmt.Errorf("insufficient credits: need %d, have %d", op.cost.Credits, player.Resources.Credits)
 	}
@@ -59,7 +64,7 @@ func (op *DeductResourcesOperation) Execute(ctx context.Context) error {
 		return fmt.Errorf("insufficient heat: need %d, have %d", op.cost.Heat, player.Resources.Heat)
 	}
 
-	// Calculate new resource values
+	// Calculate new resource values from current state
 	newResources := model.Resources{
 		Credits:  player.Resources.Credits - op.cost.Credits,
 		Steel:    player.Resources.Steel - op.cost.Steel,
