@@ -34,12 +34,13 @@ type Hub struct {
 	Messages   chan HubMessage
 
 	// Components
-	manager           *Manager
-	broadcaster       *Broadcaster
-	connectionHandler MessageHandler
-	actionHandler     MessageHandler
-	eventHandler      EventHandler // Delegate for domain events
-	logger            *zap.Logger
+	manager      *Manager
+	broadcaster  *Broadcaster
+	eventHandler EventHandler // Delegate for domain events
+	logger       *zap.Logger
+
+	// New handler registry for specific message types
+	handlers map[dto.MessageType]MessageHandler
 
 	// Services (for routing to handlers)
 	gameService            service.GameService
@@ -56,8 +57,6 @@ func NewHub(
 	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
 	eventBus events.EventBus,
-	connectionHandler MessageHandler,
-	actionHandler MessageHandler,
 	eventHandler EventHandler,
 ) *Hub {
 	manager := NewManager()
@@ -69,10 +68,9 @@ func NewHub(
 		Messages:               make(chan HubMessage),
 		manager:                manager,
 		broadcaster:            broadcaster,
-		connectionHandler:      connectionHandler,
-		actionHandler:          actionHandler,
 		eventHandler:           eventHandler,
 		logger:                 logger.Get(),
+		handlers:               make(map[dto.MessageType]MessageHandler),
 		gameService:            gameService,
 		playerService:          playerService,
 		standardProjectService: standardProjectService,
@@ -125,15 +123,14 @@ func (h *Hub) GetManager() *Manager {
 	return h.manager
 }
 
-// SetHandlers sets the message handlers (used to break circular dependency)
-func (h *Hub) SetHandlers(connectionHandler, actionHandler MessageHandler) {
-	h.connectionHandler = connectionHandler
-	h.actionHandler = actionHandler
-}
-
 // SetEventHandler sets the event handler (used to break circular dependency)
 func (h *Hub) SetEventHandler(eventHandler EventHandler) {
 	h.eventHandler = eventHandler
+}
+
+// RegisterHandler registers a message handler for a specific message type
+func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandler) {
+	h.handlers[messageType] = handler
 }
 
 // routeMessage routes incoming messages to appropriate handlers
@@ -145,25 +142,12 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
-	// Route to appropriate handler based on message type
-	switch message.Type {
-	case dto.MessageTypePlayerConnect:
-		if h.connectionHandler != nil {
-			h.logger.Debug("🚪 Routing to connection handler")
-			h.connectionHandler.HandleMessage(ctx, connection, message)
-		} else {
-			h.logger.Error("Connection handler not set")
-			h.sendError(connection, ErrHandlerNotAvailable)
-		}
-	case dto.MessageTypePlayAction:
-		if h.actionHandler != nil {
-			h.logger.Debug("🎮 Routing to action handler")
-			h.actionHandler.HandleMessage(ctx, connection, message)
-		} else {
-			h.logger.Error("Action handler not set")
-			h.sendError(connection, ErrHandlerNotAvailable)
-		}
-	default:
+	// Check if we have a registered handler for this message type
+	if handler, exists := h.handlers[message.Type]; exists {
+		h.logger.Debug("🎯 Routing to registered message handler",
+			zap.String("message_type", string(message.Type)))
+		handler.HandleMessage(ctx, connection, message)
+	} else {
 		h.logger.Warn("❓ Unknown message type",
 			zap.String("message_type", string(message.Type)))
 		h.sendError(connection, ErrUnknownMessageType)

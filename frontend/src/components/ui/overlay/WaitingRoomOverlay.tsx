@@ -24,7 +24,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
     if (!isHost) return;
 
     // Send start game action via WebSocket
-    globalWebSocketManager.playAction({ type: "start-game" });
+    void globalWebSocketManager.startGame();
     onStartGame?.();
   };
 

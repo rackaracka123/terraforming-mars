@@ -2,17 +2,22 @@ package sell_patents
 
 import (
 	"context"
-	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
+
+	"go.uber.org/zap"
 )
 
 // Handler handles sell patents standard project action requests
 type Handler struct {
 	standardProjectService service.StandardProjectService
 	parser                 *utils.MessageParser
+	errorHandler           *utils.ErrorHandler
+	logger                 *zap.Logger
 }
 
 // NewHandler creates a new sell patents handler
@@ -20,24 +25,50 @@ func NewHandler(standardProjectService service.StandardProjectService, parser *u
 	return &Handler{
 		standardProjectService: standardProjectService,
 		parser:                 parser,
+		errorHandler:           utils.NewErrorHandler(),
+		logger:                 logger.Get(),
 	}
 }
 
-// Handle processes the sell patents action
-func (h *Handler) Handle(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
-	request, err := h.parseRequest(actionRequest)
-	if err != nil {
-		return err
+// HandleMessage implements the MessageHandler interface
+func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
+	playerID, gameID := connection.GetPlayer()
+	if playerID == "" || gameID == "" {
+		h.logger.Warn("Sell patents action received from unassigned connection",
+			zap.String("connection_id", connection.ID))
+		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
+		return
 	}
 
-	return h.standardProjectService.SellPatents(ctx, gameID, playerID, request.CardCount)
-}
+	h.logger.Debug("🏛️ Processing sell patents action",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
 
-// parseRequest parses and validates the action request
-func (h *Handler) parseRequest(actionRequest interface{}) (dto.ActionSellPatentsRequest, error) {
+	// Parse the action payload
 	var request dto.ActionSellPatentsRequest
-	if err := h.parser.ParsePayload(actionRequest, &request); err != nil {
-		return request, fmt.Errorf("invalid sell patents request: %w", err)
+	if err := h.parser.ParsePayload(message.Payload, &request); err != nil {
+		h.logger.Error("Failed to parse sell patents payload",
+			zap.Error(err),
+			zap.String("player_id", playerID))
+		h.errorHandler.SendError(connection, utils.ErrInvalidPayload)
+		return
 	}
-	return request, nil
+
+	// Execute the action
+	if err := h.standardProjectService.SellPatents(ctx, gameID, playerID, request.CardCount); err != nil {
+		h.logger.Error("Failed to sell patents",
+			zap.Error(err),
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID),
+			zap.Int("card_count", request.CardCount))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
+		return
+	}
+
+	h.logger.Info("✅ Sell patents action completed successfully",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID),
+		zap.Int("card_count", request.CardCount))
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
@@ -14,45 +15,74 @@ import (
 
 // Handler handles select production cards action requests
 type Handler struct {
-	cardService service.CardService
-	gameService service.GameService
-	parser      *utils.MessageParser
-	logger      *zap.Logger
+	cardService  service.CardService
+	gameService  service.GameService
+	parser       *utils.MessageParser
+	errorHandler *utils.ErrorHandler
+	logger       *zap.Logger
 }
 
 // NewHandler creates a new select cards handler
 func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService: cardService,
-		gameService: gameService,
-		parser:      parser,
-		logger:      logger.Get(),
+		cardService:  cardService,
+		gameService:  gameService,
+		parser:       parser,
+		errorHandler: utils.NewErrorHandler(),
+		logger:       logger.Get(),
 	}
 }
 
-// Handle processes the select production cards action
-func (h *Handler) Handle(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
-	request, err := h.parseRequest(actionRequest)
-	if err != nil {
-		return err
+// HandleMessage implements the MessageHandler interface
+func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
+	playerID, gameID := connection.GetPlayer()
+	if playerID == "" || gameID == "" {
+		h.logger.Warn("Select cards action received from unassigned connection",
+			zap.String("connection_id", connection.ID))
+		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
+		return
 	}
 
-	h.logCardSelection(gameID, playerID, request.CardIDs)
+	h.logger.Debug("🃏 Processing select cards action",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
 
-	if err := h.selectCards(ctx, gameID, playerID, request.CardIDs); err != nil {
-		return err
-	}
-
-	return h.markPlayerReady(ctx, gameID, playerID, request.CardIDs)
-}
-
-// parseRequest parses and validates the action request
-func (h *Handler) parseRequest(actionRequest interface{}) (dto.ActionSelectProductionCardsRequest, error) {
+	// Parse the action payload
 	var request dto.ActionSelectProductionCardsRequest
-	if err := h.parser.ParsePayload(actionRequest, &request); err != nil {
-		return request, fmt.Errorf("invalid select card request: %w", err)
+	if err := h.parser.ParsePayload(message.Payload, &request); err != nil {
+		h.logger.Error("Failed to parse select cards payload",
+			zap.Error(err),
+			zap.String("player_id", playerID))
+		h.errorHandler.SendError(connection, utils.ErrInvalidPayload)
+		return
 	}
-	return request, nil
+
+	// Execute the action
+	if err := h.handle(ctx, gameID, playerID, request.CardIDs); err != nil {
+		h.logger.Error("Failed to select cards",
+			zap.Error(err),
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
+		return
+	}
+
+	h.logger.Info("✅ Select cards action completed successfully",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
+}
+
+// handle processes the select production cards action (internal method)
+func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+	h.logCardSelection(gameID, playerID, cardIDs)
+
+	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
+		return err
+	}
+
+	return h.markPlayerReady(ctx, gameID, playerID, cardIDs)
 }
 
 // logCardSelection logs the card selection attempt

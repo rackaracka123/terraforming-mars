@@ -587,6 +587,7 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+No need to be backwards compatible.
 
 ## UI Design Guidelines
 - Do not use emojis when building any design. Use assets instead. If you believe there are no assets matching what you need, ASK.

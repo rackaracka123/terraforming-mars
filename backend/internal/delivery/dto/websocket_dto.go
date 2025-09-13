@@ -1,23 +1,6 @@
 package dto
 
-// MessageType represents different types of WebSocket messages
-type MessageType string
-
-const (
-	// Client -> Server messages
-	MessageTypePlayerConnect MessageType = "player-connect"
-	MessageTypePlayAction    MessageType = "do-action"
-
-	// Server -> Client messages
-	MessageTypeGameUpdated            MessageType = "game-updated"
-	MessageTypePlayerConnected        MessageType = "player-connected"
-	MessageTypePlayerReconnected      MessageType = "player-reconnected"
-	MessageTypePlayerDisconnected     MessageType = "player-disconnected"
-	MessageTypeError                  MessageType = "error"
-	MessageTypeFullState              MessageType = "full-state"
-	MessageTypeAvailableCards         MessageType = "available-cards"
-	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
-)
+// MessageType and message constants are now defined in message_types.go
 
 // WebSocketMessage represents a WebSocket message
 type WebSocketMessage struct {
@@ -31,11 +14,6 @@ type PlayerConnectPayload struct {
 	PlayerName string `json:"playerName" ts:"string"`
 	GameID     string `json:"gameId" ts:"string"`
 	PlayerID   string `json:"playerId,omitempty" ts:"string | undefined"` // Optional: used for reconnection
-}
-
-// PlayActionPayload contains game action data
-type PlayActionPayload struct {
-	ActionRequest interface{} `json:"actionRequest" ts:"any"`
 }
 
 // GameUpdatedPayload contains updated game state

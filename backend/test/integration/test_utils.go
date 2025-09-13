@@ -335,54 +335,60 @@ func (c *TestClient) ReconnectToGame(gameID, playerName string) error {
 	return c.conn.WriteJSON(message)
 }
 
-// SendAction sends a game action via WebSocket using proper DTOs
-func (c *TestClient) SendAction(action interface{}) error {
+// StartGame sends a start-game action (host only)
+func (c *TestClient) StartGame() error {
 	message := dto.WebSocketMessage{
-		Type:   dto.MessageTypePlayAction,
-		GameID: c.gameID,
-		Payload: dto.PlayActionPayload{
-			ActionRequest: action,
-		},
+		Type:    dto.MessageTypeActionStartGame,
+		GameID:  c.gameID,
+		Payload: map[string]interface{}{},
 	}
 
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	return c.conn.WriteJSON(message)
-}
 
-// StartGame sends a start-game action (host only)
-func (c *TestClient) StartGame() error {
-	// Use the same format as the CLI client
-	action := map[string]interface{}{
-		"type": string(dto.ActionTypeStartGame),
-	}
-	return c.SendAction(action)
+	return c.conn.WriteJSON(message)
 }
 
 // SelectStartingCards sends a select-starting-card action
 func (c *TestClient) SelectStartingCards(cardIDs []string) error {
-	action := map[string]interface{}{
-		"type":    string(dto.ActionTypeSelectStartingCard),
-		"cardIds": cardIDs,
+	message := dto.WebSocketMessage{
+		Type:    dto.MessageTypeActionSelectStartingCard,
+		GameID:  c.gameID,
+		Payload: map[string]interface{}{"cardIds": cardIDs},
 	}
-	return c.SendAction(action)
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
+	return c.conn.WriteJSON(message)
 }
 
 // LaunchAsteroid sends a launch-asteroid action (standard project)
 func (c *TestClient) LaunchAsteroid() error {
-	action := map[string]interface{}{
-		"type": string(dto.ActionTypeLaunchAsteroid),
+	message := dto.WebSocketMessage{
+		Type:    dto.MessageTypeActionLaunchAsteroid,
+		GameID:  c.gameID,
+		Payload: map[string]interface{}{},
 	}
-	return c.SendAction(action)
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
+	return c.conn.WriteJSON(message)
 }
 
 // PlayCard sends a play-card action
 func (c *TestClient) PlayCard(cardID string) error {
-	action := map[string]interface{}{
-		"type":   string(dto.ActionTypePlayCard),
-		"cardId": cardID,
+	message := dto.WebSocketMessage{
+		Type:    dto.MessageTypeActionPlayCard,
+		GameID:  c.gameID,
+		Payload: map[string]interface{}{"cardId": cardID},
 	}
-	return c.SendAction(action)
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
+	return c.conn.WriteJSON(message)
 }
 
 // WaitForMessage waits for a specific message type with timeout
@@ -681,4 +687,18 @@ func (c *TestClient) IsHost() (bool, error) {
 	}
 
 	return hostPlayerID == c.playerID, nil
+}
+
+// SendRawMessage sends a raw message for protocol testing (bypasses specific action routing)
+func (c *TestClient) SendRawMessage(messageType dto.MessageType, payload interface{}) error {
+	message := dto.WebSocketMessage{
+		Type:    messageType,
+		GameID:  c.gameID,
+		Payload: payload,
+	}
+
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+
+	return c.conn.WriteJSON(message)
 }
