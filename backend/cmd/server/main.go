@@ -11,7 +11,6 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/initialization"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -81,12 +80,6 @@ func main() {
 	// Log service initialization
 	log.Info("Player service ready", zap.Any("service", playerService != nil))
 	log.Info("Game service ready", zap.Any("service", gameService != nil))
-
-	// Register card-specific listeners
-	if err := initialization.RegisterCardListeners(eventBus); err != nil {
-		log.Fatal("Failed to register card listeners", zap.Error(err))
-	}
-	log.Info("Card listeners registered")
 
 	log.Info("Game management service initialized and ready")
 	log.Info("Consolidated repositories working correctly")
