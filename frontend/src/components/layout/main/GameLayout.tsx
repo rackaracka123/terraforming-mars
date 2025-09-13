@@ -90,10 +90,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
         {/* Overlay Components */}
         <PlayerOverlay
-          players={[
-            ...(gameState?.currentPlayer ? [gameState.currentPlayer] : []),
-            ...(gameState?.otherPlayers || []),
-          ]}
+          players={allPlayers}
           currentPlayer={currentPlayer}
         />
 
