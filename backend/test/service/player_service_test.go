@@ -195,32 +195,32 @@ func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
 	playerID := game.PlayerIDs[0]
 
 	t.Run("Update to connected status", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, model.ConnectionStatusConnected)
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, true)
 		assert.NoError(t, err)
 
 		// Verify the status was updated
 		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		assert.NoError(t, err)
-		assert.Equal(t, model.ConnectionStatusConnected, player.ConnectionStatus)
+		assert.Equal(t, true, player.IsConnected)
 	})
 
 	t.Run("Update to disconnected status", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, model.ConnectionStatusDisconnected)
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, false)
 		assert.NoError(t, err)
 
 		// Verify the status was updated
 		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		assert.NoError(t, err)
-		assert.Equal(t, model.ConnectionStatusDisconnected, player.ConnectionStatus)
+		assert.Equal(t, false, player.IsConnected)
 	})
 
 	t.Run("Invalid game ID", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, "invalid-game-id", playerID, model.ConnectionStatusConnected)
+		err := playerService.UpdatePlayerConnectionStatus(ctx, "invalid-game-id", playerID, true)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, "invalid-player-id", model.ConnectionStatusConnected)
+		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, "invalid-player-id", true)
 		assert.Error(t, err)
 	})
 }

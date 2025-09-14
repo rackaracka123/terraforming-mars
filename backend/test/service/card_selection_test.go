@@ -68,32 +68,27 @@ func TestCardSelectionFlow(t *testing.T) {
 	// Verify that game updated event was published
 	require.GreaterOrEqual(t, len(receivedEvents), 1, "Should have received at least 1 game updated event after waiting %v", waited)
 
-	// Verify card selection is now stored in player's production field
+	// Verify starting cards are distributed to player
 	players, err := playerRepo.ListByGameID(ctx, game.ID)
 	require.NoError(t, err)
 	require.Len(t, players, 1)
 
 	player := players[0]
-	require.NotNil(t, player.ProductionSelection, "Player should have production selection data")
-	require.Len(t, player.ProductionSelection.AvailableCards, 4, "Player should have 4 available starting cards")
-	require.False(t, player.ProductionSelection.SelectionComplete, "Player should not have completed selection yet")
+	require.NotNil(t, player.StartingSelection, "Player should have starting card selection data")
+	require.Len(t, player.StartingSelection, 10, "Player should have 10 available starting cards")
 
-	t.Logf("✅ Card options available in player production: %v", player.ProductionSelection.AvailableCards)
+	t.Logf("✅ Starting cards available to player: %v", player.StartingSelection)
 
-	// Test card selection - extract card IDs from Card objects
-	selectedCardObjects := player.ProductionSelection.AvailableCards[:2] // Select first 2 cards
-	selectedCards := make([]string, len(selectedCardObjects))
-	for i, card := range selectedCardObjects {
-		selectedCards[i] = card.ID
-	}
-	err = cardService.SelectStartingCards(ctx, game.ID, playerID, selectedCards)
+	// Test card selection - select first 2 cards
+	selectedCardIDs := player.StartingSelection[:2]
+	err = cardService.SelectStartingCards(ctx, game.ID, playerID, selectedCardIDs)
 	require.NoError(t, err)
-	t.Logf("✅ Cards selected successfully: %v", selectedCards)
+	t.Logf("✅ Cards selected successfully: %v", selectedCardIDs)
 
 	// Verify player has the selected cards
 	player, err = playerRepo.GetByID(ctx, game.ID, playerID)
 	require.NoError(t, err)
-	require.Equal(t, selectedCards, player.Cards, "Player should have the selected cards")
+	require.Equal(t, selectedCardIDs, player.Cards, "Player should have the selected cards")
 
 	t.Log("🎉 Card selection flow completed successfully!")
 }

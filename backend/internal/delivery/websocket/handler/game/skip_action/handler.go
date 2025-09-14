@@ -137,6 +137,7 @@ func (h *Handler) computePlayerProduction(ctx context.Context, gameID, playerID 
 
 	beforeResources := h.calculateBeforeResources(player)
 	afterResources := h.convertResources(player.Resources)
+	resourceDelta := h.calculateResourceDelta(beforeResources, afterResources)
 	production := h.convertProduction(player.Production)
 	creditsIncome := player.Production.Credits + player.TerraformRating
 
@@ -145,6 +146,7 @@ func (h *Handler) computePlayerProduction(ctx context.Context, gameID, playerID 
 		PlayerName:      player.Name,
 		BeforeResources: beforeResources,
 		AfterResources:  afterResources,
+		ResourceDelta:   resourceDelta,
 		Production:      production,
 		TerraformRating: player.TerraformRating,
 		EnergyConverted: player.Production.Energy,
@@ -185,5 +187,17 @@ func (h *Handler) convertProduction(production model.Production) dto.ProductionD
 		Plants:   production.Plants,
 		Energy:   production.Energy,
 		Heat:     production.Heat,
+	}
+}
+
+// calculateResourceDelta computes the difference between after and before resources
+func (h *Handler) calculateResourceDelta(before, after dto.ResourcesDto) dto.ResourceDelta {
+	return dto.ResourceDelta{
+		Credits:  after.Credits - before.Credits,
+		Steel:    after.Steel - before.Steel,
+		Titanium: after.Titanium - before.Titanium,
+		Plants:   after.Plants - before.Plants,
+		Energy:   after.Energy - before.Energy,
+		Heat:     after.Heat - before.Heat,
 	}
 }

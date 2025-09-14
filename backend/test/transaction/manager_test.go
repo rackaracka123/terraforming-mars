@@ -78,13 +78,7 @@ func (m *MockPlayerRepository) UpdateTerraformRating(ctx context.Context, gameID
 func (m *MockPlayerRepository) UpdateCorporation(ctx context.Context, gameID, playerID string, corporation string) error {
 	return nil // Stub implementation
 }
-func (m *MockPlayerRepository) UpdateConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
-	return nil // Stub implementation
-}
-func (m *MockPlayerRepository) UpdateIsActive(ctx context.Context, gameID, playerID string, isActive bool) error {
-	return nil // Stub implementation
-}
-func (m *MockPlayerRepository) UpdateIsReady(ctx context.Context, gameID, playerID string, isReady bool) error {
+func (m *MockPlayerRepository) UpdateConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
 	return nil // Stub implementation
 }
 func (m *MockPlayerRepository) UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error {
@@ -112,6 +106,9 @@ func (m *MockPlayerRepository) GetCardSelection(ctx context.Context, gameID, pla
 	return nil, nil // Stub implementation
 }
 func (m *MockPlayerRepository) ClearCardSelection(ctx context.Context, gameID, playerID string) error {
+	return nil // Stub implementation
+}
+func (m *MockPlayerRepository) SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	return nil // Stub implementation
 }
 

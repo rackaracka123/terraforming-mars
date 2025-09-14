@@ -1,6 +1,41 @@
 package dto
 
-import "terraforming-mars-backend/internal/model"
+import (
+	"context"
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/service"
+)
+
+// ToGameDtoWithCardService converts a model Game to personalized GameDto with card lookup capability
+func ToGameDtoWithCardService(ctx context.Context, game model.Game, players []model.Player, viewingPlayerID string, cardService service.CardService) GameDto {
+	// Find the viewing player and other players
+	var currentPlayer PlayerDto
+	// Initialize as empty slice instead of nil to prevent interface conversion panics
+	otherPlayers := []OtherPlayerDto{}
+
+	for _, player := range players {
+		if player.ID == viewingPlayerID {
+			currentPlayer = ToPlayerDtoWithCardService(ctx, player, cardService)
+		} else {
+			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
+		}
+	}
+
+	return GameDto{
+		ID:               game.ID,
+		Status:           GameStatus(game.Status),
+		Settings:         ToGameSettingsDto(game.Settings),
+		HostPlayerID:     game.HostPlayerID,
+		CurrentPhase:     GamePhase(game.CurrentPhase),
+		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
+		CurrentPlayer:    currentPlayer,
+		OtherPlayers:     otherPlayers,
+		ViewingPlayerID:  viewingPlayerID,
+		CurrentTurn:      game.CurrentTurn,
+		Generation:       game.Generation,
+		TurnOrder:        game.PlayerIDs,
+	}
+}
 
 // ToGameDto converts a model Game to personalized GameDto
 func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) GameDto {
@@ -33,8 +68,11 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 	}
 }
 
-// ToPlayerDto converts a model Player to PlayerDto
-func ToPlayerDto(player model.Player) PlayerDto {
+// ToPlayerDtoWithCardService converts a model Player to PlayerDto with card lookup capability
+func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardService service.CardService) PlayerDto {
+	// Convert starting card IDs to full card objects
+	startingCards := ConvertCardIDsToCardDtos(ctx, player.StartingSelection, cardService)
+
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
@@ -43,16 +81,34 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
-		IsActive:          player.IsActive,
-		IsReady:           player.IsReady,
 		PlayedCards:       player.PlayedCards,
 		Passed:            player.Passed,
 		AvailableActions:  player.AvailableActions,
 		VictoryPoints:     player.VictoryPoints,
-		MilestoneIcon:     player.MilestoneIcon,
-		ConnectionStatus:  player.ConnectionStatus,
+		IsConnected:       player.IsConnected,
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: ToCardDtoSlice(player.StartingSelection),
+		StartingSelection: startingCards,
+	}
+}
+
+// ToPlayerDto converts a model Player to PlayerDto
+func ToPlayerDto(player model.Player) PlayerDto {
+
+	return PlayerDto{
+		ID:                player.ID,
+		Name:              player.Name,
+		Corporation:       player.Corporation,
+		Cards:             player.Cards,
+		Resources:         ToResourcesDto(player.Resources),
+		Production:        ToProductionDto(player.Production),
+		TerraformRating:   player.TerraformRating,
+		PlayedCards:       player.PlayedCards,
+		Passed:            player.Passed,
+		AvailableActions:  player.AvailableActions,
+		VictoryPoints:     player.VictoryPoints,
+		IsConnected:       player.IsConnected,
+		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection: []CardDto{}, // Empty since we can't convert IDs without card service
 	}
 }
 
@@ -66,35 +122,35 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 		Resources:        ToResourcesDto(otherPlayer.Resources),
 		Production:       ToProductionDto(otherPlayer.Production),
 		TerraformRating:  otherPlayer.TerraformRating,
-		IsActive:         otherPlayer.IsActive,
-		IsReady:          otherPlayer.IsReady,
 		PlayedCards:      otherPlayer.PlayedCards,
 		Passed:           otherPlayer.Passed,
 		AvailableActions: otherPlayer.AvailableActions,
 		VictoryPoints:    otherPlayer.VictoryPoints,
-		MilestoneIcon:    otherPlayer.MilestoneIcon,
-		ConnectionStatus: otherPlayer.ConnectionStatus,
+		IsConnected:      otherPlayer.IsConnected,
+		IsSelectingCards: otherPlayer.IsSelectingCards,
 	}
 }
 
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
+	corporationName := ""
+	if player.Corporation != nil {
+		corporationName = *player.Corporation
+	}
+
 	return OtherPlayerDto{
 		ID:               player.ID,
 		Name:             player.Name,
-		Corporation:      player.Corporation,
+		Corporation:      corporationName,
 		HandCardCount:    len(player.Cards), // Hide actual cards, show count only
 		Resources:        ToResourcesDto(player.Resources),
 		Production:       ToProductionDto(player.Production),
 		TerraformRating:  player.TerraformRating,
-		IsActive:         player.IsActive,
-		IsReady:          player.IsReady,
 		PlayedCards:      player.PlayedCards, // Played cards are public
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
-		MilestoneIcon:    player.MilestoneIcon,
-		ConnectionStatus: player.ConnectionStatus,
+		IsConnected:      player.IsConnected,
 		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
@@ -233,7 +289,7 @@ func ToCardDto(card model.Card) CardDto {
 // ToCardDtoSlice converts a slice of model Cards to CardDto slice
 func ToCardDtoSlice(cards []model.Card) []CardDto {
 	if cards == nil {
-		return []CardDto{}
+		return nil
 	}
 
 	result := make([]CardDto, len(cards))
@@ -254,6 +310,26 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 		result[i] = CardTag(tag)
 	}
 	return result
+}
+
+// ConvertCardIDsToCardDtos converts a slice of card IDs to CardDto objects
+func ConvertCardIDsToCardDtos(ctx context.Context, cardIDs []string, cardService service.CardService) []CardDto {
+	if cardIDs == nil || len(cardIDs) == 0 {
+		return []CardDto{}
+	}
+
+	cardDtos := make([]CardDto, 0, len(cardIDs))
+	for _, cardID := range cardIDs {
+		card, err := cardService.GetCardByID(ctx, cardID)
+		if err != nil {
+			// Skip cards that can't be found but continue with others
+			continue
+		}
+		if card != nil {
+			cardDtos = append(cardDtos, ToCardDto(*card))
+		}
+	}
+	return cardDtos
 }
 
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto

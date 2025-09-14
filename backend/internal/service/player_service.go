@@ -25,7 +25,7 @@ type PlayerService interface {
 	GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error)
 
 	// Connection management
-	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
+	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error
 
 	// Validation methods for card system
 	ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error
@@ -241,18 +241,18 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 }
 
 // UpdatePlayerConnectionStatus updates a player's connection status
-func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
+func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Update connection status using granular method
-	err := s.playerRepo.UpdateConnectionStatus(ctx, gameID, playerID, status)
+	err := s.playerRepo.UpdateConnectionStatus(ctx, gameID, playerID, isConnected)
 	if err != nil {
 		log.Error("Failed to update player connection status", zap.Error(err))
 		return fmt.Errorf("failed to update player: %w", err)
 	}
 
 	log.Info("Updated player connection status",
-		zap.String("status", string(status)))
+		zap.Bool("is_connected", isConnected))
 
 	return nil
 }

@@ -59,7 +59,7 @@ func NewHub(
 	eventHandler EventHandler,
 ) *Hub {
 	manager := NewManager()
-	broadcaster := NewBroadcaster(manager, gameService, playerService)
+	broadcaster := NewBroadcaster(manager, gameService, playerService, cardService)
 
 	return &Hub{
 		Register:               make(chan *Connection),

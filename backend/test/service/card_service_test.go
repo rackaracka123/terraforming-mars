@@ -40,7 +40,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			Credits: 1,
 		},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 		Cards:           []string{},
 		PlayedCards:     []string{},
 	}
@@ -69,21 +69,16 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
-	// Use real card objects from loaded data
-	availableCards := []model.Card{
-		startingCards[0],
-		startingCards[1],
-		startingCards[2],
-		startingCards[3],
-	}
+	// Use real card IDs from loaded data
 	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
 		startingCards[2].ID,
 		startingCards[3].ID,
 	}
-	cardServiceImpl := cardService.(*service.CardServiceImpl)
-	cardServiceImpl.StorePlayerCardOptions(gameID, player.ID, availableCards)
+	// Set up player's starting card selection (the cards they can choose from)
+	err = playerRepo.SetStartingSelection(ctx, gameID, player.ID, availableCardIDs)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name          string
@@ -130,9 +125,9 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		},
 		{
 			name:          "Select too many cards",
-			selectedCards: []string{"investment", "early-settlement", "research-grant", "power-plant", "extra-card"},
+			selectedCards: append(availableCardIDs, "extra-card-id"),
 			expectedError: true,
-			errorMessage:  "cannot select more than 4 cards",
+			errorMessage:  "invalid card ID: extra-card-id",
 		},
 	}
 
@@ -149,7 +144,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 					Credits: 1,
 				},
 				TerraformRating: 20,
-				IsActive:        true,
+				IsConnected:     true,
 				Cards:           []string{},
 				PlayedCards:     []string{},
 			}
@@ -166,8 +161,9 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			// Reset card service selection status
-			cardServiceImpl.StorePlayerCardOptions(gameID, player.ID, availableCards)
+			// Reset player's starting selection
+			err = playerRepo.SetStartingSelection(ctx, gameID, player.ID, availableCardIDs)
+			require.NoError(t, err)
 
 			// Execute
 			err = cardService.SelectStartingCards(ctx, gameID, player.ID, tt.selectedCards)
@@ -222,7 +218,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	// Create game using clean architecture
@@ -249,13 +245,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
-	// Store starting card options using real card objects
-	availableCards := []model.Card{
-		startingCards[0],
-		startingCards[1],
-		startingCards[2],
-		startingCards[3],
-	}
+	// Store starting card IDs using real card data
 	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
@@ -279,8 +269,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		}
 	}
 
-	cardServiceImpl := cardService.(*service.CardServiceImpl)
-	cardServiceImpl.StorePlayerCardOptions(gameID, "player1", availableCards)
+	// Set up player's starting card selection
+	err = playerRepo.SetStartingSelection(ctx, gameID, "player1", availableCardIDs)
+	require.NoError(t, err)
 
 	tests := []struct {
 		name          string
@@ -306,9 +297,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		},
 		{
 			name:          "Too many cards",
-			cardIDs:       []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2], availableCardIDs[3], "extra"},
+			cardIDs:       append(availableCardIDs, "extra-card"),
 			expectedError: true,
-			errorMessage:  "cannot select more than 4 cards, got 5",
+			errorMessage:  "invalid card ID: extra-card",
 		},
 		{
 			name:          "Non-existent card ID",
@@ -320,8 +311,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset selection status
-			cardServiceImpl.StorePlayerCardOptions(gameID, "player1", availableCards)
+			// Reset player's starting selection
+			err = playerRepo.SetStartingSelection(ctx, gameID, "player1", availableCardIDs)
+			require.NoError(t, err)
 
 			err := cardService.ValidateStartingCardSelection(ctx, gameID, "player1", tt.cardIDs)
 
@@ -360,7 +352,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	player2 := model.Player{
@@ -369,7 +361,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	// Create game using clean architecture
@@ -400,27 +392,23 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
-	cardServiceImpl := cardService.(*service.CardServiceImpl)
-
 	// Test: No players have selection data
 	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
-	// Setup card options for both players using real card objects
-	availableCards := []model.Card{
-		startingCards[0],
-		startingCards[1],
-		startingCards[2],
-		startingCards[3],
-	}
+	// Setup card options for both players using real card IDs
 	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
 		startingCards[2].ID,
 		startingCards[3].ID,
 	}
-	cardServiceImpl.StorePlayerCardOptions(gameID, player1.ID, availableCards)
-	cardServiceImpl.StorePlayerCardOptions(gameID, player2.ID, availableCards)
+
+	// Set up starting card selections for both players
+	err = playerRepo.SetStartingSelection(ctx, gameID, player1.ID, availableCardIDs)
+	require.NoError(t, err)
+	err = playerRepo.SetStartingSelection(ctx, gameID, player2.ID, availableCardIDs)
+	require.NoError(t, err)
 
 	// Test: No players have completed selection
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)

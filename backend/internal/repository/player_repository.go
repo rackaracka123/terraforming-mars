@@ -25,9 +25,7 @@ type PlayerRepository interface {
 	UpdateProduction(ctx context.Context, gameID, playerID string, production model.Production) error
 	UpdateTerraformRating(ctx context.Context, gameID, playerID string, rating int) error
 	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation string) error
-	UpdateConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error
-	UpdateIsActive(ctx context.Context, gameID, playerID string, isActive bool) error
-	UpdateIsReady(ctx context.Context, gameID, playerID string, isReady bool) error
+	UpdateConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error
 	UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
@@ -42,7 +40,7 @@ type PlayerRepository interface {
 	ClearCardSelection(ctx context.Context, gameID, playerID string) error
 
 	// Starting card selection methods
-	SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error
+	SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -228,6 +226,12 @@ func (r *PlayerRepositoryImpl) UpdateResources(ctx context.Context, gameID, play
 		if err := r.eventBus.Publish(ctx, resourcesChangedEvent); err != nil {
 			log.Warn("Failed to publish player resources changed event", zap.Error(err))
 		}
+
+		// Also publish game updated event to notify WebSocket clients
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
 	}
 
 	return nil
@@ -301,8 +305,11 @@ func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, pl
 		return err
 	}
 
-	oldCorporation := player.Corporation
-	player.Corporation = corporation
+	var oldCorporation string
+	if player.Corporation != nil {
+		oldCorporation = *player.Corporation
+	}
+	player.Corporation = &corporation
 
 	log.Info("Player corporation updated", zap.String("old_corp", oldCorporation), zap.String("new_corp", corporation))
 
@@ -310,7 +317,7 @@ func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, pl
 }
 
 // UpdateConnectionStatus updates a player's connection status
-func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameID, playerID string, status model.ConnectionStatus) error {
+func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -321,57 +328,19 @@ func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameI
 		return err
 	}
 
-	oldStatus := player.ConnectionStatus
-	player.ConnectionStatus = status
+	oldStatus := player.IsConnected
+	player.IsConnected = isConnected
 
-	log.Info("Player connection status updated", zap.String("old_status", string(oldStatus)), zap.String("new_status", string(status)))
+	log.Info("Player connection status updated", zap.Bool("old_status", oldStatus), zap.Bool("new_status", isConnected))
 
 	// Publish game updated event if connection status changed OR if reconnecting
 	// Always publish when a player connects/reconnects to ensure all clients get updated state
-	if r.eventBus != nil && (oldStatus != status || status == model.ConnectionStatusConnected) {
+	if r.eventBus != nil && (oldStatus != isConnected || isConnected) {
 		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
 		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
 			log.Warn("Failed to publish game updated event", zap.Error(err))
 		}
 	}
-
-	return nil
-}
-
-// UpdateIsActive updates a player's active status
-func (r *PlayerRepositoryImpl) UpdateIsActive(ctx context.Context, gameID, playerID string, isActive bool) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, playerID)
-
-	player, err := r.getPlayerUnsafe(gameID, playerID)
-	if err != nil {
-		return err
-	}
-
-	player.IsActive = isActive
-
-	log.Info("Player active status updated", zap.Bool("is_active", isActive))
-
-	return nil
-}
-
-// UpdateIsReady updates a player's ready status
-func (r *PlayerRepositoryImpl) UpdateIsReady(ctx context.Context, gameID, playerID string, isReady bool) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, playerID)
-
-	player, err := r.getPlayerUnsafe(gameID, playerID)
-	if err != nil {
-		return err
-	}
-
-	player.IsReady = isReady
-
-	log.Info("Player ready status updated", zap.Bool("is_ready", isReady))
 
 	return nil
 }
@@ -645,8 +614,8 @@ func (r *PlayerRepositoryImpl) ClearCardSelection(ctx context.Context, gameID, p
 	return nil
 }
 
-// SetStartingSelection sets the starting cards for a player
-func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error {
+// SetStartingSelection sets the starting card IDs for a player
+func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -657,13 +626,21 @@ func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID,
 		return err
 	}
 
-	// Create a copy of the cards to prevent external mutation
-	cardsCopy := make([]model.Card, len(cards))
-	copy(cardsCopy, cards)
+	// Handle nil input properly - set to nil instead of empty slice
+	if cardIDs == nil {
+		player.StartingSelection = nil
+	} else {
+		// Create a copy of the card IDs to prevent external mutation
+		cardIDsCopy := make([]string, len(cardIDs))
+		copy(cardIDsCopy, cardIDs)
+		player.StartingSelection = cardIDsCopy
+	}
 
-	player.StartingSelection = cardsCopy
-
-	log.Info("🃏 Starting cards set for player", zap.Int("card_count", len(cardsCopy)))
+	cardCount := 0
+	if cardIDs != nil {
+		cardCount = len(cardIDs)
+	}
+	log.Info("🃏 Starting cards set for player", zap.Int("card_count", cardCount))
 
 	// Trigger event to notify about the game state change
 	event := events.NewGameUpdatedEvent(gameID)
