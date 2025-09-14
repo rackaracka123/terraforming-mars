@@ -36,21 +36,23 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
 	return PlayerDto{
-		ID:               player.ID,
-		Name:             player.Name,
-		Corporation:      player.Corporation,
-		Cards:            player.Cards,
-		Resources:        ToResourcesDto(player.Resources),
-		Production:       ToProductionDto(player.Production),
-		TerraformRating:  player.TerraformRating,
-		IsActive:         player.IsActive,
-		IsReady:          player.IsReady,
-		PlayedCards:      player.PlayedCards,
-		Passed:           player.Passed,
-		AvailableActions: player.AvailableActions,
-		VictoryPoints:    player.VictoryPoints,
-		MilestoneIcon:    player.MilestoneIcon,
-		ConnectionStatus: player.ConnectionStatus,
+		ID:                 player.ID,
+		Name:               player.Name,
+		Corporation:        player.Corporation,
+		Cards:              player.Cards,
+		Resources:          ToResourcesDto(player.Resources),
+		Production:         ToProductionDto(player.Production),
+		TerraformRating:    player.TerraformRating,
+		IsActive:           player.IsActive,
+		IsReady:            player.IsReady,
+		PlayedCards:        player.PlayedCards,
+		Passed:             player.Passed,
+		AvailableActions:   player.AvailableActions,
+		VictoryPoints:      player.VictoryPoints,
+		MilestoneIcon:      player.MilestoneIcon,
+		ConnectionStatus:   player.ConnectionStatus,
+		CardSelection:      ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection:  ToCardDtoSlice(player.StartingSelection),
 	}
 }
 
@@ -78,21 +80,22 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 	return OtherPlayerDto{
-		ID:               player.ID,
-		Name:             player.Name,
-		Corporation:      player.Corporation,
-		HandCardCount:    len(player.Cards), // Hide actual cards, show count only
-		Resources:        ToResourcesDto(player.Resources),
-		Production:       ToProductionDto(player.Production),
-		TerraformRating:  player.TerraformRating,
-		IsActive:         player.IsActive,
-		IsReady:          player.IsReady,
-		PlayedCards:      player.PlayedCards, // Played cards are public
-		Passed:           player.Passed,
-		AvailableActions: player.AvailableActions,
-		VictoryPoints:    player.VictoryPoints,
-		MilestoneIcon:    player.MilestoneIcon,
-		ConnectionStatus: player.ConnectionStatus,
+		ID:                  player.ID,
+		Name:                player.Name,
+		Corporation:         player.Corporation,
+		HandCardCount:       len(player.Cards), // Hide actual cards, show count only
+		Resources:           ToResourcesDto(player.Resources),
+		Production:          ToProductionDto(player.Production),
+		TerraformRating:     player.TerraformRating,
+		IsActive:            player.IsActive,
+		IsReady:             player.IsReady,
+		PlayedCards:         player.PlayedCards, // Played cards are public
+		Passed:              player.Passed,
+		AvailableActions:    player.AvailableActions,
+		VictoryPoints:       player.VictoryPoints,
+		MilestoneIcon:       player.MilestoneIcon,
+		ConnectionStatus:    player.ConnectionStatus,
+		IsSelectingCards:    player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
 
@@ -136,25 +139,6 @@ func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 	}
 }
 
-// ToCardDto converts a model Card to CardDto
-func ToCardDto(card model.Card) CardDto {
-	return CardDto{
-		ID:          card.ID,
-		Name:        card.Name,
-		Type:        CardType(card.Type),
-		Cost:        card.Cost,
-		Description: card.Description,
-	}
-}
-
-// ToCardDtoSlice converts a slice of model Cards to CardDto slice
-func ToCardDtoSlice(cards []model.Card) []CardDto {
-	dtos := make([]CardDto, len(cards))
-	for i, card := range cards {
-		dtos[i] = ToCardDto(card)
-	}
-	return dtos
-}
 
 // TODO: Create a new model for this usecase. Or rename the other "Game" that contains player data,
 // ToGameDtoBasic provides a basic non-personalized game view (temporary compatibility)
@@ -193,4 +177,94 @@ func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
 		dtos[i] = ToPlayerDto(player)
 	}
 	return dtos
+}
+
+// ToCardDto converts a model Card to CardDto
+func ToCardDto(card model.Card) CardDto {
+	// Convert production effects if present
+	var productionEffects *ProductionEffects
+	if card.ProductionEffects != nil {
+		productionEffects = &ProductionEffects{
+			Credits:  card.ProductionEffects.Credits,
+			Steel:    card.ProductionEffects.Steel,
+			Titanium: card.ProductionEffects.Titanium,
+			Plants:   card.ProductionEffects.Plants,
+			Energy:   card.ProductionEffects.Energy,
+			Heat:     card.ProductionEffects.Heat,
+		}
+	}
+
+	// Convert requirements
+	requirements := CardRequirements{
+		MinTemperature:     card.Requirements.MinTemperature,
+		MaxTemperature:     card.Requirements.MaxTemperature,
+		MinOxygen:          card.Requirements.MinOxygen,
+		MaxOxygen:          card.Requirements.MaxOxygen,
+		MinOceans:          card.Requirements.MinOceans,
+		MaxOceans:          card.Requirements.MaxOceans,
+		RequiredTags:       ToCardTagDtoSlice(card.Requirements.RequiredTags),
+	}
+
+	// Convert required production if present
+	if card.Requirements.RequiredProduction != nil {
+		requirements.RequiredProduction = &ResourceSet{
+			Credits:  card.Requirements.RequiredProduction.Credits,
+			Steel:    card.Requirements.RequiredProduction.Steel,
+			Titanium: card.Requirements.RequiredProduction.Titanium,
+			Plants:   card.Requirements.RequiredProduction.Plants,
+			Energy:   card.Requirements.RequiredProduction.Energy,
+			Heat:     card.Requirements.RequiredProduction.Heat,
+		}
+	}
+
+	return CardDto{
+		ID:                card.ID,
+		Name:              card.Name,
+		Type:              CardType(card.Type),
+		Cost:              card.Cost,
+		Description:       card.Description,
+		Tags:              ToCardTagDtoSlice(card.Tags),
+		Requirements:      requirements,
+		VictoryPoints:     card.VictoryPoints,
+		Number:            card.Number,
+		ProductionEffects: productionEffects,
+	}
+}
+
+// ToCardDtoSlice converts a slice of model Cards to CardDto slice
+func ToCardDtoSlice(cards []model.Card) []CardDto {
+	if cards == nil {
+		return []CardDto{}
+	}
+
+	result := make([]CardDto, len(cards))
+	for i, card := range cards {
+		result[i] = ToCardDto(card)
+	}
+	return result
+}
+
+// ToCardTagDtoSlice converts a slice of model CardTags to CardTag slice
+func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
+	if tags == nil {
+		return []CardTag{}
+	}
+
+	result := make([]CardTag, len(tags))
+	for i, tag := range tags {
+		result[i] = CardTag(tag)
+	}
+	return result
+}
+
+// ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto
+func ToProductionPhaseDto(phase *model.ProductionPhase) *ProductionPhaseDto {
+	if phase == nil {
+		return nil
+	}
+
+	return &ProductionPhaseDto{
+		AvailableCards:    ToCardDtoSlice(phase.AvailableCards),
+		SelectionComplete: phase.SelectionComplete,
+	}
 }

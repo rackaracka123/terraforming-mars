@@ -34,6 +34,15 @@ type PlayerRepository interface {
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
 	PlayCard(ctx context.Context, gameID, playerID string, cardID string) error
+
+	// Card selection methods - using nullable ProductionPhase
+	SetCardSelection(ctx context.Context, gameID, playerID string, productionPhase *model.ProductionPhase) error
+	SetCardSelectionComplete(ctx context.Context, gameID, playerID string) error
+	GetCardSelection(ctx context.Context, gameID, playerID string) (*model.ProductionPhase, error)
+	ClearCardSelection(ctx context.Context, gameID, playerID string) error
+
+	// Starting card selection methods
+	SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -538,3 +547,132 @@ func (r *PlayerRepositoryImpl) getPlayerUnsafe(gameID, playerID string) (*model.
 
 	return player, nil
 }
+
+// SetCardSelection sets the card selection state for a player
+func (r *PlayerRepositoryImpl) SetCardSelection(ctx context.Context, gameID, playerID string, productionPhase *model.ProductionPhase) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Deep copy the production phase to prevent external mutation
+	if productionPhase != nil {
+		cardsCopy := make([]model.Card, len(productionPhase.AvailableCards))
+		copy(cardsCopy, productionPhase.AvailableCards)
+
+		player.ProductionSelection = &model.ProductionPhase{
+			AvailableCards:    cardsCopy,
+			SelectionComplete: productionPhase.SelectionComplete,
+		}
+
+		log.Info("Production phase state set for player", zap.Int("card_count", len(cardsCopy)), zap.Bool("complete", productionPhase.SelectionComplete))
+	} else {
+		player.ProductionSelection = nil
+		log.Info("Production phase state cleared for player")
+	}
+
+	return nil
+}
+
+// SetCardSelectionComplete marks the card selection as complete for a player
+func (r *PlayerRepositoryImpl) SetCardSelectionComplete(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	if player.ProductionSelection == nil {
+		return fmt.Errorf("player has no card selection data to complete")
+	}
+
+	// Mark selection as complete but keep the data
+	player.ProductionSelection.SelectionComplete = true
+	log.Info("Card selection marked as complete for player")
+
+	return nil
+}
+
+// GetCardSelection returns the card selection state for a player
+func (r *PlayerRepositoryImpl) GetCardSelection(ctx context.Context, gameID, playerID string) (*model.ProductionPhase, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.ProductionSelection == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to prevent external mutation
+	cardsCopy := make([]model.Card, len(player.ProductionSelection.AvailableCards))
+	copy(cardsCopy, player.ProductionSelection.AvailableCards)
+
+	return &model.ProductionPhase{
+		AvailableCards:    cardsCopy,
+		SelectionComplete: player.ProductionSelection.SelectionComplete,
+	}, nil
+}
+
+
+
+// ClearCardSelection clears the card selection data for a player
+func (r *PlayerRepositoryImpl) ClearCardSelection(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.ProductionSelection = nil
+
+	log.Info("Card selection data cleared for player")
+
+	return nil
+}
+
+// SetStartingSelection sets the starting cards for a player
+func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Create a copy of the cards to prevent external mutation
+	cardsCopy := make([]model.Card, len(cards))
+	copy(cardsCopy, cards)
+
+	player.StartingSelection = cardsCopy
+
+	log.Info("🃏 Starting cards set for player", zap.Int("card_count", len(cardsCopy)))
+
+	// Trigger event to notify about the game state change
+	event := events.NewGameUpdatedEvent(gameID)
+	if err := r.eventBus.Publish(ctx, event); err != nil {
+		log.Warn("Failed to publish game updated event", zap.Error(err))
+	}
+
+	return nil
+}
+

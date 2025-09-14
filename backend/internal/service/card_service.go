@@ -30,7 +30,7 @@ type CardService interface {
 	GetStartingCards(ctx context.Context) ([]model.Card, error)
 
 	// Generate starting card options for a player
-	GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]string, error)
+	GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]model.Card, error)
 
 	// Get card by ID
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
@@ -38,30 +38,32 @@ type CardService interface {
 
 // CardServiceImpl implements CardService interface
 type CardServiceImpl struct {
-	gameRepo          repository.GameRepository
-	playerRepo        repository.PlayerRepository
-	cardRepo          repository.CardRepository
-	eventBus          events.EventBus
-	cardDeckRepo      repository.CardDeckRepository
-	cardSelectionRepo repository.CardSelectionRepository
+	gameRepo     repository.GameRepository
+	playerRepo   repository.PlayerRepository
+	cardRepo     repository.CardRepository
+	eventBus     events.EventBus
+	cardDeckRepo repository.CardDeckRepository
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository, cardSelectionRepo repository.CardSelectionRepository) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository) CardService {
 	return &CardServiceImpl{
-		gameRepo:          gameRepo,
-		playerRepo:        playerRepo,
-		cardRepo:          cardRepo,
-		eventBus:          eventBus,
-		cardDeckRepo:      cardDeckRepo,
-		cardSelectionRepo: cardSelectionRepo,
+		gameRepo:     gameRepo,
+		playerRepo:   playerRepo,
+		cardRepo:     cardRepo,
+		eventBus:     eventBus,
+		cardDeckRepo: cardDeckRepo,
 	}
 }
 
 // StorePlayerCardOptions stores the starting card options for a player (called during game start)
-func (s *CardServiceImpl) StorePlayerCardOptions(gameID, playerID string, cardOptions []string) {
+func (s *CardServiceImpl) StorePlayerCardOptions(gameID, playerID string, cardOptions []model.Card) {
 	ctx := context.Background()
-	s.cardSelectionRepo.StorePlayerOptions(ctx, gameID, playerID, cardOptions)
+	productionPhase := &model.ProductionPhase{
+		AvailableCards:    cardOptions,
+		SelectionComplete: false,
+	}
+	s.playerRepo.SetCardSelection(ctx, gameID, playerID, productionPhase)
 }
 
 // SelectStartingCards handles the starting card selection for a player
@@ -106,8 +108,11 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 		}
 	}
 
-	// Mark player as having completed selection
-	s.cardSelectionRepo.MarkSelectionComplete(ctx, gameID, playerID)
+	// Clear the starting selection to mark completion (prevents indefinite prompting)
+	if err := s.playerRepo.SetStartingSelection(ctx, gameID, playerID, nil); err != nil {
+		log.Error("Failed to clear starting selection", zap.Error(err))
+		return fmt.Errorf("failed to clear starting selection: %w", err)
+	}
 
 	// Create and publish the starting card selected event
 	event := events.NewCardSelectedEvent(gameID, playerID, cardIDs, cost)
@@ -158,27 +163,30 @@ func (s *CardServiceImpl) SelectProductionCards(ctx context.Context, gameID, pla
 
 // ValidateStartingCardSelection validates a player's starting card selection
 func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	// Check if player has card options stored
-	playerOptions, err := s.cardSelectionRepo.GetPlayerOptions(ctx, gameID, playerID)
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player to check starting card selection state
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
-		return fmt.Errorf("failed to get player options: %w", err)
-	}
-	if playerOptions == nil {
-		return fmt.Errorf("no card options found for player")
+		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Check if player already selected cards
-	hasSelected, err := s.cardSelectionRepo.IsSelectionComplete(ctx, gameID, playerID)
-	if err != nil {
-		return fmt.Errorf("failed to check selection status: %w", err)
-	}
-	if hasSelected {
-		return fmt.Errorf("player has already selected starting cards")
+	// Check if player has starting cards available for selection
+	if player.StartingSelection == nil || len(player.StartingSelection) == 0 {
+		return fmt.Errorf("player has no starting cards available for selection")
 	}
 
-	// Check maximum cards (4 is the maximum starting cards dealt)
-	if len(cardIDs) > 4 {
-		return fmt.Errorf("cannot select more than 4 cards, got %d", len(cardIDs))
+	// Check if player already has cards in hand (indicating they already completed selection)
+	if len(player.Cards) > 0 {
+		log.Debug("Player has cards in hand, selection already completed", zap.Int("cards_in_hand", len(player.Cards)))
+		return fmt.Errorf("player has already completed card selection")
+	}
+
+	playerOptions := player.StartingSelection
+
+	// Check maximum cards (10 is the maximum starting cards dealt)
+	if len(cardIDs) > 10 {
+		return fmt.Errorf("cannot select more than 10 cards, got %d", len(cardIDs))
 	}
 
 	// Validate card IDs exist in the starting cards pool first
@@ -200,7 +208,7 @@ func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gam
 	// Then validate selected cards are in player's options
 	optionsMap := make(map[string]bool)
 	for _, option := range playerOptions {
-		optionsMap[option] = true
+		optionsMap[option.ID] = true
 	}
 
 	for _, cardID := range cardIDs {
@@ -214,20 +222,111 @@ func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gam
 
 // IsAllPlayersCardSelectionComplete checks if all players in the game have completed card selection
 func (s *CardServiceImpl) IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool {
-	// Use the repository to check if all selections are complete
-	allComplete, err := s.cardSelectionRepo.IsAllSelectionsComplete(ctx, gameID)
+	log := logger.WithGameContext(gameID, "")
+
+	// Get current game state to determine which selection type to check
+	game, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
-		logger.WithGameContext(gameID, "").Error("Failed to check selection completion", zap.Error(err))
+		log.Error("Failed to get game for selection completion check", zap.Error(err))
 		return false
 	}
 
+	// Get all players in the game
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for selection completion check", zap.Error(err))
+		return false
+	}
+
+	// If no players exist, selection is not complete
+	if len(players) == 0 {
+		return false
+	}
+
+	// Check completion based on current game phase
+	if game.CurrentPhase == model.GamePhaseStartingCardSelection {
+		return s.checkStartingCardSelectionComplete(players, log)
+	} else if game.CurrentPhase == model.GamePhaseProductionAndCardDraw {
+		return s.checkProductionCardSelectionComplete(players, log)
+	}
+
+	// For other phases, assume no card selection is needed
+	return true
+}
+
+// checkStartingCardSelectionComplete checks if all players have starting cards (indicating selection is complete)
+func (s *CardServiceImpl) checkStartingCardSelectionComplete(players []model.Player, log *zap.Logger) bool {
+	playersWithStartingCards := 0
+
+	// For starting card selection, we check if players have cards in their hand
+	// (cards are added to hand after selection is confirmed)
+	for _, player := range players {
+		if len(player.Cards) > 0 {
+			playersWithStartingCards++
+			log.Debug("Player has completed starting card selection", zap.String("player_id", player.ID), zap.Int("cards_count", len(player.Cards)))
+		} else if player.StartingSelection != nil && len(player.StartingSelection) > 0 {
+			log.Debug("Player has starting selection but hasn't confirmed", zap.String("player_id", player.ID))
+		} else {
+			log.Debug("Player has no starting cards or selection", zap.String("player_id", player.ID))
+		}
+	}
+
+	// All players must have selected and confirmed their starting cards
+	allComplete := playersWithStartingCards == len(players)
+	log.Debug("Starting card selection completion check",
+		zap.Int("total_players", len(players)),
+		zap.Int("players_with_cards", playersWithStartingCards),
+		zap.Bool("all_complete", allComplete))
+
 	return allComplete
+}
+
+// checkProductionCardSelectionComplete checks production card selection completion (original logic)
+func (s *CardServiceImpl) checkProductionCardSelectionComplete(players []model.Player, log *zap.Logger) bool {
+	// Track selection states
+	playersWithIncompleteSelection := 0
+	playersWithSelectionData := 0
+
+	// Check each player's selection status
+	for _, player := range players {
+		if player.ProductionSelection != nil {
+			playersWithSelectionData++
+			// If any player has selection data but hasn't completed, selection is not done
+			if !player.ProductionSelection.SelectionComplete {
+				playersWithIncompleteSelection++
+			}
+		}
+	}
+
+	// If any player has incomplete selection, overall selection is not complete
+	if playersWithIncompleteSelection > 0 {
+		return false
+	}
+
+	// If no players have selection data at all, selection is not complete
+	// This handles the case where the selection phase hasn't been initiated yet
+	if playersWithSelectionData == 0 {
+		return false
+	}
+
+	// If we reach here, all players with selection data have completed selection
+	return true
 }
 
 // ClearGameSelectionData clears temporary selection data for a game (called after selection phase completes)
 func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 	ctx := context.Background()
-	s.cardSelectionRepo.Clear(ctx, gameID)
+	
+	// Get all players in the game and clear their selection data
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		logger.WithGameContext(gameID, "").Error("Failed to get players for clearing selection data", zap.Error(err))
+		return
+	}
+
+	for _, player := range players {
+		s.playerRepo.ClearCardSelection(ctx, gameID, player.ID)
+	}
 
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
 }
@@ -238,7 +337,7 @@ func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]model.Card, e
 }
 
 // GenerateStartingCardOptions generates 4 random starting card options for a player
-func (s *CardServiceImpl) GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]string, error) {
+func (s *CardServiceImpl) GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]model.Card, error) {
 	startingCards, err := s.cardRepo.GetStartingCardPool(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get starting card pool: %w", err)
@@ -246,12 +345,12 @@ func (s *CardServiceImpl) GenerateStartingCardOptions(ctx context.Context, gameI
 
 	// For now, return first 4 cards as options
 	// In a full implementation, you'd randomize this selection
-	var options []string
+	var options []model.Card
 	for i, card := range startingCards {
 		if i >= 4 {
 			break
 		}
-		options = append(options, card.ID)
+		options = append(options, card)
 	}
 
 	// Store the options for validation

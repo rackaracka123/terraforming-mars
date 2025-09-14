@@ -53,7 +53,7 @@ export default function GameInterface() {
 
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
-  const [availableCards, setAvailableCards] = useState<CardDto[]>([]);
+  const [cardDetails, setCardDetails] = useState<CardDto[]>([]);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -92,6 +92,13 @@ export default function GameInterface() {
     previousGameRef.current = deepClone(updatedGame);
 
     setGame(updatedGame);
+    setIsConnected(true);
+
+    // If we were reconnecting, mark reconnection as successful
+    if (isReconnecting) {
+      console.log("✅ Reconnection successful");
+      setIsReconnecting(false);
+    }
 
     // Set current player from updated game data
     const updatedPlayer = updatedGame.currentPlayer;
@@ -103,7 +110,7 @@ export default function GameInterface() {
     } else {
       setShowCorporationModal(false);
     }
-  }, []);
+  }, [isReconnecting]);
 
   const handleFullState = useCallback(
     (statePayload: FullStatePayload) => {
@@ -133,15 +140,16 @@ export default function GameInterface() {
     // WebSocket connection closed - this client lost connection
     setIsConnected(false);
 
-    // Only redirect if we were actually connected to a game
+    // Only start reconnection if we were actually connected to a game
     if (currentPlayerIdRef.current) {
-      // Attempting reconnection instead of returning to main menu
+      // Start in-place reconnection instead of redirecting
       setIsReconnecting(true);
 
-      // Try to navigate to reconnecting page with game data
       const savedGameData = localStorage.getItem("terraforming-mars-game");
       if (savedGameData) {
-        navigate("/reconnecting", { replace: true });
+        console.log("🔄 Connection lost, attempting reconnection...");
+        // Attempt to reconnect in place
+        attemptReconnection();
       } else {
         // No saved game data, go to main menu
         navigate("/", { replace: true });
@@ -187,39 +195,66 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
-  const handleAvailableCards = useCallback(
-    (payload: any) => {
-      // Available cards received - store them and show overlay when ready
-      if (payload?.cards && Array.isArray(payload.cards)) {
-        setAvailableCards(payload.cards);
-
-        // Show overlay immediately if we're already in the correct phase
-        const currentGamePhase = game?.currentPhase;
-        const currentGameStatus = game?.status;
-
-        if (
-          currentGamePhase === GamePhaseStartingCardSelection &&
-          currentGameStatus === GameStatusActive
-        ) {
-          setShowCardSelection(true);
-        }
-        // The overlay will be shown when the game state updates via useEffect
-      }
-    },
-    [game],
-  );
 
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
       // Send card selection to server
       await globalWebSocketManager.selectStartingCard(selectedCardIds);
-      // Close the overlay
-      setShowCardSelection(false);
-      setAvailableCards([]);
+      // Modal will auto-hide when backend clears startingSelection field
     } catch (error) {
       console.error("Failed to select cards:", error);
     }
   }, []);
+
+  // Attempt reconnection to the game
+  const attemptReconnection = useCallback(async () => {
+    try {
+      const savedGameData = localStorage.getItem("terraforming-mars-game");
+      if (!savedGameData) {
+        console.error("No saved game data for reconnection");
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+      console.log("🔄 Reconnecting to game:", { gameId, playerId, playerName });
+
+      // Fetch current game state from server first
+      const response = await fetch(`http://localhost:3001/api/v1/games/${gameId}`);
+      if (!response.ok) {
+        throw new Error(`Game not found: ${response.status}`);
+      }
+
+      const gameData = await response.json();
+      console.log("✅ Game state fetched successfully");
+
+      // Update local state with fetched game data
+      setGame(gameData.game);
+      setPlayerId(playerId);
+
+      // Set current player from fetched game data
+      const player = gameData.game.currentPlayer;
+      setCurrentPlayer(player || null);
+
+      // Store player ID for WebSocket handlers
+      currentPlayerIdRef.current = playerId;
+
+      // Now establish WebSocket connection
+      console.log("🔌 Establishing WebSocket connection...");
+      globalWebSocketManager.connect(gameId, playerId, playerName);
+
+      // Connection will be marked as successful when WebSocket connects
+      // and we receive a game-updated or player-reconnected event
+      console.log("⏳ Waiting for WebSocket connection confirmation...");
+
+    } catch (error) {
+      console.error("❌ Reconnection failed:", error);
+      setIsReconnecting(false);
+      // Don't navigate away - let user try manual reconnection
+      // or they can manually navigate to home if needed
+      console.error("Failed to reconnect to game. Please check your connection and try again.");
+    }
+  }, [navigate]);
 
   // Setup WebSocket listeners using global manager - only initialize once
   const setupWebSocketListeners = useCallback(() => {
@@ -236,7 +271,6 @@ export default function GameInterface() {
       "production-phase-started",
       handleProductionPhaseStarted,
     );
-    globalWebSocketManager.on("available-cards", handleAvailableCards);
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
 
@@ -255,7 +289,6 @@ export default function GameInterface() {
         "production-phase-started",
         handleProductionPhaseStarted,
       );
-      globalWebSocketManager.off("available-cards", handleAvailableCards);
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
       isWebSocketInitialized.current = false;
@@ -267,7 +300,6 @@ export default function GameInterface() {
     handlePlayerReconnected,
     handlePlayerDisconnected,
     handleProductionPhaseStarted,
-    handleAvailableCards,
     handleError,
     handleDisconnect,
   ]);
@@ -338,11 +370,13 @@ export default function GameInterface() {
         !routeState?.playerId ||
         !routeState?.playerName
       ) {
-        // No route state, check if we should route to reconnection page
+        // No route state, check if we should attempt reconnection
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
-          // Route to reconnecting page instead of attempting reconnection here
-          navigate("/reconnecting", { replace: true });
+          console.log("🔄 No route state, attempting reconnection from saved data...");
+          // Start in-place reconnection instead of redirecting
+          setIsReconnecting(true);
+          attemptReconnection();
           return;
         }
 
@@ -434,25 +468,39 @@ export default function GameInterface() {
     };
   }, []);
 
-  // Show starting card selection overlay when both conditions are met
+  // Extract card details directly from game data (backend now sends full card objects)
+  const extractCardDetails = useCallback((cards: CardDto[]) => {
+    console.log("📥 Extracting card details from backend:", cards);
+    setCardDetails(cards);
+  }, []);
+
+  // Show/hide starting card selection overlay based on backend state
   useEffect(() => {
+    const cards = game?.currentPlayer?.startingSelection;
+    const hasCardSelection = cards && cards.length > 0;
+
     console.log("🔍 Checking overlay conditions:", {
       gamePhase: game?.currentPhase,
       gameStatus: game?.status,
-      hasCards: availableCards?.length > 0,
+      hasCardSelection,
       currentlyShowing: showCardSelection,
+      cardCount: cards?.length,
     });
 
     if (
       game?.currentPhase === GamePhaseStartingCardSelection &&
       game?.status === GameStatusActive &&
-      availableCards?.length > 0 &&
+      hasCardSelection &&
       !showCardSelection
     ) {
-      console.log("🎪 All conditions met - showing card selection overlay");
+      console.log("🎪 Showing overlay - backend has starting cards");
+      extractCardDetails(cards);
       setShowCardSelection(true);
+    } else if (showCardSelection && !hasCardSelection) {
+      console.log("🎪 Hiding overlay - backend cleared starting cards (selection complete)");
+      setShowCardSelection(false);
     }
-  }, [game?.currentPhase, game?.status, availableCards, showCardSelection]);
+  }, [game?.currentPhase, game?.status, game?.currentPlayer?.startingSelection, showCardSelection, extractCardDetails]);
 
   // Demo keyboard shortcuts
   useEffect(() => {
@@ -612,10 +660,56 @@ export default function GameInterface() {
       {/* Starting card selection overlay */}
       <StartingCardSelectionOverlay
         isOpen={showCardSelection}
-        cards={availableCards}
+        cards={cardDetails}
         playerCredits={currentPlayer?.resources?.credits || 40}
         onConfirmSelection={handleCardSelection}
       />
+
+      {/* Reconnection overlay */}
+      {isReconnecting && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            color: 'white',
+            fontSize: '18px',
+            textAlign: 'center',
+            flexDirection: 'column',
+            gap: '20px'
+          }}
+        >
+          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+            🔄 Reconnecting to Game...
+          </div>
+          <div>
+            Please wait while we restore your connection
+          </div>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid rgba(255, 255, 255, 0.3)',
+              borderTop: '4px solid white',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}
+          />
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
     </>
   );
 }

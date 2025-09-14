@@ -176,12 +176,10 @@ export interface ActionBuildCityRequest {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase =
-  "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase =
-  "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -282,6 +280,13 @@ export interface CorporationDto {
   number: string;
 }
 /**
+ * ProductionPhaseDto represents card selection and production phase state for a player
+ */
+export interface ProductionPhaseDto {
+  availableCards: CardDto[]; // Cards available for selection
+  selectionComplete: boolean; // Whether player completed card selection
+}
+/**
  * GameSettingsDto contains configurable game parameters
  */
 export interface GameSettingsDto {
@@ -326,7 +331,7 @@ export interface PlayerDto {
   corporation: string;
   cards: string[];
   resources: ResourcesDto;
-  production: ProductionDto;
+  resourceProduction: ProductionDto;
   terraformRating: number /* int */;
   isActive: boolean;
   isReady: boolean;
@@ -336,6 +341,10 @@ export interface PlayerDto {
   victoryPoints: number /* int */;
   milestoneIcon: string;
   connectionStatus: any /* model.ConnectionStatus */;
+  /**
+   * Card selection state - nullable, exists only during selection phase
+   */
+  production?: ProductionPhaseDto;
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -346,7 +355,7 @@ export interface OtherPlayerDto {
   corporation: string;
   handCardCount: number /* int */; // Number of cards in hand (private)
   resources: ResourcesDto;
-  production: ProductionDto;
+  resourceProduction: ProductionDto;
   terraformRating: number /* int */;
   isActive: boolean;
   isReady: boolean;
@@ -356,6 +365,10 @@ export interface OtherPlayerDto {
   victoryPoints: number /* int */;
   milestoneIcon: string;
   connectionStatus: any /* model.ConnectionStatus */;
+  /**
+   * Card selection state - limited visibility for other players
+   */
+  isSelectingCards: boolean; // Whether player is currently selecting cards
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)
@@ -463,40 +476,28 @@ export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
 export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
-export const MessageTypeAvailableCards: MessageType = "available-cards";
-export const MessageTypeProductionPhaseStarted: MessageType =
-  "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
  */
-export const MessageTypeActionSellPatents: MessageType =
-  "action.standard-project.sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType =
-  "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType =
-  "action.standard-project.build-power-plant";
-export const MessageTypeActionBuildAquifer: MessageType =
-  "action.standard-project.build-aquifer";
-export const MessageTypeActionPlantGreenery: MessageType =
-  "action.standard-project.plant-greenery";
-export const MessageTypeActionBuildCity: MessageType =
-  "action.standard-project.build-city";
+export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
 /**
  * Game management message types
  */
-export const MessageTypeActionStartGame: MessageType =
-  "action.game-management.start-game";
-export const MessageTypeActionSkipAction: MessageType =
-  "action.game-management.skip-action";
+export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
 /**
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionSelectStartingCard: MessageType =
-  "action.card.select-starting-card";
-export const MessageTypeActionSelectCards: MessageType =
-  "action.card.select-cards";
+export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
 
 //////////
 // source: websocket_dto.go
@@ -544,12 +545,6 @@ export interface ErrorPayload {
 export interface FullStatePayload {
   game: GameDto;
   playerId: string;
-}
-/**
- * AvailableCardsPayload contains available starting cards
- */
-export interface AvailableCardsPayload {
-  cards: CardDto[];
 }
 /**
  * PlayerReconnectedPayload contains data about a reconnected player

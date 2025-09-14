@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
@@ -201,6 +200,54 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	}
 
 	log.Info("Game started", zap.String("game_id", gameID))
+	return nil
+}
+
+// distributeStartingCards gives each player 10 random cards to choose from for starting selection
+func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []model.Player) error {
+	log := logger.WithGameContext(gameID, "")
+	log.Debug("Distributing starting cards to players")
+
+	// Get the starting card pool from card service
+	startingCards, err := s.cardService.GetStartingCards(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get starting card pool: %w", err)
+	}
+
+	if len(startingCards) < 10 {
+		return fmt.Errorf("insufficient cards in pool: need at least 10, got %d", len(startingCards))
+	}
+
+	// For each player, select 10 random cards for starting selection
+	for _, player := range players {
+		// Create a copy of the starting cards pool for randomization
+		cardPool := make([]model.Card, len(startingCards))
+		copy(cardPool, startingCards)
+
+		// Shuffle the card pool using Fisher-Yates algorithm
+		for i := len(cardPool) - 1; i > 0; i-- {
+			j := rand.Intn(i + 1)
+			cardPool[i], cardPool[j] = cardPool[j], cardPool[i]
+		}
+
+		// Take the first 10 cards as the player's starting selection
+		playerStartingCards := cardPool[:10]
+
+		// Update the player with starting cards
+		if err := s.playerRepo.SetStartingSelection(ctx, gameID, player.ID, playerStartingCards); err != nil {
+			log.Error("Failed to set starting selection for player",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return fmt.Errorf("failed to set starting selection for player %s: %w", player.ID, err)
+		}
+
+		log.Info("Distributed starting cards to player",
+			zap.String("player_id", player.ID),
+			zap.Int("card_count", len(playerStartingCards)))
+	}
+
+	log.Info("Successfully distributed starting cards to all players",
+		zap.Int("player_count", len(players)))
 	return nil
 }
 
@@ -486,6 +533,22 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 		return model.Game{}, fmt.Errorf("failed to get updated game: %w", err)
 	}
 
+	// If game is in starting_card_selection phase, distribute starting cards to the new player
+	if updatedGame.Status == model.GameStatusActive && updatedGame.CurrentPhase == model.GamePhaseStartingCardSelection {
+		log.Debug("Game is in starting card selection phase, distributing cards to new player", zap.String("player_id", playerID))
+
+		// Create a slice with just the new player for card distribution
+		newPlayerSlice := []model.Player{player}
+
+		if err := s.distributeStartingCards(ctx, gameID, newPlayerSlice); err != nil {
+			log.Error("Failed to distribute starting cards to new player", zap.Error(err), zap.String("player_id", playerID))
+			// Don't return error here - player joined successfully, just missing starting cards
+			// We could handle this gracefully by allowing them to get cards later
+		} else {
+			log.Info("🃏 Distributed starting cards to late-joining player", zap.String("player_id", playerID))
+		}
+	}
+
 	log.Debug("Player joined game", zap.String("player_id", playerID))
 
 	return updatedGame, nil
@@ -750,67 +813,6 @@ func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) erro
 	return nil
 }
 
-// distributeStartingCards deals starting card options to all players
-func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []model.Player) error {
-	log := logger.WithGameContext(gameID, "")
-	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
-
-	// Get all available starting cards from CardService (which uses loaded data)
-	allStartingCards, err := s.cardService.GetStartingCards(ctx)
-	if err != nil {
-		log.Error("Failed to get starting cards", zap.Error(err))
-		return fmt.Errorf("failed to get starting cards: %w", err)
-	}
-	startingCardIDs := make([]string, len(allStartingCards))
-	for i, card := range allStartingCards {
-		startingCardIDs[i] = card.ID
-	}
-
-	// Create random source for card distribution
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	// Distribute 4 random cards to each player
-	const cardsPerPlayer = 4
-	for _, player := range players {
-		// Shuffle and select 4 cards
-		shuffled := make([]string, len(startingCardIDs))
-		copy(shuffled, startingCardIDs)
-
-		// Fisher-Yates shuffle
-		for i := len(shuffled) - 1; i > 0; i-- {
-			j := rng.Intn(i + 1)
-			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
-		}
-
-		cardOptions := shuffled[:cardsPerPlayer]
-
-		log.Debug("Dealing starting cards to player",
-			zap.String("player_id", player.ID),
-			zap.Strings("cards", cardOptions))
-
-		// Store card options in CardService for validation during selection
-		s.cardService.StorePlayerCardOptions(gameID, player.ID, cardOptions)
-
-		// Create and publish event
-		event := events.NewCardDealtEvent(gameID, player.ID, cardOptions)
-
-		// Publish the event through the event bus
-		if s.eventBus != nil {
-			if err := s.eventBus.Publish(ctx, event); err != nil {
-				log.Warn("Failed to publish starting card options event",
-					zap.String("player_id", player.ID),
-					zap.Error(err))
-			} else {
-				log.Debug("Starting card options event published",
-					zap.String("player_id", player.ID),
-					zap.String("event_type", event.GetType()))
-			}
-		}
-	}
-
-	log.Info("Starting cards distributed to all players", zap.Int("players", len(players)))
-	return nil
-}
 
 // AdvanceFromCardSelectionPhase advances the game from starting card selection to action phase
 func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
