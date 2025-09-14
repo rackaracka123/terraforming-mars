@@ -10,14 +10,12 @@ type OtherPlayer struct {
 	Resources        Resources        `json:"resources" ts:"Resources"`
 	Production       Production       `json:"production" ts:"Production"`
 	TerraformRating  int              `json:"terraformRating" ts:"number"`
-	IsActive         bool             `json:"isActive" ts:"boolean"`
-	IsReady          bool             `json:"isReady" ts:"boolean"`
 	PlayedCards      []string         `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool             `json:"passed" ts:"boolean"`
 	AvailableActions int              `json:"availableActions" ts:"number"`
 	VictoryPoints    int              `json:"victoryPoints" ts:"number"`
-	MilestoneIcon    string           `json:"milestoneIcon" ts:"string"`
-	ConnectionStatus ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
+	IsConnected      bool             `json:"isConnected" ts:"boolean"`
+	IsSelectingCards bool             `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }
 
 // NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player
@@ -35,14 +33,12 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		Resources:        player.Resources,
 		Production:       player.Production,
 		TerraformRating:  player.TerraformRating,
-		IsActive:         player.IsActive,
-		IsReady:          player.IsReady,
 		PlayedCards:      append([]string{}, player.PlayedCards...), // Copy played cards (public)
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
-		MilestoneIcon:    player.MilestoneIcon,
-		ConnectionStatus: player.ConnectionStatus,
+		IsConnected:      player.IsConnected,
+		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Calculate from selection state
 	}
 }
 
@@ -64,13 +60,11 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		Resources:        op.Resources,  // Resources is a struct, so this is copied by value
 		Production:       op.Production, // Production is a struct, so this is copied by value
 		TerraformRating:  op.TerraformRating,
-		IsActive:         op.IsActive,
-		IsReady:          op.IsReady,
 		PlayedCards:      playedCardsCopy,
 		Passed:           op.Passed,
 		AvailableActions: op.AvailableActions,
 		VictoryPoints:    op.VictoryPoints,
-		MilestoneIcon:    op.MilestoneIcon,
-		ConnectionStatus: op.ConnectionStatus,
+		IsConnected:      op.IsConnected,
+		IsSelectingCards: op.IsSelectingCards,
 	}
 }

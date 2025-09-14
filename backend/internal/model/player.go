@@ -1,12 +1,6 @@
 package model
 
-// ConnectionStatus represents the connection status of a player
-type ConnectionStatus string
-
-const (
-	ConnectionStatusConnected    ConnectionStatus = "connected"
-	ConnectionStatusDisconnected ConnectionStatus = "disconnected"
-)
+// ConnectionStatus constants removed - now using simple boolean isConnected
 
 // ProductionPhase contains both card selection and production phase state for a player
 type ProductionPhase struct {
@@ -16,21 +10,18 @@ type ProductionPhase struct {
 
 // Player represents a player in the game
 type Player struct {
-	ID               string           `json:"id" ts:"string"`
-	Name             string           `json:"name" ts:"string"`
-	Corporation      string           `json:"corporation" ts:"string"`
+	ID               string `json:"id" ts:"string"`
+	Name             string `json:"name" ts:"string"`
+	Corporation      string `json:"corporation" ts:"string"`
 	Cards            []string         `json:"cards" ts:"string[]"`
 	Resources        Resources        `json:"resources" ts:"Resources"`
 	Production       Production       `json:"production" ts:"Production"`
 	TerraformRating  int              `json:"terraformRating" ts:"number"`
-	IsActive         bool             `json:"isActive" ts:"boolean"`
-	IsReady          bool             `json:"isReady" ts:"boolean"`
 	PlayedCards      []string         `json:"playedCards" ts:"string[]"`
 	Passed           bool             `json:"passed" ts:"boolean"`
 	AvailableActions int              `json:"availableActions" ts:"number"`
 	VictoryPoints    int              `json:"victoryPoints" ts:"number"`
-	MilestoneIcon    string           `json:"milestoneIcon" ts:"string"`
-	ConnectionStatus ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
+	IsConnected      bool             `json:"isConnected" ts:"boolean"`
 	// Card selection and production phase - nullable, exists only during selection phase
 	ProductionSelection *ProductionPhase `json:"production" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
 	// Starting card selection - nullable, exists only during starting card selection phase
@@ -81,14 +72,11 @@ func (p *Player) DeepCopy() *Player {
 		Resources:           p.Resources,  // Resources is a struct, so this is copied by value
 		Production:          p.Production, // Production is a struct, so this is copied by value
 		TerraformRating:     p.TerraformRating,
-		IsActive:            p.IsActive,
-		IsReady:             p.IsReady,
 		PlayedCards:         playedCardsCopy,
 		Passed:              p.Passed,
 		AvailableActions:    p.AvailableActions,
 		VictoryPoints:       p.VictoryPoints,
-		MilestoneIcon:       p.MilestoneIcon,
-		ConnectionStatus:    p.ConnectionStatus,
+		IsConnected:         p.IsConnected,
 		ProductionSelection: productionSelectionCopy,
 		StartingSelection:   startingSelectionCopy,
 	}

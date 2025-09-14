@@ -60,6 +60,7 @@ type PlayerProductionData struct {
 	PlayerName      string        `json:"playerName" ts:"string"`
 	BeforeResources ResourcesDto  `json:"beforeResources" ts:"ResourcesDto"`
 	AfterResources  ResourcesDto  `json:"afterResources" ts:"ResourcesDto"`
+	ResourceDelta   ResourceDelta `json:"resourceDelta" ts:"ResourceDelta"`
 	Production      ProductionDto `json:"production" ts:"ProductionDto"`
 	TerraformRating int           `json:"terraformRating" ts:"number"`
 	EnergyConverted int           `json:"energyConverted" ts:"number"`

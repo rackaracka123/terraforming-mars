@@ -35,22 +35,24 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
+	var corporation *string
+	if player.Corporation != "" {
+		corporation = &player.Corporation
+	}
+
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
-		Corporation:       player.Corporation,
+		Corporation:       corporation,
 		Cards:             player.Cards,
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
-		IsActive:          player.IsActive,
-		IsReady:           player.IsReady,
 		PlayedCards:       player.PlayedCards,
 		Passed:            player.Passed,
 		AvailableActions:  player.AvailableActions,
 		VictoryPoints:     player.VictoryPoints,
-		MilestoneIcon:     player.MilestoneIcon,
-		ConnectionStatus:  player.ConnectionStatus,
+		IsConnected:       player.IsConnected,
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection: ToCardDtoSlice(player.StartingSelection),
 	}
@@ -66,14 +68,12 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 		Resources:        ToResourcesDto(otherPlayer.Resources),
 		Production:       ToProductionDto(otherPlayer.Production),
 		TerraformRating:  otherPlayer.TerraformRating,
-		IsActive:         otherPlayer.IsActive,
-		IsReady:          otherPlayer.IsReady,
 		PlayedCards:      otherPlayer.PlayedCards,
 		Passed:           otherPlayer.Passed,
 		AvailableActions: otherPlayer.AvailableActions,
 		VictoryPoints:    otherPlayer.VictoryPoints,
-		MilestoneIcon:    otherPlayer.MilestoneIcon,
-		ConnectionStatus: otherPlayer.ConnectionStatus,
+		IsConnected:      otherPlayer.IsConnected,
+		IsSelectingCards: otherPlayer.IsSelectingCards,
 	}
 }
 
@@ -87,14 +87,11 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		Resources:        ToResourcesDto(player.Resources),
 		Production:       ToProductionDto(player.Production),
 		TerraformRating:  player.TerraformRating,
-		IsActive:         player.IsActive,
-		IsReady:          player.IsReady,
 		PlayedCards:      player.PlayedCards, // Played cards are public
 		Passed:           player.Passed,
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
-		MilestoneIcon:    player.MilestoneIcon,
-		ConnectionStatus: player.ConnectionStatus,
+		IsConnected:      player.IsConnected,
 		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
@@ -233,7 +230,7 @@ func ToCardDto(card model.Card) CardDto {
 // ToCardDtoSlice converts a slice of model Cards to CardDto slice
 func ToCardDtoSlice(cards []model.Card) []CardDto {
 	if cards == nil {
-		return []CardDto{}
+		return nil
 	}
 
 	result := make([]CardDto, len(cards))

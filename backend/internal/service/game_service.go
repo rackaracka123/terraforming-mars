@@ -510,13 +510,11 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 			Credits: 1, // Base production
 		},
 		TerraformRating:  20, // Starting terraform rating
-		IsActive:         true,
 		PlayedCards:      make([]string, 0),
 		Passed:           false, // Player starts active, not passed
 		AvailableActions: 2,     // Standard actions per turn in action phase
 		VictoryPoints:    0,     // Starting victory points
-		MilestoneIcon:    "",    // No milestone achieved initially
-		ConnectionStatus: model.ConnectionStatusConnected,
+		IsConnected:      true,
 	}
 
 	// Add player using clean architecture method
@@ -701,7 +699,7 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		}
 	}
 
-	if currentPlayer != nil && currentPlayer.IsReady {
+	if currentPlayer != nil && currentPlayer.ProductionSelection == nil {
 		log.Debug("Player already marked as ready", zap.String("player_id", playerID))
 		// Player already ready, just return current game state
 		game, err = s.gameRepo.GetByID(ctx, gameID)
@@ -712,8 +710,8 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		return &game, nil
 	}
 
-	// Mark player as ready
-	if err := s.playerRepo.UpdateIsReady(ctx, gameID, playerID, true); err != nil {
+	// Mark player as ready by clearing their card selection
+	if err := s.playerRepo.ClearCardSelection(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to mark player as ready", zap.Error(err))
 		return nil, fmt.Errorf("failed to mark player as ready: %w", err)
 	}
@@ -730,7 +728,7 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 	allReady := true
 	readyCount := 0
 	for _, player := range updatedPlayers {
-		if player.IsReady {
+		if player.ProductionSelection == nil {
 			readyCount++
 		} else {
 			allReady = false
@@ -748,15 +746,8 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 			zap.String("game_id", gameID),
 			zap.Int("generation", game.Generation))
 
-		// Reset all players ready status and advance phase
-		for _, player := range updatedPlayers {
-			if err := s.playerRepo.UpdateIsReady(ctx, gameID, player.ID, false); err != nil {
-				log.Error("Failed to reset player ready status",
-					zap.String("player_id", player.ID),
-					zap.Error(err))
-				return nil, fmt.Errorf("failed to reset player ready status: %w", err)
-			}
-		}
+		// All players already have their ProductionSelection cleared (ready=true),
+		// so no need to reset ready status when advancing phase
 
 		// Set first player's turn for new generation
 		if len(updatedPlayers) > 0 {

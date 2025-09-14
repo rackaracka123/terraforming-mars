@@ -1,8 +1,5 @@
 package dto
 
-import (
-	"terraforming-mars-backend/internal/model"
-)
 
 // GamePhase represents the current phase of the game
 type GamePhase string
@@ -143,6 +140,16 @@ type ResourcesDto struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// ResourceDelta represents the change in resources during production phase
+type ResourceDelta struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
 // ProductionDto represents a player's production values
 type ProductionDto struct {
 	Credits  int `json:"credits" ts:"number"`
@@ -157,19 +164,16 @@ type ProductionDto struct {
 type PlayerDto struct {
 	ID               string                 `json:"id" ts:"string"`
 	Name             string                 `json:"name" ts:"string"`
-	Corporation      string                 `json:"corporation" ts:"string"`
+	Corporation      *string                `json:"corporation" ts:"string | null"`
 	Cards            []string               `json:"cards" ts:"string[]"`
 	Resources        ResourcesDto           `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto          `json:"resourceProduction" ts:"ProductionDto"`
 	TerraformRating  int                    `json:"terraformRating" ts:"number"`
-	IsActive         bool                   `json:"isActive" ts:"boolean"`
-	IsReady          bool                   `json:"isReady" ts:"boolean"`
 	PlayedCards      []string               `json:"playedCards" ts:"string[]"`
 	Passed           bool                   `json:"passed" ts:"boolean"`
 	AvailableActions int                    `json:"availableActions" ts:"number"`
 	VictoryPoints    int                    `json:"victoryPoints" ts:"number"`
-	MilestoneIcon    string                 `json:"milestoneIcon" ts:"string"`
-	ConnectionStatus model.ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
+	IsConnected      bool                   `json:"isConnected" ts:"boolean"`
 	// Card selection state - nullable, exists only during selection phase
 	CardSelection *ProductionPhaseDto `json:"production" ts:"ProductionPhaseDto | null"`
 	// Starting card selection - available during starting_card_selection phase
@@ -185,14 +189,11 @@ type OtherPlayerDto struct {
 	Resources        ResourcesDto           `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto          `json:"resourceProduction" ts:"ProductionDto"`
 	TerraformRating  int                    `json:"terraformRating" ts:"number"`
-	IsActive         bool                   `json:"isActive" ts:"boolean"`
-	IsReady          bool                   `json:"isReady" ts:"boolean"`
 	PlayedCards      []string               `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool                   `json:"passed" ts:"boolean"`
 	AvailableActions int                    `json:"availableActions" ts:"number"`
 	VictoryPoints    int                    `json:"victoryPoints" ts:"number"`
-	MilestoneIcon    string                 `json:"milestoneIcon" ts:"string"`
-	ConnectionStatus model.ConnectionStatus `json:"connectionStatus" ts:"ConnectionStatus"`
+	IsConnected      bool                   `json:"isConnected" ts:"boolean"`
 	// Card selection state - limited visibility for other players
 	IsSelectingCards bool `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }

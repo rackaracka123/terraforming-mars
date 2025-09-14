@@ -198,7 +198,7 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 		connCtx.ctx,
 		connCtx.payload.GameID,
 		connCtx.playerID,
-		model.ConnectionStatusConnected,
+		true,
 	)
 	if err != nil {
 		ch.logger.Error("Failed to update player connection status",
