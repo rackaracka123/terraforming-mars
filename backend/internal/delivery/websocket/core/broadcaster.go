@@ -17,15 +17,17 @@ type Broadcaster struct {
 	manager       *Manager
 	gameService   service.GameService
 	playerService service.PlayerService
+	cardService   service.CardService
 	logger        *zap.Logger
 }
 
 // NewBroadcaster creates a new message broadcaster
-func NewBroadcaster(manager *Manager, gameService service.GameService, playerService service.PlayerService) *Broadcaster {
+func NewBroadcaster(manager *Manager, gameService service.GameService, playerService service.PlayerService, cardService service.CardService) *Broadcaster {
 	return &Broadcaster{
 		manager:       manager,
 		gameService:   gameService,
 		playerService: playerService,
+		cardService:   cardService,
 		logger:        logger.Get(),
 	}
 }
@@ -188,7 +190,7 @@ func (b *Broadcaster) sendPersonalizedMessage(ctx context.Context, connection *C
 		return false
 	}
 
-	gameDTO := dto.ToGameDto(gameData, gamePlayers, playerID)
+	gameDTO := dto.ToGameDtoWithCardService(ctx, gameData, gamePlayers, playerID, b.cardService)
 	message := dto.WebSocketMessage{
 		Type: dto.MessageTypeGameUpdated,
 		Payload: dto.GameUpdatedPayload{
@@ -283,7 +285,7 @@ func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID
 			}
 
 			// Create personalized disconnection payload for this player
-			personalizedGame := dto.ToGameDto(game, allPlayers, connPlayerID)
+			personalizedGame := dto.ToGameDtoWithCardService(ctx, game, allPlayers, connPlayerID, b.cardService)
 			disconnectedPayload := dto.PlayerDisconnectedPayload{
 				PlayerID:   playerID,
 				PlayerName: playerName,

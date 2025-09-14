@@ -155,20 +155,20 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 		// Add multiple players
 		players := []model.Player{
 			{
-				ID:               "p1",
-				Name:             "Alice",
-				TerraformRating:  20,
-				Resources:        model.Resources{Credits: 45},
-				Production:       model.Production{Credits: 1},
-				IsConnected: true,
+				ID:              "p1",
+				Name:            "Alice",
+				TerraformRating: 20,
+				Resources:       model.Resources{Credits: 45},
+				Production:      model.Production{Credits: 1},
+				IsConnected:     true,
 			},
 			{
-				ID:               "p2",
-				Name:             "Bob",
-				TerraformRating:  20,
-				Resources:        model.Resources{Credits: 45},
-				Production:       model.Production{Credits: 1},
-				IsConnected: true,
+				ID:              "p2",
+				Name:            "Bob",
+				TerraformRating: 20,
+				Resources:       model.Resources{Credits: 45},
+				Production:      model.Production{Credits: 1},
+				IsConnected:     true,
 			},
 		}
 

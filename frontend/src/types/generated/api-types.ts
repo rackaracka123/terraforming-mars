@@ -354,7 +354,7 @@ export interface PlayerDto {
   /**
    * Card selection state - nullable, exists only during selection phase
    */
-  production?: ProductionPhaseDto;
+  productionSelection?: ProductionPhaseDto;
   /**
    * Starting card selection - available during starting_card_selection phase
    */

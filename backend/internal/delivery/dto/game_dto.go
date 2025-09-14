@@ -176,7 +176,7 @@ type PlayerDto struct {
 	// Card selection state - nullable, exists only during selection phase
 	CardSelection *ProductionPhaseDto `json:"productionSelection" ts:"ProductionPhaseDto | null"`
 	// Starting card selection - available during starting_card_selection phase
-	StartingSelection []string `json:"startingSelection" ts:"string[]"`
+	StartingSelection []CardDto `json:"startingSelection" ts:"CardDto[]"`
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
