@@ -81,20 +81,57 @@ cd "$PROJECT_DIR" && {
 kill_by_pattern "go run.*cmd/server/main.go" "Go backend server"
 kill_by_pattern "go run.*cmd/watch" "Go watch server"
 
-# Kill processes by ports (fallback)
-kill_by_port 3000 "frontend"
-kill_by_port 3001 "backend"
+# Kill processes by ports more carefully (avoid browser processes)
+kill_by_port_selective() {
+    local port="$1"
+    local description="$2"
 
-# Additional cleanup for any lingering processes in the project directory
+    local pids=$(lsof -t -i:$port 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+        # Filter out browser processes
+        local server_pids=""
+        for pid in $pids; do
+            local cmd=$(ps -p $pid -o comm= 2>/dev/null || true)
+            # Skip browser processes (firefox, chrome, chromium, etc.)
+            if [[ "$cmd" != *"firefox"* ]] && [[ "$cmd" != *"chrome"* ]] && [[ "$cmd" != *"chromium"* ]] && [[ "$cmd" != *"brave"* ]] && [[ "$cmd" != *"safari"* ]]; then
+                server_pids="$server_pids $pid"
+            fi
+        done
+
+        if [ -n "$server_pids" ]; then
+            echo "🔪 Killing non-browser processes using port $port ($description): $server_pids"
+            echo "$server_pids" | xargs kill -TERM 2>/dev/null || true
+            sleep 1
+            # Force kill if still running
+            for pid in $server_pids; do
+                if kill -0 $pid 2>/dev/null; then
+                    echo "💥 Force killing remaining process on port $port: $pid"
+                    kill -KILL $pid 2>/dev/null || true
+                fi
+            done
+        else
+            echo "ℹ️  Only browser processes found using port $port (skipping)"
+        fi
+    else
+        echo "ℹ️  No processes using port $port"
+    fi
+}
+
+# Kill processes by ports (fallback, but avoid browsers)
+kill_by_port_selective 3000 "frontend"
+kill_by_port_selective 3001 "backend"
+kill_by_port_selective 3002 "frontend-alt"
+
+# Additional cleanup for development server processes only
 cd "$PROJECT_DIR" 2>/dev/null || true
-local_pids=$(pgrep -f "$PROJECT_DIR" 2>/dev/null | grep -E "(npm|node|go)" || true)
+local_pids=$(pgrep -f "$PROJECT_DIR.*vite\|$PROJECT_DIR.*go run\|$PROJECT_DIR.*npm start" 2>/dev/null || true)
 if [ -n "$local_pids" ]; then
-    echo "🧹 Cleaning up remaining project processes: $local_pids"
+    echo "🧹 Cleaning up remaining development server processes: $local_pids"
     echo "$local_pids" | xargs kill -TERM 2>/dev/null || true
     sleep 1
-    local_remaining=$(pgrep -f "$PROJECT_DIR" 2>/dev/null | grep -E "(npm|node|go)" || true)
+    local_remaining=$(pgrep -f "$PROJECT_DIR.*vite\|$PROJECT_DIR.*go run\|$PROJECT_DIR.*npm start" 2>/dev/null || true)
     if [ -n "$local_remaining" ]; then
-        echo "💥 Force killing remaining project processes: $local_remaining"
+        echo "💥 Force killing remaining development processes: $local_remaining"
         echo "$local_remaining" | xargs kill -KILL 2>/dev/null || true
     fi
 fi
@@ -103,7 +140,7 @@ echo ""
 echo "✅ Server termination complete!"
 echo ""
 echo "🔍 Final check - processes still using development ports:"
-lsof -i :3000,3001 2>/dev/null || echo "   ✅ No processes using ports 3000 or 3001"
+lsof -i :3000,3001,3002 2>/dev/null || echo "   ✅ No processes using ports 3000, 3001, or 3002"
 
 echo ""
 echo "📋 To start servers again, run: make run"

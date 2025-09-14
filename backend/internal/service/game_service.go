@@ -698,8 +698,16 @@ func (s *GameServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID str
 		return nil, fmt.Errorf("failed to update game: %w", err)
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProductionAndCardDraw); err != nil {
-		log.Error("Failed to update game phase to production", zap.Error(err))
+	// Update the current turn to the first player for the new generation
+	if len(game.PlayerIDs) > 0 {
+		if err := s.gameRepo.UpdateCurrentTurn(ctx, game.ID, &game.PlayerIDs[0]); err != nil {
+			log.Error("Failed to update current turn for new generation", zap.Error(err))
+			return nil, fmt.Errorf("failed to update current turn: %w", err)
+		}
+	}
+
+	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction); err != nil {
+		log.Error("Failed to update game phase to action", zap.Error(err))
 		return nil, fmt.Errorf("failed to update game phase: %w", err)
 	}
 
