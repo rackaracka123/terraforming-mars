@@ -209,6 +209,17 @@ export default function GameInterface() {
     }
   }, []);
 
+  const handlePlayCard = useCallback(async (cardId: string) => {
+    try {
+      console.log(`🎯 Playing card: ${cardId}`);
+      await globalWebSocketManager.playCard(cardId);
+      console.log(`✅ Card ${cardId} played successfully`);
+    } catch (error) {
+      console.error(`❌ Failed to play card ${cardId}:`, error);
+      throw error; // Re-throw to allow CardFanOverlay to handle the error
+    }
+  }, []);
+
   // Attempt reconnection to the game
   const attemptReconnection = useCallback(async () => {
     try {
@@ -686,9 +697,10 @@ export default function GameInterface() {
         cards={currentPlayer?.cards || []}
         hideWhenModalOpen={showCardSelection || isLobbyPhase}
         onCardSelect={(cardId) => {
-          // TODO: Implement card selection logic (play card, view details, etc.)
+          // TODO: Implement card selection logic (view details, etc.)
           console.log("Card selected:", cardId);
         }}
+        onPlayCard={handlePlayCard}
       />
 
       {/* Reconnection overlay */}

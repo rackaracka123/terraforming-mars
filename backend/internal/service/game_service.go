@@ -218,20 +218,76 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		return fmt.Errorf("insufficient cards in pool: need at least 10, got %d", len(startingCards))
 	}
 
-	// For each player, select 10 random cards for starting selection
-	for _, player := range players {
-		// Create a copy of the starting cards pool for randomization
-		cardPool := make([]model.Card, len(startingCards))
-		copy(cardPool, startingCards)
+	// Separate cards into groups: cards with requirements and without requirements
+	cardsWithRequirements := make([]model.Card, 0)
+	cardsWithoutRequirements := make([]model.Card, 0)
 
-		// Shuffle the card pool using Fisher-Yates algorithm
-		for i := len(cardPool) - 1; i > 0; i-- {
-			j := rand.Intn(i + 1)
-			cardPool[i], cardPool[j] = cardPool[j], cardPool[i]
+	for _, card := range startingCards {
+		hasRequirements := card.Requirements.MinTemperature != nil ||
+			card.Requirements.MaxTemperature != nil ||
+			card.Requirements.MinOxygen != nil ||
+			card.Requirements.MaxOxygen != nil ||
+			card.Requirements.MinOceans != nil ||
+			card.Requirements.MaxOceans != nil ||
+			len(card.Requirements.RequiredTags) > 0 ||
+			card.Requirements.RequiredProduction != nil
+
+		if hasRequirements {
+			cardsWithRequirements = append(cardsWithRequirements, card)
+		} else {
+			cardsWithoutRequirements = append(cardsWithoutRequirements, card)
+		}
+	}
+
+	log.Debug("Card pools separated",
+		zap.Int("cards_with_requirements", len(cardsWithRequirements)),
+		zap.Int("cards_without_requirements", len(cardsWithoutRequirements)))
+
+	// For each player, select 10 cards: at least 1 with requirements, rest random
+	for _, player := range players {
+		playerStartingCards := make([]model.Card, 0, 10)
+
+		// Always include at least one card with requirements (if available)
+		if len(cardsWithRequirements) > 0 {
+			// Shuffle cards with requirements and pick one
+			requirementCards := make([]model.Card, len(cardsWithRequirements))
+			copy(requirementCards, cardsWithRequirements)
+			for i := len(requirementCards) - 1; i > 0; i-- {
+				j := rand.Intn(i + 1)
+				requirementCards[i], requirementCards[j] = requirementCards[j], requirementCards[i]
+			}
+			playerStartingCards = append(playerStartingCards, requirementCards[0])
 		}
 
-		// Take the first 10 cards as the player's starting selection
-		playerStartingCards := cardPool[:10]
+		// Fill remaining slots with random cards from the entire pool
+		remainingSlots := 10 - len(playerStartingCards)
+		if remainingSlots > 0 {
+			// Create a pool of remaining cards (excluding already selected)
+			remainingPool := make([]model.Card, 0, len(startingCards)-len(playerStartingCards))
+			selectedIDs := make(map[string]bool)
+			for _, card := range playerStartingCards {
+				selectedIDs[card.ID] = true
+			}
+
+			for _, card := range startingCards {
+				if !selectedIDs[card.ID] {
+					remainingPool = append(remainingPool, card)
+				}
+			}
+
+			// Shuffle remaining pool and take what we need
+			for i := len(remainingPool) - 1; i > 0; i-- {
+				j := rand.Intn(i + 1)
+				remainingPool[i], remainingPool[j] = remainingPool[j], remainingPool[i]
+			}
+
+			// Add remaining cards up to 10 total
+			cardsToAdd := remainingSlots
+			if cardsToAdd > len(remainingPool) {
+				cardsToAdd = len(remainingPool)
+			}
+			playerStartingCards = append(playerStartingCards, remainingPool[:cardsToAdd]...)
+		}
 
 		// Convert cards to card IDs
 		playerStartingCardIDs := make([]string, len(playerStartingCards))

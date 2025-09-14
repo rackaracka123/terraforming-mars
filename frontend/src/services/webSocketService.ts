@@ -275,7 +275,7 @@ export class WebSocketService {
 
   // Card actions
   playCard(cardId: string): string {
-    return this.send(MessageTypeActionPlayCard, { cardId });
+    return this.send(MessageTypeActionPlayCard, { type: "play-card", cardId });
   }
 
   selectStartingCard(cardIds: string[]): string {
