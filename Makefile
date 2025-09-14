@@ -1,7 +1,7 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help run frontend backend lint test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
+.PHONY: help run frontend backend kill lint test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
 
 # Default target - show help
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make run          - Run both frontend and backend servers"
 	@echo "  make frontend     - Run frontend development server (port 3000)"
 	@echo "  make backend      - Run backend development server with auto-restart (port 3001)"
+	@echo "  make kill         - Kill all frontend and backend development processes"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  make test         - Run all tests (backend + frontend)"
@@ -43,6 +44,10 @@ backend:
 	@echo "🔄 Starting backend development server with auto-restart..."
 	@echo "   Watching for changes in backend/ directory"
 	cd backend && go run ./cmd/watch cmd/server/main.go
+
+kill:
+	@echo "🛑 Killing all development servers..."
+	./kill-servers.sh
 
 # Testing commands
 test: test-backend
