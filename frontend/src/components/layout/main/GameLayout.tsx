@@ -105,7 +105,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
             <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
 
-
             {/* Victory Points display in bottom right */}
             <div className={styles.victoryPointsOverlay}>
               <VictoryPointIcon
