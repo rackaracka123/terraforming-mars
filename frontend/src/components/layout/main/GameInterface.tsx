@@ -14,6 +14,7 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
+import audioService from "../../../services/audioService.ts";
 import {
   CardDto,
   FullStatePayload,
@@ -187,6 +188,9 @@ export default function GameInterface() {
 
   const handleProductionPhaseStarted = useCallback(
     (payload: ProductionPhaseStartedPayload) => {
+      // Play production phase sound
+      void audioService.playProductionSound();
+
       // Show production phase modal with animation data
       setProductionPhaseData(payload);
       setShowProductionPhaseModal(true);
