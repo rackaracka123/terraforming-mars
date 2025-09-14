@@ -342,7 +342,6 @@ func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameI
 	return nil
 }
 
-
 // UpdatePassed updates a player's passed status
 func (r *PlayerRepositoryImpl) UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error {
 	r.mutex.Lock()

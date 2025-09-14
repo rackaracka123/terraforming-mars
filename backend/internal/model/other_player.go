@@ -3,19 +3,19 @@ package model
 // OtherPlayer represents a player from another player's perspective
 // Contains public information only - hand cards are hidden but played cards are visible
 type OtherPlayer struct {
-	ID               string           `json:"id" ts:"string"`
-	Name             string           `json:"name" ts:"string"`
-	Corporation      string           `json:"corporation" ts:"string"`
-	HandCardCount    int              `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
-	Resources        Resources        `json:"resources" ts:"Resources"`
-	Production       Production       `json:"production" ts:"Production"`
-	TerraformRating  int              `json:"terraformRating" ts:"number"`
-	PlayedCards      []string         `json:"playedCards" ts:"string[]"` // Played cards are public
-	Passed           bool             `json:"passed" ts:"boolean"`
-	AvailableActions int              `json:"availableActions" ts:"number"`
-	VictoryPoints    int              `json:"victoryPoints" ts:"number"`
-	IsConnected      bool             `json:"isConnected" ts:"boolean"`
-	IsSelectingCards bool             `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
+	ID               string     `json:"id" ts:"string"`
+	Name             string     `json:"name" ts:"string"`
+	Corporation      string     `json:"corporation" ts:"string"`
+	HandCardCount    int        `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
+	Resources        Resources  `json:"resources" ts:"Resources"`
+	Production       Production `json:"production" ts:"Production"`
+	TerraformRating  int        `json:"terraformRating" ts:"number"`
+	PlayedCards      []string   `json:"playedCards" ts:"string[]"` // Played cards are public
+	Passed           bool       `json:"passed" ts:"boolean"`
+	AvailableActions int        `json:"availableActions" ts:"number"`
+	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
+	IsConnected      bool       `json:"isConnected" ts:"boolean"`
+	IsSelectingCards bool       `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }
 
 // NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player

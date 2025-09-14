@@ -314,6 +314,17 @@ export interface ResourcesDto {
   heat: number /* int */;
 }
 /**
+ * ResourceDelta represents the change in resources during production phase
+ */
+export interface ResourceDelta {
+  credits: number /* int */;
+  steel: number /* int */;
+  titanium: number /* int */;
+  plants: number /* int */;
+  energy: number /* int */;
+  heat: number /* int */;
+}
+/**
  * ProductionDto represents a player's production values
  */
 export interface ProductionDto {
@@ -330,23 +341,24 @@ export interface ProductionDto {
 export interface PlayerDto {
   id: string;
   name: string;
-  corporation: string;
+  corporation?: string;
   cards: string[];
   resources: ResourcesDto;
   resourceProduction: ProductionDto;
   terraformRating: number /* int */;
-  isActive: boolean;
-  isReady: boolean;
   playedCards: string[];
   passed: boolean;
   availableActions: number /* int */;
   victoryPoints: number /* int */;
-  milestoneIcon: string;
-  connectionStatus: any /* model.ConnectionStatus */;
+  isConnected: boolean;
   /**
    * Card selection state - nullable, exists only during selection phase
    */
   production?: ProductionPhaseDto;
+  /**
+   * Starting card selection - available during starting_card_selection phase
+   */
+  startingSelection: CardDto[];
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -359,14 +371,11 @@ export interface OtherPlayerDto {
   resources: ResourcesDto;
   resourceProduction: ProductionDto;
   terraformRating: number /* int */;
-  isActive: boolean;
-  isReady: boolean;
   playedCards: string[]; // Played cards are public
   passed: boolean;
   availableActions: number /* int */;
   victoryPoints: number /* int */;
-  milestoneIcon: string;
-  connectionStatus: any /* model.ConnectionStatus */;
+  isConnected: boolean;
   /**
    * Card selection state - limited visibility for other players
    */
@@ -583,6 +592,7 @@ export interface PlayerProductionData {
   playerName: string;
   beforeResources: ResourcesDto;
   afterResources: ResourcesDto;
+  resourceDelta: ResourceDelta;
   production: ProductionDto;
   terraformRating: number /* int */;
   energyConverted: number /* int */;

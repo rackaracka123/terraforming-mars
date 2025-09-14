@@ -10,18 +10,18 @@ type ProductionPhase struct {
 
 // Player represents a player in the game
 type Player struct {
-	ID               string `json:"id" ts:"string"`
-	Name             string `json:"name" ts:"string"`
-	Corporation      string `json:"corporation" ts:"string"`
-	Cards            []string         `json:"cards" ts:"string[]"`
-	Resources        Resources        `json:"resources" ts:"Resources"`
-	Production       Production       `json:"production" ts:"Production"`
-	TerraformRating  int              `json:"terraformRating" ts:"number"`
-	PlayedCards      []string         `json:"playedCards" ts:"string[]"`
-	Passed           bool             `json:"passed" ts:"boolean"`
-	AvailableActions int              `json:"availableActions" ts:"number"`
-	VictoryPoints    int              `json:"victoryPoints" ts:"number"`
-	IsConnected      bool             `json:"isConnected" ts:"boolean"`
+	ID               string     `json:"id" ts:"string"`
+	Name             string     `json:"name" ts:"string"`
+	Corporation      string     `json:"corporation" ts:"string"`
+	Cards            []string   `json:"cards" ts:"string[]"`
+	Resources        Resources  `json:"resources" ts:"Resources"`
+	Production       Production `json:"production" ts:"Production"`
+	TerraformRating  int        `json:"terraformRating" ts:"number"`
+	PlayedCards      []string   `json:"playedCards" ts:"string[]"`
+	Passed           bool       `json:"passed" ts:"boolean"`
+	AvailableActions int        `json:"availableActions" ts:"number"`
+	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
+	IsConnected      bool       `json:"isConnected" ts:"boolean"`
 	// Card selection and production phase - nullable, exists only during selection phase
 	ProductionSelection *ProductionPhase `json:"production" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
 	// Starting card selection - nullable, exists only during starting card selection phase
