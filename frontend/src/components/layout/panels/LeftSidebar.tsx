@@ -28,7 +28,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         currentPlayer={currentPlayer}
         currentPlayerId={currentPlayerId}
         currentPhase={currentPhase}
-        remainingActions={gameState?.remainingActions}
+        remainingActions={currentPlayer?.availableActions}
       />
     </div>
   );

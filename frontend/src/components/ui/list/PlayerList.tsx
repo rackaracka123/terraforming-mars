@@ -17,7 +17,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   currentPlayer,
   currentPlayerId,
   currentPhase,
-  remainingActions = 2,
+  remainingActions,
 }) => {
   const [previousTurnPlayer, setPreviousTurnPlayer] = useState<string | null>(
     null,

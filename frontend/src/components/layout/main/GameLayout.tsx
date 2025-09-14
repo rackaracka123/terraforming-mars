@@ -105,15 +105,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
             <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
 
-            {/* Actions display in top right */}
-            <div className={styles.actionsOverlay}>
-              <AvailableActionsDisplay
-                availableActions={currentPlayer?.availableActions || 0}
-                availableEffects={0}
-                size="large"
-                onClick={onOpenActionsModal}
-              />
-            </div>
 
             {/* Victory Points display in bottom right */}
             <div className={styles.victoryPointsOverlay}>
