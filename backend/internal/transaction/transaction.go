@@ -119,6 +119,13 @@ func (t *Transaction) ValidateTurn(gameID, playerID string) error {
 	return nil
 }
 
+// ValidateSkipTurn creates an operation to validate a player's skip turn (allows 0 actions)
+func (t *Transaction) ValidateSkipTurn(gameID, playerID string) error {
+	op := operations.NewValidateSkipTurnOperation(t.manager.GetGameRepo(), t.manager.GetPlayerRepo(), gameID, playerID)
+	t.AddOperation(op)
+	return nil
+}
+
 // ValidateResources creates an operation to validate resources without deducting them
 func (t *Transaction) ValidateResources(gameID, playerID string, cost model.Resources) error {
 	op := operations.NewValidateResourcesOperation(t.manager.GetPlayerRepo(), gameID, playerID, cost)
