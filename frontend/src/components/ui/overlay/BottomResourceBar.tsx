@@ -247,6 +247,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     playedCardsToShow?.filter((card) => card.type === CardType.ACTIVE)
       ?.length || 0;
 
+  // Get available actions from current player
+  const availableActions = currentPlayer?.availableActions || 0;
+
   // Modal handlers
   const handleOpenCardsModal = () => {
     // Opening cards modal
@@ -358,12 +361,18 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className="action-button actions-button"
+          className={`action-button actions-button ${
+            availableActions === 0
+              ? "actions-depleted"
+              : availableActions <= 1
+                ? "actions-low"
+                : ""
+          }`}
           onClick={handleOpenActionsModal}
-          title="View Available Actions"
+          title={`Available Actions: ${availableActions}`}
         >
           <div className="button-icon">⚡</div>
-          <div className="button-count">{availableEffects}</div>
+          <div className="button-count">{availableActions}</div>
           <div className="button-label">Actions</div>
         </button>
 
@@ -654,9 +663,47 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         .actions-button:hover {
           border-color: rgba(255, 100, 100, 0.8);
-          box-shadow: 
+          box-shadow:
             0 4px 15px rgba(0, 0, 0, 0.3),
             0 0 15px rgba(255, 100, 100, 0.3);
+        }
+
+        .actions-button.actions-low {
+          border-color: rgba(255, 200, 0, 0.6);
+          background: linear-gradient(
+            135deg,
+            rgba(60, 50, 0, 0.6) 0%,
+            rgba(40, 30, 0, 0.5) 100%
+          );
+        }
+
+        .actions-button.actions-low:hover {
+          border-color: rgba(255, 200, 0, 0.9);
+          box-shadow:
+            0 4px 15px rgba(0, 0, 0, 0.3),
+            0 0 15px rgba(255, 200, 0, 0.4);
+        }
+
+        .actions-button.actions-depleted {
+          border-color: rgba(150, 150, 150, 0.4);
+          background: linear-gradient(
+            135deg,
+            rgba(40, 40, 40, 0.6) 0%,
+            rgba(30, 30, 30, 0.5) 100%
+          );
+          opacity: 0.7;
+        }
+
+        .actions-button.actions-depleted:hover {
+          border-color: rgba(150, 150, 150, 0.6);
+          box-shadow:
+            0 4px 15px rgba(0, 0, 0, 0.3),
+            0 0 15px rgba(150, 150, 150, 0.2);
+          opacity: 0.8;
+        }
+
+        .actions-button.actions-depleted .button-count {
+          color: rgba(255, 255, 255, 0.6);
         }
 
         .effects-button {

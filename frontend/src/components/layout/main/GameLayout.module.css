@@ -36,6 +36,14 @@
   }
 }
 
+.actionsOverlay {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 200px;
+}
+
 .victoryPointsOverlay {
   position: fixed;
   bottom: 20px;
