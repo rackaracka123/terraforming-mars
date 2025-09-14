@@ -164,7 +164,7 @@ type PlayerDto struct {
 	ID               string        `json:"id" ts:"string"`
 	Name             string        `json:"name" ts:"string"`
 	Corporation      *string       `json:"corporation" ts:"string | null"`
-	Cards            []string      `json:"cards" ts:"string[]"`
+	Cards            []CardDto     `json:"cards" ts:"CardDto[]"`
 	Resources        ResourcesDto  `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto `json:"resourceProduction" ts:"ProductionDto"`
 	TerraformRating  int           `json:"terraformRating" ts:"number"`

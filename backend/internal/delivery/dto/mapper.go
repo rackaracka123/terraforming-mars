@@ -72,12 +72,14 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardService service.CardService) PlayerDto {
 	// Convert starting card IDs to full card objects
 	startingCards := ConvertCardIDsToCardDtos(ctx, player.StartingSelection, cardService)
+	// Convert hand card IDs to full card objects
+	handCards := ConvertCardIDsToCardDtos(ctx, player.Cards, cardService)
 
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
 		Corporation:       player.Corporation,
-		Cards:             player.Cards,
+		Cards:             handCards,
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
@@ -98,7 +100,7 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		ID:                player.ID,
 		Name:              player.Name,
 		Corporation:       player.Corporation,
-		Cards:             player.Cards,
+		Cards:             []CardDto{}, // Empty since we can't convert IDs without card service
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
@@ -314,7 +316,7 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 
 // ConvertCardIDsToCardDtos converts a slice of card IDs to CardDto objects
 func ConvertCardIDsToCardDtos(ctx context.Context, cardIDs []string, cardService service.CardService) []CardDto {
-	if cardIDs == nil || len(cardIDs) == 0 {
+	if len(cardIDs) == 0 {
 		return []CardDto{}
 	}
 

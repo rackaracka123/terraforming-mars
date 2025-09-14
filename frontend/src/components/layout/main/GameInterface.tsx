@@ -11,6 +11,7 @@ import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
+import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import {
@@ -678,6 +679,16 @@ export default function GameInterface() {
         cards={cardDetails}
         playerCredits={currentPlayer?.resources?.credits || 40}
         onConfirmSelection={handleCardSelection}
+      />
+
+      {/* Card fan overlay for hand cards */}
+      <CardFanOverlay
+        cards={currentPlayer?.cards || []}
+        hideWhenModalOpen={showCardSelection || isLobbyPhase}
+        onCardSelect={(cardId) => {
+          // TODO: Implement card selection logic (play card, view details, etc.)
+          console.log("Card selected:", cardId);
+        }}
       />
 
       {/* Reconnection overlay */}
