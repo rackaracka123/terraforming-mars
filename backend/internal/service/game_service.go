@@ -405,27 +405,34 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 			zap.Int("available_actions", currentPlayer.AvailableActions))
 	}
 
-	// Check if all players have passed
-	allPassed := true
+	// Check if all players have exhausted their actions or formally passed
+	allPlayersFinished := true
 	passedCount := 0
+	playersWithNoActions := 0
 	for _, player := range gamePlayers {
 		if player.Passed {
 			passedCount++
+		} else if player.AvailableActions == 0 {
+			playersWithNoActions++
 		} else {
-			allPassed = false
+			// Player still has actions available
+			allPlayersFinished = false
 		}
 	}
 
-	log.Debug("Checking passed status",
+	log.Debug("Checking generation end condition",
 		zap.Int("passed_count", passedCount),
+		zap.Int("players_with_no_actions", playersWithNoActions),
 		zap.Int("total_players", len(gamePlayers)),
-		zap.Bool("all_passed", allPassed))
+		zap.Bool("all_players_finished", allPlayersFinished))
 
-	if allPassed {
-		// All players have passed - production phase should start
-		log.Info("🏭 All players have passed - generation ending",
+	if allPlayersFinished {
+		// All players have either passed or have no actions left - production phase should start
+		log.Info("🏭 All players finished their turns - generation ending",
 			zap.String("game_id", gameID),
-			zap.Int("generation", game.Generation))
+			zap.Int("generation", game.Generation),
+			zap.Int("passed_players", passedCount),
+			zap.Int("players_with_no_actions", playersWithNoActions))
 
 		return &SkipPlayerTurnResult{
 			AllPlayersPassed: true,
@@ -433,12 +440,13 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 		}, nil
 	}
 
-	// Find next non-passed player in turn order
+	// Find next player who still has actions available
 	nextPlayerIndex := (currentPlayerIndex + 1) % len(gamePlayers)
 
-	// Cycle through players to find the next non-passed player
+	// Cycle through players to find the next player with available actions
 	for i := 0; i < len(gamePlayers); i++ {
-		if !gamePlayers[nextPlayerIndex].Passed {
+		nextPlayer := &gamePlayers[nextPlayerIndex]
+		if !nextPlayer.Passed && nextPlayer.AvailableActions > 0 {
 			break
 		}
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(gamePlayers)

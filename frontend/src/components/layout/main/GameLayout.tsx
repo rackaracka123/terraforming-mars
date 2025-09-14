@@ -7,7 +7,6 @@ import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import VictoryPointIcon from "../../ui/display/VictoryPointIcon.tsx";
-import AvailableActionsDisplay from "../../ui/display/AvailableActionsDisplay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
