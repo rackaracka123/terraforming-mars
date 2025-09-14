@@ -31,34 +31,29 @@ func TestFullGameFlow(t *testing.T) {
 	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Failed to receive game updated after start")
 
-	// Step 6: Wait for available-cards message to know which cards are available for selection
-	time.Sleep(100 * time.Millisecond) // Allow server to send available cards
+	// Step 6: Extract available cards from the game state
+	time.Sleep(100 * time.Millisecond) // Allow server processing
 
-	// Look for available-cards message among recent messages
 	var availableCards []string
 	var foundAvailableCards bool
 
-	// Try to get available-cards message with timeout
-	for attempts := 0; attempts < 3; attempts++ {
-		availableMessage, err := client.WaitForMessage(dto.MessageTypeAvailableCards)
-		if err == nil {
-			// Extract available cards from the message
-			if payload, ok := availableMessage.Payload.(map[string]interface{}); ok {
-				if cardsData, ok := payload["cards"].([]interface{}); ok && len(cardsData) > 0 {
-					for _, cardInterface := range cardsData {
-						if cardData, ok := cardInterface.(map[string]interface{}); ok {
-							if cardID, ok := cardData["id"].(string); ok {
+	// Parse game state from the message to get available cards from production field
+	if payload, ok := message.Payload.(map[string]interface{}); ok {
+		if gameData, ok := payload["game"].(map[string]interface{}); ok {
+			if currentPlayer, ok := gameData["currentPlayer"].(map[string]interface{}); ok {
+				if production, ok := currentPlayer["production"].(map[string]interface{}); ok {
+					if cardsData, ok := production["availableCards"].([]interface{}); ok && len(cardsData) > 0 {
+						for _, cardInterface := range cardsData {
+							if cardID, ok := cardInterface.(string); ok {
 								availableCards = append(availableCards, cardID)
 							}
 						}
+						foundAvailableCards = true
+						t.Logf("✅ Found %d available starting cards in game state: %v", len(availableCards), availableCards)
 					}
-					foundAvailableCards = true
-					t.Logf("✅ Found %d available starting cards: %v", len(availableCards), availableCards)
-					break
 				}
 			}
 		}
-		time.Sleep(50 * time.Millisecond) // Brief wait before retry
 	}
 
 	// Select cards based on what we found

@@ -23,7 +23,6 @@ type HubMessage struct {
 
 // EventHandler interface for handling domain events
 type EventHandler interface {
-	HandlePlayerStartingCardOptions(ctx context.Context, event events.Event) error
 }
 
 // Hub manages WebSocket connections and message routing
@@ -159,9 +158,6 @@ func (h *Hub) subscribeToEvents() {
 	// Subscribe to game updates for broadcasting updates
 	h.eventBus.Subscribe(events.EventTypeGameUpdated, h.handleGameUpdated)
 
-	// Subscribe to card events (using new consolidated event names)
-	h.eventBus.Subscribe(events.EventTypeCardDealt, h.handlePlayerStartingCardOptions) // Renamed from PlayerStartingCardOptions
-
 	// Subscribe to global parameter changes to trigger game updates (consolidated event only)
 	h.eventBus.Subscribe(events.EventTypeGlobalParametersChanged, h.handleGlobalParameterChange)
 
@@ -180,19 +176,6 @@ func (h *Hub) handleGameUpdated(ctx context.Context, event events.Event) error {
 	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
 
 	h.logger.Info("✅ Game updated broadcast completed", zap.String("game_id", gameID))
-	return nil
-}
-
-// handlePlayerStartingCardOptions handles card option events
-func (h *Hub) handlePlayerStartingCardOptions(ctx context.Context, event events.Event) error {
-	h.logger.Debug("🃏 Card options event received - delegating to event handler")
-
-	// Delegate to the proper event handler
-	if h.eventHandler != nil {
-		return h.eventHandler.HandlePlayerStartingCardOptions(ctx, event)
-	}
-
-	h.logger.Warn("⚠️ No event handler configured")
 	return nil
 }
 

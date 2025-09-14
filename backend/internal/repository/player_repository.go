@@ -626,8 +626,6 @@ func (r *PlayerRepositoryImpl) GetCardSelection(ctx context.Context, gameID, pla
 	}, nil
 }
 
-
-
 // ClearCardSelection clears the card selection data for a player
 func (r *PlayerRepositoryImpl) ClearCardSelection(ctx context.Context, gameID, playerID string) error {
 	r.mutex.Lock()
@@ -675,4 +673,3 @@ func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID,
 
 	return nil
 }
-

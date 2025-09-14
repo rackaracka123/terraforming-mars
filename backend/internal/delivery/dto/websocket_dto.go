@@ -40,11 +40,6 @@ type FullStatePayload struct {
 	PlayerID string  `json:"playerId" ts:"string"`
 }
 
-// AvailableCardsPayload contains available starting cards
-type AvailableCardsPayload struct {
-	Cards []CardDto `json:"cards" ts:"CardDto[]"`
-}
-
 // PlayerReconnectedPayload contains data about a reconnected player
 type PlayerReconnectedPayload struct {
 	PlayerID   string  `json:"playerId" ts:"string"`

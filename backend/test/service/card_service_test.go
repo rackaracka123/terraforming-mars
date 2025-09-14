@@ -20,8 +20,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 
 	ctx := context.Background()
 
@@ -70,8 +69,14 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
-	// Use real card IDs from loaded data
-	availableCards := []string{
+	// Use real card objects from loaded data
+	availableCards := []model.Card{
+		startingCards[0],
+		startingCards[1],
+		startingCards[2],
+		startingCards[3],
+	}
+	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
 		startingCards[2].ID,
@@ -95,25 +100,25 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		},
 		{
 			name:          "Select one card (3 MC)",
-			selectedCards: []string{availableCards[0]},
+			selectedCards: []string{availableCardIDs[0]},
 			expectedCost:  3,
 			expectedError: false,
 		},
 		{
 			name:          "Select two cards (6 MC total)",
-			selectedCards: []string{availableCards[0], availableCards[1]},
+			selectedCards: []string{availableCardIDs[0], availableCardIDs[1]},
 			expectedCost:  6,
 			expectedError: false,
 		},
 		{
 			name:          "Select three cards (9 MC total)",
-			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2]},
+			selectedCards: []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2]},
 			expectedCost:  9,
 			expectedError: false,
 		},
 		{
 			name:          "Select four cards (12 MC total)",
-			selectedCards: []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3]},
+			selectedCards: []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2], availableCardIDs[3]},
 			expectedCost:  12,
 			expectedError: false,
 		},
@@ -201,20 +206,57 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 
 	ctx := context.Background()
 
+	// Create a test game
+	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
+	game.Status = model.GameStatusActive
+	game.CurrentPhase = model.GamePhaseStartingCardSelection
+
+	// Create test player
+	player1 := model.Player{
+		ID:              "player1",
+		Name:            "Test Player",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
+		TerraformRating: 20,
+		IsActive:        true,
+	}
+
+	// Create game using clean architecture
+	createdGame, err := gameRepo.Create(ctx, game.Settings)
+	require.NoError(t, err)
+	gameID := createdGame.ID
+
+	// Set game status and phase
+	err = gameRepo.UpdateStatus(ctx, gameID, game.Status)
+	require.NoError(t, err)
+	err = gameRepo.UpdatePhase(ctx, gameID, game.CurrentPhase)
+	require.NoError(t, err)
+
+	// Add player using clean architecture
+	err = playerRepo.Create(ctx, gameID, player1)
+	require.NoError(t, err)
+	err = gameRepo.AddPlayerID(ctx, gameID, player1.ID)
+	require.NoError(t, err)
+
 	// Load cards and get real card IDs for testing
-	err := cardRepo.LoadCards(context.Background())
+	err = cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
 	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
 	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
 
-	// Store starting card options using real card IDs
-	availableCards := []string{
+	// Store starting card options using real card objects
+	availableCards := []model.Card{
+		startingCards[0],
+		startingCards[1],
+		startingCards[2],
+		startingCards[3],
+	}
+	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
 		startingCards[2].ID,
@@ -225,7 +267,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	var cardNotInOptions string
 	for _, card := range startingCards {
 		found := false
-		for _, available := range availableCards {
+		for _, available := range availableCardIDs {
 			if card.ID == available {
 				found = true
 				break
@@ -238,7 +280,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	}
 
 	cardServiceImpl := cardService.(*service.CardServiceImpl)
-	cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
+	cardServiceImpl.StorePlayerCardOptions(gameID, "player1", availableCards)
 
 	tests := []struct {
 		name          string
@@ -248,7 +290,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	}{
 		{
 			name:          "Valid selection from options",
-			cardIDs:       []string{availableCards[0], availableCards[1]},
+			cardIDs:       []string{availableCardIDs[0], availableCardIDs[1]},
 			expectedError: false,
 		},
 		{
@@ -264,7 +306,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		},
 		{
 			name:          "Too many cards",
-			cardIDs:       []string{availableCards[0], availableCards[1], availableCards[2], availableCards[3], "extra"},
+			cardIDs:       []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2], availableCardIDs[3], "extra"},
 			expectedError: true,
 			errorMessage:  "cannot select more than 4 cards, got 5",
 		},
@@ -279,9 +321,9 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset selection status
-			cardServiceImpl.StorePlayerCardOptions("test-game", "player1", availableCards)
+			cardServiceImpl.StorePlayerCardOptions(gameID, "player1", availableCards)
 
-			err := cardService.ValidateStartingCardSelection(ctx, "test-game", "player1", tt.cardIDs)
+			err := cardService.ValidateStartingCardSelection(ctx, gameID, "player1", tt.cardIDs)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -302,8 +344,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 
 	ctx := context.Background()
 
@@ -365,8 +406,14 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
-	// Setup card options for both players using real card IDs
-	availableCards := []string{
+	// Setup card options for both players using real card objects
+	availableCards := []model.Card{
+		startingCards[0],
+		startingCards[1],
+		startingCards[2],
+		startingCards[3],
+	}
+	availableCardIDs := []string{
 		startingCards[0].ID,
 		startingCards[1].ID,
 		startingCards[2].ID,
@@ -380,14 +427,14 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	assert.False(t, complete)
 
 	// Test: Only one player completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCards[0]})
+	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
 	require.NoError(t, err)
 
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.False(t, complete)
 
 	// Test: All players completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCards[1]})
+	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
 	require.NoError(t, err)
 
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)

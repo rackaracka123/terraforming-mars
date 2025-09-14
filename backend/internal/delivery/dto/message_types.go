@@ -14,7 +14,6 @@ const (
 	MessageTypePlayerDisconnected     MessageType = "player-disconnected"
 	MessageTypeError                  MessageType = "error"
 	MessageTypeFullState              MessageType = "full-state"
-	MessageTypeAvailableCards         MessageType = "available-cards"
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
 	// New action-specific message types using composed constants

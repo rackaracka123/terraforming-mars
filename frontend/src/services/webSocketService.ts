@@ -12,7 +12,6 @@ import {
   MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
-  MessageTypeAvailableCards,
   // New message types
   MessageTypeActionSellPatents,
   MessageTypeActionLaunchAsteroid,
@@ -152,10 +151,6 @@ export class WebSocketService {
         const productionPayload =
           message.payload as ProductionPhaseStartedPayload;
         this.emit("production-phase-started", productionPayload);
-        break;
-      }
-      case MessageTypeAvailableCards: {
-        this.emit("available-cards", message.payload);
         break;
       }
       default:

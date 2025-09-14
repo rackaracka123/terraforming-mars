@@ -26,18 +26,17 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.NoError(t, err, "Should load card data for testing")
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardSelectionRepo := repository.NewCardSelectionRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, cardSelectionRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
 
-	// Track events
+	// Track game updated events (consolidated state)
 	var receivedEvents []events.Event
-	eventBus.Subscribe(events.EventTypeCardDealt, func(ctx context.Context, event events.Event) error {
+	eventBus.Subscribe(events.EventTypeGameUpdated, func(ctx context.Context, event events.Event) error {
 		receivedEvents = append(receivedEvents, event)
 		t.Logf("✅ Received event: %s", event.GetType())
 		return nil
 	})
-	t.Logf("📬 Subscribed to event: %s", events.EventTypeCardDealt)
+	t.Logf("📬 Subscribed to event: %s", events.EventTypeGameUpdated)
 
 	// Create game
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
@@ -56,7 +55,7 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.NoError(t, err)
 	t.Log("Game started")
 
-	// Wait for the event to be processed by the async worker pool
+	// Wait for game updated event to be processed
 	maxWaitTime := 100 * time.Millisecond
 	waitInterval := 5 * time.Millisecond
 	waited := time.Duration(0)
@@ -66,27 +65,33 @@ func TestCardSelectionFlow(t *testing.T) {
 		waited += waitInterval
 	}
 
-	// Verify that starting card options event was published
-	require.Len(t, receivedEvents, 1, "Should have received exactly 1 starting card options event after waiting %v", waited)
+	// Verify that game updated event was published
+	require.GreaterOrEqual(t, len(receivedEvents), 1, "Should have received at least 1 game updated event after waiting %v", waited)
 
-	event := receivedEvents[0]
-	require.Equal(t, events.EventTypeCardDealt, event.GetType())
+	// Verify card selection is now stored in player's production field
+	players, err := playerRepo.ListByGameID(ctx, game.ID)
+	require.NoError(t, err)
+	require.Len(t, players, 1)
 
-	payload := event.GetPayload().(events.CardDealtEventData)
-	require.Equal(t, game.ID, payload.GameID)
-	require.Equal(t, playerID, payload.PlayerID)
-	require.Len(t, payload.CardOptions, 4, "Should have received 4 card options")
+	player := players[0]
+	require.NotNil(t, player.ProductionSelection, "Player should have production selection data")
+	require.Len(t, player.ProductionSelection.AvailableCards, 4, "Player should have 4 available starting cards")
+	require.False(t, player.ProductionSelection.SelectionComplete, "Player should not have completed selection yet")
 
-	t.Logf("✅ Card options received: %v", payload.CardOptions)
+	t.Logf("✅ Card options available in player production: %v", player.ProductionSelection.AvailableCards)
 
-	// Test card selection
-	selectedCards := payload.CardOptions[:2] // Select first 2 cards
+	// Test card selection - extract card IDs from Card objects
+	selectedCardObjects := player.ProductionSelection.AvailableCards[:2] // Select first 2 cards
+	selectedCards := make([]string, len(selectedCardObjects))
+	for i, card := range selectedCardObjects {
+		selectedCards[i] = card.ID
+	}
 	err = cardService.SelectStartingCards(ctx, game.ID, playerID, selectedCards)
 	require.NoError(t, err)
 	t.Logf("✅ Cards selected successfully: %v", selectedCards)
 
 	// Verify player has the selected cards
-	player, err := playerRepo.GetByID(ctx, game.ID, playerID)
+	player, err = playerRepo.GetByID(ctx, game.ID, playerID)
 	require.NoError(t, err)
 	require.Equal(t, selectedCards, player.Cards, "Player should have the selected cards")
 

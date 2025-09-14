@@ -813,7 +813,6 @@ func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) erro
 	return nil
 }
 
-
 // AdvanceFromCardSelectionPhase advances the game from starting card selection to action phase
 func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
 	log := logger.WithGameContext(gameID, "")

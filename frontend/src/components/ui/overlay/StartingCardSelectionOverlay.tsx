@@ -39,11 +39,17 @@ const StartingCardSelectionOverlay: React.FC<
 
   if (!isOpen || cards.length === 0) return null;
 
+  console.log("Cards data:", JSON.stringify(cards, null, 2));
+
   const handleCardSelect = (cardId: string) => {
+    console.log("Card selected:", cardId, "Type:", typeof cardId);
     setSelectedCardIds((prev) => {
+      console.log("Previous selection:", prev);
       if (prev.includes(cardId)) {
         // Deselect card
-        return prev.filter((id) => id !== cardId);
+        const newSelection = prev.filter((id) => id !== cardId);
+        console.log("Deselected, new selection:", newSelection);
+        return newSelection;
       } else {
         // Select card - check if player can afford it
         const newSelection = [...prev, cardId];
@@ -51,9 +57,11 @@ const StartingCardSelectionOverlay: React.FC<
         const newTotalCost = totalCost + costForNewCard;
 
         if (newTotalCost <= playerCredits) {
+          console.log("Selected, new selection:", newSelection);
           return newSelection;
         } else {
           // Can't afford this card
+          console.log("Cannot afford card, keeping:", prev);
           return prev;
         }
       }
@@ -61,14 +69,18 @@ const StartingCardSelectionOverlay: React.FC<
   };
 
   const handleConfirm = () => {
+    console.log("Confirm clicked. Selected card IDs:", selectedCardIds);
     if (selectedCardIds.length > 0) {
       // Player has selected cards, confirm normally
+      console.log("Confirming selection:", selectedCardIds);
       onConfirmSelection(selectedCardIds);
     } else if (!showConfirmation) {
       // First click with no selection - show confirmation
+      console.log("No cards selected, showing confirmation");
       setShowConfirmation(true);
     } else {
       // Second click with no selection - confirm with empty selection
+      console.log("Confirming empty selection");
       onConfirmSelection([]);
     }
   };

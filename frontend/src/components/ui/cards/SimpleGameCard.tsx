@@ -50,6 +50,11 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   const getRequirementComponents = (requirements: any) => {
     const components = [];
 
+    // Check if requirements exists before accessing properties
+    if (!requirements) {
+      return components;
+    }
+
     if (requirements.minTemperature !== undefined) {
       components.push({
         type: "temperature",

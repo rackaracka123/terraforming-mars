@@ -1,7 +1,7 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help run frontend backend cli tm lint test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
+.PHONY: help run frontend backend lint test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
 
 # Default target - show help
 help:
@@ -11,7 +11,6 @@ help:
 	@echo "  make run          - Run both frontend and backend servers"
 	@echo "  make frontend     - Run frontend development server (port 3000)"
 	@echo "  make backend      - Run backend development server with auto-restart (port 3001)"
-	@echo "  make tm          - Run CLI tool for backend interaction"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  make test         - Run all tests (backend + frontend)"
@@ -27,7 +26,6 @@ help:
 	@echo "🏗️  Build & Deploy:"
 	@echo "  make build        - Build production binaries"
 	@echo "  make clean        - Clean build artifacts"
-	@echo "  make install-cli  - Install CLI tool globally (/usr/local/bin/tm)"
 	@echo ""
 
 # Main development commands
@@ -45,18 +43,6 @@ backend:
 	@echo "🔄 Starting backend development server with auto-restart..."
 	@echo "   Watching for changes in backend/ directory"
 	cd backend && go run ./cmd/watch cmd/server/main.go
-
-# CLI tool commands
-tm: cli
-
-cli:
-	@echo "🔧 Running CLI tool directly..."
-	cd backend && go run cmd/cli/*.go
-
-install-cli:
-	@echo "📦 Installing CLI tool globally..."
-	cd backend && go build -o bin/tm cmd/cli/*.go && sudo cp bin/tm /usr/local/bin/tm
-	@echo "✅ CLI tool installed! Run 'tm' from anywhere."
 
 # Testing commands
 test: test-backend

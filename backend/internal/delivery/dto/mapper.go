@@ -36,23 +36,23 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
 	return PlayerDto{
-		ID:                 player.ID,
-		Name:               player.Name,
-		Corporation:        player.Corporation,
-		Cards:              player.Cards,
-		Resources:          ToResourcesDto(player.Resources),
-		Production:         ToProductionDto(player.Production),
-		TerraformRating:    player.TerraformRating,
-		IsActive:           player.IsActive,
-		IsReady:            player.IsReady,
-		PlayedCards:        player.PlayedCards,
-		Passed:             player.Passed,
-		AvailableActions:   player.AvailableActions,
-		VictoryPoints:      player.VictoryPoints,
-		MilestoneIcon:      player.MilestoneIcon,
-		ConnectionStatus:   player.ConnectionStatus,
-		CardSelection:      ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection:  ToCardDtoSlice(player.StartingSelection),
+		ID:                player.ID,
+		Name:              player.Name,
+		Corporation:       player.Corporation,
+		Cards:             player.Cards,
+		Resources:         ToResourcesDto(player.Resources),
+		Production:        ToProductionDto(player.Production),
+		TerraformRating:   player.TerraformRating,
+		IsActive:          player.IsActive,
+		IsReady:           player.IsReady,
+		PlayedCards:       player.PlayedCards,
+		Passed:            player.Passed,
+		AvailableActions:  player.AvailableActions,
+		VictoryPoints:     player.VictoryPoints,
+		MilestoneIcon:     player.MilestoneIcon,
+		ConnectionStatus:  player.ConnectionStatus,
+		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection: ToCardDtoSlice(player.StartingSelection),
 	}
 }
 
@@ -80,22 +80,22 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 	return OtherPlayerDto{
-		ID:                  player.ID,
-		Name:                player.Name,
-		Corporation:         player.Corporation,
-		HandCardCount:       len(player.Cards), // Hide actual cards, show count only
-		Resources:           ToResourcesDto(player.Resources),
-		Production:          ToProductionDto(player.Production),
-		TerraformRating:     player.TerraformRating,
-		IsActive:            player.IsActive,
-		IsReady:             player.IsReady,
-		PlayedCards:         player.PlayedCards, // Played cards are public
-		Passed:              player.Passed,
-		AvailableActions:    player.AvailableActions,
-		VictoryPoints:       player.VictoryPoints,
-		MilestoneIcon:       player.MilestoneIcon,
-		ConnectionStatus:    player.ConnectionStatus,
-		IsSelectingCards:    player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
+		ID:               player.ID,
+		Name:             player.Name,
+		Corporation:      player.Corporation,
+		HandCardCount:    len(player.Cards), // Hide actual cards, show count only
+		Resources:        ToResourcesDto(player.Resources),
+		Production:       ToProductionDto(player.Production),
+		TerraformRating:  player.TerraformRating,
+		IsActive:         player.IsActive,
+		IsReady:          player.IsReady,
+		PlayedCards:      player.PlayedCards, // Played cards are public
+		Passed:           player.Passed,
+		AvailableActions: player.AvailableActions,
+		VictoryPoints:    player.VictoryPoints,
+		MilestoneIcon:    player.MilestoneIcon,
+		ConnectionStatus: player.ConnectionStatus,
+		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
 
@@ -138,7 +138,6 @@ func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 		MaxPlayers: settings.MaxPlayers,
 	}
 }
-
 
 // TODO: Create a new model for this usecase. Or rename the other "Game" that contains player data,
 // ToGameDtoBasic provides a basic non-personalized game view (temporary compatibility)
@@ -196,13 +195,13 @@ func ToCardDto(card model.Card) CardDto {
 
 	// Convert requirements
 	requirements := CardRequirements{
-		MinTemperature:     card.Requirements.MinTemperature,
-		MaxTemperature:     card.Requirements.MaxTemperature,
-		MinOxygen:          card.Requirements.MinOxygen,
-		MaxOxygen:          card.Requirements.MaxOxygen,
-		MinOceans:          card.Requirements.MinOceans,
-		MaxOceans:          card.Requirements.MaxOceans,
-		RequiredTags:       ToCardTagDtoSlice(card.Requirements.RequiredTags),
+		MinTemperature: card.Requirements.MinTemperature,
+		MaxTemperature: card.Requirements.MaxTemperature,
+		MinOxygen:      card.Requirements.MinOxygen,
+		MaxOxygen:      card.Requirements.MaxOxygen,
+		MinOceans:      card.Requirements.MinOceans,
+		MaxOceans:      card.Requirements.MaxOceans,
+		RequiredTags:   ToCardTagDtoSlice(card.Requirements.RequiredTags),
 	}
 
 	// Convert required production if present

@@ -9,7 +9,6 @@ A digital implementation of the board game Terraforming Mars with a unique 3D ga
 - **Clean Architecture**: Backend follows domain-driven design principles  
 - **Type Safety**: Automatic TypeScript generation from Go structs
 - **Visual Terraforming**: Watch Mars transform as global parameters change
-- **CLI Tool**: Interactive command-line interface for backend testing
 
 ## 📁 Project Structure
 
@@ -29,11 +28,6 @@ This starts both frontend (port 3000) and backend (port 3001) servers.
 ```bash
 make frontend    # React development server
 make backend     # Go backend server
-```
-
-### CLI Tool
-```bash
-make tm          # Interactive CLI for backend
 ```
 
 ## 🛠️ Development Commands
@@ -58,7 +52,6 @@ make tm          # Interactive CLI for backend
 ### Build & Deploy
 - `make build` - Production builds
 - `make clean` - Clean artifacts
-- `make install-cli` - Install CLI globally
 
 ## 🏗️ Technology Stack
 

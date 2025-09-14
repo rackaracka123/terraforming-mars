@@ -20,7 +20,6 @@ make help        # Show all available commands with descriptions
 ```bash
 make frontend    # Start React development server (port 3000)
 make backend     # Start Go backend server (port 3001)
-make tm          # Launch interactive CLI tool for backend testing
 ```
 
 ### 🧪 Testing
@@ -51,13 +50,6 @@ make build-frontend# Build React production bundle (frontend/dist/)
 make clean        # Clean all build artifacts
 ```
 
-### 🛠️ CLI Tool
-```bash
-make tm           # Run CLI tool locally
-make install-cli  # Install CLI tool globally as 'tm' command
-tm                # Run installed CLI from anywhere (after install-cli)
-```
-
 ### 🧰 Development Helpers
 ```bash
 make dev-setup    # Set up development environment (go mod tidy + npm install)
@@ -85,7 +77,6 @@ The Go backend follows clean architecture principles with clear separation of co
 ```
 backend/
 ├── cmd/                    # Application entry points
-│   ├── cli/               # Interactive CLI tool for testing
 │   ├── server/            # Main server application with dependency injection
 │   └── watch/             # Development file watching utility
 ├── internal/
@@ -296,50 +287,6 @@ type Player struct {
     IsActive bool   `json:"isActive" ts:"boolean"`
 }
 ```
-
-### Resource System
-Six resource types: Credits, Steel, Titanium, Plants, Energy, Heat. Heat converts to temperature raises (8 heat = 1 step). Production tracks for sustainable resource generation.
-
-## CLI Tool (`make tm`)
-
-The project includes an interactive CLI tool for backend testing and development:
-
-### Features
-- **WebSocket Connection**: Direct connection to backend for real-time testing
-- **Numbered Actions**: Interactive action selection (0-9) with skip option (0)
-- **Game Management**: Join games, view status, send custom messages
-- **Real-time Feedback**: Live updates from game state changes
-
-### Usage
-```bash
-make tm                    # Launch CLI tool
-make install-cli           # Install globally as 'tm' command
-tm                        # Run from anywhere (after install)
-```
-
-### Available Commands
-- `help` - Show all commands
-- `connect <game>` - Join or create a game
-- `status` - Show connection and game status  
-- `actions` - Display numbered action list
-- `0-9` - Select action by number (0 = skip)
-- `send <type>` - Send raw WebSocket messages
-- `quit` - Exit CLI tool
-
-### Example Session
-```bash
-tm> connect test-game      # Join game
-tm> actions               # Show available actions
-tm> 1                     # Raise temperature
-tm> 0                     # Skip action
-tm> quit                  # Exit
-```
-
-The CLI tool is particularly useful for:
-- Testing game mechanics without frontend
-- Debugging WebSocket message flow  
-- Rapid iteration on backend features
-- Automated testing scenarios
 
 ## Terraforming Mars Game Rules Reference
 

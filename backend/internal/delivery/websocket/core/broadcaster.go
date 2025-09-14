@@ -306,34 +306,6 @@ func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID
 		zap.String("game_id", gameID))
 }
 
-// SendAvailableCardsToPlayer sends available starting cards to a specific player
-func (b *Broadcaster) SendAvailableCardsToPlayer(ctx context.Context, gameID, playerID string, cards []dto.CardDto) {
-	// Create available cards payload
-	availableCardsPayload := dto.AvailableCardsPayload{
-		Cards: cards,
-	}
-
-	availableCardsMessage := dto.WebSocketMessage{
-		Type:    dto.MessageTypeAvailableCards,
-		Payload: availableCardsPayload,
-		GameID:  gameID,
-	}
-
-	// Send to specific player
-	connection := b.manager.GetConnectionByPlayerID(gameID, playerID)
-	if connection != nil {
-		connection.SendMessage(availableCardsMessage)
-		b.logger.Info("📤 Sent available cards to player",
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID),
-			zap.Int("card_count", len(cards)))
-	} else {
-		b.logger.Warn("⚠️ Player connection not found for available cards",
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID))
-	}
-}
-
 // BroadcastProductionPhaseStarted sends production phase started messages to all players in the game
 func (b *Broadcaster) BroadcastProductionPhaseStarted(ctx context.Context, gameID string, playersData []dto.PlayerProductionData) {
 	// Create production phase started payload

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"terraforming-mars-backend/internal/model"
+	"time"
 )
 
 // CardRepository manages card data as the single source of truth
@@ -293,18 +294,34 @@ func (r *CardRepositoryImpl) convertJSONCard(jsonCard JSONCard) (model.Card, err
 
 // generateCardID creates a unique ID from card number or name
 func (r *CardRepositoryImpl) generateCardID(number, name string) string {
+	var generatedID string
+
 	if number != "" {
 		// Remove # and convert to lowercase
 		id := strings.ToLower(strings.TrimPrefix(number, "#"))
 		// Replace non-alphanumeric with underscore
 		re := regexp.MustCompile(`[^a-z0-9]+`)
-		return re.ReplaceAllString(id, "_")
+		generatedID = re.ReplaceAllString(id, "_")
+	} else {
+		// Fall back to name-based ID
+		id := strings.ToLower(name)
+		re := regexp.MustCompile(`[^a-z0-9]+`)
+		generatedID = re.ReplaceAllString(id, "_")
 	}
 
-	// Fall back to name-based ID
-	id := strings.ToLower(name)
-	re := regexp.MustCompile(`[^a-z0-9]+`)
-	return re.ReplaceAllString(id, "_")
+	// Clean up leading/trailing underscores and ensure we have a valid ID
+	generatedID = strings.Trim(generatedID, "_")
+
+	// If the generated ID is still empty, create a fallback
+	if generatedID == "" {
+		generatedID = fmt.Sprintf("card_%s_%s", strings.ReplaceAll(number, "#", ""), strings.ReplaceAll(name, " ", "_"))
+		// If still empty, use timestamp-based ID
+		if generatedID == "card__" {
+			generatedID = fmt.Sprintf("card_%d", time.Now().UnixNano())
+		}
+	}
+
+	return generatedID
 }
 
 // convertCardType converts string type to model.CardType

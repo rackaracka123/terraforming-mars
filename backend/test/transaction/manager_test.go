@@ -102,6 +102,18 @@ func (m *MockPlayerRepository) RemoveCard(ctx context.Context, gameID, playerID 
 func (m *MockPlayerRepository) PlayCard(ctx context.Context, gameID, playerID string, cardID string) error {
 	return nil // Stub implementation
 }
+func (m *MockPlayerRepository) SetCardSelection(ctx context.Context, gameID, playerID string, selection *model.ProductionPhase) error {
+	return nil // Stub implementation
+}
+func (m *MockPlayerRepository) SetCardSelectionComplete(ctx context.Context, gameID, playerID string) error {
+	return nil // Stub implementation
+}
+func (m *MockPlayerRepository) GetCardSelection(ctx context.Context, gameID, playerID string) (*model.ProductionPhase, error) {
+	return nil, nil // Stub implementation
+}
+func (m *MockPlayerRepository) ClearCardSelection(ctx context.Context, gameID, playerID string) error {
+	return nil // Stub implementation
+}
 
 // MockGameRepository implements transaction.GameRepository for testing
 type MockGameRepository struct {

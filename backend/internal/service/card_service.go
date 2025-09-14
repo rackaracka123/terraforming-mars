@@ -316,7 +316,7 @@ func (s *CardServiceImpl) checkProductionCardSelectionComplete(players []model.P
 // ClearGameSelectionData clears temporary selection data for a game (called after selection phase completes)
 func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 	ctx := context.Background()
-	
+
 	// Get all players in the game and clear their selection data
 	players, err := s.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {

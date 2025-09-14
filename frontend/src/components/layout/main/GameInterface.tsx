@@ -71,46 +71,49 @@ export default function GameInterface() {
   const currentPlayerIdRef = useRef<string | null>(null);
 
   // Stable WebSocket event handlers using useCallback
-  const handleGameUpdated = useCallback((updatedGame: GameDto) => {
-    const playerId = currentPlayerIdRef.current;
-    if (!playerId) return;
+  const handleGameUpdated = useCallback(
+    (updatedGame: GameDto) => {
+      const playerId = currentPlayerIdRef.current;
+      if (!playerId) return;
 
-    // Detect changes before updating
-    if (previousGameRef.current) {
-      const changes = findChangedPaths(previousGameRef.current, updatedGame);
-      setChangedPaths(changes);
+      // Detect changes before updating
+      if (previousGameRef.current) {
+        const changes = findChangedPaths(previousGameRef.current, updatedGame);
+        setChangedPaths(changes);
 
-      // Clear changed paths after animation completes
-      if (changes.size > 0) {
-        setTimeout(() => {
-          setChangedPaths(new Set());
-        }, 1500);
+        // Clear changed paths after animation completes
+        if (changes.size > 0) {
+          setTimeout(() => {
+            setChangedPaths(new Set());
+          }, 1500);
+        }
       }
-    }
 
-    // Store the previous state for next comparison
-    previousGameRef.current = deepClone(updatedGame);
+      // Store the previous state for next comparison
+      previousGameRef.current = deepClone(updatedGame);
 
-    setGame(updatedGame);
-    setIsConnected(true);
+      setGame(updatedGame);
+      setIsConnected(true);
 
-    // If we were reconnecting, mark reconnection as successful
-    if (isReconnecting) {
-      console.log("✅ Reconnection successful");
-      setIsReconnecting(false);
-    }
+      // If we were reconnecting, mark reconnection as successful
+      if (isReconnecting) {
+        console.log("✅ Reconnection successful");
+        setIsReconnecting(false);
+      }
 
-    // Set current player from updated game data
-    const updatedPlayer = updatedGame.currentPlayer;
-    setCurrentPlayer(updatedPlayer || null);
+      // Set current player from updated game data
+      const updatedPlayer = updatedGame.currentPlayer;
+      setCurrentPlayer(updatedPlayer || null);
 
-    // Show corporation modal if player hasn't selected a corporation yet
-    if (updatedPlayer && !updatedPlayer.corporation) {
-      setShowCorporationModal(true);
-    } else {
-      setShowCorporationModal(false);
-    }
-  }, [isReconnecting]);
+      // Show corporation modal if player hasn't selected a corporation yet
+      if (updatedPlayer && !updatedPlayer.corporation) {
+        setShowCorporationModal(true);
+      } else {
+        setShowCorporationModal(false);
+      }
+    },
+    [isReconnecting],
+  );
 
   const handleFullState = useCallback(
     (statePayload: FullStatePayload) => {
@@ -195,7 +198,6 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
-
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
       // Send card selection to server
@@ -220,7 +222,9 @@ export default function GameInterface() {
       console.log("🔄 Reconnecting to game:", { gameId, playerId, playerName });
 
       // Fetch current game state from server first
-      const response = await fetch(`http://localhost:3001/api/v1/games/${gameId}`);
+      const response = await fetch(
+        `http://localhost:3001/api/v1/games/${gameId}`,
+      );
       if (!response.ok) {
         throw new Error(`Game not found: ${response.status}`);
       }
@@ -246,13 +250,14 @@ export default function GameInterface() {
       // Connection will be marked as successful when WebSocket connects
       // and we receive a game-updated or player-reconnected event
       console.log("⏳ Waiting for WebSocket connection confirmation...");
-
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);
       // Don't navigate away - let user try manual reconnection
       // or they can manually navigate to home if needed
-      console.error("Failed to reconnect to game. Please check your connection and try again.");
+      console.error(
+        "Failed to reconnect to game. Please check your connection and try again.",
+      );
     }
   }, [navigate]);
 
@@ -373,7 +378,9 @@ export default function GameInterface() {
         // No route state, check if we should attempt reconnection
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
-          console.log("🔄 No route state, attempting reconnection from saved data...");
+          console.log(
+            "🔄 No route state, attempting reconnection from saved data...",
+          );
           // Start in-place reconnection instead of redirecting
           setIsReconnecting(true);
           attemptReconnection();
@@ -497,10 +504,18 @@ export default function GameInterface() {
       extractCardDetails(cards);
       setShowCardSelection(true);
     } else if (showCardSelection && !hasCardSelection) {
-      console.log("🎪 Hiding overlay - backend cleared starting cards (selection complete)");
+      console.log(
+        "🎪 Hiding overlay - backend cleared starting cards (selection complete)",
+      );
       setShowCardSelection(false);
     }
-  }, [game?.currentPhase, game?.status, game?.currentPlayer?.startingSelection, showCardSelection, extractCardDetails]);
+  }, [
+    game?.currentPhase,
+    game?.status,
+    game?.currentPlayer?.startingSelection,
+    showCardSelection,
+    extractCardDetails,
+  ]);
 
   // Demo keyboard shortcuts
   useEffect(() => {
@@ -669,37 +684,35 @@ export default function GameInterface() {
       {isReconnecting && (
         <div
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             zIndex: 9999,
-            color: 'white',
-            fontSize: '18px',
-            textAlign: 'center',
-            flexDirection: 'column',
-            gap: '20px'
+            color: "white",
+            fontSize: "18px",
+            textAlign: "center",
+            flexDirection: "column",
+            gap: "20px",
           }}
         >
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold" }}>
             🔄 Reconnecting to Game...
           </div>
-          <div>
-            Please wait while we restore your connection
-          </div>
+          <div>Please wait while we restore your connection</div>
           <div
             style={{
-              width: '40px',
-              height: '40px',
-              border: '4px solid rgba(255, 255, 255, 0.3)',
-              borderTop: '4px solid white',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite'
+              width: "40px",
+              height: "40px",
+              border: "4px solid rgba(255, 255, 255, 0.3)",
+              borderTop: "4px solid white",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
             }}
           />
           <style>{`
