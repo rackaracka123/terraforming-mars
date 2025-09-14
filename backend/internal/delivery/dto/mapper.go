@@ -2,7 +2,6 @@ package dto
 
 import (
 	"context"
-	"fmt"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 )
