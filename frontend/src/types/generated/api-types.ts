@@ -342,7 +342,7 @@ export interface PlayerDto {
   id: string;
   name: string;
   corporation?: string;
-  cards: string[];
+  cards: CardDto[];
   resources: ResourcesDto;
   resourceProduction: ProductionDto;
   terraformRating: number /* int */;
