@@ -90,7 +90,7 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 			Production: model.Production{
 				Credits: 1,
 			},
-			ConnectionStatus: model.ConnectionStatusConnected,
+			IsConnected: true,
 		}
 
 		// Create a player

@@ -20,7 +20,7 @@ func TestPlayer_InitialState(t *testing.T) {
 	assert.Empty(t, player.Cards)
 	assert.Empty(t, player.PlayedCards)
 	assert.Equal(t, 0, player.TerraformRating)
-	assert.False(t, player.IsActive)
+	assert.False(t, player.IsConnected)
 
 	// Test zero-value resources and production
 	assert.Equal(t, 0, player.Resources.Credits)

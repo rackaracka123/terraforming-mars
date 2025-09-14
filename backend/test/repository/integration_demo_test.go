@@ -46,7 +46,7 @@ func (s *DemoGameService) CreateGameWithPlayer(ctx context.Context, playerName s
 		Production: model.Production{
 			Credits: 1,
 		},
-		ConnectionStatus: model.ConnectionStatusConnected,
+		IsConnected: true,
 	}
 
 	err = s.playerRepo.Create(ctx, game.ID, player)
@@ -160,7 +160,7 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 				TerraformRating:  20,
 				Resources:        model.Resources{Credits: 45},
 				Production:       model.Production{Credits: 1},
-				ConnectionStatus: model.ConnectionStatusConnected,
+				IsConnected: true,
 			},
 			{
 				ID:               "p2",
@@ -168,7 +168,7 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 				TerraformRating:  20,
 				Resources:        model.Resources{Credits: 45},
 				Production:       model.Production{Credits: 1},
-				ConnectionStatus: model.ConnectionStatusConnected,
+				IsConnected: true,
 			},
 		}
 

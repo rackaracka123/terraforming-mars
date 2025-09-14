@@ -40,7 +40,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			Credits: 1,
 		},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 		Cards:           []string{},
 		PlayedCards:     []string{},
 	}
@@ -149,7 +149,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 					Credits: 1,
 				},
 				TerraformRating: 20,
-				IsActive:        true,
+				IsConnected:     true,
 				Cards:           []string{},
 				PlayedCards:     []string{},
 			}
@@ -222,7 +222,7 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	// Create game using clean architecture
@@ -360,7 +360,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	player2 := model.Player{
@@ -369,7 +369,7 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 		Resources:       model.Resources{Credits: 40},
 		Production:      model.Production{Credits: 1},
 		TerraformRating: 20,
-		IsActive:        true,
+		IsConnected:     true,
 	}
 
 	// Create game using clean architecture

@@ -35,15 +35,11 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
-	var corporation *string
-	if player.Corporation != "" {
-		corporation = &player.Corporation
-	}
 
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
-		Corporation:       corporation,
+		Corporation:       player.Corporation,
 		Cards:             player.Cards,
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
@@ -54,7 +50,7 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		VictoryPoints:     player.VictoryPoints,
 		IsConnected:       player.IsConnected,
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: ToCardDtoSlice(player.StartingSelection),
+		StartingSelection: player.StartingSelection,
 	}
 }
 
@@ -79,10 +75,15 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
+	corporationName := ""
+	if player.Corporation != nil {
+		corporationName = *player.Corporation
+	}
+
 	return OtherPlayerDto{
 		ID:               player.ID,
 		Name:             player.Name,
-		Corporation:      player.Corporation,
+		Corporation:      corporationName,
 		HandCardCount:    len(player.Cards), // Hide actual cards, show count only
 		Resources:        ToResourcesDto(player.Resources),
 		Production:       ToProductionDto(player.Production),

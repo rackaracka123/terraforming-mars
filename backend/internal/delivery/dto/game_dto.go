@@ -174,9 +174,9 @@ type PlayerDto struct {
 	VictoryPoints    int           `json:"victoryPoints" ts:"number"`
 	IsConnected      bool          `json:"isConnected" ts:"boolean"`
 	// Card selection state - nullable, exists only during selection phase
-	CardSelection *ProductionPhaseDto `json:"production" ts:"ProductionPhaseDto | null"`
+	CardSelection *ProductionPhaseDto `json:"productionSelection" ts:"ProductionPhaseDto | null"`
 	// Starting card selection - available during starting_card_selection phase
-	StartingSelection []CardDto `json:"startingSelection" ts:"CardDto[]"`
+	StartingSelection []string `json:"startingSelection" ts:"string[]"`
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)

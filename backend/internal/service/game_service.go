@@ -233,8 +233,14 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		// Take the first 10 cards as the player's starting selection
 		playerStartingCards := cardPool[:10]
 
-		// Update the player with starting cards
-		if err := s.playerRepo.SetStartingSelection(ctx, gameID, player.ID, playerStartingCards); err != nil {
+		// Convert cards to card IDs
+		playerStartingCardIDs := make([]string, len(playerStartingCards))
+		for i, card := range playerStartingCards {
+			playerStartingCardIDs[i] = card.ID
+		}
+
+		// Update the player with starting card IDs
+		if err := s.playerRepo.SetStartingSelection(ctx, gameID, player.ID, playerStartingCardIDs); err != nil {
 			log.Error("Failed to set starting selection for player",
 				zap.String("player_id", player.ID),
 				zap.Error(err))

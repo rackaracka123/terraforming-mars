@@ -40,7 +40,7 @@ type PlayerRepository interface {
 	ClearCardSelection(ctx context.Context, gameID, playerID string) error
 
 	// Starting card selection methods
-	SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error
+	SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -305,8 +305,11 @@ func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, pl
 		return err
 	}
 
-	oldCorporation := player.Corporation
-	player.Corporation = corporation
+	var oldCorporation string
+	if player.Corporation != nil {
+		oldCorporation = *player.Corporation
+	}
+	player.Corporation = &corporation
 
 	log.Info("Player corporation updated", zap.String("old_corp", oldCorporation), zap.String("new_corp", corporation))
 
@@ -611,8 +614,8 @@ func (r *PlayerRepositoryImpl) ClearCardSelection(ctx context.Context, gameID, p
 	return nil
 }
 
-// SetStartingSelection sets the starting cards for a player
-func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID, playerID string, cards []model.Card) error {
+// SetStartingSelection sets the starting card IDs for a player
+func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -624,18 +627,18 @@ func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID,
 	}
 
 	// Handle nil input properly - set to nil instead of empty slice
-	if cards == nil {
+	if cardIDs == nil {
 		player.StartingSelection = nil
 	} else {
-		// Create a copy of the cards to prevent external mutation
-		cardsCopy := make([]model.Card, len(cards))
-		copy(cardsCopy, cards)
-		player.StartingSelection = cardsCopy
+		// Create a copy of the card IDs to prevent external mutation
+		cardIDsCopy := make([]string, len(cardIDs))
+		copy(cardIDsCopy, cardIDs)
+		player.StartingSelection = cardIDsCopy
 	}
 
 	cardCount := 0
-	if cards != nil {
-		cardCount = len(cards)
+	if cardIDs != nil {
+		cardCount = len(cardIDs)
 	}
 	log.Info("🃏 Starting cards set for player", zap.Int("card_count", cardCount))
 

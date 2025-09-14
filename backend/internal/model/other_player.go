@@ -25,10 +25,15 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		return nil
 	}
 
+	corporationName := ""
+	if player.Corporation != nil {
+		corporationName = *player.Corporation
+	}
+
 	return &OtherPlayer{
 		ID:               player.ID,
 		Name:             player.Name,
-		Corporation:      player.Corporation,
+		Corporation:      corporationName,
 		HandCardCount:    len(player.Cards), // Convert hand cards to count
 		Resources:        player.Resources,
 		Production:       player.Production,

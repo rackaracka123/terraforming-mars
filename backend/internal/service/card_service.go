@@ -207,8 +207,8 @@ func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gam
 
 	// Then validate selected cards are in player's options
 	optionsMap := make(map[string]bool)
-	for _, option := range playerOptions {
-		optionsMap[option.ID] = true
+	for _, optionID := range playerOptions {
+		optionsMap[optionID] = true
 	}
 
 	for _, cardID := range cardIDs {
