@@ -41,7 +41,8 @@
       "Bash(gh issue:*)",
       "Bash(mkdir:*)",
       "Bash(git mv:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "mcp__playwright__browser_drag"
     ],
     "deny": [],
     "ask": []

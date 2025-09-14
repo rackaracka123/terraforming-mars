@@ -7,6 +7,7 @@ import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import VictoryPointIcon from "../../ui/display/VictoryPointIcon.tsx";
+import AvailableActionsDisplay from "../../ui/display/AvailableActionsDisplay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
@@ -103,6 +104,16 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             />
 
             <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
+
+            {/* Actions display in top right */}
+            <div className={styles.actionsOverlay}>
+              <AvailableActionsDisplay
+                availableActions={currentPlayer?.availableActions || 0}
+                availableEffects={0}
+                size="large"
+                onClick={onOpenActionsModal}
+              />
+            </div>
 
             {/* Victory Points display in bottom right */}
             <div className={styles.victoryPointsOverlay}>

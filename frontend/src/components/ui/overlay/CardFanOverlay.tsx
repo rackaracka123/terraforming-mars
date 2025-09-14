@@ -6,19 +6,23 @@ interface CardFanOverlayProps {
   cards: CardDto[];
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
+  onPlayCard?: (cardId: string) => Promise<void>;
 }
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   cards,
   hideWhenModalOpen = false,
   onCardSelect,
+  onPlayCard,
 }) => {
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [justDragged, setJustDragged] = useState(false);
+  const [isInThrowZone, setIsInThrowZone] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [cardScales, setCardScales] = useState<Record<string, number>>({});
   const [cardRotations, setCardRotations] = useState<Record<string, number>>(
@@ -26,6 +30,10 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   );
   const [cardsExpanded, setCardsExpanded] = useState(false);
   const handRef = useRef<HTMLDivElement>(null);
+
+  // Throw detection constants
+  const THROW_DISTANCE_THRESHOLD = 120; // pixels - minimum distance to trigger throw
+  const THROW_Y_THRESHOLD = -80; // pixels - minimum upward movement to trigger throw
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
   const calculateCardPosition = (
@@ -197,49 +205,99 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     setDraggedCard(cardId);
     setIsDragging(true);
     setDragPosition({ x: event.clientX, y: event.clientY });
+    setDragStartPosition({ x: event.clientX, y: event.clientY });
     setHighlightedCard(null);
+    setIsInThrowZone(false);
   };
+
+  // Stable event handlers using useCallback
+  const handleDragEnd = useCallback(async () => {
+    const draggedCardId = draggedCard;
+
+    // Calculate drag distance and direction for throw detection
+    const deltaX = dragPosition.x - dragStartPosition.x;
+    const deltaY = dragPosition.y - dragStartPosition.y;
+    const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
+    const isThrowDetected =
+      dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
+
+    // Reset drag states
+    setDraggedCard(null);
+    setIsDragging(false);
+    setDragPosition({ x: 0, y: 0 });
+    setDragStartPosition({ x: 0, y: 0 });
+    setDragOffset({ x: 0, y: 0 });
+    setHighlightedCard(null);
+    setIsInThrowZone(false);
+
+    if (draggedCardId) {
+      resetCardScale(draggedCardId);
+      resetCardRotation(draggedCardId);
+
+      // Handle throw action
+      if (isThrowDetected && onPlayCard) {
+        try {
+          console.log(
+            `🎯 Throwing card ${draggedCardId} - Distance: ${dragDistance.toFixed(1)}px, Y: ${deltaY.toFixed(1)}px`,
+          );
+          await onPlayCard(draggedCardId);
+        } catch (error) {
+          console.error("Failed to play card:", error);
+          // Could add error feedback here
+        }
+      }
+    }
+
+    setJustDragged(true);
+    setTimeout(() => {
+      setJustDragged(false);
+    }, 100);
+  }, [
+    draggedCard,
+    dragPosition,
+    dragStartPosition,
+    onPlayCard,
+    resetCardScale,
+    resetCardRotation,
+  ]);
+
+  const handleDocumentClick = useCallback((event: MouseEvent) => {
+    if (handRef.current && !handRef.current.contains(event.target as Node)) {
+      setHighlightedCard(null);
+      setCardsExpanded(false);
+    }
+  }, []);
+
+  const handleDocumentMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (isDragging && draggedCard) {
+        setDragPosition({ x: event.clientX, y: event.clientY });
+
+        // Check if we're in throw zone for visual feedback
+        const deltaX = event.clientX - dragStartPosition.x;
+        const deltaY = event.clientY - dragStartPosition.y;
+        const dragDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const isUpwardThrow = deltaY < THROW_Y_THRESHOLD;
+        const inThrowZone =
+          dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
+
+        if (inThrowZone !== isInThrowZone) {
+          setIsInThrowZone(inThrowZone);
+        }
+      }
+    },
+    [isDragging, draggedCard, dragStartPosition, isInThrowZone],
+  );
+
+  const handleDocumentMouseUp = useCallback(() => {
+    if (isDragging && draggedCard) {
+      handleDragEnd();
+    }
+  }, [isDragging, draggedCard, handleDragEnd]);
 
   // Add document event listeners for drag and click outside
   useEffect(() => {
-    const handleDragEnd = () => {
-      const draggedCardId = draggedCard;
-      setDraggedCard(null);
-      setIsDragging(false);
-      setDragPosition({ x: 0, y: 0 });
-      setDragOffset({ x: 0, y: 0 });
-      setHighlightedCard(null);
-
-      if (draggedCardId) {
-        resetCardScale(draggedCardId);
-        resetCardRotation(draggedCardId);
-      }
-
-      setJustDragged(true);
-      setTimeout(() => {
-        setJustDragged(false);
-      }, 100);
-    };
-
-    const handleDocumentClick = (event: MouseEvent) => {
-      if (handRef.current && !handRef.current.contains(event.target as Node)) {
-        setHighlightedCard(null);
-        setCardsExpanded(false);
-      }
-    };
-
-    const handleDocumentMouseMove = (event: MouseEvent) => {
-      if (isDragging && draggedCard) {
-        setDragPosition({ x: event.clientX, y: event.clientY });
-      }
-    };
-
-    const handleDocumentMouseUp = () => {
-      if (isDragging && draggedCard) {
-        handleDragEnd();
-      }
-    };
-
     document.addEventListener("click", handleDocumentClick);
     document.addEventListener("mousemove", handleDocumentMouseMove);
     document.addEventListener("mouseup", handleDocumentMouseUp);
@@ -249,7 +307,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       document.removeEventListener("mousemove", handleDocumentMouseMove);
       document.removeEventListener("mouseup", handleDocumentMouseUp);
     };
-  }, [isDragging, draggedCard, resetCardScale, resetCardRotation]);
+  }, [handleDocumentClick, handleDocumentMouseMove, handleDocumentMouseUp]);
 
   // Hide the overlay when modals are open or no cards
   if (hideWhenModalOpen || cards.length === 0) {
@@ -313,7 +371,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           return (
             <div
               key={card.id}
-              className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard ? "dragged" : ""} ${isHovered ? "hovered" : ""}`}
+              className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone ? "throw-zone" : ""}`}
               style={
                 {
                   transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
@@ -409,6 +467,13 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           transition: none;
           cursor: grabbing;
           z-index: 1000;
+        }
+
+        .terraforming-card.throw-zone {
+          box-shadow:
+            0 0 30px rgba(0, 255, 100, 0.8),
+            0 8px 40px rgba(0, 255, 100, 0.4);
+          filter: brightness(1.2);
         }
 
         .terraforming-card:not(.dragged) {

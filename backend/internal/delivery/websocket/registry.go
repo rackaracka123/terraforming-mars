@@ -10,6 +10,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_power_plant"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/launch_asteroid"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/plant_greenery"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/action/play_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/sell_patents"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_cards"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_starting_card"
@@ -57,8 +58,8 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, parser))
 
-	// TODO: Register play card handler when it's created
-	// hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(...))
+	// Register play card handler WITH turn validation ONLY (action consumption handled in card service after validation)
+	hub.RegisterHandler(dto.MessageTypeActionPlayCard, wrapWithTurnValidation(play_card.NewHandler(cardService, parser), turnValidationMiddleware))
 }
 
 // wrapWithTurnValidation wraps a MessageHandler with turn validation middleware
@@ -66,6 +67,15 @@ func wrapWithTurnValidation(handler core.MessageHandler, turnValidation websocke
 	return &middlewareWrapper{
 		handler:        handler,
 		turnValidation: turnValidation,
+	}
+}
+
+// wrapWithTurnAndActionValidation wraps a MessageHandler with both turn and action validation middleware
+func wrapWithTurnAndActionValidation(handler core.MessageHandler, turnValidation websocketmiddleware.MiddlewareFunc, actionValidation websocketmiddleware.MiddlewareFunc) core.MessageHandler {
+	return &actionMiddlewareWrapper{
+		handler:          handler,
+		turnValidation:   turnValidation,
+		actionValidation: actionValidation,
 	}
 }
 
@@ -97,6 +107,45 @@ func (w *middlewareWrapper) HandleMessage(ctx context.Context, connection *core.
 		// Send error back to client
 		errorHandler := utils.NewErrorHandler()
 		errorHandler.SendError(connection, "Turn validation failed: "+err.Error())
+		return
+	}
+}
+
+// actionMiddlewareWrapper adapts MessageHandler to work with both turn and action validation middleware
+type actionMiddlewareWrapper struct {
+	handler          core.MessageHandler
+	turnValidation   websocketmiddleware.MiddlewareFunc
+	actionValidation websocketmiddleware.MiddlewareFunc
+}
+
+// HandleMessage implements MessageHandler interface with both turn and action validation middleware
+func (w *actionMiddlewareWrapper) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
+	playerID, gameID := connection.GetPlayer()
+	if playerID == "" || gameID == "" {
+		// Let the wrapped handler handle the error
+		w.handler.HandleMessage(ctx, connection, message)
+		return
+	}
+
+	// Create an ActionHandler adapter for the original MessageHandler
+	actionHandler := core.ActionHandlerFunc(func(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+		// Call the original MessageHandler
+		w.handler.HandleMessage(ctx, connection, message)
+		return nil
+	})
+
+	// Chain middlewares: turn validation first, then action validation
+	chainedHandler := core.ActionHandlerFunc(func(ctx context.Context, gameID, playerID string, actionRequest interface{}) error {
+		// Apply action validation middleware
+		return w.actionValidation(ctx, gameID, playerID, actionRequest, actionHandler)
+	})
+
+	// Apply turn validation middleware first
+	err := w.turnValidation(ctx, gameID, playerID, message.Payload, chainedHandler)
+	if err != nil {
+		// Send error back to client
+		errorHandler := utils.NewErrorHandler()
+		errorHandler.SendError(connection, "Validation failed: "+err.Error())
 		return
 	}
 }

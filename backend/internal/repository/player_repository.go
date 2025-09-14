@@ -376,9 +376,18 @@ func (r *PlayerRepositoryImpl) UpdateAvailableActions(ctx context.Context, gameI
 		return err
 	}
 
+	oldActions := player.AvailableActions
 	player.AvailableActions = actions
 
 	log.Debug("Player available actions updated", zap.Int("actions", actions))
+
+	// Publish game updated event to notify all clients when actions change
+	if r.eventBus != nil && oldActions != actions {
+		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
+		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
+			log.Warn("Failed to publish game updated event", zap.Error(err))
+		}
+	}
 
 	return nil
 }
