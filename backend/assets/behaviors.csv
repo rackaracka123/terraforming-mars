@@ -1,0 +1,833 @@
+,,,,,,,,,,,            Production            ,,,,,,,             Inventory             ,,,,,,,                                              Cards                                              ,,,,,,                        Tiles on Mars                        ,,,,,,   Terraforming    ,,,,,                                                           Other effects                                                           ,,,,,,,,
+id,english name, # rows for this card,"Behavior
+Type", Option, default sort,Exp'n,Trigger,Restrictions,"""N"" equals ↘", Details, Megacredit Prod., Steel Prod., Titanium Prod., Plant Prod., Energy Prod., Heat Prod., Production, Megacredits, Steel, Titanium, Plants, Energy, Heat, Inventory, Cards, Card details, Card resources," Resource
+Type", Where, Cards, City tile ON MARS, Special tile, Greenery tile, Ocean tile,Tile restrictions, Tiles on Mars, Raise Temperature, Raise Oxygen, Raise Venus, Raise TR (directly), Total TR possible, City NOT on Mars, Colony, Trade Fleet, Delegate, Community,And also... , Other,Text form (not official), color
+these totals and averages are essentially meaningless -->,,,,71,,,247,118,104,,151,27,31,68,28,66,,1845,134,79,128,25,51,,104,17,165,170,170,,19,15,8,31,,73,31,11,26,44,151,,,,,,,,,
+B00,Beginner Corporation,1,0 Immediate,,0,0 Base,,,,,,,,,,,,42,,,,,,,10,instead of buying,,,,,,,,,,0,,,,,0,,,,,,,,Gain 42 M€. Take all 10 cards you received during setup into your hand for free.,#REF!
+B01,CrediCor,3,0 Immediate,,1,0 Base,,,,,,,,,,,,57,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 57 M€.,#REF!
+B01,CrediCor,3,4 Effect/Trigger,,2,0 Base,play card,original cost >= 20,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a card with an original cost of 20 M€ or more, gain 4 M€.",#REF!
+B01,CrediCor,3,4 Effect/Trigger,,3,0 Base,standard project,cost >= 20,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"After you pay for a standard project costing 20 M€ or more, gain 4 M€.",#REF!
+B02,Ecoline,2,0 Immediate,,4,0 Base,,,,,,,,2,,,,36,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 36 M€ and 3 plants. Increase your plant production 2 steps.,#REF!
+B02,Ecoline,2,5 Effect/Discount,,5,0 Base,Convert Plants standard action,,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Convert Plants standard action costs 1 plant less.,#REF!
+B03,Helion,2,0 Immediate,,6,0 Base,,,,,,,,,,3,,42,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 42 M€ and increase your heat production 3 steps.,#REF!
+B03,Helion,2,6 Effect/Resource,,7,0 Base,while active,,any number of M€ owed,←,,,,,,,,N,,,,,-N,,,,,,,,,,,,,,,,,,,,,,,,,,You may use heat as M€. You may not use M€ as heat.,#REF!
+B04,Interplanetary Cinematics,2,0 Immediate,,8,0 Base,,,,,,,,,,,,30,20,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 30 M€ and  20 steel.,#REF!
+B04,Interplanetary Cinematics,2,4 Effect/Trigger,,9,0 Base,play event card,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play an event card, gain 2 M€.",#REF!
+B05,Inventrix,3,0 Immediate,,10,0 Base,,,,,,,,,,,,45,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 45 M€.,#REF!
+B05,Inventrix,3,3 Action/First,,10,0 Base,,,,,,,,,,,,,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,"As your first action, draw 3 cards.",#REF!
+B05,Inventrix,3,8 Effect/Ambient,,11,0 Base,play card,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,weaken global reqt 2 steps,,You may treat any global parameter requirement as if it is 2 steps lower or higher.,#REF!
+B06,Mining Guild,2,0 Immediate,,12,0 Base,,,,,,1,,,,,,30,5,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 30 M€ and 5 steel. Increase your steel production 1 step.,#REF!
+B06,Mining Guild,2,4 Effect/Trigger,,13,0 Base,tile,area with S/T bonus,,←,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you place a tile on an area with steel or titanium placement bonus, increase your steel production 1 step.",#REF!
+B07,PhoboLog,2,0 Immediate,,14,0 Base,,,,,,,,,,,,23,,10,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 23 M€ and 10 titanium.,#REF!
+B07,PhoboLog,2,6 Effect/Resource,,15,0 Base,payment that accepts titanium,,titanium spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your titanium resources are worth 1 M€ extra.,#REF!
+B08,Tharsis Republic,4,0 Immediate,,16,0 Base,,,,,,,,,,,,40,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 40 M€.,#REF!
+B08,Tharsis Republic,4,3 Action/First,,16,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,"As your first action, place a city tile.",#REF!
+B08,Tharsis Republic,4,4 Effect/Trigger,,17,0 Base,city,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you place a city tile, gain 3 M€.",#REF!
+B08,Tharsis Republic,4,4 Effect/Trigger,,18,0 Base,ANY city on Mars,,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY city tile is placed ON MARS, increase your M€ production 1 step.",#REF!
+B09,ThorGate,3,0 Immediate,,19,0 Base,,,,,,,,,1,,,48,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 48 M€ and increase  your energy production 1 step.,#REF!
+B09,ThorGate,3,5 Effect/Discount,,20,0 Base,power tag,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 3 M€ less per power tag it has.,#REF!
+B09,ThorGate,3,5 Effect/Discount,,21,0 Base,SP11,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Power Plant standard project costs 3 M€ less.,#REF!
+B10,United Nations Mars Initiative,2,0 Immediate,,22,0 Base,,,,,,,,,,,,40,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 40 M€.,#REF!
+B10,United Nations Mars Initiative,2,2 Action,,23,0 Base,,TR was raised this gen,,←,,,,,,,,-3,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Requires that your TR was raised this generation: spend 3 M€ to raise it 1 step more.,#REF!
+B11,Saturn Systems,2,0 Immediate,,24,1 CorpEra,,,,,,,1,,,,,42,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 42 M€ and increase  your titanium production 1 step.,#REF!
+B11,Saturn Systems,2,4 Effect/Trigger,,25,1 CorpEra,ANY Jovian tag,,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY Jovian tag is played, increase your M€ production 1 step.",#REF!
+B12,Teractor,2,0 Immediate,,26,1 CorpEra,,,,,,,,,,,,60,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 60 M€.,#REF!
+B12,Teractor,2,5 Effect/Discount,,27,1 CorpEra,Earth tag,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 3 M€ less per Earth tag it has.,#REF!
+V01,Aphrodite,2,0 Immediate,,28,4 VenusNext,,,,,,,,1,,,,47,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 47 M€ and increase your plant production 1 step.,#REF!
+V01,Aphrodite,2,4 Effect/Trigger,,29,4 VenusNext,ANY Venus increase,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When Venus is raised 1 step, gain 2 M€.",#REF!
+V02,Celestic,3,3 Action/First,,30,4 VenusNext,,,,,,,,,,,,,,,,,,,2,has floater icon,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards with floater icons.,#REF!
+V02,Celestic,3,0 Immediate,,30,4 VenusNext,,,,,,,,,,,,42,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 42 M€.,#REF!
+V02,Celestic,3,2 Action,,31,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Add a floater to ANY card.,#REF!
+V03,Manutech,7,0 Immediate,,32,4 VenusNext,,,,,,1,,,,,,35,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 35 M€ and increase  your steel production 1 step.,#REF!
+V03,Manutech,7,4 Effect/Trigger,,33,4 VenusNext,megacredit production,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your M€ production 1 step, gain 1 M€.",#REF!
+V03,Manutech,7,4 Effect/Trigger,,34,4 VenusNext,steel production,,,←,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your steel production 1 step, gain 1 steel.",#REF!
+V03,Manutech,7,4 Effect/Trigger,,35,4 VenusNext,titanium production,,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your titanium production 1 step, gain 1 titanium.",#REF!
+V03,Manutech,7,4 Effect/Trigger,,36,4 VenusNext,plant production,,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your plant production 1 step, gain 1 plant.",#REF!
+V03,Manutech,7,4 Effect/Trigger,,37,4 VenusNext,energy production,,,←,,,,,,,,,,,,1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your energy production 1 step, gain 1 energy.",#REF!
+V03,Manutech,7,4 Effect/Trigger,,38,4 VenusNext,heat production,,,←,,,,,,,,,,,,,1,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you increase your heat production 1 step, gain 1 heat.",#REF!
+V04,Morning Star Inc.,3,3 Action/First,,39,4 VenusNext,,,,,,,,,,,,,,,,,,,3,has Venus tag,,,,,,,,,,0,,,,,0,,,,,,,,"As your first action, draw 3 Venus cards.",#REF!
+V04,Morning Star Inc.,3,0 Immediate,,39,4 VenusNext,,,,,,,,,,,,50,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 50 M€.,#REF!
+V04,Morning Star Inc.,3,8 Effect/Ambient,,40,4 VenusNext,play card,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,weaken Venus reqt 2 steps,,You may treat a Venus terraforming requirement as if it is 2 steps lower or higher.,#REF!
+V05,Viron,2,0 Immediate,,41,4 VenusNext,,,,,,,,,,,,48,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 48 M€.,#REF!
+V05,Viron,2,2 Action,,42,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,reuse a card action,,Use a blue card action that has already been used this generation.,#REF!
+PC1,Cheung Shing Mars,2,0 Immediate,,43,5 Prelude,,,,,3,,,,,,,44,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 44 M€. Increase your M€ production 3 steps.,#REF!
+PC1,Cheung Shing Mars,2,5 Effect/Discount,,44,5 Prelude,building tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per building tag it has.,#REF!
+PC2,Point Luna,2,0 Immediate,,45,5 Prelude,,,,,,,1,,,,,38,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 38 M€. Increase your titanium production 1 step.,#REF!
+PC2,Point Luna,2,4 Effect/Trigger,,46,5 Prelude,Earth tag,,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a Earth tag, draw a card.",#REF!
+PC3,Robinson Industries,7,0 Immediate,,47,5 Prelude,,,,,,,,,,,,47,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 47 M€.,#REF!
+PC3,Robinson Industries,7,2 Action,A,48,5 Prelude,,no prod lower than M€,,←,1,,,,,,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that M€ is your lowest production: Spend 4 M€ to increase your M€ production 1 step.,#REF!
+PC3,Robinson Industries,7,2 Action,B,49,5 Prelude,,no prod lower than S,,←,,1,,,,,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that steel is your lowest production: Spend 4 M€ to increase your steel production 1 step.,#REF!
+PC3,Robinson Industries,7,2 Action,C,50,5 Prelude,,no prod lower than T,,←,,,1,,,,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that titanium is your lowest production: Spend 4 M€ to increase your titanium production 1 step.,#REF!
+PC3,Robinson Industries,7,2 Action,D,51,5 Prelude,,no prod lower than P,,←,,,,1,,,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that plants are your lowest production: Spend 4 M€ to increase your plant production 1 step.,#REF!
+PC3,Robinson Industries,7,2 Action,E,52,5 Prelude,,no prod lower than E,,←,,,,,1,,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that energy is your lowest production: Spend 4 M€ to increase your energy production 1 step.,#REF!
+PC3,Robinson Industries,7,2 Action,F,53,5 Prelude,,no prod lower than H,,←,,,,,,1,,-4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that heat is your lowest production: Spend 4 M€ to increase your heat production 1 step.,#REF!
+PC4,Valley Trust,3,3 Action/First,,54,5 Prelude,,,,,,,,,,,,,,,,,,,1,of 3 Preludes,,,,,,,,,,0,,,,,0,,,,,,play that card now,,"As your first action, draw 1 of 3 Prelude cards and play it.",#REF!
+PC4,Valley Trust,3,0 Immediate,,54,5 Prelude,,,,,,,,,,,,37,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 37 M€.,#REF!
+PC4,Valley Trust,3,5 Effect/Discount,,55,5 Prelude,science tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per science tag it has.,#REF!
+PC5,Vitor,3,0 Immediate,,56,5 Prelude,,,,,,,,,,,,45,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 45 M€.,#REF!
+PC5,Vitor,3,3 Action/First,,56,5 Prelude,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,fund an award,,"As your first action, fund an award for free.",#REF!
+PC5,Vitor,3,4 Effect/Trigger,,57,5 Prelude,play card,non-negative VP icon,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a card with a NON-NEGATIVE VP icon, gain 3 M€.",#REF!
+CC1,Aridor,3,0 Immediate,,58,6 Colonies,,,,,,,,,,,,40,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 40 M€.,#REF!
+CC1,Aridor,3,3 Action/First,,58,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,add colony tile of your choice,,"As your first action, add an additional Colony Tile of your choice to the game.",#REF!
+CC1,Aridor,3,4 Effect/Trigger,,59,6 Colonies,new tag type in play,event cards don't count,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you get a new type of tag in play (event cards do not count), increase your M€ production 1 step.",#REF!
+CC2,Arklight,2,0 Immediate,,60,6 Colonies,,,,,2,,,,,,,45,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 45 M€ and increase your M€ production 2 steps.,#REF!
+CC2,Arklight,2,4 Effect/Trigger,,61,6 Colonies,plant/animal tag,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When you play an animal or plant tag, add 1 animal to this card.",#REF!
+CC3,Polyphemos,2,0 Immediate,,62,6 Colonies,,,,,5,,,,,,,50,,5,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 50 M€ and 5 titanium. Increase your M€ production 5 steps.,#REF!
+CC3,Polyphemos,2,5 Effect/Discount,,63,6 Colonies,buy card,,,←,,,,,,,,-2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Buying cards to hand costs 2 M€ more at all times.,#REF!
+CC4,Poseidon,3,0 Immediate,,64,6 Colonies,,,,,,,,,,,,45,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 45 M€.,#REF!
+CC4,Poseidon,3,3 Action/First,,64,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,"As your first action, place a colony.",#REF!
+CC4,Poseidon,3,4 Effect/Trigger,,65,6 Colonies,ANY colony,,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY colony is placed, increase your M€ production 1 step.",#REF!
+CC5,Stormcraft Incorporated,3,0 Immediate,,66,6 Colonies,,,,,,,,,,,,48,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 48 M€.,#REF!
+CC5,Stormcraft Incorporated,3,2 Action,,67,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to ANY card.,#REF!
+CC5,Stormcraft Incorporated,3,6 Effect/Resource,,68,6 Colonies,while active,,any number,←,,,,,,,,,,,,,2N,,,,-N,floater,here,,,,,,,,,,,,,,,,,,,,Floaters on this card may be used as 2 heat each.,#REF!
+TC1,Lakefront Resorts,3,0 Immediate,,69,7 Turmoil,,,,,,,,,,,,54,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 54 M€.,#REF!
+TC1,Lakefront Resorts,3,4 Effect/Trigger,,70,7 Turmoil,tile,,oceans adjacent to placed tile,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you place a tile, gain 1 additional M€ per adjacent ocean tile.",#REF!
+TC1,Lakefront Resorts,3,4 Effect/Trigger,,71,7 Turmoil,ANY ocean tile,,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY ocean is placed, increase your M€ production 1 step.",#REF!
+TC2,Pristar,2,0 Immediate,,72,7 Turmoil,,,,,,,,,,,,53,,,,,,,,,,,,,,,,,,0,,,,-2,-2,,,,,,,,Gain 53 M€ and decrease your TR 2 steps.,#REF!
+TC2,Pristar,2,4 Effect/Trigger,,73,7 Turmoil,production phase,TR not raised this gen,,←,,,,,,,,6,,,,,,,,,1,preservation,here,,,,,,,0,,,,,0,,,,,,,,"During the production phase, if you did not get TR so far this generation, add 1 preservation resource here and gain 6 M€.",#REF!
+TC3,Septem Tribus,2,0 Immediate,,74,7 Turmoil,,,,,,,,,,,,36,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Gain 36 M€. When you perform an action, the wild tag counts as any tag of your choice.",#REF!
+TC3,Septem Tribus,2,2 Action,,75,7 Turmoil,,,delegates (counting only 1 per party),←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 2 M€ for each party where you have at least 1 delegate.,#REF!
+TC4,TerraLabs Research,2,0 Immediate,,76,7 Turmoil,,,,,,,,,,,,14,,,,,,,,,,,,,,,,,,0,,,,-1,-1,,,,,,,,Gain 14 M€ and decrease your TR 1 step.,#REF!
+TC4,TerraLabs Research,2,5 Effect/Discount,,77,7 Turmoil,buy card,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Buying cards to hand costs 2 M€ less at all times.,#REF!
+TC5,Utopia Invest,7,0 Immediate,,78,7 Turmoil,,,,,,1,1,,,,,40,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 40 M€. Increase your steel and titanium production 1 step each.,#REF!
+TC5,Utopia Invest,7,2 Action,A,79,7 Turmoil,,,,,-1,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step to gain 4 M€.,#REF!
+TC5,Utopia Invest,7,2 Action,B,80,7 Turmoil,,,,,,-1,,,,,,,4,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your steel production 1 step to gain 4 steel.,#REF!
+TC5,Utopia Invest,7,2 Action,C,81,7 Turmoil,,,,,,,-1,,,,,,,4,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your titanium production 1 step to gain 4 titanium.,#REF!
+TC5,Utopia Invest,7,2 Action,D,82,7 Turmoil,,,,,,,,-1,,,,,,,4,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your plant production 1 step to gain 4 plant.,#REF!
+TC5,Utopia Invest,7,2 Action,E,83,7 Turmoil,,,,,,,,,-1,,,,,,,4,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step to gain 4 energy.,#REF!
+TC5,Utopia Invest,7,2 Action,F,84,7 Turmoil,,,,,,,,,,-1,,,,,,,4,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your heat production 1 step to gain 4 heat.,#REF!
+XC1,Arcadian Communities,4,0 Immediate,,85,X2 Pro/bggcorps,,,,,,,,,,,,40,10,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 40 m€ and 10 steel.,#REF!
+XC1,Arcadian Communities,4,3 Action/First,,85,X2 Pro/bggcorps,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,1,,,"As your first action, place a community on an unreserved area.",#REF!
+XC1,Arcadian Communities,4,2 Action,,86,X2 Pro/bggcorps,,area touching your tile/community,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,1,,,Place a community on an unreserved area adjacent a tile or community you own.,#REF!
+XC1,Arcadian Communities,4,4 Effect/Trigger,,87,X2 Pro/bggcorps,tile,area with your community on it,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you place a tile where your community is, gain 3 M€.",#REF!
+XC2,Recyclon,3,0 Immediate,,88,X2 Pro/bggcorps,,,,,,1,,,,,,38,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 38 M€. Increase your steel production 1 step.,#REF!
+XC2,Recyclon,3,4 Effect/Trigger,A,89,X2 Pro/bggcorps,building tag,,,←,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,"When you play a building tag, gain 1 microbe to this card.",#REF!
+XC2,Recyclon,3,4 Effect/Trigger,B,90,X2 Pro/bggcorps,building tag,,,←,,,,1,,,,,,,,,,,,,-2,microbe,here,,,,,,,0,,,,,0,,,,,,,,"When you play a building tag, remove 2 microbes here and increase your plant production 1 step.",#REF!
+XC3,Splice Tactical Genomics,3,3 Action/First,,91,X2 Pro/bggcorps,,,,,,,,,,,,,,,,,,,1,has microbe tag,,,,,,,,,,0,,,,,0,,,,,,,,"As your first action, draw a microbe card.",#REF!
+XC3,Splice Tactical Genomics,3,0 Immediate,,91,X2 Pro/bggcorps,,,,,,,,,,,,44,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,"ALL players gain ""(Splice global effect)"" (listed here as XC3A)",,Gain 44 M€.,#REF!
+XC3,Splice Tactical Genomics,3,4 Effect/Trigger,,92,X2 Pro/bggcorps,ANY microbe tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY microbe tag is played, gain 2 M€.",#REF!
+XC3A,(Splice global effect),2,4 Effect/Trigger,A,93,X2 Pro/bggcorps,microbe tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a microbe tag, gain 2 M€.",#REF!
+XC3A,(Splice global effect),2,4 Effect/Trigger,B,94,X2 Pro/bggcorps,microbe tag,,,←,,,,,,,,,,,,,,,,,1,microbe,played,,,,,,,0,,,,,0,,,,,,,,"When you play a microbe tag, add a microbe to that card.",#REF!
+XC4,Factorum,3,0 Immediate,,95,X3 Pro/turmoil,,,,,,1,,,,,,37,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 37 M€. Increase your steel production 1 step.,#REF!
+XC4,Factorum,3,2 Action,A,96,X3 Pro/turmoil,,max 0 energy,,←,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Requires that you have no energy resources: Increase your energy production 1 step.,#REF!
+XC4,Factorum,3,2 Action,B,97,X3 Pro/turmoil,,,,,,,,,,,,-3,,,,,,,1,has building tag,,,,,,,,,,0,,,,,0,,,,,,,,Spend 3 M€ to draw a building card.,#REF!
+XC5,Mons Insurance,3,0 Immediate,,98,X3 Pro/turmoil,,,,,4,,,,,,,48,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 48 M€. Increase your M€ production 4 steps.,#REF!
+XC5,Mons Insurance,3,1 Immediate/Attack,,99,X3 Pro/turmoil,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,ALL opponents!,,ALL OPPONENTS DECREASE THEIR OWN M€ PRODUCTION 2 STEPS.,#REF!
+XC5,Mons Insurance,3,4 Effect/Trigger,,100,X3 Pro/turmoil,ANY resource or production attack,except by this card itself,,←,,,,,,,,-3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,"pay only what you can, to victim",,"When a player decreases another player's production or removes their resources, pay 3 M€ to the victim, or as much as possible.",#REF!
+XC6,Philares,8,0 Immediate,,101,X3 Pro/turmoil,,,,,,,,,,,,47,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 47 M€.,#REF!
+XC6,Philares,8,3 Action/First,,101,X3 Pro/turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,1,,,,,1,,,,,,,,"As your first action, place a greenery tile and raise oxygen 1 step.",#REF!
+XC6,Philares,8,4 Effect/Trigger,A,102,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC6,Philares,8,4 Effect/Trigger,B,103,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC6,Philares,8,4 Effect/Trigger,C,104,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC6,Philares,8,4 Effect/Trigger,D,105,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC6,Philares,8,4 Effect/Trigger,E,106,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,,,,,1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC6,Philares,8,4 Effect/Trigger,F,107,X3 Pro/turmoil,ANY adjacency owner-opponent,,,←,,,,,,,,,,,,,1,,,,,,,,,,,,,0,,,,,0,,,,,,,,Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile).,#REF!
+XC7,AstroDrill,9,0 Immediate,,108,X4 Pro/bigbox,,,,,,,,,,,,35,,,,,,,,,3,asteroid,here,,,,,,,0,,,,,0,,,,,,,,"Gain 35 M€, and 3 asteroid resources here.",#REF!
+XC7,AstroDrill,9,2 Action,A,109,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,1,asteroid,any,,,,,,,0,,,,,0,,,,,,,,Add 1 asteroid to ANY CARD.,#REF!
+XC7,AstroDrill,9,2 Action,B,110,X4 Pro/bigbox,,,,,,,,,,,,,,3,,,,,,,-1,asteroid,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 asteroid here to gain 3 titanium.,#REF!
+XC7,AstroDrill,9,2 Action,C,111,X4 Pro/bigbox,,,,,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€.,#REF!
+XC7,AstroDrill,9,2 Action,D,112,X4 Pro/bigbox,,,,,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 steel.,#REF!
+XC7,AstroDrill,9,2 Action,E,113,X4 Pro/bigbox,,,,,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 titanium.,#REF!
+XC7,AstroDrill,9,2 Action,F,114,X4 Pro/bigbox,,,,,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 plant.,#REF!
+XC7,AstroDrill,9,2 Action,G,115,X4 Pro/bigbox,,,,,,,,,,,,,,,,1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 energy.,#REF!
+XC7,AstroDrill,9,2 Action,H,116,X4 Pro/bigbox,,,,,,,,,,,,,,,,,1,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 heat.,#REF!
+XC8,Pharmacy Union,4,0 Immediate,,117,X4 Pro/bigbox,,,,,,,,,,,,54,,,,,,,1,has science tag,,,,,,,,,,0,,,,,0,,,,,,,,Gain 54 M€ and draw a science card.,#REF!
+XC8,Pharmacy Union,4,4 Effect/Trigger,A,118,X4 Pro/bigbox,science tag,,,←,,,,,,,,,,,,,,,,,-1,disease,here,,,,,,,0,,,,1,1,,,,,,,,"When ANY microbe tag is played, including these 2, add a disease here and lose 4 M€ or as much as possible.",#REF!
+XC8,Pharmacy Union,4,4 Effect/Trigger,B,119,X4 Pro/bigbox,science tag,max 0 diseases here,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,3,3,,,,,,move this card to event pile,,"When you play a science tag, remove 1 disease here to increase your TR 1 step.",#REF!
+XC8,Pharmacy Union,4,4 Effect/Trigger,,120,X4 Pro/bigbox,ANY microbe tag,,,←,,,,,,,,-4,,,,,,,,,1,disease,here,,,,,,,0,,,,,0,,,,,,pay only what you can,,"Requires you have no disease resources here: When you play a science tag, you may raise your TR 3 steps and place this card in your event pile.",#REF!
+P01,Allied Bank,1,0 Immediate,,121,5 Prelude,,,,,4,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 4 steps. Gain 3 M€.,#REF!
+P02,Aquifer Turbines,1,0 Immediate,,122,5 Prelude,,,,,,,,,2,,,-3,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place an ocean tile. Increase your energy production 2 steps. Lose 3 M€.,#REF!
+P03,Biofuels,1,0 Immediate,,123,5 Prelude,,,,,,,,1,1,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production and energy production 1 step each. Gain 2 plants.,#REF!
+P04,Biolab,1,0 Immediate,,124,5 Prelude,,,,,,,,1,,,,,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step. Draw 3 cards.,#REF!
+P05,Biosphere Support,1,0 Immediate,,125,5 Prelude,,,,,-1,,,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step. Increase your plant production 2 steps.,#REF!
+P06,Business Empire,1,0 Immediate,,126,5 Prelude,,,,,6,,,,,,,-6,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 6 steps. Lose 6 M€.,#REF!
+P07,Dome Farming,1,0 Immediate,,127,5 Prelude,,,,,2,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step. Increase your M€ production 2 steps.,#REF!
+P08,Donation,1,0 Immediate,,128,5 Prelude,,,,,,,,,,,,21,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 21 M€.,#REF!
+P09,Early Settlement,1,0 Immediate,,129,5 Prelude,,,,,,,,1,,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Place a city tile. Increase your plant production 1 step.,#REF!
+P10,Ecology Experts,1,0 Immediate,,130,5 Prelude,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,"play a card now, ignoring global requirements",,"Increase your plant production 1 step. PLAY A CARD FROM HAND, IGNORING GLOBAL REQUIREMENTS",#REF!
+P11,Excentric Sponsor,1,0 Immediate,,131,5 Prelude,,this money is a discount on the card you play now,,←,,,,,,,,25,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,"play a card now, discounted",,"PLAY A CARD FROM HAND, REDUCING ITS COST BY 25 M€",#REF!
+P12,Experimental Forest,1,0 Immediate,,132,5 Prelude,,,,,,,,,,,,,,,,,,,2,has plant tag,,,,,,,1,,,1,,,,,1,,,,,,,,"Place a greenery tile and increase oxygen 1 step. Reveal cards from the deck until you have revealed 2 plant-tag cards. Take these into your hand, and discard the rest.",#REF!
+P13,Galilean Mining,1,0 Immediate,,133,5 Prelude,,,,,,,2,,,,,-5,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 2 steps. Lose 5 M€.,#REF!
+P14,Great Aquifer,1,0 Immediate,,134,5 Prelude,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,2,,,,,2,,,,,,,,Place 2 ocean tiles.,#REF!
+P15,Huge Asteroid,1,0 Immediate,,135,5 Prelude,,,,,,,,,,,,-5,,,,,,,,,,,,,,,,,,0,3,,,,3,,,,,,,,Raise temperature 3 steps. Lose 5 M€.,#REF!
+P16,Io Research Outpost,1,0 Immediate,,136,5 Prelude,,,,,,,1,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step. Draw 1 card.,#REF!
+P17,Loan,1,0 Immediate,,137,5 Prelude,,,,,-2,,,,,,,30,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 2 steps. Gain 30 M€.,#REF!
+P18,Martian Industries,1,0 Immediate,,138,5 Prelude,,,,,,1,,,1,,,6,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production and steel production 1 step each. Gain 6 M€.,#REF!
+P19,Metal-Rich Asteroid,1,0 Immediate,,139,5 Prelude,,,,,,,,,,,,,4,4,,,,,,,,,,,,,,,,0,1,,,,1,,,,,,,,"Raise temperature 1 step. Gain 4 titanium, and 4 steel.",#REF!
+P20,Metals Company,1,0 Immediate,,140,5 Prelude,,,,,1,1,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production, steel production, and titanium production 1 step each.",#REF!
+P21,Mining Operations,1,0 Immediate,,141,5 Prelude,,,,,,2,,,,,,,4,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your steel production 2 steps. Gain 4 steel.,#REF!
+P22,Mohole,1,0 Immediate,,142,5 Prelude,,,,,,,,,,3,,,,,,,3,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increse your heat production 3 steps. Gain 3 heat.,#REF!
+P23,Mohole Excavation,1,0 Immediate,,143,5 Prelude,,,,,,1,,,,2,,,,,,,2,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your steel production 1 step, and your heat production 2 steps. Gain 2 heat.",#REF!
+P24,Nitrogen Shipment,1,0 Immediate,,144,5 Prelude,,,,,,,,1,,,,5,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Raise your TR 1 step. Increase your plant production 1 step. Gain 5 M€.,#REF!
+P25,Orbital Construction Yard,1,0 Immediate,,145,5 Prelude,,,,,,,1,,,,,,,4,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step. Gain 4 titanium.,#REF!
+P26,Polar Industries,1,0 Immediate,,146,5 Prelude,,,,,,,,,,2,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place 1 ocean tile. Increase your heat production 2 steps.,#REF!
+P27,Power Generation,1,0 Immediate,,147,5 Prelude,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 3 steps.,#REF!
+P28,Research Network,1,0 Immediate,,148,5 Prelude,,,,,1,,,,,,,,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,"Draw 3 cards, and increase your M€ production 1 step. After being played, when you perform an action, the wild tag is any tag of your choice.",#REF!
+P29,Self-Sufficient Settlement,1,0 Immediate,,149,5 Prelude,,,,,2,,,,,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Place a city tile. Increase your M€ production 2 steps.,#REF!
+P30,Smelting Plant,1,0 Immediate,,150,5 Prelude,,,,,,,,,,,,,5,,,,,,,,,,,,,,,,,0,,2,,,2,,,,,,,,Raise oxygen 2 steps. Gain 5 steel.,#REF!
+P31,Society Support,1,0 Immediate,,151,5 Prelude,,,,,-1,,,1,1,1,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Decrease your M€ production  1 step. Increase your plant production, energy production, and heat production 1 step each.",#REF!
+P32,Supplier,1,0 Immediate,,152,5 Prelude,,,,,,,,,2,,,,4,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 2 steps. Gain 4 steel.,#REF!
+P33,Supply Drop,1,0 Immediate,,153,5 Prelude,,,,,,,,,,,,,8,3,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Gain 3 titanium, 8 steeel, and 3 plants.",#REF!
+P34,UNMI Contractor,1,0 Immediate,,154,5 Prelude,,,,,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,3,3,,,,,,,,Raise your TR 3 steps. Draw 1 card.,#REF!
+P35,Acquired Space Agency,1,0 Immediate,,155,5 Prelude,,,,,,,,,,,,,,6,,,,,2,has space tag,,,,,,,,,,0,,,,,0,,,,,,,,"Gain 6 titanium. Reveal cards from the deck until you have revealed 2 space cards. Take those into hand, and discard the rest.",#REF!
+003,Deep Well Heating,1,0 Immediate,,156,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,1,,,,1,,,,,,,,Increase your energy production 1 step. Raise temperature 1 step.,#REF!
+004,Cloud Seeding,2,0 Immediate,,157,0 Base,,,,,-1,,,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step. Increase your plant production 2 steps.,#REF!
+004,Cloud Seeding,2,1 Immediate/Attack,,158,0 Base,,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's heat production 1 step.,#REF!
+005,Search For Life,1,2 Action,,159,0 Base,,get resource IF you flip a microbe tag,,←,,,,,,,,-1,,,,,,,,,1,science,here,,,,,,,0,,,,,0,,,,,,,,"Spend 1 M€ to reveal and discard the top card of the draw deck. If that card has a microbe tag, add a science resource here.",#REF!
+007,Martian Rails,1,2 Action,,160,0 Base,,,ANY city on Mars,←,,,,,,,,N,,,,-1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 1 energy to gain 1 M€ per ANY city tile ON MARS.,#REF!
+008,Capital,1,0 Immediate,,161,0 Base,,,,,5,,,,-2,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Place this city tile. Decrease your energy production 2 steps and increase your M€ production 5 steps.,#REF!
+009,Asteroid,2,0 Immediate,,162,0 Base,,,,,,,,,,,,,,2,,,,,,,,,,,,,,,,0,1,,,,1,,,,,,,,Raise temperature 1 step and gain 2 titanium.,#REF!
+009,Asteroid,2,1 Immediate/Attack,,163,0 Base,,,,,,,,,,,,,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 3 plants from any player.,#REF!
+010,Comet,2,0 Immediate,,164,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,1,,,,2,,,,,,,,Raise temperature 1 step and place an ocean tile.,#REF!
+010,Comet,2,1 Immediate/Attack,,165,0 Base,,,,,,,,,,,,,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 3 plants from any player.,#REF!
+011,Big Asteroid,2,0 Immediate,,166,0 Base,,,,,,,,,,,,,,4,,,,,,,,,,,,,,,,0,2,,,,2,,,,,,,,Raise temperature 2 steps and gain 4 titanium.,#REF!
+011,Big Asteroid,2,1 Immediate/Attack,,167,0 Base,,,,,,,,,,,,,,,4,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 4 plants from any player.,#REF!
+012,Water Import From Europa,1,2 Action,,168,0 Base,,,,,,,,,,,,-12,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,may use titanium,,Spend 12 M€ (titanium may be used) to place an ocean tile.,#REF!
+015,Equatorial Magnetizer,1,2 Action,,169,0 Base,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Decrease your energy production 1 step to increase your TR 1 step.,#REF!
+016,Domed Crater,1,0 Immediate,,170,0 Base,,,,,3,,,,-1,,,,,,3,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Gain 3 plants and place a city tile. Decrease your energy production 1 step and increase M€ production 3 steps.,#REF!
+017,Noctis City,1,0 Immediate,,171,0 Base,,,,,3,,,,-1,,,,,,,,,,,,,,,,1,,,,"reserved area, can break rules",1,,,,,0,,,,,,,,"Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile ON THE RESERVED AREA, disregarding normal placement restrictions.",#REF!
+018,Methane From Titan,1,0 Immediate,,172,0 Base,,,,,,,,2,,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 2 steps and your plant production 2 steps.,#REF!
+019,Imported Hydrogen,3,0 Immediate,A,173,0 Base,,,,,,,,,,,,,,,3,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Gain 3 plants. Place an ocean tile.,#REF!
+019,Imported Hydrogen,3,0 Immediate,B,174,0 Base,,,,,,,,,,,,,,,,,,,,,3,microbe,any,,,,,1,,1,,,,,1,,,,,,,,Add 3 microbes to ANOTHER card. Place an ocean tile.,#REF!
+019,Imported Hydrogen,3,0 Immediate,C,175,0 Base,,,,,,,,,,,,,,,,,,,,,2,animal,any,,,,,1,,1,,,,,1,,,,,,,,Add 2 animals to ANOTHER card. Place an ocean tile.,#REF!
+020,Research Outpost,2,0 Immediate,,176,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,1,,,,touching no tile,1,,,,,0,,,,,,,,Place a city tile ADJACENT TO NO OTHER TILE.,#REF!
+020,Research Outpost,2,5 Effect/Discount,,177,0 Base,play card,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 1 M€ less.,#REF!
+021,Phobos Space Haven,1,0 Immediate,,178,0 Base,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,Increase your titanium production 1 step and place a city tile ON THE RESERVED AREA.,#REF!
+022,Black Polar Dust,1,0 Immediate,,179,0 Base,,,,,-2,,,,,3,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place an ocean tile. Decrease your M€ production 2 steps and increase your heat production 3 steps.,#REF!
+023,Arctic Algae,2,0 Immediate,,180,0 Base,,,,,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 plant.,#REF!
+023,Arctic Algae,2,4 Effect/Trigger,,181,0 Base,ANY ocean tile,,,←,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When an ocean tile is placed, gain 2 plants.",#REF!
+024,Predators,1,2 Action,,182,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,remove animal from any player,,Remove 1 animal from any player's card to add 1 animal to this card.,#REF!
+026,Eos Chasma National Park,1,0 Immediate,,183,0 Base,,,,,2,,,,,,,,,,3,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,Add 1 animal TO ANOTHER CARD. Gain 3 plants. Increase your M€ production 2 steps.,#REF!
+029,Cupola City,1,0 Immediate,,184,0 Base,,,,,3,,,,-1,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Place a city tile. Decrease your energy production 1 step and increase your M€ production 3 steps.,#REF!
+030,Lunar Beam,1,0 Immediate,,185,0 Base,,,,,-2,,,,2,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 2 steps and increase your heat production and energy production 2 steps each.,#REF!
+031,Optimal Aerobraking,1,4 Effect/Trigger,,186,0 Base,play event card,has space tag,,←,,,,,,,,3,,,,,3,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a space event, gain 3 M€ and 3 heat.",#REF!
+032,Underground City,1,0 Immediate,,187,0 Base,,,,,,2,,,-2,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Place a city tile. Decrease your energy production 2 steps and increase your steel production 2 steps.,#REF!
+033,Regolith Eaters,2,2 Action,A,188,0 Base,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+033,Regolith Eaters,2,2 Action,B,189,0 Base,,,,,,,,,,,,,,,,,,,,,-2,microbe,here,,,,,,,0,,1,,,1,,,,,,,,Spend 2 microbes here to raise oxygen 1 step.,#REF!
+034,GHG Producing Bacteria,2,2 Action,A,190,0 Base,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+034,GHG Producing Bacteria,2,2 Action,B,191,0 Base,,,,,,,,,,,,,,,,,,,,,-2,microbe,here,,,,,,,0,1,,,,1,,,,,,,,Spend 2 microbes here to raise temperature 1 step.,#REF!
+035,Ants,1,2 Action,,192,0 Base,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,remove microbe from any player,,Remove 1 microbe from any player's card to add 1 microbe to this card.,#REF!
+036,Release Of Inert Gases,1,0 Immediate,,193,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,2,2,,,,,,,,Raise your TR 2 steps.,#REF!
+037,Nitrogen-Rich Asteroid,2,0 Immediate,A,194,0 Base,,max 2 plant tags,,←,,,,1,,,,,,,,,,,,,,,,,,,,,,0,1,,,2,3,,,,,,,,"Raise your TR 2 steps and temperature 1 step. Increase your plant production 1 step,.",#REF!
+037,Nitrogen-Rich Asteroid,2,0 Immediate,B,195,0 Base,,3 plant tags,,←,,,,4,,,,,,,,,,,,,,,,,,,,,,0,1,,,2,3,,,,,,,,Requires 3 plant tags: Raise your TR 2 steps and temperature 1 step. Increase your plant production 4 steps.,#REF!
+038,Rover Construction,1,4 Effect/Trigger,,196,0 Base,ANY city,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY city tile is placed, gain 2 M€.",#REF!
+039,Deimos Down,2,0 Immediate,,197,0 Base,,,,,,,,,,,,,4,,,,,,,,,,,,,,,,,0,3,,,,3,,,,,,,,Raise temperature 3 steps and gain 4 steel.,#REF!
+039,Deimos Down,2,1 Immediate/Attack,,198,0 Base,,,,,,,,,,,,,,,8,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 8 plants from any player.,#REF!
+040,Asteroid Mining,1,0 Immediate,,199,0 Base,,,,,,,2,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 2 steps.,#REF!
+041,Food Factory,1,0 Immediate,,200,0 Base,,,,,4,,,-1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your plant production 1 step and increase your M€ production 4 steps.,#REF!
+042,Archaebacteria,1,0 Immediate,,201,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step.,#REF!
+043,Carbonate Processing,1,0 Immediate,,202,0 Base,,,,,,,,,-1,3,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your heat production 3 steps.,#REF!
+044,Natural Preserve,1,0 Immediate,,203,0 Base,,,,,1,,,,,,,,,,,,,,,,,,,,,1,,,touching no tile,1,,,,,0,,,,,,,,Place this tile ADJACENT TO NO OTHER TILE. Increase your M€ production 1 step.,#REF!
+045,Nuclear Power,1,0 Immediate,,204,0 Base,,,,,-2,,,,3,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 2 steps and increase your energy production 3 steps.,#REF!
+047,Algae,1,0 Immediate,,205,0 Base,,,,,,,,2,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 plant and increase your plant production 2 steps.,#REF!
+048,Adapted Lichen,1,0 Immediate,,206,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step.,#REF!
+052,Fish,2,1 Immediate/Attack,,207,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's plant production 1 step.,#REF!
+052,Fish,2,2 Action,,208,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+053,Lake Marineris,1,0 Immediate,,209,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,2,,,,,2,,,,,,,,Place 2 ocean tiles.,#REF!
+054,Small Animals,2,1 Immediate/Attack,,210,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's plant production 1 step.,#REF!
+054,Small Animals,2,2 Action,,211,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+055,Kelp Farming,1,0 Immediate,,212,0 Base,,,,,2,,,3,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps and your plant production 3 steps. Gain 2 plants.,#REF!
+058,Beam From A Thorium Asteroid,1,0 Immediate,,213,0 Base,,,,,,,,,3,3,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production and energy production 3 steps each.,#REF!
+059,Mangrove,1,0 Immediate,,214,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,"ocean area, can break rules",1,,,,,1,,,,,,,,Place a Greenery tile ON AN AREA RESERVED FOR OCEAN and raise oxygen 1 step. Disregard normal placement restrictions for this.,#REF!
+060,Trees,1,0 Immediate,,215,0 Base,,,,,,,,3,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 3 steps. Gain 1 plant.,#REF!
+063,Mining Expedition,2,0 Immediate,,216,0 Base,,,,,,,,,,,,,2,,,,,,,,,,,,,,,,,0,,1,,,1,,,,,,,,Raise oxygen 1 step. Gain 2 steel.,#REF!
+063,Mining Expedition,2,1 Immediate/Attack,,217,0 Base,,,,,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 2 plants from any player. ,#REF!
+067,Mining Rights,2,0 Immediate,A,218,0 Base,,,,,,1,,,,,,,,,,,,,,,,,,,,1,,,area with S bonus,1,,,,,0,,,,,,,,Place this tile on an area with a steel or titanium placement bonus. Increase that production 1 step.,#REF!
+067,Mining Rights,2,0 Immediate,B,219,0 Base,,,,,,,1,,,,,,,,,,,,,,,,,,,1,,,area with T bonus,1,,,,,0,,,,,,,,Place this tile on an area with a steel or titanium placement bonus. Increase that production 1 step.,#REF!
+072,Birds,2,1 Immediate/Attack,,220,0 Base,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's plant production 2 steps.,#REF!
+072,Birds,2,2 Action,,221,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add an animal to this card.,#REF!
+075,Towing A Comet,1,0 Immediate,,222,0 Base,,,,,,,,,,,,,,,2,,,,,,,,,,,,,1,,1,,1,,,2,,,,,,,,Gain 2 plants. Raise oxygen 1 step and place an ocean tile.,#REF!
+076,Space Mirrors,1,2 Action,,223,0 Base,,,,,,,,,1,,,-7,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 7 M€ to increase your energy production 1 step.,#REF!
+077,Solar Wind Power,1,0 Immediate,,224,0 Base,,,,,,,,,1,,,,,2,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step and gain 2 titanium.,#REF!
+078,Ice Asteroid,1,0 Immediate,,225,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,2,,,,,2,,,,,,,,Place 2 ocean tiles.,#REF!
+080,Giant Ice Asteroid,2,0 Immediate,,226,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,2,,2,2,,,,4,,,,,,,,Raise temperature 2 steps and place 2 ocean tiles.,#REF!
+080,Giant Ice Asteroid,2,1 Immediate/Attack,,227,0 Base,,,,,,,,,,,,,,,6,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 6 plants from any player.,#REF!
+081,Ganymede Colony,1,0 Immediate,,228,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,Place a city tile ON THE RESERVED AREA.,#REF!
+083,Giant Space Mirror,1,0 Immediate,,229,0 Base,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 3 steps.,#REF!
+087,Grass,1,0 Immediate,,230,0 Base,,,,,,,,1,,,,,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step. Gain 3 plants.,#REF!
+088,Heather,1,0 Immediate,,231,0 Base,,,,,,,,1,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step. Gain 1 plant.,#REF!
+089,Peroxide Power,1,0 Immediate,,232,0 Base,,,,,-1,,,,2,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step and increase your energy production 2 steps.,#REF!
+093,Bushes,1,0 Immediate,,233,0 Base,,,,,,,,2,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 2 steps. Gain 2 plants.,#REF!
+096,Greenhouses,1,0 Immediate,,234,0 Base,,,ANY cities,←,,,,,,,,,,,N,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 plant per ANY city tile in play.,#REF!
+097,Nuclear Zone,1,0 Immediate,,235,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,,1,2,,,,2,,,,,,,,Raise temperature 2 steps. Place this tile.,#REF!
+100,Fueled Generators,1,0 Immediate,,236,0 Base,,,,,-1,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step and increase your energy production 1 step.,#REF!
+101,Ironworks,1,2 Action,,237,0 Base,,,,,,,,,,,,,1,,,-4,,,,,,,,,,,,,,0,,1,,,1,,,,,,,,Spend 4 energy to gain 1 steel and raise oxygen 1 step.,#REF!
+102,Power Grid,1,0 Immediate,,238,0 Base,,,power tags,←,,,,,N,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your energy production 1 step for each power tag you have, including this.)",#REF!
+103,Steelworks,1,2 Action,,239,0 Base,,,,,,,,,,,,,2,,,-4,,,,,,,,,,,,,,0,,1,,,1,,,,,,,,Spend 4 energy to gain 2 steel and raise oxygen 1 step.,#REF!
+104,Ore Processor,1,2 Action,,240,0 Base,,,,,,,,,,,,,,1,,-4,,,,,,,,,,,,,,0,,1,,,1,,,,,,,,Spend 4 energy to gain 1 titanium and raise oxygen 1 step.,#REF!
+108,Open City,1,0 Immediate,,241,0 Base,,,,,4,,,,-1,,,,,,2,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your M€ production 4 steps. Gain 2 plants and place a city tile.,#REF!
+113,Solar Power,1,0 Immediate,,242,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+115,Artificial Photosynthesis,2,0 Immediate,A,243,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step.,#REF!
+115,Artificial Photosynthesis,2,0 Immediate,B,244,0 Base,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 2 steps.,#REF!
+116,Artificial Lake,1,0 Immediate,,245,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,unreserved area,1,,,,,1,,,,,,,,Place 1 ocean tile ON AN AREA NOT RESERVED FOR OCEAN.,#REF!
+117,Geothermal Power,1,0 Immediate,,246,0 Base,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 2 steps.,#REF!
+118,Farming,1,0 Immediate,,247,0 Base,,,,,2,,,2,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.,#REF!
+120,Urbanized Area,1,0 Immediate,,248,0 Base,,,,,2,,,,-1,,,,,,,,,,,,,,,,1,,,,touching any 2+ cities,1,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your M€ production 2 steps. Place a city tile ADJACENT TO AT LEAST 2 OTHER CITY TILES.,#REF!
+122,Moss,1,0 Immediate,,249,0 Base,,,,,,,,1,,,,,,,-1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step and lose 1 plant.,#REF!
+126,GHG Factories,1,0 Immediate,,250,0 Base,,,,,,,,,-1,4,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your heat production 4 steps.,#REF!
+127,Subterranean Reservoir,1,0 Immediate,,251,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place 1 ocean tile.,#REF!
+128,Ecological Zone,2,0 Immediate,,252,0 Base,,,,,,,,,,,,,,,,,,,,,2,animal,here,,,1,,,touching any greenery,1,,,,,0,,,,,,,,Place this tile ADJACENT TO ANY GREENERY TILE.,#REF!
+128,Ecological Zone,2,4 Effect/Trigger,,253,0 Base,plant/animal tag,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When you play an animal or plant tag, add an animal to this card.",#REF!
+129,Zeppelins,1,0 Immediate,,254,0 Base,,,ANY cities ON MARS,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step per ANY city tile ON MARS.,#REF!
+130,Worms,1,0 Immediate,,255,0 Base,,,sets of 2 microbe tags,←,,,,N,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your plant production 1 step for every 2 microbe tags you have, including this.",#REF!
+131,Decomposers,1,4 Effect/Trigger,,256,0 Base,P/M/A tag,,,←,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,"When you play a plant, microbe, or animal tag, add a microbe to this card.",#REF!
+132,Fusion Power,1,0 Immediate,,257,0 Base,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 3 steps.,#REF!
+133,Symbiotic Fungus,1,2 Action,,258,0 Base,,,,,,,,,,,,,,,,,,,,,1,microbe,any,,,,,,,0,,,,,0,,,,,,,,Add a microbe to ANOTHER card.,#REF!
+134,Extreme-Cold Fungus,2,2 Action,A,259,0 Base,,,,,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 plant.,#REF!
+134,Extreme-Cold Fungus,2,2 Action,B,260,0 Base,,,,,,,,,,,,,,,,,,,,,2,microbe,any,,,,,,,0,,,,,0,,,,,,,,Add 2 microbes to ANOTHER card.,#REF!
+136,Great Dam,1,0 Immediate,,261,0 Base,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 2 steps.,#REF!
+138,Strip Mine,1,0 Immediate,,262,0 Base,,,,,,2,1,,-2,,,,,,,,,,,,,,,,,,,,,0,,2,,,2,,,,,,,,Decrease your energy production 2 steps. Increase your steel production 2 steps and your titanium production 1 step. Raise oxygen 2 steps.,#REF!
+139,Wave Power,1,0 Immediate,,263,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+140,Lava Flows,1,0 Immediate,,264,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,(if any) volcanic area,1,2,,,,2,,,,,,,,"Raise temperature 2 steps and place this tile ON EITHER THARSIS THOLUS, ASCRAEUS MONS, PAVONIS MONS OR ARSIA MONS.",#REF!
+141,Power Plant,1,0 Immediate,,265,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+142,Mohole Area,1,0 Immediate,,266,0 Base,,,,,,,,,,4,,,,,,,,,,,,,,,,1,,,ocean area,1,,,,,0,,,,,,,,Increase your heat production 4 steps. Place this tile ON AN AREA RESERVED FOR OCEAN.,#REF!
+143,Large Convoy,2,0 Immediate,A,267,0 Base,,,,,,,,,,,,,,,5,,,,2,,,,,,,,,1,,1,,,,,1,,,,,,,,Place an ocean tile and draw 2 cards. Gain 5 plants.,#REF!
+143,Large Convoy,2,0 Immediate,B,268,0 Base,,,,,,,,,,,,,,,,,,,2,,4,animal,any,,,,,1,,1,,,,,1,,,,,,,,Place an ocean tile and draw 2 cards. Add 4 animals to ANOTHER card.,#REF!
+145,Tectonic Stress Power,1,0 Immediate,,269,0 Base,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 3 steps.,#REF!
+146,Nitrophilic Moss,1,0 Immediate,,270,0 Base,,,,,,,,2,,,,,,,-2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 2 steps and lose 2 plants.,#REF!
+147,Herbivores,3,0 Immediate,,271,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+147,Herbivores,3,1 Immediate/Attack,,272,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any plant production 1 step.,#REF!
+147,Herbivores,3,4 Effect/Trigger,,273,0 Base,greenery tile,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When you place a greenery tile, add an animal to this card.",#REF!
+148,Insects,1,0 Immediate,,274,0 Base,,,plant tags,←,,,,N,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step for each plant tag you have.,#REF!
+152,Insulation,1,0 Immediate,,275,0 Base,,,any number > 0,←,N,,,,,-N,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your heat production one or more steps and increase your M€ production the same number of steps.,#REF!
+153,Adaptation Technology,1,8 Effect/Ambient,,276,0 Base,play card,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,weaken global reqt 2 steps,,You may treat any global parameter requirement as if it is 2 steps lower or higher.,#REF!
+155,Designed Microorganisms,1,0 Immediate,,277,0 Base,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 2 steps.,#REF!
+157,Nitrite Reducing Bacteria,3,0 Immediate,,278,0 Base,,,,,,,,,,,,,,,,,,,,,3,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 3 microbes to this card.,#REF!
+157,Nitrite Reducing Bacteria,3,2 Action,A,279,0 Base,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+157,Nitrite Reducing Bacteria,3,2 Action,B,280,0 Base,,,,,,,,,,,,,,,,,,,,,-3,microbe,here,,,,,,,0,,,,1,1,,,,,,,,Spend 3 microbes here to increase your TR 1 step.,#REF!
+158,Industrial Microbes,1,0 Immediate,,281,0 Base,,,,,,1,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production and your steel production 1 step each.,#REF!
+159,Lichen,1,0 Immediate,,282,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step.,#REF!
+161,Convoy From Europa,1,0 Immediate,,283,0 Base,,,,,,,,,,,,,,,,,,,1,,,,,,,,,1,,1,,,,,1,,,,,,,,Place 1 ocean tile and draw 1 card.,#REF!
+162,Imported GHG,1,0 Immediate,,284,0 Base,,,,,,,,,,1,,,,,,,3,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 1 step and gain 3 heat.,#REF!
+163,Imported Nitrogen,2,0 Immediate,,285,0 Base,,,,,,,,,,,,,,,4,,,,,,3,microbe,any,,,,,,,0,,,,1,1,,,,,,,,Raise your TR 1 step and gain 4 plants. Add 3 microbes to ANOTHER card and 2 animals to ANOTHER card.,#REF!
+163,Imported Nitrogen,2,0 Immediate,,286,0 Base,,,,,,,,,,,,,,,,,,,,,2,animal,any,,,,,,,0,,,,,0,,,,,,,,Raise your TR 1 step and gain 4 plants. Add 3 microbes to ANOTHER card and 2 animals to ANOTHER card.,#REF!
+164,Micro-Mills,1,0 Immediate,,287,0 Base,,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 1 step.,#REF!
+165,Magnetic Field Generators,1,0 Immediate,,288,0 Base,,,,,,,,2,-4,,,,,,,,,,,,,,,,,,,,,0,,,,3,3,,,,,,,,Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps.,#REF!
+166,Shuttles,2,0 Immediate,,289,0 Base,,,,,2,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your M€ production 2 steps.,#REF!
+166,Shuttles,2,5 Effect/Discount,,290,0 Base,space tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per space tag it has.,#REF!
+167,Import Of Advanced GHG,1,0 Immediate,,291,0 Base,,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 2 steps.,#REF!
+168,Windmills,1,0 Immediate,,292,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+169,Tundra Farming,1,0 Immediate,,293,0 Base,,,,,2,,,1,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.,#REF!
+170,Aerobraked Ammonia Asteroid,1,0 Immediate,,294,0 Base,,,,,,,,1,,3,,,,,,,,,,,2,microbe,any,,,,,,,0,,,,,0,,,,,,,,Add 2 microbes to ANOTHER card. Increase your heat production 3 steps and your plant production 1 step.,#REF!
+171,Magnetic Field Dome,1,0 Immediate,,295,0 Base,,,,,,,,1,-2,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Decrease your energy production 2 steps. Iincrease your plant production 1 step and your TR 1 step.,#REF!
+172,Pets,3,0 Immediate,,296,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+172,Pets,3,4 Effect/Trigger,,297,0 Base,ANY city,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When ANY city tile is placed, add an animal to this card.",#REF!
+172,Pets,3,8 Effect/Ambient,,298,0 Base,ambient,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,animals may not be removed from this card,,Animals may not be removed from this card.,#REF!
+174,Protected Valley,1,0 Immediate,,299,0 Base,,,,,2,,,,,,,,,,,,,,,,,,,,,,1,,"ocean area, can break rules",1,,,,,1,,,,,,,,"Increase your M€ production 2 steps. Place a greenery tile ON AN AREA RESERVED FOR OCEAN, disregarding normal placement restrictions, and raise oxygen 1 step.",#REF!
+176,Noctis Farming,1,0 Immediate,,300,0 Base,,,,,1,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step and gain 2 plants.,#REF!
+177,Water Splitting Plant,1,2 Action,,301,0 Base,,,,,,,,,,,,,,,,-3,,,,,,,,,,,,,,0,,1,,,1,,,,,,,,Spend 3 energy to raise oxygen 1 step.,#REF!
+178,Heat Trappers,2,0 Immediate,,302,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+178,Heat Trappers,2,1 Immediate/Attack,,303,0 Base,,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's heat production 2 steps.,#REF!
+179,Soil Factory,1,0 Immediate,,304,0 Base,,,,,,,,1,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your plant production 1 step.,#REF!
+181,Ice Cap Melting,1,0 Immediate,,305,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place 1 ocean tile.,#REF!
+183,Biomass Combustors,2,0 Immediate,,306,0 Base,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 2 steps.,#REF!
+183,Biomass Combustors,2,1 Immediate/Attack,,307,0 Base,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's plant production 1 step.,#REF!
+184,Livestock,2,0 Immediate,,308,0 Base,,,,,2,,,-1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your plant production 1 step and increase your M€ production 2 steps.,#REF!
+184,Livestock,2,2 Action,,309,0 Base,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+187,Aquifer Pumping,1,2 Action,,310,0 Base,,,,,,,,,,,,-8,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,may use steel,,Spend 8 M€ (steel may be used) to place 1 ocean tile.,#REF!
+188,Flooding,2,0 Immediate,,311,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place an ocean tile.,#REF!
+188,Flooding,2,1 Immediate/Attack,,312,0 Base,,target owns tile touching the just-placed ocean,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"If there are tiles adjacent to this ocean tile, you may remove up to 4 M€ from the owner of one of those tiles.",#REF!
+189,Energy Saving,1,0 Immediate,,313,0 Base,,,ANY cities,←,,,,,N,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step per ANY city tile in play.,#REF!
+190,Local Heat Trapping,2,0 Immediate,A,314,0 Base,,,,,,,,,,,,,,,4,,-5,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 5 heat to gain 4 plants.,#REF!
+190,Local Heat Trapping,2,0 Immediate,B,315,0 Base,,,,,,,,,,,,,,,,,-5,,,,2,animal,any,,,,,,,0,,,,,0,,,,,,,,Spend 5 heat to add 2 animals to ANOTHER card.,#REF!
+191,Permafrost Extraction,1,0 Immediate,,316,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,Place 1 ocean tile.,#REF!
+193,Plantation,1,0 Immediate,,317,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,1,,,,,1,,,,,,,,Place a greenery tile and raise oxygen 1 step.,#REF!
+198,Immigration Shuttles,1,0 Immediate,,318,0 Base,,,,,5,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 5 steps.,#REF!
+200,Immigrant City,2,0 Immediate,,319,0 Base,,,,,-1,,,,-1,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Decrease your energy production 1 step and decrease your M€ production 2 steps. Place a city tile.,#REF!
+200,Immigrant City,2,4 Effect/Trigger,,320,0 Base,ANY city,,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When ANY city tile is placed, increase your M€ production 1 step.",#REF!
+202,Underground Detonations,1,2 Action,,321,0 Base,,,,,,,,,,2,,-10,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 10 M€ to increase your heat production 2 steps.,#REF!
+203,Soletta,1,0 Immediate,,322,0 Base,,,,,,,,,,7,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 7 steps.,#REF!
+205,Rad-Chem Factory,1,0 Immediate,,323,0 Base,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,2,2,,,,,,,,Decrease your energy production 1 step. Raise your TR 2 steps.,#REF!
+206,Special Design,1,7 Effect/Temporary,,324,0 Base,next card this gen,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,weaken global reqt 2 steps,,The next card you play this generation costs 8 M€ less.,#REF!
+002,Asteroid Mining Consortium,2,0 Immediate,,325,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step.,#REF!
+002,Asteroid Mining Consortium,2,1 Immediate/Attack,,326,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's titanium production 1 step.,#REF!
+006,Inventors' Guild,1,2 Action,,327,1 CorpEra,,,,,,,,,,,,,,,,,,,1,buy or discard,,,,,,,,,,0,,,,,0,,,,,,,,Look at the top card and either buy it or discard it.,#REF!
+013,Space Elevator,2,0 Immediate,,328,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step.,#REF!
+013,Space Elevator,2,2 Action,,329,1 CorpEra,,,,,,,,,,,,5,-1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 1 steel to gain 5 M€.,#REF!
+014,Development Center,1,2 Action,,330,1 CorpEra,,,,,,,,,,,,,,,,-1,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 1 energy to draw a card.,#REF!
+025,Space Station,1,5 Effect/Discount,,331,1 CorpEra,space tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per space tag it has.,#REF!
+028,Security Fleet,1,2 Action,,332,1 CorpEra,,,,,,,,,,,,,,-1,,,,,,,1,fighter,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 1 fighter resource to this card.,#REF!
+046,Lightning Harvest,1,0 Immediate,,333,1 CorpEra,,,,,1,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production and your M€ production 1 step each.,#REF!
+049,Tardigrades,1,2 Action,,334,1 CorpEra,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+050,Virus,2,1 Immediate/Attack,A,335,1 CorpEra,,,,,,,,,,,,,,,,,,,,,2,animal,any,,,,,,,0,,,,,0,,,,,,,,Remove up to 2 animals from any player's card.,#REF!
+050,Virus,2,1 Immediate/Attack,B,336,1 CorpEra,,,,,,,,,,,,,,,5,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 5 plants from any player.,#REF!
+051,Miranda Resort,1,0 Immediate,,337,1 CorpEra,,,Earth tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step for each Earth tag you have.,#REF!
+056,Mine,1,0 Immediate,,338,1 CorpEra,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your steel production 1 step.,#REF!
+057,Vesta Shipyard,1,0 Immediate,,339,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step.,#REF!
+061,Great Escarpment Consortium,2,0 Immediate,,340,1 CorpEra,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your steel production 1 step.,#REF!
+061,Great Escarpment Consortium,2,1 Immediate/Attack,,341,1 CorpEra,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's steel production 1 step.,#REF!
+062,Mineral Deposit,1,0 Immediate,,342,1 CorpEra,,,,,,,,,,,,,5,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 5 steel.,#REF!
+064,Mining Area,2,0 Immediate,A,343,1 CorpEra,,,,,,1,,,,,,,,,,,,,,,,,,,,1,,,area w/ S bonus touching your tile,1,,,,,0,,,,,,,,"Place this tile on an area with a steel placement bonus, adjacent to another of your tiles. Increase your steel production 1 step.",#REF!
+064,Mining Area,2,0 Immediate,B,344,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,1,,,area w/ T bonus touching your tile,1,,,,,0,,,,,,,,"Place this tile on an area with a titanium placement bonus, adjacent to another of your tiles. Increase your titanium production 1 step.",#REF!
+065,Building Industries,1,0 Immediate,,345,1 CorpEra,,,,,,2,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your steel production 2 steps.,#REF!
+066,Land Claim,1,0 Immediate,,346,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,1,,,PLACE YOUR MARKER ON A NON-RESERVED AREA. ONLY YOU MAY PLACE A TILE HERE,#REF!
+068,Sponsors,1,0 Immediate,,347,1 CorpEra,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2  steps.,#REF!
+069,Electro Catapult,3,0 Immediate,,348,1 CorpEra,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step.,#REF!
+069,Electro Catapult,3,2 Action,A,349,1 CorpEra,,,,,,,,,,,,7,,,-1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 1 plant to gain 7 M€.,#REF!
+069,Electro Catapult,3,2 Action,B,350,1 CorpEra,,,,,,,,,,,,7,-1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 1 steel to gain 7 M€.,#REF!
+070,Earth Catapult,1,5 Effect/Discount,,351,1 CorpEra,play card,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less.,#REF!
+071,Advanced Alloys,2,6 Effect/Resource,,352,1 CorpEra,payment that accepts steel,,steel spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your titanium resources are worth 1 M€ extra.,#REF!
+071,Advanced Alloys,2,6 Effect/Resource,,353,1 CorpEra,payment that accepts titanium,,titanium spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your steel resources are worth 1 M€ extra.,#REF!
+073,Mars University,1,4 Effect/Trigger,,354,1 CorpEra,science tag,,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,discard a card first (this whole effect is optional),,"When you play a science tag, you may discard a card from hand to draw a card.",#REF!
+074,Viral Enhancers,2,4 Effect/Trigger,A,355,1 CorpEra,P/M/A tag,,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a plant, microbe, or animal tag, gain 1 plant.",#REF!
+074,Viral Enhancers,2,4 Effect/Trigger,B,356,1 CorpEra,P/M/A tag,,,←,,,,,,,,,,,,,,,,,1,any,played,,,,,,,0,,,,,0,,,,,,,,"When you play a plant, microbe, or animal tag, add 1 resource to that card.",#REF!
+079,Quantum Extractor,2,0 Immediate,,357,1 CorpEra,,,,,,,,,4,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 4 steps.,#REF!
+079,Quantum Extractor,2,5 Effect/Discount,,358,1 CorpEra,space tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per space tag it has.,#REF!
+082,Callisto Penal Mines,1,0 Immediate,,359,1 CorpEra,,,,,3,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 3 steps.,#REF!
+085,Commercial District,1,0 Immediate,,360,1 CorpEra,,,,,4,,,,-1,,,,,,,,,,,,,,,,,1,,,,1,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your M€ production 4 steps. Place this tile.,#REF!
+086,Robotic Workforce,1,0 Immediate,,361,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,copy on-play prod box of owned building card,,Duplicate only the production box of one of your building cards.,#REF!
+090,Research,1,0 Immediate,,362,1 CorpEra,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Counts as playing 2 science cards. Draw 2 cards.,#REF!
+091,Gene Repair,1,0 Immediate,,363,1 CorpEra,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps.,#REF!
+092,Io Mining Industries,1,0 Immediate,,364,1 CorpEra,,,,,2,,2,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 2 steps and your M€ production 2 steps.,#REF!
+094,Mass Converter,2,0 Immediate,,365,1 CorpEra,,,,,,,,,6,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 6 steps.,#REF!
+094,Mass Converter,2,5 Effect/Discount,,366,1 CorpEra,space tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per space tag it has.,#REF!
+095,Physics Complex,1,2 Action,,367,1 CorpEra,,,,,,,,,,,,,,,,-6,,,,,1,science,here,,,,,,,0,,,,,0,,,,,,,,Spend 6 energy to add a science resource to this card.,#REF!
+098,Tropical Resort,1,0 Immediate,,368,1 CorpEra,,,,,3,,,,,-2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your heat production 2 steps and increase your M€ production 3 steps.,#REF!
+099,Toll Station,1,0 Immediate,,369,1 CorpEra,,,OPPONENT space tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step for each space tag your OPPONENTS have.,#REF!
+105,Earth Office,1,5 Effect/Discount,,370,1 CorpEra,Earth tag,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 3 M€ less per Earth tag it has.,#REF!
+106,Acquired Company,1,0 Immediate,,371,1 CorpEra,,,,,3,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 3 steps.,#REF!
+107,Media Archives,1,0 Immediate,,372,1 CorpEra,,,cards in ANY event pile,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ for each event EVER PLAYED by all players.,#REF!
+109,Media Group,1,4 Effect/Trigger,,373,1 CorpEra,play event card,,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play an event card, gain 3 M€.",#REF!
+110,Business Network,2,0 Immediate,,374,1 CorpEra,,,,,-1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step.,#REF!
+110,Business Network,2,2 Action,,375,1 CorpEra,,,,,,,,,,,,,,,,,,,1,buy or discard,,,,,,,,,,0,,,,,0,,,,,,,,Look at the top card and either buy it or discard it.,#REF!
+111,Business Contacts,1,0 Immediate,,376,1 CorpEra,,,,,,,,,,,,,,,,,,,2,of 4,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 of 4 cards.,#REF!
+112,Bribed Committee,1,0 Immediate,,377,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,2,2,,,,,,,,Raise your TR 2 steps.,#REF!
+121,Sabotage,3,1 Immediate/Attack,A,378,1 CorpEra,,,,,,,,,,,,,,3,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 3 titanium from any player.,#REF!
+121,Sabotage,3,1 Immediate/Attack,B,379,1 CorpEra,,,,,,,,,,,,,4,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 4 steel from any player.,#REF!
+121,Sabotage,3,1 Immediate/Attack,C,380,1 CorpEra,,,,,,,,,,,,7,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 7 M€ from any player.,#REF!
+123,Industrial Center,2,0 Immediate,,381,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,touching any city,1,,,,,0,,,,,,,,Place this tile ADJACENT TO ANY CITY TILE.,#REF!
+123,Industrial Center,2,2 Action,,382,1 CorpEra,,,,,,1,,,,,,-7,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 7 M€ to increase your steel production 1 step.,#REF!
+124,Hired Raiders,2,1 Immediate/Attack,A,383,1 CorpEra,,,,,,,,,,,,,2,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,gain the removed resources directly,,Steal up to 2 steel from any player.,#REF!
+124,Hired Raiders,2,1 Immediate/Attack,B,384,1 CorpEra,,,,,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,gain the removed resources directly,,Steal up to 3 M€ from any player.,#REF!
+125,Hackers,2,0 Immediate,,385,1 CorpEra,,,,,2,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step. Increase your M€ production 2 steps.,#REF!
+125,Hackers,2,1 Immediate/Attack,,386,1 CorpEra,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's M€ production 2 steps.,#REF!
+137,Cartel,1,0 Immediate,,387,1 CorpEra,,,Earth tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step for each Earth tag you have, including this.",#REF!
+144,Titanium Mine,1,0 Immediate,,388,1 CorpEra,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step.,#REF!
+149,CEO's Favorite Project,1,0 Immediate,,389,1 CorpEra,,,,,,,,,,,,,,,,,,,,,1,any,nonempty,,,,,,,0,,,,,0,,,,,,,,ADD 1 RESOURCE TO A CARD WITH AT LEAST 1 RESOURCE ON IT,#REF!
+150,Anti-Gravity Technology,1,5 Effect/Discount,,390,1 CorpEra,play card,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less.,#REF!
+151,Investment Loan,1,0 Immediate,,391,1 CorpEra,,,,,-1,,,,,,,10,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step. Gain 10 M€.,#REF!
+154,Caretaker Contract,1,2 Action,,392,1 CorpEra,,,,,,,,,,,,,,,,,-8,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Spend 8 heat to increase your TR 1 step.,#REF!
+156,Standard Technology,1,4 Effect/Trigger,,393,1 CorpEra,standard project,except selling patents,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"After you pay for a standard project, except selling patents, you gain 3 M€.",#REF!
+160,Power Supply Consortium,2,0 Immediate,,394,1 CorpEra,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+160,Power Supply Consortium,2,1 Immediate/Attack,,395,1 CorpEra,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's energy production 1 step.,#REF!
+173,Protected Habitats,1,8 Effect/Ambient,,396,1 CorpEra,ambient,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,opponents can't remove P/M/A,,"Opponents may not remove your plants, microbes, or animals.",#REF!
+175,Satellites,1,0 Immediate,,397,1 CorpEra,,,space tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step for each space tag you have, including this.",#REF!
+180,Fuel Factory,1,0 Immediate,,398,1 CorpEra,,,,,1,,1,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your titanium and your M€ production 1 step each.,#REF!
+182,Corporate Stronghold,1,0 Immediate,,399,1 CorpEra,,,,,3,,,,-1,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile.,#REF!
+185,Olympus Conference,2,4 Effect/Trigger,A,400,1 CorpEra,science tag,,,←,,,,,,,,,,,,,,,,,1,science,here,,,,,,,0,,,,,0,,,,,,,,"When you play a science tag, add a science resource to this card.",#REF!
+185,Olympus Conference,2,4 Effect/Trigger,B,401,1 CorpEra,science tag,,,←,,,,,,,,,,,,,,,1,,-1,science,here,,,,,,,0,,,,,0,,,,,,,,"When you play a science tag, remove 1 science resource from this card to draw a card.",#REF!
+186,Rad-Suits,1,0 Immediate,,402,1 CorpEra,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step.,#REF!
+192,Invention Contest,1,0 Immediate,,403,1 CorpEra,,,,,,,,,,,,,,,,,,,1,of 3,,,,,,,,,,0,,,,,0,,,,,,,,Draw 1 of 3 cards.,#REF!
+194,Power Infrastructure,1,2 Action,,404,1 CorpEra,,,any number > 0,←,,,,,,,,N,,,,-N,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend one or more energy to gain 1 M€ each.,#REF!
+195,Indentured Workers,1,7 Effect/Temporary,,405,1 CorpEra,next card this gen,,,←,,,,,,,,8,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"For the next card you play this generation, you may treat any global parameter requirement as if it is 2 steps lower or higher.",#REF!
+196,Lagrange Observatory,1,0 Immediate,,406,1 CorpEra,,,,,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 1 card.,#REF!
+197,Terraforming Ganymede,1,0 Immediate,,407,1 CorpEra,,,Jovian tags,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,N,0,,,,,,,,"Raise your TR 1 step for each Jovian tag you have, including this.",#REF!
+199,Restricted Area,2,0 Immediate,,408,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,,1,,,,,0,,,,,,,,Place this tile.,#REF!
+199,Restricted Area,2,2 Action,,409,1 CorpEra,,,,,,,,,,,,-2,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 2 M€ to draw a card.,#REF!
+201,Energy Tapping,2,0 Immediate,,410,1 CorpEra,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 1 step.,#REF!
+201,Energy Tapping,2,1 Immediate/Attack,,411,1 CorpEra,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any energy production 1 step.,#REF!
+204,Technology Demonstration,1,0 Immediate,,412,1 CorpEra,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+207,Medical Lab,1,0 Immediate,,413,1 CorpEra,,,sets of 2 building tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step for every 2 building tags you have, including this.",#REF!
+208,AI Central,2,0 Immediate,,414,1 CorpEra,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step.,#REF!
+208,AI Central,2,2 Action,,415,1 CorpEra,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+209,Small Asteroid,2,0 Immediate,,416,X1 Pro/firstset,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,1,,,,,,,,Raise temperature 1 step.,#REF!
+209,Small Asteroid,2,1 Immediate/Attack,,417,X1 Pro/firstset,,,,,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 2 plants from any player.,#REF!
+210,Self-Replicating Robots,3,2 Action,A,418,X1 Pro/firstset,,,,,,,,,,,,,,,,,,,,,2,untyped,that card,,,,,,,0,,,,,0,,,,,,place a space or building card here from hand,,"Reveal and place a SPACE or BUILDING card here from hand, and place 2 resources on it.",#REF!
+210,Self-Replicating Robots,3,2 Action,B,419,X1 Pro/firstset,,,resources already on that card,←,,,,,,,,,,,,,,,,,N,untyped,that card,,,,,,,0,,,,,0,,,,,,,,Double the resources on a card here.,#REF!
+210,Self-Replicating Robots,3,6 Effect/Resource,,420,X1 Pro/firstset,play card from here,,all resources on card,←,,,,,,,,N,,,,,,,,,-N,untyped,that card,,,,,,,0,,,,,0,,,,,,,,A card here may be played as if from hand with its cost reduced by the number of resources on it (discard all the resources).,#REF!
+211,Snow Algae,1,0 Immediate,,421,X1 Pro/firstset,,,,,,,,1,,1,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production and your heat production 1 step each.,#REF!
+212,Penguins,1,2 Action,,422,X1 Pro/firstset,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+213,Aerial Mappers,2,2 Action,A,423,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to ANY card.,#REF!
+213,Aerial Mappers,2,2 Action,B,424,4 VenusNext,,,,,,,,,,,,,,,,,,,1,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to draw a card.,#REF!
+214,Aerosport Tournament,1,0 Immediate,,425,4 VenusNext,,,ANY cities,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per ANY city tile in play.,#REF!
+215,Air-Scrapping Expedition,1,0 Immediate,,426,4 VenusNext,,,,,,,,,,,,,,,,,,,,,3,floater,Venus,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Add 3 floaters to ANY VENUS CARD.,#REF!
+216,Atalanta Planitia Lab,1,0 Immediate,,427,4 VenusNext,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+217,Atmoscoop,2,0 Immediate,A,428,4 VenusNext,,,,,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,2,,,,2,,,,,,,,Raise temperature 2 steps. Add 2 floaters to ANY card.,#REF!
+217,Atmoscoop,2,0 Immediate,B,429,4 VenusNext,,,,,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,2,,2,,,,,,,,Raise Venus 2 steps. Add 2 floaters to ANY card.,#REF!
+218,Comet For Venus,2,0 Immediate,,430,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step.,#REF!
+218,Comet For Venus,2,1 Immediate/Attack,,431,4 VenusNext,,target has Venus tag,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 4 M€ from a player WITH A VENUS TAG IN PLAY.,#REF!
+219,Corroder Suits,1,0 Immediate,,432,4 VenusNext,,,,,2,,,,,,,,,,,,,,,,1,any,Venus,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps. Add 1 resource to ANY VENUS CARD.,#REF!
+220,Dawn City,1,0 Immediate,,433,4 VenusNext,,,,,,,1,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,Decrease your energy production 1 step. Increase your titanium production 1 step. Place a city tile ON THE RESERVED AREA.,#REF!
+221,Deuterium Export,2,2 Action,A,434,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to this card.,#REF!
+221,Deuterium Export,2,2 Action,B,435,4 VenusNext,,,,,,,,,1,,,,,,,,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to increase your energy production 1 step.,#REF!
+222,Dirigibles,2,2 Action,,436,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to ANY card.,#REF!
+222,Dirigibles,2,6 Effect/Resource,,437,4 VenusNext,Venus tag(s),,any number,←,,,,,,,,3N,,,,,,,,,-N,floater,here,,,,,,,0,,,,,0,,,,,,,,"When playing a Venus tag, floaters here may be used as 3 M€ each.",#REF!
+223,Extractor Balloons,3,0 Immediate,,438,4 VenusNext,,,,,,,,,,,,,,,,,,,,,3,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 3 floaters to this card.,#REF!
+223,Extractor Balloons,3,2 Action,A,439,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to this card.,#REF!
+223,Extractor Balloons,3,2 Action,B,440,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-2,floater,here,,,,,,,0,,,1,,1,,,,,,,,Spend 2 floaters here to raise Venus 1 step.,#REF!
+224,Extremophiles,1,2 Action,,441,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,microbe,any,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to ANY card.,#REF!
+225,Floating Habs,1,2 Action,,442,4 VenusNext,,,,,,,,,,,,-2,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Spend 2 M€ to add 1 floater to ANY card.,#REF!
+226,Forced Precipitation,2,2 Action,A,443,4 VenusNext,,,,,,,,,,,,-2,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 2 M€ to add a floater to this card.,#REF!
+226,Forced Precipitation,2,2 Action,B,444,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-2,floater,here,,,,,,,0,,,1,,1,,,,,,,,Spend 2 floaters here to increase Venus 1 step.,#REF!
+227,Freyja Biodomes,2,0 Immediate,A,445,4 VenusNext,,,,,2,,,,-1,,,,,,,,,,,,2,animal,here,,,,,,,0,,,,,0,,,,,,,,"Add 2 microbes TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",#REF!
+227,Freyja Biodomes,2,0 Immediate,B,446,4 VenusNext,,,,,2,,,,-1,,,,,,,,,,,,2,microbe,Venus,,,,,,,0,,,,,0,,,,,,,,"Add 2 animals TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",#REF!
+228,GHG Import From Venus,1,0 Immediate,,447,4 VenusNext,,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Increase your heat production 3 steps.,#REF!
+229,Giant Solar Shade,1,0 Immediate,,448,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,3,,3,,,,,,,,Raise Venus 3 steps.,#REF!
+230,Gyropolis,1,0 Immediate,,449,4 VenusNext,,,Venus + Earth tags,←,N,,,,-2,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,Decrease your energy production 2 steps. Increase your M€ production 1  step for each Venus and Earth tag you have. Place a city tile.,#REF!
+231,Hydrogen To Venus,1,0 Immediate,,450,4 VenusNext,,,Jovian tags,←,,,,,,,,,,,,,,,,,N,floater,Venus,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Add 1 floater to A VENUS CARD for each Jovian tag you have.,#REF!
+232,Io Sulphur Research,2,0 Immediate,A,451,4 VenusNext,,max 2 Venus tags,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 1 card.,#REF!
+232,Io Sulphur Research,2,0 Immediate,B,452,4 VenusNext,,3 Venus tags,,←,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Requires 3 Venus tags: draw 3 cards.,#REF!
+233,Ishtar Mining,1,0 Immediate,,453,4 VenusNext,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step.,#REF!
+234,Jet Stream Microscrappers,2,2 Action,A,454,4 VenusNext,,,,,,,,,,,,,,-1,,,,,,,2,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 2 floaters to this card.,#REF!
+234,Jet Stream Microscrappers,2,2 Action,B,455,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-2,floater,here,,,,,,,0,,,1,,1,,,,,,,,Spend 2 floaters here to raise Venus 1 step.,#REF!
+235,Local Shading,2,2 Action,A,456,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to this card.,#REF!
+235,Local Shading,2,2 Action,B,457,4 VenusNext,,,,,1,,,,,,,,,,,,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to increase your M€ production 1 step.,#REF!
+236,Luna Metropolis,2,0 Immediate,,458,4 VenusNext,,,Earth tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step for each Earth tag you have, including this. Place a city tile ON THE RESERVED AREA.",#REF!
+236,Luna Metropolis,2,0 Immediate,,459,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,"Increase your M€ production 1 step for each Earth tag you have, including this. Place a city tile ON THE RESERVED AREA.",#REF!
+238,Maxwell Base,2,0 Immediate,,460,4 VenusNext,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,Decrease your energy production 1 step. Place a city tile ON THE RESERVED AREA.,#REF!
+238,Maxwell Base,2,2 Action,,461,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,any,Venus,,,,,,,0,,,,,0,,,,,,,,Add 1 resource to ANOTHER VENUS CARD.,#REF!
+239,Mining Quota,1,0 Immediate,,462,4 VenusNext,,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your steel production 2 steps.,#REF!
+240,Neutralizer Factory,1,0 Immediate,,463,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Increase Venus 1 step.,#REF!
+241,Omnicourt,1,0 Immediate,,464,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,2,2,,,,,,,,Increase your TR 2 steps.,#REF!
+242,Orbital Reflectors,1,0 Immediate,,465,4 VenusNext,,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,0,,,2,,2,,,,,,,,Raise Venus 2 steps. Increase your heat production 2 steps.,#REF!
+243,Rotator Impacts,2,2 Action,A,466,4 VenusNext,,,,,,,,,,,,-6,,,,,,,,,1,asteroid,here,,,,,,,0,,,,,0,,,,,,may use titanium,,Spend 6 M€ (titanium may be used) to add an asteroid to this card.,#REF!
+243,Rotator Impacts,2,2 Action,B,467,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-1,asteroid,here,,,,,,,0,,,1,,1,,,,,,,,Spend 1 asteroid here to increase Venus 1 step.,#REF!
+244,Sister Planet Support,1,0 Immediate,,468,4 VenusNext,,,,,3,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 3 steps.,#REF!
+245,Solarnet,1,0 Immediate,,469,4 VenusNext,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+246,Spin-Inducing Asteroid,1,0 Immediate,,470,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,2,,2,,,,,,,,Raise Venus 2 steps.,#REF!
+247,Sponsored Academies,1,0 Immediate,,471,4 VenusNext,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,"discard a card first, then all players +1 card",,Discard 1 card from hand and THEN draw 3 cards. All OPPONENTS draw 1 card.,#REF!
+248,Stratopolis,2,0 Immediate,,472,4 VenusNext,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,Increase your M€ production 2 steps. Place a city tile on THE RESERVED AREA.,#REF!
+248,Stratopolis,2,2 Action,,473,4 VenusNext,,,,,,,,,,,,,,,,,,,,,2,floater,Venus,,,,,,,0,,,,,0,,,,,,,,Add 2 floaters to a VENUS CARD.,#REF!
+249,Stratospheric Birds,2,0 Immediate,,474,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-1,floater,any,,,,,,,0,,,,,0,,,,,,,,Remove 1 floater from any card.,#REF!
+249,Stratospheric Birds,2,2 Action,,475,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+250,Sulphur Exports,1,0 Immediate,,476,4 VenusNext,,,Venus tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,"Increase Venus 1 step. Increase your M€ production 1 step for each Venus tag you have, including this.",#REF!
+251,Sulphur-Eating Bacteria,2,2 Action,A,477,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+251,Sulphur-Eating Bacteria,2,2 Action,B,478,4 VenusNext,,,any number > 0,←,,,,,,,,3N,,,,,,,,,-N,microbe,here,,,,,,,0,,,,,0,,,,,,,,Spend one or more microbes here to gain 3 M€ each.,#REF!
+252,Terraforming Contract,1,0 Immediate,,479,4 VenusNext,,,,,4,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 4 steps.,#REF!
+253,Thermophiles,2,2 Action,A,480,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,microbe,Venus,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to a VENUS CARD.,#REF!
+253,Thermophiles,2,2 Action,B,481,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-2,microbe,here,,,,,,,0,,,1,,1,,,,,,,,Spend 2 microbes here to raise Venus 1 step.,#REF!
+254,Water To Venus,1,0 Immediate,,482,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step.,#REF!
+255,Venus Governor,1,0 Immediate,,483,4 VenusNext,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps.,#REF!
+256,Venus Magnetizer,1,2 Action,,484,4 VenusNext,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Decrease your energy production 1 step to raise Venus 1 step.,#REF!
+257,Venus Soils,1,0 Immediate,,485,4 VenusNext,,,,,,,,1,,,,,,,,,,,,,2,microbe,any,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Increase your plant production 1 step. Add 2 microbes to ANOTHER card.,#REF!
+258,Venus Waystation,1,5 Effect/Discount,,486,4 VenusNext,Venus tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 2 M€ less per Venus tag it has.,#REF!
+259,Venusian Animals,1,4 Effect/Trigger,,487,4 VenusNext,science tag,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When you play a science tag, add 1 animal to this card.",#REF!
+260,Venusian Insects,1,2 Action,,488,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add 1 microbe to this card.,#REF!
+261,Venusian Plants,2,0 Immediate,A,489,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,animal,Venus,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Add 1 microbe to ANOTHER VENUS CARD.,#REF!
+261,Venusian Plants,2,0 Immediate,B,490,4 VenusNext,,,,,,,,,,,,,,,,,,,,,1,microbe,Venus,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Add 1 animal to ANOTHER VENUS CARD.,#REF!
+P36,House Printing,1,0 Immediate,,491,5 Prelude,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your steel production 1 step.,#REF!
+P37,Lava Tube Settlement,1,0 Immediate,,492,5 Prelude,,,,,2,,,,-1,,,,,,,,,,,,,,,,1,,,,(if any) volcanic area and can break rules,1,,,,,0,,,,,,,,"Decrease your energy production 1 step. Increase your M€ production 2 steps. Place a city tile ON A VOLCANIC AREA, same as Lava Flows, regardless of adjacent cities.",#REF!
+P38,Martian Survey,1,0 Immediate,,493,5 Prelude,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+P39,Psychrophiles,2,2 Action,,494,5 Prelude,,,,,,,,,,,,,,,,,,,,,1,microbe,here,,,,,,,0,,,,,0,,,,,,,,Add a microbe to this card.,#REF!
+P39,Psychrophiles,2,6 Effect/Resource,,495,5 Prelude,plant tag(s),,any number,←,,,,,,,,2N,,,,,,,,,-N,microbe,here,,,,,,,0,,,,,0,,,,,,,,"When playing a plant tag, microbes here may be used as 2 M€ each.",#REF!
+P41,SF Memorial,1,0 Immediate,,496,5 Prelude,,,,,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 1 card.,#REF!
+P42,Space Hotels,1,0 Immediate,,497,5 Prelude,,,,,4,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 4 steps.,#REF!
+C01,Airliners,1,0 Immediate,,498,6 Colonies,,,,,2,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps. Add 2 floaters to ANOTHER card.,#REF!
+C02,Air Raid,2,0 Immediate,,499,6 Colonies,,,,,,,,,,,,,,,,,,,,,-1,floater,any,,,,,,,0,,,,,0,,,,,,,,Remove 1 floater from any card.,#REF!
+C02,Air Raid,2,1 Immediate/Attack,,500,6 Colonies,,,,,,,,,,,,5,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,gain the removed resources directly,,Steal up to 5 M€ from any player.,#REF!
+C03,Atmo Collectors,5,0 Immediate,,501,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 2 floaters to ANY card.,#REF!
+C03,Atmo Collectors,5,2 Action,A,502,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to this card.,#REF!
+C03,Atmo Collectors,5,2 Action,B,503,6 Colonies,,,,,,,,,,,,,,2,,,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to gain 2 titanium.,#REF!
+C03,Atmo Collectors,5,2 Action,C,504,6 Colonies,,,,,,,,,,,,,,,,3,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to gain 3 energy.,#REF!
+C03,Atmo Collectors,5,2 Action,D,505,6 Colonies,,,,,,,,,,,,,,,,,4,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to gain 4 heat.,#REF!
+C04,Community Services,1,0 Immediate,,506,6 Colonies,,,tagless cards in play,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step per CARD WITH NO TAGS, including this.",#REF!
+C05,Conscription,1,7 Effect/Temporary,,507,6 Colonies,next card this gen,,,←,,,,,,,,16,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The next card you play this generation costs 16 M€ less.,#REF!
+C06,Corona Extractor,1,0 Immediate,,508,6 Colonies,,,,,,,,,4,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your energy production 4 steps.,#REF!
+C07,Cryo-Sleep,3,5 Effect/Discount,A,509,6 Colonies,Trade std action,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C07,Cryo-Sleep,3,5 Effect/Discount,B,510,6 Colonies,Trade std action,,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C07,Cryo-Sleep,3,5 Effect/Discount,C,511,6 Colonies,Trade std action,,,←,,,,,,,,,,,,1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C08,Earth Elevator,1,0 Immediate,,512,6 Colonies,,,,,,,3,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 3 steps.,#REF!
+C09,Ecology Research,2,0 Immediate,,513,6 Colonies,,,colonies,←,,,,N,,,,,,,,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 1 step for each colony you own. Add 1 animal to ANOTHER card,#REF!
+C09,Ecology Research,2,0 Immediate,,514,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,microbe,any,,,,,,,0,,,,,0,,,,,,,,and 2 microbes to ANOTHER card.,#REF!
+C10,Floater Leasing,1,0 Immediate,,515,6 Colonies,,,sets of 3 floaters (combined),←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step per 3 floaters you have.,#REF!
+C11,Floater Prototypes,1,0 Immediate,,516,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 2 floaters to ANOTHER card.,#REF!
+C12,Floater Technology,1,2 Action,,517,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to ANOTHER card.,#REF!
+C13,Galilean Waystation,1,0 Immediate,,518,6 Colonies,,,ANY Jovian tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step per ANY Jovian tag .,#REF!
+C14,Heavy Taxation,1,0 Immediate,,519,6 Colonies,,,,,2,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 2 steps, and gain 4 M€.",#REF!
+C15,Ice Moon Colony,1,0 Immediate,,520,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,1,,,,,,Place 1 colony and 1 ocean tile.,#REF!
+C16,Impactor Swarm,2,0 Immediate,,521,6 Colonies,,,,,,,,,,,,,,,,,12,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 12 heat.,#REF!
+C16,Impactor Swarm,2,1 Immediate/Attack,,522,6 Colonies,,,,,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 2 plants from any player.,#REF!
+C17,Interplanetary Colony Ship,1,0 Immediate,,523,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,Place a colony.,#REF!
+C18,Jovian Lanterns,2,0 Immediate,,524,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,,1,1,,,,,,,,Increase your TR 1 step. Add 2 floaters to ANY card.,#REF!
+C18,Jovian Lanterns,2,2 Action,,525,6 Colonies,,,,,,,,,,,,,,-1,,,,,,,2,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 2 floaters here.,#REF!
+C19,Jupiter Floating Station,2,2 Action,A,526,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,Jovian,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to a JOVIAN CARD.,#REF!
+C19,Jupiter Floating Station,2,2 Action,B,527,6 Colonies,,,"floaters here, MAX 4",←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per floater here (MAX 4).,#REF!
+C20,Luna Governor,1,0 Immediate,,528,6 Colonies,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps.,#REF!
+C21,Lunar Exports,2,0 Immediate,A,529,6 Colonies,,,,,5,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your plant production 2 steps.,#REF!
+C21,Lunar Exports,2,0 Immediate,B,530,6 Colonies,,,,,,,,2,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your increase your M€ production 5 steps.,#REF!
+C22,Lunar Mining,1,0 Immediate,,531,6 Colonies,,,sets of 2 Earth tags,←,,,N,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your titanium production 1 step for every 2 Earth tags you. have.,#REF!
+C23,Market Manipulation,1,0 Immediate,,532,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,+1 and -1 to diferent colony tile tracks,,INCREASE ONE COLONY TILE TRACK 1 STEP. DECREASE ANOTHER COLONY TILE TRACK 1 STEP,#REF!
+C24,Martian Zoo,2,2 Action,,533,6 Colonies,,,animals here,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per animal here.,#REF!
+C24,Martian Zoo,2,4 Effect/Trigger,,534,6 Colonies,Earth tag,,,←,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,"When you play an Earth tag, add an animal here.",#REF!
+C25,Mining Colony,1,0 Immediate,,535,6 Colonies,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,Increase your titanium production 1 step. Place a colony.,#REF!
+C26,Minority Refuge,1,0 Immediate,,536,6 Colonies,,,,,-2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,Decrease your M€ production 2 steps. Place a colony.,#REF!
+C27,Molecular Printing,1,0 Immediate,,537,6 Colonies,,,ANY cities + ANY colonies,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per ANY colony or city tile in play.,#REF!
+C28,Nitrogen From Titan,1,0 Immediate,,538,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,Jovian,,,,,,,0,,,,2,2,,,,,,,,Raise your TR 2 steps. Add 2 floaters to a JOVIAN CARD.,#REF!
+C29,Pioneer Settlement,1,0 Immediate,,539,6 Colonies,,,,,-2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,Decrease your M€ production 2 steps. Place a colony.,#REF!
+C30,Productive Outpost,1,0 Immediate,,540,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,gain your colony bonuses,,Gain all your colony bonuses.,#REF!
+C31,Quantum Communications,1,0 Immediate,,541,6 Colonies,,,ANY colonies,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 1 step per ANY colony.,#REF!
+C32,Red Spot Observatory,3,0 Immediate,,542,6 Colonies,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+C32,Red Spot Observatory,3,2 Action,A,543,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to this card.,#REF!
+C32,Red Spot Observatory,3,2 Action,B,544,6 Colonies,,,,,,,,,,,,,,,,,,,1,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 floater here to draw a card.,#REF!
+C33,Refugee Camps,1,2 Action,,545,6 Colonies,,,,,-1,,,,,,,,,,,,,,,,1,camp,here,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 1 step to add a camp resource to this card.,#REF!
+C34,Research Colony,1,0 Immediate,,546,6 Colonies,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,1,,,,can place colony where you already have one,,Place a colony. MAY BE PLACED WHERE YOU ALREADY HAVE A COLONY. Draw 2 cards.,#REF!
+C35,Rim Freighters,3,5 Effect/Discount,A,547,6 Colonies,Trade std action,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C35,Rim Freighters,3,5 Effect/Discount,B,548,6 Colonies,Trade std action,,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C35,Rim Freighters,3,5 Effect/Discount,C,549,6 Colonies,Trade std action,,,←,,,,,,,,,,,,1,,,,,,,,,,,,,,0,,,,,0,,,,,,,,The Trade standard action costs 1 resource less.,#REF!
+C36,Sky Docks,2,0 Immediate,,550,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,1,,,,,Gain 1 Trade Fleet.,#REF!
+C36,Sky Docks,2,5 Effect/Discount,,551,6 Colonies,play card,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 1 M€ less.,#REF!
+C37,Solar Probe,1,0 Immediate,,552,6 Colonies,,,sets of 3 science tags,←,,,,,,,,,,,,,,,N,,,,,,,,,,,0,,,,,0,,,,,,,,"Draw 1 card for every 3 science tags you have, including this.",#REF!
+C38,Solar Reflectors,1,0 Immediate,,553,6 Colonies,,,,,,,,,,5,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 5 steps.,#REF!
+C39,Space Port,1,0 Immediate,,554,6 Colonies,,,,,4,,,,-1,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,1,,,,,"Gain 1 Trade Fleet. Place a city tile. Decrease your energy production 1 step, and increase your M€ production 4 steps.",#REF!
+C40,Space Port Colony,1,0 Immediate,,555,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,1,,,can place colony where you already have one,,Place a colony. MAY BE PLACED ON A COLONY TILE WHERE YOU ALREADY HAVE A COLONY. Gain 1 Trade Fleet.,#REF!
+C41,Spin-Off Department,2,0 Immediate,,556,6 Colonies,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps.,#REF!
+C41,Spin-Off Department,2,4 Effect/Trigger,,557,6 Colonies,play card,original cost >= 20,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a card with an original cost of 20 M€ or more, draw a card.",#REF!
+C42,Sub-Zero Salt Fish,2,1 Immediate/Attack,,558,6 Colonies,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease any player's plant production 1 step.,#REF!
+C42,Sub-Zero Salt Fish,2,2 Action,,559,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,animal,here,,,,,,,0,,,,,0,,,,,,,,Add 1 animal to this card.,#REF!
+C43,Titan Air-Scrapping,2,2 Action,A,560,6 Colonies,,,,,,,,,,,,,,-1,,,,,,,2,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 2 floaters to this card.,#REF!
+C43,Titan Air-Scrapping,2,2 Action,B,561,6 Colonies,,,,,,,,,,,,,,,,,,,,,-2,floater,here,,,,,,,0,,,,1,1,,,,,,,,Spend 2 floaters here to increase your TR 1 step.,#REF!
+C44,Titan Floating Launch-Pad,3,0 Immediate,,562,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,Jovian,,,,,,,0,,,,,0,,,,,,,,Add 2 floaters to ANY JOVIAN CARD.,#REF!
+C44,Titan Floating Launch-Pad,3,2 Action,A,563,6 Colonies,,,,,,,,,,,,,,,,,,,,,1,floater,Jovian,,,,,,,0,,,,,0,,,,,,,,Add 1 floater to a JOVIAN CARD.,#REF!
+C44,Titan Floating Launch-Pad,3,2 Action,B,564,6 Colonies,,requires available trade fleet,,←,,,,,,,,,,,,,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,trade,,Spend 1 floater here to trade for free.,#REF!
+C45,Titan Shuttles,2,2 Action,A,565,6 Colonies,,,,,,,,,,,,,,,,,,,,,2,floater,Jovian,,,,,,,0,,,,,0,,,,,,,,Add 2 floaters to a JOVIAN CARD.,#REF!
+C45,Titan Shuttles,2,2 Action,B,566,6 Colonies,,,any number > 0,←,,,,,,,,,,N,,,,,,,-N,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend one or more floaters here to gain 1 titanium each.,#REF!
+C46,Trade Envoys,1,4 Effect/Trigger,,567,6 Colonies,trade,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,+1 to that colony tile track first (optional),,"When you trade, you may first increase that Colony Tile track 1 step.",#REF!
+C47,Trading Colony,2,0 Immediate,,568,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,Place a colony.,#REF!
+C47,Trading Colony,2,4 Effect/Trigger,,569,6 Colonies,trade,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,+1 to that colony tile track first (optional),,"When you trade, you may first increase that Colony Tile track 1 step.",#REF!
+C48,Urban Decomposers,1,0 Immediate,,570,6 Colonies,,,,,,,,1,,,,,,,,,,,,,2,microbe,any,,,,,,,0,,,,,0,,,,,,,,"Increase your plant production 1 step, and add 2 microbes to ANOTHER card.",#REF!
+C49,Warp Drive,1,5 Effect/Discount,,571,6 Colonies,space tag,,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card costs 4 M€ less per space tag it has.,#REF!
+T01,Aerial Lenses,2,0 Immediate,,572,7 Turmoil,,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 2 steps.,#REF!
+T01,Aerial Lenses,2,1 Immediate/Attack,,573,7 Turmoil,,,,,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 2 plants from any player.,#REF!
+T02,Banned Delegate,1,1 Immediate/Attack,,574,7 Turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,1,,,,Remove any NON-LEADER delegate.,#REF!
+T03,Cultural Metropolis,1,0 Immediate,,575,7 Turmoil,,delegates to same party,,←,3,,,,-1,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,2,,,,Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile. Place 2 delegates in 1 party.,#REF!
+T04,Diaspora Movement,1,0 Immediate,,576,7 Turmoil,,,ANY Jovian tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per ANY Jovian tag.,#REF!
+T05,Event Analysts,1,8 Effect/Ambient,,577,7 Turmoil,ambient,,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,+1 influence,,You have influence +1.,#REF!
+T06,GMO Contract,1,4 Effect/Trigger,,578,7 Turmoil,P/M/A tag,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a plant, microbe, or animal tag, gain 2 M€.",#REF!
+T07,Martian Media Center,2,0 Immediate,,579,7 Turmoil,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps.,#REF!
+T07,Martian Media Center,2,2 Action,,580,7 Turmoil,,,,,,,,,,,,-3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,1,,,,Spend 3 M€ to add a delegate to any party.,#REF!
+T08,Parliament Hall,1,0 Immediate,,581,7 Turmoil,,,sets of 3 building tags,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase M€ production 1 step for every 3 building tags you have, including this.",#REF!
+T09,PR Office,1,0 Immediate,,582,7 Turmoil,,,Earth tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,"Gain 1 TR. Gain 1 M€ for each Earth tag you have, including this.",#REF!
+T11,Recruitment,1,0 Immediate,,583,7 Turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,1,,exchange for neutral delegate in same party,,Exchange one NEUTRAL NON-LEADER delegate with one of your own from the reserve.,#REF!
+T12,Red Tourism Wave,1,0 Immediate,,584,7 Turmoil,,,empty areas adjacent to your tiles,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ for each EMPTY AREA ADJACENT TO YOUR TILES.,#REF!
+T13,Sponsored Mohole,1,0 Immediate,,585,7 Turmoil,,,,,,,,,,2,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your heat production 2 steps.,#REF!
+T14,Supported Research,1,0 Immediate,,586,7 Turmoil,,,,,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,Draw 2 cards.,#REF!
+T15,Wildlife Dome,1,0 Immediate,,587,7 Turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,1,,,,,1,,,,,,,,Place a greenery tile and raise oxygen 1 step.,#REF!
+T16,Vote Of No Confidence,1,0 Immediate,,588,7 Turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,1,,exchange for neutral chairperson,,Remove the NEUTRAL Chairman and move your own delegate (from the reserve) there instead. Gain 1 TR.,#REF!
+X01,Dusk Laser Mining,1,0 Immediate,,589,X3 Pro/turmoil,,,,,,,1,,-1,,,,,4,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Decrease your energy production 1 step, and increase your titanium production 1 step. Gain 4 titanium.",#REF!
+X02,Project Inspection,1,0 Immediate,,590,X3 Pro/turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,reuse a card action,,USE A CARD ACTION THAT HAS ALREADY BEEN USED THIS GENERATION,#REF!
+X03,Energy Market,2,2 Action,A,591,X3 Pro/turmoil,,,any number > 0,←,,,,,,,,-2N,,,,N,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 2X M€ to gain X energy.,#REF!
+X03,Energy Market,2,2 Action,B,592,X3 Pro/turmoil,,,,,,,,,-1,,,8,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step to gain 8 M€.,#REF!
+X04,Hi-Tech Lab,1,2 Action,,593,X3 Pro/turmoil,,,any number > 0,←,,,,,,,,,,,,-N,,,1,of N,,,,,,,,,,0,,,,,0,,,,,,,,Spend one or more energy to draw the same number of cards. TAKE 1 INTO HAND AND DISCARD THE REST.,#REF!
+X05,Interplanetary Trade,1,0 Immediate,,594,X3 Pro/turmoil,,,tag types in play,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"Increase your M€ production 1 step per different tag you have in play, including this.",#REF!
+X06,Law Suit,1,1 Immediate/Attack,,595,X3 Pro/turmoil,,made a resource or prod. attack on you this gen.,,←,,,,,,,,3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,gain the stolen money; move this card to victim's event pile,,Steal 3 M€ from a player that REMOVED YOUR RESOURCES OR DECREASED YOUR PRODUCTION this generation. Place this card face down in THAT PLAYER'S EVENT PILE.,#REF!
+X07,Mercurian Alloys,1,6 Effect/Resource,,596,X3 Pro/turmoil,payment that accepts titanium,,titanium spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your titanium resources are worth 1 M€ extra.,#REF!
+X08,Orbital Cleanup,2,0 Immediate,,597,X3 Pro/turmoil,,,,,-2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your M€ production 2 steps.,#REF!
+X08,Orbital Cleanup,2,2 Action,,598,X3 Pro/turmoil,,,science tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 M€ per science tag you have.,#REF!
+X09,Political Alliance,1,0 Immediate,,599,X3 Pro/turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Gain 1 TR.,#REF!
+X10,Rego Plastics,1,6 Effect/Resource,,600,X3 Pro/turmoil,payment that accepts steel,,steel spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your steel resources are worth 1 M€ extra.,#REF!
+X11,Saturn Surfing,2,0 Immediate,,601,X3 Pro/turmoil,,,Earth tags,←,,,,,,,,,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,"Add 1 floater here for every Earth tag you have, including this.",#REF!
+X11,Saturn Surfing,2,2 Action,,602,X3 Pro/turmoil,,,"floaters here, plus 1",←,,,,,,,,N,,,,,,,,,-1,floater,here,,,,,,,0,,,,,0,,,,,,,,"Spend 1 floater here to gain 1 M€ per floater here, INCLUDING THE PAID FLOATER (max 5).",#REF!
+X12,Stanford Torus,1,0 Immediate,,603,X3 Pro/turmoil,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,1,,,,,,,"Place a city tile IN SPACE, outside and separate from the planet.",#REF!
+X13,Advertising,1,4 Effect/Trigger,,604,X4 Pro/bigbox,play card,original cost >= 20,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you play a card with an original cost of 20 M€ or more, increase your M€ production 1 step.",#REF!
+X14,Asteroid Deflection System,3,0 Immediate,,605,X4 Pro/bigbox,,,,,,,,,-1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Decrease your energy production 1 step.,#REF!
+X14,Asteroid Deflection System,3,2 Action,,606,X4 Pro/bigbox,,IF you flip a space tag,,←,,,,,,,,,,,,,,,,,1,asteroid,here,,,,,,,0,,,,,0,,,,,,,,"REVEAL AND DISCARD the top card of the deck. If it has a space tag, add an asteroid here.",#REF!
+X14,Asteroid Deflection System,3,8 Effect/Ambient,,607,X4 Pro/bigbox,ambient,,,←,,,,,,,,,,,,,,,,,1,asteroid,here,,,,,,,0,,,,,0,,,,,,opponents can't remove plants,,Opponents may not remove your plants.,#REF!
+X15,Asteroid Hollowing,1,2 Action,,608,X4 Pro/bigbox,,,,,1,,,,,,,,,-1,,,,,,,1,asteroid,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 1 asteroid here and increase M€ production 1 step.,#REF!
+X16,Comet Aiming,2,2 Action,A,609,X4 Pro/bigbox,,,,,,,,,,,,,,-1,,,,,,,1,asteroid,any,,,,,,,0,,,,,0,,,,,,,,Spend 1 titanium to add 1 asteroid to ANY CARD.,#REF!
+X16,Comet Aiming,2,2 Action,B,610,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,-1,asteroid,here,,,,,1,,1,,,,,1,,,,,,,,Spend 1 asteroid here to place an ocean tile.,#REF!
+X17,Crash Site Cleanup,2,0 Immediate,A,611,X4 Pro/bigbox,,,,,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 titanium or 2 steel.,#REF!
+X17,Crash Site Cleanup,2,0 Immediate,B,612,X4 Pro/bigbox,,,,,,,,,,,,,2,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 1 titanium or 2 steel.,#REF!
+X18,Cutting Edge Technology,1,5 Effect/Discount,,613,X4 Pro/bigbox,play card,has requirement,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Playing a card with a requirement costs 2 M€ less.,#REF!
+X19,Directed Impactors,2,2 Action,A,614,X4 Pro/bigbox,,,,,,,,,,,,-6,,,,,,,,,1,asteroid,any,,,,,,,0,,,,,0,,,,,,may use titanium,,Spend 6 M€ (titanium may be used) to add 1 asteroid to ANY CARD.,#REF!
+X19,Directed Impactors,2,2 Action,B,615,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,-1,asteroid,here,,,,,,,0,1,,,,1,,,,,,,,Spend 1 asteroid here to raise temperature 1 step.,#REF!
+X20,Diversity Support,1,0 Immediate,,616,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Raise your TR 1 step.,#REF!
+X21,Field-Capped City,1,0 Immediate,,617,X4 Pro/bigbox,,,,,2,,,,1,,,,,,3,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,"Increase your M€ production 2 steps, and increase your energy production 1 step. Gain 3 plants, and place a city tile.",#REF!
+X22,Imported Nutrients,1,0 Immediate,,618,X4 Pro/bigbox,,,,,,,,,,,,,,,4,,,,,,4,microbe,any,,,,,,,0,,,,,0,,,,,,,,"Gain 4 plants, and add 4 microbes to ANOTHER CARD.",#REF!
+X23,Jovian Embassy,1,0 Immediate,,619,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,Raise your TR 1 step.,#REF!
+X24,Magnetic Shield,1,0 Immediate,,620,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,4,4,,,,,,,,Raise your TR 4 steps.,#REF!
+X25,Meat Industry,1,4 Effect/Trigger,,621,X4 Pro/bigbox,animal,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you add an animal to any card, gain 2 M€.",#REF!
+X26,Meltworks,1,2 Action,,622,X4 Pro/bigbox,,,,,,,,,,,,,3,,,,-5,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 5 heat to gain 3 steel.,#REF!
+X27,Mohole Lake,3,0 Immediate,,623,X4 Pro/bigbox,,,,,,,,,,,,,,,3,,,,,,,,,,,,,1,,1,1,,,,2,,,,,,,,Place an ocean tile. Raise temperature 1 step. Gain 3 plants.,#REF!
+X27,Mohole Lake,3,2 Action,A,624,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,1,microbe,any,,,,,,,0,,,,,0,,,,,,,,Add a microbe to ANOTHER card.,#REF!
+X27,Mohole Lake,3,2 Action,B,625,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,Add an animal to ANOTHER card.,#REF!
+X28,Potatoes,1,0 Immediate,,626,X4 Pro/bigbox,,,,,2,,,,,,,,,,-2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Increase your M€ production 2 steps and lose 2 plants.,#REF!
+X29,Sub-Crust Measurements,1,2 Action,,627,X4 Pro/bigbox,,,,,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,Draw a card.,#REF!
+X30,Topsoil Contract,2,0 Immediate,,628,X4 Pro/bigbox,,,,,,,,,,,,,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Gain 3 plants.,#REF!
+X30,Topsoil Contract,2,4 Effect/Trigger,,629,X4 Pro/bigbox,microbe,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,"When you add a microbe to any card, gain 1 M€.",#REF!
+X31,Deimos Down*,2,0 Immediate,,630,X4 Pro/bigbox,,,,,,,,,,,,,4,,,,,,,,,,,,,1,,,touching no city,1,3,,,,3,,,,,,,,Raise temperature 3 steps. Place this tile ADJACENT TO NO CITY TILE. Gain 4 steel.,#REF!
+X31,Deimos Down*,2,1 Immediate/Attack,,631,X4 Pro/bigbox,,,,,,,,,,,,,,,6,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Remove up to 6 plants from any player.,#REF!
+X32,Great Dam*,1,0 Immediate,,632,X4 Pro/bigbox,,,,,,,,,2,,,,,,,,,,,,,,,,,1,,,touching an ocean,1,,,,,0,,,,,,,,Increase your energy production 2 steps. Place this tile ADJACENT TO AN OCEAN TILE.,#REF!
+X33,Magnetic Field Generators*,1,0 Immediate,,633,X4 Pro/bigbox,,,,,,,,2,-4,,,,,,,,,,,,,,,,,1,,,,1,,,,3,3,,,,,,,,Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps. Place this tile.,#REF!
+X34,Asteroid Rights,4,0 Immediate,,634,X5 Pro/season1,,,,,,,,,,,,,,,,,,,,,2,asteroid,here,,,,,,,0,,,,,0,,,,,,,,Add 2 asteroids to this card.,#REF!
+X34,Asteroid Rights,4,2 Action,A,635,X5 Pro/season1,,,,,,,,,,,,-1,,,,,,,,,1,asteroid,any,,,,,,,0,,,,,0,,,,,,,,Spend 1 M€ to add 1 asteroid to ANY card.,#REF!
+X34,Asteroid Rights,4,2 Action,B,636,X5 Pro/season1,,,,,1,,,,,,,,,,,,,,,,-1,asteroid,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 asteroid here to increase your M€ production 1 step.,#REF!
+X34,Asteroid Rights,4,2 Action,C,637,X5 Pro/season1,,,,,,,,,,,,,,2,,,,,,,-1,asteroid,here,,,,,,,0,,,,,0,,,,,,,,Spend 1 asteroid here to gain 2 titanium.,#REF!
+X36,Bio Printing Facility,2,2 Action,A,638,X5 Pro/season1,,,,,,,,,,,,,,,2,-2,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Spend 2 energy to gain 2 plants.,#REF!
+X36,Bio Printing Facility,2,2 Action,B,639,X5 Pro/season1,,,,,,,,,,,,,,,,-2,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,Spend 2 energy to add 1 animal to ANOTHER card.,#REF!
+X35,Bactoviral Research,1,0 Immediate,,640,X5 Pro/season1,,,science tags,←,,,,,,,,,,,,,,,1,,N,microbe,any,,,,,,,0,,,,,0,,,,,,,,"Draw a card. Choose any one microbe card and add a microbe to it for each science tag you have, including this.",#REF!
+X37,Harvest,1,0 Immediate,,641,X5 Pro/season1,,,,,,,,,,,,12,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Gain 12 M€.,#REF!
+X38,Outdoor Sports,1,0 Immediate,,642,X5 Pro/season1,,,,,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Increase your M€ production 2 steps.,#REF!
+X42,New Partner,1,0 Immediate,,643,X6 Pro/season2,,,,,1,,,,,,,,,,,,,,1,of 2 Preludes,,,,,,,,,,,,,,,,,,,,,play that card now,,Increase your M€ production 1 step. Draw 1 of 2 Prelude cards and play it.,
+X41,Merger,1,0 Immediate,,644,X6 Pro/season2,,,,,,,,,,,,-42,,,,,,,1,of 4 Corporations,,,,,,,,,,,,,,,,,,,,,play that card now,,Draw 1 of 4 corporation cards and play it. Lose 42 M€.,
+X39,Corporate Archives,1,0 Immediate,,645,X6 Pro/season2,,,,,,,,,,,,13,,,,,,,2,of 7,,,,,,,,,,,,,,,,,,,,,,,Gain 13 M€. Draw 2 of 7 project cards.,
+X40,Double Down,1,0 Immediate,,646,X6 Pro/season2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,copy a Prelude,,Copy your other Prelude's direct effect.,
+X43,Head Start,1,0 Immediate,,647,X6 Pro/season2,,,project cards in hand,,,,,,,,,2N,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,take two actions,,"Gain 2 M€ per project card in hand, and 2 steel. Take 2 actions.",
+X44,16 Psyche,1,0 Immediate,,648,X7 Pro/season3,,,,,,,2,,,,,,,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Increase titanium production 2 steps. Gain 3 titanium.,
+X45,Robot Pollinators,1,0 Immediate,,649,X7 Pro/season3,,,plant tags,,,,,1,,,,,,,N,,,,,,,,,,,,,,,,,,,,,,,,,,,,Increase plant production 1 step. Gain 1 plant per plant tag you have.,
+SAC,Claim Milestone,1,2 Action,,650,0 Base,,,,,,,,,,,,-8,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,claim a milestone,,,#REF!
+SAD,Fund Award,3,2 Action,,651,0 Base,,,,,,,,,,,,-8,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,fund an award,,,#REF!
+SAD,Fund Award,3,2 Action,,652,0 Base,,,,,,,,,,,,-14,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,fund an award,,,#REF!
+SAD,Fund Award,3,2 Action,,653,0 Base,,,,,,,,,,,,-20,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,fund an award,,,#REF!
+SAF,Convert Plants,1,2 Action,,654,0 Base,,,,,,,,,,,,,,,-8,,,,,,,,,,,,1,,,1,,,,,1,,,,,,,,,#REF!
+SAG,Convert Heat,1,2 Action,,655,0 Base,,,,,,,,,,,,,,,,,-8,,,,,,,,,,,,,0,1,,,,1,,,,,,,,,#REF!
+SP00,Sell Patents,1,2 Action,,656,0 Base,,,any number > 0,←,,,,,,,,N,,,,,,,-N,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+SP11,Power Plant,1,2 Action,,657,0 Base,,,,,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+SP14,Asteroid,1,2 Action,,658,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,1,,,,1,,,,,,,,,#REF!
+SP18,Aquifer,1,2 Action,,659,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,,#REF!
+SP23,Greenery,1,2 Action,,660,0 Base,,,,,,,,,,,,,,,,,,,,,,,,,,,1,,,1,,,,,1,,,,,,,,,#REF!
+SP25,City,1,2 Action,,661,0 Base,,,,,1,,,,,,,,,,,,,,,,,,,,1,,,,,1,,,,,0,,,,,,,,,#REF!
+SP16,Buffer Gas,1,2 Action,,662,1 CorpEra,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,,#REF!
+SP15,Air Scrapping,1,2 Action,,663,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,,#REF!
+SAH,Trade,3,2 Action,A,664,6 Colonies,,requires available trade fleet,,←,,,,,,,,-9,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,trade,,,#REF!
+SAH,Trade,3,2 Action,B,665,6 Colonies,,requires available trade fleet,,←,,,,,,,,,,-3,,,,,,,,,,,,,,,,0,,,,,0,,,,,,trade,,,#REF!
+SAH,Trade,3,2 Action,C,666,6 Colonies,,requires available trade fleet,,←,,,,,,,,,,,,-3,,,,,,,,,,,,,,0,,,,,0,,,,,,trade,,,#REF!
+SP17,Build Colony,1,2 Action,,667,6 Colonies,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,1,,,,,,,#REF!
+SAI,Lobby,2,2 Action,A,668,7 Turmoil,,using lobby delegate,,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,1,,,,,#REF!
+SAI,Lobby,2,2 Action,B,669,7 Turmoil,,using reserve delegate,,←,,,,,,,,-5,,,,,,,,,,,,,,,,,,0,,,,,0,,,,1,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,A,670,6 Colonies,trade here,0 production,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,B,671,6 Colonies,trade here,1 production,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,C,672,6 Colonies,trade here,2 production,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,D,673,6 Colonies,trade here,3 production,,←,,,,,,,,7,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,E,674,6 Colonies,trade here,4 production,,←,,,,,,,,10,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,F,675,6 Colonies,trade here,5 production,,←,,,,,,,,13,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,G,676,6 Colonies,trade here,6 production,,←,,,,,,,,17,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,,677,6 Colonies,place colony here,,,←,2,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT01,Luna,9,4 Effect/Trigger,,678,6 Colonies,ANY trade here,,,←,,,,,,,,2,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,A,679,6 Colonies,trade here,0 production,,←,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,B,680,6 Colonies,trade here,1 production,,←,,,,,,,,,2,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,C,681,6 Colonies,trade here,2 production,,←,,,,,,,,,3,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,D,682,6 Colonies,trade here,3 production,,←,,,,,,,,,4,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,E,683,6 Colonies,trade here,4 production,,←,,,,,,,,,6,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,F,684,6 Colonies,trade here,5 production,,←,,,,,,,,,8,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,G,685,6 Colonies,trade here,6 production,,←,,,,,,,,,10,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,,686,6 Colonies,place colony here,,,←,,1,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT02,Ceres,9,4 Effect/Trigger,,687,6 Colonies,ANY trade here,,,←,,,,,,,,,2,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,B,688,6 Colonies,trade here,1 production,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,C,689,6 Colonies,trade here,2 production,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,D,690,6 Colonies,trade here,3 production,,←,,,,,,,,,,2,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,E,691,6 Colonies,trade here,4 production,,←,,,,,,,,,,3,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,F,692,6 Colonies,trade here,5 production,,←,,,,,,,,,,4,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,G,693,6 Colonies,trade here,6 production,,←,,,,,,,,,,5,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,,694,6 Colonies,place colony here,,,←,,,,,,,,,,3,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT03,Triton,8,4 Effect/Trigger,,695,6 Colonies,ANY trade here,,,←,,,,,,,,,,1,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,B,696,6 Colonies,trade here,1 production,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,C,697,6 Colonies,trade here,2 production,,←,,,,,,,,,,,2,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,D,698,6 Colonies,trade here,3 production,,←,,,,,,,,,,,3,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,E,699,6 Colonies,trade here,4 production,,←,,,,,,,,,,,4,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,F,700,6 Colonies,trade here,5 production,,←,,,,,,,,,,,5,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,G,701,6 Colonies,trade here,6 production,,←,,,,,,,,,,,6,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,,702,6 Colonies,place colony here,,,←,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT04,Gaymede,8,4 Effect/Trigger,,703,6 Colonies,ANY trade here,,,←,,,,,,,,,,,1,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,B,704,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,2,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,C,705,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,3,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,D,706,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,5,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,E,707,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,7,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,F,708,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,10,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,G,709,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,13,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,,710,6 Colonies,place colony here,,,←,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT05,Callisto,8,4 Effect/Trigger,,711,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,3,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,A,712,6 Colonies,trade here,0 production,,←,,,,,,,,,,,,,2,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,B,713,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,,3,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,C,714,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,,4,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,D,715,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,,6,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,E,716,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,,8,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,F,717,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,,10,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,G,718,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,,13,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,,719,6 Colonies,place colony here,,,←,,,,,,1,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT06,Io,9,4 Effect/Trigger,,720,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,,2,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,A,721,6 Colonies,trade here,0 production,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,B,722,6 Colonies,trade here,1 production,,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,C,723,6 Colonies,trade here,2 production,,←,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,D,724,6 Colonies,trade here,3 production,,←,,,,,1,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,E,725,6 Colonies,trade here,4 production,,←,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,F,726,6 Colonies,trade here,5 production,,←,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,G,727,6 Colonies,trade here,6 production,,←,,,,1,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,,728,6 Colonies,place colony here,,,←,,,,,,,,,,,,,,,,,,,,,,,,1,,1,,,,,1,,,,,,,,,#REF!
+CT07,Europa,9,4 Effect/Trigger,,729,6 Colonies,ANY trade here,,,←,,,,,,,,1,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,B,730,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,C,731,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,D,732,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,E,733,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,F,734,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,G,735,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,,,,4,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,,736,6 Colonies,place colony here,,,←,,,,,,,,,,,,,,,2,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT08,Pluto,8,4 Effect/Trigger,,737,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,discard 1,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,B,738,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,C,739,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,D,740,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,,,,,,2,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,E,741,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,,,,,,2,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,F,742,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,,,,,,3,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,G,743,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,,,,,,3,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,,744,6 Colonies,place colony here,,,←,,,,,,,,,,,,,,,,,1,animal,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT09,Miranda,8,4 Effect/Trigger,,745,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,,,,1,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,B,746,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,,,,,,1,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,C,747,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,,,,,,2,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,D,748,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,,,,,,3,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,E,749,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,,,,,,4,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,F,750,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,,,,,,4,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,G,751,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,,,,,,5,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,,752,6 Colonies,place colony here,,,←,,,,,,,,,,,,,,,,,3,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT10,Enceladus,8,4 Effect/Trigger,,753,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,,,,,,1,microbe,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,B,754,6 Colonies,trade here,1 production,,←,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,C,755,6 Colonies,trade here,2 production,,←,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,D,756,6 Colonies,trade here,3 production,,←,,,,,,,,,,,,,,,,,2,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,E,757,6 Colonies,trade here,4 production,,←,,,,,,,,,,,,,,,,,3,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,F,758,6 Colonies,trade here,5 production,,←,,,,,,,,,,,,,,,,,3,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,G,759,6 Colonies,trade here,6 production,,←,,,,,,,,,,,,,,,,,4,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,,760,6 Colonies,place colony here,,,←,,,,,,,,,,,,,,,,,3,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+CT11,Titan,8,4 Effect/Trigger,,761,6 Colonies,ANY trade here,,,←,,,,,,,,,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PMAR,Mars First,2,0 Immediate,,762,7 Turmoil,,,building tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PMAR,Mars First,2,4 Effect/Trigger,,763,7 Turmoil,tile on Mars,,,←,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PSCI,Scientists,2,0 Immediate,,764,7 Turmoil,,,science tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PSCI,Scientists,2,2 Action,,765,7 Turmoil,,IF unused this gen,,←,,,,,,,,-10,,,,,,,3,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PUNI,Unity,2,0 Immediate,,766,7 Turmoil,,,E/J/V tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PUNI,Unity,2,6 Effect/Resource,,767,7 Turmoil,payment that accepts titanium,,titanium spent,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,Your titanium resources are worth 1 M€ extra.,#REF!
+PGRE,Greens,2,0 Immediate,,768,7 Turmoil,,,P/M/A tags,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PGRE,Greens,2,4 Effect/Trigger,,769,7 Turmoil,greenery tile,,,←,,,,,,,,4,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PRED,Reds,2,0 Immediate,,770,7 Turmoil,,IF TR lowest (solo: <=20),,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,,#REF!
+PRED,Reds,2,4 Effect/Trigger,,771,7 Turmoil,TR,,,←,,,,,,,,-3,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PKEL,Kelvinists,2,0 Immediate,,772,7 Turmoil,,,heat production,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+PKEL,Kelvinists,2,2 Action,,773,7 Turmoil,,,,,,,,,1,1,,-10,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG01,Aquifer Released By Public Council,1,9 Global Event,,774,7 Turmoil,global event,,influence,←,,,,,,,,,N,,N,,,,,,,,,,,,,,,0,,,,,0,,,,,,first player places ocean tile (a la WGT),,,#REF!
+TG02,Asteroid Mining,1,9 Global Event,,775,7 Turmoil,global event,,Jovian tags**,←,,,,,,,,,,N,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG03,Celebrity Leaders,1,9 Global Event,,776,7 Turmoil,global event,,cards in event pile**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG04,Diversity,1,9 Global Event,,777,7 Turmoil,global event,IF 9 (tag types + influence),,←,,,,,,,,10,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG05,Dry Deserts,1,9 Global Event,,778,7 Turmoil,global event,,influence,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,any N standard resources,,,#REF!
+TG06,Eco Sabotage,1,9 Global Event,,779,7 Turmoil,global event,,plants - 3 - influence,←,,,,,,,,,,,-N,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG07,Election,2,9 Global Event,A,780,7 Turmoil,global event,IF most (building tags + city tiles) (solo: 10),,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,2,2,,,,,,,,,#REF!
+TG07,Election,2,9 Global Event,B,781,7 Turmoil,global event,IF 2nd-most (building tags + city tiles) (solo: 5),,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,1,1,,,,,,,,,#REF!
+TG08,Generous Funding,1,9 Global Event,,782,7 Turmoil,global event,,sets of 5 TR over 15**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG09,Global Dust Storm,1,9 Global Event,,783,7 Turmoil,global event,,building tags**,←,,,,,,,,-2N,,,,,-∞,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG10,Homeworld Support,1,9 Global Event,,784,7 Turmoil,global event,,Earth tags**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG11,Improved Energy Templates,1,9 Global Event,,785,7 Turmoil,global event,,(power tags + influence) / 2,←,,,,,N,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG12,Interplanetary Trade,1,9 Global Event,,786,7 Turmoil,global event,,space tags**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG13,Miners On Strike,1,9 Global Event,,787,7 Turmoil,global event,,Jovian tags**,←,,,,,,,,,,-N,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG14,Mud Slides,1,9 Global Event,,788,7 Turmoil,global event,,tiles adjacent to ocean**,←,,,,,,,,-4N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG15,Pandemic,1,9 Global Event,,789,7 Turmoil,global event,,building tags**,←,,,,,,,,-3N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG16,Paradigm Breakdown,1,9 Global Event,,790,7 Turmoil,global event,,influence,←,,,,,,,,2N,,,,,,,-2,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG17,Productivity,1,9 Global Event,,791,7 Turmoil,global event,,steel production**,←,,,,,,,,,1,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG18,Red Influence,2,9 Global Event,,792,7 Turmoil,global event,,"sets of 5 TR over 10, max 5",←,,,,,,,,-3N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG18,Red Influence,2,9 Global Event,,793,7 Turmoil,global event,,influence,←,1,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG19,Revolution,2,9 Global Event,A,794,7 Turmoil,global event,If most (Earth tags + influence) (solo: >=4),,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,-2,-2,,,,,,,,,#REF!
+TG19,Revolution,2,9 Global Event,B,795,7 Turmoil,global event,If 2nd-most (Earth tags + influence),,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,-1,-1,,,,,,,,,#REF!
+TG20,Riots,1,9 Global Event,,796,7 Turmoil,global event,,city tiles**,←,,,,,,,,-4N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG21,Sabotage,1,9 Global Event,,797,7 Turmoil,global event,,influence,←,,-1,,,-1,,,,N,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG22,Scientific Community,1,9 Global Event,,798,7 Turmoil,global event,,cards in hand + influence,←,,,,,,,,N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG23,Snow Cover,1,9 Global Event,,799,7 Turmoil,global event,,influence,←,,,,,,,,,,,,,,,N,,,,,,,,,,,0,,,,,0,,,,,,first player -2 Temperature steps,,,#REF!
+TG24,Solar Flare,1,9 Global Event,,800,7 Turmoil,global event,,space tags**,←,,,,,,,,-3N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG25,Solarnet Shutdown,1,9 Global Event,,801,7 Turmoil,global event,,blue cards**,←,,,,,,,,-3N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG26,Spin-Off Products,1,9 Global Event,,802,7 Turmoil,global event,,science tags**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG27,Sponsored Projects,2,9 Global Event,,803,7 Turmoil,global event,,cards with at least 1 resource,←,,,,,,,,,,,,,,,,,N,any,that card,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG27,Sponsored Projects,2,9 Global Event,,804,7 Turmoil,global event,,influence,←,,,,,,,,,,,,,,,N,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG28,Strong Society,1,9 Global Event,,805,7 Turmoil,global event,,city tiles**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG29,Successful Organisms,1,9 Global Event,,806,7 Turmoil,global event,,plant production**,←,,,,,,,,,,,N,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+TG30,Volcanic Eruptions,1,9 Global Event,,807,7 Turmoil,global event,,influence,←,,,,,,N,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,first player +2 Temperature steps (a la WGT),,,#REF!
+TG31,War On Earth,1,9 Global Event,,808,7 Turmoil,global event,,4**,←,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,-N,0,,,,,,,,,#REF!
+XG01,Venus Infrastructure,1,9 Global Event,,809,X3 Pro/turmoil,global event,,Venus tags**,←,,,,,,,,2N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG02,Cloud Societies,2,9 Global Event,,810,X3 Pro/turmoil,global event,,floater cards,←,,,,,,,,,,,,,,,,,N,floater,that card,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG02,Cloud Societies,2,9 Global Event,,811,X3 Pro/turmoil,global event,,influence,←,,,,,,,,,,,,,,,,,N,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG03,Corrosive Rain,2,9 Global Event,A,812,X3 Pro/turmoil,global event,must have a card with 2 floaters,influence,←,,,,,,,,,,,,,,,N,,-2,floater,any,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG03,Corrosive Rain,2,9 Global Event,B,813,X3 Pro/turmoil,global event,,influence,←,,,,,,,,-10,,,,,,,N,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG04,Jovian Tax Rights,2,9 Global Event,,814,X3 Pro/turmoil,global event,,colonies,←,N,,,,,,,,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG04,Jovian Tax Rights,2,9 Global Event,,815,X3 Pro/turmoil,global event,,influence,←,,,,,,,,,,N,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
+XG05,Microgravity Health Problems,1,9 Global Event,,816,X3 Pro/turmoil,global event,,colonies**,←,,,,,,,,-3N,,,,,,,,,,,,,,,,,,0,,,,,0,,,,,,,,,#REF!
