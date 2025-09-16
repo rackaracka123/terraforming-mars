@@ -10,7 +10,6 @@ type Corporation struct {
 	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"`
 	Tags               []CardTag   `json:"tags" ts:"CardTag[]"`
 	SpecialEffects     []string    `json:"specialEffects" ts:"string[]"` // Descriptions of special abilities
-	Number             string      `json:"number" ts:"string"`
 }
 
 // ConvertCardToCorporation converts a corporation Card to a Corporation struct
@@ -24,7 +23,6 @@ func ConvertCardToCorporation(card Card) Corporation {
 		StartingProduction: ResourceSet{},
 		Tags:               card.Tags,
 		SpecialEffects:     []string{card.Description},
-		Number:             card.Number,
 	}
 
 	// Parse corporation-specific starting conditions from description

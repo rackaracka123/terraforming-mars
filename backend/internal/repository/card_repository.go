@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"terraforming-mars-backend/internal/model"
@@ -92,40 +91,15 @@ type JSONCardData struct {
 
 // JSONCard represents a card in the enhanced JSON format
 type JSONCard struct {
-	Name              string                 `json:"name"`
-	Cost              int                    `json:"cost"`
-	Number            string                 `json:"number"`
-	Type              string                 `json:"type"`
-	Tags              []string               `json:"tags"`
-	Requirements      map[string]interface{} `json:"requirements,omitempty"`
-	VictoryPoints     JSONVictoryPoints      `json:"victory_points,omitempty"`
-	Description       string                 `json:"description,omitempty"`
-	ProductionEffects JSONProductionEffects  `json:"production_effects,omitempty"`
-	ImmediateEffects  JSONImmediateEffects   `json:"immediate_effects,omitempty"`
-	Action            map[string]interface{} `json:"action,omitempty"`
+	Name         string      `json:"name"`
+	Cost         int         `json:"cost"`
+	Number       string      `json:"number"`
+	Type         string      `json:"type"`
+	Tags         []string    `json:"tags"`
+	Requirements interface{} `json:"requirements,omitempty"`
+	Description  string      `json:"description,omitempty"`
 }
 
-// JSONVictoryPoints represents victory point structure in JSON
-type JSONVictoryPoints struct {
-	BasePoints        int                      `json:"base_points"`
-	ConditionalPoints []map[string]interface{} `json:"conditional_points"`
-}
-
-// JSONProductionEffects represents production effects structure in JSON
-type JSONProductionEffects struct {
-	Increase map[string]int `json:"increase"`
-	Decrease map[string]int `json:"decrease"`
-	Choices  []interface{}  `json:"choices"`
-}
-
-// JSONImmediateEffects represents immediate effects structure in JSON
-type JSONImmediateEffects struct {
-	ResourceGains    map[string]int `json:"resource_gains"`
-	ResourceCosts    map[string]int `json:"resource_costs"`
-	TileEffects      []string       `json:"tile_effects"`
-	ParameterChanges map[string]int `json:"parameter_changes"`
-	OtherEffects     []string       `json:"other_effects"`
-}
 
 // NewCardRepository creates a new card repository
 func NewCardRepository() CardRepository {
@@ -235,58 +209,15 @@ func (r *CardRepositoryImpl) convertJSONCard(jsonCard JSONCard) (model.Card, err
 	// Parse requirements from enhanced JSON structure
 	requirements := r.parseEnhancedRequirements(jsonCard.Requirements)
 
-	// Parse production effects from enhanced JSON structure
-	var productionEffects *model.ProductionEffects
-	if jsonCard.ProductionEffects.Increase != nil || jsonCard.ProductionEffects.Decrease != nil {
-		effects := &model.ProductionEffects{}
-		// Convert production effects - simplified for now
-		for resource, amount := range jsonCard.ProductionEffects.Increase {
-			switch resource {
-			case "credits":
-				effects.Credits += amount
-			case "steel":
-				effects.Steel += amount
-			case "titanium":
-				effects.Titanium += amount
-			case "plants":
-				effects.Plants += amount
-			case "energy":
-				effects.Energy += amount
-			case "heat":
-				effects.Heat += amount
-			}
-		}
-		// Handle decreases as negative values
-		for resource, amount := range jsonCard.ProductionEffects.Decrease {
-			switch resource {
-			case "credits":
-				effects.Credits -= amount
-			case "steel":
-				effects.Steel -= amount
-			case "titanium":
-				effects.Titanium -= amount
-			case "plants":
-				effects.Plants -= amount
-			case "energy":
-				effects.Energy -= amount
-			case "heat":
-				effects.Heat -= amount
-			}
-		}
-		productionEffects = effects
-	}
 
 	card := model.Card{
-		ID:                id,
-		Name:              jsonCard.Name,
-		Type:              cardType,
-		Cost:              jsonCard.Cost,
-		Description:       jsonCard.Description,
-		Tags:              tags,
-		Requirements:      requirements,
-		VictoryPoints:     jsonCard.VictoryPoints.BasePoints,
-		Number:            jsonCard.Number,
-		ProductionEffects: productionEffects,
+		ID:           id,
+		Name:         jsonCard.Name,
+		Type:         cardType,
+		Cost:         jsonCard.Cost,
+		Description:  jsonCard.Description,
+		Tags:         tags,
+		Requirements: requirements,
 	}
 
 	return card, nil
@@ -375,109 +306,55 @@ func (r *CardRepositoryImpl) convertTags(tagStrs []string) []model.CardTag {
 	return tags
 }
 
-// parseEnhancedRequirements converts enhanced JSON requirements to CardRequirements struct
-func (r *CardRepositoryImpl) parseEnhancedRequirements(reqMap map[string]interface{}) model.CardRequirements {
-	requirements := model.CardRequirements{}
+// parseEnhancedRequirements converts enhanced JSON requirements to []Requirement
+func (r *CardRepositoryImpl) parseEnhancedRequirements(reqArray interface{}) []model.Requirement {
+	var requirements []model.Requirement
 
-	if reqMap == nil {
+	if reqArray == nil {
 		return requirements
 	}
 
-	// Parse structured requirements
-	if val, ok := reqMap["min_oxygen"]; ok {
-		if oxygen, ok := val.(float64); ok {
-			oxygenInt := int(oxygen)
-			requirements.MinOxygen = &oxygenInt
-		}
-	}
+	// Handle array of requirement objects
+	if reqSlice, ok := reqArray.([]interface{}); ok {
+		for _, reqItem := range reqSlice {
+			if reqMap, ok := reqItem.(map[string]interface{}); ok {
+				requirement := model.Requirement{}
 
-	if val, ok := reqMap["max_oxygen"]; ok {
-		if oxygen, ok := val.(float64); ok {
-			oxygenInt := int(oxygen)
-			requirements.MaxOxygen = &oxygenInt
-		}
-	}
+				// Parse type
+				if reqType, ok := reqMap["type"].(string); ok {
+					requirement.Type = model.RequirementType(reqType)
+				}
 
-	if val, ok := reqMap["min_temperature"]; ok {
-		if temp, ok := val.(float64); ok {
-			tempInt := int(temp)
-			requirements.MinTemperature = &tempInt
-		}
-	}
+				// Parse min value
+				if minVal, ok := reqMap["min"]; ok {
+					if minFloat, ok := minVal.(float64); ok {
+						minInt := int(minFloat)
+						requirement.Min = &minInt
+					}
+				}
 
-	if val, ok := reqMap["max_temperature"]; ok {
-		if temp, ok := val.(float64); ok {
-			tempInt := int(temp)
-			requirements.MaxTemperature = &tempInt
-		}
-	}
+				// Parse max value
+				if maxVal, ok := reqMap["max"]; ok {
+					if maxFloat, ok := maxVal.(float64); ok {
+						maxInt := int(maxFloat)
+						requirement.Max = &maxInt
+					}
+				}
 
-	if val, ok := reqMap["min_oceans"]; ok {
-		if oceans, ok := val.(float64); ok {
-			oceansInt := int(oceans)
-			requirements.MinOceans = &oceansInt
-		}
-	}
+				// Parse location
+				if location, ok := reqMap["location"].(string); ok {
+					loc := model.Location(location)
+					requirement.Location = &loc
+				}
 
-	if val, ok := reqMap["max_oceans"]; ok {
-		if oceans, ok := val.(float64); ok {
-			oceansInt := int(oceans)
-			requirements.MaxOceans = &oceansInt
+				requirements = append(requirements, requirement)
+			}
 		}
 	}
 
 	return requirements
 }
 
-// parseRequirements converts requirement string to CardRequirements struct (legacy)
-func (r *CardRepositoryImpl) parseRequirements(reqStr string) (model.CardRequirements, error) {
-	requirements := model.CardRequirements{}
-
-	if reqStr == "" {
-		return requirements, nil
-	}
-
-	// Parse oxygen requirements (e.g., "max 5% O2", "6% O2")
-	oxygenRegex := regexp.MustCompile(`(?i)(max\s+)?(\d+)%\s*o2`)
-	if matches := oxygenRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
-		oxygen, _ := strconv.Atoi(matches[2])
-		if strings.Contains(strings.ToLower(matches[0]), "max") {
-			requirements.MaxOxygen = &oxygen
-		} else {
-			requirements.MinOxygen = &oxygen
-		}
-	}
-
-	// Parse temperature requirements (e.g., "max -14°C", "-6°C")
-	tempRegex := regexp.MustCompile(`(?i)(max\s+)?(-?\d+)°?c`)
-	if matches := tempRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
-		temp, _ := strconv.Atoi(matches[2])
-		if strings.Contains(strings.ToLower(matches[0]), "max") {
-			requirements.MaxTemperature = &temp
-		} else {
-			requirements.MinTemperature = &temp
-		}
-	}
-
-	// Parse ocean requirements (e.g., "3 Oceans", "max 3 oceans")
-	oceanRegex := regexp.MustCompile(`(?i)(max\s+)?(\d+)\s*oceans?`)
-	if matches := oceanRegex.FindStringSubmatch(reqStr); len(matches) > 0 {
-		oceans, _ := strconv.Atoi(matches[2])
-		if strings.Contains(strings.ToLower(matches[0]), "max") {
-			requirements.MaxOceans = &oceans
-		} else {
-			requirements.MinOceans = &oceans
-		}
-	}
-
-	// Parse production requirements (e.g., "Titanium production")
-	if strings.Contains(strings.ToLower(reqStr), "production") {
-		// Simplified - in full implementation you'd parse specific production types
-		requirements.RequiredProduction = &model.ResourceSet{}
-	}
-
-	return requirements, nil
-}
 
 // GetCardByID finds a card by its ID
 func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
@@ -708,13 +585,7 @@ func (r *CardRepositoryImpl) FilterCardsByRequirements(ctx context.Context, card
 	var playableCards []model.Card
 	for _, card := range cards {
 		// For now, include all cards except those with complex requirements
-		if card.Requirements.MinTemperature == nil &&
-			card.Requirements.MaxTemperature == nil &&
-			card.Requirements.MinOxygen == nil &&
-			card.Requirements.MaxOxygen == nil &&
-			card.Requirements.MinOceans == nil &&
-			card.Requirements.MaxOceans == nil &&
-			card.Requirements.RequiredProduction == nil {
+		if len(card.Requirements) == 0 {
 			playableCards = append(playableCards, card)
 		}
 	}
@@ -771,20 +642,10 @@ func (r *CardRepositoryImpl) convertCardToCorporation(card model.Card) model.Cor
 		StartingProduction: model.ResourceSet{},
 		Tags:               card.Tags,
 		SpecialEffects:     []string{card.Description},
-		Number:             card.Number,
 	}
 
-	// Parse corporation-specific starting conditions from JSON production effects
-	if card.ProductionEffects != nil {
-		corp.StartingProduction = model.ResourceSet{
-			Credits:  card.ProductionEffects.Credits,
-			Steel:    card.ProductionEffects.Steel,
-			Titanium: card.ProductionEffects.Titanium,
-			Plants:   card.ProductionEffects.Plants,
-			Energy:   card.ProductionEffects.Energy,
-			Heat:     card.ProductionEffects.Heat,
-		}
-	}
+	// Corporation-specific starting conditions would be parsed from behaviors
+	// For now, using default values
 
 	// TODO: Parse starting resources and credits from JSON immediate effects
 	// For now, we'll use some hardcoded logic based on well-known corporations

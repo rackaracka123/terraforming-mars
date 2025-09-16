@@ -22,12 +22,12 @@ const (
 
 // ResourceSet represents a collection of resources and their amounts
 type ResourceSet struct {
-	Credits  int `json:"credits" ts:"number"`
-	Steel    int `json:"steel" ts:"number"`
-	Titanium int `json:"titanium" ts:"number"`
-	Plants   int `json:"plants" ts:"number"`
-	Energy   int `json:"energy" ts:"number"`
-	Heat     int `json:"heat" ts:"number"`
+	Credits  int `json:"credits,omitempty" ts:"number"`
+	Steel    int `json:"steel,omitempty" ts:"number"`
+	Titanium int `json:"titanium,omitempty" ts:"number"`
+	Plants   int `json:"plants,omitempty" ts:"number"`
+	Energy   int `json:"energy,omitempty" ts:"number"`
+	Heat     int `json:"heat,omitempty" ts:"number"`
 }
 
 // CardRequirements defines what conditions must be met to play a card
@@ -51,7 +51,7 @@ type CardRequirements struct {
 	MaxOceans *int `json:"maxOceans,omitempty" ts:"number | undefined"`
 
 	// RequiredTags are tags that the player must have from played cards
-	RequiredTags []CardTag `json:"requiredTags" ts:"CardTag[]"`
+	RequiredTags []CardTag `json:"requiredTags,omitempty" ts:"CardTag[] | undefined"`
 
 	// RequiredProduction specifies minimum production requirements
 	RequiredProduction *ResourceSet `json:"requiredProduction,omitempty" ts:"ResourceSet | undefined"`

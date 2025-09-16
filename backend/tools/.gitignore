@@ -1,0 +1,6 @@
+# Intermediate test files
+test_*.json
+
+# Build artifacts
+*.exe
+*.out
