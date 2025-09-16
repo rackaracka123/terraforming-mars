@@ -48,12 +48,8 @@ func (e *EffectProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID
 	return nil
 }
 
-// applyProductionEffects applies production changes from a card
+// applyProductionEffects applies production changes from a card's behaviors
 func (e *EffectProcessor) applyProductionEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
-	if card.ProductionEffects == nil {
-		return nil // No production effects to apply
-	}
-
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current production
@@ -62,14 +58,40 @@ func (e *EffectProcessor) applyProductionEffects(ctx context.Context, gameID, pl
 		return fmt.Errorf("failed to get player for production update: %w", err)
 	}
 
-	// Calculate new production values
+	// Calculate new production values from card behaviors
 	newProduction := player.Production
-	newProduction.Credits += card.ProductionEffects.Credits
-	newProduction.Steel += card.ProductionEffects.Steel
-	newProduction.Titanium += card.ProductionEffects.Titanium
-	newProduction.Plants += card.ProductionEffects.Plants
-	newProduction.Energy += card.ProductionEffects.Energy
-	newProduction.Heat += card.ProductionEffects.Heat
+
+	// Track changes for logging
+	var creditsChange, steelChange, titaniumChange, plantsChange, energyChange, heatChange int
+
+	// Process all behaviors to find production effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+			for _, output := range behavior.Outputs {
+				switch output.Type {
+				case model.ResourceCreditsProduction:
+					newProduction.Credits += output.Amount
+					creditsChange += output.Amount
+				case model.ResourceSteelProduction:
+					newProduction.Steel += output.Amount
+					steelChange += output.Amount
+				case model.ResourceTitaniumProduction:
+					newProduction.Titanium += output.Amount
+					titaniumChange += output.Amount
+				case model.ResourcePlantsProduction:
+					newProduction.Plants += output.Amount
+					plantsChange += output.Amount
+				case model.ResourceEnergyProduction:
+					newProduction.Energy += output.Amount
+					energyChange += output.Amount
+				case model.ResourceHeatProduction:
+					newProduction.Heat += output.Amount
+					heatChange += output.Amount
+				}
+			}
+		}
+	}
 
 	// Ensure production values don't go below zero
 	if newProduction.Credits < 0 {
@@ -98,12 +120,12 @@ func (e *EffectProcessor) applyProductionEffects(ctx context.Context, gameID, pl
 	}
 
 	log.Debug("📈 Production effects applied",
-		zap.Int("credits_change", card.ProductionEffects.Credits),
-		zap.Int("steel_change", card.ProductionEffects.Steel),
-		zap.Int("titanium_change", card.ProductionEffects.Titanium),
-		zap.Int("plants_change", card.ProductionEffects.Plants),
-		zap.Int("energy_change", card.ProductionEffects.Energy),
-		zap.Int("heat_change", card.ProductionEffects.Heat))
+		zap.Int("credits_change", creditsChange),
+		zap.Int("steel_change", steelChange),
+		zap.Int("titanium_change", titaniumChange),
+		zap.Int("plants_change", plantsChange),
+		zap.Int("energy_change", energyChange),
+		zap.Int("heat_change", heatChange))
 
 	return nil
 }

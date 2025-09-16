@@ -50,3 +50,12 @@ Thumbs.db
 .playwright-mcp
 
 .claude
+
+# Go binaries
+backend/parse_cards
+backend/tools/parse_cards
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib

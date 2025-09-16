@@ -489,7 +489,6 @@ export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeProductionPhaseStarted: MessageType =
   "production-phase-started";
-export const MessageTypeCardPlayed: MessageType = "card-played";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
@@ -606,11 +605,4 @@ export interface ProductionPhaseStartedPayload {
   generation: number /* int */;
   playersData: PlayerProductionData[];
   game: GameDto;
-}
-/**
- * CardPlayedPayload contains data when a card is successfully played
- */
-export interface CardPlayedPayload {
-  playerId: string;
-  cardId: string;
 }

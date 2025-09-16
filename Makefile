@@ -1,7 +1,7 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help run frontend backend kill lint test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
+.PHONY: help run frontend backend kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
 
 # Default target - show help
 help:
@@ -21,6 +21,7 @@ help:
 	@echo ""
 	@echo "🔧 Code Quality:"
 	@echo "  make lint         - Run all linters (backend + frontend)"
+	@echo "  make typecheck    - Run TypeScript type checking"
 	@echo "  make format       - Format all code (Go + TypeScript)"
 	@echo "  make generate     - Generate TypeScript types from Go structs"
 	@echo ""
@@ -82,6 +83,11 @@ test-quick:
 
 # Code quality commands
 lint: lint-backend lint-frontend
+
+typecheck:
+	@echo "🔍 Running TypeScript type checking..."
+	cd frontend && npm run typecheck
+	@echo "✅ Type checking complete"
 
 lint-backend:
 	@echo "🔍 Running backend linting (Go fmt)..."

@@ -238,41 +238,86 @@ func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
 
 // ToCardDto converts a model Card to CardDto
 func ToCardDto(card model.Card) CardDto {
-	// Convert production effects if present
+	// Extract production effects from card behaviors
 	var productionEffects *ProductionEffects
-	if card.ProductionEffects != nil {
+	var creditsEffect, steelEffect, titaniumEffect, plantsEffect, energyEffect, heatEffect int
+
+	// Process all behaviors to find production effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+			for _, output := range behavior.Outputs {
+				switch output.Type {
+				case model.ResourceCreditsProduction:
+					creditsEffect += output.Amount
+				case model.ResourceSteelProduction:
+					steelEffect += output.Amount
+				case model.ResourceTitaniumProduction:
+					titaniumEffect += output.Amount
+				case model.ResourcePlantsProduction:
+					plantsEffect += output.Amount
+				case model.ResourceEnergyProduction:
+					energyEffect += output.Amount
+				case model.ResourceHeatProduction:
+					heatEffect += output.Amount
+				}
+			}
+		}
+	}
+
+	// Create ProductionEffects if any production changes were found
+	if creditsEffect != 0 || steelEffect != 0 || titaniumEffect != 0 || plantsEffect != 0 || energyEffect != 0 || heatEffect != 0 {
 		productionEffects = &ProductionEffects{
-			Credits:  card.ProductionEffects.Credits,
-			Steel:    card.ProductionEffects.Steel,
-			Titanium: card.ProductionEffects.Titanium,
-			Plants:   card.ProductionEffects.Plants,
-			Energy:   card.ProductionEffects.Energy,
-			Heat:     card.ProductionEffects.Heat,
+			Credits:  creditsEffect,
+			Steel:    steelEffect,
+			Titanium: titaniumEffect,
+			Plants:   plantsEffect,
+			Energy:   energyEffect,
+			Heat:     heatEffect,
 		}
 	}
 
-	// Convert requirements
+	// Convert requirements from new slice structure to old DTO structure
 	requirements := CardRequirements{
-		MinTemperature: card.Requirements.MinTemperature,
-		MaxTemperature: card.Requirements.MaxTemperature,
-		MinOxygen:      card.Requirements.MinOxygen,
-		MaxOxygen:      card.Requirements.MaxOxygen,
-		MinOceans:      card.Requirements.MinOceans,
-		MaxOceans:      card.Requirements.MaxOceans,
-		RequiredTags:   ToCardTagDtoSlice(card.Requirements.RequiredTags),
+		RequiredTags: []CardTag{}, // Initialize empty slice
 	}
 
-	// Convert required production if present
-	if card.Requirements.RequiredProduction != nil {
-		requirements.RequiredProduction = &ResourceSet{
-			Credits:  card.Requirements.RequiredProduction.Credits,
-			Steel:    card.Requirements.RequiredProduction.Steel,
-			Titanium: card.Requirements.RequiredProduction.Titanium,
-			Plants:   card.Requirements.RequiredProduction.Plants,
-			Energy:   card.Requirements.RequiredProduction.Energy,
-			Heat:     card.Requirements.RequiredProduction.Heat,
+	// Process each requirement and extract values for the old DTO structure
+	for _, req := range card.Requirements {
+		switch req.Type {
+		case model.RequirementTemperature:
+			if req.Min != nil {
+				requirements.MinTemperature = req.Min
+			}
+			if req.Max != nil {
+				requirements.MaxTemperature = req.Max
+			}
+		case model.RequirementOxygen:
+			if req.Min != nil {
+				requirements.MinOxygen = req.Min
+			}
+			if req.Max != nil {
+				requirements.MaxOxygen = req.Max
+			}
+		case model.RequirementOceans:
+			if req.Min != nil {
+				requirements.MinOceans = req.Min
+			}
+			if req.Max != nil {
+				requirements.MaxOceans = req.Max
+			}
+		case model.RequirementTags:
+			if req.Tag != nil {
+				requirements.RequiredTags = append(requirements.RequiredTags, CardTag(*req.Tag))
+			}
+		case model.RequirementProduction:
+			// For production requirements, we'll need to handle this based on the resource type
+			// For now, skip complex production requirements
 		}
 	}
+
+	// For now, set RequiredProduction to nil since the new structure handles this differently
+	requirements.RequiredProduction = nil
 
 	return CardDto{
 		ID:                card.ID,
@@ -282,8 +327,8 @@ func ToCardDto(card model.Card) CardDto {
 		Description:       card.Description,
 		Tags:              ToCardTagDtoSlice(card.Tags),
 		Requirements:      requirements,
-		VictoryPoints:     card.VictoryPoints,
-		Number:            card.Number,
+		VictoryPoints:     0,  // Default value since new model doesn't have this field
+		Number:            "", // Default value since new model doesn't have this field
 		ProductionEffects: productionEffects,
 	}
 }
