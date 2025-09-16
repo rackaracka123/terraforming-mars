@@ -503,7 +503,7 @@ func processChoiceBehaviors(behaviors []BehaviorData) []ChoiceBehaviorData {
 				combinedBehavior := ChoiceBehaviorData{
 					BehaviorData: group[0], // Use first as base
 					IsChoice:     false,
-					Choices:      group,    // Store all behaviors for combining
+					Choices:      group, // Store all behaviors for combining
 				}
 				result = append(result, combinedBehavior)
 			} else {
@@ -1052,8 +1052,8 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 	var perType model.ResourceConditionType
 	var location *model.Location
 	var target *model.TargetType // For specifying whose tags/resources to count
-	var perAmount int = 1 // Default: per 1 of something
-	var tagType *model.CardTag // For tag-based conditions
+	var perAmount int = 1        // Default: per 1 of something
+	var tagType *model.CardTag   // For tag-based conditions
 
 	// Parse different patterns in "N equals"
 	switch {
@@ -1905,7 +1905,7 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 			MaxTrigger: &maxTrigger,
 			Per: &model.PerCondition{
 				Type:     *resourceType,
-				Amount:   per, // Resources needed per VP
+				Amount:   per,                                                                     // Resources needed per VP
 				Location: func() *model.Location { loc := model.LocationAnywhere; return &loc }(), // Default to anywhere, could be refined based on context
 			},
 		}
@@ -2180,7 +2180,7 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 		amount := parseResourceAmount(choice.CardResources)
 		if isAttack {
 			target = model.TargetAny // Keep "any" for card resources in attacks
-			amount = -amount // Negate for attacks (removing resources)
+			amount = -amount         // Negate for attacks (removing resources)
 		}
 
 		effects = append(effects, model.ResourceCondition{

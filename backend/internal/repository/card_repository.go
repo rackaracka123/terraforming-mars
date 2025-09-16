@@ -100,7 +100,6 @@ type JSONCard struct {
 	Description  string      `json:"description,omitempty"`
 }
 
-
 // NewCardRepository creates a new card repository
 func NewCardRepository() CardRepository {
 	return &CardRepositoryImpl{
@@ -208,7 +207,6 @@ func (r *CardRepositoryImpl) convertJSONCard(jsonCard JSONCard) (model.Card, err
 
 	// Parse requirements from enhanced JSON structure
 	requirements := r.parseEnhancedRequirements(jsonCard.Requirements)
-
 
 	card := model.Card{
 		ID:           id,
@@ -354,7 +352,6 @@ func (r *CardRepositoryImpl) parseEnhancedRequirements(reqArray interface{}) []m
 
 	return requirements
 }
-
 
 // GetCardByID finds a card by its ID
 func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
