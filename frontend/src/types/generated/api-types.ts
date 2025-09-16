@@ -485,40 +485,28 @@ export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
 export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
-export const MessageTypeProductionPhaseStarted: MessageType =
-  "production-phase-started";
-export const MessageTypeCardPlayed: MessageType = "card-played";
+export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
  */
-export const MessageTypeActionSellPatents: MessageType =
-  "action.standard-project.sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType =
-  "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType =
-  "action.standard-project.build-power-plant";
-export const MessageTypeActionBuildAquifer: MessageType =
-  "action.standard-project.build-aquifer";
-export const MessageTypeActionPlantGreenery: MessageType =
-  "action.standard-project.plant-greenery";
-export const MessageTypeActionBuildCity: MessageType =
-  "action.standard-project.build-city";
+export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
 /**
  * Game management message types
  */
-export const MessageTypeActionStartGame: MessageType =
-  "action.game-management.start-game";
-export const MessageTypeActionSkipAction: MessageType =
-  "action.game-management.skip-action";
+export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
 /**
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionSelectStartingCard: MessageType =
-  "action.card.select-starting-card";
-export const MessageTypeActionSelectCards: MessageType =
-  "action.card.select-cards";
+export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
 
 //////////
 // source: websocket_dto.go
@@ -604,11 +592,4 @@ export interface ProductionPhaseStartedPayload {
   generation: number /* int */;
   playersData: PlayerProductionData[];
   game: GameDto;
-}
-/**
- * CardPlayedPayload contains data when a card is successfully played
- */
-export interface CardPlayedPayload {
-  playerId: string;
-  cardId: string;
 }
