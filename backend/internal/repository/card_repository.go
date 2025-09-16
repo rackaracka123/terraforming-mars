@@ -140,10 +140,18 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 		return fmt.Errorf("failed to read card data file from any location: %w", err)
 	}
 
-	// Parse JSON
-	var jsonData JSONCardData
-	if err := json.Unmarshal(data, &jsonData); err != nil {
-		return fmt.Errorf("failed to parse card data: %w", err)
+	// Parse JSON - try new format first (direct array), then fallback to old format
+	var allJsonCards []JSONCard
+	if err := json.Unmarshal(data, &allJsonCards); err != nil {
+		// Fallback to old format
+		var jsonData JSONCardData
+		if err := json.Unmarshal(data, &jsonData); err != nil {
+			return fmt.Errorf("failed to parse card data: %w", err)
+		}
+		// Combine all cards from old format
+		allJsonCards = append(allJsonCards, jsonData.Cards.ProjectCards...)
+		allJsonCards = append(allJsonCards, jsonData.Cards.CorporationCards...)
+		allJsonCards = append(allJsonCards, jsonData.Cards.PreludeCards...)
 	}
 
 	// Initialize slices
@@ -152,37 +160,23 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	r.corporationCards = make([]model.Card, 0)
 	r.preludeCards = make([]model.Card, 0)
 
-	// Process project cards
-	for _, jsonCard := range jsonData.Cards.ProjectCards {
+	// Process all cards from combined array
+	for _, jsonCard := range allJsonCards {
 		card, err := r.convertJSONCard(jsonCard)
 		if err != nil {
-			return fmt.Errorf("failed to convert project card %s: %w", jsonCard.Name, err)
+			return fmt.Errorf("failed to convert card %s: %w", jsonCard.Name, err)
 		}
-		r.projectCards = append(r.projectCards, card)
-		r.allCards = append(r.allCards, card)
-		r.cardLookup[card.ID] = &card
-	}
+		// Categorize by card type
+		switch card.Type {
+		case model.CardTypeCorporation:
+			r.corporationCards = append(r.corporationCards, card)
+		case model.CardTypePrelude:
+			r.preludeCards = append(r.preludeCards, card)
+		default:
+			// All other types are project cards (automated, active, event)
+			r.projectCards = append(r.projectCards, card)
+		}
 
-	// Process corporation cards
-	for _, jsonCard := range jsonData.Cards.CorporationCards {
-		card, err := r.convertJSONCard(jsonCard)
-		if err != nil {
-			return fmt.Errorf("failed to convert corporation card %s: %w", jsonCard.Name, err)
-		}
-		card.Type = model.CardTypeCorporation
-		r.corporationCards = append(r.corporationCards, card)
-		r.allCards = append(r.allCards, card)
-		r.cardLookup[card.ID] = &card
-	}
-
-	// Process prelude cards
-	for _, jsonCard := range jsonData.Cards.PreludeCards {
-		card, err := r.convertJSONCard(jsonCard)
-		if err != nil {
-			return fmt.Errorf("failed to convert prelude card %s: %w", jsonCard.Name, err)
-		}
-		card.Type = model.CardTypePrelude
-		r.preludeCards = append(r.preludeCards, card)
 		r.allCards = append(r.allCards, card)
 		r.cardLookup[card.ID] = &card
 	}

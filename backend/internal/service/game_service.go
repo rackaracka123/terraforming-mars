@@ -223,14 +223,7 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 	cardsWithoutRequirements := make([]model.Card, 0)
 
 	for _, card := range startingCards {
-		hasRequirements := card.Requirements.MinTemperature != nil ||
-			card.Requirements.MaxTemperature != nil ||
-			card.Requirements.MinOxygen != nil ||
-			card.Requirements.MaxOxygen != nil ||
-			card.Requirements.MinOceans != nil ||
-			card.Requirements.MaxOceans != nil ||
-			len(card.Requirements.RequiredTags) > 0 ||
-			card.Requirements.RequiredProduction != nil
+		hasRequirements := len(card.Requirements) > 0
 
 		if hasRequirements {
 			cardsWithRequirements = append(cardsWithRequirements, card)
