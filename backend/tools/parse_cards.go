@@ -590,7 +590,7 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 					cardBehaviors = append(cardBehaviors, *cardBehavior)
 				}
 
-			case "2 Action":
+			case "2 Action", "3 Action/First":
 				cardBehavior := createActionBehavior(behavior.BehaviorData)
 				if cardBehavior != nil {
 					cardBehaviors = append(cardBehaviors, *cardBehavior)
@@ -737,7 +737,7 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 	return nil
 }
 
-func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *model.ResourceTriggerType, triggerCondition *model.ResourceTriggerCondition) *model.ResourceExchange {
+func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *model.ResourceTriggerType, triggerCondition *model.ResourceTriggerCondition, isImmediateEffect bool) *model.ResourceExchange {
 	// Create triggers list - will be added at the end
 	var triggers []model.Trigger
 	// Helper function to determine target based on resource type and context
@@ -811,12 +811,23 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 				}
 				outputs = append(outputs, condition)
 			} else if res.value < 0 {
-				// Fixed input (cost)
-				inputs = append(inputs, model.ResourceCondition{
-					Type:   res.resourceType,
-					Amount: -res.value, // Convert to positive
-					Target: getTarget(res.resourceType, true),
-				})
+				// Handle negative values: for immediate effects, treat as negative outputs
+				// For non-immediate effects, treat as positive inputs (cost)
+				if isImmediateEffect {
+					// Immediate effects: negative values are negative outputs (like "lose 3 M€")
+					outputs = append(outputs, model.ResourceCondition{
+						Type:   res.resourceType,
+						Amount: res.value, // Keep negative amount
+						Target: getTarget(res.resourceType, false),
+					})
+				} else {
+					// Non-immediate effects: negative values are positive inputs (cost)
+					inputs = append(inputs, model.ResourceCondition{
+						Type:   res.resourceType,
+						Amount: -res.value, // Convert to positive
+						Target: getTarget(res.resourceType, true),
+					})
+				}
 			}
 		}
 
@@ -989,7 +1000,7 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 func createActionBehavior(behavior BehaviorData) *model.CardBehavior {
 	// Use the shared ResourceExchange creation logic with manual trigger (actions)
 	manualTrigger := model.ResourceTriggerManual
-	resourceExchange := createResourceExchange(behavior, false, &manualTrigger, nil)
+	resourceExchange := createResourceExchange(behavior, false, &manualTrigger, nil, false)
 
 	if resourceExchange != nil {
 		return &model.CardBehavior{
@@ -1269,7 +1280,7 @@ func createCombinedImmediateBehavior(behaviors []BehaviorData) *model.CardBehavi
 	for _, behavior := range behaviors {
 		// Use the same logic as createImmediateBehavior, but just extract outputs
 		autoTrigger := model.ResourceTriggerAuto
-		resourceExchange := createResourceExchange(behavior, false, &autoTrigger, nil)
+		resourceExchange := createResourceExchange(behavior, false, &autoTrigger, nil, true)
 		if resourceExchange != nil {
 			allOutputs = append(allOutputs, resourceExchange.Outputs...)
 		}
@@ -1968,7 +1979,7 @@ func isGlobalParameterLenienceEffect(behavior BehaviorData) bool {
 // createImmediateBehavior creates an immediate behavior (non-triggered) from behavior data
 func createImmediateBehavior(behavior BehaviorData, isAttack bool) *model.CardBehavior {
 	autoTrigger := model.ResourceTriggerAuto
-	resourceExchange := createResourceExchange(behavior, isAttack, &autoTrigger, nil)
+	resourceExchange := createResourceExchange(behavior, isAttack, &autoTrigger, nil, true)
 	if resourceExchange != nil {
 		return &model.CardBehavior{
 			Triggers: resourceExchange.Triggers,
@@ -1992,7 +2003,7 @@ func createTriggeredEffectBehavior(behavior BehaviorData) *model.CardBehavior {
 	// Create ResourceExchange with trigger condition
 	// The trigger condition is now handled by the new trigger system in ResourceExchange
 	autoTrigger := model.ResourceTriggerAuto
-	resourceExchange := createResourceExchange(behavior, false, &autoTrigger, triggerCondition)
+	resourceExchange := createResourceExchange(behavior, false, &autoTrigger, triggerCondition, true)
 
 	if resourceExchange != nil {
 		return &model.CardBehavior{
@@ -2535,13 +2546,7 @@ func createGlobalParameterLenienceBehavior(behavior BehaviorData) *model.CardBeh
 		Condition: triggerCondition,
 	}
 
-	// Input: effect triggered when card is played
-	effectInput := model.ResourceCondition{
-		Type:   model.ResourceEffect,
-		Amount: 1, // Represents "when this card is played"
-
-		Target: model.TargetNone,
-	}
+	// No input needed for global parameter lenience - it's an ongoing effect
 
 	// Output: global parameter lenience effect
 	lenienceOutput := model.ResourceCondition{
@@ -2553,7 +2558,7 @@ func createGlobalParameterLenienceBehavior(behavior BehaviorData) *model.CardBeh
 
 	resourceExchange := &model.ResourceExchange{
 		Triggers: []model.Trigger{trigger},
-		Inputs:   []model.ResourceCondition{effectInput},
+		Inputs:   []model.ResourceCondition{}, // No inputs for global parameter lenience
 		Outputs:  []model.ResourceCondition{lenienceOutput},
 	}
 

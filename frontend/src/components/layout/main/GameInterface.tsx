@@ -215,9 +215,7 @@ export default function GameInterface() {
 
   const handlePlayCard = useCallback(async (cardId: string) => {
     try {
-      console.log(`🎯 Playing card: ${cardId}`);
       await globalWebSocketManager.playCard(cardId);
-      console.log(`✅ Card ${cardId} played successfully`);
     } catch (error) {
       console.error(`❌ Failed to play card ${cardId}:`, error);
       throw error; // Re-throw to allow CardFanOverlay to handle the error
@@ -235,7 +233,6 @@ export default function GameInterface() {
       }
 
       const { gameId, playerId, playerName } = JSON.parse(savedGameData);
-      console.log("🔄 Reconnecting to game:", { gameId, playerId, playerName });
 
       // Fetch current game state from server first
       const response = await fetch(
@@ -246,7 +243,6 @@ export default function GameInterface() {
       }
 
       const gameData = await response.json();
-      console.log("✅ Game state fetched successfully");
 
       // Update local state with fetched game data
       setGame(gameData.game);
@@ -260,12 +256,7 @@ export default function GameInterface() {
       currentPlayerIdRef.current = playerId;
 
       // Now establish WebSocket connection
-      console.log("🔌 Establishing WebSocket connection...");
-      globalWebSocketManager.connect(gameId, playerId, playerName);
-
-      // Connection will be marked as successful when WebSocket connects
-      // and we receive a game-updated or player-reconnected event
-      console.log("⏳ Waiting for WebSocket connection confirmation...");
+      await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);
@@ -493,7 +484,6 @@ export default function GameInterface() {
 
   // Extract card details directly from game data (backend now sends full card objects)
   const extractCardDetails = useCallback((cards: CardDto[]) => {
-    console.log("📥 Extracting card details from backend:", cards);
     setCardDetails(cards);
   }, []);
 
@@ -502,27 +492,15 @@ export default function GameInterface() {
     const cards = game?.currentPlayer?.startingSelection;
     const hasCardSelection = cards && cards.length > 0;
 
-    console.log("🔍 Checking overlay conditions:", {
-      gamePhase: game?.currentPhase,
-      gameStatus: game?.status,
-      hasCardSelection,
-      currentlyShowing: showCardSelection,
-      cardCount: cards?.length,
-    });
-
     if (
       game?.currentPhase === GamePhaseStartingCardSelection &&
       game?.status === GameStatusActive &&
       hasCardSelection &&
       !showCardSelection
     ) {
-      console.log("🎪 Showing overlay - backend has starting cards");
       extractCardDetails(cards);
       setShowCardSelection(true);
     } else if (showCardSelection && !hasCardSelection) {
-      console.log(
-        "🎪 Hiding overlay - backend cleared starting cards (selection complete)",
-      );
       setShowCardSelection(false);
     }
   }, [
@@ -700,9 +678,8 @@ export default function GameInterface() {
       <CardFanOverlay
         cards={currentPlayer?.cards || []}
         hideWhenModalOpen={showCardSelection || isLobbyPhase}
-        onCardSelect={(cardId) => {
+        onCardSelect={(_cardId) => {
           // TODO: Implement card selection logic (view details, etc.)
-          console.log("Card selected:", cardId);
         }}
         onPlayCard={handlePlayCard}
       />

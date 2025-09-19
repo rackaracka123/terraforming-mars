@@ -44,6 +44,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   ): PlayerDto => ({
     ...otherPlayer,
     cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
+    startingSelection: [], // Add required startingSelection property
   });
 
   // Create a map of all players (current + others) for easy lookup
@@ -106,10 +107,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
             {/* Victory Points display in bottom right */}
             <div className={styles.victoryPointsOverlay}>
-              <VictoryPointIcon
-                value={currentPlayer?.victoryPoints || 0}
-                size="large"
-              />
+              <VictoryPointIcon value={0} size="large" />
             </div>
           </>
         )}

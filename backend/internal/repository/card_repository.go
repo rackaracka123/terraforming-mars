@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"sync"
 	"terraforming-mars-backend/internal/model"
-	"time"
 )
 
 // CardRepository manages card data as the single source of truth
@@ -72,33 +69,7 @@ type CardRepositoryImpl struct {
 	loaded           bool
 }
 
-// JSONCardData represents the structure of the JSON file
-type JSONCardData struct {
-	Metadata struct {
-		Source                string `json:"source"`
-		ExtractionDate        string `json:"extraction_date"`
-		TotalProjectCards     int    `json:"total_project_cards"`
-		TotalCorporationCards int    `json:"total_corporation_cards"`
-		TotalPreludeCards     int    `json:"total_prelude_cards"`
-		Description           string `json:"description"`
-	} `json:"metadata"`
-	Cards struct {
-		ProjectCards     []JSONCard `json:"project_cards"`
-		CorporationCards []JSONCard `json:"corporation_cards"`
-		PreludeCards     []JSONCard `json:"prelude_cards"`
-	} `json:"cards"`
-}
-
-// JSONCard represents a card in the enhanced JSON format
-type JSONCard struct {
-	Name         string      `json:"name"`
-	Cost         int         `json:"cost"`
-	Number       string      `json:"number"`
-	Type         string      `json:"type"`
-	Tags         []string    `json:"tags"`
-	Requirements interface{} `json:"requirements,omitempty"`
-	Description  string      `json:"description,omitempty"`
-}
+// No need for separate JSONCard struct - use model.Card directly
 
 // NewCardRepository creates a new card repository
 func NewCardRepository() CardRepository {
@@ -140,18 +111,10 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 		return fmt.Errorf("failed to read card data file from any location: %w", err)
 	}
 
-	// Parse JSON - try new format first (direct array), then fallback to old format
-	var allJsonCards []JSONCard
-	if err := json.Unmarshal(data, &allJsonCards); err != nil {
-		// Fallback to old format
-		var jsonData JSONCardData
-		if err := json.Unmarshal(data, &jsonData); err != nil {
-			return fmt.Errorf("failed to parse card data: %w", err)
-		}
-		// Combine all cards from old format
-		allJsonCards = append(allJsonCards, jsonData.Cards.ProjectCards...)
-		allJsonCards = append(allJsonCards, jsonData.Cards.CorporationCards...)
-		allJsonCards = append(allJsonCards, jsonData.Cards.PreludeCards...)
+	// Parse JSON directly into model.Card array since JSON matches the model exactly
+	var allCards []model.Card
+	if err := json.Unmarshal(data, &allCards); err != nil {
+		return fmt.Errorf("failed to parse card data: %w", err)
 	}
 
 	// Initialize slices
@@ -160,12 +123,8 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	r.corporationCards = make([]model.Card, 0)
 	r.preludeCards = make([]model.Card, 0)
 
-	// Process all cards from combined array
-	for _, jsonCard := range allJsonCards {
-		card, err := r.convertJSONCard(jsonCard)
-		if err != nil {
-			return fmt.Errorf("failed to convert card %s: %w", jsonCard.Name, err)
-		}
+	// Process all cards from array
+	for _, card := range allCards {
 		// Categorize by card type
 		switch card.Type {
 		case model.CardTypeCorporation:
@@ -185,167 +144,9 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	return nil
 }
 
-// convertJSONCard converts a JSONCard to a model.Card
-func (r *CardRepositoryImpl) convertJSONCard(jsonCard JSONCard) (model.Card, error) {
-	// Generate ID from card number or name
-	id := r.generateCardID(jsonCard.Number, jsonCard.Name)
+// No conversion needed - JSON matches model.Card exactly
 
-	// Convert type
-	cardType, err := r.convertCardType(jsonCard.Type)
-	if err != nil {
-		return model.Card{}, err
-	}
-
-	// Convert tags
-	tags := r.convertTags(jsonCard.Tags)
-
-	// Parse requirements from enhanced JSON structure
-	requirements := r.parseEnhancedRequirements(jsonCard.Requirements)
-
-	card := model.Card{
-		ID:           id,
-		Name:         jsonCard.Name,
-		Type:         cardType,
-		Cost:         jsonCard.Cost,
-		Description:  jsonCard.Description,
-		Tags:         tags,
-		Requirements: requirements,
-	}
-
-	return card, nil
-}
-
-// generateCardID creates a unique ID from card number or name
-func (r *CardRepositoryImpl) generateCardID(number, name string) string {
-	var generatedID string
-
-	if number != "" {
-		// Remove # and convert to lowercase
-		id := strings.ToLower(strings.TrimPrefix(number, "#"))
-		// Replace non-alphanumeric with underscore
-		re := regexp.MustCompile(`[^a-z0-9]+`)
-		generatedID = re.ReplaceAllString(id, "_")
-	} else {
-		// Fall back to name-based ID
-		id := strings.ToLower(name)
-		re := regexp.MustCompile(`[^a-z0-9]+`)
-		generatedID = re.ReplaceAllString(id, "_")
-	}
-
-	// Clean up leading/trailing underscores and ensure we have a valid ID
-	generatedID = strings.Trim(generatedID, "_")
-
-	// If the generated ID is still empty, create a fallback
-	if generatedID == "" {
-		generatedID = fmt.Sprintf("card_%s_%s", strings.ReplaceAll(number, "#", ""), strings.ReplaceAll(name, " ", "_"))
-		// If still empty, use timestamp-based ID
-		if generatedID == "card__" {
-			generatedID = fmt.Sprintf("card_%d", time.Now().UnixNano())
-		}
-	}
-
-	return generatedID
-}
-
-// convertCardType converts string type to model.CardType
-func (r *CardRepositoryImpl) convertCardType(typeStr string) (model.CardType, error) {
-	switch typeStr {
-	case "automated":
-		return model.CardTypeAutomated, nil
-	case "active":
-		return model.CardTypeActive, nil
-	case "event":
-		return model.CardTypeEvent, nil
-	case "corporation":
-		return model.CardTypeCorporation, nil
-	case "prelude":
-		return model.CardTypePrelude, nil
-	case "unknown", "":
-		// Default unknown types to automated for now
-		return model.CardTypeAutomated, nil
-	default:
-		// Log warning and default to automated
-		return model.CardTypeAutomated, fmt.Errorf("unrecognized card type '%s', defaulting to automated", typeStr)
-	}
-}
-
-// convertTags converts string slice to CardTag slice
-func (r *CardRepositoryImpl) convertTags(tagStrs []string) []model.CardTag {
-	tags := make([]model.CardTag, 0, len(tagStrs))
-
-	tagMapping := map[string]model.CardTag{
-		"space":    model.TagSpace,
-		"earth":    model.TagEarth,
-		"science":  model.TagScience,
-		"power":    model.TagPower,
-		"building": model.TagBuilding,
-		"microbe":  model.TagMicrobe,
-		"animal":   model.TagAnimal,
-		"plant":    model.TagPlant,
-		"event":    model.TagEvent,
-		"city":     model.TagCity,
-		"venus":    model.TagVenus,
-		"jovian":   model.TagJovian,
-		"wild":     model.TagWild,
-	}
-
-	for _, tagStr := range tagStrs {
-		if tag, exists := tagMapping[tagStr]; exists {
-			tags = append(tags, tag)
-		}
-	}
-
-	return tags
-}
-
-// parseEnhancedRequirements converts enhanced JSON requirements to []Requirement
-func (r *CardRepositoryImpl) parseEnhancedRequirements(reqArray interface{}) []model.Requirement {
-	var requirements []model.Requirement
-
-	if reqArray == nil {
-		return requirements
-	}
-
-	// Handle array of requirement objects
-	if reqSlice, ok := reqArray.([]interface{}); ok {
-		for _, reqItem := range reqSlice {
-			if reqMap, ok := reqItem.(map[string]interface{}); ok {
-				requirement := model.Requirement{}
-
-				// Parse type
-				if reqType, ok := reqMap["type"].(string); ok {
-					requirement.Type = model.RequirementType(reqType)
-				}
-
-				// Parse min value
-				if minVal, ok := reqMap["min"]; ok {
-					if minFloat, ok := minVal.(float64); ok {
-						minInt := int(minFloat)
-						requirement.Min = &minInt
-					}
-				}
-
-				// Parse max value
-				if maxVal, ok := reqMap["max"]; ok {
-					if maxFloat, ok := maxVal.(float64); ok {
-						maxInt := int(maxFloat)
-						requirement.Max = &maxInt
-					}
-				}
-
-				// Parse location
-				if location, ok := reqMap["location"].(string); ok {
-					loc := model.Location(location)
-					requirement.Location = &loc
-				}
-
-				requirements = append(requirements, requirement)
-			}
-		}
-	}
-
-	return requirements
-}
+// All parsing functions removed - JSON matches model.Card exactly
 
 // GetCardByID finds a card by its ID
 func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {

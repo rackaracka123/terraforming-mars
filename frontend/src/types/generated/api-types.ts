@@ -229,28 +229,21 @@ export interface ResourceSet {
   heat: number /* int */;
 }
 /**
- * CardRequirements defines what conditions must be met to play a card
+ * CardBehaviorDto represents a card behavior for client consumption
  */
-export interface CardRequirements {
-  minTemperature?: number /* int */;
-  maxTemperature?: number /* int */;
-  minOxygen?: number /* int */;
-  maxOxygen?: number /* int */;
-  minOceans?: number /* int */;
-  maxOceans?: number /* int */;
-  requiredTags: CardTag[];
-  requiredProduction?: ResourceSet;
+export interface CardBehaviorDto {
+  triggers?: any /* model.Trigger */[];
+  inputs?: any /* model.ResourceCondition */[];
+  outputs?: any /* model.ResourceCondition */[];
+  choices?: any /* model.Choice */[];
 }
 /**
- * ProductionEffects represents changes to resource production
+ * ResourceStorageDto represents a card's resource storage capability for client consumption
  */
-export interface ProductionEffects {
-  credits: number /* int */;
-  steel: number /* int */;
-  titanium: number /* int */;
-  plants: number /* int */;
-  energy: number /* int */;
-  heat: number /* int */;
+export interface ResourceStorageDto {
+  type: any /* model.ResourceConditionType */;
+  capacity?: number /* int */;
+  starting: number /* int */;
 }
 /**
  * CardDto represents a card for client consumption
@@ -262,10 +255,10 @@ export interface CardDto {
   cost: number /* int */;
   description: string;
   tags: CardTag[];
-  requirements: CardRequirements;
-  victoryPoints: number /* int */;
-  number: string;
-  productionEffects?: ProductionEffects;
+  requirements?: any /* model.Requirement */[];
+  behaviors?: CardBehaviorDto[];
+  resourceStorage?: ResourceStorageDto;
+  vpConditions?: any /* model.VictoryPointCondition */[];
 }
 /**
  * CorporationDto represents a corporation for client consumption
