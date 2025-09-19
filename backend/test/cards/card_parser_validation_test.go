@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"testing"
 
 	"terraforming-mars-backend/internal/model"
@@ -205,4 +207,258 @@ func TestDiscountBehaviorValidation(t *testing.T) {
 			t.Errorf("  - %s", violation)
 		}
 	}
+}
+
+// parseCardID parses a card ID and returns components for ordering
+type CardIDComponents struct {
+	IsNumeric bool
+	Prefix    string
+	Number    int
+	Original  string
+}
+
+func parseCardID(id string) CardIDComponents {
+	// Check if ID is purely numeric (like "001", "014", "999")
+	if matched, _ := regexp.MatchString(`^\d+$`, id); matched {
+		num, _ := strconv.Atoi(id)
+		return CardIDComponents{
+			IsNumeric: true,
+			Prefix:    "",
+			Number:    num,
+			Original:  id,
+		}
+	}
+
+	// Check if ID has letter prefix (like "P12", "C01", "A99")
+	re := regexp.MustCompile(`^([A-Z]+)(\d+)$`)
+	if matches := re.FindStringSubmatch(id); matches != nil {
+		num, _ := strconv.Atoi(matches[2])
+		return CardIDComponents{
+			IsNumeric: false,
+			Prefix:    matches[1],
+			Number:    num,
+			Original:  id,
+		}
+	}
+
+	// Fallback for unexpected format
+	return CardIDComponents{
+		IsNumeric: false,
+		Prefix:    id,
+		Number:    0,
+		Original:  id,
+	}
+}
+
+// isCardIDOrderCorrect checks if card1 should come before card2 in the expected order
+func isCardIDOrderCorrect(card1, card2 CardIDComponents) bool {
+	// Rule: numeric IDs come first ("001" -> "999")
+	if card1.IsNumeric && !card2.IsNumeric {
+		return true // numeric before prefixed
+	}
+	if !card1.IsNumeric && card2.IsNumeric {
+		return false // prefixed after numeric
+	}
+
+	if card1.IsNumeric && card2.IsNumeric {
+		// Both numeric: order by number (strictly less, not less-or-equal)
+		return card1.Number < card2.Number
+	}
+
+	// Both have prefixes: order by prefix first, then by number
+	if card1.Prefix != card2.Prefix {
+		return card1.Prefix < card2.Prefix // "A01" -> "A99" -> "B01" -> "Z99"
+	}
+
+	// Same prefix: order by number (strictly less)
+	return card1.Number < card2.Number
+}
+
+// TestCardIDOrdering validates that card IDs are in the correct order
+func TestCardIDOrdering(t *testing.T) {
+	cards := loadCards(t)
+
+	if len(cards) == 0 {
+		t.Skip("No cards found to test ordering")
+		return
+	}
+
+	var violations []string
+
+	// Check if cards are in correct order
+	for i := 0; i < len(cards)-1; i++ {
+		current := parseCardID(cards[i].ID)
+		next := parseCardID(cards[i+1].ID)
+
+		// The current card should come before the next card
+		if !isCardIDOrderCorrect(current, next) {
+			violations = append(violations,
+				fmt.Sprintf("Card order violation at index %d->%d: '%s' should come after '%s'",
+					i, i+1, current.Original, next.Original))
+		}
+
+		// Also check for duplicates (same ID)
+		if current.Original == next.Original {
+			violations = append(violations,
+				fmt.Sprintf("Duplicate card ID at index %d and %d: '%s'",
+					i, i+1, current.Original))
+		}
+	}
+
+	// Provide some examples of expected ordering in error message
+	if len(violations) > 0 {
+		t.Errorf("Found %d card ID ordering violations:", len(violations))
+		t.Errorf("Expected order: numeric cards first (001->999), then prefixed cards (A01->A99->B01->Z99)")
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+
+		// Show first few cards for debugging
+		t.Errorf("First 10 card IDs in current order:")
+		for i := 0; i < 10 && i < len(cards); i++ {
+			components := parseCardID(cards[i].ID)
+			t.Errorf("  [%d] %s (numeric: %v, prefix: '%s', number: %d)",
+				i, cards[i].ID, components.IsNumeric, components.Prefix, components.Number)
+		}
+
+		// Also search for specific problematic cards mentioned by user
+		t.Errorf("Searching for specific cards (025, 027, 028, 046, 049):")
+		for i, card := range cards {
+			if card.ID == "025" || card.ID == "027" || card.ID == "028" || card.ID == "046" || card.ID == "049" {
+				components := parseCardID(card.ID)
+				t.Errorf("  [%d] %s (numeric: %v, prefix: '%s', number: %d)",
+					i, card.ID, components.IsNumeric, components.Prefix, components.Number)
+			}
+		}
+	}
+}
+
+// TestCardSequenceIntegrity validates that numeric cards are in proper sequence without gaps
+func TestCardSequenceIntegrity(t *testing.T) {
+	cards := loadCards(t)
+
+	if len(cards) == 0 {
+		t.Skip("No cards found to test sequence")
+		return
+	}
+
+	// Separate numeric and prefixed cards
+	var numericCards []CardIDComponents
+	var prefixedCards []CardIDComponents
+
+	for _, card := range cards {
+		components := parseCardID(card.ID)
+		if components.IsNumeric {
+			numericCards = append(numericCards, components)
+		} else {
+			prefixedCards = append(prefixedCards, components)
+		}
+	}
+
+	var violations []string
+
+	// Check numeric cards for sequence integrity
+	if len(numericCards) > 0 {
+		// Sort numeric cards by number to check sequence
+		for i := 0; i < len(numericCards)-1; i++ {
+			current := numericCards[i].Number
+			next := numericCards[i+1].Number
+
+			// Check if numbers are not consecutive (allowing for some gaps, but flagging major jumps)
+			if next != current+1 && next > current+1 {
+				// Found a gap - check if it's a legitimate skip or a misplacement
+				violations = append(violations,
+					fmt.Sprintf("Numeric sequence gap: card %03d followed by %03d (missing %03d)",
+						current, next, current+1))
+			}
+		}
+
+		// Also check the actual position of numeric cards in the full list
+		t.Logf("Numeric cards found: %d", len(numericCards))
+		t.Logf("First numeric card in sequence: %03d", numericCards[0].Number)
+		t.Logf("Last numeric card in sequence: %03d", numericCards[len(numericCards)-1].Number)
+
+		// Find where numeric cards actually appear in the main list
+		firstNumericIndex := -1
+		for i, card := range cards {
+			components := parseCardID(card.ID)
+			if components.IsNumeric {
+				if firstNumericIndex == -1 {
+					firstNumericIndex = i
+				}
+				break // We only need the first one
+			}
+		}
+
+		if firstNumericIndex > 0 {
+			violations = append(violations,
+				fmt.Sprintf("Numeric cards should come first, but first numeric card is at index %d", firstNumericIndex))
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d sequence integrity violations:", len(violations))
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}
+
+// TestCardUniqueFields validates that card IDs and names are unique
+func TestCardUniqueFields(t *testing.T) {
+	cards := loadCards(t)
+
+	if len(cards) == 0 {
+		t.Skip("No cards found to test uniqueness")
+		return
+	}
+
+	// Track seen IDs and names
+	seenIDs := make(map[string][]int)    // ID -> list of indices where it appears
+	seenNames := make(map[string][]int)  // Name -> list of indices where it appears
+
+	// Check for duplicate IDs and names
+	for i, card := range cards {
+		// Track IDs
+		seenIDs[card.ID] = append(seenIDs[card.ID], i)
+
+		// Track names
+		seenNames[card.Name] = append(seenNames[card.Name], i)
+	}
+
+	var violations []string
+
+	// Check for duplicate IDs
+	for id, indices := range seenIDs {
+		if len(indices) > 1 {
+			violations = append(violations,
+				fmt.Sprintf("Duplicate ID '%s' found at indices: %v", id, indices))
+		}
+	}
+
+	// Check for duplicate names
+	for name, indices := range seenNames {
+		if len(indices) > 1 {
+			// Get the IDs for better debugging
+			var ids []string
+			for _, idx := range indices {
+				ids = append(ids, cards[idx].ID)
+			}
+			violations = append(violations,
+				fmt.Sprintf("Duplicate name '%s' found at indices %v with IDs %v", name, indices, ids))
+		}
+	}
+
+	// Report violations
+	if len(violations) > 0 {
+		t.Errorf("Found %d uniqueness violations:", len(violations))
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+
+	// Also report statistics
+	t.Logf("Checked %d cards:", len(cards))
+	t.Logf("  - Unique IDs: %d", len(seenIDs))
+	t.Logf("  - Unique names: %d", len(seenNames))
 }
