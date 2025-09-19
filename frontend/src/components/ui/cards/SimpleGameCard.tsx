@@ -34,7 +34,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
     setImageError(true);
   };
 
-  const cardImagePath = `/assets/cards/${card.id}.png`;
+  const cardImagePath = `/assets/cards/${card.id}.webp`;
 
   // Get tag icon mapping from tags folder
   const getTagIcon = (tag: string) => {
