@@ -161,6 +161,75 @@ type BehaviorData struct {
 	TextForm string
 }
 
+// compareCardIDs compares two card IDs for sorting
+// Rules: numeric cards (001-999) come first, then prefixed cards (A01-Z99) alphabetically
+func compareCardIDs(id1, id2 string) bool {
+	// Parse both IDs
+	isNumeric1 := isNumericID(id1)
+	isNumeric2 := isNumericID(id2)
+
+	// Rule 1: Numeric cards come before prefixed cards
+	if isNumeric1 && !isNumeric2 {
+		return true
+	}
+	if !isNumeric1 && isNumeric2 {
+		return false
+	}
+
+	if isNumeric1 && isNumeric2 {
+		// Both numeric: compare as integers
+		num1, _ := strconv.Atoi(id1)
+		num2, _ := strconv.Atoi(id2)
+		return num1 < num2
+	}
+
+	// Both prefixed: extract prefix and number for comparison
+	prefix1, num1 := parseCardID(id1)
+	prefix2, num2 := parseCardID(id2)
+
+	// Compare by prefix first
+	if prefix1 != prefix2 {
+		return prefix1 < prefix2
+	}
+
+	// Same prefix: compare by number
+	return num1 < num2
+}
+
+// isNumericID checks if a card ID is purely numeric
+func isNumericID(id string) bool {
+	_, err := strconv.Atoi(id)
+	return err == nil
+}
+
+// parseCardID extracts prefix and number from a prefixed card ID (like "P12" -> ("P", 12))
+func parseCardID(id string) (string, int) {
+	if isNumericID(id) {
+		num, _ := strconv.Atoi(id)
+		return "", num
+	}
+
+	// Find where digits start
+	i := 0
+	for i < len(id) && (id[i] < '0' || id[i] > '9') {
+		i++
+	}
+
+	if i == len(id) {
+		// No digits found, treat whole string as prefix
+		return id, 0
+	}
+
+	prefix := id[:i]
+	numStr := id[i:]
+	num, err := strconv.Atoi(numStr)
+	if err != nil {
+		return id, 0
+	}
+
+	return prefix, num
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run parse_cards_enhanced.go <output.json>")
@@ -184,6 +253,12 @@ func main() {
 	}
 
 	fmt.Printf("Parsed %d cards with enhanced behavior data\n", len(cards))
+
+	// Sort cards by ID for proper ordering (numeric first, then prefixed)
+	sort.Slice(cards, func(i, j int) bool {
+		return compareCardIDs(cards[i].ID, cards[j].ID)
+	})
+	fmt.Printf("Cards sorted by ID\n")
 
 	// Write JSON output
 	output, err := json.MarshalIndent(cards, "", "  ")
