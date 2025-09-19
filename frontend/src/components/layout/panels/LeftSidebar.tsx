@@ -18,7 +18,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   currentPlayer,
   currentPlayerId,
   currentPhase,
-  gameState,
+  gameState: _gameState,
 }) => {
   return (
     <div className={styles.leftSidebar}>

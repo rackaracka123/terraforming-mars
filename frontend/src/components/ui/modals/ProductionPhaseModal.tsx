@@ -56,6 +56,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           energy: 3, // reset + production
           heat: 10, // +6 from energy conversion
         },
+        resourceDelta: {
+          credits: 12,
+          steel: 2,
+          titanium: 0,
+          plants: 1,
+          energy: -3,
+          heat: 6,
+        },
         production: {
           credits: 4,
           steel: 2,
@@ -87,6 +95,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           energy: 2, // reset + production
           heat: 5, // +4 from energy conversion
         },
+        resourceDelta: {
+          credits: 10,
+          steel: 3,
+          titanium: 2,
+          plants: 0,
+          energy: -2,
+          heat: 4,
+        },
         production: {
           credits: 2,
           steel: 3,
@@ -117,6 +133,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           plants: 15, // +3 from production
           energy: 1, // reset + production
           heat: 10, // +2 from energy conversion
+        },
+        resourceDelta: {
+          credits: 13,
+          steel: 1,
+          titanium: 0,
+          plants: 3,
+          energy: -1,
+          heat: 2,
         },
         production: {
           credits: 1,

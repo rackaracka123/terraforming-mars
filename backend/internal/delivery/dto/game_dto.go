@@ -1,5 +1,7 @@
 package dto
 
+import "terraforming-mars-backend/internal/model"
+
 // GamePhase represents the current phase of the game
 type GamePhase string
 
@@ -62,40 +64,33 @@ type ResourceSet struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
-// CardRequirements defines what conditions must be met to play a card
-type CardRequirements struct {
-	MinTemperature     *int         `json:"minTemperature,omitempty" ts:"number | undefined"`
-	MaxTemperature     *int         `json:"maxTemperature,omitempty" ts:"number | undefined"`
-	MinOxygen          *int         `json:"minOxygen,omitempty" ts:"number | undefined"`
-	MaxOxygen          *int         `json:"maxOxygen,omitempty" ts:"number | undefined"`
-	MinOceans          *int         `json:"minOceans,omitempty" ts:"number | undefined"`
-	MaxOceans          *int         `json:"maxOceans,omitempty" ts:"number | undefined"`
-	RequiredTags       []CardTag    `json:"requiredTags" ts:"CardTag[]"`
-	RequiredProduction *ResourceSet `json:"requiredProduction,omitempty" ts:"ResourceSet | undefined"`
+// CardBehaviorDto represents a card behavior for client consumption
+type CardBehaviorDto struct {
+	Triggers []model.Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`
+	Inputs   []model.ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`
+	Outputs  []model.ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"`
+	Choices  []model.Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`
 }
 
-// ProductionEffects represents changes to resource production
-type ProductionEffects struct {
-	Credits  int `json:"credits" ts:"number"`
-	Steel    int `json:"steel" ts:"number"`
-	Titanium int `json:"titanium" ts:"number"`
-	Plants   int `json:"plants" ts:"number"`
-	Energy   int `json:"energy" ts:"number"`
-	Heat     int `json:"heat" ts:"number"`
+// ResourceStorageDto represents a card's resource storage capability for client consumption
+type ResourceStorageDto struct {
+	Type     model.ResourceConditionType `json:"type" ts:"ResourceConditionType"`
+	Capacity *int                        `json:"capacity,omitempty" ts:"number | undefined"`
+	Starting int                         `json:"starting" ts:"number"`
 }
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID                string             `json:"id" ts:"string"`
-	Name              string             `json:"name" ts:"string"`
-	Type              CardType           `json:"type" ts:"CardType"`
-	Cost              int                `json:"cost" ts:"number"`
-	Description       string             `json:"description" ts:"string"`
-	Tags              []CardTag          `json:"tags" ts:"CardTag[]"`
-	Requirements      CardRequirements   `json:"requirements" ts:"CardRequirements"`
-	VictoryPoints     int                `json:"victoryPoints" ts:"number"`
-	Number            string             `json:"number" ts:"string"`
-	ProductionEffects *ProductionEffects `json:"productionEffects,omitempty" ts:"ProductionEffects | undefined"`
+	ID              string                        `json:"id" ts:"string"`
+	Name            string                        `json:"name" ts:"string"`
+	Type            CardType                      `json:"type" ts:"CardType"`
+	Cost            int                           `json:"cost" ts:"number"`
+	Description     string                        `json:"description" ts:"string"`
+	Tags            []CardTag                     `json:"tags" ts:"CardTag[]"`
+	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
+	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []model.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
 }
 
 // CorporationDto represents a corporation for client consumption
