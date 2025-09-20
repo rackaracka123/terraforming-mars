@@ -135,8 +135,33 @@ func validateAction(state ApplicationState, action Action) error {
 		if !exists {
 			return ErrGameNotFound
 		}
+
+		// Check if this is a reconnection (existing player) or new join
+		payload, ok := action.Payload.(JoinGamePayload)
+		if !ok {
+			return NewStoreError("invalid join game payload")
+		}
+
+		// Allow reconnections to active games, but only allow new joins to lobby games
 		if gameState.Game().Status != "lobby" {
-			return ErrGameNotJoinable
+			// Check if player already exists in the game (reconnection)
+			_, playerExists := state.GetPlayer(payload.PlayerID)
+
+			logger.Debug("🔍 ValidationMiddleware: Active game reconnection check",
+				zap.String("game_status", string(gameState.Game().Status)),
+				zap.String("player_id", payload.PlayerID),
+				zap.Bool("player_exists", playerExists))
+
+			if !playerExists {
+				logger.Debug("❌ ValidationMiddleware: Blocking new player from joining active game",
+					zap.String("game_id", action.Meta.GameID),
+					zap.String("player_id", payload.PlayerID))
+				return ErrGameNotJoinable // New players can't join active games
+			}
+			logger.Debug("✅ ValidationMiddleware: Allowing reconnection to active game",
+				zap.String("game_id", action.Meta.GameID),
+				zap.String("player_id", payload.PlayerID))
+			// Reconnections to active games are allowed
 		}
 		// Check if game is full
 		// Add more validation as needed

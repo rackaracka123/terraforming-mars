@@ -242,7 +242,8 @@ func ToStartingSelectionDto(cardIDs []string, cardRegistry *cards.CardRegistry) 
 	// DEBUG: Log what we're trying to convert
 	logger.Debug("🔍 DEBUG: ToStartingSelectionDto called",
 		zap.Strings("card_ids", cardIDs),
-		zap.Bool("registry_available", cardRegistry != nil))
+		zap.Bool("registry_available", cardRegistry != nil),
+		zap.Int("card_count", len(cardIDs)))
 
 	result := make([]CardDto, len(cardIDs))
 	for i, cardID := range cardIDs {

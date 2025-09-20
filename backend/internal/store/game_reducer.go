@@ -5,7 +5,10 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+
+	"go.uber.org/zap"
 )
 
 // GameReducer handles all game-related state changes
@@ -154,8 +157,23 @@ func handleJoinGame(state ApplicationState, action Action) (ApplicationState, er
 	if existingPlayerState, exists := state.GetPlayer(payload.PlayerID); exists {
 		// Player with same ID already exists - reactivate them for reconnection
 		existingPlayer := existingPlayerState.Player()
+
+		// DEBUG: Log player state before reconnection
+		logger.Info("🔄 Player reconnection - preserving existing state",
+			zap.String("player_id", payload.PlayerID),
+			zap.String("player_name", payload.PlayerName),
+			zap.Bool("was_connected", existingPlayer.IsConnected),
+			zap.Int("starting_selection_count", len(existingPlayer.StartingSelection)),
+			zap.Strings("starting_selection", existingPlayer.StartingSelection))
+
 		existingPlayer.IsConnected = true
 		existingPlayer.Name = payload.PlayerName // Update name in case it changed
+
+		// DEBUG: Log player state after updates
+		logger.Info("✅ Player state preserved after reconnection",
+			zap.String("player_id", payload.PlayerID),
+			zap.Bool("is_connected", existingPlayer.IsConnected),
+			zap.Int("starting_selection_count", len(existingPlayer.StartingSelection)))
 
 		updatedPlayerState := existingPlayerState.WithPlayer(existingPlayer)
 		newState := state.WithPlayer(payload.PlayerID, updatedPlayerState)

@@ -79,17 +79,53 @@ func (d *WebSocketActionDispatcher) handlePlayerConnect(ctx context.Context, con
 		return
 	}
 
-	// Always create new player - no reconnection support
+	// Validate required fields
 	if payload.PlayerName == "" {
 		logger.Error("PlayerName required for player connection")
 		return
 	}
-	playerID := uuid.New().String()
+
+	// Check if this is a reconnection (frontend provides existing playerId)
+	var playerID string
+	var isReconnection bool
+	if payload.PlayerID != "" {
+		// Frontend provided playerId - validate it exists in the game
+		_, gameExists := d.store.GetGame(payload.GameID)
+		if !gameExists {
+			logger.Error("Game not found for reconnection attempt",
+				zap.String("game_id", payload.GameID),
+				zap.String("player_id", payload.PlayerID))
+			return
+		}
+
+		playerState, playerExists := d.store.GetPlayer(payload.PlayerID)
+		if !playerExists || playerState.GameID() != payload.GameID {
+			// Invalid playerID or player not in this game - treat as new player
+			logger.Warn("⚠️ Invalid playerId for reconnection, creating new player",
+				zap.String("provided_player_id", payload.PlayerID),
+				zap.String("player_name", payload.PlayerName),
+				zap.String("game_id", payload.GameID))
+			playerID = uuid.New().String()
+			isReconnection = false
+		} else {
+			// Valid reconnection
+			playerID = payload.PlayerID
+			isReconnection = true
+			logger.Info("🔄 Valid player reconnection",
+				zap.String("player_id", playerID),
+				zap.String("player_name", payload.PlayerName),
+				zap.String("game_id", payload.GameID))
+		}
+	} else {
+		// No playerId provided - create new player
+		playerID = uuid.New().String()
+		isReconnection = false
+		logger.Info("🆕 Creating new player",
+			zap.String("player_id", playerID),
+			zap.String("player_name", payload.PlayerName),
+			zap.String("game_id", payload.GameID))
+	}
 	playerName := payload.PlayerName
-	logger.Info("🆕 Creating new player",
-		zap.String("player_id", playerID),
-		zap.String("player_name", playerName),
-		zap.String("game_id", payload.GameID))
 
 	// Create join game action
 	action := store.JoinGameAction(payload.GameID, playerID, playerName, "websocket")
@@ -107,7 +143,7 @@ func (d *WebSocketActionDispatcher) handlePlayerConnect(ctx context.Context, con
 	d.manager.AddToGame(connection, payload.GameID)
 
 	// Send immediate response to the connecting client
-	d.sendPlayerConnectionResponse(connection, playerID, playerName, payload.GameID)
+	d.sendPlayerConnectionResponse(connection, playerID, playerName, payload.GameID, isReconnection)
 
 	logger.Info("✅ Player connected via reducer",
 		zap.String("player_id", playerID),
@@ -269,7 +305,7 @@ func (d *WebSocketActionDispatcher) handleSelectStartingCards(ctx context.Contex
 }
 
 // sendPlayerConnectionResponse sends the response message to the connecting client
-func (d *WebSocketActionDispatcher) sendPlayerConnectionResponse(connection *core.Connection, playerID, playerName, gameID string) {
+func (d *WebSocketActionDispatcher) sendPlayerConnectionResponse(connection *core.Connection, playerID, playerName, gameID string, isReconnection bool) {
 	// Get the current game state from store
 	gameState, exists := d.store.GetGame(gameID)
 	if !exists {
@@ -280,17 +316,34 @@ func (d *WebSocketActionDispatcher) sendPlayerConnectionResponse(connection *cor
 	// Convert game to DTO for response
 	gameDto := dto.ToGameDtoBasic(gameState.Game())
 
-	// Send player-connected message
-	payload := dto.PlayerConnectedPayload{
-		PlayerID:   playerID,
-		PlayerName: playerName,
-		Game:       gameDto,
+	// Send appropriate message based on connection type
+	if isReconnection {
+		// Send player-reconnected message
+		payload := dto.PlayerReconnectedPayload{
+			PlayerID:   playerID,
+			PlayerName: playerName,
+			Game:       gameDto,
+		}
+		message := dto.WebSocketMessage{
+			Type:    dto.MessageTypePlayerReconnected,
+			Payload: payload,
+			GameID:  gameID,
+		}
+		connection.SendMessage(message)
+		logger.Debug("📤 Sent player-reconnected response", zap.String("player_id", playerID))
+	} else {
+		// Send player-connected message
+		payload := dto.PlayerConnectedPayload{
+			PlayerID:   playerID,
+			PlayerName: playerName,
+			Game:       gameDto,
+		}
+		message := dto.WebSocketMessage{
+			Type:    dto.MessageTypePlayerConnected,
+			Payload: payload,
+			GameID:  gameID,
+		}
+		connection.SendMessage(message)
+		logger.Debug("📤 Sent player-connected response", zap.String("player_id", playerID))
 	}
-	message := dto.WebSocketMessage{
-		Type:    dto.MessageTypePlayerConnected,
-		Payload: payload,
-		GameID:  gameID,
-	}
-	connection.SendMessage(message)
-	logger.Debug("📤 Sent player-connected response", zap.String("player_id", playerID))
 }
