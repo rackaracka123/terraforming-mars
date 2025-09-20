@@ -414,8 +414,8 @@ func TestCardUniqueFields(t *testing.T) {
 	}
 
 	// Track seen IDs and names
-	seenIDs := make(map[string][]int)    // ID -> list of indices where it appears
-	seenNames := make(map[string][]int)  // Name -> list of indices where it appears
+	seenIDs := make(map[string][]int)   // ID -> list of indices where it appears
+	seenNames := make(map[string][]int) // Name -> list of indices where it appears
 
 	// Check for duplicate IDs and names
 	for i, card := range cards {

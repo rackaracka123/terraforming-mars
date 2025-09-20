@@ -46,6 +46,14 @@ type UpdatePlayerResourcesResponse struct {
 	Player PlayerDto `json:"player" ts:"PlayerDto"`
 }
 
+// ListCardsResponse represents the response for listing cards with pagination
+type ListCardsResponse struct {
+	Cards      []CardDto `json:"cards" ts:"CardDto[]"`
+	TotalCount int       `json:"totalCount" ts:"number"`
+	Offset     int       `json:"offset" ts:"number"`
+	Limit      int       `json:"limit" ts:"number"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error   string `json:"error" ts:"string"`

@@ -452,6 +452,15 @@ export interface UpdatePlayerResourcesResponse {
   player: PlayerDto;
 }
 /**
+ * ListCardsResponse represents the response for listing cards with pagination
+ */
+export interface ListCardsResponse {
+  cards: CardDto[];
+  totalCount: number /* int */;
+  offset: number /* int */;
+  limit: number /* int */;
+}
+/**
  * ErrorResponse represents an error response
  */
 export interface ErrorResponse {
