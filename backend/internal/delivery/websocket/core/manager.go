@@ -207,4 +207,3 @@ func (m *Manager) CloseAllConnections() {
 
 	logger.Info("⛓️‍💥 All client connections closed by server")
 }
-

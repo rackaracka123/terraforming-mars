@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"os"
 	"testing"
 
 	"terraforming-mars-backend/internal/cards"
@@ -33,6 +34,11 @@ func TestStoreIntegration_CardRegistry(t *testing.T) {
 	// Test that cards are loaded into the store correctly
 	eventBus := events.NewInMemoryEventBus()
 
+	// Change to backend directory to ensure proper asset loading
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+	os.Chdir("../..")
+
 	appStore, err := store.InitializeStore(eventBus)
 	require.NoError(t, err, "Store initialization should succeed")
 	require.NotNil(t, appStore, "Store should not be nil")
@@ -58,9 +64,9 @@ func TestCardRegistry_DeepCopy(t *testing.T) {
 
 	// Verify they're separate objects
 	assert.NotSame(t, registry, copyRegistry, "Should be different objects")
-	assert.NotSame(t, registry.Cards, copyRegistry.Cards, "Cards map should be different objects")
-	assert.NotSame(t, registry.Corporations, copyRegistry.Corporations, "Corporations map should be different objects")
-	assert.NotSame(t, registry.StartingDeck, copyRegistry.StartingDeck, "Starting deck should be different objects")
+	assert.NotSame(t, &registry.Cards, &copyRegistry.Cards, "Cards map should be different objects")
+	assert.NotSame(t, &registry.Corporations, &copyRegistry.Corporations, "Corporations map should be different objects")
+	assert.NotSame(t, &registry.StartingDeck, &copyRegistry.StartingDeck, "Starting deck should be different objects")
 
 	// Verify content is the same
 	assert.Equal(t, len(registry.Cards), len(copyRegistry.Cards))
