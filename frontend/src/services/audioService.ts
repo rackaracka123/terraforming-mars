@@ -27,7 +27,7 @@ class AudioService {
 
         // Handle loading events
         audio.addEventListener("canplaythrough", () => {
-          console.log(`🔊 Audio preloaded: ${key}`);
+          // Audio preloaded successfully
         });
 
         audio.addEventListener("error", (e) => {
@@ -61,7 +61,6 @@ class AudioService {
       audioClone.volume = this.volume;
 
       await audioClone.play();
-      console.log(`🔊 Playing sound: ${soundKey}`);
     } catch (error) {
       console.warn(`⚠️ Failed to play sound ${soundKey}:`, error);
     }
@@ -79,7 +78,6 @@ class AudioService {
    */
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
-    console.log(`🔊 Audio ${enabled ? "enabled" : "disabled"}`);
   }
 
   /**
@@ -92,8 +90,6 @@ class AudioService {
     this.audioCache.forEach((audio) => {
       audio.volume = this.volume;
     });
-
-    console.log(`🔊 Audio volume set to ${(this.volume * 100).toFixed(0)}%`);
   }
 
   /**

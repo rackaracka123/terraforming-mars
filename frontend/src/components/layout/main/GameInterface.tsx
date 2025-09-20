@@ -99,7 +99,6 @@ export default function GameInterface() {
 
       // If we were reconnecting, mark reconnection as successful
       if (isReconnecting) {
-        console.log("✅ Reconnection successful");
         setIsReconnecting(false);
       }
 
@@ -152,7 +151,6 @@ export default function GameInterface() {
 
       const savedGameData = localStorage.getItem("terraforming-mars-game");
       if (savedGameData) {
-        console.log("🔄 Connection lost, attempting reconnection...");
         // Attempt to reconnect in place
         attemptReconnection();
       } else {
@@ -385,9 +383,6 @@ export default function GameInterface() {
         // No route state, check if we should attempt reconnection
         const savedGameData = localStorage.getItem("terraforming-mars-game");
         if (savedGameData) {
-          console.log(
-            "🔄 No route state, attempting reconnection from saved data...",
-          );
           // Start in-place reconnection instead of redirecting
           setIsReconnecting(true);
           attemptReconnection();

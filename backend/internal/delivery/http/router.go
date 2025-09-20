@@ -9,10 +9,11 @@ import (
 )
 
 // SetupRouter creates and configures the HTTP router
-func SetupRouter(gameService service.GameService, playerService service.PlayerService) *mux.Router {
+func SetupRouter(gameService service.GameService, playerService service.PlayerService, cardService service.CardService) *mux.Router {
 	// Create handlers
 	gameHandler := NewGameHandler(gameService)
 	playerHandler := NewPlayerHandler(playerService, gameService)
+	cardHandler := NewCardHandler(cardService)
 	healthHandler := NewHealthHandler()
 
 	// Create router
@@ -42,6 +43,10 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	playerRoutes.HandleFunc("", playerHandler.JoinGame).Methods(http.MethodPost)
 	playerRoutes.HandleFunc("/{playerId}", playerHandler.GetPlayer).Methods(http.MethodGet)
 	playerRoutes.HandleFunc("/{playerId}/resources", playerHandler.UpdatePlayerResources).Methods(http.MethodPut)
+
+	// Card routes
+	cardRoutes := api.PathPrefix("/cards").Subrouter()
+	cardRoutes.HandleFunc("", cardHandler.ListCards).Methods(http.MethodGet)
 
 	return router
 }

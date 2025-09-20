@@ -39,6 +39,9 @@ type CardService interface {
 
 	// Play a card from player's hand
 	PlayCard(ctx context.Context, gameID, playerID, cardID string) error
+
+	// List cards with pagination
+	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -217,4 +220,36 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 
 	log.Info("✅ Card played successfully", zap.String("card_id", cardID), zap.String("card_name", card.Name))
 	return nil
+}
+
+func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error) {
+	// Get all cards from repository
+	allCards, err := s.cardRepo.GetAllCards(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get cards: %w", err)
+	}
+
+	totalCount := len(allCards)
+
+	// Apply pagination
+	if offset < 0 {
+		offset = 0
+	}
+	if limit <= 0 {
+		limit = 50 // Default limit
+	}
+
+	start := offset
+	end := offset + limit
+
+	if start >= totalCount {
+		return []model.Card{}, totalCount, nil
+	}
+
+	if end > totalCount {
+		end = totalCount
+	}
+
+	paginatedCards := allCards[start:end]
+	return paginatedCards, totalCount, nil
 }

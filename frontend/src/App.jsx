@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import GameInterface from "./components/layout/main/GameInterface.tsx";
 import CreateGamePage from "./components/pages/CreateGamePage.tsx";
 import JoinGamePage from "./components/pages/JoinGamePage.tsx";
+import CardsPage from "./components/pages/CardsPage.tsx";
 import GameLandingPage from "./components/pages/GameLandingPage.tsx";
 import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
@@ -56,6 +57,7 @@ function App() {
           <Route path="/" element={<GameLandingPage />} />
           <Route path="/create" element={<CreateGamePage />} />
           <Route path="/join" element={<JoinGamePage />} />
+          <Route path="/cards" element={<CardsPage />} />
           <Route path="/reconnecting" element={<ReconnectingPage />} />
           <Route path="/game" element={<GameInterface />} />
         </Routes>

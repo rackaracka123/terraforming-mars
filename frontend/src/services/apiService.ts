@@ -5,6 +5,7 @@ import {
   GameSettingsDto,
   GetGameResponse,
   ListGamesResponse,
+  ListCardsResponse,
 } from "../types/generated/api-types.ts";
 
 export class ApiService {
@@ -86,6 +87,32 @@ export class ApiService {
       return data.games || [];
     } catch (error) {
       console.error("Failed to list games:", error);
+      throw error;
+    }
+  }
+
+  async listCards(
+    offset: number = 0,
+    limit: number = 50,
+  ): Promise<ListCardsResponse> {
+    try {
+      const url = new URL(`${this.baseUrl}/cards`);
+      url.searchParams.set("offset", offset.toString());
+      url.searchParams.set("limit", limit.toString());
+
+      const response = await fetch(url.toString());
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
+        );
+      }
+
+      const data: ListCardsResponse = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Failed to list cards:", error);
       throw error;
     }
   }
