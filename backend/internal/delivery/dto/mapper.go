@@ -167,98 +167,31 @@ func ToPlayerDtoSlice(players []model.Player, cardRegistry *cards.CardRegistry) 
 
 // ToCardDto converts a model Card to CardDto
 func ToCardDto(card model.Card) CardDto {
-	// Extract production effects from card behaviors
-	var productionEffects *ProductionEffects
-	var creditsEffect, steelEffect, titaniumEffect, plantsEffect, energyEffect, heatEffect int
 
-	// Process all behaviors to find production effects
-	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
-			for _, output := range behavior.Outputs {
-				switch output.Type {
-				case model.ResourceCreditsProduction:
-					creditsEffect += output.Amount
-				case model.ResourceSteelProduction:
-					steelEffect += output.Amount
-				case model.ResourceTitaniumProduction:
-					titaniumEffect += output.Amount
-				case model.ResourcePlantsProduction:
-					plantsEffect += output.Amount
-				case model.ResourceEnergyProduction:
-					energyEffect += output.Amount
-				case model.ResourceHeatProduction:
-					heatEffect += output.Amount
-				}
-			}
+	// Convert behaviors to DTO format
+	behaviors := ToCardBehaviorDtoSlice(card.Behaviors)
+
+	// Convert resource storage to DTO format
+	var resourceStorage *ResourceStorageDto
+	if card.ResourceStorage != nil {
+		resourceStorage = &ResourceStorageDto{
+			Type:     card.ResourceStorage.Type,
+			Capacity: card.ResourceStorage.Capacity,
+			Starting: card.ResourceStorage.Starting,
 		}
 	}
-
-	// Create ProductionEffects if any production changes were found
-	if creditsEffect != 0 || steelEffect != 0 || titaniumEffect != 0 || plantsEffect != 0 || energyEffect != 0 || heatEffect != 0 {
-		productionEffects = &ProductionEffects{
-			Credits:  creditsEffect,
-			Steel:    steelEffect,
-			Titanium: titaniumEffect,
-			Plants:   plantsEffect,
-			Energy:   energyEffect,
-			Heat:     heatEffect,
-		}
-	}
-
-	// Convert requirements from new slice structure to old DTO structure
-	requirements := CardRequirements{
-		RequiredTags: []CardTag{}, // Initialize empty slice
-	}
-
-	// Process each requirement and extract values for the old DTO structure
-	for _, req := range card.Requirements {
-		switch req.Type {
-		case model.RequirementTemperature:
-			if req.Min != nil {
-				requirements.MinTemperature = req.Min
-			}
-			if req.Max != nil {
-				requirements.MaxTemperature = req.Max
-			}
-		case model.RequirementOxygen:
-			if req.Min != nil {
-				requirements.MinOxygen = req.Min
-			}
-			if req.Max != nil {
-				requirements.MaxOxygen = req.Max
-			}
-		case model.RequirementOceans:
-			if req.Min != nil {
-				requirements.MinOceans = req.Min
-			}
-			if req.Max != nil {
-				requirements.MaxOceans = req.Max
-			}
-		case model.RequirementTags:
-			if req.Tag != nil {
-				requirements.RequiredTags = append(requirements.RequiredTags, CardTag(*req.Tag))
-			}
-		case model.RequirementProduction:
-			// For production requirements, we'll need to handle this based on the resource type
-			// For now, skip complex production requirements
-		}
-	}
-
-	// For now, set RequiredProduction to nil since the new structure handles this differently
-	requirements.RequiredProduction = nil
 
 	return CardDto{
-		ID:                card.ID,
-		Name:              card.Name,
-		Type:              CardType(card.Type),
-		Cost:              card.Cost,
-		Description:       card.Description,
-		Tags:              ToCardTagDtoSlice(card.Tags),
-		Requirements:      requirements,
-		VictoryPoints:     0,  // Default value since new model doesn't have this field
-		Number:            "", // Default value since new model doesn't have this field
-		ProductionEffects: productionEffects,
+		ID:              card.ID,
+		Name:            card.Name,
+		Type:            CardType(card.Type),
+		Cost:            card.Cost,
+		Description:     card.Description,
+		Tags:            ToCardTagDtoSlice(card.Tags),
+		Requirements:    card.Requirements,
+		Behaviors:       behaviors,
+		ResourceStorage: resourceStorage,
+		VPConditions:    card.VPConditions,
 	}
 }
 
@@ -344,6 +277,24 @@ func ToStartingSelectionDto(cardIDs []string, cardRegistry *cards.CardRegistry) 
 			VictoryPoints:     0,                                      // No VP
 			Number:            cardID,                                 // Use ID as number
 			ProductionEffects: nil,                                    // No production effects
+		}
+	}
+	return result
+}
+
+// ToCardBehaviorDtoSlice converts a slice of model CardBehaviors to CardBehaviorDto slice
+func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
+	if behaviors == nil {
+		return nil
+	}
+
+	result := make([]CardBehaviorDto, len(behaviors))
+	for i, behavior := range behaviors {
+		result[i] = CardBehaviorDto{
+			Triggers: behavior.Triggers,
+			Inputs:   behavior.Inputs,
+			Outputs:  behavior.Outputs,
+			Choices:  behavior.Choices,
 		}
 	}
 	return result

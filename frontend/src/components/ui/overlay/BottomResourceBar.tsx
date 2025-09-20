@@ -44,7 +44,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   };
 
   // Early return if no player data available
-  if (!currentPlayer?.resources || !currentPlayer?.production) {
+  if (!currentPlayer?.resources || !currentPlayer?.resourceProduction) {
     return null;
   }
 
@@ -54,7 +54,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "credits",
       name: "Credits",
       current: currentPlayer.resources.credits,
-      production: currentPlayer.production.credits,
+      production: currentPlayer.resourceProduction.credits,
       icon: "/assets/resources/megacredit.png",
       color: "#f1c40f",
     },
@@ -62,7 +62,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "steel",
       name: "Steel",
       current: currentPlayer.resources.steel,
-      production: currentPlayer.production.steel,
+      production: currentPlayer.resourceProduction.steel,
       icon: "/assets/resources/steel.png",
       color: "#95a5a6",
     },
@@ -70,7 +70,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "titanium",
       name: "Titanium",
       current: currentPlayer.resources.titanium,
-      production: currentPlayer.production.titanium,
+      production: currentPlayer.resourceProduction.titanium,
       icon: "/assets/resources/titanium.png",
       color: "#e74c3c",
     },
@@ -78,7 +78,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "plants",
       name: "Plants",
       current: currentPlayer.resources.plants,
-      production: currentPlayer.production.plants,
+      production: currentPlayer.resourceProduction.plants,
       icon: "/assets/resources/plant.png",
       color: "#27ae60",
     },
@@ -86,7 +86,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "energy",
       name: "Energy",
       current: currentPlayer.resources.energy,
-      production: currentPlayer.production.energy,
+      production: currentPlayer.resourceProduction.energy,
       icon: "/assets/resources/power.png",
       color: "#3498db",
     },
@@ -94,7 +94,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "heat",
       name: "Heat",
       current: currentPlayer.resources.heat,
-      production: currentPlayer.production.heat,
+      production: currentPlayer.resourceProduction.heat,
       icon: "/assets/resources/heat.png",
       color: "#e67e22",
     },
@@ -243,10 +243,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const playedCardsToShow = currentPlayer?.playedCards?.length
     ? mockPlayedCards // Use mock cards for display until we have proper card data structure
     : mockPlayedCards;
-  const availableEffects =
-    playedCardsToShow?.filter((card) => card.type === CardType.ACTIVE)
-      ?.length || 0;
-
   // Get available actions from current player
   const availableActions = currentPlayer?.availableActions || 0;
 

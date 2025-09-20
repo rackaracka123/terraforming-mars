@@ -42,7 +42,8 @@
       "Bash(npm run build:*)",
       "mcp__playwright__browser_drag",
       "mcp__context7__resolve-library-id",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

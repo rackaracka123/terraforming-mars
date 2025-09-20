@@ -238,9 +238,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       // Handle throw action
       if (isThrowDetected && onPlayCard) {
         try {
-          console.log(
-            `🎯 Throwing card ${draggedCardId} - Distance: ${dragDistance.toFixed(1)}px, Y: ${deltaY.toFixed(1)}px`,
-          );
           await onPlayCard(draggedCardId);
         } catch (error) {
           console.error("Failed to play card:", error);

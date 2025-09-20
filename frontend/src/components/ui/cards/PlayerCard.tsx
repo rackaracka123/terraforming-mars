@@ -26,7 +26,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   totalActions = 2,
 }) => {
   const isPassed = player.passed;
-  const isDisconnected = player.connectionStatus === "disconnected";
+  const isDisconnected = !player.isConnected;
   const actionsRemaining = totalActions - actionsUsed;
 
   // Determine button text based on actions used
