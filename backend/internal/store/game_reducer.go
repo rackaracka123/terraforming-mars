@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 )
 

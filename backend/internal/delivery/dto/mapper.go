@@ -267,16 +267,14 @@ func ToStartingSelectionDto(cardIDs []string, cardRegistry *cards.CardRegistry) 
 			zap.String("card_id", cardID),
 			zap.String("placeholder_name", "Starting Card "+string(rune('A'+i))))
 		result[i] = CardDto{
-			ID:                cardID,
-			Name:              "Starting Card " + string(rune('A'+i)), // Placeholder names A, B, C, etc.
-			Type:              CardTypeAutomated,                      // Default type
-			Cost:              0,                                      // Placeholder cost
-			Description:       "Starting card option",                 // Placeholder description
-			Tags:              []CardTag{},                            // Empty tags
-			Requirements:      CardRequirements{},                     // No requirements
-			VictoryPoints:     0,                                      // No VP
-			Number:            cardID,                                 // Use ID as number
-			ProductionEffects: nil,                                    // No production effects
+			ID:          cardID,
+			Name:        "Starting Card " + string(rune('A'+i)), // Placeholder names A, B, C, etc.
+			Type:        CardTypeAutomated,                      // Default type
+			Cost:        0,                                      // Placeholder cost
+			Description: "Starting card option",                 // Placeholder description
+			Tags:        []CardTag{},                            // Empty tags
+			Requirements: nil,                                   // No requirements (nil slice)
+			Behaviors:    nil,                                   // No behaviors
 		}
 	}
 	return result
