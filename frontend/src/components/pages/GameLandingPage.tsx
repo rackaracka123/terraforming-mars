@@ -63,6 +63,10 @@ const GameLandingPage: React.FC = () => {
     navigate("/join");
   };
 
+  const handleViewCards = () => {
+    navigate("/cards");
+  };
+
   if (isLoading) {
     return (
       <div className="game-landing-page">
@@ -140,25 +144,36 @@ const GameLandingPage: React.FC = () => {
           {error && <div className="error-message">{error}</div>}
 
           <div className="action-buttons">
-            <button
-              onClick={handleCreateGame}
-              className="action-button create-button"
-            >
-              <div className="button-content">
-                <h3>Create Game</h3>
-                <p>Start a new terraforming mission</p>
-              </div>
-            </button>
+            <div className="main-actions">
+              <button
+                onClick={handleCreateGame}
+                className="action-button create-button"
+              >
+                <div className="button-content">
+                  <h3>Create Game</h3>
+                  <p>Start a new terraforming mission</p>
+                </div>
+              </button>
 
-            <button
-              onClick={handleJoinGame}
-              className="action-button join-button"
-            >
-              <div className="button-content">
-                <h3>Join Game</h3>
-                <p>Join an existing mission</p>
-              </div>
-            </button>
+              <button
+                onClick={handleJoinGame}
+                className="action-button join-button"
+              >
+                <div className="button-content">
+                  <h3>Join Game</h3>
+                  <p>Join an existing mission</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="secondary-actions">
+              <button
+                onClick={handleViewCards}
+                className="secondary-button cards-button"
+              >
+                View Cards
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -212,11 +227,25 @@ const GameLandingPage: React.FC = () => {
         }
 
         .action-buttons {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           gap: 30px;
           max-width: 700px;
           margin: 0 auto;
+        }
+
+        .main-actions {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 30px;
+          width: 100%;
+        }
+
+        .secondary-actions {
+          display: flex;
+          justify-content: center;
+          width: 100%;
         }
 
         .action-button {
@@ -259,6 +288,27 @@ const GameLandingPage: React.FC = () => {
             0 0 40px rgba(255, 152, 0, 0.2);
         }
 
+        .secondary-button {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          padding: 12px 24px;
+          color: rgba(255, 255, 255, 0.7);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          backdrop-filter: blur(5px);
+          text-decoration: none;
+          display: inline-block;
+        }
+
+        .secondary-button:hover {
+          color: rgba(255, 255, 255, 0.9);
+          border-color: rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.05);
+          transform: translateY(-1px);
+        }
+
         .button-content h3 {
           font-size: 24px;
           margin-bottom: 8px;
@@ -281,7 +331,7 @@ const GameLandingPage: React.FC = () => {
             margin-bottom: 40px;
           }
 
-          .action-buttons {
+          .main-actions {
             grid-template-columns: 1fr;
             gap: 20px;
             max-width: 400px;

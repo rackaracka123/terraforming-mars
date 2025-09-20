@@ -43,5 +43,6 @@ func SetupRouter(appStore *store.Store) *mux.Router {
 	playerRoutes.HandleFunc("/{playerId}", playerHandler.GetPlayer).Methods(http.MethodGet)
 	playerRoutes.HandleFunc("/{playerId}/resources", playerHandler.UpdatePlayerResources).Methods(http.MethodPut)
 
+
 	return router
 }
