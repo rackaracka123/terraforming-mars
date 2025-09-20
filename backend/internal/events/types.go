@@ -54,21 +54,7 @@ func NewGameUpdatedEvent(gameID string) *GameUpdatedEvent {
 	}
 }
 
-// GameDeletedEvent represents when a game is deleted
-type GameDeletedEvent struct {
-	BaseEvent
-}
-
-// NewGameDeletedEvent creates a new game deleted event
-func NewGameDeletedEvent(gameID string) *GameDeletedEvent {
-	payload := GameDeletedEventData{
-		GameID: gameID,
-	}
-
-	return &GameDeletedEvent{
-		BaseEvent: NewBaseEvent(EventTypeGameDeleted, gameID, payload),
-	}
-}
+// GameDeletedEvent - REMOVED: Game deletion not implemented
 
 // Player Events
 
@@ -90,23 +76,7 @@ func NewPlayerJoinedEvent(gameID, playerID, playerName string) *PlayerJoinedEven
 	}
 }
 
-// PlayerLeftEvent represents when a player leaves a game
-type PlayerLeftEvent struct {
-	BaseEvent
-}
-
-// NewPlayerLeftEvent creates a new player left event
-func NewPlayerLeftEvent(gameID, playerID, playerName string) *PlayerLeftEvent {
-	payload := PlayerLeftEventData{
-		GameID:     gameID,
-		PlayerID:   playerID,
-		PlayerName: playerName,
-	}
-
-	return &PlayerLeftEvent{
-		BaseEvent: NewBaseEvent(EventTypePlayerLeft, gameID, payload),
-	}
-}
+// PlayerLeftEvent - REMOVED: Player leaving not implemented
 
 // PlayerChangedEvent represents when player resources, production, or TR changes (consolidated event)
 type PlayerChangedEvent struct {
@@ -141,23 +111,7 @@ func NewPlayerTRChangedEvent(gameID, playerID string) *PlayerChangedEvent {
 
 // Card Events
 
-// CardDealtEvent represents when starting cards are dealt to a player (renamed from PlayerStartingCardOptionsEvent)
-type CardDealtEvent struct {
-	BaseEvent
-}
-
-// NewCardDealtEvent creates a new card dealt event
-func NewCardDealtEvent(gameID, playerID string, cardOptions []string) *CardDealtEvent {
-	payload := CardDealtEventData{
-		GameID:      gameID,
-		PlayerID:    playerID,
-		CardOptions: cardOptions,
-	}
-
-	return &CardDealtEvent{
-		BaseEvent: NewBaseEvent(EventTypeCardDealt, gameID, payload),
-	}
-}
+// CardDealtEvent - REMOVED: Card dealing uses different mechanism
 
 // CardSelectedEvent represents when a player selects starting cards (renamed from StartingCardSelectedEvent)
 type CardSelectedEvent struct {

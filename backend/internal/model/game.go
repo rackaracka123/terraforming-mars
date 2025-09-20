@@ -40,6 +40,40 @@ func NewGame(id string, settings GameSettings) *Game {
 	}
 }
 
+// DeepCopy creates a deep copy of the Game
+func (g *Game) DeepCopy() *Game {
+	if g == nil {
+		return nil
+	}
+
+	// Copy PlayerIDs slice
+	playerIDsCopy := make([]string, len(g.PlayerIDs))
+	copy(playerIDsCopy, g.PlayerIDs)
+
+	// Copy CurrentTurn pointer
+	var currentTurnCopy *string
+	if g.CurrentTurn != nil {
+		currentTurnValue := *g.CurrentTurn
+		currentTurnCopy = &currentTurnValue
+	}
+
+	return &Game{
+		ID:               g.ID,
+		CreatedAt:        g.CreatedAt, // time.Time is copied by value
+		UpdatedAt:        g.UpdatedAt, // time.Time is copied by value
+		Status:           g.Status,    // GameStatus is copied by value
+		Settings:         g.Settings,  // GameSettings is copied by value
+		PlayerIDs:        playerIDsCopy,
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     g.CurrentPhase,     // GamePhase is copied by value
+		GlobalParameters: g.GlobalParameters, // GlobalParameters is copied by value
+		ViewingPlayerID:  g.ViewingPlayerID,
+		CurrentTurn:      currentTurnCopy,
+		Generation:       g.Generation,
+		RemainingActions: g.RemainingActions,
+	}
+}
+
 // Next returns the next player ID in turn order based on current turn
 // Returns nil if CurrentTurn is nil or no players exist
 func (g *Game) Next() *string {

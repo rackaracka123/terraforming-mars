@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/store"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -14,16 +16,14 @@ import (
 // PlayerHandler handles HTTP requests related to player operations
 type PlayerHandler struct {
 	*BaseHandler
-	playerService service.PlayerService
-	gameService   service.GameService
+	appStore *store.Store
 }
 
 // NewPlayerHandler creates a new player handler
-func NewPlayerHandler(playerService service.PlayerService, gameService service.GameService) *PlayerHandler {
+func NewPlayerHandler(appStore *store.Store) *PlayerHandler {
 	return &PlayerHandler{
-		BaseHandler:   NewBaseHandler(),
-		playerService: playerService,
-		gameService:   gameService,
+		BaseHandler: NewBaseHandler(),
+		appStore:    appStore,
 	}
 }
 
@@ -43,30 +43,38 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	game, err := h.gameService.JoinGame(r.Context(), gameID, req.PlayerName)
-	if err != nil {
-		h.logger.Error("Failed to join game", zap.Error(err),
+	// Generate player ID and create join game action
+	playerID := generatePlayerID()
+	action := store.JoinGameAction(gameID, playerID, req.PlayerName, "http")
+
+	// Dispatch to store
+	if err := h.appStore.Dispatch(r.Context(), action); err != nil {
+		logger.Error("Failed to join game", zap.Error(err),
 			zap.String("game_id", gameID),
 			zap.String("player_name", req.PlayerName))
 		h.WriteErrorResponse(w, http.StatusBadRequest, "Failed to join game")
 		return
 	}
 
-	// Find the player ID of the newly joined player - it's the last one added
-	var playerID string
-	if len(game.PlayerIDs) > 0 {
-		// The newly joined player is the last one in the list
-		playerID = game.PlayerIDs[len(game.PlayerIDs)-1]
+	// Get updated game state from store
+	gameState, exists := h.appStore.GetGame(gameID)
+	if !exists {
+		h.WriteErrorResponse(w, http.StatusInternalServerError, "Game not found after join")
+		return
 	}
 
 	// Convert to DTO and respond
 	response := dto.JoinGameResponse{
-		Game:     dto.ToGameDtoBasic(game),
+		Game:     dto.ToGameDtoBasic(gameState.Game()),
 		PlayerID: playerID,
 	}
 
 	h.WriteJSONResponse(w, http.StatusOK, response)
+}
+
+// generatePlayerID generates a unique player ID
+func generatePlayerID() string {
+	return uuid.New().String()
 }
 
 // GetPlayer retrieves a player by ID
@@ -85,18 +93,17 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	player, err := h.playerService.GetPlayer(r.Context(), gameID, playerID)
-	if err != nil {
-		h.logger.Error("Failed to get player", zap.Error(err),
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID))
+	// Get player from store
+	playerState, exists := h.appStore.GetPlayer(playerID)
+	if !exists || playerState.GameID() != gameID {
+		logger.Error("Failed to get player", zap.String("game_id", gameID), zap.String("player_id", playerID))
 		h.WriteErrorResponse(w, http.StatusNotFound, "Player not found")
 		return
 	}
 
 	// Convert to DTO and respond
-	playerDto := dto.ToPlayerDto(player)
+	cardRegistry := h.appStore.GetState().CardRegistry()
+	playerDto := dto.ToPlayerDto(playerState.Player(), cardRegistry)
 	response := dto.GetPlayerResponse{
 		Player: playerDto,
 	}
@@ -135,28 +142,28 @@ func (h *PlayerHandler) UpdatePlayerResources(w http.ResponseWriter, r *http.Req
 		Heat:     req.Resources.Heat,
 	}
 
-	// Delegate to service
-	err := h.playerService.UpdatePlayerResources(r.Context(), gameID, playerID, resources)
-	if err != nil {
-		h.logger.Error("Failed to update player resources", zap.Error(err),
+	// Create update resources action
+	action := store.UpdateResourcesAction(gameID, playerID, resources, "http")
+
+	// Dispatch to store
+	if err := h.appStore.Dispatch(r.Context(), action); err != nil {
+		logger.Error("Failed to update player resources", zap.Error(err),
 			zap.String("game_id", gameID),
 			zap.String("player_id", playerID))
 		h.WriteErrorResponse(w, http.StatusBadRequest, "Failed to update player resources")
 		return
 	}
 
-	// Get updated player state
-	player, err := h.playerService.GetPlayer(r.Context(), gameID, playerID)
-	if err != nil {
-		h.logger.Error("Failed to get player after update", zap.Error(err),
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get updated player state")
+	// Get updated player state from store
+	playerState, exists := h.appStore.GetPlayer(playerID)
+	if !exists {
+		h.WriteErrorResponse(w, http.StatusInternalServerError, "Player not found after update")
 		return
 	}
 
 	// Convert to DTO and respond
-	playerDto := dto.ToPlayerDto(player)
+	cardRegistry := h.appStore.GetState().CardRegistry()
+	playerDto := dto.ToPlayerDto(playerState.Player(), cardRegistry)
 	response := dto.UpdatePlayerResourcesResponse{
 		Player: playerDto,
 	}

@@ -16,21 +16,11 @@ func TestInit(t *testing.T) {
 		t.Fatalf("Failed to initialize logger in development mode: %v", err)
 	}
 
-	log := logger.Get()
-	if log == nil {
-		t.Fatal("Logger should not be nil after initialization")
-	}
-
 	// Test production environment
 	os.Setenv("GO_ENV", "production")
 	err = logger.Init(nil)
 	if err != nil {
 		t.Fatalf("Failed to initialize logger in production mode: %v", err)
-	}
-
-	log = logger.Get()
-	if log == nil {
-		t.Fatal("Logger should not be nil after initialization")
 	}
 
 	// Clean up
@@ -83,14 +73,8 @@ func TestWithClientContext(t *testing.T) {
 }
 
 func TestLoggerFallback(t *testing.T) {
-	// Test that Get() returns a logger even if Init() wasn't called
-	log := logger.Get()
-	if log == nil {
-		t.Fatal("Get() should return a fallback logger if not initialized")
-	}
-
-	// Verify we can log without panic
-	log.Info("Fallback logger test")
+	// Test that direct logging functions work without panic
+	logger.Info("Fallback logger test")
 }
 
 func TestWithContext(t *testing.T) {

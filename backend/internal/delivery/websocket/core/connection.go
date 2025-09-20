@@ -36,7 +36,6 @@ type Connection struct {
 
 	// Synchronization
 	mu         sync.RWMutex
-	logger     *zap.Logger
 	Done       chan struct{}
 	closeOnce  sync.Once
 	sendClosed bool
@@ -45,12 +44,11 @@ type Connection struct {
 // NewConnection creates a new WebSocket connection
 func NewConnection(id string, conn *websocket.Conn, hub *Hub) *Connection {
 	return &Connection{
-		ID:     id,
-		Conn:   conn,
-		Send:   make(chan dto.WebSocketMessage, 256),
-		Hub:    hub,
-		logger: logger.Get(),
-		Done:   make(chan struct{}),
+		ID:   id,
+		Conn: conn,
+		Send: make(chan dto.WebSocketMessage, 256),
+		Hub:  hub,
+		Done: make(chan struct{}),
 	}
 }
 
@@ -102,7 +100,7 @@ func (c *Connection) ReadPump() {
 		return nil
 	})
 
-	c.logger.Info("🔄 Starting ReadPump for connection", zap.String("connection_id", c.ID))
+	logger.Info("🔄 Starting ReadPump for connection", zap.String("connection_id", c.ID))
 
 	for {
 		select {
@@ -112,12 +110,12 @@ func (c *Connection) ReadPump() {
 			var message dto.WebSocketMessage
 			if err := c.Conn.ReadJSON(&message); err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					c.logger.Error("WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
+					logger.Error("WebSocket read error", zap.Error(err), zap.String("connection_id", c.ID))
 				}
 				return
 			}
 
-			c.logger.Debug("📡 Received WebSocket message",
+			logger.Debug("📡 Received WebSocket message",
 				zap.String("connection_id", c.ID),
 				zap.String("message_type", string(message.Type)))
 
@@ -149,7 +147,7 @@ func (c *Connection) WritePump() {
 			}
 
 			if err := c.Conn.WriteJSON(message); err != nil {
-				c.logger.Error("WebSocket write error", zap.Error(err), zap.String("connection_id", c.ID))
+				logger.Error("WebSocket write error", zap.Error(err), zap.String("connection_id", c.ID))
 				return
 			}
 
@@ -172,19 +170,19 @@ func (c *Connection) SendMessage(message dto.WebSocketMessage) {
 	c.mu.RUnlock()
 
 	if sendClosed {
-		c.logger.Debug("Attempted to send message to closed connection", zap.String("connection_id", c.ID))
+		logger.Debug("Attempted to send message to closed connection", zap.String("connection_id", c.ID))
 		return
 	}
 
 	select {
 	case c.Send <- message:
-		c.logger.Debug("💬 Message queued for client",
+		logger.Debug("💬 Message queued for client",
 			zap.String("connection_id", c.ID),
 			zap.String("message_type", string(message.Type)))
 	case <-c.Done:
-		c.logger.Debug("Connection closing, message not sent", zap.String("connection_id", c.ID))
+		logger.Debug("Connection closing, message not sent", zap.String("connection_id", c.ID))
 	default:
-		c.logger.Warn("Message channel full, dropping message",
+		logger.Warn("Message channel full, dropping message",
 			zap.String("connection_id", c.ID),
 			zap.String("message_type", string(message.Type)))
 	}

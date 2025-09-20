@@ -12,15 +12,12 @@ const (
 	EventTypeGameCreated = "game.created" // When a game is created
 	EventTypeGameStarted = "game.started" // When a game transitions from lobby to active
 	EventTypeGameUpdated = "game.updated" // When any game state changes (consolidated from GameStateChanged)
-	EventTypeGameDeleted = "game.deleted" // When a game is removed
 
 	// Player Events - Player lifecycle and state changes
 	EventTypePlayerJoined  = "player.joined"  // When a player joins a game
-	EventTypePlayerLeft    = "player.left"    // When a player leaves a game
 	EventTypePlayerChanged = "player.changed" // When player resources, production, or TR changes (consolidated)
 
 	// Card Events - Card-related game actions
-	EventTypeCardDealt    = "card.dealt"    // Starting cards dealt to player (renamed from PlayerStartingCardOptions)
 	EventTypeCardSelected = "card.selected" // Player selects starting cards (renamed from StartingCardSelected)
 	EventTypeCardPlayed   = "card.played"   // Player plays a card during game
 
@@ -99,22 +96,10 @@ type GameUpdatedEventData struct {
 	GameID string `json:"gameId"`
 }
 
-// GameDeletedEventData represents when a game is deleted
-type GameDeletedEventData struct {
-	GameID string `json:"gameId"`
-}
-
 // Player Event Data
 
 // PlayerJoinedEventData represents when a player joins a game
 type PlayerJoinedEventData struct {
-	GameID     string `json:"gameId"`
-	PlayerID   string `json:"playerId"`
-	PlayerName string `json:"playerName"`
-}
-
-// PlayerLeftEventData represents when a player leaves a game
-type PlayerLeftEventData struct {
 	GameID     string `json:"gameId"`
 	PlayerID   string `json:"playerId"`
 	PlayerName string `json:"playerName"`
@@ -128,13 +113,6 @@ type PlayerChangedEventData struct {
 }
 
 // Card Event Data
-
-// CardDealtEventData represents when starting cards are dealt to a player (renamed from PlayerStartingCardOptions)
-type CardDealtEventData struct {
-	GameID      string   `json:"gameId"`
-	PlayerID    string   `json:"playerId"`
-	CardOptions []string `json:"cardOptions"`
-}
 
 // CardSelectedEventData represents when a player selects starting cards (renamed from StartingCardSelected)
 type CardSelectedEventData struct {

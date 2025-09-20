@@ -92,7 +92,14 @@ backend/
 │   ├── logger/            # Structured logging utilities
 │   ├── model/             # Domain entities and business objects
 │   ├── repository/        # Data access layer with immutable interfaces
-│   └── service/           # Application business logic and use cases
+│   └── store/             # Redux-style state management system
+│       ├── actions.go     # Action types, constructors, and payloads
+│       ├── game_reducer.go # Unified reducer for all game and player state
+│       ├── init.go        # Store initialization with middleware
+│       ├── middleware.go  # Logging, validation, and event middleware
+│       ├── state.go       # Application state structure and management
+│       ├── store.go       # Core store implementation with dispatch
+│       └── websocket_dispatcher.go # WebSocket message handling
 ├── pkg/typegen/           # TypeScript type generation utilities
 ├── test/                  # Comprehensive test suite
 ├── tools/                 # Code generation and development tools
@@ -232,19 +239,139 @@ Services compose data from multiple repositories as needed, maintaining clean se
 - Integrate card actions with existing service layer
 - Follow modular design patterns for new card types
 
+## Store Architecture
+
+### Redux-Style State Management
+
+The backend implements a Redux-inspired state management system for handling all game and player state changes:
+
+**Core Components**
+- **Store**: Central state container with immutable updates and middleware support
+- **GameReducer**: Single unified reducer handling all game and player actions
+- **Actions**: Strongly typed action creators with structured payloads
+- **Middleware**: Extensible pipeline for logging, validation, and event publishing
+
+**Architecture Benefits**
+- **Predictable State Changes**: All state modifications flow through typed actions
+- **Immutable Updates**: DeepCopy ensures no unintended state mutations
+- **Event Integration**: Store automatically publishes domain events for real-time sync
+- **Type Safety**: Actions, payloads, and state are fully typed
+- **Testable**: Pure reducer functions enable easy unit testing
+
+### Unified GameReducer
+
+**Simplified Design**
+The system uses a single `GameReducer` that handles both game-level and player-level actions, eliminating complex coordination:
+
+```go
+func GameReducer(state *ApplicationState, action Action) (*ApplicationState, error) {
+    newState := state.DeepCopy()
+
+    switch action.Type {
+    // Game Actions
+    case ActionCreateGame:
+        return handleCreateGame(newState, action)
+    case ActionStartGame:
+        return handleStartGame(newState, action)
+
+    // Player Actions
+    case ActionJoinGame:
+        return handleJoinGame(newState, action)
+    case ActionUpdateResources:
+        return handleUpdateResources(newState, action)
+
+    // Standard Project Actions
+    case ActionBuildPowerPlant, ActionLaunchAsteroid:
+        return handleStandardProject(newState, action)
+    }
+}
+```
+
+**Action Types**
+- **Game Management**: Create, start, delete games
+- **Player Actions**: Join, leave, resource updates, card play
+- **Terraforming**: Temperature, oxygen, ocean placement
+- **Standard Projects**: Power plants, greenery, cities, asteroids
+- **Production**: Resource generation and turn management
+
+### Store Middleware Pipeline
+
+**Middleware Stack**
+1. **LoggingMiddleware**: Detailed action logging with emojis for readability
+2. **ValidationMiddleware**: Pre-dispatch validation of action payloads
+3. **EventMiddleware**: Automatic domain event publishing after state changes
+
+**Middleware Example**
+```go
+func LoggingMiddleware(next Reducer) Reducer {
+    return func(state *ApplicationState, action Action) (*ApplicationState, error) {
+        logger.Debug("🎯 Dispatching action",
+            zap.String("type", string(action.Type)))
+
+        result, err := next(state, action)
+
+        if err != nil {
+            logger.Error("❌ Action failed", zap.Error(err))
+        } else {
+            logger.Debug("✅ Action completed successfully")
+        }
+
+        return result, err
+    }
+}
+```
+
+### Action Dispatching
+
+**WebSocket Integration**
+WebSocket messages are converted to store actions:
+1. **Message Reception**: Hub receives WebSocket message
+2. **Action Creation**: Handler creates typed action with validated payload
+3. **Store Dispatch**: Action dispatched through middleware pipeline
+4. **State Update**: GameReducer processes action and returns new state
+5. **Event Publishing**: Middleware publishes domain events
+6. **Real-time Sync**: EventBus broadcasts updates to all clients
+
+**HTTP Integration**
+REST endpoints also use the store for consistent state management:
+```go
+func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
+    action := store.NewCreateGameAction(gameID, settings)
+    err := h.store.Dispatch(r.Context(), action)
+}
+```
+
+### Development Guidelines
+
+**Adding New Actions**
+1. Define action type in `actions.go`
+2. Create payload struct with proper validation tags
+3. Add action constructor function
+4. Implement handler in `game_reducer.go`
+5. Add to switch statement in GameReducer
+
+**State Management Best Practices**
+- Always use `state.DeepCopy()` before modifications
+- Validate payloads before processing
+- Return errors for invalid operations
+- Use descriptive action names and logging
+- Test reducer functions in isolation
+
 ## Game State Flow
 
 ### WebSocket Event Architecture
 
 **Modern Handler System**
-The backend uses a sophisticated action handler system for WebSocket messages:
+The backend uses a sophisticated action handler system that integrates WebSocket messages with the Redux-style store:
 
 ```
 Client Message -> Hub.HandleMessage() -> Manager.RouteMessage() -> ActionHandler.Handle()
                                                                         ↓
-                                                              Service Layer (Business Logic)
+                                                              Create Store Action (typed)
                                                                         ↓
-                                                              Repository Updates + Events
+                                                              Store.Dispatch() -> Middleware Pipeline
+                                                                        ↓
+                                                              GameReducer -> State Update (immutable)
                                                                         ↓
                                                               EventBus -> Hub -> Broadcaster
                                                                         ↓
@@ -263,11 +390,12 @@ Each action type has a dedicated handler in `internal/delivery/websocket/handler
 1. **WebSocket Connection**: Client establishes connection -> Hub registers client
 2. **Message Reception**: Hub.HandleMessage() receives raw WebSocket message
 3. **Action Routing**: Manager.RouteMessage() identifies action type and routes to handler
-4. **Handler Processing**: Dedicated ActionHandler validates message and calls services
-5. **Business Logic**: Service layer executes domain operations via repositories
-6. **Event Publishing**: Repository operations trigger domain events via EventBus
-7. **State Broadcasting**: Hub receives events and broadcasts updates to all game clients
-8. **Frontend Updates**: React components receive state changes and re-render UI
+4. **Handler Processing**: Dedicated ActionHandler validates message and creates store action
+5. **Store Dispatch**: Handler dispatches typed action through store middleware pipeline
+6. **State Update**: GameReducer processes action and returns new immutable state
+7. **Event Publishing**: Middleware automatically publishes domain events via EventBus
+8. **State Broadcasting**: Hub receives events and broadcasts updates to all game clients
+9. **Frontend Updates**: React components receive state changes and re-render UI
 
 ## Type System Overview
 
@@ -625,3 +753,5 @@ No need to be backwards compatible.
 - Use proper synchronization (channels, mutexes, etc.) when needed
 
 When encountering timing or state issues, always ask: "What is the proper state flow here?" rather than "How long should I wait?"
+- to kill the backend and frontend, use make kill in root directory.
+- Getter methods should return immutable objects.

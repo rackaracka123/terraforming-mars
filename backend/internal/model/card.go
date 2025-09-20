@@ -34,3 +34,50 @@ type Card struct {
 	ResourceStorage *ResourceStorage        `json:"resourceStorage,omitempty" ts:"ResourceStorage | undefined"`      // Cards that can hold resources
 	VPConditions    []VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"` // VP per X conditions
 }
+
+// DeepCopy creates a deep copy of the Card struct
+func (c *Card) DeepCopy() *Card {
+	if c == nil {
+		return nil
+	}
+
+	newCard := &Card{
+		ID:          c.ID,
+		Name:        c.Name,
+		Type:        c.Type,
+		Cost:        c.Cost,
+		Description: c.Description,
+	}
+
+	// Copy tags slice
+	if c.Tags != nil {
+		newCard.Tags = make([]CardTag, len(c.Tags))
+		copy(newCard.Tags, c.Tags)
+	}
+
+	// Copy requirements slice (deep copy each requirement)
+	if c.Requirements != nil {
+		newCard.Requirements = make([]Requirement, len(c.Requirements))
+		copy(newCard.Requirements, c.Requirements)
+	}
+
+	// Copy behaviors slice (deep copy each behavior)
+	if c.Behaviors != nil {
+		newCard.Behaviors = make([]CardBehavior, len(c.Behaviors))
+		copy(newCard.Behaviors, c.Behaviors)
+	}
+
+	// Copy resource storage pointer
+	if c.ResourceStorage != nil {
+		newStorage := *c.ResourceStorage
+		newCard.ResourceStorage = &newStorage
+	}
+
+	// Copy VP conditions slice (deep copy each condition)
+	if c.VPConditions != nil {
+		newCard.VPConditions = make([]VictoryPointCondition, len(c.VPConditions))
+		copy(newCard.VPConditions, c.VPConditions)
+	}
+
+	return newCard
+}

@@ -4,9 +4,11 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/store"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -14,14 +16,14 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
-	gameService service.GameService
+	appStore *store.Store
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService) *GameHandler {
+func NewGameHandler(appStore *store.Store) *GameHandler {
 	return &GameHandler{
 		BaseHandler: NewBaseHandler(),
-		gameService: gameService,
+		appStore:    appStore,
 	}
 }
 
@@ -33,24 +35,39 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
+	// Create action to dispatch to store
 	gameSettings := model.GameSettings{
 		MaxPlayers: req.MaxPlayers,
 	}
 
-	game, err := h.gameService.CreateGame(r.Context(), gameSettings)
-	if err != nil {
-		h.logger.Error("Failed to create game", zap.Error(err))
+	gameID := generateGameID() // Generate a new game ID
+	action := store.CreateGameAction(gameID, gameSettings, "http")
+
+	// Dispatch to store
+	if err := h.appStore.Dispatch(r.Context(), action); err != nil {
+		logger.Error("Failed to create game", zap.Error(err))
+		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
+		return
+	}
+
+	// Get the created game from store
+	game, exists := h.appStore.GetGame(gameID)
+	if !exists {
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
 		return
 	}
 
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(game.Game())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
 	h.WriteJSONResponse(w, http.StatusCreated, response)
+}
+
+// generateGameID generates a unique game ID
+func generateGameID() string {
+	return uuid.New().String()
 }
 
 // GetGame retrieves a game by ID
@@ -63,16 +80,17 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	game, err := h.gameService.GetGame(r.Context(), gameID)
-	if err != nil {
-		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
+	// Get game from store
+	state := h.appStore.GetState()
+	gameState, exists := state.GetGame(gameID)
+	if !exists {
+		logger.Error("Failed to get game", zap.String("game_id", gameID), zap.String("error", "game not found"))
 		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
 		return
 	}
 
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(gameState.Game())
 	response := dto.GetGameResponse{
 		Game: gameDto,
 	}
@@ -81,12 +99,14 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 // ListGames retrieves all games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
-	// Delegate to service (list all games by passing empty status)
-	games, err := h.gameService.ListGames(r.Context(), "")
-	if err != nil {
-		h.logger.Error("Failed to list games", zap.Error(err))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")
-		return
+	// Get all games from store
+	state := h.appStore.GetState()
+
+	// Convert gameStates to model.Game slice
+	stateGames := state.Games()
+	games := make([]model.Game, 0, len(stateGames))
+	for _, gameState := range stateGames {
+		games = append(games, gameState.Game())
 	}
 
 	// Convert to DTOs and respond

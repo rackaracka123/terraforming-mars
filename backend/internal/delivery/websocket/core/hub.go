@@ -5,24 +5,15 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/store"
 
 	"go.uber.org/zap"
 )
-
-// MessageHandler defines the interface for handling different message types
-type MessageHandler interface {
-	HandleMessage(ctx context.Context, connection *Connection, message dto.WebSocketMessage)
-}
 
 // HubMessage represents a message to be processed by the hub
 type HubMessage struct {
 	Connection *Connection
 	Message    dto.WebSocketMessage
-}
-
-// EventHandler interface for handling domain events
-type EventHandler interface {
 }
 
 // Hub manages WebSocket connections and message routing
@@ -33,61 +24,44 @@ type Hub struct {
 	Messages   chan HubMessage
 
 	// Components
-	manager      *Manager
-	broadcaster  *Broadcaster
-	eventHandler EventHandler // Delegate for domain events
-	logger       *zap.Logger
+	manager     *Manager
+	broadcaster *Broadcaster
 
-	// New handler registry for specific message types
-	handlers map[dto.MessageType]MessageHandler
+	eventBus events.EventBus
 
-	// Services (for routing to handlers)
-	gameService            service.GameService
-	playerService          service.PlayerService
-	standardProjectService service.StandardProjectService
-	cardService            service.CardService
-	eventBus               events.EventBus
+	// Store-based architecture fields
+	appStore            *store.Store
+	storeMessageHandler func(context.Context, *Connection, interface{})
 }
 
-// NewHub creates a new WebSocket hub with clean architecture
-func NewHub(
-	gameService service.GameService,
-	playerService service.PlayerService,
-	standardProjectService service.StandardProjectService,
-	cardService service.CardService,
-	eventBus events.EventBus,
-	eventHandler EventHandler,
-) *Hub {
+// NewHubWithStore creates a new WebSocket hub using store-based architecture
+func NewHubWithStore(appStore *store.Store, eventBus events.EventBus) *Hub {
 	manager := NewManager()
-	broadcaster := NewBroadcaster(manager, gameService, playerService, cardService)
+	// Create a simplified broadcaster that works with the store
+	broadcaster := NewBroadcasterWithStore(manager, appStore)
 
 	return &Hub{
-		Register:               make(chan *Connection),
-		Unregister:             make(chan *Connection),
-		Messages:               make(chan HubMessage),
-		manager:                manager,
-		broadcaster:            broadcaster,
-		eventHandler:           eventHandler,
-		logger:                 logger.Get(),
-		handlers:               make(map[dto.MessageType]MessageHandler),
-		gameService:            gameService,
-		playerService:          playerService,
-		standardProjectService: standardProjectService,
-		cardService:            cardService,
-		eventBus:               eventBus,
+		Register:            make(chan *Connection),
+		Unregister:          make(chan *Connection),
+		Messages:            make(chan HubMessage),
+		manager:             manager,
+		broadcaster:         broadcaster,
+		eventBus:            eventBus,
+		appStore:            appStore,
+		storeMessageHandler: nil,
 	}
 }
 
 // Run starts the hub's main event loop
 func (h *Hub) Run(ctx context.Context) {
-	h.logger.Info("🚀 Starting WebSocket hub")
+	logger.Info("🚀 Starting WebSocket hub")
 	h.subscribeToEvents()
-	h.logger.Info("✅ WebSocket hub ready to process messages")
+	logger.Info("✅ WebSocket hub ready to process messages")
 
 	for {
 		select {
 		case <-ctx.Done():
-			h.logger.Info("🛑 WebSocket hub shutting down")
+			logger.Info("🛑 WebSocket hub shutting down")
 			h.manager.CloseAllConnections()
 			return
 
@@ -107,11 +81,6 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-// GetServices returns services for handlers (clean dependency injection)
-func (h *Hub) GetServices() (service.GameService, service.PlayerService, service.StandardProjectService, service.CardService) {
-	return h.gameService, h.playerService, h.standardProjectService, h.cardService
-}
-
 // GetBroadcaster returns the broadcaster for handlers
 func (h *Hub) GetBroadcaster() *Broadcaster {
 	return h.broadcaster
@@ -122,34 +91,23 @@ func (h *Hub) GetManager() *Manager {
 	return h.manager
 }
 
-// SetEventHandler sets the event handler (used to break circular dependency)
-func (h *Hub) SetEventHandler(eventHandler EventHandler) {
-	h.eventHandler = eventHandler
-}
-
-// RegisterHandler registers a message handler for a specific message type
-func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandler) {
-	h.handlers[messageType] = handler
-}
-
-// routeMessage routes incoming messages to appropriate handlers
+// routeMessage routes incoming messages to the store-based handler
 func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 	connection := hubMessage.Connection
 	message := hubMessage.Message
 
-	h.logger.Info("🔄 Routing WebSocket message",
+	logger.Info("🔄 Routing WebSocket message",
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
-	// Check if we have a registered handler for this message type
-	if handler, exists := h.handlers[message.Type]; exists {
-		h.logger.Debug("🎯 Routing to registered message handler",
+	// Route to store message handler
+	if h.storeMessageHandler != nil {
+		logger.Debug("🎯 Routing to store message handler",
 			zap.String("message_type", string(message.Type)))
-		handler.HandleMessage(ctx, connection, message)
+		h.storeMessageHandler(ctx, connection, message)
 	} else {
-		h.logger.Warn("❓ Unknown message type",
-			zap.String("message_type", string(message.Type)))
-		h.sendError(connection, ErrUnknownMessageType)
+		logger.Warn("❓ No store message handler configured")
+		h.sendError(connection, ErrHandlerNotAvailable)
 	}
 }
 
@@ -161,7 +119,7 @@ func (h *Hub) subscribeToEvents() {
 	// Subscribe to global parameter changes to trigger game updates (consolidated event only)
 	h.eventBus.Subscribe(events.EventTypeGlobalParametersChanged, h.handleGlobalParameterChange)
 
-	h.logger.Info("📡 WebSocket hub subscribed to events")
+	logger.Info("📡 WebSocket hub subscribed to events")
 }
 
 // handleGameUpdated processes game updated events
@@ -169,13 +127,13 @@ func (h *Hub) handleGameUpdated(ctx context.Context, event events.Event) error {
 	payload := event.GetPayload().(events.GameUpdatedEventData)
 	gameID := payload.GameID
 
-	h.logger.Info("🎮 Processing game updated broadcast",
+	logger.Info("🎮 Processing game updated broadcast",
 		zap.String("game_id", gameID))
 
 	// Delegate to broadcaster
 	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
 
-	h.logger.Info("✅ Game updated broadcast completed", zap.String("game_id", gameID))
+	logger.Info("✅ Game updated broadcast completed", zap.String("game_id", gameID))
 	return nil
 }
 
@@ -189,18 +147,18 @@ func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Even
 	case events.EventTypeGlobalParametersChanged:
 		payload := event.GetPayload().(events.GlobalParametersChangedEventData)
 		gameID = payload.GameID
-		h.logger.Debug("🌍 Processing global parameters change event",
+		logger.Debug("🌍 Processing global parameters change event",
 			zap.String("game_id", gameID),
 			zap.Strings("change_types", payload.ChangeTypes))
 	default:
-		h.logger.Warn("⚠️ Unknown global parameter event type", zap.String("event_type", event.GetType()))
+		logger.Warn("⚠️ Unknown global parameter event type", zap.String("event_type", event.GetType()))
 		return nil
 	}
 
 	// Trigger game update broadcast to notify clients of parameter changes
 	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
 
-	h.logger.Debug("✅ Global parameter change broadcast completed", zap.String("game_id", gameID))
+	logger.Debug("✅ Global parameter change broadcast completed", zap.String("game_id", gameID))
 	return nil
 }
 
@@ -229,3 +187,13 @@ const (
 	ErrHandlerNotAvailable = "Handler not available"
 	ErrUnknownMessageType  = "Unknown message type"
 )
+
+// SetStoreMessageHandler sets a handler function that uses the store
+func (h *Hub) SetStoreMessageHandler(handler func(context.Context, *Connection, interface{})) {
+	h.storeMessageHandler = handler
+}
+
+// GetStore returns the application store
+func (h *Hub) GetStore() *store.Store {
+	return h.appStore
+}

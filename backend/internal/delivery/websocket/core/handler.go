@@ -22,26 +22,24 @@ var upgrader = websocket.Upgrader{
 
 // Handler handles WebSocket HTTP upgrade requests
 type Handler struct {
-	hub    *Hub
-	logger *zap.Logger
+	hub *Hub
 }
 
 // NewHandler creates a new WebSocket handler
 func NewHandler(hub *Hub) *Handler {
 	return &Handler{
-		hub:    hub,
-		logger: logger.Get(),
+		hub: hub,
 	}
 }
 
 // ServeWS handles WebSocket upgrade requests from clients
 func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
+	logger.Info("🔗 WebSocket connection request received", zap.String("remote_addr", r.RemoteAddr))
 
 	// Upgrade connection to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.logger.Error("❌ Failed to upgrade connection to WebSocket", zap.Error(err))
+		logger.Error("❌ Failed to upgrade connection to WebSocket", zap.Error(err))
 		return
 	}
 
@@ -49,7 +47,7 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	connectionID := uuid.New().String()
 	connection := NewConnection(connectionID, conn, h.hub)
 
-	h.logger.Info("✅ New WebSocket connection established",
+	logger.Info("✅ New WebSocket connection established",
 		zap.String("connection_id", connectionID),
 		zap.String("remote_addr", r.RemoteAddr))
 
@@ -70,5 +68,5 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	go connection.WritePump()
 	go connection.ReadPump()
 
-	h.logger.Info("🎉 WebSocket connection fully initialized", zap.String("connection_id", connectionID))
+	logger.Info("🎉 WebSocket connection fully initialized", zap.String("connection_id", connectionID))
 }

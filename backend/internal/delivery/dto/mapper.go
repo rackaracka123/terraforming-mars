@@ -1,44 +1,15 @@
 package dto
 
 import (
-	"context"
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/service"
+
+	"go.uber.org/zap"
 )
 
-// ToGameDtoWithCardService converts a model Game to personalized GameDto with card lookup capability
-func ToGameDtoWithCardService(ctx context.Context, game model.Game, players []model.Player, viewingPlayerID string, cardService service.CardService) GameDto {
-	// Find the viewing player and other players
-	var currentPlayer PlayerDto
-	// Initialize as empty slice instead of nil to prevent interface conversion panics
-	otherPlayers := []OtherPlayerDto{}
-
-	for _, player := range players {
-		if player.ID == viewingPlayerID {
-			currentPlayer = ToPlayerDtoWithCardService(ctx, player, cardService)
-		} else {
-			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
-		}
-	}
-
-	return GameDto{
-		ID:               game.ID,
-		Status:           GameStatus(game.Status),
-		Settings:         ToGameSettingsDto(game.Settings),
-		HostPlayerID:     game.HostPlayerID,
-		CurrentPhase:     GamePhase(game.CurrentPhase),
-		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
-		CurrentPlayer:    currentPlayer,
-		OtherPlayers:     otherPlayers,
-		ViewingPlayerID:  viewingPlayerID,
-		CurrentTurn:      game.CurrentTurn,
-		Generation:       game.Generation,
-		TurnOrder:        game.PlayerIDs,
-	}
-}
-
 // ToGameDto converts a model Game to personalized GameDto
-func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) GameDto {
+func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, cardRegistry *cards.CardRegistry) GameDto {
 	// Find the viewing player and other players
 	var currentPlayer PlayerDto
 	// Initialize as empty slice instead of nil to prevent interface conversion panics
@@ -46,7 +17,7 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 
 	for _, player := range players {
 		if player.ID == viewingPlayerID {
-			currentPlayer = ToPlayerDto(player)
+			currentPlayer = ToPlayerDto(player, cardRegistry)
 		} else {
 			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
 		}
@@ -65,42 +36,17 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
-	}
-}
-
-// ToPlayerDtoWithCardService converts a model Player to PlayerDto with card lookup capability
-func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardService service.CardService) PlayerDto {
-	// Convert starting card IDs to full card objects
-	startingCards := ConvertCardIDsToCardDtos(ctx, player.StartingSelection, cardService)
-	// Convert hand card IDs to full card objects
-	handCards := ConvertCardIDsToCardDtos(ctx, player.Cards, cardService)
-
-	return PlayerDto{
-		ID:                player.ID,
-		Name:              player.Name,
-		Corporation:       player.Corporation,
-		Cards:             handCards,
-		Resources:         ToResourcesDto(player.Resources),
-		Production:        ToProductionDto(player.Production),
-		TerraformRating:   player.TerraformRating,
-		PlayedCards:       player.PlayedCards,
-		Passed:            player.Passed,
-		AvailableActions:  player.AvailableActions,
-		VictoryPoints:     player.VictoryPoints,
-		IsConnected:       player.IsConnected,
-		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: startingCards,
 	}
 }
 
 // ToPlayerDto converts a model Player to PlayerDto
-func ToPlayerDto(player model.Player) PlayerDto {
+func ToPlayerDto(player model.Player, cardRegistry *cards.CardRegistry) PlayerDto {
 
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
 		Corporation:       player.Corporation,
-		Cards:             []CardDto{}, // Empty since we can't convert IDs without card service
+		Cards:             ToStartingSelectionDto(player.Cards, cardRegistry), // Convert card IDs to CardDto
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
@@ -110,28 +56,11 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		VictoryPoints:     player.VictoryPoints,
 		IsConnected:       player.IsConnected,
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: []CardDto{}, // Empty since we can't convert IDs without card service
+		StartingSelection: ToStartingSelectionDto(player.StartingSelection, cardRegistry),
 	}
 }
 
-// ToOtherPlayerDto converts a model OtherPlayer to OtherPlayerDto
-func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
-	return OtherPlayerDto{
-		ID:               otherPlayer.ID,
-		Name:             otherPlayer.Name,
-		Corporation:      otherPlayer.Corporation,
-		HandCardCount:    otherPlayer.HandCardCount,
-		Resources:        ToResourcesDto(otherPlayer.Resources),
-		Production:       ToProductionDto(otherPlayer.Production),
-		TerraformRating:  otherPlayer.TerraformRating,
-		PlayedCards:      otherPlayer.PlayedCards,
-		Passed:           otherPlayer.Passed,
-		AvailableActions: otherPlayer.AvailableActions,
-		VictoryPoints:    otherPlayer.VictoryPoints,
-		IsConnected:      otherPlayer.IsConnected,
-		IsSelectingCards: otherPlayer.IsSelectingCards,
-	}
-}
+// ToOtherPlayerDto removed - OtherPlayer model was deleted
 
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
@@ -228,10 +157,10 @@ func ToGameDtoSlice(games []model.Game) []GameDto {
 }
 
 // ToPlayerDtoSlice converts a slice of model Players to PlayerDto slice
-func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
+func ToPlayerDtoSlice(players []model.Player, cardRegistry *cards.CardRegistry) []PlayerDto {
 	dtos := make([]PlayerDto, len(players))
 	for i, player := range players {
-		dtos[i] = ToPlayerDto(player)
+		dtos[i] = ToPlayerDto(player, cardRegistry)
 	}
 	return dtos
 }
@@ -359,26 +288,6 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 	return result
 }
 
-// ConvertCardIDsToCardDtos converts a slice of card IDs to CardDto objects
-func ConvertCardIDsToCardDtos(ctx context.Context, cardIDs []string, cardService service.CardService) []CardDto {
-	if len(cardIDs) == 0 {
-		return []CardDto{}
-	}
-
-	cardDtos := make([]CardDto, 0, len(cardIDs))
-	for _, cardID := range cardIDs {
-		card, err := cardService.GetCardByID(ctx, cardID)
-		if err != nil {
-			// Skip cards that can't be found but continue with others
-			continue
-		}
-		if card != nil {
-			cardDtos = append(cardDtos, ToCardDto(*card))
-		}
-	}
-	return cardDtos
-}
-
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto
 func ToProductionPhaseDto(phase *model.ProductionPhase) *ProductionPhaseDto {
 	if phase == nil {
@@ -389,4 +298,53 @@ func ToProductionPhaseDto(phase *model.ProductionPhase) *ProductionPhaseDto {
 		AvailableCards:    ToCardDtoSlice(phase.AvailableCards),
 		SelectionComplete: phase.SelectionComplete,
 	}
+}
+
+// ToStartingSelectionDto converts card IDs to real CardDto objects using card registry
+func ToStartingSelectionDto(cardIDs []string, cardRegistry *cards.CardRegistry) []CardDto {
+	if cardIDs == nil {
+		return []CardDto{}
+	}
+
+	// DEBUG: Log what we're trying to convert
+	logger.Debug("🔍 DEBUG: ToStartingSelectionDto called",
+		zap.Strings("card_ids", cardIDs),
+		zap.Bool("registry_available", cardRegistry != nil))
+
+	result := make([]CardDto, len(cardIDs))
+	for i, cardID := range cardIDs {
+		// Try to get real card from registry
+		if cardRegistry != nil {
+			if card, exists := cardRegistry.GetCard(cardID); exists {
+				logger.Debug("✅ DEBUG: Found card in registry",
+					zap.String("card_id", cardID),
+					zap.String("card_name", card.Name))
+				result[i] = ToCardDto(*card)
+				continue
+			} else {
+				logger.Debug("❌ DEBUG: Card NOT found in registry",
+					zap.String("card_id", cardID))
+			}
+		} else {
+			logger.Debug("❌ DEBUG: Card registry is nil")
+		}
+
+		// Fallback to placeholder if card not found
+		logger.Debug("📝 DEBUG: Creating placeholder card",
+			zap.String("card_id", cardID),
+			zap.String("placeholder_name", "Starting Card "+string(rune('A'+i))))
+		result[i] = CardDto{
+			ID:                cardID,
+			Name:              "Starting Card " + string(rune('A'+i)), // Placeholder names A, B, C, etc.
+			Type:              CardTypeAutomated,                      // Default type
+			Cost:              0,                                      // Placeholder cost
+			Description:       "Starting card option",                 // Placeholder description
+			Tags:              []CardTag{},                            // Empty tags
+			Requirements:      CardRequirements{},                     // No requirements
+			VictoryPoints:     0,                                      // No VP
+			Number:            cardID,                                 // Use ID as number
+			ProductionEffects: nil,                                    // No production effects
+		}
+	}
+	return result
 }

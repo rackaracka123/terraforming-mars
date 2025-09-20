@@ -5,10 +5,8 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/event"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/store"
 )
 
 // WebSocketService provides the main WebSocket functionality
@@ -17,28 +15,14 @@ type WebSocketService struct {
 	handler *core.Handler
 }
 
-// NewWebSocketService creates a new WebSocket service with clean architecture
-func NewWebSocketService(
-	gameService service.GameService,
-	playerService service.PlayerService,
-	standardProjectService service.StandardProjectService,
-	cardService service.CardService,
-	eventBus events.EventBus,
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-) *WebSocketService {
-	// Create hub first (without handlers to break circular dependency)
-	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil)
+// NewWebSocketService creates a new WebSocket service with store architecture
+func NewWebSocketService(appStore *store.Store, eventBus events.EventBus) *WebSocketService {
+	// Create hub with direct store integration
+	hub := core.NewHubWithStore(appStore, eventBus)
 
-	// Now create event handler with hub components
-	broadcaster := hub.GetBroadcaster()
-	eventHandler := event.NewEventHandler(broadcaster, cardService)
-
-	// Set event handler in hub
-	hub.SetEventHandler(eventHandler)
-
-	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo)
+	// Set up direct store message handling (no adapters needed)
+	dispatcher := NewWebSocketActionDispatcher(appStore, hub.GetManager())
+	hub.SetStoreMessageHandler(dispatcher.HandleMessage)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

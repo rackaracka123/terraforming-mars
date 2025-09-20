@@ -95,8 +95,7 @@ func NewInMemoryEventBusWithWorkers(workerCount, bufferSize int) *InMemoryEventB
 
 // startWorkers initializes the worker pool
 func (bus *InMemoryEventBus) startWorkers() {
-	log := logger.Get()
-	log.Info("🔥 Starting event bus worker pool", zap.Int("workers", bus.workers))
+	logger.Info("🔥 Starting event bus worker pool", zap.Int("workers", bus.workers))
 
 	for i := 0; i < bus.workers; i++ {
 		bus.workerWg.Add(1)
@@ -107,7 +106,7 @@ func (bus *InMemoryEventBus) startWorkers() {
 // worker processes event jobs from the queue
 func (bus *InMemoryEventBus) worker(id int) {
 	defer bus.workerWg.Done()
-	log := logger.Get().With(zap.Int("worker_id", id))
+	log := logger.WithContext(zap.Int("worker_id", id))
 
 	log.Debug("👷 Event worker started")
 	defer log.Debug("👷 Event worker stopped")
@@ -157,8 +156,7 @@ func (bus *InMemoryEventBus) Subscribe(eventType string, listener EventListener)
 
 	bus.listeners[eventType] = append(bus.listeners[eventType], listener)
 
-	log := logger.Get()
-	log.Info("Event listener registered",
+	logger.Info("Event listener registered",
 		zap.String("event_type", eventType),
 		zap.Int("listener_count", len(bus.listeners[eventType])),
 	)
@@ -251,8 +249,7 @@ func (bus *InMemoryEventBus) Close() error {
 	var closeErr error
 
 	bus.closeOnce.Do(func() {
-		log := logger.Get()
-		log.Info("🛑 Shutting down event bus worker pool")
+		logger.Info("🛑 Shutting down event bus worker pool")
 
 		// Signal all workers to stop
 		close(bus.closed)
@@ -267,9 +264,9 @@ func (bus *InMemoryEventBus) Close() error {
 		// Wait up to 30 seconds for graceful shutdown
 		select {
 		case <-done:
-			log.Info("✅ Event bus worker pool shut down gracefully")
+			logger.Info("✅ Event bus worker pool shut down gracefully")
 		case <-time.After(30 * time.Second):
-			log.Warn("⏰ Event bus worker pool shutdown timeout")
+			logger.Warn("⏰ Event bus worker pool shutdown timeout")
 			closeErr = errors.New("worker pool shutdown timeout")
 		}
 
@@ -283,11 +280,11 @@ func (bus *InMemoryEventBus) Close() error {
 		}
 
 		if remaining > 0 {
-			log.Warn("🗑️ Discarded unprocessed events during shutdown",
+			logger.Warn("🗑️ Discarded unprocessed events during shutdown",
 				zap.Int("count", remaining))
 		}
 
-		log.Info("🔒 Event bus completely shut down")
+		logger.Info("🔒 Event bus completely shut down")
 	})
 
 	return closeErr

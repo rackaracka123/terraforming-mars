@@ -110,3 +110,30 @@ func WithClientContext(clientID, playerID, gameID string) *zap.Logger {
 
 	return Get().With(fields...)
 }
+
+// Direct logging functions for convenience
+
+// Debug logs a message at debug level
+func Debug(msg string, fields ...zap.Field) {
+	Get().Debug(msg, fields...)
+}
+
+// Info logs a message at info level
+func Info(msg string, fields ...zap.Field) {
+	Get().Info(msg, fields...)
+}
+
+// Warn logs a message at warn level
+func Warn(msg string, fields ...zap.Field) {
+	Get().Warn(msg, fields...)
+}
+
+// Error logs a message at error level
+func Error(msg string, fields ...zap.Field) {
+	Get().Error(msg, fields...)
+}
+
+// Fatal logs a message at fatal level
+func Fatal(msg string, fields ...zap.Field) {
+	Get().Fatal(msg, fields...)
+}

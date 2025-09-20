@@ -56,24 +56,33 @@ make backend     # Go backend server
 ## 🏗️ Technology Stack
 
 - **Frontend**: React, TypeScript, Three.js, React Three Fiber
-- **Backend**: Go, Gorilla WebSocket, Clean Architecture
+- **Backend**: Go, Gorilla WebSocket, Clean Architecture, Redux-style State Management
 - **3D Graphics**: Three.js with custom hex coordinate system
 - **Type Safety**: Go-to-TypeScript code generation
 - **Multiplayer**: WebSocket real-time communication
+- **State Management**: Unified reducer pattern with action dispatching
 
 ## 🎮 Game Architecture
 
 ### Backend (Go)
 - **Domain Layer**: Core game entities and business logic
 - **Service Layer**: Use cases and application logic
+- **Store Layer**: Redux-style state management with unified GameReducer
 - **Delivery Layer**: HTTP handlers and WebSocket hub
 - **Repository Layer**: In-memory game state storage
 
 ### Frontend (React)
 - **3D Rendering**: React Three Fiber with custom pan controls
-- **Game State**: Redux with generated TypeScript types
-- **Real-time Updates**: WebSocket client for live game state
+- **Game State**: WebSocket-driven state updates with generated TypeScript types
+- **Real-time Updates**: WebSocket client receives state changes from backend store
 - **Component Architecture**: Modular UI with asset integration
+
+### State Management Flow
+1. **Actions**: Typed actions dispatched through WebSocket or HTTP
+2. **GameReducer**: Single reducer handles all game and player state changes
+3. **Store**: Immutable state updates with middleware pipeline
+4. **Events**: Domain events published for real-time synchronization
+5. **WebSocket**: State changes broadcast to all connected clients
 
 ## 📋 Development Workflow
 
