@@ -43,7 +43,12 @@
       "mcp__playwright__browser_drag",
       "mcp__context7__resolve-library-id",
       "WebSearch",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(gradle build)",
+      "Bash(java:*)",
+      "Bash(gradle clean:*)",
+      "Bash(gradle:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

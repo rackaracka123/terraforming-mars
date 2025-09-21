@@ -50,7 +50,7 @@ const JoinGamePage: React.FC = () => {
       }
 
       // Check if game is in a joinable state
-      if (game.status !== "lobby" && game.status !== "waiting") {
+      if (game.status !== "lobby") {
         throw new Error("Game has already started");
       }
 
@@ -112,7 +112,7 @@ const JoinGamePage: React.FC = () => {
       }
 
       // Check if game is in a joinable state
-      if (game.status !== "lobby" && game.status !== "waiting") {
+      if (game.status !== "lobby") {
         throw new Error("Game has already started");
       }
 

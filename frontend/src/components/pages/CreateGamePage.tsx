@@ -33,39 +33,35 @@ const CreateGamePage: React.FC = () => {
         maxPlayers: 4, // Default max players
       };
 
-      // Creating game with settings
-      const game = await apiService.createGame(gameSettings);
+      // Creating game with settings - backend already creates host player
+      const game = await apiService.createGame(gameSettings, playerName.trim());
 
-      // Global WebSocket manager handles connection automatically
-      // Connect player to the game
-      const playerConnectedResult = await globalWebSocketManager.playerConnect(
-        playerName.trim(),
-        game.id,
+      // Initialize WebSocket connection (without creating duplicate player)
+      await globalWebSocketManager.initialize();
+
+      // Use the currentPlayer.id from the game response (host player ID)
+      const currentPlayerId = game.currentPlayer.id;
+      globalWebSocketManager.setCurrentPlayerId(currentPlayerId);
+
+      const gameData = {
+        gameId: game.id,
+        playerId: currentPlayerId,
+        playerName: playerName.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        "terraforming-mars-game",
+        JSON.stringify(gameData),
       );
 
-      if (playerConnectedResult.game) {
-        const gameData = {
-          gameId: playerConnectedResult.game.id,
-          playerId: playerConnectedResult.playerId,
+      // Navigate to the main game interface with the complete game state
+      navigate("/game", {
+        state: {
+          game: game,
+          playerId: currentPlayerId,
           playerName: playerName.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        localStorage.setItem(
-          "terraforming-mars-game",
-          JSON.stringify(gameData),
-        );
-
-        // Navigate to the main game interface with the complete game state
-        navigate("/game", {
-          state: {
-            game: playerConnectedResult.game,
-            playerId: playerConnectedResult.playerId,
-            playerName: playerName.trim(),
-          },
-        });
-      } else {
-        setError("Failed to connect to the game");
-      }
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create game");
     } finally {

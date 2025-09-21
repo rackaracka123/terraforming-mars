@@ -19,9 +19,8 @@ import {
   CardDto,
   FullStatePayload,
   GameDto,
-  GamePhaseStartingCardSelection,
-  GameStatusActive,
-  GameStatusLobby,
+  GamePhase,
+  GameStatus,
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerReconnectedPayload,
@@ -488,8 +487,8 @@ export default function GameInterface() {
     const hasCardSelection = cards && cards.length > 0;
 
     if (
-      game?.currentPhase === GamePhaseStartingCardSelection &&
-      game?.status === GameStatusActive &&
+      game?.currentPhase === GamePhase.STARTING_CARD_SELECTION &&
+      game?.status === GameStatus.ACTIVE &&
       hasCardSelection &&
       !showCardSelection
     ) {
@@ -573,7 +572,7 @@ export default function GameInterface() {
     showProductionPhaseModal;
 
   // Check if game is in lobby phase
-  const isLobbyPhase = game?.status === GameStatusLobby;
+  const isLobbyPhase = game?.status === GameStatus.LOBBY;
 
   return (
     <>

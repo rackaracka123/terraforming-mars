@@ -15,10 +15,11 @@ export class ApiService {
     this.baseUrl = baseUrl;
   }
 
-  async createGame(settings: GameSettingsDto): Promise<GameDto> {
+  async createGame(settings: GameSettingsDto, playerName: string): Promise<GameDto> {
     try {
       const request: CreateGameRequest = {
         maxPlayers: settings.maxPlayers,
+        playerName: playerName,
       };
 
       const response = await fetch(`${this.baseUrl}/games`, {

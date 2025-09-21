@@ -4,32 +4,12 @@ import {
   FullStatePayload,
   GameUpdatedPayload,
   MessageType,
-  MessageTypeError,
-  MessageTypeFullState,
-  MessageTypeGameUpdated,
-  MessageTypePlayerConnect,
-  MessageTypePlayerConnected,
-  MessageTypePlayerReconnected,
-  MessageTypePlayerDisconnected,
-  MessageTypeProductionPhaseStarted,
-  // New message types
-  MessageTypeActionSellPatents,
-  MessageTypeActionLaunchAsteroid,
-  MessageTypeActionBuildPowerPlant,
-  MessageTypeActionBuildAquifer,
-  MessageTypeActionPlantGreenery,
-  MessageTypeActionBuildCity,
-  MessageTypeActionStartGame,
-  MessageTypeActionSkipAction,
-  MessageTypeActionPlayCard,
-  MessageTypeActionSelectStartingCard,
-  MessageTypeActionSelectCards,
+  WebSocketMessage,
   // Payload types
   PlayerConnectedPayload,
   PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
   ProductionPhaseStartedPayload,
-  WebSocketMessage,
   HexPositionDto,
 } from "../types/generated/api-types.ts";
 
@@ -112,66 +92,77 @@ export class WebSocketService {
     });
   }
 
-  private handleMessage(message: WebSocketMessage) {
-    switch (message.type) {
-      case MessageTypeGameUpdated: {
-        const gamePayload = message.payload as GameUpdatedPayload;
-        this.emit("game-updated", gamePayload.game);
-        break;
+  private handleMessage(message: any) {
+    // Handle the backend's direct serialization format
+    // Backend sends FullStateEvent directly as {game, playerId} without a type wrapper
+    if (message.game && message.playerId && !message.type) {
+      const statePayload: FullStatePayload = {
+        game: message.game,
+        playerId: message.playerId
+      };
+      this.currentPlayerId = statePayload.playerId;
+      this.emit("full-state", statePayload);
+      return;
+    }
+
+    // Handle the standard WebSocketMessage format
+    if (message.type) {
+      switch (message.type) {
+        case MessageType.GAME_UPDATED: {
+          const gamePayload = message.payload as GameUpdatedPayload;
+          this.emit("game-updated", gamePayload.game);
+          break;
+        }
+        case MessageType.PLAYER_CONNECTED: {
+          const playerPayload = message.payload as PlayerConnectedPayload;
+          this.currentPlayerId = playerPayload.playerId;
+          this.emit("player-connected", playerPayload);
+          break;
+        }
+        case MessageType.PLAYER_RECONNECTED: {
+          const reconnectedPayload = message.payload as PlayerReconnectedPayload;
+          this.emit("player-reconnected", reconnectedPayload);
+          break;
+        }
+        case MessageType.PLAYER_DISCONNECTED: {
+          const disconnectedPayload =
+            message.payload as PlayerDisconnectedPayload;
+          this.emit("player-disconnected", disconnectedPayload);
+          break;
+        }
+        case MessageType.ERROR: {
+          const errorPayload = message.payload as ErrorPayload;
+          this.emit("error", errorPayload);
+          break;
+        }
+        case MessageType.FULL_STATE: {
+          const statePayload = message.payload as FullStatePayload;
+          this.currentPlayerId = statePayload.playerId;
+          this.emit("full-state", statePayload);
+          break;
+        }
+        case MessageType.PRODUCTION_PHASE_STARTED: {
+          const productionPayload =
+            message.payload as ProductionPhaseStartedPayload;
+          this.emit("production-phase-started", productionPayload);
+          break;
+        }
+        default:
+          console.warn("Unknown message type:", message.type);
       }
-      case MessageTypePlayerConnected: {
-        const playerPayload = message.payload as PlayerConnectedPayload;
-        this.currentPlayerId = playerPayload.playerId;
-        this.emit("player-connected", playerPayload);
-        break;
-      }
-      case MessageTypePlayerReconnected: {
-        const reconnectedPayload = message.payload as PlayerReconnectedPayload;
-        this.emit("player-reconnected", reconnectedPayload);
-        break;
-      }
-      case MessageTypePlayerDisconnected: {
-        const disconnectedPayload =
-          message.payload as PlayerDisconnectedPayload;
-        this.emit("player-disconnected", disconnectedPayload);
-        break;
-      }
-      case MessageTypeError: {
-        const errorPayload = message.payload as ErrorPayload;
-        this.emit("error", errorPayload);
-        break;
-      }
-      case MessageTypeFullState: {
-        const statePayload = message.payload as FullStatePayload;
-        this.currentPlayerId = statePayload.playerId;
-        this.emit("full-state", statePayload);
-        break;
-      }
-      case MessageTypeProductionPhaseStarted: {
-        const productionPayload =
-          message.payload as ProductionPhaseStartedPayload;
-        this.emit("production-phase-started", productionPayload);
-        break;
-      }
-      default:
-        console.warn("Unknown message type:", message.type);
+    } else {
+      console.warn("Unknown message format:", message);
     }
   }
 
-  send(type: MessageType, payload: unknown, gameId?: string): string {
+  sendCommand(command: any): string {
     const reqId = uuidv4();
 
     if (!this.isConnected || !this.ws) {
       throw new Error("WebSocket is not connected");
     }
 
-    const message: WebSocketMessage = {
-      type,
-      payload,
-      gameId: gameId || this.currentGameId || undefined,
-    };
-
-    this.ws.send(JSON.stringify(message));
+    this.ws.send(JSON.stringify(command));
 
     return reqId;
   }
@@ -182,19 +173,22 @@ export class WebSocketService {
     playerId?: string,
   ): Promise<PlayerConnectedPayload | PlayerReconnectedPayload> {
     return new Promise((resolve, reject) => {
-      // Send the connect message with playerId if available (for reconnection)
-      const payload: any = { playerName, gameId };
-      if (playerId) {
-        payload.playerId = playerId;
-      }
+      // Send the connect command directly
+      const command = {
+        type: "player-connect",
+        playerName,
+        gameId,
+        playerId: playerId || null
+      };
 
-      this.send(MessageTypePlayerConnect, payload, gameId);
+      this.sendCommand(command);
       this.currentGameId = gameId;
 
       // Set up timeout
       const timeout = setTimeout(() => {
         this.off("player-connected", connectedHandler);
         this.off("player-reconnected", reconnectedHandler);
+        this.off("full-state", fullStateHandler);
         this.off("error", errorHandler);
         reject(new Error("Timeout waiting for player connection confirmation"));
       }, 10000); // 10 second timeout
@@ -205,6 +199,7 @@ export class WebSocketService {
           clearTimeout(timeout);
           this.off("player-connected", connectedHandler);
           this.off("player-reconnected", reconnectedHandler);
+          this.off("full-state", fullStateHandler);
           this.off("error", errorHandler);
           this.currentPlayerId = payload.playerId;
           resolve(payload);
@@ -217,9 +212,31 @@ export class WebSocketService {
           clearTimeout(timeout);
           this.off("player-connected", connectedHandler);
           this.off("player-reconnected", reconnectedHandler);
+          this.off("full-state", fullStateHandler);
           this.off("error", errorHandler);
           this.currentPlayerId = payload.playerId;
           resolve(payload);
+        }
+      };
+
+      // Handler for full state (which includes player connection info)
+      const fullStateHandler = (payload: FullStatePayload) => {
+        // Check if this is for our player by matching the gameId and that we have a playerId
+        if (payload.game.id === gameId && payload.playerId) {
+          clearTimeout(timeout);
+          this.off("player-connected", connectedHandler);
+          this.off("player-reconnected", reconnectedHandler);
+          this.off("full-state", fullStateHandler);
+          this.off("error", errorHandler);
+          this.currentPlayerId = payload.playerId;
+
+          // Convert FullStatePayload to PlayerConnectedPayload format for compatibility
+          const connectedPayload: PlayerConnectedPayload = {
+            playerId: payload.playerId,
+            playerName: playerName,
+            game: payload.game
+          };
+          resolve(connectedPayload);
         }
       };
 
@@ -228,62 +245,115 @@ export class WebSocketService {
         clearTimeout(timeout);
         this.off("player-connected", connectedHandler);
         this.off("player-reconnected", reconnectedHandler);
+        this.off("full-state", fullStateHandler);
         this.off("error", errorHandler);
         reject(new Error(errorPayload.message || "Connection failed"));
       };
 
-      // Listen for both types of responses
+      // Listen for all types of responses
       this.on("player-connected", connectedHandler);
       this.on("player-reconnected", reconnectedHandler);
+      this.on("full-state", fullStateHandler);
       this.on("error", errorHandler);
     });
   }
 
   // Standard project actions
   sellPatents(cardCount: number): string {
-    return this.send(MessageTypeActionSellPatents, { cardCount });
+    return this.sendCommand({
+      type: "action.standard-project.sell-patents",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      cardCount
+    });
   }
 
   launchAsteroid(): string {
-    return this.send(MessageTypeActionLaunchAsteroid, {});
+    return this.sendCommand({
+      type: "action.standard-project.launch-asteroid",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId
+    });
   }
 
   buildPowerPlant(): string {
-    return this.send(MessageTypeActionBuildPowerPlant, {});
+    return this.sendCommand({
+      type: "action.standard-project.build-power-plant",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId
+    });
   }
 
   buildAquifer(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionBuildAquifer, { hexPosition });
+    return this.sendCommand({
+      type: "action.standard-project.build-aquifer",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      hexPosition
+    });
   }
 
   plantGreenery(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionPlantGreenery, { hexPosition });
+    return this.sendCommand({
+      type: "action.standard-project.plant-greenery",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      hexPosition
+    });
   }
 
   buildCity(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionBuildCity, { hexPosition });
+    return this.sendCommand({
+      type: "action.standard-project.build-city",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      hexPosition
+    });
   }
 
   // Game management actions
   startGame(): string {
-    return this.send(MessageTypeActionStartGame, {});
+    return this.sendCommand({
+      type: "action.game-management.start-game",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId
+    });
   }
 
   skipAction(): string {
-    return this.send(MessageTypeActionSkipAction, {});
+    return this.sendCommand({
+      type: "action.game-management.skip-action",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId
+    });
   }
 
   // Card actions
   playCard(cardId: string): string {
-    return this.send(MessageTypeActionPlayCard, { type: "play-card", cardId });
+    return this.sendCommand({
+      type: "action.card.play-card",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      cardId
+    });
   }
 
   selectStartingCard(cardIds: string[]): string {
-    return this.send(MessageTypeActionSelectStartingCard, { cardIds });
+    return this.sendCommand({
+      type: "action.card.select-starting-card",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      cardIds
+    });
   }
 
   selectCards(cardIds: string[]): string {
-    return this.send(MessageTypeActionSelectCards, { cardIds });
+    return this.sendCommand({
+      type: "action.card.select-cards",
+      gameId: this.currentGameId,
+      playerId: this.currentPlayerId,
+      cardIds
+    });
   }
 
   // productionPhaseReady(): string {
