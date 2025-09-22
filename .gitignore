@@ -63,3 +63,5 @@ backend/tools/parse_cards
 
 # Claude local settings
 /claude/*\.local\.*
+
+backend/.gradle
