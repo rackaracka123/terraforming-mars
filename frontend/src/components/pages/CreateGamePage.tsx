@@ -8,6 +8,7 @@ import styles from "./CreateGamePage.module.css";
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState("");
+  const [developmentMode, setDevelopmentMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +32,7 @@ const CreateGamePage: React.FC = () => {
       // Create game with default settings
       const gameSettings: GameSettingsDto = {
         maxPlayers: 4, // Default max players
+        developmentMode: developmentMode,
       };
 
       const game = await apiService.createGame(gameSettings);
@@ -114,6 +116,30 @@ const CreateGamePage: React.FC = () => {
                   className={styles.arrowIcon}
                 />
               </button>
+            </div>
+
+            <div className={styles.developmentModeContainer}>
+              <label className={styles.developmentModeLabel}>
+                <input
+                  type="checkbox"
+                  checked={developmentMode}
+                  onChange={(e) => setDevelopmentMode(e.target.checked)}
+                  disabled={isLoading}
+                  className={styles.developmentModeCheckbox}
+                />
+                <span className={styles.checkboxText}>
+                  Development Mode
+                  <div className={styles.tooltipContainer}>
+                    <span className={styles.tooltipIcon}>ⓘ</span>
+                    <div className={styles.tooltipText}>
+                      Enable admin commands for debugging and testing. Allows
+                      you to give cards to players, modify resources/production,
+                      change game phases, and adjust global parameters through
+                      the debug panel.
+                    </div>
+                  </div>
+                </span>
+              </label>
             </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}

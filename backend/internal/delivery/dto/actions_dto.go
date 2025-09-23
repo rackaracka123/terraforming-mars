@@ -196,3 +196,50 @@ type ActionBuildCityRequest struct {
 func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 	return &BuildCityAction{Type: ap.Type, HexPosition: ap.HexPosition}
 }
+
+// Admin Command Types (Development Mode Only)
+
+// AdminCommandType represents different types of admin commands
+type AdminCommandType string
+
+const (
+	AdminCommandTypeGiveCard        AdminCommandType = "give-card"
+	AdminCommandTypeSetPhase        AdminCommandType = "set-phase"
+	AdminCommandTypeSetResources    AdminCommandType = "set-resources"
+	AdminCommandTypeSetProduction   AdminCommandType = "set-production"
+	AdminCommandTypeSetGlobalParams AdminCommandType = "set-global-params"
+)
+
+// AdminCommandRequest contains the admin command data
+type AdminCommandRequest struct {
+	CommandType AdminCommandType `json:"commandType" ts:"AdminCommandType"`
+	Payload     interface{}      `json:"payload" ts:"any"`
+}
+
+// GiveCardAdminCommand represents giving a card to a player
+type GiveCardAdminCommand struct {
+	PlayerID string `json:"playerId" ts:"string"`
+	CardID   string `json:"cardId" ts:"string"`
+}
+
+// SetPhaseAdminCommand represents setting the game phase
+type SetPhaseAdminCommand struct {
+	Phase string `json:"phase" ts:"string"`
+}
+
+// SetResourcesAdminCommand represents setting a player's resources
+type SetResourcesAdminCommand struct {
+	PlayerID  string       `json:"playerId" ts:"string"`
+	Resources ResourcesDto `json:"resources" ts:"ResourcesDto"`
+}
+
+// SetProductionAdminCommand represents setting a player's production
+type SetProductionAdminCommand struct {
+	PlayerID   string        `json:"playerId" ts:"string"`
+	Production ProductionDto `json:"production" ts:"ProductionDto"`
+}
+
+// SetGlobalParamsAdminCommand represents setting global parameters
+type SetGlobalParamsAdminCommand struct {
+	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`
+}

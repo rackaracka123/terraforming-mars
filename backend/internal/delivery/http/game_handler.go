@@ -35,7 +35,8 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 
 	// Delegate to service
 	gameSettings := model.GameSettings{
-		MaxPlayers: req.MaxPlayers,
+		MaxPlayers:      req.MaxPlayers,
+		DevelopmentMode: req.DevelopmentMode,
 	}
 
 	game, err := h.gameService.CreateGame(r.Context(), gameSettings)

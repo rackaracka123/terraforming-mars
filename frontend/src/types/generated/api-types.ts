@@ -167,6 +167,56 @@ export interface ActionBuildCityRequest {
   type: ActionType;
   hexPosition: HexPositionDto;
 }
+/**
+ * AdminCommandType represents different types of admin commands
+ */
+export type AdminCommandType = string;
+export const AdminCommandTypeGiveCard: AdminCommandType = "give-card";
+export const AdminCommandTypeSetPhase: AdminCommandType = "set-phase";
+export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
+export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
+export const AdminCommandTypeSetGlobalParams: AdminCommandType =
+  "set-global-params";
+/**
+ * AdminCommandRequest contains the admin command data
+ */
+export interface AdminCommandRequest {
+  commandType: AdminCommandType;
+  payload: any;
+}
+/**
+ * GiveCardAdminCommand represents giving a card to a player
+ */
+export interface GiveCardAdminCommand {
+  playerId: string;
+  cardId: string;
+}
+/**
+ * SetPhaseAdminCommand represents setting the game phase
+ */
+export interface SetPhaseAdminCommand {
+  phase: string;
+}
+/**
+ * SetResourcesAdminCommand represents setting a player's resources
+ */
+export interface SetResourcesAdminCommand {
+  playerId: string;
+  resources: ResourcesDto;
+}
+/**
+ * SetProductionAdminCommand represents setting a player's production
+ */
+export interface SetProductionAdminCommand {
+  playerId: string;
+  production: ProductionDto;
+}
+/**
+ * SetGlobalParamsAdminCommand represents setting global parameters
+ */
+export interface SetGlobalParamsAdminCommand {
+  globalParameters: GlobalParametersDto;
+}
 
 //////////
 // source: game_dto.go
@@ -286,6 +336,7 @@ export interface ProductionPhaseDto {
  */
 export interface GameSettingsDto {
   maxPlayers: number /* int */;
+  developmentMode: boolean;
 }
 /**
  * GlobalParametersDto represents the terraforming progress
@@ -494,6 +545,7 @@ export interface BoardDto {
  */
 export interface CreateGameRequest {
   maxPlayers: number /* int */;
+  developmentMode: boolean;
 }
 /**
  * CreateGameResponse represents the response for creating a game
@@ -615,6 +667,10 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+/**
+ * Admin message types (development mode only)
+ */
+export const MessageTypeAdminCommand: MessageType = "admin-command";
 
 //////////
 // source: websocket_dto.go

@@ -1,15 +1,20 @@
 import React from "react";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
+import { GameDto } from "../../../types/generated/api-types.ts";
 import styles from "./TopMenuBar.module.css";
 
-const TopMenuBar: React.FC = () => {
+interface TopMenuBarProps {
+  gameState?: GameDto | null;
+}
+
+const TopMenuBar: React.FC<TopMenuBarProps> = ({ gameState }) => {
   const { setContentType, setContentData } = useMainContent();
 
   const menuItems = [
     { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
     { id: "projects" as const, label: "STANDARD PROJECTS", color: "#4a90e2" },
     { id: "awards" as const, label: "AWARDS", color: "#f39c12" },
-    { id: "debug" as const, label: "DEBUG", color: "#9b59b6" },
+    { id: "debug" as const, label: "ADMIN TOOLS", color: "#9b59b6" },
   ];
 
   // Mock data for different content types - normally this would come from game state
@@ -157,6 +162,11 @@ const TopMenuBar: React.FC = () => {
           <button className={styles.actionBtn}>📊 Stats</button>
         </div>
       </div>
+
+      {/* Dev Mode Chip */}
+      {gameState?.settings?.developmentMode && (
+        <div className={styles.devModeChip}>DEV MODE</div>
+      )}
     </div>
   );
 };

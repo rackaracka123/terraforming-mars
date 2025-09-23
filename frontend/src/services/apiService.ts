@@ -19,6 +19,7 @@ export class ApiService {
     try {
       const request: CreateGameRequest = {
         maxPlayers: settings.maxPlayers,
+        developmentMode: settings.developmentMode,
       };
 
       const response = await fetch(`${this.baseUrl}/games`, {
