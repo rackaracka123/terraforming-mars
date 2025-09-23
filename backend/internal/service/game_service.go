@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 
+	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -49,14 +51,18 @@ type GameService interface {
 
 	// Process production phase ready acknowledgment from client
 	ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*model.Game, error)
+
+	// Handle player reconnection - updates connection status and sends complete game state
+	PlayerReconnected(ctx context.Context, gameID string, playerID string) error
 }
 
 // GameServiceImpl implements GameService interface
 type GameServiceImpl struct {
-	gameRepo    repository.GameRepository
-	playerRepo  repository.PlayerRepository
-	cardService *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
-	eventBus    events.EventBus
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	eventBus       events.EventBus
+	sessionManager session.SessionManager
 }
 
 // NewGameService creates a new GameService instance
@@ -65,12 +71,14 @@ func NewGameService(
 	playerRepo repository.PlayerRepository,
 	cardService *CardServiceImpl,
 	eventBus events.EventBus,
+	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
-		gameRepo:    gameRepo,
-		playerRepo:  playerRepo,
-		cardService: cardService,
-		eventBus:    eventBus,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		cardService:    cardService,
+		eventBus:       eventBus,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -200,6 +208,14 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	}
 
 	log.Info("Game started", zap.String("game_id", gameID))
+
+	// Broadcast game state to all players after starting
+	err = s.broadcastGameState(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to broadcast game started", zap.Error(err))
+		// Don't fail the start operation, just log the error
+	}
+
 	return nil
 }
 
@@ -612,6 +628,13 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 
 	log.Debug("Player joined game", zap.String("player_id", playerID))
 
+	// Broadcast updated game state to all existing players (except the new player)
+	err = s.broadcastPlayerJoined(ctx, gameID, playerID, player.Name, updatedGame)
+	if err != nil {
+		log.Error("Failed to broadcast player joined", zap.Error(err))
+		// Don't fail the join operation, just log the error
+	}
+
 	return updatedGame, nil
 }
 
@@ -1011,4 +1034,172 @@ func (s *GameServiceImpl) PlaceOcean(ctx context.Context, gameID string, count i
 	updatedParams.Oceans = newOceans
 
 	return s.UpdateGlobalParameters(ctx, gameID, updatedParams)
+}
+
+// PlayerReconnected handles player reconnection by updating connection status and sending complete game state
+func (s *GameServiceImpl) PlayerReconnected(ctx context.Context, gameID string, playerID string) error {
+	log := logger.WithContext().With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+	)
+
+	log.Info("🔄 Processing player reconnection")
+
+	// Update player connection status
+	err := s.playerRepo.UpdateConnectionStatus(ctx, gameID, playerID, true)
+	if err != nil {
+		log.Error("Failed to update player connection status", zap.Error(err))
+		// Continue with reconnection even if status update fails
+	}
+
+	// Get complete game state with all players
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game state for reconnection", zap.Error(err))
+		return fmt.Errorf("failed to get game state: %w", err)
+	}
+
+	// Get all players for personalized state
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for reconnection", zap.Error(err))
+		return fmt.Errorf("failed to get players: %w", err)
+	}
+
+	// Create personalized game DTO - use basic mapper, card details handled separately if needed
+	gameDTO := dto.ToGameDto(game, players, playerID)
+
+	// Send reconnection confirmation to the player
+	err = s.sessionManager.SendToPlayer(playerID, gameID, dto.MessageTypePlayerReconnected, dto.PlayerReconnectedPayload{
+		PlayerID:   playerID,
+		PlayerName: s.getPlayerName(players, playerID),
+		Game:       gameDTO,
+	})
+	if err != nil {
+		log.Error("Failed to send reconnection confirmation", zap.Error(err))
+		return fmt.Errorf("failed to send reconnection message: %w", err)
+	}
+
+	// Send complete game state to the player
+	err = s.sessionManager.SendToPlayer(playerID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+		Game: gameDTO,
+	})
+	if err != nil {
+		log.Error("Failed to send game state to reconnected player", zap.Error(err))
+		return fmt.Errorf("failed to send game state: %w", err)
+	}
+
+	log.Info("✅ Player reconnection completed successfully")
+	return nil
+}
+
+// getPlayerName is a helper method to find player name by ID
+func (s *GameServiceImpl) getPlayerName(players []model.Player, playerID string) string {
+	for _, player := range players {
+		if player.ID == playerID {
+			return player.Name
+		}
+	}
+	return "Unknown" // Fallback if player not found
+}
+
+// broadcastPlayerJoined notifies all existing players that a new player has joined
+func (s *GameServiceImpl) broadcastPlayerJoined(ctx context.Context, gameID, newPlayerID, newPlayerName string, game model.Game) error {
+	log := logger.WithContext().With(
+		zap.String("game_id", gameID),
+		zap.String("new_player_id", newPlayerID),
+		zap.String("new_player_name", newPlayerName),
+	)
+
+	log.Info("📢 Broadcasting player joined to existing players")
+
+	// Get all players to create personalized game states
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for broadcasting", zap.Error(err))
+		return err
+	}
+
+	// Send personalized game state to each existing player (except the new player)
+	for _, player := range players {
+		if player.ID == newPlayerID {
+			continue // Skip the player who just joined - they already got their state
+		}
+
+		// Create personalized game state for this player
+		personalizedGameDTO := dto.ToGameDto(game, players, player.ID)
+
+		// Send player connected notification with personalized game state
+		err = s.sessionManager.SendToPlayer(player.ID, gameID, dto.MessageTypePlayerConnected, dto.PlayerConnectedPayload{
+			PlayerID:   newPlayerID,
+			PlayerName: newPlayerName,
+			Game:       personalizedGameDTO,
+		})
+		if err != nil {
+			log.Error("Failed to send player connected notification",
+				zap.Error(err),
+				zap.String("recipient_player_id", player.ID))
+			continue // Continue with other players
+		}
+
+		// Send updated game state with personalized view
+		err = s.sessionManager.SendToPlayer(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+			Game: personalizedGameDTO,
+		})
+		if err != nil {
+			log.Error("Failed to send game state update",
+				zap.Error(err),
+				zap.String("recipient_player_id", player.ID))
+			continue // Continue with other players
+		}
+
+		log.Debug("✅ Sent personalized state to existing player",
+			zap.String("existing_player_id", player.ID))
+	}
+
+	log.Info("✅ Player joined broadcast completed")
+	return nil
+}
+
+// broadcastGameState notifies all players of updated game state
+func (s *GameServiceImpl) broadcastGameState(ctx context.Context, gameID string) error {
+	log := logger.WithContext().With(zap.String("game_id", gameID))
+	log.Info("🚀 Broadcasting game started to all players")
+
+	// Get updated game state
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for broadcast", zap.Error(err))
+		return err
+	}
+
+	// Get all players for personalized game states
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for broadcast", zap.Error(err))
+		return err
+	}
+
+	// Send personalized game state to each player
+	for _, player := range players {
+		// Create personalized game state for this player
+		personalizedGameDTO := dto.ToGameDto(game, players, player.ID)
+
+		// Send updated game state with personalized view
+		err = s.sessionManager.SendToPlayer(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+			Game: personalizedGameDTO,
+		})
+		if err != nil {
+			log.Error("Failed to send game state update to player",
+				zap.Error(err),
+				zap.String("player_id", player.ID))
+			continue // Continue with other players
+		}
+
+		log.Debug("✅ Sent personalized game state to player",
+			zap.String("player_id", player.ID))
+	}
+
+	log.Info("✅ Game started broadcast completed")
+	return nil
 }

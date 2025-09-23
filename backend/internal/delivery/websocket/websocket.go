@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/event"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -26,16 +26,10 @@ func NewWebSocketService(
 	eventBus events.EventBus,
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
+	sessionManager session.SessionManager,
 ) *WebSocketService {
-	// Create hub first (without handlers to break circular dependency)
-	hub := core.NewHub(gameService, playerService, standardProjectService, cardService, eventBus, nil)
-
-	// Now create event handler with hub components
-	broadcaster := hub.GetBroadcaster()
-	eventHandler := event.NewEventHandler(broadcaster, cardService)
-
-	// Set event handler in hub
-	hub.SetEventHandler(eventHandler)
+	// Create hub with shared SessionManager
+	hub := core.NewHub(eventBus, sessionManager)
 
 	// Register specific message type handlers with middleware support
 	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo)

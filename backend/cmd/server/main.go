@@ -10,6 +10,7 @@ import (
 
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -67,10 +68,14 @@ func main() {
 			zap.Int("total_cards", len(allCards)))
 	}
 
+	// Initialize SessionManager for WebSocket broadcasting
+	sessionManager := session.NewSessionManager()
+	log.Info("SessionManager initialized for service-level broadcasting")
+
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
@@ -92,8 +97,8 @@ func main() {
 		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
-	// Initialize WebSocket service
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
+	// Initialize WebSocket service with shared SessionManager
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo, sessionManager)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

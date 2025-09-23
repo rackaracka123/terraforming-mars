@@ -18,17 +18,15 @@ import (
 type Handler struct {
 	gameService   service.GameService
 	playerService service.PlayerService
-	broadcaster   *core.Broadcaster
 	errorHandler  *utils.ErrorHandler
 	logger        *zap.Logger
 }
 
 // NewHandler creates a new skip action handler
-func NewHandler(gameService service.GameService, playerService service.PlayerService, broadcaster *core.Broadcaster) *Handler {
+func NewHandler(gameService service.GameService, playerService service.PlayerService) *Handler {
 	return &Handler{
 		gameService:   gameService,
 		playerService: playerService,
-		broadcaster:   broadcaster,
 		errorHandler:  utils.NewErrorHandler(),
 		logger:        logger.Get(),
 	}
@@ -71,15 +69,12 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string) error {
 		return err
 	}
 
-	result, err := h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
+	_, err := h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
 	if err != nil {
 		return err
 	}
 
-	if result.AllPlayersPassed {
-		return h.handleProductionPhase(ctx, gameID)
-	}
-
+	// The service will handle any phase transitions (like production phase) internally
 	return nil
 }
 
@@ -97,21 +92,6 @@ func (h *Handler) validateGamePhase(ctx context.Context, gameID string) error {
 	return nil
 }
 
-// handleProductionPhase executes production phase when all players have passed
-func (h *Handler) handleProductionPhase(ctx context.Context, gameID string) error {
-	gameAfterProduction, err := h.gameService.ExecuteProductionPhase(ctx, gameID)
-	if err != nil {
-		return fmt.Errorf("failed to execute production phase: %w", err)
-	}
-
-	playersData, err := h.generateProductionData(ctx, gameID, gameAfterProduction.PlayerIDs)
-	if err != nil {
-		return err
-	}
-
-	h.broadcaster.BroadcastProductionPhaseStarted(ctx, gameID, playersData)
-	return nil
-}
 
 // generateProductionData computes production data for all players
 func (h *Handler) generateProductionData(ctx context.Context, gameID string, playerIDs []string) ([]dto.PlayerProductionData, error) {

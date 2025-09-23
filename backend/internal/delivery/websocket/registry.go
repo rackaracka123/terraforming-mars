@@ -27,8 +27,6 @@ import (
 // RegisterHandlers registers all message type handlers with the hub
 func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) {
 	parser := utils.NewMessageParser()
-	broadcaster := hub.GetBroadcaster()
-	manager := hub.GetManager()
 
 	// Create transaction manager for middleware
 	transactionManager := transaction.NewManager(playerRepo, gameRepo)
@@ -40,7 +38,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	skipTurnValidationMiddleware := websocketmiddleware.CreateSkipTurnValidatorMiddleware(transactionManager)
 
 	// Register connection handler (no middleware needed - not turn-based)
-	connectionHandler := connect.NewConnectionHandler(gameService, playerService, broadcaster, manager)
+	connectionHandler := connect.NewConnectionHandler(gameService, playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register standard project handlers WITH middleware for turn-based actions
@@ -52,7 +50,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionBuildCity, wrapWithTurnValidation(build_city.NewHandler(standardProjectService, parser), turnValidationMiddleware))
 
 	// Skip action needs special validation that allows 0 actions
-	hub.RegisterHandler(dto.MessageTypeActionSkipAction, wrapWithTurnValidation(skip_action.NewHandler(gameService, playerService, broadcaster), skipTurnValidationMiddleware))
+	hub.RegisterHandler(dto.MessageTypeActionSkipAction, wrapWithTurnValidation(skip_action.NewHandler(gameService, playerService), skipTurnValidationMiddleware))
 
 	// Register game management handlers WITHOUT middleware (not turn-based)
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(gameService))

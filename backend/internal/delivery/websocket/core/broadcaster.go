@@ -190,7 +190,7 @@ func (b *Broadcaster) sendPersonalizedMessage(ctx context.Context, connection *C
 		return false
 	}
 
-	gameDTO := dto.ToGameDtoWithCardService(ctx, gameData, gamePlayers, playerID, b.cardService)
+	gameDTO := dto.ToGameDto(gameData, gamePlayers, playerID)
 	message := dto.WebSocketMessage{
 		Type: dto.MessageTypeGameUpdated,
 		Payload: dto.GameUpdatedPayload{
@@ -285,7 +285,7 @@ func (b *Broadcaster) BroadcastPlayerDisconnection(ctx context.Context, playerID
 			}
 
 			// Create personalized disconnection payload for this player
-			personalizedGame := dto.ToGameDtoWithCardService(ctx, game, allPlayers, connPlayerID, b.cardService)
+			personalizedGame := dto.ToGameDto(game, allPlayers, connPlayerID)
 			disconnectedPayload := dto.PlayerDisconnectedPayload{
 				PlayerID:   playerID,
 				PlayerName: playerName,
