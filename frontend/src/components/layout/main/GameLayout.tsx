@@ -6,7 +6,6 @@ import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
-import VictoryPointIcon from "../../ui/display/VictoryPointIcon.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
@@ -73,12 +72,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
         <div className={styles.gameContent}>
           <MainContentDisplay gameState={gameState} />
-
-          <RightSidebar
-            globalParameters={gameState?.globalParameters}
-            generation={gameState?.generation}
-            currentPlayer={currentTurnPlayer}
-          />
         </div>
 
         {/* Overlay Components */}
@@ -88,6 +81,12 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           currentPlayerId={gameState?.currentTurn || ""}
           currentPhase={gameState?.currentPhase}
           gameState={gameState}
+        />
+
+        <RightSidebar
+          globalParameters={gameState?.globalParameters}
+          generation={gameState?.generation}
+          currentPlayer={currentTurnPlayer}
         />
 
         <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
@@ -104,11 +103,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             />
 
             <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
-
-            {/* Victory Points display in bottom right */}
-            <div className={styles.victoryPointsOverlay}>
-              <VictoryPointIcon value={0} size="large" />
-            </div>
           </>
         )}
       </div>

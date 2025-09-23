@@ -12,7 +12,7 @@
 
 .gameContent {
   display: grid;
-  grid-template-columns: 1fr minmax(150px, 250px);
+  grid-template-columns: 1fr;
   min-height: 0;
   gap: 0;
   position: relative;
@@ -20,27 +20,18 @@
 
 @media (max-width: 1200px) {
   .gameContent {
-    grid-template-columns: 1fr minmax(120px, 180px);
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 900px) {
   .gameContent {
-    grid-template-columns: 1fr minmax(100px, 150px);
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
   .gameContent {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
   }
-}
-
-.victoryPointsOverlay {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
-  pointer-events: none;
 }

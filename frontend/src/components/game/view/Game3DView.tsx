@@ -70,16 +70,30 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
         position: "relative",
       }}
     >
+      {/* Background layer with dark filter */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          background: "url('/assets/backgrounds/space-bg.webp') center/cover no-repeat",
+          filter: "brightness(0.5)",
+          zIndex: 0,
+        }}
+      />
       <Canvas
         camera={{
           position: cameraConfig.position,
           fov: cameraConfig.fov,
         }}
         style={{
-          background:
-            "radial-gradient(circle at center, #1a1a2e, #16213e, #0f0f23)",
+          background: "transparent",
           width: "100%",
           height: "100%",
+          position: "relative",
+          zIndex: 1,
         }}
         resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
       >
