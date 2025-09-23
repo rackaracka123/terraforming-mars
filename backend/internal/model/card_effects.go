@@ -153,6 +153,23 @@ type DiscountEffect struct {
 	Description string    `json:"description" ts:"string"`                   // Human readable description
 }
 
+// PlayerEffectType represents different types of ongoing effects a player can have
+type PlayerEffectType string
+
+const (
+	PlayerEffectDiscount                PlayerEffectType = "discount"                  // Cost reduction for playing cards
+	PlayerEffectGlobalParameterLenience PlayerEffectType = "global-parameter-lenience" // Global parameter requirement flexibility
+	PlayerEffectDefense                 PlayerEffectType = "defense"                   // Protection from attacks or resource removal
+	PlayerEffectValueModifier           PlayerEffectType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
+)
+
+// PlayerEffect represents ongoing effects that a player has active
+type PlayerEffect struct {
+	Type         PlayerEffectType `json:"type" ts:"PlayerEffectType"`                        // Type of effect
+	Amount       int              `json:"amount" ts:"number"`                                // Effect amount (e.g., M€ discount, steps of flexibility)
+	AffectedTags []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for this effect (empty = all cards)
+}
+
 // TargetType represents different targeting scopes for resource conditions
 type TargetType string
 

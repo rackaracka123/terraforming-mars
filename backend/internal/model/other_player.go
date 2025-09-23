@@ -3,19 +3,20 @@ package model
 // OtherPlayer represents a player from another player's perspective
 // Contains public information only - hand cards are hidden but played cards are visible
 type OtherPlayer struct {
-	ID               string     `json:"id" ts:"string"`
-	Name             string     `json:"name" ts:"string"`
-	Corporation      string     `json:"corporation" ts:"string"`
-	HandCardCount    int        `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
-	Resources        Resources  `json:"resources" ts:"Resources"`
-	Production       Production `json:"production" ts:"Production"`
-	TerraformRating  int        `json:"terraformRating" ts:"number"`
-	PlayedCards      []string   `json:"playedCards" ts:"string[]"` // Played cards are public
-	Passed           bool       `json:"passed" ts:"boolean"`
-	AvailableActions int        `json:"availableActions" ts:"number"`
-	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
-	IsConnected      bool       `json:"isConnected" ts:"boolean"`
-	IsSelectingCards bool       `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
+	ID               string         `json:"id" ts:"string"`
+	Name             string         `json:"name" ts:"string"`
+	Corporation      string         `json:"corporation" ts:"string"`
+	HandCardCount    int            `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
+	Resources        Resources      `json:"resources" ts:"Resources"`
+	Production       Production     `json:"production" ts:"Production"`
+	TerraformRating  int            `json:"terraformRating" ts:"number"`
+	PlayedCards      []string       `json:"playedCards" ts:"string[]"` // Played cards are public
+	Passed           bool           `json:"passed" ts:"boolean"`
+	AvailableActions int            `json:"availableActions" ts:"number"`
+	VictoryPoints    int            `json:"victoryPoints" ts:"number"`
+	IsConnected      bool           `json:"isConnected" ts:"boolean"`
+	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"`   // Active ongoing effects (public information)
+	IsSelectingCards bool           `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }
 
 // NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player
@@ -28,6 +29,20 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 	corporationName := ""
 	if player.Corporation != nil {
 		corporationName = *player.Corporation
+	}
+
+	// Deep copy effects slice
+	effectsCopy := make([]PlayerEffect, len(player.Effects))
+	for i, effect := range player.Effects {
+		// Copy affected tags slice
+		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
+		copy(affectedTagsCopy, effect.AffectedTags)
+
+		effectsCopy[i] = PlayerEffect{
+			Type:         effect.Type,
+			Amount:       effect.Amount,
+			AffectedTags: affectedTagsCopy,
+		}
 	}
 
 	return &OtherPlayer{
@@ -43,6 +58,7 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
 		IsConnected:      player.IsConnected,
+		Effects:          effectsCopy,                                                          // Effects are public information
 		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Calculate from selection state
 	}
 }
@@ -57,6 +73,20 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 	playedCardsCopy := make([]string, len(op.PlayedCards))
 	copy(playedCardsCopy, op.PlayedCards)
 
+	// Deep copy effects slice
+	effectsCopy := make([]PlayerEffect, len(op.Effects))
+	for i, effect := range op.Effects {
+		// Copy affected tags slice
+		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
+		copy(affectedTagsCopy, effect.AffectedTags)
+
+		effectsCopy[i] = PlayerEffect{
+			Type:         effect.Type,
+			Amount:       effect.Amount,
+			AffectedTags: affectedTagsCopy,
+		}
+	}
+
 	return &OtherPlayer{
 		ID:               op.ID,
 		Name:             op.Name,
@@ -70,6 +100,7 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		AvailableActions: op.AvailableActions,
 		VictoryPoints:    op.VictoryPoints,
 		IsConnected:      op.IsConnected,
+		Effects:          effectsCopy,
 		IsSelectingCards: op.IsSelectingCards,
 	}
 }
