@@ -496,11 +496,11 @@ const CardsHandOverlay: React.FC<CardsHandOverlayProps> = ({
       <style>{`
         .hearthstone-hand-overlay {
           position: fixed;
-          bottom: 120px; /* Position above BottomResourceBar (120px height) to avoid overlap */
+          bottom: 48px; /* Position above BottomResourceBar (48px height) to avoid overlap */
           left: 0;
           right: 0;
           height: 280px; /* Cards area height */
-          /* z-index removed - natural DOM order places this appropriately */
+          z-index: 1100; /* Above bottom bar (1000) and its content (1001) */
           /* Positioned above BottomResourceBar so cards don't interfere with buttons */
           pointer-events: none;
         }

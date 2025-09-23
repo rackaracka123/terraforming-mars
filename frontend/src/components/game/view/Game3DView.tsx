@@ -78,7 +78,8 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
           left: 0,
           width: "100%",
           height: "100%",
-          background: "url('/assets/backgrounds/space-bg.webp') center/cover no-repeat",
+          background:
+            "url('/assets/backgrounds/space-bg.webp') center/cover no-repeat",
           filter: "brightness(0.5)",
           zIndex: 0,
         }}
@@ -93,7 +94,7 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
           width: "100%",
           height: "100%",
           position: "relative",
-          zIndex: 1,
+          zIndex: 0,
         }}
         resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
       >
