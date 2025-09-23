@@ -158,10 +158,10 @@ type ProductionDto struct {
 type PlayerEffectType string
 
 const (
-	PlayerEffectTypeDiscount               PlayerEffectType = "discount"                 // Cost reduction for playing cards
+	PlayerEffectTypeDiscount                PlayerEffectType = "discount"                  // Cost reduction for playing cards
 	PlayerEffectTypeGlobalParameterLenience PlayerEffectType = "global-parameter-lenience" // Global parameter requirement flexibility
-	PlayerEffectTypeDefense                PlayerEffectType = "defense"                  // Protection from attacks or resource removal
-	PlayerEffectTypeValueModifier          PlayerEffectType = "value-modifier"           // Increases resource values (e.g., steel/titanium worth more)
+	PlayerEffectTypeDefense                 PlayerEffectType = "defense"                   // Protection from attacks or resource removal
+	PlayerEffectTypeValueModifier           PlayerEffectType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
 )
 
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption

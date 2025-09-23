@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+
+	"go.uber.org/zap"
 )
 
 // EffectProcessor handles applying card effects to the game state
@@ -37,6 +38,11 @@ func (e *EffectProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID
 	// Apply discount effects if the card has them
 	if err := e.applyDiscountEffects(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply discount effects: %w", err)
+	}
+
+	// Apply global parameter lenience effects if the card has them
+	if err := e.applyGlobalParameterLenienceEffects(ctx, gameID, playerID, card); err != nil {
+		return fmt.Errorf("failed to apply global parameter lenience effects: %w", err)
 	}
 
 	// Future implementation: Apply immediate resource effects
@@ -154,7 +160,6 @@ func (e *EffectProcessor) applyDiscountEffects(ctx context.Context, gameID, play
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
 			for _, output := range behavior.Outputs {
 				if output.Type == model.ResourceDiscount {
-					// Create new discount effect
 					discountEffect := model.PlayerEffect{
 						Type:         model.PlayerEffectDiscount,
 						Amount:       output.Amount,
@@ -185,6 +190,70 @@ func (e *EffectProcessor) applyDiscountEffects(ctx context.Context, gameID, play
 
 		log.Debug("✨ Discount effects applied",
 			zap.Int("total_effects_count", len(discountEffectsFound)))
+	}
+
+	return nil
+}
+
+// applyGlobalParameterLenienceEffects applies global parameter lenience effects from a card's behaviors to the player's effects list
+func (e *EffectProcessor) applyGlobalParameterLenienceEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player to read current effects
+	player, err := e.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player for global parameter lenience effects update: %w", err)
+	}
+
+	// Track if any global parameter lenience effects were found
+	var lenienceEffectsFound []model.PlayerEffect
+
+	// Process all behaviors to find global parameter lenience effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+			for _, output := range behavior.Outputs {
+				if output.Type == model.ResourceGlobalParameterLenience {
+					// Create new global parameter lenience effect
+					var affectedTags []model.CardTag
+					// Set AffectedTags to nil if empty, so it gets omitted from JSON (for global effects)
+					if len(output.AffectedTags) > 0 {
+						affectedTags = make([]model.CardTag, len(output.AffectedTags))
+						copy(affectedTags, output.AffectedTags)
+					} else {
+						affectedTags = nil // Will be omitted from JSON due to omitempty tag
+					}
+
+					lenienceEffect := model.PlayerEffect{
+						Type:         model.PlayerEffectGlobalParameterLenience,
+						Amount:       output.Amount,
+						AffectedTags: affectedTags,
+					}
+					lenienceEffectsFound = append(lenienceEffectsFound, lenienceEffect)
+
+					log.Debug("🎯 Found global parameter lenience effect",
+						zap.Int("amount", output.Amount),
+						zap.Any("affected_tags", output.AffectedTags))
+				}
+			}
+		}
+	}
+
+	// If global parameter lenience effects were found, add them to player's effects list
+	if len(lenienceEffectsFound) > 0 {
+		// Create new effects slice with existing effects plus new lenience effects
+		newEffects := make([]model.PlayerEffect, len(player.Effects)+len(lenienceEffectsFound))
+		copy(newEffects, player.Effects)
+		copy(newEffects[len(player.Effects):], lenienceEffectsFound)
+
+		// Update player effects via repository
+		if err := e.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
+			log.Error("Failed to update player global parameter lenience effects", zap.Error(err))
+			return fmt.Errorf("failed to update player global parameter lenience effects: %w", err)
+		}
+
+		log.Debug("✨ Global parameter lenience effects applied",
+			zap.Int("total_effects_count", len(lenienceEffectsFound)))
 	}
 
 	return nil
