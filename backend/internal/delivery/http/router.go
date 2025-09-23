@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
@@ -18,13 +17,6 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	// Create router
 	router := mux.NewRouter()
 
-	// Apply middleware
-	router.Use(httpmiddleware.Recovery)
-	router.Use(httpmiddleware.CORS)
-	router.Use(httpmiddleware.LoggingMiddleware)
-	router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 

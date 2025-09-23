@@ -1,4 +1,4 @@
-package start_game
+package handlers
 
 import (
 	"context"
@@ -12,16 +12,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// Handler handles start game action requests
-type Handler struct {
+// GameHandler handles game-level actions (start game)
+type GameHandler struct {
 	gameService  service.GameService
 	errorHandler *utils.ErrorHandler
 	logger       *zap.Logger
 }
 
-// NewHandler creates a new start game handler
-func NewHandler(gameService service.GameService) *Handler {
-	return &Handler{
+// NewGameHandler creates a new game handler
+func NewGameHandler(gameService service.GameService) *GameHandler {
+	return &GameHandler{
 		gameService:  gameService,
 		errorHandler: utils.NewErrorHandler(),
 		logger:       logger.Get(),
@@ -29,21 +29,28 @@ func NewHandler(gameService service.GameService) *Handler {
 }
 
 // HandleMessage implements the MessageHandler interface
-func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
+func (h *GameHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
 	playerID, gameID := connection.GetPlayer()
 	if playerID == "" || gameID == "" {
-		h.logger.Warn("Start game action received from unassigned connection",
-			zap.String("connection_id", connection.ID))
+		h.logger.Warn("Game action received from unassigned connection",
+			zap.String("connection_id", connection.ID),
+			zap.String("message_type", string(message.Type)))
 		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
 		return
 	}
 
-	h.logger.Debug("🚀 Processing start game action",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+	switch message.Type {
+	case dto.MessageTypeActionStartGame:
+		h.handleStartGame(ctx, gameID, playerID, connection)
+	default:
+		h.logger.Warn("Unknown game action type", zap.String("type", string(message.Type)))
+		h.errorHandler.SendError(connection, "Unknown game action type")
+	}
+}
 
-	// Start game doesn't need payload parsing - it's a simple action
+func (h *GameHandler) handleStartGame(ctx context.Context, gameID, playerID string, connection *core.Connection) {
+	h.logger.Debug("🚀 Processing start game action", zap.String("player_id", playerID))
+
 	if err := h.gameService.StartGame(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to start game",
 			zap.Error(err),

@@ -1,18 +1,14 @@
-package event
+package handlers
 
 import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
-
-	"go.uber.org/zap"
 )
 
-// EventHandler handles domain events that need WebSocket broadcasting
+// EventHandler handles domain events for WebSocket broadcasting
 type EventHandler struct {
 	broadcaster *core.Broadcaster
 	cardService service.CardService
-	logger      *zap.Logger
 }
 
 // NewEventHandler creates a new event handler
@@ -20,6 +16,5 @@ func NewEventHandler(broadcaster *core.Broadcaster, cardService service.CardServ
 	return &EventHandler{
 		broadcaster: broadcaster,
 		cardService: cardService,
-		logger:      logger.Get(),
 	}
 }

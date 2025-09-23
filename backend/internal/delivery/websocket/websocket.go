@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/event"
+	"terraforming-mars-backend/internal/delivery/websocket/handlers"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -32,7 +32,7 @@ func NewWebSocketService(
 
 	// Now create event handler with hub components
 	broadcaster := hub.GetBroadcaster()
-	eventHandler := event.NewEventHandler(broadcaster, cardService)
+	eventHandler := handlers.NewEventHandler(broadcaster, cardService)
 
 	// Set event handler in hub
 	hub.SetEventHandler(eventHandler)
