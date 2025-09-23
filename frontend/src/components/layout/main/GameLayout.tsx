@@ -72,14 +72,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         <TopMenuBar />
 
         <div className={styles.gameContent}>
-          <LeftSidebar
-            players={allPlayers}
-            currentPlayer={currentPlayer}
-            currentPlayerId={gameState?.currentTurn || ""}
-            currentPhase={gameState?.currentPhase}
-            gameState={gameState}
-          />
-
           <MainContentDisplay gameState={gameState} />
 
           <RightSidebar
@@ -90,6 +82,14 @@ const GameLayout: React.FC<GameLayoutProps> = ({
         </div>
 
         {/* Overlay Components */}
+        <LeftSidebar
+          players={allPlayers}
+          currentPlayer={currentPlayer}
+          currentPlayerId={gameState?.currentTurn || ""}
+          currentPhase={gameState?.currentPhase}
+          gameState={gameState}
+        />
+
         <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
 
         {!isLobbyPhase && (

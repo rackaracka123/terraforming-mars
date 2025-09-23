@@ -22,7 +22,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
 }) => {
   return (
     <div className={styles.leftSidebar}>
-      <div className={styles.sidebarTitle}>PLAYERS</div>
       <PlayerList
         players={players}
         currentPlayer={currentPlayer}
