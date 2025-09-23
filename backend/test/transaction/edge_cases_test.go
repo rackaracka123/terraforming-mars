@@ -39,6 +39,14 @@ func (f *FailingMockPlayerRepository) UpdateAvailableActions(ctx context.Context
 	return f.MockPlayerRepository.UpdateAvailableActions(ctx, gameID, playerID, actions)
 }
 
+func (f *FailingMockPlayerRepository) UpdateEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error {
+	f.updateCallCount++
+	if f.failOnUpdate {
+		return fmt.Errorf("simulated repository failure")
+	}
+	return f.MockPlayerRepository.UpdateEffects(ctx, gameID, playerID, effects)
+}
+
 func TestRepositoryFailureScenarios(t *testing.T) {
 	t.Run("resource update failure during execution", func(t *testing.T) {
 		playerRepo := NewFailingMockPlayerRepository()

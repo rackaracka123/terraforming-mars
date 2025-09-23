@@ -10,18 +10,19 @@ type ProductionPhase struct {
 
 // Player represents a player in the game
 type Player struct {
-	ID               string     `json:"id" ts:"string"`
-	Name             string     `json:"name" ts:"string"`
-	Corporation      *string    `json:"corporation" ts:"string | null"`
-	Cards            []string   `json:"cards" ts:"string[]"`
-	Resources        Resources  `json:"resources" ts:"Resources"`
-	Production       Production `json:"production" ts:"Production"`
-	TerraformRating  int        `json:"terraformRating" ts:"number"`
-	PlayedCards      []string   `json:"playedCards" ts:"string[]"`
-	Passed           bool       `json:"passed" ts:"boolean"`
-	AvailableActions int        `json:"availableActions" ts:"number"`
-	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
-	IsConnected      bool       `json:"isConnected" ts:"boolean"`
+	ID               string         `json:"id" ts:"string"`
+	Name             string         `json:"name" ts:"string"`
+	Corporation      *string        `json:"corporation" ts:"string | null"`
+	Cards            []string       `json:"cards" ts:"string[]"`
+	Resources        Resources      `json:"resources" ts:"Resources"`
+	Production       Production     `json:"production" ts:"Production"`
+	TerraformRating  int            `json:"terraformRating" ts:"number"`
+	PlayedCards      []string       `json:"playedCards" ts:"string[]"`
+	Passed           bool           `json:"passed" ts:"boolean"`
+	AvailableActions int            `json:"availableActions" ts:"number"`
+	VictoryPoints    int            `json:"victoryPoints" ts:"number"`
+	IsConnected      bool           `json:"isConnected" ts:"boolean"`
+	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
 	// Card selection and production phase - nullable, exists only during selection phase
 	ProductionSelection *ProductionPhase `json:"productionSelection" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
 	// Starting card selection - nullable, exists only during starting card selection phase
@@ -62,6 +63,20 @@ func (p *Player) DeepCopy() *Player {
 		copy(startingSelectionCopy, p.StartingSelection)
 	}
 
+	// Deep copy effects slice
+	effectsCopy := make([]PlayerEffect, len(p.Effects))
+	for i, effect := range p.Effects {
+		// Copy affected tags slice
+		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
+		copy(affectedTagsCopy, effect.AffectedTags)
+
+		effectsCopy[i] = PlayerEffect{
+			Type:         effect.Type,
+			Amount:       effect.Amount,
+			AffectedTags: affectedTagsCopy,
+		}
+	}
+
 	return &Player{
 		ID:                  p.ID,
 		Name:                p.Name,
@@ -75,6 +90,7 @@ func (p *Player) DeepCopy() *Player {
 		AvailableActions:    p.AvailableActions,
 		VictoryPoints:       p.VictoryPoints,
 		IsConnected:         p.IsConnected,
+		Effects:             effectsCopy,
 		ProductionSelection: productionSelectionCopy,
 		StartingSelection:   startingSelectionCopy,
 	}

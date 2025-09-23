@@ -34,6 +34,7 @@ coverage/
 # IDE files
 .vscode/
 .idea/
+.fleet/
 *.swp
 *.swo
 *~
@@ -54,6 +55,7 @@ Thumbs.db
 # Go binaries
 backend/parse_cards
 backend/tools/parse_cards
+backend/server
 *.exe
 *.exe~
 *.dll

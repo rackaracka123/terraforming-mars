@@ -329,6 +329,23 @@ export interface ProductionDto {
   heat: number /* int */;
 }
 /**
+ * PlayerEffectType represents different types of ongoing effects a player can have
+ */
+export type PlayerEffectType = string;
+export const PlayerEffectTypeDiscount: PlayerEffectType = "discount"; // Cost reduction for playing cards
+export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType =
+  "global-parameter-lenience"; // Global parameter requirement flexibility
+export const PlayerEffectTypeDefense: PlayerEffectType = "defense"; // Protection from attacks or resource removal
+export const PlayerEffectTypeValueModifier: PlayerEffectType = "value-modifier"; // Increases resource values (e.g., steel/titanium worth more)
+/**
+ * PlayerEffectDto represents ongoing effects that a player has active for client consumption
+ */
+export interface PlayerEffectDto {
+  type: PlayerEffectType; // Type of effect
+  amount: number /* int */; // Effect amount (e.g., M€ discount, steps of flexibility)
+  affectedTags?: CardTag[]; // Tags that qualify for this effect (empty = all cards)
+}
+/**
  * PlayerDto represents a player in the game for client consumption
  */
 export interface PlayerDto {
@@ -344,6 +361,7 @@ export interface PlayerDto {
   availableActions: number /* int */;
   victoryPoints: number /* int */;
   isConnected: boolean;
+  effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   /**
    * Card selection state - nullable, exists only during selection phase
    */
@@ -369,6 +387,7 @@ export interface OtherPlayerDto {
   availableActions: number /* int */;
   victoryPoints: number /* int */;
   isConnected: boolean;
+  effects: PlayerEffectDto[]; // Active ongoing effects (public information)
   /**
    * Card selection state - limited visibility for other players
    */

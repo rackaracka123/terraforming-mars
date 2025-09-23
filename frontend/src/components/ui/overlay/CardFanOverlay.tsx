@@ -397,10 +397,11 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       <style>{`
         .card-fan-overlay {
           position: fixed;
-          bottom: 120px; /* Position above BottomResourceBar */
+          bottom: 48px; /* Position above BottomResourceBar */
           left: 0;
           right: 0;
           height: 300px; /* Cards area height */
+          z-index: 1100; /* Above bottom bar (1000) and its content (1001) */
           pointer-events: none;
         }
 
