@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/test"
 	"testing"
 	"time"
 
@@ -27,7 +28,8 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	sessionManager := test.NewMockSessionManager()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 
 	// Track game updated events (consolidated state)
 	var receivedEvents []events.Event

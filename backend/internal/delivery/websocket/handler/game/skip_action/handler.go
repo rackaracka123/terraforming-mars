@@ -92,7 +92,6 @@ func (h *Handler) validateGamePhase(ctx context.Context, gameID string) error {
 	return nil
 }
 
-
 // generateProductionData computes production data for all players
 func (h *Handler) generateProductionData(ctx context.Context, gameID string, playerIDs []string) ([]dto.PlayerProductionData, error) {
 	playersData := make([]dto.PlayerProductionData, len(playerIDs))

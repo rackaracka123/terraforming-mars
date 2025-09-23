@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	sessionManager := test.NewMockSessionManager()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 
 	ctx := context.Background()
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})

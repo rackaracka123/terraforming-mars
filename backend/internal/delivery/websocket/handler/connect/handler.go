@@ -38,11 +38,11 @@ func NewConnectionHandler(
 	playerService service.PlayerService,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
-		gameService:  gameService,
+		gameService:   gameService,
 		playerService: playerService,
-		parser:       utils.NewMessageParser(),
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		parser:        utils.NewMessageParser(),
+		errorHandler:  utils.NewErrorHandler(),
+		logger:        logger.Get(),
 	}
 }
 
@@ -226,7 +226,6 @@ func (ch *ConnectionHandler) setupTemporaryConnection(connCtx *connectionContext
 	}
 }
 
-
 // finalizeConnection updates the connection with final player ID and sends state updates
 func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 	// Update connection with final player ID
@@ -315,7 +314,6 @@ func (ch *ConnectionHandler) sendGameStateUpdate(connCtx *connectionContext, gam
 
 	connCtx.connection.SendMessage(message)
 }
-
 
 // Helper methods
 

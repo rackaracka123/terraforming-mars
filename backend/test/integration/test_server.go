@@ -7,6 +7,7 @@ import (
 	"sync"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -49,7 +50,8 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	sessionManager := session.NewSessionManager()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
@@ -59,11 +61,11 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with proper event bus and event handler
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo, sessionManager)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
-	apiRouter := httpHandler.SetupRouter(gameService, playerService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsService.ServeWS)
 

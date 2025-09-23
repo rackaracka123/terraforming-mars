@@ -90,8 +90,6 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-
-
 // RegisterHandler registers a message handler for a specific message type
 func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandler) {
 	h.handlers[messageType] = handler
@@ -123,7 +121,6 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 		h.sendError(connection, ErrUnknownMessageType)
 	}
 }
-
 
 // sendError sends an error message to a connection
 func (h *Hub) sendError(connection *Connection, errorMessage string) {

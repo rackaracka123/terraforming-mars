@@ -35,7 +35,6 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 	}
 }
 
-
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
 
@@ -234,7 +233,6 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 	}
 	return result
 }
-
 
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto
 func ToProductionPhaseDto(phase *model.ProductionPhase) *ProductionPhaseDto {
