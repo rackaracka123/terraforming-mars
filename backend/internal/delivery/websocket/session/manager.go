@@ -1,14 +1,22 @@
 package session
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
+
+// CardService interface for card retrieval (to avoid import cycle)
+type CardService interface {
+	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
+}
 
 // SessionManager manages WebSocket sessions and provides broadcasting capabilities
 // This service is used by services to broadcast messages to players
@@ -21,6 +29,9 @@ type SessionManager interface {
 	BroadcastToGame(gameID string, messageType dto.MessageType, payload any) error
 	BroadcastToGameExcept(gameID string, messageType dto.MessageType, payload any, excludePlayerID string) error
 	SendToPlayer(playerID, gameID string, messageType dto.MessageType, payload any) error
+
+	// High-level game state broadcasting - gathers data and sends personalized game states
+	BroadcastGameState(ctx context.Context, gameID string) error
 }
 
 // SessionManagerImpl implements the SessionManager interface
@@ -28,16 +39,28 @@ type SessionManagerImpl struct {
 	// Session storage: game -> player -> connection
 	sessions map[string]map[string]func(dto.WebSocketMessage)
 
+	// Dependencies for game state broadcasting
+	gameRepo    repository.GameRepository
+	playerRepo  repository.PlayerRepository
+	cardService CardService
+
 	// Synchronization
 	mu     sync.RWMutex
 	logger *zap.Logger
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager() SessionManager {
+func NewSessionManager(
+	gameRepo repository.GameRepository,
+	playerRepo repository.PlayerRepository,
+	cardService CardService,
+) SessionManager {
 	return &SessionManagerImpl{
-		sessions: make(map[string]map[string]func(dto.WebSocketMessage)),
-		logger:   logger.Get(),
+		sessions:    make(map[string]map[string]func(dto.WebSocketMessage)),
+		gameRepo:    gameRepo,
+		playerRepo:  playerRepo,
+		cardService: cardService,
+		logger:      logger.Get(),
 	}
 }
 
@@ -189,4 +212,145 @@ func (sm *SessionManagerImpl) SendToPlayer(playerID, gameID string, messageType 
 		zap.String("message_type", string(messageType)))
 
 	return nil
+}
+
+// BroadcastGameState gathers all game data, creates personalized DTOs, and broadcasts to all players
+func (sm *SessionManagerImpl) BroadcastGameState(ctx context.Context, gameID string) error {
+	log := sm.logger.With(zap.String("game_id", gameID))
+	log.Info("🚀 Broadcasting game state to all players")
+
+	// Get updated game state
+	game, err := sm.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for broadcast", zap.Error(err))
+		return err
+	}
+
+	// Get all players for personalized game states
+	players, err := sm.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for broadcast", zap.Error(err))
+		return err
+	}
+
+	// Debug: Check if players have starting card data
+	for _, player := range players {
+		log.Debug("🔍 Player data from repository",
+			zap.String("player_id", player.ID),
+			zap.String("player_name", player.Name),
+			zap.Int("starting_selection_count", len(player.StartingSelection)),
+			zap.Strings("starting_card_ids", player.StartingSelection))
+	}
+
+	// Send personalized game state to each player
+	for _, player := range players {
+		// Fetch cards for players and create personalized game state for this player
+		playerCards, err := sm.fetchPlayerCards(ctx, players)
+		if err != nil {
+			log.Warn("Failed to fetch player cards, using empty cards", zap.Error(err))
+			playerCards = make(map[string][]model.Card)
+		}
+		startingCards, err := sm.fetchPlayerStartingCards(ctx, gameID, players)
+		if err != nil {
+			log.Warn("Failed to fetch player starting cards, using empty cards", zap.Error(err))
+			startingCards = make(map[string][]model.Card)
+		}
+		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, playerCards, startingCards)
+
+		// Send updated game state with personalized view
+		err = sm.SendToPlayer(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+			Game: personalizedGameDTO,
+		})
+		if err != nil {
+			log.Error("Failed to send game state update to player",
+				zap.Error(err),
+				zap.String("player_id", player.ID))
+			continue // Continue with other players
+		}
+
+		log.Debug("✅ Sent personalized game state to player",
+			zap.String("player_id", player.ID))
+	}
+
+	log.Info("✅ Game state broadcast completed")
+	return nil
+}
+
+// fetchPlayerCards retrieves card data for all players' hand cards
+func (sm *SessionManagerImpl) fetchPlayerCards(ctx context.Context, players []model.Player) (map[string][]model.Card, error) {
+	playerCards := make(map[string][]model.Card)
+
+	for _, player := range players {
+		if len(player.Cards) == 0 {
+			playerCards[player.ID] = []model.Card{}
+			continue
+		}
+
+		// Fetch cards for this player
+		cards := make([]model.Card, 0, len(player.Cards))
+		for _, cardID := range player.Cards {
+			card, err := sm.cardService.GetCardByID(ctx, cardID)
+			if err != nil {
+				// Log warning but continue with other cards
+				sm.logger.Warn("Failed to fetch card", zap.String("card_id", cardID), zap.Error(err))
+				continue
+			}
+			if card != nil {
+				cards = append(cards, *card)
+			}
+		}
+		playerCards[player.ID] = cards
+	}
+
+	return playerCards, nil
+}
+
+// fetchPlayerStartingCards retrieves card data for all players' starting card selections
+func (sm *SessionManagerImpl) fetchPlayerStartingCards(ctx context.Context, gameID string, players []model.Player) (map[string][]model.Card, error) {
+	playerStartingCards := make(map[string][]model.Card)
+
+	for _, player := range players {
+		// Fetch fresh player data from repository to get latest starting card data
+		freshPlayer, err := sm.playerRepo.GetByID(ctx, gameID, player.ID)
+		if err != nil {
+			sm.logger.Warn("Failed to fetch fresh player data, using cached data",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			freshPlayer = player // Fall back to cached data
+		} else {
+			sm.logger.Debug("🔄 Fetched fresh player data for starting cards",
+				zap.String("player_id", player.ID),
+				zap.Int("cached_starting_cards", len(player.StartingSelection)),
+				zap.Int("fresh_starting_cards", len(freshPlayer.StartingSelection)))
+		}
+
+		sm.logger.Debug("🔍 Checking player starting cards",
+			zap.String("player_id", freshPlayer.ID),
+			zap.Int("starting_selection_count", len(freshPlayer.StartingSelection)),
+			zap.Strings("starting_card_ids", freshPlayer.StartingSelection))
+
+		if len(freshPlayer.StartingSelection) == 0 {
+			sm.logger.Debug("⚠️ Player has no starting cards to fetch",
+				zap.String("player_id", freshPlayer.ID))
+			playerStartingCards[freshPlayer.ID] = []model.Card{}
+			continue
+		}
+
+		// Fetch starting cards for this player
+		cards := make([]model.Card, 0, len(freshPlayer.StartingSelection))
+		for _, cardID := range freshPlayer.StartingSelection {
+			card, err := sm.cardService.GetCardByID(ctx, cardID)
+			if err != nil {
+				// Log warning but continue with other cards
+				sm.logger.Warn("Failed to fetch starting card", zap.String("card_id", cardID), zap.Error(err))
+				continue
+			}
+			if card != nil {
+				cards = append(cards, *card)
+			}
+		}
+		playerStartingCards[freshPlayer.ID] = cards
+	}
+
+	return playerStartingCards, nil
 }

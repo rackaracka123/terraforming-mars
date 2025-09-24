@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
@@ -15,21 +16,23 @@ import (
 
 // Handler handles select starting card action requests
 type Handler struct {
-	cardService  service.CardService
-	gameService  service.GameService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	cardService    service.CardService
+	gameService    service.GameService
+	sessionManager session.SessionManager
+	parser         *utils.MessageParser
+	errorHandler   *utils.ErrorHandler
+	logger         *zap.Logger
 }
 
 // NewHandler creates a new select starting card handler
-func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
+func NewHandler(cardService service.CardService, gameService service.GameService, sessionManager session.SessionManager, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		gameService:  gameService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		cardService:    cardService,
+		gameService:    gameService,
+		sessionManager: sessionManager,
+		parser:         parser,
+		errorHandler:   utils.NewErrorHandler(),
+		logger:         logger.Get(),
 	}
 }
 
@@ -78,11 +81,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	h.logCardSelection(gameID, playerID, cardIDs)
 
-	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
-		return err
-	}
-
-	return h.checkAndAdvancePhase(ctx, gameID, playerID, cardIDs)
+	return h.selectCards(ctx, gameID, playerID, cardIDs)
 }
 
 // logCardSelection logs the card selection attempt
@@ -102,25 +101,7 @@ func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, card
 		return fmt.Errorf("card selection failed: %w", err)
 	}
 
-	return nil
-}
-
-// checkAndAdvancePhase checks if all players completed selection and advances phase if needed
-func (h *Handler) checkAndAdvancePhase(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	if h.cardService.IsAllPlayersCardSelectionComplete(ctx, gameID) {
-		log.Info("All players completed starting card selection, advancing game phase")
-
-		if err := h.gameService.AdvanceFromCardSelectionPhase(ctx, gameID); err != nil {
-			log.Error("Failed to advance game phase", zap.Error(err))
-			return fmt.Errorf("failed to advance game phase: %w", err)
-		}
-
-		log.Info("Game phase advanced to Action phase")
-	}
-
-	log.Info("Player completed starting card selection",
+	log.Info("Player selected starting cards (pending confirmation)",
 		zap.Strings("selected_cards", cardIDs))
 
 	return nil

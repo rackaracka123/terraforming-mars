@@ -68,13 +68,13 @@ func main() {
 			zap.Int("total_cards", len(allCards)))
 	}
 
-	// Initialize SessionManager for WebSocket broadcasting
-	sessionManager := session.NewSessionManager()
-	log.Info("SessionManager initialized for service-level broadcasting")
-
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
+
+	// Initialize SessionManager for WebSocket broadcasting (after cardService is created)
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardService)
+	log.Info("SessionManager initialized for service-level broadcasting")
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

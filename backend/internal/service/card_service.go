@@ -16,7 +16,7 @@ import (
 
 // CardService handles card-related operations
 type CardService interface {
-	// Select starting cards for a player
+	// Select starting cards for a player (immediately commits to hand)
 	SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
 	// SelectProductionCards stores the starting card options for a player (called during game start)

@@ -42,6 +42,7 @@ type PlayerRepository interface {
 
 	// Starting card selection methods
 	SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
+	SetHasSelectedStartingCards(ctx context.Context, gameID, playerID string, value bool) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -695,6 +696,31 @@ func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID,
 		cardCount = len(cardIDs)
 	}
 	log.Info("🃏 Starting cards set for player", zap.Int("card_count", cardCount))
+
+	// Trigger event to notify about the game state change
+	event := events.NewGameUpdatedEvent(gameID)
+	if err := r.eventBus.Publish(ctx, event); err != nil {
+		log.Warn("Failed to publish game updated event", zap.Error(err))
+	}
+
+	return nil
+}
+
+// SetHasSelectedStartingCards sets whether the player has completed starting card selection
+func (r *PlayerRepositoryImpl) SetHasSelectedStartingCards(ctx context.Context, gameID, playerID string, value bool) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.HasSelectedStartingCards = value
+
+	log.Info("🃏 Starting card selection completion flag set for player", zap.Bool("has_selected", value))
 
 	// Trigger event to notify about the game state change
 	event := events.NewGameUpdatedEvent(gameID)

@@ -32,10 +32,10 @@ func NewSelectionManager(gameRepo repository.GameRepository, playerRepo reposito
 	}
 }
 
-// SelectStartingCards handles the starting card selection for a player
+// SelectStartingCards handles the starting card selection for a player (stores as pending, doesn't commit)
 func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Processing starting card selection", zap.Strings("card_ids", cardIDs))
+	log.Debug("Processing starting card selection (storing as pending)", zap.Strings("card_ids", cardIDs))
 
 	// Validate the selection
 	if err := s.ValidateStartingCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
@@ -58,7 +58,7 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
 	}
 
-	// Update player resources with granular update
+	// Update player resources immediately (deduct credits)
 	updatedResources := player.Resources
 	updatedResources.Credits -= cost
 	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
@@ -66,7 +66,7 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
-	// Add selected cards to player's hand using granular updates
+	// Add selected cards to player's hand immediately using granular updates
 	for _, cardID := range cardIDs {
 		if err := s.playerRepo.AddCard(ctx, gameID, playerID, cardID); err != nil {
 			log.Error("Failed to add card to player hand", zap.String("card_id", cardID), zap.Error(err))
@@ -74,31 +74,25 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 		}
 	}
 
-	// Clear the starting selection to mark completion (prevents indefinite prompting)
+	// Clear the starting selection (this hides the modal)
 	if err := s.playerRepo.SetStartingSelection(ctx, gameID, playerID, nil); err != nil {
 		log.Error("Failed to clear starting selection", zap.Error(err))
 		return fmt.Errorf("failed to clear starting selection: %w", err)
 	}
 
-	// Create and publish the starting card selected event
-	event := events.NewCardSelectedEvent(gameID, playerID, cardIDs, cost)
-	log.Debug("Starting card selected event created",
-		zap.String("event_type", event.GetType()),
-		zap.Int("cost", cost))
-
-	// Publish the event through the event bus
-	if s.eventBus != nil {
-		if err := s.eventBus.Publish(ctx, event); err != nil {
-			log.Warn("Failed to publish card selected event", zap.Error(err))
-		}
+	// Set the completion flag
+	if err := s.playerRepo.SetHasSelectedStartingCards(ctx, gameID, playerID, true); err != nil {
+		log.Error("Failed to set starting cards selection completion flag", zap.Error(err))
+		return fmt.Errorf("failed to set completion flag: %w", err)
 	}
 
-	log.Info("Player completed starting card selection",
+	log.Info("Player starting card selection completed immediately",
 		zap.Strings("selected_cards", cardIDs),
-		zap.Int("cost_paid", cost))
+		zap.Int("cost", cost))
 
 	return nil
 }
+
 
 // SelectProductionCards handles the card selection during production phase
 func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
@@ -136,15 +130,18 @@ func (s *SelectionManager) ValidateStartingCardSelection(ctx context.Context, ga
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Check if player has starting cards available for selection
-	if len(player.StartingSelection) == 0 {
-		return fmt.Errorf("player has no starting cards available for selection")
-	}
-
 	// Check if player already has cards in hand (indicating they already completed selection)
 	if len(player.Cards) > 0 {
 		log.Debug("Player has cards in hand, selection already completed", zap.Int("cards_in_hand", len(player.Cards)))
-		return fmt.Errorf("player has already completed card selection")
+		return fmt.Errorf("starting card selection already completed - you have %d cards in your hand", len(player.Cards))
+	}
+
+	// Check if player has starting cards available for selection
+	if len(player.StartingSelection) == 0 {
+		log.Debug("Player has no starting cards available",
+			zap.Int("cards_in_hand", len(player.Cards)),
+			zap.Bool("has_starting_selection", len(player.StartingSelection) > 0))
+		return fmt.Errorf("no starting cards available for selection - selection phase may have ended")
 	}
 
 	playerOptions := player.StartingSelection
@@ -220,28 +217,27 @@ func (s *SelectionManager) IsAllPlayersCardSelectionComplete(ctx context.Context
 	}
 }
 
-// checkStartingCardSelectionComplete checks if all players have starting cards (indicating selection is complete)
+// checkStartingCardSelectionComplete checks if all players have completed starting card selection using the flag
 func (s *SelectionManager) checkStartingCardSelectionComplete(players []model.Player, log *zap.Logger) bool {
-	playersWithStartingCards := 0
+	playersCompleted := 0
 
-	// For starting card selection, we check if players have cards in their hand
-	// (cards are added to hand after selection is confirmed)
+	// Check the HasSelectedStartingCards flag for each player
 	for _, player := range players {
-		if len(player.Cards) > 0 {
-			playersWithStartingCards++
-			log.Debug("Player has completed starting card selection", zap.String("player_id", player.ID), zap.Int("cards_count", len(player.Cards)))
+		if player.HasSelectedStartingCards {
+			playersCompleted++
+			log.Debug("Player has completed starting card selection", zap.String("player_id", player.ID))
 		} else if len(player.StartingSelection) > 0 {
-			log.Debug("Player has starting selection but hasn't confirmed", zap.String("player_id", player.ID))
+			log.Debug("Player has starting selection but hasn't completed yet", zap.String("player_id", player.ID))
 		} else {
-			log.Debug("Player has no starting cards or selection", zap.String("player_id", player.ID))
+			log.Debug("Player has no starting selection", zap.String("player_id", player.ID))
 		}
 	}
 
-	// All players must have selected and confirmed their starting cards
-	allComplete := playersWithStartingCards == len(players)
+	// All players must have completed their starting card selection
+	allComplete := playersCompleted == len(players)
 	log.Debug("Starting card selection completion check",
 		zap.Int("total_players", len(players)),
-		zap.Int("players_with_cards", playersWithStartingCards),
+		zap.Int("players_completed", playersCompleted),
 		zap.Bool("all_complete", allComplete))
 
 	return allComplete

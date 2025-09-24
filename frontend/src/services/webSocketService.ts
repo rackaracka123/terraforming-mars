@@ -22,8 +22,8 @@ import {
   MessageTypeActionStartGame,
   MessageTypeActionSkipAction,
   MessageTypeActionPlayCard,
-  MessageTypeActionSelectStartingCard,
   MessageTypeActionSelectCards,
+  MessageTypeActionSelectStartingCard,
   // Payload types
   PlayerConnectedPayload,
   PlayerReconnectedPayload,

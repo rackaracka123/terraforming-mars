@@ -190,7 +190,39 @@ func (b *Broadcaster) sendPersonalizedMessage(ctx context.Context, connection *C
 		return false
 	}
 
-	gameDTO := dto.ToGameDto(gameData, gamePlayers, playerID)
+	// Fetch player cards for personalized view using card service
+	playerCards := make(map[string][]model.Card)
+	for _, player := range gamePlayers {
+		if len(player.Cards) > 0 {
+			cards := make([]model.Card, 0, len(player.Cards))
+			for _, cardID := range player.Cards {
+				if card, err := b.cardService.GetCardByID(ctx, cardID); err == nil && card != nil {
+					cards = append(cards, *card)
+				}
+			}
+			playerCards[player.ID] = cards
+		} else {
+			playerCards[player.ID] = []model.Card{}
+		}
+	}
+
+	// Fetch starting card selections for personalized view using card service
+	startingCards := make(map[string][]model.Card)
+	for _, player := range gamePlayers {
+		if len(player.StartingSelection) > 0 {
+			cards := make([]model.Card, 0, len(player.StartingSelection))
+			for _, cardID := range player.StartingSelection {
+				if card, err := b.cardService.GetCardByID(ctx, cardID); err == nil && card != nil {
+					cards = append(cards, *card)
+				}
+			}
+			startingCards[player.ID] = cards
+		} else {
+			startingCards[player.ID] = []model.Card{}
+		}
+	}
+
+	gameDTO := dto.ToGameDto(gameData, gamePlayers, playerID, playerCards, startingCards)
 	message := dto.WebSocketMessage{
 		Type: dto.MessageTypeGameUpdated,
 		Payload: dto.GameUpdatedPayload{
@@ -328,3 +360,4 @@ func (b *Broadcaster) BroadcastProductionPhaseStarted(ctx context.Context, gameI
 		zap.String("game_id", gameID),
 		zap.Int("players_data_count", len(playersData)))
 }
+

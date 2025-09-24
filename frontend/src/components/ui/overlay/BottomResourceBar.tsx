@@ -128,121 +128,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     }
   };
 
-  // Add mock played cards for demonstration
-  const mockPlayedCards = [
-    {
-      id: "mining-guild",
-      name: "Mining Guild",
-      type: CardType.CORPORATION,
-      cost: 0,
-      description:
-        "You start with 30 M€, 5 steel production, and 1 steel. Each steel and titanium resource on the board gives you 1 M€ production.",
-      tags: [CardTag.BUILDING, CardTag.SCIENCE],
-      victoryPoints: 0,
-      playOrder: 1,
-    },
-    {
-      id: "power-plant",
-      name: "Power Plant",
-      type: CardType.AUTOMATED,
-      cost: 4,
-      description: "Increase your energy production 1 step.",
-      tags: [CardTag.POWER, CardTag.BUILDING],
-      victoryPoints: 1,
-      playOrder: 2,
-    },
-    {
-      id: "research",
-      name: "Research",
-      type: CardType.ACTIVE,
-      cost: 11,
-      description: "Action: Spend 1 M€ to draw a card.",
-      tags: [CardTag.SCIENCE],
-      victoryPoints: 1,
-      playOrder: 3,
-    },
-    {
-      id: "asteroid",
-      name: "Asteroid",
-      type: CardType.EVENT,
-      cost: 14,
-      description:
-        "Raise temperature 1 step and gain 2 titanium. Remove up to 2 plants from any player.",
-      tags: [CardTag.SPACE, CardTag.EVENT],
-      victoryPoints: 0,
-      playOrder: 4,
-    },
-    {
-      id: "mining-rights",
-      name: "Mining Rights",
-      type: CardType.AUTOMATED,
-      cost: 9,
-      description:
-        "Place a tile on an area with a steel or titanium bonus, adjacent to one of your tiles. Increase steel or titanium production 1 step.",
-      tags: [CardTag.BUILDING, CardTag.MARS],
-      victoryPoints: 1,
-      playOrder: 5,
-    },
-    {
-      id: "solar-wind-power",
-      name: "Solar Wind Power",
-      type: CardType.AUTOMATED,
-      cost: 11,
-      description:
-        "Increase your energy production 1 step and gain 2 titanium.",
-      tags: [CardTag.SPACE, CardTag.POWER, CardTag.SCIENCE],
-      victoryPoints: 1,
-      playOrder: 6,
-    },
-  ];
 
-  // Mock card effects data
-  const mockCardEffects = [
-    {
-      id: "mining-guild-effect",
-      cardId: "mining-guild",
-      cardName: "Mining Guild",
-      cardType: CardType.CORPORATION,
-      effectType: "ongoing" as const,
-      name: "Steel and Titanium Bonus",
-      description:
-        "Gain 1 M€ production for each steel and titanium resource on the board.",
-      isActive: true,
-      category: "production" as const,
-      resource: "credits",
-      value: 5,
-    },
-    {
-      id: "research-effect",
-      cardId: "research",
-      cardName: "Research",
-      cardType: CardType.ACTIVE,
-      effectType: "triggered" as const,
-      name: "Research Bonus",
-      description: "Get bonus when drawing cards.",
-      isActive: true,
-      category: "bonus" as const,
-      resource: "cards",
-      value: 1,
-    },
-    {
-      id: "power-plant-effect",
-      cardId: "power-plant",
-      cardName: "Power Plant",
-      cardType: CardType.AUTOMATED,
-      effectType: "immediate" as const,
-      name: "Energy Production",
-      description: "Increased energy production by 1 step.",
-      isActive: false,
-      category: "production" as const,
-      resource: "energy",
-      value: 1,
-    },
-  ];
 
-  const playedCardsToShow = currentPlayer?.playedCards?.length
-    ? mockPlayedCards // Use mock cards for display until we have proper card data structure
-    : mockPlayedCards;
+  // Get actual played cards count from game state
+  const playedCardsCount = currentPlayer?.playedCards?.length || 0;
   // Get available actions from current player
   const availableActions = currentPlayer?.availableActions || 0;
 
@@ -330,7 +219,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           title="View Played Cards"
         >
           <div className="button-icon">🃏</div>
-          <div className="button-count">{playedCardsToShow?.length || 0}</div>
+          <div className="button-count">{playedCardsCount}</div>
           <div className="button-label">Played</div>
         </button>
 
@@ -378,7 +267,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           title="View Card Effects"
         >
           <div className="button-icon">✨</div>
-          <div className="button-count">{mockCardEffects.length}</div>
+          <div className="button-count">{currentPlayer?.effects?.length || 0}</div>
           <div className="button-label">Effects</div>
         </button>
       </div>

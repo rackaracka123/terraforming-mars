@@ -6,7 +6,15 @@ import (
 )
 
 // ToGameDto converts a model Game to personalized GameDto
-func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) GameDto {
+func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, playerCards ...map[string][]model.Card) GameDto {
+	var cardMap map[string][]model.Card
+	var startingCardMap map[string][]model.Card
+	if len(playerCards) > 0 {
+		cardMap = playerCards[0]
+	}
+	if len(playerCards) > 1 {
+		startingCardMap = playerCards[1]
+	}
 	// Find the viewing player and other players
 	var currentPlayer PlayerDto
 	// Initialize as empty slice instead of nil to prevent interface conversion panics
@@ -14,7 +22,21 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 
 	for _, player := range players {
 		if player.ID == viewingPlayerID {
-			currentPlayer = ToPlayerDto(player)
+			// Get resolved cards for this player if provided
+			var cardDtos []CardDto
+			if cardMap != nil {
+				if cards, exists := cardMap[player.ID]; exists {
+					cardDtos = ToCardDtoSlice(cards)
+				}
+			}
+			// Get resolved starting cards for this player if provided
+			var startingCardDtos []CardDto
+			if startingCardMap != nil {
+				if startingCards, exists := startingCardMap[player.ID]; exists {
+					startingCardDtos = ToCardDtoSlice(startingCards)
+				}
+			}
+			currentPlayer = ToPlayerDto(player, cardDtos, startingCardDtos)
 		} else {
 			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
 		}
@@ -54,20 +76,24 @@ func ToPlayerDtoWithCardService(ctx context.Context, player model.Player) Player
 		AvailableActions:  player.AvailableActions,
 		VictoryPoints:     player.VictoryPoints,
 		IsConnected:       player.IsConnected,
-		Effects:           ToPlayerEffectDtoSlice(player.Effects),
-		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: []CardDto{}, // Empty until card service integration is resolved
+		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
+		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection:        []CardDto{}, // Empty until card service integration is resolved
+		HasSelectedStartingCards: player.HasSelectedStartingCards,
 	}
 }
 
-// ToPlayerDto converts a model Player to PlayerDto
-func ToPlayerDto(player model.Player) PlayerDto {
-
+// ToPlayerDto converts a model Player to PlayerDto with resolved cards
+func ToPlayerDto(player model.Player, playerCards []CardDto, startingCards ...[]CardDto) PlayerDto {
+	var startingCardDtos []CardDto
+	if len(startingCards) > 0 {
+		startingCardDtos = startingCards[0]
+	}
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
 		Corporation:       player.Corporation,
-		Cards:             []CardDto{}, // Empty since we can't convert IDs without card service
+		Cards:             playerCards, // Use resolved cards from hand
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
@@ -76,9 +102,10 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		AvailableActions:  player.AvailableActions,
 		VictoryPoints:     player.VictoryPoints,
 		IsConnected:       player.IsConnected,
-		Effects:           ToPlayerEffectDtoSlice(player.Effects),
-		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: []CardDto{}, // Empty since we can't convert IDs without card service
+		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
+		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection:        startingCardDtos, // Resolved starting card selection
+		HasSelectedStartingCards: player.HasSelectedStartingCards,
 	}
 }
 
@@ -197,11 +224,11 @@ func ToGameDtoSlice(games []model.Game) []GameDto {
 	return dtos
 }
 
-// ToPlayerDtoSlice converts a slice of model Players to PlayerDto slice
+// ToPlayerDtoSlice converts a slice of model Players to PlayerDto slice with empty cards
 func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
 	dtos := make([]PlayerDto, len(players))
 	for i, player := range players {
-		dtos[i] = ToPlayerDto(player)
+		dtos[i] = ToPlayerDto(player, []CardDto{}) // Empty cards for basic conversion
 	}
 	return dtos
 }

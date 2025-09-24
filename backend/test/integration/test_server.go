@@ -50,7 +50,7 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	sessionManager := session.NewSessionManager()
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)

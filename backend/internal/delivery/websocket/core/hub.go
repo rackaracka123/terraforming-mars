@@ -137,6 +137,11 @@ func (h *Hub) sendError(connection *Connection, errorMessage string) {
 	connection.SendMessage(message)
 }
 
+// GetSessionManager returns the hub's session manager for use by handlers
+func (h *Hub) GetSessionManager() session.SessionManager {
+	return h.sessionManager
+}
+
 // Standard error messages for hub operations
 const (
 	ErrHandlerNotAvailable = "Handler not available"

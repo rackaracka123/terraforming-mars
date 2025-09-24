@@ -73,3 +73,9 @@ type ProductionPhaseStartedPayload struct {
 	PlayersData []PlayerProductionData `json:"playersData" ts:"PlayerProductionData[]"`
 	Game        GameDto                `json:"game" ts:"GameDto"`
 }
+
+// ConfirmStartingCardSelectionMessage represents confirm starting card selection message
+type ConfirmStartingCardSelectionMessage struct {
+	GameID   string `json:"gameId" ts:"string"`
+	PlayerID string `json:"playerId" ts:"string"`
+}

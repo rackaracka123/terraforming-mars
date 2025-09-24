@@ -270,7 +270,12 @@ func (ch *ConnectionHandler) getPersonalizedGameState(connCtx *connectionContext
 		return dto.ToGameDtoBasic(*connCtx.game)
 	}
 
-	return dto.ToGameDto(*connCtx.game, players, connCtx.playerID)
+	// For connect handler, we use empty cards since the SessionManager handles
+	// full card data fetching and broadcasting after connections are established
+	playerCards := make(map[string][]model.Card)
+	startingCards := make(map[string][]model.Card)
+
+	return dto.ToGameDto(*connCtx.game, players, connCtx.playerID, playerCards, startingCards)
 }
 
 // sendConnectionConfirmation sends the connection/reconnection confirmation message

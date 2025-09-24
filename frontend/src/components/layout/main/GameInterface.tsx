@@ -203,9 +203,9 @@ export default function GameInterface() {
 
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
-      // Send card selection to server
+      // Send card selection to server - commits immediately
       await globalWebSocketManager.selectStartingCard(selectedCardIds);
-      // Modal will auto-hide when backend clears startingSelection field
+      // Modal will close automatically when backend clears startingSelection
     } catch (error) {
       console.error("Failed to select cards:", error);
     }
@@ -666,7 +666,7 @@ export default function GameInterface() {
         isOpen={showCardSelection}
         cards={cardDetails}
         playerCredits={currentPlayer?.resources?.credits || 40}
-        onConfirmSelection={handleCardSelection}
+        onSelectCards={handleCardSelection}
       />
 
       {/* Card fan overlay for hand cards */}
