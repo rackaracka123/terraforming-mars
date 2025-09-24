@@ -87,6 +87,9 @@ func (m *MockPlayerRepository) UpdatePassed(ctx context.Context, gameID, playerI
 func (m *MockPlayerRepository) UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error {
 	return nil // Stub implementation
 }
+func (m *MockPlayerRepository) UpdateEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error {
+	return nil // Stub implementation
+}
 func (m *MockPlayerRepository) AddCard(ctx context.Context, gameID, playerID string, cardID string) error {
 	return nil // Stub implementation
 }

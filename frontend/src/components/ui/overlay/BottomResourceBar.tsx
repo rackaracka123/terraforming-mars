@@ -389,7 +389,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           bottom: 0;
           left: 0;
           right: 0;
-          height: 120px;
+          height: 48px;
           background: linear-gradient(
             180deg,
             rgba(5, 15, 35, 0.95) 0%,
@@ -399,11 +399,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           backdrop-filter: blur(15px);
           border-top: 2px solid rgba(100, 150, 255, 0.3);
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           justify-content: space-between;
-          padding: 15px 30px;
-          /* z-index removed - natural DOM order places this above game content */
-          box-shadow: 
+          padding: 0 30px 8px 30px;
+          z-index: 1000;
+          pointer-events: auto;
+          box-shadow:
             0 -8px 32px rgba(0, 0, 0, 0.6),
             0 0 20px rgba(100, 150, 255, 0.2);
         }
@@ -426,6 +427,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         .resources-section {
           flex: 2;
+          transform: translateY(-30px);
+          pointer-events: auto;
+          z-index: 1001;
+          position: relative;
         }
 
         .resources-grid {
@@ -564,6 +569,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           align-items: center;
           justify-content: flex-end;
           gap: 12px;
+          transform: translateY(-30px);
+          pointer-events: auto;
+          z-index: 1001;
+          position: relative;
         }
 
         .action-button {
@@ -745,8 +754,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         @media (max-width: 1200px) {
           .bottom-resource-bar {
-            height: 100px;
-            padding: 10px 20px;
+            height: 40px;
+            padding: 0 20px 6px 20px;
+          }
+
+          .resources-section {
+            transform: translateY(-25px);
+          }
+
+          .action-buttons-section {
+            transform: translateY(-25px);
           }
 
           .resources-grid {
@@ -770,8 +787,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         @media (max-width: 1024px) {
           .bottom-resource-bar {
-            height: 100px;
-            padding: 12px 25px;
+            height: 40px;
+            padding: 0 25px 8px 25px;
+          }
+
+          .resources-section {
+            transform: translateY(-25px);
+          }
+
+          .action-buttons-section {
+            transform: translateY(-25px);
           }
 
           .resources-grid {
@@ -822,8 +847,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           .bottom-resource-bar {
             flex-direction: column;
             height: auto;
-            padding: 15px;
-            gap: 15px;
+            padding: 0 15px 10px 15px;
+            gap: 0;
+          }
+
+          .resources-section {
+            transform: translateY(-20px);
+          }
+
+          .action-buttons-section {
+            transform: translateY(-15px);
           }
 
           .resources-grid {
@@ -863,8 +896,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         @media (max-width: 600px) {
           .bottom-resource-bar {
-            padding: 12px;
-            gap: 12px;
+            padding: 0 12px 8px 12px;
+            gap: 0;
+          }
+
+          .resources-section {
+            transform: translateY(-18px);
+          }
+
+          .action-buttons-section {
+            transform: translateY(-12px);
           }
 
           .resources-grid {

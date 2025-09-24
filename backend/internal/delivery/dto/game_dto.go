@@ -154,20 +154,38 @@ type ProductionDto struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// PlayerEffectType represents different types of ongoing effects a player can have
+type PlayerEffectType string
+
+const (
+	PlayerEffectTypeDiscount                PlayerEffectType = "discount"                  // Cost reduction for playing cards
+	PlayerEffectTypeGlobalParameterLenience PlayerEffectType = "global-parameter-lenience" // Global parameter requirement flexibility
+	PlayerEffectTypeDefense                 PlayerEffectType = "defense"                   // Protection from attacks or resource removal
+	PlayerEffectTypeValueModifier           PlayerEffectType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
+)
+
+// PlayerEffectDto represents ongoing effects that a player has active for client consumption
+type PlayerEffectDto struct {
+	Type         PlayerEffectType `json:"type" ts:"PlayerEffectType"`                        // Type of effect
+	Amount       int              `json:"amount" ts:"number"`                                // Effect amount (e.g., M€ discount, steps of flexibility)
+	AffectedTags []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for this effect (empty = all cards)
+}
+
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
-	ID               string        `json:"id" ts:"string"`
-	Name             string        `json:"name" ts:"string"`
-	Corporation      *string       `json:"corporation" ts:"string | null"`
-	Cards            []CardDto     `json:"cards" ts:"CardDto[]"`
-	Resources        ResourcesDto  `json:"resources" ts:"ResourcesDto"`
-	Production       ProductionDto `json:"resourceProduction" ts:"ProductionDto"`
-	TerraformRating  int           `json:"terraformRating" ts:"number"`
-	PlayedCards      []string      `json:"playedCards" ts:"string[]"`
-	Passed           bool          `json:"passed" ts:"boolean"`
-	AvailableActions int           `json:"availableActions" ts:"number"`
-	VictoryPoints    int           `json:"victoryPoints" ts:"number"`
-	IsConnected      bool          `json:"isConnected" ts:"boolean"`
+	ID               string            `json:"id" ts:"string"`
+	Name             string            `json:"name" ts:"string"`
+	Corporation      *string           `json:"corporation" ts:"string | null"`
+	Cards            []CardDto         `json:"cards" ts:"CardDto[]"`
+	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
+	Production       ProductionDto     `json:"resourceProduction" ts:"ProductionDto"`
+	TerraformRating  int               `json:"terraformRating" ts:"number"`
+	PlayedCards      []string          `json:"playedCards" ts:"string[]"`
+	Passed           bool              `json:"passed" ts:"boolean"`
+	AvailableActions int               `json:"availableActions" ts:"number"`
+	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
+	IsConnected      bool              `json:"isConnected" ts:"boolean"`
+	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (discounts, special abilities, etc.)
 	// Card selection state - nullable, exists only during selection phase
 	CardSelection *ProductionPhaseDto `json:"productionSelection" ts:"ProductionPhaseDto | null"`
 	// Starting card selection - available during starting_card_selection phase
@@ -176,18 +194,19 @@ type PlayerDto struct {
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
 type OtherPlayerDto struct {
-	ID               string        `json:"id" ts:"string"`
-	Name             string        `json:"name" ts:"string"`
-	Corporation      string        `json:"corporation" ts:"string"`
-	HandCardCount    int           `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
-	Resources        ResourcesDto  `json:"resources" ts:"ResourcesDto"`
-	Production       ProductionDto `json:"resourceProduction" ts:"ProductionDto"`
-	TerraformRating  int           `json:"terraformRating" ts:"number"`
-	PlayedCards      []string      `json:"playedCards" ts:"string[]"` // Played cards are public
-	Passed           bool          `json:"passed" ts:"boolean"`
-	AvailableActions int           `json:"availableActions" ts:"number"`
-	VictoryPoints    int           `json:"victoryPoints" ts:"number"`
-	IsConnected      bool          `json:"isConnected" ts:"boolean"`
+	ID               string            `json:"id" ts:"string"`
+	Name             string            `json:"name" ts:"string"`
+	Corporation      string            `json:"corporation" ts:"string"`
+	HandCardCount    int               `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
+	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
+	Production       ProductionDto     `json:"resourceProduction" ts:"ProductionDto"`
+	TerraformRating  int               `json:"terraformRating" ts:"number"`
+	PlayedCards      []string          `json:"playedCards" ts:"string[]"` // Played cards are public
+	Passed           bool              `json:"passed" ts:"boolean"`
+	AvailableActions int               `json:"availableActions" ts:"number"`
+	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
+	IsConnected      bool              `json:"isConnected" ts:"boolean"`
+	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (public information)
 	// Card selection state - limited visibility for other players
 	IsSelectingCards bool `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }

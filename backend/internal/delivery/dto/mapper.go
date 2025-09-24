@@ -35,6 +35,32 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 	}
 }
 
+// ToPlayerDtoWithCardService converts a model Player to PlayerDto with card lookup capability
+func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardService service.CardService) PlayerDto {
+	// Convert starting card IDs to full card objects
+	startingCards := ConvertCardIDsToCardDtos(ctx, player.StartingSelection, cardService)
+	// Convert hand card IDs to full card objects
+	handCards := ConvertCardIDsToCardDtos(ctx, player.Cards, cardService)
+
+	return PlayerDto{
+		ID:                player.ID,
+		Name:              player.Name,
+		Corporation:       player.Corporation,
+		Cards:             handCards,
+		Resources:         ToResourcesDto(player.Resources),
+		Production:        ToProductionDto(player.Production),
+		TerraformRating:   player.TerraformRating,
+		PlayedCards:       player.PlayedCards,
+		Passed:            player.Passed,
+		AvailableActions:  player.AvailableActions,
+		VictoryPoints:     player.VictoryPoints,
+		IsConnected:       player.IsConnected,
+		Effects:           ToPlayerEffectDtoSlice(player.Effects),
+		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
+		StartingSelection: startingCards,
+	}
+}
+
 // ToPlayerDto converts a model Player to PlayerDto
 func ToPlayerDto(player model.Player) PlayerDto {
 
@@ -51,6 +77,7 @@ func ToPlayerDto(player model.Player) PlayerDto {
 		AvailableActions:  player.AvailableActions,
 		VictoryPoints:     player.VictoryPoints,
 		IsConnected:       player.IsConnected,
+		Effects:           ToPlayerEffectDtoSlice(player.Effects),
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection: []CardDto{}, // Empty since we can't convert IDs without card service
 	}
@@ -71,6 +98,7 @@ func ToOtherPlayerDto(otherPlayer model.OtherPlayer) OtherPlayerDto {
 		AvailableActions: otherPlayer.AvailableActions,
 		VictoryPoints:    otherPlayer.VictoryPoints,
 		IsConnected:      otherPlayer.IsConnected,
+		Effects:          ToPlayerEffectDtoSlice(otherPlayer.Effects),
 		IsSelectingCards: otherPlayer.IsSelectingCards,
 	}
 }
@@ -95,6 +123,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
 		IsConnected:      player.IsConnected,
+		Effects:          ToPlayerEffectDtoSlice(player.Effects),                               // Effects are public information
 		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
@@ -260,6 +289,43 @@ func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 			Outputs:  behavior.Outputs,
 			Choices:  behavior.Choices,
 		}
+	}
+	return result
+}
+
+// ToPlayerEffectDto converts a model PlayerEffect to PlayerEffectDto
+func ToPlayerEffectDto(effect model.PlayerEffect) PlayerEffectDto {
+	// Convert model PlayerEffectType to DTO PlayerEffectType
+	var dtoType PlayerEffectType
+	switch effect.Type {
+	case model.PlayerEffectDiscount:
+		dtoType = PlayerEffectTypeDiscount
+	case model.PlayerEffectGlobalParameterLenience:
+		dtoType = PlayerEffectTypeGlobalParameterLenience
+	case model.PlayerEffectDefense:
+		dtoType = PlayerEffectTypeDefense
+	case model.PlayerEffectValueModifier:
+		dtoType = PlayerEffectTypeValueModifier
+	default:
+		dtoType = PlayerEffectType(effect.Type) // Fallback to string conversion
+	}
+
+	return PlayerEffectDto{
+		Type:         dtoType,
+		Amount:       effect.Amount,
+		AffectedTags: ToCardTagDtoSlice(effect.AffectedTags),
+	}
+}
+
+// ToPlayerEffectDtoSlice converts a slice of model PlayerEffects to PlayerEffectDto slice
+func ToPlayerEffectDtoSlice(effects []model.PlayerEffect) []PlayerEffectDto {
+	if effects == nil {
+		return []PlayerEffectDto{}
+	}
+
+	result := make([]PlayerEffectDto, len(effects))
+	for i, effect := range effects {
+		result[i] = ToPlayerEffectDto(effect)
 	}
 	return result
 }

@@ -1,0 +1,528 @@
+.rightSidebar {
+  position: absolute;
+  bottom: 20%;
+  right: 0;
+  z-index: 10;
+  width: 250px;
+  min-width: 150px;
+  max-width: 250px;
+  height: auto;
+  background: transparent;
+  padding: clamp(4px, 1vw, 8px) clamp(10px, 2vw, 20px);
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+
+.generationCounter {
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.generationHex {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  border: 1px solid #666;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.generationHex::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  clip-path: polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%);
+  pointer-events: none;
+}
+
+.genText {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.genNumber {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.globalParameters {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  height: auto;
+}
+
+.metersContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 40px;
+  width: 100%;
+  justify-content: center;
+  padding-right: 0px;
+  margin-bottom: 10px;
+}
+
+.oxygenMeter,
+.temperatureMeter {
+  position: relative;
+  height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0px;
+}
+
+/* Dual Thermometer Styles */
+.temperatureBulb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 2px solid #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 110;
+  margin-bottom: 5px;
+}
+
+.temperatureBulbInner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #87ceeb 0%, #ff8c00 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.thermometerTube,
+.oxygenTube {
+  width: clamp(14px, 2vw, 18px);
+  height: calc(100% - 60px);
+  background: linear-gradient(to right, #1a1a1a 0%, #0a0a0a 50%, #1a1a1a 100%);
+  border: 1px solid #333;
+  border-radius: 8px 8px 0 0;
+  position: relative;
+  overflow: visible;
+}
+
+.temperatureFill {
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  width: 14px;
+  background: linear-gradient(to top, #87ceeb 0%, #ffb347 50%, #ff8c00 100%);
+  border-radius: 0 0 7px 7px;
+  transition: height 0.5s ease;
+  box-shadow:
+    0 0 8px rgba(255, 140, 0, 1),
+    0 0 15px rgba(255, 179, 71, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  opacity: 1;
+  filter: brightness(1.2);
+}
+
+.oxygenFill {
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  width: 14px;
+  background: linear-gradient(to top, #006400 0%, #32cd32 50%, #00ff00 100%);
+  border-radius: 0 0 7px 7px;
+  transition: height 0.5s ease;
+  box-shadow:
+    0 0 8px rgba(0, 255, 0, 1),
+    0 0 15px rgba(50, 205, 50, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  opacity: 1;
+  filter: brightness(1.2);
+}
+
+.oxygenBulb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border: 2px solid #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 110;
+  margin-bottom: 5px;
+}
+
+.oxygenBulbInner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #006400 0%, #00ff00 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Internal Step Markings */
+.oxygenSteps,
+.temperatureSteps {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.oxygenStepMark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(0, 255, 0, 0.3);
+  border-top: 1px solid rgba(0, 255, 0, 0.5);
+}
+
+.temperatureStepMark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 140, 0, 0.3);
+  border-top: 1px solid rgba(255, 140, 0, 0.5);
+}
+
+.temperatureScale {
+  position: absolute;
+  right: -30px;
+  top: 0;
+  height: 100%;
+  width: 25px;
+}
+
+/* Internal Numbers */
+.oxygenInternalNumbers,
+.temperatureInternalNumbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.oxygenInternalNumber,
+.temperatureInternalNumber {
+  position: absolute;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  transition: opacity 0.3s ease;
+  transform: translateY(-50%);
+}
+
+.oxygenInternalNumber {
+  color: #00ff00;
+  text-shadow: 0 0 3px rgba(0, 255, 0, 0.8);
+}
+
+.temperatureInternalNumber {
+  color: #ff8c00;
+  text-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
+}
+
+/* Milestone Indicators */
+.oxygenMilestones,
+.temperatureMilestones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.milestoneIndicator {
+  position: absolute;
+  width: 20px;
+  height: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(40, 40, 40, 0.95) 0%,
+    rgba(20, 20, 20, 0.9) 100%
+  );
+  border: 2px solid #666;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 8px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.6);
+  transform: translateY(-50%);
+}
+
+.oxygenMilestone {
+  left: -25px;
+}
+
+.temperatureMilestone {
+  right: -25px;
+}
+
+.milestoneIcon {
+  font-size: 10px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.milestoneIconImg {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+}
+
+.milestoneTooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: bold;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  border: 1px solid #666;
+}
+
+.oxygenMilestone .milestoneTooltip {
+  right: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.temperatureMilestone .milestoneTooltip {
+  left: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.milestoneIndicator:hover .milestoneTooltip {
+  opacity: 1;
+}
+
+.currentValues {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.currentTemp {
+  font-size: 8px;
+  font-weight: bold;
+  color: #ff6b2d;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid #444;
+}
+
+.currentOxygen {
+  font-size: 8px;
+  font-weight: bold;
+  color: #87ceeb;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid #444;
+}
+
+/* Ocean Counter Styles */
+.oceanCounter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 100, 200, 0.15) 0%,
+    rgba(0, 50, 150, 0.2) 100%
+  );
+  border: 1px solid rgba(0, 150, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  width: 80%;
+  margin-top: 0px;
+}
+
+.oceanIcon {
+  font-size: 12px;
+  color: #4da6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oceanIconImg {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(1.2);
+}
+
+.oceanLabel {
+  font-size: 6px;
+  font-weight: bold;
+  color: #4da6ff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.oceanCount {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.currentOceans {
+  color: #00bfff;
+  text-shadow: 0 0 3px rgba(0, 191, 255, 0.6);
+}
+
+.oceanSeparator {
+  color: #666;
+}
+
+.maxOceans {
+  color: #999;
+}
+
+@media (max-width: 1200px) {
+  .rightSidebar {
+    min-width: 120px;
+    max-width: 180px;
+  }
+
+  .metersContainer {
+    gap: 30px;
+    padding-right: 0px;
+  }
+
+  .generationHex {
+    width: 32px;
+    height: 32px;
+  }
+
+  .genText {
+    font-size: 7px;
+  }
+
+  .genNumber {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .rightSidebar {
+    min-width: 100px;
+    max-width: 150px;
+  }
+
+  .metersContainer {
+    gap: 25px;
+    padding-right: 0px;
+  }
+
+  .generationHex {
+    width: 28px;
+    height: 28px;
+  }
+
+  .genText {
+    font-size: 6px;
+  }
+
+  .genNumber {
+    font-size: 12px;
+  }
+
+  .milestoneIndicator {
+    width: 16px;
+    height: 14px;
+  }
+
+  .milestoneIcon {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rightSidebar {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid rgba(40, 50, 70, 0.6);
+    padding: 10px;
+  }
+
+  .globalParameters {
+    height: auto;
+  }
+
+  .metersContainer {
+    flex-direction: row;
+    justify-content: center;
+    padding-right: 0;
+    gap: 20px;
+  }
+
+  .oxygenMeter,
+  .temperatureMeter {
+    height: clamp(200px, 25vh, 300px);
+    margin-top: 0;
+  }
+
+  .milestonesAwardsSection {
+    margin: 10px 0;
+    padding: 10px;
+  }
+
+  .indicatorsGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+}
