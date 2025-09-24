@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
+import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
 
 interface Game3DViewProps {
   gameState: GameDto;
@@ -98,18 +99,20 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
         }}
         resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
       >
-        <Suspense fallback={null}>
-          {/* Lighting */}
-          <ambientLight intensity={0.4} />
-          <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-          <pointLight position={[-10, -10, -5]} intensity={0.3} />
+        <MarsRotationProvider>
+          <Suspense fallback={null}>
+            {/* Lighting */}
+            <ambientLight intensity={0.4} />
+            <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+            <pointLight position={[-10, -10, -5]} intensity={0.3} />
 
-          {/* Mars with hexagonal tiles */}
-          <MarsSphere gameState={gameState} onHexClick={handleHexClick} />
+            {/* Mars with hexagonal tiles */}
+            <MarsSphere gameState={gameState} onHexClick={handleHexClick} />
 
-          {/* Pan and zoom controls */}
-          <PanControls />
-        </Suspense>
+            {/* Rotation controls */}
+            <PanControls />
+          </Suspense>
+        </MarsRotationProvider>
       </Canvas>
     </div>
   );
