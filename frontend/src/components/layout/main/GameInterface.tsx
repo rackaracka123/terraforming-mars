@@ -13,6 +13,7 @@ import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
+import UnplayableCardOverlay from "../../ui/overlay/UnplayableCardOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
@@ -28,6 +29,7 @@ import {
   PlayerDto,
   ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
+import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
 export default function GameInterface() {
@@ -60,6 +62,11 @@ export default function GameInterface() {
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
   const [cardDetails, setCardDetails] = useState<CardDto[]>([]);
+
+  // Unplayable card feedback state
+  const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
+  const [unplayableReason, setUnplayableReason] =
+    useState<UnplayableReason | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -200,6 +207,14 @@ export default function GameInterface() {
       throw error; // Re-throw to allow CardFanOverlay to handle the error
     }
   }, []);
+
+  const handleUnplayableCard = useCallback(
+    (card: CardDto | null, reason: UnplayableReason | null) => {
+      setUnplayableCard(card);
+      setUnplayableReason(reason);
+    },
+    [],
+  );
 
   // Attempt reconnection to the game
   const attemptReconnection = useCallback(async () => {
@@ -665,13 +680,25 @@ export default function GameInterface() {
       />
 
       {/* Card fan overlay for hand cards */}
-      <CardFanOverlay
-        cards={currentPlayer?.cards || []}
-        hideWhenModalOpen={showCardSelection || isLobbyPhase}
-        onCardSelect={(_cardId) => {
-          // TODO: Implement card selection logic (view details, etc.)
-        }}
-        onPlayCard={handlePlayCard}
+      {game && currentPlayer && (
+        <CardFanOverlay
+          cards={currentPlayer.cards || []}
+          game={game}
+          player={currentPlayer}
+          hideWhenModalOpen={showCardSelection || isLobbyPhase}
+          onCardSelect={(_cardId) => {
+            // TODO: Implement card selection logic (view details, etc.)
+          }}
+          onPlayCard={handlePlayCard}
+          onUnplayableCard={handleUnplayableCard}
+        />
+      )}
+
+      {/* Unplayable card overlay */}
+      <UnplayableCardOverlay
+        card={unplayableCard}
+        reason={unplayableReason}
+        isVisible={unplayableCard !== null}
       />
 
       {/* Reconnection overlay */}

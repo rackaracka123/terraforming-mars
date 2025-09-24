@@ -1,19 +1,36 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import { CardDto } from "../../../types/generated/api-types.ts";
+import {
+  CardDto,
+  GameDto,
+  PlayerDto,
+} from "../../../types/generated/api-types.ts";
+import {
+  checkCardPlayability,
+  UnplayableReason,
+} from "../../../utils/cardPlayabilityUtils.ts";
 
 interface CardFanOverlayProps {
   cards: CardDto[];
+  game: GameDto;
+  player: PlayerDto;
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
   onPlayCard?: (cardId: string) => Promise<void>;
+  onUnplayableCard?: (
+    card: CardDto | null,
+    reason: UnplayableReason | null,
+  ) => void;
 }
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   cards,
+  game,
+  player,
   hideWhenModalOpen = false,
   onCardSelect,
   onPlayCard,
+  onUnplayableCard,
 }) => {
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
@@ -29,11 +46,64 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     {},
   );
   const [cardsExpanded, setCardsExpanded] = useState(false);
+  const [cardPlayability, setCardPlayability] = useState<
+    Map<string, { playable: boolean; reason?: UnplayableReason }>
+  >(new Map());
+  const [isHoveringMars, setIsHoveringMars] = useState(false);
+  const [returningCard, setReturningCard] = useState<string | null>(null);
   const handRef = useRef<HTMLDivElement>(null);
+  const cardPlayabilityRef = useRef(cardPlayability);
+  const cardsRef = useRef(cards);
+
+  // Update refs when props change
+  useEffect(() => {
+    cardPlayabilityRef.current = cardPlayability;
+  }, [cardPlayability]);
+
+  useEffect(() => {
+    cardsRef.current = cards;
+  }, [cards]);
 
   // Throw detection constants
   const THROW_DISTANCE_THRESHOLD = 120; // pixels - minimum distance to trigger throw
   const THROW_Y_THRESHOLD = -80; // pixels - minimum upward movement to trigger throw
+
+  // Mars hover detection - define the Mars play area (center portion of screen)
+  const isCursorOverMars = (x: number, y: number): boolean => {
+    const centerX = window.innerWidth / 2;
+
+    // Define Mars area as the center portion of the screen
+    // Exclude bottom area where cards are (bottom 300px) and top area (top 100px)
+    const marsAreaWidth = window.innerWidth * 0.8; // 80% of screen width
+    const marsAreaHeight = window.innerHeight - 400; // Exclude top 100px and bottom 300px
+
+    const leftBound = centerX - marsAreaWidth / 2;
+    const rightBound = centerX + marsAreaWidth / 2;
+    const topBound = 100; // Top margin
+    const bottomBound = topBound + marsAreaHeight;
+
+    return (
+      x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound
+    );
+  };
+
+  // Check card playability whenever cards, game state, or player state changes
+  useEffect(() => {
+    const checkAllCards = async () => {
+      const playabilityMap = new Map();
+
+      for (const card of cards) {
+        const result = await checkCardPlayability(card, game, player);
+        playabilityMap.set(card.id, result);
+      }
+
+      setCardPlayability(playabilityMap);
+    };
+
+    if (cards.length > 0 && game && player) {
+      void checkAllCards();
+    }
+  }, [cards, game, player]);
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
   const calculateCardPosition = (
@@ -168,6 +238,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const handleDragStart = (cardId: string, event: React.MouseEvent) => {
     event.preventDefault();
 
+    // Always allow drag to start - we'll check playability when hovering over Mars
     // Expand cards when drag starts if not already expanded
     if (!cardsExpanded) {
       setCardsExpanded(true);
@@ -222,28 +293,101 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     const isThrowDetected =
       dragDistance > THROW_DISTANCE_THRESHOLD && isUpwardThrow;
 
-    // Reset drag states
-    setDraggedCard(null);
-    setIsDragging(false);
-    setDragPosition({ x: 0, y: 0 });
-    setDragStartPosition({ x: 0, y: 0 });
-    setDragOffset({ x: 0, y: 0 });
-    setHighlightedCard(null);
-    setIsInThrowZone(false);
-
     if (draggedCardId) {
-      resetCardScale(draggedCardId);
-      resetCardRotation(draggedCardId);
-
-      // Handle throw action
+      // Handle throw action first - but only if card is playable
       if (isThrowDetected && onPlayCard) {
-        try {
-          await onPlayCard(draggedCardId);
-        } catch (error) {
-          console.error("Failed to play card:", error);
-          // Could add error feedback here
+        // Check if card is playable before attempting to play it
+        const playabilityInfo = cardPlayabilityRef.current.get(draggedCardId);
+
+        if (playabilityInfo?.playable) {
+          // Card is playable, proceed with playing it
+          try {
+            await onPlayCard(draggedCardId);
+            // If card is played successfully, clear drag states immediately
+            setDraggedCard(null);
+            setIsDragging(false);
+            setDragPosition({ x: 0, y: 0 });
+            setDragStartPosition({ x: 0, y: 0 });
+            setDragOffset({ x: 0, y: 0 });
+            setHighlightedCard(null);
+            setIsInThrowZone(false);
+            setIsHoveringMars(false);
+            resetCardScale(draggedCardId);
+            resetCardRotation(draggedCardId);
+          } catch (error) {
+            console.error("Failed to play card:", error);
+            // Card failed to play, animate return to hand
+            setReturningCard(draggedCardId);
+            setIsDragging(false);
+            setIsInThrowZone(false);
+            setIsHoveringMars(false);
+
+            // After animation completes, reset all states
+            setTimeout(() => {
+              setDraggedCard(null);
+              setDragPosition({ x: 0, y: 0 });
+              setDragStartPosition({ x: 0, y: 0 });
+              setDragOffset({ x: 0, y: 0 });
+              setHighlightedCard(null);
+              setReturningCard(null);
+              resetCardScale(draggedCardId);
+              resetCardRotation(draggedCardId);
+            }, 400); // Match CSS transition duration
+          }
+        } else {
+          // Card is not playable, don't send to backend - animate return to hand
+          // Card is not playable, blocking play attempt
+          setReturningCard(draggedCardId);
+          setIsDragging(false);
+          setIsInThrowZone(false);
+          setIsHoveringMars(false);
+
+          // After animation completes, reset all states
+          setTimeout(() => {
+            setDraggedCard(null);
+            setDragPosition({ x: 0, y: 0 });
+            setDragStartPosition({ x: 0, y: 0 });
+            setDragOffset({ x: 0, y: 0 });
+            setHighlightedCard(null);
+            setReturningCard(null);
+            resetCardScale(draggedCardId);
+            resetCardRotation(draggedCardId);
+          }, 400); // Match CSS transition duration
         }
+      } else {
+        // No throw detected, animate return to hand
+        setReturningCard(draggedCardId);
+        setIsDragging(false);
+        setIsInThrowZone(false);
+        setIsHoveringMars(false);
+
+        // After animation completes, reset all states
+        setTimeout(() => {
+          setDraggedCard(null);
+          setDragPosition({ x: 0, y: 0 });
+          setDragStartPosition({ x: 0, y: 0 });
+          setDragOffset({ x: 0, y: 0 });
+          setHighlightedCard(null);
+          setReturningCard(null);
+          resetCardScale(draggedCardId);
+          resetCardRotation(draggedCardId);
+        }, 400); // Match CSS transition duration
       }
+    } else {
+      // No dragged card, clear states immediately
+      setDraggedCard(null);
+      setIsDragging(false);
+      setDragPosition({ x: 0, y: 0 });
+      setDragStartPosition({ x: 0, y: 0 });
+      setDragOffset({ x: 0, y: 0 });
+      setHighlightedCard(null);
+      setIsInThrowZone(false);
+      setIsHoveringMars(false);
+    }
+
+    // Clear unplayable card feedback
+    if (onUnplayableCard) {
+      onUnplayableCard(null, null);
     }
 
     setJustDragged(true);
@@ -271,6 +415,36 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       if (isDragging && draggedCard) {
         setDragPosition({ x: event.clientX, y: event.clientY });
 
+        // Check if we're hovering over Mars
+        const hoveringMars = isCursorOverMars(event.clientX, event.clientY);
+        if (hoveringMars !== isHoveringMars) {
+          setIsHoveringMars(hoveringMars);
+        }
+
+        // Update feedback based on Mars hover state (do this every time, not just on state change)
+        if (hoveringMars && onUnplayableCard && draggedCard) {
+          // Get current card data using refs to avoid dependency issues
+          const currentCard = cardsRef.current.find(
+            (c) => c.id === draggedCard,
+          );
+          const currentPlayabilityInfo =
+            cardPlayabilityRef.current.get(draggedCard);
+
+          if (
+            !currentPlayabilityInfo?.playable &&
+            currentCard &&
+            currentPlayabilityInfo?.reason
+          ) {
+            onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
+          } else if (currentPlayabilityInfo?.playable) {
+            // Clear feedback if card is actually playable
+            onUnplayableCard(null, null);
+          }
+        } else if (!hoveringMars && onUnplayableCard) {
+          // Clear feedback when not hovering Mars
+          onUnplayableCard(null, null);
+        }
+
         // Check if we're in throw zone for visual feedback
         const deltaX = event.clientX - dragStartPosition.x;
         const deltaY = event.clientY - dragStartPosition.y;
@@ -284,7 +458,15 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         }
       }
     },
-    [isDragging, draggedCard, dragStartPosition, isInThrowZone],
+    [
+      isDragging,
+      draggedCard,
+      dragStartPosition,
+      isInThrowZone,
+      isHoveringMars,
+      onUnplayableCard,
+      isCursorOverMars,
+    ],
   );
 
   const handleDocumentMouseUp = useCallback(() => {
@@ -331,6 +513,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           const isHighlighted = highlightedCard === card.id;
           const isDraggedCard = draggedCard === card.id;
           const isHovered = hoveredCard === card.id;
+          const isReturning = returningCard === card.id;
+          const playabilityInfo = cardPlayability.get(card.id);
+          const isUnplayableInThrowZone =
+            isDraggedCard && isInThrowZone && !playabilityInfo?.playable;
+          const isUnplayableOverMars =
+            isDraggedCard && isHoveringMars && !playabilityInfo?.playable;
 
           let finalX = position.x;
           let finalY = position.y;
@@ -353,7 +541,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             finalY -= 80;
           }
 
-          if (isDraggedCard) {
+          if (isDraggedCard && !isReturning) {
             const containerRect = handRef.current?.getBoundingClientRect();
             if (containerRect) {
               const targetScreenX = dragPosition.x + dragOffset.x;
@@ -365,10 +553,16 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             }
           }
 
+          // If card is returning, use normal hand position (no drag offset)
+          if (isReturning) {
+            // Card will smoothly animate back to its normal hand position
+            // finalX and finalY are already set to the correct hand position
+          }
+
           return (
             <div
               key={card.id}
-              className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone ? "throw-zone" : ""}`}
+              className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard && !isReturning ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone && playabilityInfo?.playable ? "throw-zone" : ""} ${isUnplayableInThrowZone ? "unplayable-throw-zone" : ""} ${isUnplayableOverMars ? "unplayable-over-mars" : ""} ${isReturning ? "returning" : ""}`}
               style={
                 {
                   transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
@@ -474,9 +668,24 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           filter: brightness(1.2);
         }
 
+        .terraforming-card.unplayable-throw-zone {
+          /* No special styling for unplayable cards in throw zone */
+        }
+
+        .terraforming-card.unplayable-over-mars {
+          opacity: 0.5;
+          filter: grayscale(70%) brightness(0.6);
+        }
+
         .terraforming-card:not(.dragged) {
           transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
+
+        .terraforming-card.returning {
+          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          cursor: pointer;
+        }
+
 
         /* Responsive Design */
         @media (max-width: 1200px) {
