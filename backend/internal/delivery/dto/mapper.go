@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"terraforming-mars-backend/internal/model"
 )
 
@@ -36,17 +37,15 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string) 
 }
 
 // ToPlayerDtoWithCardService converts a model Player to PlayerDto with card lookup capability
-func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardService service.CardService) PlayerDto {
-	// Convert starting card IDs to full card objects
-	startingCards := ConvertCardIDsToCardDtos(ctx, player.StartingSelection, cardService)
-	// Convert hand card IDs to full card objects
-	handCards := ConvertCardIDsToCardDtos(ctx, player.Cards, cardService)
-
+// TODO: Implement card service integration when import cycle is resolved
+func ToPlayerDtoWithCardService(ctx context.Context, player model.Player) PlayerDto {
+	// Note: Card service integration commented out due to import cycle
+	// This function should be moved to a higher-level service layer
 	return PlayerDto{
 		ID:                player.ID,
 		Name:              player.Name,
 		Corporation:       player.Corporation,
-		Cards:             handCards,
+		Cards:             []CardDto{}, // Empty until card service integration is resolved
 		Resources:         ToResourcesDto(player.Resources),
 		Production:        ToProductionDto(player.Production),
 		TerraformRating:   player.TerraformRating,
@@ -57,7 +56,7 @@ func ToPlayerDtoWithCardService(ctx context.Context, player model.Player, cardSe
 		IsConnected:       player.IsConnected,
 		Effects:           ToPlayerEffectDtoSlice(player.Effects),
 		CardSelection:     ToProductionPhaseDto(player.ProductionSelection),
-		StartingSelection: startingCards,
+		StartingSelection: []CardDto{}, // Empty until card service integration is resolved
 	}
 }
 
