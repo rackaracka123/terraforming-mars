@@ -71,6 +71,12 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
+	// Broadcast updated game state to all players after successful card selection
+	h.logger.Debug("📢 Broadcasting game state after successful card selection",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
+	h.sessionManager.BroadcastGameState(ctx, gameID)
+
 	h.logger.Info("✅ Select starting card action completed successfully",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
