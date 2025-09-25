@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"terraforming-mars-backend/internal/errors"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -120,7 +121,7 @@ func (r *PlayerRepositoryImpl) GetByID(ctx context.Context, gameID, playerID str
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return model.Player{}, fmt.Errorf("player with ID %s not found in game %s", playerID, gameID)
+		return model.Player{}, &errors.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// Return a copy to prevent external mutation

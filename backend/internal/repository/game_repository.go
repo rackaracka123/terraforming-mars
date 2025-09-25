@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"terraforming-mars-backend/internal/errors"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -82,7 +83,7 @@ func (r *GameRepositoryImpl) GetByID(ctx context.Context, gameID string) (model.
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return model.Game{}, fmt.Errorf("game with ID %s not found", gameID)
+		return model.Game{}, &errors.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	// Return a copy to prevent external mutation

@@ -2,18 +2,18 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	apperrors "terraforming-mars-backend/internal/errors"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
-
-// No longer need CardService interface - using repository directly
 
 // SessionManager manages WebSocket sessions and provides broadcasting capabilities
 // This service is used by services to broadcast complete game state to players
@@ -118,6 +118,12 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	// Get updated game state
 	game, err := sm.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
+		// Handle missing game gracefully - this can happen during test cleanup or if game was deleted
+		var notFoundErr *apperrors.NotFoundError
+		if errors.As(err, &notFoundErr) {
+			log.Debug("Game no longer exists, skipping broadcast", zap.Error(err))
+			return nil // No error, just skip the broadcast
+		}
 		log.Error("Failed to get game for broadcast", zap.Error(err))
 		return err
 	}
@@ -127,6 +133,12 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	if err != nil {
 		log.Error("Failed to get players for broadcast", zap.Error(err))
 		return err
+	}
+
+	// If no players exist, there's nothing to broadcast
+	if len(players) == 0 {
+		log.Debug("No players found for game, skipping broadcast")
+		return nil
 	}
 
 	// Debug: Check if players have starting card data
@@ -175,9 +187,18 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 			Game: personalizedGameDTO,
 		})
 		if err != nil {
-			log.Error("Failed to send game state update to player",
-				zap.Error(err),
-				zap.String("player_id", player.ID))
+			// Handle missing sessions gracefully - this can happen during test cleanup
+			var notFoundErr *apperrors.NotFoundError
+			var sessionErr *apperrors.SessionNotFoundError
+			if errors.As(err, &notFoundErr) || errors.As(err, &sessionErr) {
+				log.Debug("Player session no longer exists, skipping broadcast",
+					zap.Error(err),
+					zap.String("player_id", player.ID))
+			} else {
+				log.Error("Failed to send game state update to player",
+					zap.Error(err),
+					zap.String("player_id", player.ID))
+			}
 			continue // Continue with other players
 		}
 
@@ -275,12 +296,12 @@ func (sm *SessionManagerImpl) sendToPlayerDirect(playerID, gameID string, messag
 
 	gameMap, exists := sm.sessions[gameID]
 	if !exists {
-		return fmt.Errorf("game %s not found", gameID)
+		return &apperrors.SessionNotFoundError{Resource: "game", ID: gameID}
 	}
 
 	sendFunc, exists := gameMap[playerID]
 	if !exists {
-		return fmt.Errorf("player %s not found in game %s", playerID, gameID)
+		return &apperrors.SessionNotFoundError{Resource: "player", ID: playerID}
 	}
 
 	message := dto.WebSocketMessage{
