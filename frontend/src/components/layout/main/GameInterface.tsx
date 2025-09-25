@@ -125,7 +125,6 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
-
   const handleError = useCallback(() => {
     // Could show error modal
   }, []);
@@ -149,7 +148,6 @@ export default function GameInterface() {
       }
     }
   }, [navigate]);
-
 
   const handlePlayerDisconnected = useCallback(
     (payload: PlayerDisconnectedPayload) => {

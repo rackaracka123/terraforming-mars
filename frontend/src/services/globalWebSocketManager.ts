@@ -88,8 +88,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
       this.emit("full-state", statePayload);
     });
 
-
-
     webSocketService.on(
       "player-disconnected",
       (payload: PlayerDisconnectedPayload) => {
@@ -166,19 +164,19 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
   // Proxy method to underlying WebSocket service
   async playerConnect(playerName: string, gameId: string, playerId?: string) {
-    console.log('🌐 GlobalWebSocketManager.playerConnect called', {
+    console.log("🌐 GlobalWebSocketManager.playerConnect called", {
       playerName,
       gameId,
       playerId,
       isInitialized: this.isInitialized,
-      webSocketService: typeof webSocketService
+      webSocketService: typeof webSocketService,
     });
 
     await this.ensureConnected();
 
-    console.log('🔗 About to call webSocketService.playerConnect');
+    console.log("🔗 About to call webSocketService.playerConnect");
     const result = webSocketService.playerConnect(playerName, gameId, playerId);
-    console.log('📡 webSocketService.playerConnect result', result);
+    console.log("📡 webSocketService.playerConnect result", result);
 
     return result;
   }
@@ -235,7 +233,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
     await this.ensureConnected();
     return webSocketService.selectStartingCard(cardIds);
   }
-
 
   async selectCards(cardIds: string[]): Promise<string> {
     await this.ensureConnected();

@@ -211,7 +211,6 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 	return nil
 }
 
-
 // finalizeConnection logs connection completion (connection already updated with player ID)
 func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 	// Connection has already been updated with the real player ID in processNewPlayer
@@ -223,8 +222,6 @@ func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 		zap.String("player_name", connCtx.payload.PlayerName),
 		zap.Bool("is_new_player", connCtx.isNew))
 }
-
-
 
 // Helper methods
 
@@ -253,4 +250,3 @@ func (ch *ConnectionHandler) findExistingPlayerByID(ctx context.Context, gameID,
 		zap.String("player_name", player.Name))
 	return player.ID
 }
-
