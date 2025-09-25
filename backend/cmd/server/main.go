@@ -11,7 +11,6 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -41,15 +40,11 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize event system
-	eventBus := events.NewInMemoryEventBus()
-	log.Info("Event bus initialized")
-
 	// Initialize individual repositories
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository()
 	log.Info("Player repository initialized")
 
-	gameRepo := repository.NewGameRepository(eventBus)
+	gameRepo := repository.NewGameRepository()
 	log.Info("Game repository initialized")
 
 	// Initialize card repository and load cards
@@ -75,9 +70,9 @@ func main() {
 	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo)
 
 	// Initialize CardService with SessionManager
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
@@ -100,7 +95,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared SessionManager
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo, sessionManager)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, sessionManager)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

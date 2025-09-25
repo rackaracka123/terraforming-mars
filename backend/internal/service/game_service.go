@@ -6,7 +6,6 @@ import (
 	"math/rand"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -60,7 +59,6 @@ type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
-	eventBus       events.EventBus
 	sessionManager session.SessionManager
 }
 
@@ -69,14 +67,12 @@ func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardService *CardServiceImpl,
-	eventBus events.EventBus,
 	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		cardService:    cardService,
-		eventBus:       eventBus,
 		sessionManager: sessionManager,
 	}
 }

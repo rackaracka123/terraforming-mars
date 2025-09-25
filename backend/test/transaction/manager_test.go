@@ -114,6 +114,9 @@ func (m *MockPlayerRepository) ClearCardSelection(ctx context.Context, gameID, p
 func (m *MockPlayerRepository) SetStartingSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	return nil // Stub implementation
 }
+func (m *MockPlayerRepository) SetHasSelectedStartingCards(ctx context.Context, gameID, playerID string, value bool) error {
+	return nil // Stub implementation
+}
 
 // MockGameRepository implements transaction.GameRepository for testing
 type MockGameRepository struct {

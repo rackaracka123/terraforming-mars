@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/events"
+	
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -16,13 +16,13 @@ import (
 
 func TestCardService_SelectStartingCards(t *testing.T) {
 	// Setup
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 
@@ -199,13 +199,13 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 
 func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	// Setup
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 
@@ -334,13 +334,13 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 
 func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	// Setup
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 

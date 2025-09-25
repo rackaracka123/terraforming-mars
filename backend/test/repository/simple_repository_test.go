@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -22,9 +21,8 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 	defer logger.Shutdown()
 
 	// Initialize repositories with clean architecture
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	ctx := context.Background()
 
 	t.Run("Game Repository CRUD Operations", func(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -17,17 +16,15 @@ type SelectionManager struct {
 	gameRepo     repository.GameRepository
 	playerRepo   repository.PlayerRepository
 	cardRepo     repository.CardRepository
-	eventBus     events.EventBus
 	cardDeckRepo repository.CardDeckRepository
 }
 
 // NewSelectionManager creates a new card selection manager
-func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository) *SelectionManager {
+func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository) *SelectionManager {
 	return &SelectionManager{
 		gameRepo:     gameRepo,
 		playerRepo:   playerRepo,
 		cardRepo:     cardRepo,
-		eventBus:     eventBus,
 		cardDeckRepo: cardDeckRepo,
 	}
 }

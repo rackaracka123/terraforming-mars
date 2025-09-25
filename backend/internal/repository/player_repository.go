@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -48,16 +47,14 @@ type PlayerRepository interface {
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
 type PlayerRepositoryImpl struct {
 	// Map of gameID -> map of playerID -> Player
-	players  map[string]map[string]*model.Player
-	mutex    sync.RWMutex
-	eventBus events.EventBus
+	players map[string]map[string]*model.Player
+	mutex   sync.RWMutex
 }
 
 // NewPlayerRepository creates a new player repository
-func NewPlayerRepository(eventBus events.EventBus) PlayerRepository {
+func NewPlayerRepository() PlayerRepository {
 	return &PlayerRepositoryImpl{
-		players:  make(map[string]map[string]*model.Player),
-		eventBus: eventBus,
+		players: make(map[string]map[string]*model.Player),
 	}
 }
 
@@ -92,14 +89,6 @@ func (r *PlayerRepositoryImpl) Create(ctx context.Context, gameID string, player
 	r.players[gameID][player.ID] = playerCopy
 
 	log.Debug("Player added to game", zap.String("player_name", player.Name))
-
-	// Publish player added event
-	if r.eventBus != nil {
-		playerAddedEvent := events.NewPlayerJoinedEvent(gameID, player.ID, player.Name)
-		if err := r.eventBus.Publish(ctx, playerAddedEvent); err != nil {
-			log.Warn("Failed to publish player added event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -172,14 +161,6 @@ func (r *PlayerRepositoryImpl) Delete(ctx context.Context, gameID, playerID stri
 
 	log.Info("Player removed from game", zap.String("player_name", player.Name))
 
-	// Publish player removed event
-	if r.eventBus != nil {
-		playerRemovedEvent := events.NewPlayerLeftEvent(gameID, playerID, player.Name)
-		if err := r.eventBus.Publish(ctx, playerRemovedEvent); err != nil {
-			log.Warn("Failed to publish player removed event", zap.Error(err))
-		}
-	}
-
 	return nil
 }
 
@@ -217,24 +198,9 @@ func (r *PlayerRepositoryImpl) UpdateResources(ctx context.Context, gameID, play
 		return err
 	}
 
-	oldResources := player.Resources
 	player.Resources = resources
 
 	log.Info("Player resources updated")
-
-	// Publish consolidated player changed event for resources
-	if r.eventBus != nil && oldResources != resources {
-		resourcesChangedEvent := events.NewPlayerResourcesChangedEvent(gameID, playerID)
-		if err := r.eventBus.Publish(ctx, resourcesChangedEvent); err != nil {
-			log.Warn("Failed to publish player resources changed event", zap.Error(err))
-		}
-
-		// Also publish game updated event to notify WebSocket clients
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -251,18 +217,9 @@ func (r *PlayerRepositoryImpl) UpdateProduction(ctx context.Context, gameID, pla
 		return err
 	}
 
-	oldProduction := player.Production
 	player.Production = production
 
 	log.Info("Player production updated")
-
-	// Publish consolidated player changed event for production
-	if r.eventBus != nil && oldProduction != production {
-		productionChangedEvent := events.NewPlayerProductionChangedEvent(gameID, playerID)
-		if err := r.eventBus.Publish(ctx, productionChangedEvent); err != nil {
-			log.Warn("Failed to publish player production changed event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -283,14 +240,6 @@ func (r *PlayerRepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID
 	player.TerraformRating = rating
 
 	log.Info("Player terraform rating updated", zap.Int("old_tr", oldTR), zap.Int("new_tr", rating))
-
-	// Publish consolidated player changed event for terraform rating
-	if r.eventBus != nil && oldTR != rating {
-		trChangedEvent := events.NewPlayerTRChangedEvent(gameID, playerID)
-		if err := r.eventBus.Publish(ctx, trChangedEvent); err != nil {
-			log.Warn("Failed to publish player TR changed event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -335,15 +284,6 @@ func (r *PlayerRepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameI
 
 	log.Info("Player connection status updated", zap.Bool("old_status", oldStatus), zap.Bool("new_status", isConnected))
 
-	// Publish game updated event if connection status changed OR if reconnecting
-	// Always publish when a player connects/reconnects to ensure all clients get updated state
-	if r.eventBus != nil && (oldStatus != isConnected || isConnected) {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
-
 	return nil
 }
 
@@ -378,18 +318,9 @@ func (r *PlayerRepositoryImpl) UpdateAvailableActions(ctx context.Context, gameI
 		return err
 	}
 
-	oldActions := player.AvailableActions
 	player.AvailableActions = actions
 
 	log.Debug("Player available actions updated", zap.Int("actions", actions))
-
-	// Publish game updated event to notify all clients when actions change
-	if r.eventBus != nil && oldActions != actions {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -446,14 +377,6 @@ func (r *PlayerRepositoryImpl) UpdateEffects(ctx context.Context, gameID, player
 		zap.Int("old_effects_count", oldEffectsCount),
 		zap.Int("new_effects_count", len(effects)))
 
-	// Publish game updated event to notify all clients when effects change
-	if r.eventBus != nil {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
-
 	return nil
 }
 
@@ -479,14 +402,6 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 	player.Cards = append(player.Cards, cardID)
 
 	log.Info("Card added to player hand", zap.String("card_id", cardID))
-
-	// Publish game updated event to notify all clients
-	if r.eventBus != nil {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -697,12 +612,6 @@ func (r *PlayerRepositoryImpl) SetStartingSelection(ctx context.Context, gameID,
 	}
 	log.Info("🃏 Starting cards set for player", zap.Int("card_count", cardCount))
 
-	// Trigger event to notify about the game state change
-	event := events.NewGameUpdatedEvent(gameID)
-	if err := r.eventBus.Publish(ctx, event); err != nil {
-		log.Warn("Failed to publish game updated event", zap.Error(err))
-	}
-
 	return nil
 }
 
@@ -721,12 +630,6 @@ func (r *PlayerRepositoryImpl) SetHasSelectedStartingCards(ctx context.Context, 
 	player.HasSelectedStartingCards = value
 
 	log.Info("🃏 Starting card selection completion flag set for player", zap.Bool("has_selected", value))
-
-	// Trigger event to notify about the game state change
-	event := events.NewGameUpdatedEvent(gameID)
-	if err := r.eventBus.Publish(ctx, event); err != nil {
-		log.Warn("Failed to publish game updated event", zap.Error(err))
-	}
 
 	return nil
 }

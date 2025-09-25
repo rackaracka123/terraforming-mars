@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"terraforming-mars-backend/internal/events"
+	
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -18,16 +18,16 @@ func setupPlayerServiceTest(t *testing.T) (
 	service.GameService,
 	model.Game,
 ) {
-	eventBus := events.NewInMemoryEventBus()
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus)
+	// EventBus no longer needed
+	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository()
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 	sessionManager := test.NewMockSessionManager()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 
 	ctx := context.Background()
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})

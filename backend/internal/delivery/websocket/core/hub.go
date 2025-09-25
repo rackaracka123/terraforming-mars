@@ -4,7 +4,6 @@ import (
 	"context"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -39,13 +38,10 @@ type Hub struct {
 
 	// Handler registry for specific message types
 	handlers map[dto.MessageType]MessageHandler
-
-	// Event bus for subscribing to domain events
-	eventBus events.EventBus
 }
 
 // NewHub creates a new WebSocket hub with clean architecture
-func NewHub(eventBus events.EventBus, sessionManager session.SessionManager) *Hub {
+func NewHub(sessionManager session.SessionManager) *Hub {
 	manager := NewManager()
 
 	return &Hub{
@@ -56,7 +52,6 @@ func NewHub(eventBus events.EventBus, sessionManager session.SessionManager) *Hu
 		sessionManager: sessionManager,
 		logger:         logger.Get(),
 		handlers:       make(map[dto.MessageType]MessageHandler),
-		eventBus:       eventBus,
 	}
 }
 
