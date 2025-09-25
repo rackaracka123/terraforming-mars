@@ -1,8 +1,9 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import HexagonalGrid from "./HexagonalGrid.tsx";
+import ProjectedHexGrid from "./ProjectedHexGrid.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
+import { useMarsRotation } from "../../../contexts/MarsRotationContext.tsx";
 
 interface MarsSphereProps {
   gameState?: GameDto;
@@ -10,7 +11,7 @@ interface MarsSphereProps {
 }
 
 export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
-  const groupRef = useRef<THREE.Group>(null);
+  const { marsGroupRef } = useMarsRotation();
 
   // Load the Mars GLTF model
   const { scene } = useGLTF("/assets/models/mars.glb");
@@ -67,12 +68,12 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
   }, [scene, marsColorTint]);
 
   return (
-    <group ref={groupRef}>
+    <group ref={marsGroupRef}>
       {/* Mars GLB model with terraforming color tint */}
       <primitive object={marsScene} />
 
-      {/* Hexagonal grid overlay */}
-      <HexagonalGrid gameState={gameState} onHexClick={onHexClick} />
+      {/* Projected hexagonal grid "wrapped" around Mars sphere */}
+      <ProjectedHexGrid gameState={gameState} onHexClick={onHexClick} />
     </group>
   );
 }
