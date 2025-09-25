@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -16,7 +16,7 @@ import (
 
 // CardService handles card-related operations
 type CardService interface {
-	// Select starting cards for a player
+	// Select starting cards for a player (immediately commits to hand)
 	SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
 	// SelectProductionCards stores the starting card options for a player (called during game start)
@@ -47,11 +47,11 @@ type CardService interface {
 // CardServiceImpl implements CardService interface using specialized card managers
 type CardServiceImpl struct {
 	// Core repositories
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardRepo     repository.CardRepository
-	eventBus     events.EventBus
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	cardRepo       repository.CardRepository
+	cardDeckRepo   repository.CardDeckRepository
+	sessionManager session.SessionManager
 
 	// Specialized managers from cards package
 	selectionManager      *cards.SelectionManager
@@ -61,14 +61,14 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
-		eventBus:              eventBus,
 		cardDeckRepo:          cardDeckRepo,
-		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo),
+		sessionManager:        sessionManager,
+		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewEffectProcessor(gameRepo, playerRepo),
 		tagManager:            cards.NewTagManager(cardRepo),
@@ -78,7 +78,21 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 // Delegation methods - all operations are handled by the specialized cards service
 
 func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	return s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	if err != nil {
+		return err
+	}
+
+	// Broadcast updated game state to all players after successful card selection
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		logger.Get().Error("Failed to broadcast game state after starting card selection",
+			zap.Error(err),
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		// Don't fail the card selection operation, just log the error
+	}
+
+	return nil
 }
 
 func (s *CardServiceImpl) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
@@ -194,18 +208,6 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 	if err := s.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card); err != nil {
 		log.Error("Failed to apply card effects", zap.String("card_id", cardID), zap.Error(err))
 		return fmt.Errorf("failed to apply card effects: %w", err)
-	}
-
-	// Publish card played event
-	cardPlayedEvent := events.NewCardPlayedEvent(gameID, playerID, cardID)
-	if err := s.eventBus.Publish(ctx, cardPlayedEvent); err != nil {
-		log.Warn("Failed to publish card played event", zap.Error(err))
-	}
-
-	// Also publish game updated event to trigger client refreshes
-	gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-	if err := s.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-		log.Warn("Failed to publish game updated event", zap.Error(err))
 	}
 
 	// Consume one action now that all card playing steps have succeeded

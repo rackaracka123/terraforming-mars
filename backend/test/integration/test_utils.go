@@ -547,16 +547,20 @@ func SetupBasicGameFlow(t *testing.T, playerName string) (*TestClient, string) {
 	err = client.JoinGameViaWebSocket(gameID, playerName)
 	require.NoError(t, err, "Failed to join game via WebSocket")
 
-	// Wait for player connected confirmation
-	message, err := client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Failed to receive player connected message")
-	require.NotNil(t, message, "Player connected message should not be nil")
+	// Wait for game state confirmation
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Failed to receive game state message")
+	require.NotNil(t, message, "Game state message should not be nil")
 
-	// Extract player ID
+	// Extract player ID from game state
 	payload, ok := message.Payload.(map[string]interface{})
-	require.True(t, ok, "Player connected payload should be a map")
-	playerID, ok := payload["playerId"].(string)
-	require.True(t, ok, "Player ID should be present in payload")
+	require.True(t, ok, "Game updated payload should be a map")
+	game, ok := payload["game"].(map[string]interface{})
+	require.True(t, ok, "Game should be present in payload")
+	currentPlayer, ok := game["currentPlayer"].(map[string]interface{})
+	require.True(t, ok, "Current player should be present in game")
+	playerID, ok := currentPlayer["id"].(string)
+	require.True(t, ok, "Player ID should be present in current player")
 	require.NotEmpty(t, playerID, "Player ID should not be empty")
 	client.playerID = playerID
 

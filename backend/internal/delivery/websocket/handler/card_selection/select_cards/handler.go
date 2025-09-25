@@ -76,21 +76,16 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // handle processes the select production cards action (internal method)
 func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	h.logCardSelection(gameID, playerID, cardIDs)
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Player selecting production cards",
+		zap.Strings("card_ids", cardIDs),
+		zap.Int("count", len(cardIDs)))
 
 	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
 		return err
 	}
 
 	return h.markPlayerReady(ctx, gameID, playerID, cardIDs)
-}
-
-// logCardSelection logs the card selection attempt
-func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string) {
-	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Player selecting production cards",
-		zap.Strings("card_ids", cardIDs),
-		zap.Int("count", len(cardIDs)))
 }
 
 // selectCards processes the card selection through the service

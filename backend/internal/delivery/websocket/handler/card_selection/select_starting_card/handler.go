@@ -68,6 +68,8 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
+	// Game state broadcasting is now handled by the CardService
+
 	h.logger.Info("✅ Select starting card action completed successfully",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
@@ -78,11 +80,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	h.logCardSelection(gameID, playerID, cardIDs)
 
-	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
-		return err
-	}
-
-	return h.checkAndAdvancePhase(ctx, gameID, playerID, cardIDs)
+	return h.selectCards(ctx, gameID, playerID, cardIDs)
 }
 
 // logCardSelection logs the card selection attempt
@@ -102,25 +100,7 @@ func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, card
 		return fmt.Errorf("card selection failed: %w", err)
 	}
 
-	return nil
-}
-
-// checkAndAdvancePhase checks if all players completed selection and advances phase if needed
-func (h *Handler) checkAndAdvancePhase(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	if h.cardService.IsAllPlayersCardSelectionComplete(ctx, gameID) {
-		log.Info("All players completed starting card selection, advancing game phase")
-
-		if err := h.gameService.AdvanceFromCardSelectionPhase(ctx, gameID); err != nil {
-			log.Error("Failed to advance game phase", zap.Error(err))
-			return fmt.Errorf("failed to advance game phase: %w", err)
-		}
-
-		log.Info("Game phase advanced to Action phase")
-	}
-
-	log.Info("Player completed starting card selection",
+	log.Info("Player selected starting cards (pending confirmation)",
 		zap.Strings("selected_cards", cardIDs))
 
 	return nil

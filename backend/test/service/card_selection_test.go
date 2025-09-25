@@ -2,12 +2,12 @@ package service_test
 
 import (
 	"context"
-	"terraforming-mars-backend/internal/events"
+
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/test"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -15,10 +15,10 @@ import (
 func TestCardSelectionFlow(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	eventBus := events.NewInMemoryEventBus()
+	// EventBus no longer needed
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	cardRepo := repository.NewCardRepository()
 
 	// Load card data for testing
@@ -26,17 +26,11 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.NoError(t, err, "Should load card data for testing")
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 
-	// Track game updated events (consolidated state)
-	var receivedEvents []events.Event
-	eventBus.Subscribe(events.EventTypeGameUpdated, func(ctx context.Context, event events.Event) error {
-		receivedEvents = append(receivedEvents, event)
-		t.Logf("✅ Received event: %s", event.GetType())
-		return nil
-	})
-	t.Logf("📬 Subscribed to event: %s", events.EventTypeGameUpdated)
+	// EventBus tracking removed - using SessionManager for state updates
 
 	// Create game
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
@@ -55,18 +49,7 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.NoError(t, err)
 	t.Log("Game started")
 
-	// Wait for game updated event to be processed
-	maxWaitTime := 100 * time.Millisecond
-	waitInterval := 5 * time.Millisecond
-	waited := time.Duration(0)
-
-	for len(receivedEvents) == 0 && waited < maxWaitTime {
-		time.Sleep(waitInterval)
-		waited += waitInterval
-	}
-
-	// Verify that game updated event was published
-	require.GreaterOrEqual(t, len(receivedEvents), 1, "Should have received at least 1 game updated event after waiting %v", waited)
+	// EventBus removed - no event waiting needed, operations are synchronous
 
 	// Verify starting cards are distributed to player
 	players, err := playerRepo.ListByGameID(ctx, game.ID)

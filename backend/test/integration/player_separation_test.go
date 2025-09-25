@@ -9,6 +9,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// hasMultiplePlayers checks if a game-updated message contains multiple players
+func hasMultiplePlayers(msg *dto.WebSocketMessage) bool {
+	if msg == nil || msg.Type != dto.MessageTypeGameUpdated {
+		return false
+	}
+
+	payload, ok := msg.Payload.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	game, ok := payload["game"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	otherPlayers, ok := game["otherPlayers"].([]interface{})
+	if !ok {
+		return false
+	}
+
+	// Should have at least one other player (meaning 2 total)
+	return len(otherPlayers) >= 1
+}
+
 // TestPlayerSeparationTwoPlayers tests that player data is properly separated
 // when two players join a game - each should see their own full data and limited data for others
 func TestPlayerSeparationTwoPlayers(t *testing.T) {
@@ -35,39 +60,27 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 	err = client1.JoinGameViaWebSocket(gameID, player1Name)
 	require.NoError(t, err, "Player 1 failed to join")
 
-	// Wait for player 1 connected message
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Failed to receive player 1 connected message")
-	t.Log("✅ Player 1 connected")
-
-	// Drain Player1's first game-updated message (when they join alone)
+	// Wait for player 1 initial game state
 	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client1 should receive initial game-updated message")
+	t.Log("✅ Player 1 connected")
 
 	// Player 2 joins the game
 	player2Name := "Player2"
 	err = client2.JoinGameViaWebSocket(gameID, player2Name)
 	require.NoError(t, err, "Player 2 failed to join")
 
-	// Wait for player 2 connected message
-	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Failed to receive player 2 connected message")
-	t.Log("✅ Player 2 connected")
-
-	// Client 2 gets their initial game-updated
+	// Wait for player 2 initial game state
 	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client 2 should receive initial game-updated message")
+	t.Log("✅ Player 2 connected")
 
-	// Client 1 should receive player-connected notification for Player 2
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Client 1 should receive player-connected notification for Player 2")
-
-	// Both clients should receive personalized game-updated messages with both players
+	// Both clients should receive personalized game-updated messages with both players (via GameService broadcast)
 	gameUpdate1, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client 1 failed to receive game update with both players")
+	require.NoError(t, err, "Client 1 should receive game-updated when Player 2 joins")
 
 	gameUpdate2, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client 2 failed to receive game update with both players")
+	require.NoError(t, err, "Client 2 should receive game-updated with both players")
 
 	// Extract game data from both perspectives
 	payload1, ok := gameUpdate1.Payload.(map[string]interface{})
@@ -311,8 +324,8 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 		err = client.JoinGameViaWebSocket(gameID, playerNames[i])
 		require.NoError(t, err, "Player %d failed to join", i+1)
 
-		_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
-		require.NoError(t, err, "Failed to receive player %d connected message", i+1)
+		_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+		require.NoError(t, err, "Failed to receive player %d game state", i+1)
 	}
 
 	// Drain intermediate game-updated messages and wait for final ones with all 3 players
@@ -324,26 +337,25 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 	// - Each player gets player-connected notifications for other players
 	// - Each player gets personalized game-updated messages after each player joins
 
-	// Wait for all players to be connected and get final state
-	// Player 1 needs to wait for player 2 and 3 to connect
-	_, err = clients[0].WaitForMessage(dto.MessageTypePlayerConnected) // Player 2 connected
-	require.NoError(t, err, "Player 1 should receive Player 2 connected notification")
-	_, err = clients[0].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 2
+	// Wait for all players to receive updates when other players join
+	// Each client should get game updates as players join after them
+
+	// Player 1 gets updates when players 2 and 3 join
+	gameUpdate1, err := clients[0].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 2
 	require.NoError(t, err, "Player 1 should receive game update after Player 2")
+	gameUpdate1, err = clients[0].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 3
+	require.NoError(t, err, "Player 1 should receive game update after Player 3")
 
-	_, err = clients[0].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
-	require.NoError(t, err, "Player 1 should receive Player 3 connected notification")
+	// Player 2 gets update when player 3 joins
+	gameUpdate2, err := clients[1].WaitForMessage(dto.MessageTypeGameUpdated) // Update after Player 3
+	require.NoError(t, err, "Player 2 should receive game update after Player 3")
 
-	// Player 2 needs to wait for player 3 to connect
-	_, err = clients[1].WaitForMessage(dto.MessageTypePlayerConnected) // Player 3 connected
-	require.NoError(t, err, "Player 2 should receive Player 3 connected notification")
+	// Player 3 already has latest state from their join
+	gameUpdate3, err := clients[2].WaitForMessage(dto.MessageTypeGameUpdated) // Final state from broadcast
+	require.NoError(t, err, "Player 3 should receive final game state")
 
-	// Now all players should get the final game-updated with all 3 players
-	for i, client := range clients {
-		gameUpdate, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
-		require.NoError(t, err, "Client %d failed to receive final game update with all players", i+1)
-		gameUpdates = append(gameUpdates, gameUpdate)
-	}
+	// Collect all final game states
+	gameUpdates = []*dto.WebSocketMessage{gameUpdate1, gameUpdate2, gameUpdate3}
 
 	// Test that each player sees exactly 1 current player and 2 other players
 	for i, gameUpdate := range gameUpdates {
@@ -416,10 +428,8 @@ func TestPlayerSeparationCardVisibility(t *testing.T) {
 	// Connect Player1 and ensure they're fully registered before Player2 joins
 	err = client1.JoinGameViaWebSocket(gameID, "Player1")
 	require.NoError(t, err)
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err)
 
-	// Drain Player1's first game-updated message (when they join alone)
+	// Wait for Player1's initial game state
 	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Client1 should receive initial game-updated message")
 
@@ -430,24 +440,34 @@ func TestPlayerSeparationCardVisibility(t *testing.T) {
 	err = client2.JoinGameViaWebSocket(gameID, "Player2")
 	require.NoError(t, err)
 
-	// Wait for player2 connected message first
-	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Client2 should receive player-connected message")
+	// Both players should eventually receive game-updated messages with both players present
+	// We'll read multiple messages until we get ones with both players
+	var gameUpdate1, gameUpdate2 *dto.WebSocketMessage
 
-	// Client 2 gets their initial game-updated
-	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client 2 should receive initial game-updated message")
+	// Try to get game states with both players for both clients
+	for attempts := 0; attempts < 3; attempts++ {
+		if gameUpdate1 == nil {
+			msg, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
+			if err == nil && hasMultiplePlayers(msg) {
+				gameUpdate1 = msg
+			} else if err != nil && attempts == 2 {
+				require.NoError(t, err, "Client1 should receive game-updated with both players")
+			}
+		}
 
-	// Client 1 should receive player-connected notification for Player 2
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Client 1 should receive player-connected notification for Player 2")
+		if gameUpdate2 == nil {
+			msg, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
+			if err == nil && hasMultiplePlayers(msg) {
+				gameUpdate2 = msg
+			} else if err != nil && attempts == 2 {
+				require.NoError(t, err, "Client2 should receive game-updated with both players")
+			}
+		}
 
-	// Both clients should receive personalized game-updated messages with both players
-	gameUpdate1, err := client1.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client1 should receive game-updated message with both players")
-
-	gameUpdate2, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
-	require.NoError(t, err, "Client2 should receive game-updated message with both players")
+		if gameUpdate1 != nil && gameUpdate2 != nil {
+			break
+		}
+	}
 
 	// Extract and verify card visibility rules
 	payload1 := gameUpdate1.Payload.(map[string]interface{})

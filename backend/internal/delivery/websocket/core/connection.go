@@ -32,7 +32,11 @@ type Connection struct {
 	GameID   string
 	Conn     *websocket.Conn
 	Send     chan dto.WebSocketMessage
-	Hub      *Hub
+
+	// Callbacks for hub communication
+	onMessage    func(HubMessage)
+	onDisconnect func(*Connection)
+	onPlayerSet  func(*Connection, string) // Called when player ID is set
 
 	// Synchronization
 	mu         sync.RWMutex
@@ -43,23 +47,30 @@ type Connection struct {
 }
 
 // NewConnection creates a new WebSocket connection
-func NewConnection(id string, conn *websocket.Conn, hub *Hub) *Connection {
+func NewConnection(id string, conn *websocket.Conn, onMessage func(HubMessage), onDisconnect func(*Connection), onPlayerSet func(*Connection, string)) *Connection {
 	return &Connection{
-		ID:     id,
-		Conn:   conn,
-		Send:   make(chan dto.WebSocketMessage, 256),
-		Hub:    hub,
-		logger: logger.Get(),
-		Done:   make(chan struct{}),
+		ID:           id,
+		Conn:         conn,
+		Send:         make(chan dto.WebSocketMessage, 256),
+		onMessage:    onMessage,
+		onDisconnect: onDisconnect,
+		onPlayerSet:  onPlayerSet,
+		logger:       logger.Get(),
+		Done:         make(chan struct{}),
 	}
 }
 
 // SetPlayer associates this connection with a player
 func (c *Connection) SetPlayer(playerID, gameID string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.PlayerID = playerID
 	c.GameID = gameID
+	c.mu.Unlock()
+
+	// Notify Hub that this connection now has a player/game association
+	if c.onPlayerSet != nil && gameID != "" {
+		c.onPlayerSet(c, gameID)
+	}
 }
 
 // GetPlayer returns the player and game IDs for this connection
@@ -91,8 +102,10 @@ func (c *Connection) Close() {
 // ReadPump pumps messages from the websocket connection to the hub
 func (c *Connection) ReadPump() {
 	defer func() {
-		c.Hub.Unregister <- c
-		c.Conn.Close()
+		if c.onDisconnect != nil {
+			c.onDisconnect(c)
+		}
+		c.Close()
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)
@@ -121,11 +134,9 @@ func (c *Connection) ReadPump() {
 				zap.String("connection_id", c.ID),
 				zap.String("message_type", string(message.Type)))
 
-			// Send message to hub for processing
-			select {
-			case c.Hub.Messages <- HubMessage{Connection: c, Message: message}:
-			case <-c.Done:
-				return
+			// Send message to hub for processing via callback
+			if c.onMessage != nil {
+				c.onMessage(HubMessage{Connection: c, Message: message})
 			}
 		}
 	}

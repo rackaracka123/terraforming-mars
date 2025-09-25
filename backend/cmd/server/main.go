@@ -10,7 +10,8 @@ import (
 
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -40,15 +41,11 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize event system
-	eventBus := events.NewInMemoryEventBus()
-	log.Info("Event bus initialized")
-
 	// Initialize individual repositories
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository()
 	log.Info("Player repository initialized")
 
-	gameRepo := repository.NewGameRepository(eventBus)
+	gameRepo := repository.NewGameRepository()
 	log.Info("Game repository initialized")
 
 	// Initialize card repository and load cards
@@ -69,9 +66,18 @@ func main() {
 
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+
+	// Create Hub first (no dependencies)
+	hub := core.NewHub()
+
+	// Initialize SessionManager for WebSocket broadcasting with Hub
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+
+	// Initialize CardService with SessionManager
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	log.Info("SessionManager initialized for service-level broadcasting")
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	log.Info("Services initialized with new architecture and reconnection system")
@@ -92,8 +98,8 @@ func main() {
 		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
-	// Initialize WebSocket service
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
+	// Initialize WebSocket service with shared Hub
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

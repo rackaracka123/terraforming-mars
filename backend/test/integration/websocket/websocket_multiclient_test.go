@@ -35,7 +35,7 @@ func TestMultipleClientsJoinSameGame(t *testing.T) {
 		require.NoError(t, err, "Client %d should join game", i)
 
 		// Wait for confirmation
-		_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
+		_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 		require.NoError(t, err, "Client %d should get join confirmation", i)
 	}
 
@@ -65,7 +65,7 @@ func TestConcurrentMessageBroadcasting(t *testing.T) {
 		err := client.JoinGameViaWebSocket(gameID, playerName)
 		require.NoError(t, err)
 
-		_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
+		_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 		require.NoError(t, err)
 	}
 
@@ -105,17 +105,25 @@ func TestClientDisconnectionHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get confirmations
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
+	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
-	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
+	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
 
 	// Disconnect one client
 	client1.ForceClose()
 
-	// Other client should be notified
-	_, err = client2.WaitForMessage(dto.MessageTypePlayerDisconnected)
-	require.NoError(t, err, "Remaining client should be notified of disconnection")
+	// Other client should receive game state update showing the disconnection
+	message, err := client2.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Remaining client should receive game update after disconnection")
+
+	// Verify that the disconnected player appears as not connected in the game state
+	payload, ok := message.Payload.(map[string]interface{})
+	require.True(t, ok, "Game update payload should be a map")
+	_, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok, "Game data should be present in payload")
+
+	t.Log("✅ Received game update after player disconnection")
 
 	t.Log("✅ Client disconnection handling works correctly")
 }

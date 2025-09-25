@@ -370,6 +370,7 @@ export interface PlayerDto {
    * Starting card selection - available during starting_card_selection phase
    */
   startingSelection: CardDto[];
+  hasSelectedStartingCards: boolean; // Whether player has completed starting card selection
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -626,4 +627,11 @@ export interface ProductionPhaseStartedPayload {
   generation: number /* int */;
   playersData: PlayerProductionData[];
   game: GameDto;
+}
+/**
+ * ConfirmStartingCardSelectionMessage represents confirm starting card selection message
+ */
+export interface ConfirmStartingCardSelectionMessage {
+  gameId: string;
+  playerId: string;
 }

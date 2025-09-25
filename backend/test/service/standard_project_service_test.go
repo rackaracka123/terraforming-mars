@@ -5,11 +5,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"terraforming-mars-backend/internal/events"
+
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,21 +19,22 @@ import (
 
 // Helper functions for creating test services
 func createTestStandardProjectService() service.StandardProjectService {
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 }
 
 func createTestPlayerService() service.PlayerService {
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	return service.NewPlayerService(gameRepo, playerRepo)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	return service.NewPlayerService(gameRepo, playerRepo, nil)
 }
 
 func setupStandardProjectServiceTest(t *testing.T) (
@@ -48,15 +50,16 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	require.NoError(t, err)
 
 	// Initialize services
-	eventBus := events.NewInMemoryEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	// EventBus no longer needed
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
 
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	ctx := context.Background()

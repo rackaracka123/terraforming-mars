@@ -265,9 +265,11 @@ func (r *CardRepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.C
 
 	var startingCards []model.Card
 
-	// Include automated and active cards with reasonable cost (up to 15 MC)
+	// Include automated, active, and event cards with reasonable cost (up to 25 MC)
+	// This ensures we have enough cards for starting selection
 	for _, card := range r.projectCards {
-		if card.ID != "" && card.Cost <= 15 && (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive) {
+		if card.ID != "" && card.Cost <= 25 &&
+			(card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive || card.Type == model.CardTypeEvent) {
 			startingCards = append(startingCards, card)
 		}
 	}

@@ -24,11 +24,11 @@ make backend     # Start Go backend server (port 3001)
 
 ### 🧪 Testing
 ```bash
-make test         # Run all tests (backend + frontend)
-make test-backend # Run Go backend tests only
+make test         # Run all tests (backend only - frontend has no tests)
 make test-verbose # Run backend tests with verbose output
 make test-coverage# Generate test coverage report (backend/coverage.html)
 make test-quick   # Fast test suite for development iteration
+make test-watch   # Watch Go files and run tests on changes (requires entr)
 ```
 
 **IMPORTANT**: Test files should always be created in the test directory (e.g., `test/middleware/validator_test.go` tests `internal/middleware/validator.go`).
@@ -53,7 +53,6 @@ make clean        # Clean all build artifacts
 ### 🧰 Development Helpers
 ```bash
 make dev-setup    # Set up development environment (go mod tidy + npm install)
-make test-watch   # Watch Go files and run tests on changes (requires entr)
 ```
 
 ### 🔄 Type Generation
@@ -66,7 +65,7 @@ cd backend && tygo generate  # Alternative direct command
 These commands are no longer needed but mentioned for reference:
 - ~~`npm run backend`~~ → Use `make backend`
 - ~~`npm run frontend`~~ → Use `make frontend`
-- ~~`cd backend && make test`~~ → Use `make test-backend`
+- ~~`cd backend && make test`~~ → Use `make test`
 
 
 ## Core Architecture
@@ -162,6 +161,12 @@ The backend follows Clean Architecture principles with strict separation of conc
 - **Domain Events**: Consolidated event types (EventTypeGameUpdated, etc.)
 - **Event Flow**: Repository operations trigger events → EventBus → WebSocket broadcasting
 - **Decoupled Architecture**: Services publish events without knowing about subscribers
+
+**Session Management Layer** (`internal/delivery/websocket/session/`)
+- **SessionManager Interface**: Simplified to exactly 2 methods: `Broadcast(gameID)` and `Send(gameID, playerID)`
+- **Complete State Broadcasting**: Both methods send full game state with all data to relevant players
+- **Repository Integration**: Uses repositories directly (GameRepo, PlayerRepo, CardRepo) to avoid circular dependencies
+- **Service Integration Pattern**: Services update repositories first, then use SessionManager for broadcasting
 
 ### Clean Architecture Principles
 
@@ -265,8 +270,8 @@ Each action type has a dedicated handler in `internal/delivery/websocket/handler
 3. **Action Routing**: Manager.RouteMessage() identifies action type and routes to handler
 4. **Handler Processing**: Dedicated ActionHandler validates message and calls services
 5. **Business Logic**: Service layer executes domain operations via repositories
-6. **Event Publishing**: Repository operations trigger domain events via EventBus
-7. **State Broadcasting**: Hub receives events and broadcasts updates to all game clients
+6. **Session Broadcasting**: Service calls SessionManager.Broadcast() or Send() to notify players
+7. **State Distribution**: SessionManager retrieves complete game state and sends to relevant clients
 8. **Frontend Updates**: React components receive state changes and re-render UI
 
 ## Type System Overview
@@ -487,7 +492,7 @@ npm run lint           # Check for ESLint errors
 - **Clean Architecture**: Always implement new features following the domain -> service -> delivery pattern
 - **Type Tags**: Add both `json:` and `ts:` tags to all domain structs for frontend sync
 - **WebSocket Events**: Add new action handlers in `internal/delivery/websocket/handler/` and register in the manager
-- **Testing**: Use `go test ./...` to run all backend tests
+- **Testing**: Use `make test` to run all backend tests
 - **API Documentation**: Add Swagger comments to HTTP handlers for auto-generated docs
 
 #### Modern Backend Patterns
@@ -501,6 +506,7 @@ npm run lint           # Check for ESLint errors
 - **Action Handlers**: Create dedicated handlers in `internal/delivery/websocket/handler/`
 - **Handler Registration**: Register new handlers in the WebSocket manager for message routing
 - **Service Integration**: Use application services for business logic, not direct repository access
+- **No Direct SessionManager Usage**: Handlers should call services, which then use SessionManager for broadcasting
 - **Event Response**: Let the event system handle state broadcasting to clients
 
 **Card System Development** 
@@ -512,7 +518,7 @@ npm run lint           # Check for ESLint errors
 #### Test Debugging
 - **JSON Output**: Use `go test -json` for easier to parse test output when debugging
 - **Verbose with JSON**: Use `go test -json -v` for detailed test output in JSON format
-- **Specific Package**: `cd backend && go test -json ./internal/service/` for focused testing
+- **Specific Package**: `cd backend && go test -json ./test/service/` for focused testing
 
 ### Frontend Development (React)
 - **Generated Types**: Always use types from `src/types/generated/api-types.ts`
@@ -522,8 +528,8 @@ npm run lint           # Check for ESLint errors
 - **Promise Handling**: Use `void <function>()` to explicitly discard promises in event handlers to avoid IDE warnings
 
 ### Full-Stack Development
-- **Both servers** must be running for full functionality (`npm start`)
-- **Type Generation**: Run `npm run generate-types` after Go struct changes
+- **Both servers** must be running for full functionality (`make run`)
+- **Type Generation**: Run `make generate` after Go struct changes
 - **State Flow**: All game state changes originate from Go backend via WebSocket
 - **Development Workflow**: Go changes -> generate types -> React implementation
 - When creating mock data, abstract it from the UI to enable easier refactoring later

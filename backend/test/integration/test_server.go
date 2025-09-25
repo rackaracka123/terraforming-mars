@@ -7,7 +7,8 @@ import (
 	"sync"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
-	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"time"
@@ -32,12 +33,9 @@ type TestServer struct {
 func NewTestServer(port int) (*TestServer, error) {
 	logger := zap.NewNop() // Use no-op logger for tests to reduce noise
 
-	// Initialize event bus
-	eventBus := events.NewInMemoryEventBus()
-
 	// Initialize repositories
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository()
 
 	// Initialize services with proper event bus wiring
 	cardRepo := repository.NewCardRepository()
@@ -48,9 +46,17 @@ func NewTestServer(port int) (*TestServer, error) {
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+
+	// Create Hub first
+	hub := core.NewHub()
+
+	// Create SessionManager with Hub
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+
+	// Create services with proper SessionManager dependency
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	// Register card-specific listeners (removed since we're using mock cards)
@@ -58,8 +64,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	// 	return nil, fmt.Errorf("failed to register card listeners: %w", err)
 	// }
 
-	// Initialize WebSocket service with proper event bus and event handler
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, eventBus, gameRepo, playerRepo)
+	// Initialize WebSocket service with Hub
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, hub)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

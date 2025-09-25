@@ -142,8 +142,8 @@ func TestConnectionRecovery(t *testing.T) {
 	t.Log("✅ Player joined game")
 
 	// Wait for confirmation
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
+	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
 	t.Log("✅ Player connected confirmed")
 
 	// Force disconnect first client

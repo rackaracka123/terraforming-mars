@@ -2,7 +2,6 @@ import { webSocketService } from "./webSocketService.ts";
 import { WebSocketConnection } from "../types/webSocketTypes.ts";
 import type {
   GameDto,
-  PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
   FullStatePayload,
   HexPositionDto,
@@ -89,19 +88,6 @@ class GlobalWebSocketManager implements WebSocketConnection {
       this.emit("full-state", statePayload);
     });
 
-    webSocketService.on("player-connected", (payload: any) => {
-      // WebSocket: Player connected
-      this.emit("player-connected", payload);
-    });
-
-    webSocketService.on(
-      "player-reconnected",
-      (payload: PlayerReconnectedPayload) => {
-        // WebSocket: Player reconnected
-        this.emit("player-reconnected", payload);
-      },
-    );
-
     webSocketService.on(
       "player-disconnected",
       (payload: PlayerDisconnectedPayload) => {
@@ -178,8 +164,21 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
   // Proxy method to underlying WebSocket service
   async playerConnect(playerName: string, gameId: string, playerId?: string) {
+    console.log("🌐 GlobalWebSocketManager.playerConnect called", {
+      playerName,
+      gameId,
+      playerId,
+      isInitialized: this.isInitialized,
+      webSocketService: typeof webSocketService,
+    });
+
     await this.ensureConnected();
-    return webSocketService.playerConnect(playerName, gameId, playerId);
+
+    console.log("🔗 About to call webSocketService.playerConnect");
+    const result = webSocketService.playerConnect(playerName, gameId, playerId);
+    console.log("📡 webSocketService.playerConnect result", result);
+
+    return result;
   }
 
   // Standard project actions

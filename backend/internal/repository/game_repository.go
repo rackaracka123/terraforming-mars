@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -39,16 +38,14 @@ type GameRepository interface {
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
 type GameRepositoryImpl struct {
-	games    map[string]*model.Game
-	mutex    sync.RWMutex
-	eventBus events.EventBus
+	games map[string]*model.Game
+	mutex sync.RWMutex
 }
 
 // NewGameRepository creates a new game repository
-func NewGameRepository(eventBus events.EventBus) GameRepository {
+func NewGameRepository() GameRepository {
 	return &GameRepositoryImpl{
-		games:    make(map[string]*model.Game),
-		eventBus: eventBus,
+		games: make(map[string]*model.Game),
 	}
 }
 
@@ -71,14 +68,6 @@ func (r *GameRepositoryImpl) Create(ctx context.Context, settings model.GameSett
 
 	log.Debug("Game created", zap.String("game_id", gameID))
 
-	// Publish game created event
-	if r.eventBus != nil {
-		gameCreatedEvent := events.NewGameCreatedEvent(gameID, settings)
-		if err := r.eventBus.Publish(ctx, gameCreatedEvent); err != nil {
-			log.Warn("Failed to publish game created event", zap.Error(err))
-		}
-	}
-
 	return *game, nil
 }
 
@@ -93,7 +82,7 @@ func (r *GameRepositoryImpl) GetByID(ctx context.Context, gameID string) (model.
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return model.Game{}, fmt.Errorf("game with ID %s not found", gameID)
+		return model.Game{}, &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	// Return a copy to prevent external mutation
@@ -123,14 +112,6 @@ func (r *GameRepositoryImpl) Delete(ctx context.Context, gameID string) error {
 	delete(r.games, gameID)
 
 	log.Info("Game deleted")
-
-	// Publish game deleted event
-	if r.eventBus != nil {
-		gameDeletedEvent := events.NewGameDeletedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameDeletedEvent); err != nil {
-			log.Warn("Failed to publish game deleted event", zap.Error(err))
-		}
-	}
 
 	return nil
 }
@@ -173,14 +154,6 @@ func (r *GameRepositoryImpl) UpdateStatus(ctx context.Context, gameID string, st
 
 	log.Info("Game status updated", zap.String("old_status", string(oldStatus)), zap.String("new_status", string(status)))
 
-	// Publish event if status changed
-	if r.eventBus != nil && oldStatus != status {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
-
 	return nil
 }
 
@@ -202,14 +175,6 @@ func (r *GameRepositoryImpl) UpdatePhase(ctx context.Context, gameID string, pha
 
 	log.Info("Game phase updated", zap.String("old_phase", string(oldPhase)), zap.String("new_phase", string(phase)))
 
-	// Publish event if phase changed
-	if r.eventBus != nil && oldPhase != phase {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
-	}
-
 	return nil
 }
 
@@ -230,7 +195,6 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 		return fmt.Errorf("game with ID %s not found", gameID)
 	}
 
-	oldParams := game.GlobalParameters
 	game.GlobalParameters = params
 	game.UpdatedAt = time.Now()
 
@@ -239,29 +203,6 @@ func (r *GameRepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID 
 		zap.Int("oxygen", params.Oxygen),
 		zap.Int("oceans", params.Oceans),
 	)
-
-	// Publish consolidated global parameters changed event (simplified approach)
-	if r.eventBus != nil && (oldParams.Temperature != params.Temperature || oldParams.Oxygen != params.Oxygen || oldParams.Oceans != params.Oceans) {
-		// Determine which parameters changed
-		var changeTypes []string
-		if oldParams.Temperature != params.Temperature {
-			changeTypes = append(changeTypes, "temperature")
-		}
-		if oldParams.Oxygen != params.Oxygen {
-			changeTypes = append(changeTypes, "oxygen")
-		}
-		if oldParams.Oceans != params.Oceans {
-			changeTypes = append(changeTypes, "oceans")
-		}
-
-		// Publish single consolidated event
-		parametersChangedEvent := events.NewGlobalParametersChangedEvent(gameID, changeTypes)
-		if err := r.eventBus.Publish(ctx, parametersChangedEvent); err != nil {
-			log.Warn("Failed to publish global parameters changed event", zap.Error(err))
-		}
-
-		log.Debug("Global parameters change event published", zap.Strings("change_types", changeTypes))
-	}
 
 	return nil
 }
@@ -323,14 +264,6 @@ func (r *GameRepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, 
 	} else {
 		newTurnPlayer = "none"
 		log.Info("Current turn cleared", zap.String("old_turn", oldTurnPlayer))
-	}
-
-	// Publish game updated event if turn changed
-	if r.eventBus != nil {
-		gameUpdatedEvent := events.NewGameUpdatedEvent(gameID)
-		if err := r.eventBus.Publish(ctx, gameUpdatedEvent); err != nil {
-			log.Warn("Failed to publish game updated event", zap.Error(err))
-		}
 	}
 
 	return nil

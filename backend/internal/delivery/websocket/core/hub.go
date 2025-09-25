@@ -3,9 +3,7 @@ package core
 import (
 	"context"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
@@ -33,55 +31,30 @@ type Hub struct {
 	Messages   chan HubMessage
 
 	// Components
-	manager      *Manager
-	broadcaster  *Broadcaster
-	eventHandler EventHandler // Delegate for domain events
-	logger       *zap.Logger
+	manager *Manager
+	logger  *zap.Logger
 
-	// New handler registry for specific message types
+	// Handler registry for specific message types
 	handlers map[dto.MessageType]MessageHandler
-
-	// Services (for routing to handlers)
-	gameService            service.GameService
-	playerService          service.PlayerService
-	standardProjectService service.StandardProjectService
-	cardService            service.CardService
-	eventBus               events.EventBus
 }
 
 // NewHub creates a new WebSocket hub with clean architecture
-func NewHub(
-	gameService service.GameService,
-	playerService service.PlayerService,
-	standardProjectService service.StandardProjectService,
-	cardService service.CardService,
-	eventBus events.EventBus,
-	eventHandler EventHandler,
-) *Hub {
+func NewHub() *Hub {
 	manager := NewManager()
-	broadcaster := NewBroadcaster(manager, gameService, playerService, cardService)
 
 	return &Hub{
-		Register:               make(chan *Connection),
-		Unregister:             make(chan *Connection),
-		Messages:               make(chan HubMessage),
-		manager:                manager,
-		broadcaster:            broadcaster,
-		eventHandler:           eventHandler,
-		logger:                 logger.Get(),
-		handlers:               make(map[dto.MessageType]MessageHandler),
-		gameService:            gameService,
-		playerService:          playerService,
-		standardProjectService: standardProjectService,
-		cardService:            cardService,
-		eventBus:               eventBus,
+		Register:   make(chan *Connection),
+		Unregister: make(chan *Connection),
+		Messages:   make(chan HubMessage),
+		manager:    manager,
+		logger:     logger.Get(),
+		handlers:   make(map[dto.MessageType]MessageHandler),
 	}
 }
 
 // Run starts the hub's main event loop
 func (h *Hub) Run(ctx context.Context) {
 	h.logger.Info("🚀 Starting WebSocket hub")
-	h.subscribeToEvents()
 	h.logger.Info("✅ WebSocket hub ready to process messages")
 
 	for {
@@ -93,11 +66,30 @@ func (h *Hub) Run(ctx context.Context) {
 
 		case connection := <-h.Register:
 			h.manager.RegisterConnection(connection)
+			// Session registration will happen when first message is received
 
 		case connection := <-h.Unregister:
 			playerID, gameID, shouldBroadcast := h.manager.UnregisterConnection(connection)
+
+			// If we should broadcast (player was connected to a game), send internal disconnect message
 			if shouldBroadcast {
-				h.handlePlayerDisconnection(ctx, playerID, gameID, connection)
+				disconnectMessage := dto.WebSocketMessage{
+					Type:   dto.MessageTypePlayerDisconnected,
+					GameID: gameID,
+					Payload: dto.PlayerDisconnectedPayload{
+						PlayerID: playerID,
+						GameID:   gameID,
+					},
+				}
+
+				// Create internal hub message and route it to disconnect handler
+				hubMessage := HubMessage{
+					Connection: connection, // Connection is being disconnected
+					Message:    disconnectMessage,
+				}
+
+				// Route the disconnect message through the normal handler system
+				h.routeMessage(ctx, hubMessage)
 			}
 
 		case hubMessage := <-h.Messages:
@@ -107,29 +99,37 @@ func (h *Hub) Run(ctx context.Context) {
 	}
 }
 
-// GetServices returns services for handlers (clean dependency injection)
-func (h *Hub) GetServices() (service.GameService, service.PlayerService, service.StandardProjectService, service.CardService) {
-	return h.gameService, h.playerService, h.standardProjectService, h.cardService
-}
-
-// GetBroadcaster returns the broadcaster for handlers
-func (h *Hub) GetBroadcaster() *Broadcaster {
-	return h.broadcaster
-}
-
-// GetManager returns the manager for handlers
-func (h *Hub) GetManager() *Manager {
-	return h.manager
-}
-
-// SetEventHandler sets the event handler (used to break circular dependency)
-func (h *Hub) SetEventHandler(eventHandler EventHandler) {
-	h.eventHandler = eventHandler
-}
-
 // RegisterHandler registers a message handler for a specific message type
 func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandler) {
 	h.handlers[messageType] = handler
+}
+
+// SendToPlayer sends a message to a specific player via their connection
+func (h *Hub) SendToPlayer(gameID, playerID string, message dto.WebSocketMessage) error {
+	connection := h.manager.GetConnectionByPlayerID(gameID, playerID)
+	if connection == nil {
+		h.logger.Debug("❌ No connection found for player",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		return nil // Don't error, just skip sending (player might be disconnected)
+	}
+
+	connection.SendMessage(message)
+	h.logger.Debug("💬 Message sent to player via Hub",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("message_type", string(message.Type)))
+
+	return nil
+}
+
+// RegisterConnectionWithGame registers a connection with a game after player ID is set
+func (h *Hub) RegisterConnectionWithGame(connection *Connection, gameID string) {
+	h.manager.AddToGame(connection, gameID)
+	h.logger.Debug("🎯 Connection registered with game",
+		zap.String("connection_id", connection.ID),
+		zap.String("game_id", gameID),
+		zap.String("player_id", connection.PlayerID))
 }
 
 // routeMessage routes incoming messages to appropriate handlers
@@ -141,6 +141,8 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
+	// Hub no longer manages sessions - that's SessionManager's job
+
 	// Check if we have a registered handler for this message type
 	if handler, exists := h.handlers[message.Type]; exists {
 		h.logger.Debug("🎯 Routing to registered message handler",
@@ -151,62 +153,6 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 			zap.String("message_type", string(message.Type)))
 		h.sendError(connection, ErrUnknownMessageType)
 	}
-}
-
-// subscribeToEvents sets up event listeners
-func (h *Hub) subscribeToEvents() {
-	// Subscribe to game updates for broadcasting updates
-	h.eventBus.Subscribe(events.EventTypeGameUpdated, h.handleGameUpdated)
-
-	// Subscribe to global parameter changes to trigger game updates (consolidated event only)
-	h.eventBus.Subscribe(events.EventTypeGlobalParametersChanged, h.handleGlobalParameterChange)
-
-	h.logger.Info("📡 WebSocket hub subscribed to events")
-}
-
-// handleGameUpdated processes game updated events
-func (h *Hub) handleGameUpdated(ctx context.Context, event events.Event) error {
-	payload := event.GetPayload().(events.GameUpdatedEventData)
-	gameID := payload.GameID
-
-	h.logger.Info("🎮 Processing game updated broadcast",
-		zap.String("game_id", gameID))
-
-	// Delegate to broadcaster
-	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
-
-	h.logger.Info("✅ Game updated broadcast completed", zap.String("game_id", gameID))
-	return nil
-}
-
-// handleGlobalParameterChange handles global parameter changes (temperature, oceans, etc.)
-func (h *Hub) handleGlobalParameterChange(ctx context.Context, event events.Event) error {
-	// Extract game ID from the event payload
-	var gameID string
-
-	// Handle consolidated global parameter event
-	switch event.GetType() {
-	case events.EventTypeGlobalParametersChanged:
-		payload := event.GetPayload().(events.GlobalParametersChangedEventData)
-		gameID = payload.GameID
-		h.logger.Debug("🌍 Processing global parameters change event",
-			zap.String("game_id", gameID),
-			zap.Strings("change_types", payload.ChangeTypes))
-	default:
-		h.logger.Warn("⚠️ Unknown global parameter event type", zap.String("event_type", event.GetType()))
-		return nil
-	}
-
-	// Trigger game update broadcast to notify clients of parameter changes
-	h.broadcaster.SendPersonalizedGameUpdates(ctx, gameID)
-
-	h.logger.Debug("✅ Global parameter change broadcast completed", zap.String("game_id", gameID))
-	return nil
-}
-
-// handlePlayerDisconnection handles player disconnection broadcasting
-func (h *Hub) handlePlayerDisconnection(ctx context.Context, playerID, gameID string, connection *Connection) {
-	h.broadcaster.BroadcastPlayerDisconnection(ctx, playerID, gameID, connection)
 }
 
 // sendError sends an error message to a connection
@@ -221,8 +167,10 @@ func (h *Hub) sendError(connection *Connection, errorMessage string) {
 		GameID: gameID,
 	}
 
-	h.broadcaster.SendToConnection(connection, message)
+	connection.SendMessage(message)
 }
+
+// Hub no longer provides SessionManager - they're now separate components
 
 // Standard error messages for hub operations
 const (

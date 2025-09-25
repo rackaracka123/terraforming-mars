@@ -8,22 +8,22 @@ interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
   cards: CardDto[];
   playerCredits: number;
-  onConfirmSelection: (selectedCardIds: string[]) => void;
+  onSelectCards: (selectedCardIds: string[]) => void;
 }
 
 const StartingCardSelectionOverlay: React.FC<
   StartingCardSelectionOverlayProps
-> = ({ isOpen, cards, playerCredits, onConfirmSelection }) => {
+> = ({ isOpen, cards, playerCredits, onSelectCards }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Reset selection when overlay opens with new cards
+  // Initialize selection when overlay opens
   useEffect(() => {
     if (isOpen && cards.length > 0) {
       setSelectedCardIds([]);
-      setTotalCost(0);
       setShowConfirmation(false);
+      setTotalCost(0);
     }
   }, [isOpen, cards]);
 
@@ -62,14 +62,14 @@ const StartingCardSelectionOverlay: React.FC<
 
   const handleConfirm = () => {
     if (selectedCardIds.length > 0) {
-      // Player has selected cards, confirm normally
-      onConfirmSelection(selectedCardIds);
+      // Player has selected cards - commit immediately
+      onSelectCards(selectedCardIds);
     } else if (!showConfirmation) {
       // First click with no selection - show confirmation
       setShowConfirmation(true);
     } else {
       // Second click with no selection - confirm with empty selection
-      onConfirmSelection([]);
+      onSelectCards([]);
     }
   };
 
@@ -148,7 +148,7 @@ const StartingCardSelectionOverlay: React.FC<
               onClick={handleConfirm}
               disabled={totalCost > playerCredits}
             >
-              {showConfirmation ? "Confirm Skip" : "Confirm Selection"}
+              {showConfirmation ? "Confirm Skip" : "Select Cards"}
             </button>
           </div>
         </div>
