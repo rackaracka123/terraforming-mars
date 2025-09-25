@@ -163,6 +163,12 @@ The backend follows Clean Architecture principles with strict separation of conc
 - **Event Flow**: Repository operations trigger events → EventBus → WebSocket broadcasting
 - **Decoupled Architecture**: Services publish events without knowing about subscribers
 
+**Session Management Layer** (`internal/delivery/websocket/session/`)
+- **SessionManager Interface**: Simplified to exactly 2 methods: `Broadcast(gameID)` and `Send(gameID, playerID)`
+- **Complete State Broadcasting**: Both methods send full game state with all data to relevant players
+- **Repository Integration**: Uses repositories directly (GameRepo, PlayerRepo, CardRepo) to avoid circular dependencies
+- **Service Integration Pattern**: Services update repositories first, then use SessionManager for broadcasting
+
 ### Clean Architecture Principles
 
 **1. Dependency Inversion**
@@ -265,8 +271,8 @@ Each action type has a dedicated handler in `internal/delivery/websocket/handler
 3. **Action Routing**: Manager.RouteMessage() identifies action type and routes to handler
 4. **Handler Processing**: Dedicated ActionHandler validates message and calls services
 5. **Business Logic**: Service layer executes domain operations via repositories
-6. **Event Publishing**: Repository operations trigger domain events via EventBus
-7. **State Broadcasting**: Hub receives events and broadcasts updates to all game clients
+6. **Session Broadcasting**: Service calls SessionManager.Broadcast() or Send() to notify players
+7. **State Distribution**: SessionManager retrieves complete game state and sends to relevant clients
 8. **Frontend Updates**: React components receive state changes and re-render UI
 
 ## Type System Overview
@@ -501,6 +507,7 @@ npm run lint           # Check for ESLint errors
 - **Action Handlers**: Create dedicated handlers in `internal/delivery/websocket/handler/`
 - **Handler Registration**: Register new handlers in the WebSocket manager for message routing
 - **Service Integration**: Use application services for business logic, not direct repository access
+- **No Direct SessionManager Usage**: Handlers should call services, which then use SessionManager for broadcasting
 - **Event Response**: Let the event system handle state broadcasting to clients
 
 **Card System Development** 
