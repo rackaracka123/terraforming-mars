@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	apperrors "terraforming-mars-backend/internal/errors"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -18,10 +17,6 @@ import (
 // SessionManager manages WebSocket sessions and provides broadcasting capabilities
 // This service is used by services to broadcast complete game state to players
 type SessionManager interface {
-	// Session management - one session (connection) per player per game
-	RegisterSession(playerID, gameID string, sendMessage func(dto.WebSocketMessage))
-	UnregisterSession(playerID, gameID string)
-
 	// Core broadcasting operations - both send complete game state with all data
 	Broadcast(gameID string) error             // Send complete game state to all players in game
 	Send(gameID string, playerID string) error // Send complete game state to specific player
@@ -29,16 +24,13 @@ type SessionManager interface {
 
 // SessionManagerImpl implements the SessionManager interface
 type SessionManagerImpl struct {
-	// Session storage: game -> player -> connection
-	sessions map[string]map[string]func(dto.WebSocketMessage)
-
 	// Dependencies for game state broadcasting
 	gameRepo   repository.GameRepository
 	playerRepo repository.PlayerRepository
 	cardRepo   repository.CardRepository
+	hub        *core.Hub
 
 	// Synchronization
-	mu     sync.RWMutex
 	logger *zap.Logger
 }
 
@@ -47,51 +39,18 @@ func NewSessionManager(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
+	hub *core.Hub,
 ) SessionManager {
 	return &SessionManagerImpl{
-		sessions:   make(map[string]map[string]func(dto.WebSocketMessage)),
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,
 		cardRepo:   cardRepo,
+		hub:        hub,
 		logger:     logger.Get(),
 	}
 }
 
-// RegisterSession registers a new session
-func (sm *SessionManagerImpl) RegisterSession(playerID, gameID string, sendMessage func(dto.WebSocketMessage)) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Initialize game map if needed
-	if sm.sessions[gameID] == nil {
-		sm.sessions[gameID] = make(map[string]func(dto.WebSocketMessage))
-	}
-
-	// Register the session (replaces any existing session for this player)
-	sm.sessions[gameID][playerID] = sendMessage
-
-	sm.logger.Debug("✅ Session registered",
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
-}
-
-// UnregisterSession removes a session
-func (sm *SessionManagerImpl) UnregisterSession(playerID, gameID string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	if gameMap, exists := sm.sessions[gameID]; exists {
-		delete(gameMap, playerID)
-		// Clean up empty game map
-		if len(gameMap) == 0 {
-			delete(sm.sessions, gameID)
-		}
-	}
-
-	sm.logger.Debug("❌ Session unregistered",
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
-}
+// SessionManager no longer manages sessions directly - Hub handles all connections
 
 // Broadcast sends complete game state to all players in a game
 func (sm *SessionManagerImpl) Broadcast(gameID string) error {
@@ -119,7 +78,7 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	game, err := sm.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		// Handle missing game gracefully - this can happen during test cleanup or if game was deleted
-		var notFoundErr *apperrors.NotFoundError
+		var notFoundErr *model.NotFoundError
 		if errors.As(err, &notFoundErr) {
 			log.Debug("Game no longer exists, skipping broadcast", zap.Error(err))
 			return nil // No error, just skip the broadcast
@@ -188,8 +147,8 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		})
 		if err != nil {
 			// Handle missing sessions gracefully - this can happen during test cleanup
-			var notFoundErr *apperrors.NotFoundError
-			var sessionErr *apperrors.SessionNotFoundError
+			var notFoundErr *model.NotFoundError
+			var sessionErr *model.SessionNotFoundError
 			if errors.As(err, &notFoundErr) || errors.As(err, &sessionErr) {
 				log.Debug("Player session no longer exists, skipping broadcast",
 					zap.Error(err),
@@ -289,30 +248,21 @@ func (sm *SessionManagerImpl) fetchPlayerStartingCards(ctx context.Context, game
 	return playerStartingCards, nil
 }
 
-// sendToPlayerDirect sends a message directly to a specific player's session
+// sendToPlayerDirect sends a message directly to a specific player via the Hub
 func (sm *SessionManagerImpl) sendToPlayerDirect(playerID, gameID string, messageType dto.MessageType, payload any) error {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
-	gameMap, exists := sm.sessions[gameID]
-	if !exists {
-		return &apperrors.SessionNotFoundError{Resource: "game", ID: gameID}
-	}
-
-	sendFunc, exists := gameMap[playerID]
-	if !exists {
-		return &apperrors.SessionNotFoundError{Resource: "player", ID: playerID}
-	}
-
 	message := dto.WebSocketMessage{
 		Type:    messageType,
 		Payload: payload,
 		GameID:  gameID,
 	}
 
-	sendFunc(message)
+	// Use the Hub to send the message
+	err := sm.hub.SendToPlayer(gameID, playerID, message)
+	if err != nil {
+		return err
+	}
 
-	sm.logger.Debug("💬 Message sent to player",
+	sm.logger.Debug("💬 Message sent to player via Hub",
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID),
 		zap.String("message_type", string(messageType)))
