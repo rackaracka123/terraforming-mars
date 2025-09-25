@@ -29,7 +29,7 @@ func TestGameplayLogic(t *testing.T) {
 	sessionManager := test.NewMockSessionManager()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
 
 	ctx := context.Background()
 

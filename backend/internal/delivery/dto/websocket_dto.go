@@ -47,11 +47,10 @@ type PlayerReconnectedPayload struct {
 	Game       GameDto `json:"game" ts:"GameDto"`
 }
 
-// PlayerDisconnectedPayload contains data about a disconnected player
+// PlayerDisconnectedPayload contains data about a disconnected player (for internal handler use)
 type PlayerDisconnectedPayload struct {
-	PlayerID   string  `json:"playerId" ts:"string"`
-	PlayerName string  `json:"playerName" ts:"string"`
-	Game       GameDto `json:"game" ts:"GameDto"`
+	PlayerID string `json:"playerId" ts:"string"`
+	GameID   string `json:"gameId" ts:"string"`
 }
 
 // PlayerProductionData contains production data for a single player

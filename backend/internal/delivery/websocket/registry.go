@@ -13,6 +13,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_cards"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_starting_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connect"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
@@ -27,6 +28,10 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	// Register connection handler
 	connectionHandler := connect.NewConnectionHandler(gameService, playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
+
+	// Register disconnect handler
+	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
+	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
 	// Register standard project handlers (validation moved to individual handlers)
 	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(standardProjectService))

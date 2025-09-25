@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -24,8 +25,8 @@ type PlayerService interface {
 	GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error)
 	GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error)
 
-	// Connection management
-	UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error
+	// Handle player disconnection - updates connection status and broadcasts game state
+	PlayerDisconnected(ctx context.Context, gameID, playerID string) error
 
 	// Validation methods for card system
 	ValidateProductionRequirement(ctx context.Context, gameID, playerID string, requirement model.ResourceSet) error
@@ -48,15 +49,17 @@ type PlayerService interface {
 
 // PlayerServiceImpl implements PlayerService interface
 type PlayerServiceImpl struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	sessionManager session.SessionManager
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager) PlayerService {
 	return &PlayerServiceImpl{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -241,7 +244,7 @@ func (s *PlayerServiceImpl) UpdatePlayerTR(ctx context.Context, gameID, playerID
 }
 
 // UpdatePlayerConnectionStatus updates a player's connection status
-func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
+func (s *PlayerServiceImpl) updatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Update connection status using granular method
@@ -254,6 +257,33 @@ func (s *PlayerServiceImpl) UpdatePlayerConnectionStatus(ctx context.Context, ga
 	log.Info("Updated player connection status",
 		zap.Bool("is_connected", isConnected))
 
+	return nil
+}
+
+// PlayerDisconnected handles player disconnection by updating connection status and broadcasting game state
+func (s *PlayerServiceImpl) PlayerDisconnected(ctx context.Context, gameID, playerID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Info("🔌 Processing player disconnection")
+
+	// Update connection status to false
+	err := s.updatePlayerConnectionStatus(ctx, gameID, playerID, false)
+	if err != nil {
+		log.Error("Failed to update connection status during disconnection", zap.Error(err))
+		return fmt.Errorf("failed to update connection status: %w", err)
+	}
+
+	// Broadcast updated game state to other players (if SessionManager is available)
+	if s.sessionManager != nil {
+		err = s.sessionManager.Broadcast(gameID)
+		if err != nil {
+			log.Error("Failed to broadcast game state after player disconnection", zap.Error(err))
+			return fmt.Errorf("failed to broadcast game state: %w", err)
+		}
+	} else {
+		log.Warn("SessionManager not available, skipping broadcast")
+	}
+
+	log.Info("✅ Player disconnection processed successfully")
 	return nil
 }
 

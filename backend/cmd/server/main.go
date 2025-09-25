@@ -77,7 +77,7 @@ func main() {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	log.Info("Services initialized with new architecture and reconnection system")

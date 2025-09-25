@@ -69,7 +69,28 @@ func (h *Hub) Run(ctx context.Context) {
 			// Session registration will happen when first message is received
 
 		case connection := <-h.Unregister:
-			h.manager.UnregisterConnection(connection)
+			playerID, gameID, shouldBroadcast := h.manager.UnregisterConnection(connection)
+
+			// If we should broadcast (player was connected to a game), send internal disconnect message
+			if shouldBroadcast {
+				disconnectMessage := dto.WebSocketMessage{
+					Type:   dto.MessageTypePlayerDisconnected,
+					GameID: gameID,
+					Payload: dto.PlayerDisconnectedPayload{
+						PlayerID: playerID,
+						GameID:   gameID,
+					},
+				}
+
+				// Create internal hub message and route it to disconnect handler
+				hubMessage := HubMessage{
+					Connection: connection, // Connection is being disconnected
+					Message:    disconnectMessage,
+				}
+
+				// Route the disconnect message through the normal handler system
+				h.routeMessage(ctx, hubMessage)
+			}
 
 		case hubMessage := <-h.Messages:
 			// Route message to appropriate handler

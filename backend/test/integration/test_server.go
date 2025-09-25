@@ -47,14 +47,17 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 
-	// Create Hub first
+	// Create PlayerService first (without SessionManager to avoid circular dependency)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
+
+	// Create Hub
 	hub := core.NewHub()
 
-	// Initialize SessionManager with Hub
+	// Create SessionManager with Hub
 	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 
 	// Register card-specific listeners (removed since we're using mock cards)

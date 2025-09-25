@@ -21,7 +21,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	// EventBus no longer needed
 	playerRepo := repository.NewPlayerRepository()
 	gameRepo := repository.NewGameRepository()
-	playerService := service.NewPlayerService(gameRepo, playerRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
 
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
@@ -196,33 +196,29 @@ func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
-	t.Run("Update to connected status", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, true)
-		assert.NoError(t, err)
-
-		// Verify the status was updated
+	t.Run("Player disconnection updates status", func(t *testing.T) {
+		// First verify player is connected by default
 		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
 		assert.NoError(t, err)
-		assert.Equal(t, true, player.IsConnected)
-	})
+		assert.Equal(t, true, player.IsConnected) // Should be connected by default
 
-	t.Run("Update to disconnected status", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, playerID, false)
+		// Test disconnection
+		err = playerService.PlayerDisconnected(ctx, game.ID, playerID)
 		assert.NoError(t, err)
 
-		// Verify the status was updated
-		player, err := playerService.GetPlayer(ctx, game.ID, playerID)
+		// Verify the status was updated to disconnected
+		player, err = playerService.GetPlayer(ctx, game.ID, playerID)
 		assert.NoError(t, err)
 		assert.Equal(t, false, player.IsConnected)
 	})
 
 	t.Run("Invalid game ID", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, "invalid-game-id", playerID, true)
+		err := playerService.PlayerDisconnected(ctx, "invalid-game-id", playerID)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
-		err := playerService.UpdatePlayerConnectionStatus(ctx, game.ID, "invalid-player-id", true)
+		err := playerService.PlayerDisconnected(ctx, game.ID, "invalid-player-id")
 		assert.Error(t, err)
 	})
 }
