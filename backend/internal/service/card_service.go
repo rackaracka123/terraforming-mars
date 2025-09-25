@@ -210,7 +210,6 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}
 
-
 	// Consume one action now that all card playing steps have succeeded
 	newActions := player.AvailableActions - 1
 	if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {

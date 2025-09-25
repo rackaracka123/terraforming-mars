@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
@@ -24,10 +23,9 @@ func NewWebSocketService(
 	cardService service.CardService,
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	sessionManager session.SessionManager,
+	hub *core.Hub,
 ) *WebSocketService {
-	// Create hub with shared SessionManager
-	hub := core.NewHub(sessionManager)
+	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
 	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo)

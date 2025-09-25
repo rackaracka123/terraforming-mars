@@ -167,6 +167,14 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		return err
 	}
 
+	// CRITICAL: Update connection with real player ID immediately after getting player
+	// This ensures session registration happens before any subsequent broadcasts
+	connCtx.connection.SetPlayer(player.ID, connCtx.payload.GameID)
+
+	ch.logger.Debug("🔗 Connection updated with real player ID",
+		zap.String("connection_id", connCtx.connection.ID),
+		zap.String("player_id", player.ID))
+
 	connCtx.game = &game
 	connCtx.playerID = player.ID
 	return nil
@@ -226,11 +234,9 @@ func (ch *ConnectionHandler) setupTemporaryConnection(connCtx *connectionContext
 	}
 }
 
-// finalizeConnection updates the connection with final player ID and sends state updates
+// finalizeConnection sends state updates (connection already updated with player ID)
 func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
-	// Update connection with final player ID
-	connCtx.connection.SetPlayer(connCtx.playerID, connCtx.payload.GameID)
-
+	// Connection has already been updated with the real player ID in processNewPlayer
 	// Send state updates
 	ch.sendStateUpdates(connCtx)
 

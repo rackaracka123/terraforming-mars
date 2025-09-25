@@ -10,6 +10,7 @@ import (
 
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -66,8 +67,11 @@ func main() {
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
 
-	// Initialize SessionManager for WebSocket broadcasting (using repositories)
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo)
+	// Create Hub first (no dependencies)
+	hub := core.NewHub()
+
+	// Initialize SessionManager for WebSocket broadcasting with Hub
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
 
 	// Initialize CardService with SessionManager
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
@@ -94,8 +98,8 @@ func main() {
 		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
-	// Initialize WebSocket service with shared SessionManager
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, sessionManager)
+	// Initialize WebSocket service with shared Hub
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

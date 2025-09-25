@@ -49,4 +49,3 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	// Register play card handler
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(cardService, parser))
 }
-

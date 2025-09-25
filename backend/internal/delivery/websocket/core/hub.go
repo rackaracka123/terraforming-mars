@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -32,26 +31,24 @@ type Hub struct {
 	Messages   chan HubMessage
 
 	// Components
-	manager        *Manager
-	sessionManager session.SessionManager
-	logger         *zap.Logger
+	manager *Manager
+	logger  *zap.Logger
 
 	// Handler registry for specific message types
 	handlers map[dto.MessageType]MessageHandler
 }
 
 // NewHub creates a new WebSocket hub with clean architecture
-func NewHub(sessionManager session.SessionManager) *Hub {
+func NewHub() *Hub {
 	manager := NewManager()
 
 	return &Hub{
-		Register:       make(chan *Connection),
-		Unregister:     make(chan *Connection),
-		Messages:       make(chan HubMessage),
-		manager:        manager,
-		sessionManager: sessionManager,
-		logger:         logger.Get(),
-		handlers:       make(map[dto.MessageType]MessageHandler),
+		Register: make(chan *Connection),
+		Unregister: make(chan *Connection),
+		Messages: make(chan HubMessage),
+		manager:  manager,
+		logger:   logger.Get(),
+		handlers: make(map[dto.MessageType]MessageHandler),
 	}
 }
 
@@ -72,11 +69,7 @@ func (h *Hub) Run(ctx context.Context) {
 			// Session registration will happen when first message is received
 
 		case connection := <-h.Unregister:
-			playerID, gameID, _ := h.manager.UnregisterConnection(connection)
-			// Also unregister from session manager
-			if playerID != "" && gameID != "" {
-				h.sessionManager.UnregisterSession(playerID, gameID)
-			}
+			h.manager.UnregisterConnection(connection)
 
 		case hubMessage := <-h.Messages:
 			// Route message to appropriate handler
@@ -90,6 +83,34 @@ func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandle
 	h.handlers[messageType] = handler
 }
 
+// SendToPlayer sends a message to a specific player via their connection
+func (h *Hub) SendToPlayer(gameID, playerID string, message dto.WebSocketMessage) error {
+	connection := h.manager.GetConnectionByPlayerID(gameID, playerID)
+	if connection == nil {
+		h.logger.Debug("❌ No connection found for player",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		return nil // Don't error, just skip sending (player might be disconnected)
+	}
+
+	connection.SendMessage(message)
+	h.logger.Debug("💬 Message sent to player via Hub",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("message_type", string(message.Type)))
+
+	return nil
+}
+
+// RegisterConnectionWithGame registers a connection with a game after player ID is set
+func (h *Hub) RegisterConnectionWithGame(connection *Connection, gameID string) {
+	h.manager.AddToGame(connection, gameID)
+	h.logger.Debug("🎯 Connection registered with game",
+		zap.String("connection_id", connection.ID),
+		zap.String("game_id", gameID),
+		zap.String("player_id", connection.PlayerID))
+}
+
 // routeMessage routes incoming messages to appropriate handlers
 func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 	connection := hubMessage.Connection
@@ -99,11 +120,7 @@ func (h *Hub) routeMessage(ctx context.Context, hubMessage HubMessage) {
 		zap.String("connection_id", connection.ID),
 		zap.String("message_type", string(message.Type)))
 
-	// Register connection with session manager if it has player info
-	playerID, gameID := connection.GetPlayer()
-	if playerID != "" && gameID != "" {
-		h.sessionManager.RegisterSession(playerID, gameID, connection.SendMessage)
-	}
+	// Hub no longer manages sessions - that's SessionManager's job
 
 	// Check if we have a registered handler for this message type
 	if handler, exists := h.handlers[message.Type]; exists {
@@ -132,10 +149,7 @@ func (h *Hub) sendError(connection *Connection, errorMessage string) {
 	connection.SendMessage(message)
 }
 
-// GetSessionManager returns the hub's session manager for use by handlers
-func (h *Hub) GetSessionManager() session.SessionManager {
-	return h.sessionManager
-}
+// Hub no longer provides SessionManager - they're now separate components
 
 // Standard error messages for hub operations
 const (

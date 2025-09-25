@@ -7,6 +7,7 @@ import (
 	"sync"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -45,7 +46,12 @@ func NewTestServer(port int) (*TestServer, error) {
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo)
+
+	// Create Hub first
+	hub := core.NewHub()
+
+	// Initialize SessionManager with Hub
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
@@ -56,8 +62,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	// 	return nil, fmt.Errorf("failed to register card listeners: %w", err)
 	// }
 
-	// Initialize WebSocket service
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, sessionManager)
+	// Initialize WebSocket service with Hub
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, hub)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
