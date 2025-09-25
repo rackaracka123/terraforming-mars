@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -47,11 +48,12 @@ type CardService interface {
 // CardServiceImpl implements CardService interface using specialized card managers
 type CardServiceImpl struct {
 	// Core repositories
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardRepo     repository.CardRepository
-	eventBus     events.EventBus
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	cardRepo       repository.CardRepository
+	eventBus       events.EventBus
+	cardDeckRepo   repository.CardDeckRepository
+	sessionManager session.SessionManager
 
 	// Specialized managers from cards package
 	selectionManager      *cards.SelectionManager
@@ -61,13 +63,14 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, eventBus events.EventBus, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		eventBus:              eventBus,
 		cardDeckRepo:          cardDeckRepo,
+		sessionManager:        sessionManager,
 		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewEffectProcessor(gameRepo, playerRepo),
@@ -78,7 +81,21 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 // Delegation methods - all operations are handled by the specialized cards service
 
 func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	return s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	if err != nil {
+		return err
+	}
+
+	// Broadcast updated game state to all players after successful card selection
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		logger.Get().Error("Failed to broadcast game state after starting card selection",
+			zap.Error(err),
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		// Don't fail the card selection operation, just log the error
+	}
+
+	return nil
 }
 
 func (s *CardServiceImpl) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {

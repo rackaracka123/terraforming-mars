@@ -128,8 +128,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     }
   };
 
-
-
   // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
   // Get available actions from current player
@@ -267,7 +265,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           title="View Card Effects"
         >
           <div className="button-icon">✨</div>
-          <div className="button-count">{currentPlayer?.effects?.length || 0}</div>
+          <div className="button-count">
+            {currentPlayer?.effects?.length || 0}
+          </div>
           <div className="button-label">Effects</div>
         </button>
       </div>

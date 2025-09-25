@@ -64,18 +64,18 @@ func ToPlayerDtoWithCardService(ctx context.Context, player model.Player) Player
 	// Note: Card service integration commented out due to import cycle
 	// This function should be moved to a higher-level service layer
 	return PlayerDto{
-		ID:                player.ID,
-		Name:              player.Name,
-		Corporation:       player.Corporation,
-		Cards:             []CardDto{}, // Empty until card service integration is resolved
-		Resources:         ToResourcesDto(player.Resources),
-		Production:        ToProductionDto(player.Production),
-		TerraformRating:   player.TerraformRating,
-		PlayedCards:       player.PlayedCards,
-		Passed:            player.Passed,
-		AvailableActions:  player.AvailableActions,
-		VictoryPoints:     player.VictoryPoints,
-		IsConnected:       player.IsConnected,
+		ID:                       player.ID,
+		Name:                     player.Name,
+		Corporation:              player.Corporation,
+		Cards:                    []CardDto{}, // Empty until card service integration is resolved
+		Resources:                ToResourcesDto(player.Resources),
+		Production:               ToProductionDto(player.Production),
+		TerraformRating:          player.TerraformRating,
+		PlayedCards:              player.PlayedCards,
+		Passed:                   player.Passed,
+		AvailableActions:         player.AvailableActions,
+		VictoryPoints:            player.VictoryPoints,
+		IsConnected:              player.IsConnected,
 		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
 		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection:        []CardDto{}, // Empty until card service integration is resolved
@@ -90,18 +90,18 @@ func ToPlayerDto(player model.Player, playerCards []CardDto, startingCards ...[]
 		startingCardDtos = startingCards[0]
 	}
 	return PlayerDto{
-		ID:                player.ID,
-		Name:              player.Name,
-		Corporation:       player.Corporation,
-		Cards:             playerCards, // Use resolved cards from hand
-		Resources:         ToResourcesDto(player.Resources),
-		Production:        ToProductionDto(player.Production),
-		TerraformRating:   player.TerraformRating,
-		PlayedCards:       player.PlayedCards,
-		Passed:            player.Passed,
-		AvailableActions:  player.AvailableActions,
-		VictoryPoints:     player.VictoryPoints,
-		IsConnected:       player.IsConnected,
+		ID:                       player.ID,
+		Name:                     player.Name,
+		Corporation:              player.Corporation,
+		Cards:                    playerCards, // Use resolved cards from hand
+		Resources:                ToResourcesDto(player.Resources),
+		Production:               ToProductionDto(player.Production),
+		TerraformRating:          player.TerraformRating,
+		PlayedCards:              player.PlayedCards,
+		Passed:                   player.Passed,
+		AvailableActions:         player.AvailableActions,
+		VictoryPoints:            player.VictoryPoints,
+		IsConnected:              player.IsConnected,
 		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
 		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection:        startingCardDtos, // Resolved starting card selection

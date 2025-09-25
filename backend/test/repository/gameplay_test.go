@@ -28,8 +28,8 @@ func TestGameplayLogic(t *testing.T) {
 
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)
 

@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 
@@ -202,7 +204,8 @@ func TestCardService_ValidateStartingCardSelection(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 
@@ -336,7 +339,8 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 
 	ctx := context.Background()
 

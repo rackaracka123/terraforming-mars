@@ -25,7 +25,7 @@ func setupPlayerServiceTest(t *testing.T) (
 
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 	sessionManager := test.NewMockSessionManager()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 

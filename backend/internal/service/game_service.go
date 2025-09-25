@@ -209,7 +209,7 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	log.Info("Game started", zap.String("game_id", gameID))
 
 	// Broadcast game state to all players after starting
-	err = s.sessionManager.BroadcastGameState(ctx, gameID)
+	err = s.sessionManager.Broadcast(gameID)
 	if err != nil {
 		log.Error("Failed to broadcast game started", zap.Error(err))
 		// Don't fail the start operation, just log the error
@@ -628,7 +628,7 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 	log.Debug("Player joined game", zap.String("player_id", playerID))
 
 	// Broadcast updated game state to all players
-	err = s.sessionManager.BroadcastGameState(ctx, gameID)
+	err = s.sessionManager.Broadcast(gameID)
 	if err != nil {
 		log.Error("Failed to broadcast player joined", zap.Error(err))
 		// Don't fail the join operation, just log the error
@@ -1052,7 +1052,7 @@ func (s *GameServiceImpl) PlayerReconnected(ctx context.Context, gameID string, 
 	}
 
 	// Use the session manager to broadcast the complete game state to all players
-	err = s.sessionManager.BroadcastGameState(ctx, gameID)
+	err = s.sessionManager.Broadcast(gameID)
 	if err != nil {
 		log.Error("Failed to broadcast game state for reconnection", zap.Error(err))
 		return fmt.Errorf("failed to broadcast game state: %w", err)
@@ -1071,7 +1071,3 @@ func (s *GameServiceImpl) getPlayerName(players []model.Player, playerID string)
 	}
 	return "Unknown" // Fallback if player not found
 }
-
-
-
-

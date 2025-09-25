@@ -13,25 +13,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// CardService interface for card retrieval (to avoid import cycle)
-type CardService interface {
-	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
-}
+// No longer need CardService interface - using repository directly
 
 // SessionManager manages WebSocket sessions and provides broadcasting capabilities
-// This service is used by services to broadcast messages to players
+// This service is used by services to broadcast complete game state to players
 type SessionManager interface {
 	// Session management - one session (connection) per player per game
 	RegisterSession(playerID, gameID string, sendMessage func(dto.WebSocketMessage))
 	UnregisterSession(playerID, gameID string)
 
-	// Core broadcasting operations
-	BroadcastToGame(gameID string, messageType dto.MessageType, payload any) error
-	BroadcastToGameExcept(gameID string, messageType dto.MessageType, payload any, excludePlayerID string) error
-	SendToPlayer(playerID, gameID string, messageType dto.MessageType, payload any) error
-
-	// High-level game state broadcasting - gathers data and sends personalized game states
-	BroadcastGameState(ctx context.Context, gameID string) error
+	// Core broadcasting operations - both send complete game state with all data
+	Broadcast(gameID string) error             // Send complete game state to all players in game
+	Send(gameID string, playerID string) error // Send complete game state to specific player
 }
 
 // SessionManagerImpl implements the SessionManager interface
@@ -40,9 +33,9 @@ type SessionManagerImpl struct {
 	sessions map[string]map[string]func(dto.WebSocketMessage)
 
 	// Dependencies for game state broadcasting
-	gameRepo    repository.GameRepository
-	playerRepo  repository.PlayerRepository
-	cardService CardService
+	gameRepo   repository.GameRepository
+	playerRepo repository.PlayerRepository
+	cardRepo   repository.CardRepository
 
 	// Synchronization
 	mu     sync.RWMutex
@@ -53,14 +46,14 @@ type SessionManagerImpl struct {
 func NewSessionManager(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	cardService CardService,
+	cardRepo repository.CardRepository,
 ) SessionManager {
 	return &SessionManagerImpl{
-		sessions:    make(map[string]map[string]func(dto.WebSocketMessage)),
-		gameRepo:    gameRepo,
-		playerRepo:  playerRepo,
-		cardService: cardService,
-		logger:      logger.Get(),
+		sessions:   make(map[string]map[string]func(dto.WebSocketMessage)),
+		gameRepo:   gameRepo,
+		playerRepo: playerRepo,
+		cardRepo:   cardRepo,
+		logger:     logger.Get(),
 	}
 }
 
@@ -100,124 +93,27 @@ func (sm *SessionManagerImpl) UnregisterSession(playerID, gameID string) {
 		zap.String("game_id", gameID))
 }
 
-// BroadcastToGame broadcasts a message to all players in a game
-func (sm *SessionManagerImpl) BroadcastToGame(gameID string, messageType dto.MessageType, payload any) error {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
-	gameMap, exists := sm.sessions[gameID]
-	if !exists || len(gameMap) == 0 {
-		sm.logger.Debug("No sessions to broadcast to",
-			zap.String("game_id", gameID),
-			zap.String("message_type", string(messageType)))
-		return nil
-	}
-
-	message := dto.WebSocketMessage{
-		Type:    messageType,
-		Payload: payload,
-		GameID:  gameID,
-	}
-
-	sm.logger.Debug("📢 Broadcasting to game",
-		zap.String("game_id", gameID),
-		zap.String("message_type", string(messageType)),
-		zap.Int("player_count", len(gameMap)))
-
-	var lastError error
-	successCount := 0
-
-	for playerID, sendFunc := range gameMap {
-		sendFunc(message)
-		successCount++
-		sm.logger.Debug("💬 Message sent to player",
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID),
-			zap.String("message_type", string(messageType)))
-	}
-
-	sm.logger.Debug("📢 Broadcast completed",
-		zap.String("game_id", gameID),
-		zap.Int("successful_sends", successCount),
-		zap.String("message_type", string(messageType)))
-
-	return lastError
+// Broadcast sends complete game state to all players in a game
+func (sm *SessionManagerImpl) Broadcast(gameID string) error {
+	ctx := context.Background() // Using background context for broadcast operations
+	return sm.broadcastGameStateInternal(ctx, gameID, "")
 }
 
-// BroadcastToGameExcept broadcasts a message to all players in a game except one
-func (sm *SessionManagerImpl) BroadcastToGameExcept(gameID string, messageType dto.MessageType, payload any, excludePlayerID string) error {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
-	gameMap, exists := sm.sessions[gameID]
-	if !exists || len(gameMap) == 0 {
-		return nil
-	}
-
-	message := dto.WebSocketMessage{
-		Type:    messageType,
-		Payload: payload,
-		GameID:  gameID,
-	}
-
-	sm.logger.Debug("📢 Broadcasting to game (except player)",
-		zap.String("game_id", gameID),
-		zap.String("exclude_player_id", excludePlayerID),
-		zap.String("message_type", string(messageType)))
-
-	var lastError error
-	successCount := 0
-
-	for playerID, sendFunc := range gameMap {
-		if playerID != excludePlayerID {
-			sendFunc(message)
-			successCount++
-		}
-	}
-
-	sm.logger.Debug("📢 Broadcast completed (except player)",
-		zap.String("game_id", gameID),
-		zap.Int("successful_sends", successCount),
-		zap.String("message_type", string(messageType)))
-
-	return lastError
+// Send sends complete game state to a specific player
+func (sm *SessionManagerImpl) Send(gameID string, playerID string) error {
+	ctx := context.Background() // Using background context for send operations
+	return sm.broadcastGameStateInternal(ctx, gameID, playerID)
 }
 
-// SendToPlayer sends a message to a specific player
-func (sm *SessionManagerImpl) SendToPlayer(playerID, gameID string, messageType dto.MessageType, payload any) error {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
-	gameMap, exists := sm.sessions[gameID]
-	if !exists {
-		return fmt.Errorf("game %s not found", gameID)
-	}
-
-	sendFunc, exists := gameMap[playerID]
-	if !exists {
-		return fmt.Errorf("player %s not found in game %s", playerID, gameID)
-	}
-
-	message := dto.WebSocketMessage{
-		Type:    messageType,
-		Payload: payload,
-		GameID:  gameID,
-	}
-
-	sendFunc(message)
-
-	sm.logger.Debug("💬 Message sent to player",
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.String("message_type", string(messageType)))
-
-	return nil
-}
-
-// BroadcastGameState gathers all game data, creates personalized DTOs, and broadcasts to all players
-func (sm *SessionManagerImpl) BroadcastGameState(ctx context.Context, gameID string) error {
+// broadcastGameStateInternal gathers all game data, creates personalized DTOs, and broadcasts to all players
+// If playerID is empty, broadcasts to all players; if specified, sends only to that player
+func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, gameID string, targetPlayerID string) error {
 	log := sm.logger.With(zap.String("game_id", gameID))
-	log.Info("🚀 Broadcasting game state to all players")
+	if targetPlayerID == "" {
+		log.Info("🚀 Broadcasting game state to all players")
+	} else {
+		log.Info("🚀 Sending game state to specific player", zap.String("target_player_id", targetPlayerID))
+	}
 
 	// Get updated game state
 	game, err := sm.gameRepo.GetByID(ctx, gameID)
@@ -242,23 +138,40 @@ func (sm *SessionManagerImpl) BroadcastGameState(ctx context.Context, gameID str
 			zap.Strings("starting_card_ids", player.StartingSelection))
 	}
 
-	// Send personalized game state to each player
-	for _, player := range players {
-		// Fetch cards for players and create personalized game state for this player
-		playerCards, err := sm.fetchPlayerCards(ctx, players)
-		if err != nil {
-			log.Warn("Failed to fetch player cards, using empty cards", zap.Error(err))
-			playerCards = make(map[string][]model.Card)
+	// Fetch cards for players once (shared data)
+	playerCards, err := sm.fetchPlayerCards(ctx, players)
+	if err != nil {
+		log.Warn("Failed to fetch player cards, using empty cards", zap.Error(err))
+		playerCards = make(map[string][]model.Card)
+	}
+	startingCards, err := sm.fetchPlayerStartingCards(ctx, gameID, players)
+	if err != nil {
+		log.Warn("Failed to fetch player starting cards, using empty cards", zap.Error(err))
+		startingCards = make(map[string][]model.Card)
+	}
+
+	// Filter players based on target
+	playersToSend := players
+	if targetPlayerID != "" {
+		// Find specific player
+		playersToSend = []model.Player{}
+		for _, player := range players {
+			if player.ID == targetPlayerID {
+				playersToSend = []model.Player{player}
+				break
+			}
 		}
-		startingCards, err := sm.fetchPlayerStartingCards(ctx, gameID, players)
-		if err != nil {
-			log.Warn("Failed to fetch player starting cards, using empty cards", zap.Error(err))
-			startingCards = make(map[string][]model.Card)
+		if len(playersToSend) == 0 {
+			return fmt.Errorf("target player %s not found in game %s", targetPlayerID, gameID)
 		}
+	}
+
+	// Send personalized game state to target player(s)
+	for _, player := range playersToSend {
 		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, playerCards, startingCards)
 
-		// Send updated game state with personalized view
-		err = sm.SendToPlayer(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+		// Send game state via direct session call
+		err = sm.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
 			Game: personalizedGameDTO,
 		})
 		if err != nil {
@@ -289,7 +202,7 @@ func (sm *SessionManagerImpl) fetchPlayerCards(ctx context.Context, players []mo
 		// Fetch cards for this player
 		cards := make([]model.Card, 0, len(player.Cards))
 		for _, cardID := range player.Cards {
-			card, err := sm.cardService.GetCardByID(ctx, cardID)
+			card, err := sm.cardRepo.GetCardByID(ctx, cardID)
 			if err != nil {
 				// Log warning but continue with other cards
 				sm.logger.Warn("Failed to fetch card", zap.String("card_id", cardID), zap.Error(err))
@@ -339,7 +252,7 @@ func (sm *SessionManagerImpl) fetchPlayerStartingCards(ctx context.Context, game
 		// Fetch starting cards for this player
 		cards := make([]model.Card, 0, len(freshPlayer.StartingSelection))
 		for _, cardID := range freshPlayer.StartingSelection {
-			card, err := sm.cardService.GetCardByID(ctx, cardID)
+			card, err := sm.cardRepo.GetCardByID(ctx, cardID)
 			if err != nil {
 				// Log warning but continue with other cards
 				sm.logger.Warn("Failed to fetch starting card", zap.String("card_id", cardID), zap.Error(err))
@@ -353,4 +266,35 @@ func (sm *SessionManagerImpl) fetchPlayerStartingCards(ctx context.Context, game
 	}
 
 	return playerStartingCards, nil
+}
+
+// sendToPlayerDirect sends a message directly to a specific player's session
+func (sm *SessionManagerImpl) sendToPlayerDirect(playerID, gameID string, messageType dto.MessageType, payload any) error {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	gameMap, exists := sm.sessions[gameID]
+	if !exists {
+		return fmt.Errorf("game %s not found", gameID)
+	}
+
+	sendFunc, exists := gameMap[playerID]
+	if !exists {
+		return fmt.Errorf("player %s not found in game %s", playerID, gameID)
+	}
+
+	message := dto.WebSocketMessage{
+		Type:    messageType,
+		Payload: payload,
+		GameID:  gameID,
+	}
+
+	sendFunc(message)
+
+	sm.logger.Debug("💬 Message sent to player",
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID),
+		zap.String("message_type", string(messageType)))
+
+	return nil
 }

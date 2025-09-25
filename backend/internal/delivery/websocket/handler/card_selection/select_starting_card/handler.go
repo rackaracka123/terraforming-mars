@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
@@ -16,23 +15,21 @@ import (
 
 // Handler handles select starting card action requests
 type Handler struct {
-	cardService    service.CardService
-	gameService    service.GameService
-	sessionManager session.SessionManager
-	parser         *utils.MessageParser
-	errorHandler   *utils.ErrorHandler
-	logger         *zap.Logger
+	cardService  service.CardService
+	gameService  service.GameService
+	parser       *utils.MessageParser
+	errorHandler *utils.ErrorHandler
+	logger       *zap.Logger
 }
 
 // NewHandler creates a new select starting card handler
-func NewHandler(cardService service.CardService, gameService service.GameService, sessionManager session.SessionManager, parser *utils.MessageParser) *Handler {
+func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:    cardService,
-		gameService:    gameService,
-		sessionManager: sessionManager,
-		parser:         parser,
-		errorHandler:   utils.NewErrorHandler(),
-		logger:         logger.Get(),
+		cardService:  cardService,
+		gameService:  gameService,
+		parser:       parser,
+		errorHandler: utils.NewErrorHandler(),
+		logger:       logger.Get(),
 	}
 }
 
@@ -71,11 +68,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Broadcast updated game state to all players after successful card selection
-	h.logger.Debug("📢 Broadcasting game state after successful card selection",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID))
-	h.sessionManager.BroadcastGameState(ctx, gameID)
+	// Game state broadcasting is now handled by the CardService
 
 	h.logger.Info("✅ Select starting card action completed successfully",
 		zap.String("connection_id", connection.ID),

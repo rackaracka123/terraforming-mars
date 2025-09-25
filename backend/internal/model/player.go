@@ -26,7 +26,7 @@ type Player struct {
 	// Card selection and production phase - nullable, exists only during selection phase
 	ProductionSelection *ProductionPhase `json:"productionSelection" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
 	// Starting card selection - nullable, exists only during starting card selection phase
-	StartingSelection        []string `json:"startingSelection" ts:"string[]"`        // Starting card IDs available for selection (10 card IDs)
+	StartingSelection        []string `json:"startingSelection" ts:"string[]"`       // Starting card IDs available for selection (10 card IDs)
 	HasSelectedStartingCards bool     `json:"hasSelectedStartingCards" ts:"boolean"` // Whether player has completed starting card selection
 }
 
@@ -64,7 +64,6 @@ func (p *Player) DeepCopy() *Player {
 		copy(startingSelectionCopy, p.StartingSelection)
 	}
 
-
 	// Deep copy effects slice
 	effectsCopy := make([]PlayerEffect, len(p.Effects))
 	for i, effect := range p.Effects {
@@ -80,18 +79,18 @@ func (p *Player) DeepCopy() *Player {
 	}
 
 	return &Player{
-		ID:                  p.ID,
-		Name:                p.Name,
-		Corporation:         p.Corporation,
-		Cards:               cardsCopy,
-		Resources:           p.Resources,  // Resources is a struct, so this is copied by value
-		Production:          p.Production, // Production is a struct, so this is copied by value
-		TerraformRating:     p.TerraformRating,
-		PlayedCards:         playedCardsCopy,
-		Passed:              p.Passed,
-		AvailableActions:    p.AvailableActions,
-		VictoryPoints:       p.VictoryPoints,
-		IsConnected:         p.IsConnected,
+		ID:                       p.ID,
+		Name:                     p.Name,
+		Corporation:              p.Corporation,
+		Cards:                    cardsCopy,
+		Resources:                p.Resources,  // Resources is a struct, so this is copied by value
+		Production:               p.Production, // Production is a struct, so this is copied by value
+		TerraformRating:          p.TerraformRating,
+		PlayedCards:              playedCardsCopy,
+		Passed:                   p.Passed,
+		AvailableActions:         p.AvailableActions,
+		VictoryPoints:            p.VictoryPoints,
+		IsConnected:              p.IsConnected,
 		Effects:                  effectsCopy,
 		ProductionSelection:      productionSelectionCopy,
 		StartingSelection:        startingSelectionCopy,

@@ -70,10 +70,12 @@ func main() {
 
 	// Initialize new service architecture
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo)
 
-	// Initialize SessionManager for WebSocket broadcasting (after cardService is created)
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardService)
+	// Initialize SessionManager for WebSocket broadcasting (using repositories)
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo)
+
+	// Initialize CardService with SessionManager
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, eventBus, cardDeckRepo, sessionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), eventBus, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo)

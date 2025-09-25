@@ -56,7 +56,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(gameService))
 
 	// Register card selection handlers (may need turn validation depending on game phase)
-	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, hub.GetSessionManager(), parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, parser))
 
 	// Register play card handler WITH turn validation ONLY (action consumption handled in card service after validation)

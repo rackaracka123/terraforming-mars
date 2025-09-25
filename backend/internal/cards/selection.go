@@ -93,7 +93,6 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 	return nil
 }
 
-
 // SelectProductionCards handles the card selection during production phase
 func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)

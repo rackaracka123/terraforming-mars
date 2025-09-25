@@ -360,4 +360,3 @@ func (b *Broadcaster) BroadcastProductionPhaseStarted(ctx context.Context, gameI
 		zap.String("game_id", gameID),
 		zap.Int("players_data_count", len(playersData)))
 }
-

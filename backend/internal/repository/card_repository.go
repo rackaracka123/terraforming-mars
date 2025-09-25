@@ -269,7 +269,7 @@ func (r *CardRepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.C
 	// This ensures we have enough cards for starting selection
 	for _, card := range r.projectCards {
 		if card.ID != "" && card.Cost <= 25 &&
-		   (card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive || card.Type == model.CardTypeEvent) {
+			(card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive || card.Type == model.CardTypeEvent) {
 			startingCards = append(startingCards, card)
 		}
 	}

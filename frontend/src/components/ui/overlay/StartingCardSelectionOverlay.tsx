@@ -13,12 +13,7 @@ interface StartingCardSelectionOverlayProps {
 
 const StartingCardSelectionOverlay: React.FC<
   StartingCardSelectionOverlayProps
-> = ({
-  isOpen,
-  cards,
-  playerCredits,
-  onSelectCards
-}) => {
+> = ({ isOpen, cards, playerCredits, onSelectCards }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -87,11 +82,10 @@ const StartingCardSelectionOverlay: React.FC<
       <div className={styles.contentContainer}>
         {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>
-            Select Starting Cards
-          </h2>
+          <h2 className={styles.title}>Select Starting Cards</h2>
           <p className={styles.subtitle}>
-            Choose your starting cards. First card is FREE, additional cards cost 3 MC each.
+            Choose your starting cards. First card is FREE, additional cards
+            cost 3 MC each.
           </p>
         </div>
 
@@ -154,10 +148,7 @@ const StartingCardSelectionOverlay: React.FC<
               onClick={handleConfirm}
               disabled={totalCost > playerCredits}
             >
-              {showConfirmation
-                ? "Confirm Skip"
-                : "Select Cards"
-              }
+              {showConfirmation ? "Confirm Skip" : "Select Cards"}
             </button>
           </div>
         </div>

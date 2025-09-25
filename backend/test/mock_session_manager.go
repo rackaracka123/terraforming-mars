@@ -19,17 +19,12 @@ func (m *MockSessionManager) UnregisterSession(playerID, gameID string) {
 	// No-op for testing
 }
 
-func (m *MockSessionManager) BroadcastToGame(gameID string, messageType dto.MessageType, payload any) error {
+func (m *MockSessionManager) Broadcast(gameID string) error {
 	// No-op for testing
 	return nil
 }
 
-func (m *MockSessionManager) BroadcastToGameExcept(gameID string, messageType dto.MessageType, payload any, excludePlayerID string) error {
-	// No-op for testing
-	return nil
-}
-
-func (m *MockSessionManager) SendToPlayer(playerID, gameID string, messageType dto.MessageType, payload any) error {
+func (m *MockSessionManager) Send(gameID string, playerID string) error {
 	// No-op for testing
 	return nil
 }
