@@ -34,9 +34,9 @@ type Connection struct {
 	Send     chan dto.WebSocketMessage
 
 	// Callbacks for hub communication
-	onMessage      func(HubMessage)
-	onDisconnect   func(*Connection)
-	onPlayerSet    func(*Connection, string) // Called when player ID is set
+	onMessage    func(HubMessage)
+	onDisconnect func(*Connection)
+	onPlayerSet  func(*Connection, string) // Called when player ID is set
 
 	// Synchronization
 	mu         sync.RWMutex

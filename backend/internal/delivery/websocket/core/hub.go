@@ -43,12 +43,12 @@ func NewHub() *Hub {
 	manager := NewManager()
 
 	return &Hub{
-		Register: make(chan *Connection),
+		Register:   make(chan *Connection),
 		Unregister: make(chan *Connection),
-		Messages: make(chan HubMessage),
-		manager:  manager,
-		logger:   logger.Get(),
-		handlers: make(map[dto.MessageType]MessageHandler),
+		Messages:   make(chan HubMessage),
+		manager:    manager,
+		logger:     logger.Get(),
+		handlers:   make(map[dto.MessageType]MessageHandler),
 	}
 }
 
