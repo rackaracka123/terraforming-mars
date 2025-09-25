@@ -1,12 +1,13 @@
 import { useRef, useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { useMarsRotation } from "../../../contexts/MarsRotationContext.tsx";
 
 export function PanControls() {
   const { camera, gl } = useThree();
+  const { marsGroupRef } = useMarsRotation();
   const isPointerDown = useRef(false);
   const previousPointer = useRef({ x: 0, y: 0 });
-  const panOffset = useRef(new THREE.Vector3());
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -16,24 +17,25 @@ export function PanControls() {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (!isPointerDown.current) return;
+      if (!isPointerDown.current || !marsGroupRef.current) return;
 
       const deltaX = event.clientX - previousPointer.current.x;
       const deltaY = event.clientY - previousPointer.current.y;
 
-      // Convert screen space movement to world space panning
-      const panSpeed = 0.01;
-      const panDeltaX = -deltaX * panSpeed;
-      const panDeltaY = deltaY * panSpeed;
+      // Convert screen space movement to rotation (inverted)
+      const rotationSpeed = 0.002;
+      const rotationX = deltaY * rotationSpeed; // Vertical drag rotates around X axis (inverted)
+      const rotationY = deltaX * rotationSpeed; // Horizontal drag rotates around Y axis (inverted)
 
-      // Apply panning relative to camera's current orientation
-      const panVector = new THREE.Vector3(panDeltaX, panDeltaY, 0);
-      panVector.applyMatrix3(
-        new THREE.Matrix3().getNormalMatrix(camera.matrixWorld),
+      // Apply rotation to Mars
+      marsGroupRef.current.rotation.x += rotationX;
+      marsGroupRef.current.rotation.y += rotationY;
+
+      // Clamp X rotation to prevent flipping upside down
+      marsGroupRef.current.rotation.x = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, marsGroupRef.current.rotation.x),
       );
-
-      camera.position.add(panVector);
-      panOffset.current.add(panVector);
 
       previousPointer.current = { x: event.clientX, y: event.clientY };
     };
