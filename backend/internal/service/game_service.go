@@ -36,6 +36,7 @@ type GameService interface {
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (model.Game, error)
+	JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (model.Game, error)
 
 	// Global parameters methods (merged from GlobalParametersService)
 	UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error
@@ -599,6 +600,114 @@ func (s *GameServiceImpl) JoinGame(ctx context.Context, gameID string, playerNam
 
 	// Host setting is handled automatically by gameRepo.AddPlayerID
 	// Get updated game state to return
+	updatedGame, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get updated game", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to get updated game: %w", err)
+	}
+
+	// If game is in starting_card_selection phase, distribute starting cards to the new player
+	if updatedGame.Status == model.GameStatusActive && updatedGame.CurrentPhase == model.GamePhaseStartingCardSelection {
+		log.Debug("Game is in starting card selection phase, distributing cards to new player", zap.String("player_id", playerID))
+
+		// Create a slice with just the new player for card distribution
+		newPlayerSlice := []model.Player{player}
+
+		if err := s.distributeStartingCards(ctx, gameID, newPlayerSlice); err != nil {
+			log.Error("Failed to distribute starting cards to new player", zap.Error(err), zap.String("player_id", playerID))
+			// Don't return error here - player joined successfully, just missing starting cards
+			// We could handle this gracefully by allowing them to get cards later
+		} else {
+			log.Info("🃏 Distributed starting cards to late-joining player", zap.String("player_id", playerID))
+		}
+	}
+
+	log.Debug("Player joined game", zap.String("player_id", playerID))
+
+	// Broadcast updated game state to all players
+	err = s.sessionManager.Broadcast(gameID)
+	if err != nil {
+		log.Error("Failed to broadcast player joined", zap.Error(err))
+		// Don't fail the join operation, just log the error
+	}
+
+	return updatedGame, nil
+}
+
+// JoinGameWithPlayerID allows a player to join with a pre-specified player ID
+// This is used by WebSocket connections to ensure consistent player ID before broadcasting
+func (s *GameServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (model.Game, error) {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("Player joining game via GameService with pre-specified ID", zap.String("player_name", playerName))
+
+	// Get the current game state
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for join", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Check if game is joinable
+	if game.Status == model.GameStatusCompleted {
+		log.Warn("Attempted to join completed game", zap.String("player_name", playerName))
+		return model.Game{}, fmt.Errorf("cannot join completed game")
+	}
+
+	// Check if game is full
+	isFull, err := s.IsGameFull(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to check if game is full", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to check game capacity: %w", err)
+	}
+	if isFull {
+		log.Warn("Attempted to join full game", zap.String("player_name", playerName))
+		return model.Game{}, fmt.Errorf("game is full")
+	}
+
+	// Check if player with this name already exists to prevent duplicates
+	existingPlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for duplicate check", zap.Error(err))
+		// Continue with player creation if we can't check for duplicates
+	} else {
+		for _, player := range existingPlayers {
+			if player.Name == playerName {
+				log.Debug("Player with this name already exists, returning existing player",
+					zap.String("existing_player_id", player.ID),
+					zap.String("player_name", playerName))
+				// Return existing game state since player already exists
+				return game, nil
+			}
+		}
+	}
+
+	// Create new player with the provided ID
+	player := model.Player{
+		ID:   playerID,
+		Name: playerName,
+		Resources: model.Resources{
+			Credits: 40, // Starting credits for standard projects
+		},
+		Production: model.Production{
+			Credits: 1, // Base production
+		},
+		TerraformRating:  20, // Starting terraform rating
+		PlayedCards:      make([]string, 0),
+		Passed:           false, // Player starts active, not passed
+		AvailableActions: 2,     // Standard actions per turn in action phase
+		VictoryPoints:    0,     // Starting victory points
+		IsConnected:      true,
+	}
+
+	// Add player using clean architecture method (same as in JoinGame)
+	if err := s.AddPlayerToGame(ctx, gameID, player); err != nil {
+		log.Error("Failed to add player to game", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to add player: %w", err)
+	}
+
+	// Host setting is handled automatically by gameRepo.AddPlayerID
+
+	// Get updated game state
 	updatedGame, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get updated game", zap.Error(err))

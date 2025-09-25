@@ -33,11 +33,11 @@ func TestStartGameFlow(t *testing.T) {
 	require.NoError(t, err, "Failed to join game via WebSocket")
 	t.Log("✅ Sent join game message")
 
-	// Step 4: Wait for player connected confirmation
-	message, err := client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Failed to receive player connected message")
-	require.NotNil(t, message, "Player connected message should not be nil")
-	t.Log("✅ Received player connected confirmation")
+	// Step 4: Wait for game state confirmation
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Failed to receive game state message")
+	require.NotNil(t, message, "Game state message should not be nil")
+	t.Log("✅ Received game state confirmation")
 
 	// Extract player ID for later use
 	payload, ok := message.Payload.(map[string]interface{})

@@ -8,8 +8,6 @@ import {
   MessageTypeFullState,
   MessageTypeGameUpdated,
   MessageTypePlayerConnect,
-  MessageTypePlayerConnected,
-  MessageTypePlayerReconnected,
   MessageTypePlayerDisconnected,
   MessageTypeProductionPhaseStarted,
   // New message types
@@ -25,8 +23,6 @@ import {
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
   // Payload types
-  PlayerConnectedPayload,
-  PlayerReconnectedPayload,
   PlayerDisconnectedPayload,
   ProductionPhaseStartedPayload,
   WebSocketMessage,
@@ -45,12 +41,21 @@ export class WebSocketService {
   private reconnectDelay = 1000;
   private currentGameId: string | null = null;
   private currentPlayerId: string | null = null;
+  private isConnecting = false;
+  private shouldReconnect = true;
 
   constructor(url: string = "ws://localhost:3001/ws") {
     this.url = url;
   }
 
   connect(): Promise<void> {
+    console.log('🔌 WebSocketService.connect() called', {
+      isConnected: this.isConnected,
+      isConnecting: this.isConnecting,
+      wsState: this.ws?.readyState,
+      url: this.url
+    });
+
     return new Promise((resolve, reject) => {
       try {
         // If already connected, resolve immediately
@@ -59,48 +64,75 @@ export class WebSocketService {
           this.ws &&
           this.ws.readyState === WebSocket.OPEN
         ) {
+          console.log('🔌 Already connected, resolving immediately');
           resolve();
           return;
         }
+
+        // Prevent multiple concurrent connection attempts
+        if (this.isConnecting) {
+          console.log('🔌 Already connecting, resolving immediately');
+          resolve();
+          return;
+        }
+
+        console.log('🔌 Starting new WebSocket connection');
+        this.isConnecting = true;
 
         // Close existing connection if it exists
         if (this.ws) {
           this.ws.close();
         }
 
+        console.log('🔌 Creating new WebSocket instance', this.url);
         this.ws = new WebSocket(this.url);
+        console.log('🔌 WebSocket instance created', this.ws);
 
         this.ws.onopen = () => {
+          console.log('🔗 WebSocket OPENED');
           this.isConnected = true;
+          this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.emit("connect");
           resolve();
         };
 
         this.ws.onmessage = (event) => {
+          console.log('📥 WebSocket onmessage triggered!', event);
+          console.log('📥 Message data:', event.data);
+
           let message: any;
           try {
             message = JSON.parse(event.data);
+            console.log('📥 Parsed message:', message);
           } catch (error) {
             console.error("Failed to parse WebSocket message:", error);
+            return;
           }
 
           try {
+            console.log('🔄 Calling handleMessage with:', message);
             this.handleMessage(message);
           } catch (error) {
             console.error("Error handling WebSocket message:", error);
           }
         };
 
-        this.ws.onclose = (_event) => {
+        this.ws.onclose = (event) => {
           // WebSocket connection closed
           this.isConnected = false;
+          this.isConnecting = false;
           this.emit("disconnect");
-          this.attemptReconnect();
+
+          // Only attempt reconnect if it was an unexpected closure and we should reconnect
+          if (this.shouldReconnect && event.code !== 1000) {
+            this.attemptReconnect();
+          }
         };
 
         this.ws.onerror = (error) => {
           console.error("WebSocket error:", error);
+          this.isConnecting = false;
           this.emit("error", error);
           if (!this.isConnected) {
             reject(error);
@@ -113,21 +145,21 @@ export class WebSocketService {
   }
 
   private handleMessage(message: WebSocketMessage) {
+    console.log('🔄 handleMessage called with:', message);
+    console.log('📋 Message type:', message.type);
+    console.log('📦 Message payload:', message.payload);
+
     switch (message.type) {
       case MessageTypeGameUpdated: {
+        console.log('📤 Processing game-updated message');
         const gamePayload = message.payload as GameUpdatedPayload;
-        this.emit("game-updated", gamePayload.game);
-        break;
-      }
-      case MessageTypePlayerConnected: {
-        const playerPayload = message.payload as PlayerConnectedPayload;
-        this.currentPlayerId = playerPayload.playerId;
-        this.emit("player-connected", playerPayload);
-        break;
-      }
-      case MessageTypePlayerReconnected: {
-        const reconnectedPayload = message.payload as PlayerReconnectedPayload;
-        this.emit("player-reconnected", reconnectedPayload);
+        console.log('🎯 gamePayload:', gamePayload);
+        console.log('🎮 gamePayload.game:', gamePayload.game);
+
+        // Handle both direct game data and nested structure
+        const gameData = gamePayload.game || gamePayload;
+        console.log('📡 Emitting game-updated with gameData:', gameData);
+        this.emit("game-updated", gameData);
         break;
       }
       case MessageTypePlayerDisconnected: {
@@ -180,7 +212,15 @@ export class WebSocketService {
     playerName: string,
     gameId: string,
     playerId?: string,
-  ): Promise<PlayerConnectedPayload | PlayerReconnectedPayload> {
+  ): Promise<any> {
+    console.log('🎮 WebSocketService.playerConnect called', {
+      playerName,
+      gameId,
+      playerId,
+      isConnected: this.isConnected,
+      wsState: this.ws?.readyState
+    });
+
     return new Promise((resolve, reject) => {
       // Send the connect message with playerId if available (for reconnection)
       const payload: any = { playerName, gameId };
@@ -188,53 +228,68 @@ export class WebSocketService {
         payload.playerId = playerId;
       }
 
+      console.log('📡 Sending player-connect message', payload);
       this.send(MessageTypePlayerConnect, payload, gameId);
       this.currentGameId = gameId;
 
       // Set up timeout
       const timeout = setTimeout(() => {
-        this.off("player-connected", connectedHandler);
-        this.off("player-reconnected", reconnectedHandler);
+        this.off("game-updated", gameUpdatedHandler);
         this.off("error", errorHandler);
         reject(new Error("Timeout waiting for player connection confirmation"));
       }, 10000); // 10 second timeout
 
-      // Handler for new connections
-      const connectedHandler = (payload: PlayerConnectedPayload) => {
-        if (payload.playerName === playerName) {
-          clearTimeout(timeout);
-          this.off("player-connected", connectedHandler);
-          this.off("player-reconnected", reconnectedHandler);
-          this.off("error", errorHandler);
-          this.currentPlayerId = payload.playerId;
-          resolve(payload);
-        }
-      };
+      // Handler for game updates (which indicate successful connection)
+      const gameUpdatedHandler = (payload: any) => {
+        console.log('🎮 gameUpdatedHandler called with payload:', payload);
+        console.log('🧑‍🤝‍🧑 Looking for playerName:', playerName);
 
-      // Handler for reconnections
-      const reconnectedHandler = (payload: PlayerReconnectedPayload) => {
-        if (payload.playerName === playerName) {
+        // Extract the actual game data from the payload
+        const gameData = payload.game || payload;
+        console.log('🎯 gameData:', gameData);
+        console.log('🎮 gameData.currentPlayer:', gameData.currentPlayer);
+        console.log('🧑‍🤝‍🧑 gameData.otherPlayers:', gameData.otherPlayers);
+
+        // GameDto has currentPlayer and otherPlayers instead of players array
+        const allPlayers = [];
+        if (gameData.currentPlayer) {
+          allPlayers.push(gameData.currentPlayer);
+        }
+        if (gameData.otherPlayers) {
+          allPlayers.push(...gameData.otherPlayers);
+        }
+        console.log('🚻 combined players array:', allPlayers);
+
+        const connectedPlayer = allPlayers.find((p: any) => p.name === playerName);
+        console.log('🔍 connectedPlayer found:', connectedPlayer);
+
+        if (connectedPlayer) {
+          console.log('✅ Player found! Resolving promise with:', connectedPlayer);
           clearTimeout(timeout);
-          this.off("player-connected", connectedHandler);
-          this.off("player-reconnected", reconnectedHandler);
+          this.off("game-updated", gameUpdatedHandler);
           this.off("error", errorHandler);
-          this.currentPlayerId = payload.playerId;
-          resolve(payload);
+          this.currentPlayerId = connectedPlayer.id;
+
+          // Return data similar to the old PlayerConnectedPayload format
+          resolve({
+            playerId: connectedPlayer.id,
+            playerName: connectedPlayer.name,
+            gameId: gameId,
+            game: gameData  // Use 'game' instead of 'gameData' for consistency
+          });
         }
       };
 
       // Error handler
       const errorHandler = (errorPayload: ErrorPayload) => {
         clearTimeout(timeout);
-        this.off("player-connected", connectedHandler);
-        this.off("player-reconnected", reconnectedHandler);
+        this.off("game-updated", gameUpdatedHandler);
         this.off("error", errorHandler);
         reject(new Error(errorPayload.message || "Connection failed"));
       };
 
-      // Listen for both types of responses
-      this.on("player-connected", connectedHandler);
-      this.on("player-reconnected", reconnectedHandler);
+      // Listen for game updates and errors
+      this.on("game-updated", gameUpdatedHandler);
       this.on("error", errorHandler);
     });
   }
@@ -297,10 +352,12 @@ export class WebSocketService {
   // }
 
   on(event: string, callback: EventCallback) {
+    console.log('👂 Registering listener for event:', event);
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
     this.listeners[event].push(callback);
+    console.log(`📝 Total listeners for ${event}:`, this.listeners[event].length);
   }
 
   off(event: string, callback: EventCallback) {
@@ -312,8 +369,22 @@ export class WebSocketService {
   }
 
   private emit(event: string, data?: unknown) {
+    console.log('🔔 Emitting event:', event);
+    console.log('🎯 Event data:', data);
+    console.log('👂 Listeners for', event, ':', this.listeners[event]?.length || 0);
+
     if (this.listeners[event]) {
-      this.listeners[event].forEach((callback) => callback(data));
+      this.listeners[event].forEach((callback, index) => {
+        console.log(`📞 Calling listener ${index} for event ${event}`);
+        try {
+          callback(data);
+          console.log(`✅ Listener ${index} for ${event} completed`);
+        } catch (error) {
+          console.error(`❌ Error in listener ${index} for ${event}:`, error);
+        }
+      });
+    } else {
+      console.log('⚠️ No listeners registered for event:', event);
     }
   }
 
@@ -333,11 +404,13 @@ export class WebSocketService {
   }
 
   disconnect() {
+    this.shouldReconnect = false;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
     this.isConnected = false;
+    this.isConnecting = false;
     this.currentGameId = null;
     this.currentPlayerId = null;
   }

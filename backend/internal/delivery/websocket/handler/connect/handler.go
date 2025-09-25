@@ -10,6 +10,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -135,8 +136,8 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 // processConnection handles the connection setup for new or existing players
 func (ch *ConnectionHandler) processConnection(connCtx *connectionContext) error {
 	if connCtx.isNew {
-		// Setup temporary connection for new players
-		ch.setupTemporaryConnection(connCtx)
+		// For new players, don't set up connection until we have the real player ID
+		// This prevents the temporary ID from interfering with broadcasts
 		return ch.processNewPlayer(connCtx)
 	}
 
@@ -149,8 +150,19 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 	ch.logger.Debug("✨ Handling new player connection",
 		zap.String("player_name", connCtx.payload.PlayerName))
 
-	// Join game
-	game, err := ch.gameService.JoinGame(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName)
+	// First, create a new player ID that will be used consistently
+	playerID := uuid.New().String()
+
+	// CRITICAL: Set up connection with real player ID BEFORE calling JoinGame
+	// This ensures the connection is properly registered when the service broadcasts
+	connCtx.connection.SetPlayer(playerID, connCtx.payload.GameID)
+
+	ch.logger.Debug("🔗 Connection set up with pre-generated player ID",
+		zap.String("connection_id", connCtx.connection.ID),
+		zap.String("player_id", playerID))
+
+	// Join game using the pre-generated player ID
+	game, err := ch.gameService.JoinGameWithPlayerID(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
 	if err != nil {
 		ch.logger.Error("Failed to join game via WebSocket",
 			zap.Error(err))
@@ -158,25 +170,12 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		return err
 	}
 
-	// Get the newly created player
-	player, err := ch.playerService.GetPlayerByName(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName)
-	if err != nil {
-		ch.logger.Error("❌ Player not found in game after join",
-			zap.Error(err))
-		ch.errorHandler.SendError(connCtx.connection, "Player not found in game")
-		return err
-	}
-
-	// CRITICAL: Update connection with real player ID immediately after getting player
-	// This ensures session registration happens before any subsequent broadcasts
-	connCtx.connection.SetPlayer(player.ID, connCtx.payload.GameID)
-
-	ch.logger.Debug("🔗 Connection updated with real player ID",
+	ch.logger.Debug("✅ Player joined game with pre-registered connection",
 		zap.String("connection_id", connCtx.connection.ID),
-		zap.String("player_id", player.ID))
+		zap.String("player_id", playerID))
 
 	connCtx.game = &game
-	connCtx.playerID = player.ID
+	connCtx.playerID = playerID
 	return nil
 }
 
@@ -212,34 +211,11 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 	return nil
 }
 
-// setupTemporaryConnection sets up initial connection state
-func (ch *ConnectionHandler) setupTemporaryConnection(connCtx *connectionContext) {
-	if connCtx.isNew {
-		// New player - use temporary player ID
-		tempPlayerID := "temp-" + connCtx.connection.ID
-		connCtx.connection.SetPlayer(tempPlayerID, connCtx.payload.GameID)
-		// Note: Connection is automatically managed by the Hub
 
-		ch.logger.Debug("🔗 Connection set up for new player (temporary)",
-			zap.String("connection_id", connCtx.connection.ID),
-			zap.String("temp_player_id", tempPlayerID))
-	} else {
-		// Existing player - use real player ID
-		connCtx.connection.SetPlayer(connCtx.playerID, connCtx.payload.GameID)
-		// Note: Connection is automatically managed by the Hub
-
-		ch.logger.Debug("🔗 Connection set up for existing player",
-			zap.String("connection_id", connCtx.connection.ID),
-			zap.String("player_id", connCtx.playerID))
-	}
-}
-
-// finalizeConnection sends state updates (connection already updated with player ID)
+// finalizeConnection logs connection completion (connection already updated with player ID)
 func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 	// Connection has already been updated with the real player ID in processNewPlayer
-	// Send state updates
-	ch.sendStateUpdates(connCtx)
-
+	// Services have already handled broadcasting the game state during join/reconnect
 	ch.logger.Info("🎮 Player connected via WebSocket",
 		zap.String("connection_id", connCtx.connection.ID),
 		zap.String("player_id", connCtx.playerID),
@@ -248,83 +224,7 @@ func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 		zap.Bool("is_new_player", connCtx.isNew))
 }
 
-// sendStateUpdates sends all necessary state updates for the connection
-func (ch *ConnectionHandler) sendStateUpdates(connCtx *connectionContext) {
-	// Get personalized game state
-	gameDTO := ch.getPersonalizedGameState(connCtx)
 
-	// Send connection confirmation
-	ch.sendConnectionConfirmation(connCtx, gameDTO)
-
-	// Send game state update to the connecting player
-	ch.sendGameStateUpdate(connCtx, gameDTO)
-
-	// Let services handle broadcasting - they know when and what to broadcast
-	ch.logger.Debug("Connection finalized - services will handle any needed broadcasting",
-		zap.String("player_id", connCtx.playerID),
-		zap.String("game_id", connCtx.game.ID))
-}
-
-// getPersonalizedGameState creates a personalized game DTO for the player
-func (ch *ConnectionHandler) getPersonalizedGameState(connCtx *connectionContext) dto.GameDto {
-	players, err := ch.playerService.GetPlayersForGame(connCtx.ctx, connCtx.game.ID)
-	if err != nil {
-		ch.logger.Error("❌ Failed to get players for personalized state",
-			zap.Error(err),
-			zap.String("game_id", connCtx.game.ID))
-		// Return basic DTO as fallback
-		return dto.ToGameDtoBasic(*connCtx.game)
-	}
-
-	// For connect handler, we use empty cards since the SessionManager handles
-	// full card data fetching and broadcasting after connections are established
-	playerCards := make(map[string][]model.Card)
-	startingCards := make(map[string][]model.Card)
-
-	return dto.ToGameDto(*connCtx.game, players, connCtx.playerID, playerCards, startingCards)
-}
-
-// sendConnectionConfirmation sends the connection/reconnection confirmation message
-func (ch *ConnectionHandler) sendConnectionConfirmation(connCtx *connectionContext, gameDTO dto.GameDto) {
-	messageType := ch.getConnectionMessageType(connCtx.isNew)
-
-	var payload any
-	if connCtx.isNew {
-		payload = dto.PlayerConnectedPayload{
-			PlayerID:   connCtx.playerID,
-			PlayerName: connCtx.payload.PlayerName,
-			Game:       gameDTO,
-		}
-	} else {
-		// For reconnection, use PlayerReconnectedPayload
-		payload = dto.PlayerReconnectedPayload{
-			PlayerID:   connCtx.playerID,
-			PlayerName: connCtx.payload.PlayerName,
-			Game:       gameDTO,
-		}
-	}
-
-	message := dto.WebSocketMessage{
-		Type:    messageType,
-		Payload: payload,
-		GameID:  connCtx.game.ID,
-	}
-
-	connCtx.connection.SendMessage(message)
-}
-
-// sendGameStateUpdate sends a game-updated message to the connected player
-func (ch *ConnectionHandler) sendGameStateUpdate(connCtx *connectionContext, gameDTO dto.GameDto) {
-	message := dto.WebSocketMessage{
-		Type: dto.MessageTypeGameUpdated,
-		Payload: dto.GameUpdatedPayload{
-			Game: gameDTO,
-		},
-		GameID: connCtx.game.ID,
-	}
-
-	connCtx.connection.SendMessage(message)
-}
 
 // Helper methods
 
@@ -354,10 +254,3 @@ func (ch *ConnectionHandler) findExistingPlayerByID(ctx context.Context, gameID,
 	return player.ID
 }
 
-// getConnectionMessageType returns the appropriate message type based on connection type
-func (ch *ConnectionHandler) getConnectionMessageType(isNew bool) dto.MessageType {
-	if isNew {
-		return dto.MessageTypePlayerConnected
-	}
-	return dto.MessageTypePlayerReconnected
-}

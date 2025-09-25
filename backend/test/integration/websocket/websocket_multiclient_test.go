@@ -35,7 +35,7 @@ func TestMultipleClientsJoinSameGame(t *testing.T) {
 		require.NoError(t, err, "Client %d should join game", i)
 
 		// Wait for confirmation
-		_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
+		_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 		require.NoError(t, err, "Client %d should get join confirmation", i)
 	}
 
@@ -65,7 +65,7 @@ func TestConcurrentMessageBroadcasting(t *testing.T) {
 		err := client.JoinGameViaWebSocket(gameID, playerName)
 		require.NoError(t, err)
 
-		_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
+		_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 		require.NoError(t, err)
 	}
 
@@ -105,9 +105,9 @@ func TestClientDisconnectionHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get confirmations
-	_, err = client1.WaitForMessage(dto.MessageTypePlayerConnected)
+	_, err = client1.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
-	_, err = client2.WaitForMessage(dto.MessageTypePlayerConnected)
+	_, err = client2.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
 
 	// Disconnect one client

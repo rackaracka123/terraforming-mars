@@ -28,20 +28,35 @@ const CreateGamePage: React.FC = () => {
     setError(null);
 
     try {
+      console.log('🎮 Starting game creation process', { playerName: playerName.trim() });
+
       // Create game with default settings
       const gameSettings: GameSettingsDto = {
         maxPlayers: 4, // Default max players
       };
 
+      console.log('🎲 Creating game with settings', gameSettings);
+
       // Creating game with settings
       const game = await apiService.createGame(gameSettings);
 
+      console.log('✅ Game created successfully', { gameId: game.id });
+
       // Global WebSocket manager handles connection automatically
       // Connect player to the game
+      console.log('🔗 Attempting WebSocket player connection', {
+        playerName: playerName.trim(),
+        gameId: game.id,
+        globalWebSocketManager: typeof globalWebSocketManager,
+        playerConnectMethod: typeof globalWebSocketManager.playerConnect
+      });
+
       const playerConnectedResult = await globalWebSocketManager.playerConnect(
         playerName.trim(),
         game.id,
       );
+
+      console.log('📡 PlayerConnect result', playerConnectedResult);
 
       if (playerConnectedResult.game) {
         const gameData = {

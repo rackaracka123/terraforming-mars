@@ -35,8 +35,8 @@ func TestInvalidJSONMessage(t *testing.T) {
 	t.Log("✅ Valid message sent successfully")
 
 	// Wait for confirmation
-	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
 	t.Log("✅ Valid message protocol test completed")
 }
 
@@ -61,8 +61,8 @@ func TestUnknownMessageType(t *testing.T) {
 	t.Log("✅ Player joined game")
 
 	// Wait for player connected
-	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
 	t.Log("✅ Player connected confirmed")
 
 	// Send a message with unknown type using SendRawMessage
@@ -100,8 +100,8 @@ func TestMalformedPayload(t *testing.T) {
 	require.NoError(t, err, "Should be able to join game")
 
 	// Wait for player connected
-	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
 	t.Log("✅ Joined game before testing malformed payload")
 
 	// Send a message with malformed payload (missing required fields)
@@ -159,10 +159,10 @@ func TestMessageSequence(t *testing.T) {
 	err = client.JoinGameViaWebSocket(gameID, "TestPlayer")
 	require.NoError(t, err, "Should be able to join game")
 
-	// Wait for player connected
-	message, err := client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
-	require.Equal(t, dto.MessageTypePlayerConnected, message.Type)
+	// Wait for game state
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
+	require.Equal(t, dto.MessageTypeGameUpdated, message.Type)
 	t.Log("✅ Received expected message type in sequence")
 
 	// The game should be in lobby status initially
@@ -196,8 +196,8 @@ func TestConcurrentMessages(t *testing.T) {
 	require.NoError(t, err, "Should be able to join game")
 
 	// Wait for player connected
-	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Should receive player connected message")
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game state message")
 	t.Log("✅ Game setup completed")
 
 	// Send multiple actions rapidly (they should all be processed)
@@ -321,7 +321,7 @@ func TestConnectionStability(t *testing.T) {
 	t.Log("✅ Valid message sent after invalid messages")
 
 	// Wait for confirmation
-	_, err = client.WaitForMessage(dto.MessageTypePlayerConnected)
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err, "Should still receive responses after protocol errors")
 	t.Log("✅ Connection stability test completed - connection remained stable through protocol errors")
 }

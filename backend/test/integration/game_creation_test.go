@@ -31,30 +31,35 @@ func TestCreateAndJoinGame(t *testing.T) {
 	require.NoError(t, err, "Failed to join game via WebSocket")
 	t.Log("✅ Sent join game message")
 
-	// Step 4: Wait for player connected confirmation
-	message, err := client.WaitForMessage(dto.MessageTypePlayerConnected)
-	require.NoError(t, err, "Failed to receive player connected message")
-	require.NotNil(t, message, "Player connected message should not be nil")
-	t.Log("✅ Received player connected confirmation")
+	// Step 4: Wait for game state confirmation
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Failed to receive game state message")
+	require.NotNil(t, message, "Game state message should not be nil")
+	t.Log("✅ Received game state confirmation")
 
 	// Step 5: Verify the message payload contains correct data
 	payload, ok := message.Payload.(map[string]interface{})
-	require.True(t, ok, "Player connected payload should be a map")
-
-	// Check player name
-	actualPlayerName, ok := payload["playerName"].(string)
-	require.True(t, ok, "Player name should be present in payload")
-	require.Equal(t, playerName, actualPlayerName, "Player name should match")
-
-	// Check player ID is present
-	playerID, ok := payload["playerId"].(string)
-	require.True(t, ok, "Player ID should be present in payload")
-	require.NotEmpty(t, playerID, "Player ID should not be empty")
-	client.playerID = playerID
-	t.Logf("✅ Player ID assigned: %s", playerID)
+	require.True(t, ok, "Game updated payload should be a map")
 
 	// Step 6: Verify game data is present
 	gameData, ok := payload["game"].(map[string]interface{})
+	require.True(t, ok, "Game data should be present in payload")
+
+	// Check current player data
+	currentPlayer, ok := gameData["currentPlayer"].(map[string]interface{})
+	require.True(t, ok, "Current player should be present in game data")
+
+	// Check player name
+	actualPlayerName, ok := currentPlayer["name"].(string)
+	require.True(t, ok, "Player name should be present in current player")
+	require.Equal(t, playerName, actualPlayerName, "Player name should match")
+
+	// Check player ID is present
+	playerID, ok := currentPlayer["id"].(string)
+	require.True(t, ok, "Player ID should be present in current player")
+	require.NotEmpty(t, playerID, "Player ID should not be empty")
+	client.playerID = playerID
+	t.Logf("✅ Player ID assigned: %s", playerID)
 	require.True(t, ok, "Game data should be present in payload")
 
 	// Verify game ID matches

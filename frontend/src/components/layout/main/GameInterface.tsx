@@ -24,7 +24,6 @@ import {
   GameStatusLobby,
   PlayerDisconnectedPayload,
   PlayerDto,
-  PlayerReconnectedPayload,
   ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
@@ -126,15 +125,6 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
-  const handlePlayerConnected = useCallback(
-    (payload: any) => {
-      // Handle player-connected message that now includes game state
-      if (payload.game) {
-        handleGameUpdated(payload.game);
-      }
-    },
-    [handleGameUpdated],
-  );
 
   const handleError = useCallback(() => {
     // Could show error modal
@@ -160,17 +150,6 @@ export default function GameInterface() {
     }
   }, [navigate]);
 
-  const handlePlayerReconnected = useCallback(
-    (payload: PlayerReconnectedPayload) => {
-      // Handle when any player (including this player) reconnects
-      if (payload.game) {
-        handleGameUpdated(payload.game);
-      }
-      // You could show a notification here about the reconnected player
-      // Player reconnected: payload.playerName
-    },
-    [handleGameUpdated],
-  );
 
   const handlePlayerDisconnected = useCallback(
     (payload: PlayerDisconnectedPayload) => {
@@ -274,8 +253,6 @@ export default function GameInterface() {
 
     globalWebSocketManager.on("game-updated", handleGameUpdated);
     globalWebSocketManager.on("full-state", handleFullState);
-    globalWebSocketManager.on("player-connected", handlePlayerConnected);
-    globalWebSocketManager.on("player-reconnected", handlePlayerReconnected);
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
     globalWebSocketManager.on(
       "production-phase-started",
@@ -289,8 +266,6 @@ export default function GameInterface() {
     return () => {
       globalWebSocketManager.off("game-updated", handleGameUpdated);
       globalWebSocketManager.off("full-state", handleFullState);
-      globalWebSocketManager.off("player-connected", handlePlayerConnected);
-      globalWebSocketManager.off("player-reconnected", handlePlayerReconnected);
       globalWebSocketManager.off(
         "player-disconnected",
         handlePlayerDisconnected,
@@ -306,8 +281,6 @@ export default function GameInterface() {
   }, [
     handleGameUpdated,
     handleFullState,
-    handlePlayerConnected,
-    handlePlayerReconnected,
     handlePlayerDisconnected,
     handleProductionPhaseStarted,
     handleError,

@@ -42,7 +42,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(standardProjectService, parser))
 
 	// Register skip action handler
-	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(gameService, playerService))
+	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(gameService))
 
 	// Register game management handlers
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(gameService))
