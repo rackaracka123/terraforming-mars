@@ -74,9 +74,9 @@ type CardBehaviorDto struct {
 
 // ResourceStorageDto represents a card's resource storage capability for client consumption
 type ResourceStorageDto struct {
-	Type     model.ResourceConditionType `json:"type" ts:"ResourceConditionType"`
-	Capacity *int                        `json:"capacity,omitempty" ts:"number | undefined"`
-	Starting int                         `json:"starting" ts:"number"`
+	Type     model.ResourceType `json:"type" ts:"ResourceType"`
+	Capacity *int               `json:"capacity,omitempty" ts:"number | undefined"`
+	Starting int                `json:"starting" ts:"number"`
 }
 
 // CardDto represents a card for client consumption
@@ -227,4 +227,49 @@ type GameDto struct {
 	Generation       int                 `json:"generation" ts:"number"`
 	RemainingActions int                 `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
 	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`      // Turn order of all players in game
+	Board            BoardDto            `json:"board" ts:"BoardDto"`          // Game board with tiles and occupancy state
+}
+
+// Board-related DTOs for tygo generation
+
+// TileBonusDto represents a resource bonus provided by a tile when occupied
+type TileBonusDto struct {
+	// Type specifies the resource type granted by this bonus
+	Type string `json:"type" ts:"string"`
+	// Amount specifies the quantity of the bonus granted
+	Amount int `json:"amount" ts:"number"`
+}
+
+// TileOccupantDto represents what currently occupies a tile
+type TileOccupantDto struct {
+	// Type specifies the type of occupant (city-tile, ocean-tile, greenery-tile, etc.)
+	Type string `json:"type" ts:"string"`
+	// Tags specifies special properties of the occupant (e.g., "capital" for cities)
+	Tags []string `json:"tags" ts:"string[]"`
+}
+
+// TileDto represents a single hexagonal tile on the game board
+type TileDto struct {
+	// Coordinates specifies the hex position of this tile
+	Coordinates HexPositionDto `json:"coordinates" ts:"HexPositionDto"`
+	// Tags specifies special properties for placement restrictions (e.g., "noctis-city")
+	Tags []string `json:"tags" ts:"string[]"`
+	// Type specifies the base type of tile (ocean-tile for ocean spaces, etc.)
+	Type string `json:"type" ts:"string"`
+	// Location specifies which celestial body this tile is on
+	Location string `json:"location" ts:"string"`
+	// DisplayName specifies the optional display name shown on the tile
+	DisplayName *string `json:"displayName,omitempty" ts:"string|null"`
+	// Bonuses specifies the resource bonuses provided by this tile
+	Bonuses []TileBonusDto `json:"bonuses" ts:"TileBonusDto[]"`
+	// OccupiedBy specifies what currently occupies this tile, if anything
+	OccupiedBy *TileOccupantDto `json:"occupiedBy,omitempty" ts:"TileOccupantDto|null"`
+	// OwnerID specifies the player who owns this tile, if any
+	OwnerID *string `json:"ownerId,omitempty" ts:"string|null"`
+}
+
+// BoardDto represents the game board containing all tiles
+type BoardDto struct {
+	// Tiles specifies all tiles on the game board
+	Tiles []TileDto `json:"tiles" ts:"TileDto[]"`
 }

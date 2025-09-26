@@ -150,13 +150,11 @@ export default function GameInterface() {
   }, [navigate]);
 
   const handlePlayerDisconnected = useCallback(
-    (payload: PlayerDisconnectedPayload) => {
+    (_payload: PlayerDisconnectedPayload) => {
       // Handle when any player disconnects (NOT this client)
       // Player disconnected from the game
-
-      if (payload.game) {
-        handleGameUpdated(payload.game);
-      }
+      // Note: PlayerDisconnectedPayload no longer contains game data
+      // Game state updates will come through separate game-updated events
     },
     [handleGameUpdated],
   );

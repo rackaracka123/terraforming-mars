@@ -13,6 +13,7 @@ interface ProjectedHexTileProps {
   tileData: ProjectedHexTileData;
   tileType: "empty" | "ocean" | "greenery" | "city" | "special";
   ownerId?: string | null;
+  displayName?: string;
   onClick: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function ProjectedHexTile({
   tileData,
   tileType,
   ownerId,
+  displayName,
   onClick,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -221,16 +223,57 @@ export default function ProjectedHexTile({
         </Text>
       )}
 
-      {/* Bonus resource icons */}
-      {bonusIcons.map((iconPath, index) => {
-        return (
+      {/* Display name and bonus icons layout */}
+      {displayName && bonusIcons.length > 0 ? (
+        // Two-row layout when both displayName and bonuses exist
+        <>
+          {/* Display name in upper row */}
+          <Text
+            position={[0, 0.03, 0.01]}
+            fontSize={0.035}
+            color="white"
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={0.25}
+          >
+            {displayName}
+          </Text>
+
+          {/* Bonus icons in lower row */}
+          {bonusIcons.map((iconPath, index) => (
+            <BonusIcon
+              key={index}
+              iconPath={iconPath}
+              position={[
+                index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                -0.03,
+                0.01,
+              ]}
+            />
+          ))}
+        </>
+      ) : displayName ? (
+        // Display name centered when no bonuses
+        <Text
+          position={[0, 0, 0.01]}
+          fontSize={0.04}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={0.25}
+        >
+          {displayName}
+        </Text>
+      ) : (
+        // Only bonus icons when no display name
+        bonusIcons.map((iconPath, index) => (
           <BonusIcon
             key={index}
             iconPath={iconPath}
             position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, 0, 0.01]}
           />
-        );
-      })}
+        ))
+      )}
 
       {/* Owner indicator */}
       {ownerId && (

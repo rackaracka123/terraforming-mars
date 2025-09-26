@@ -771,9 +771,9 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 	switch {
 	case strings.Contains(whereText, "city"):
 		triggerType := model.TriggerCityPlaced
-		location := model.LocationAnywhere
+		location := model.CardApplyLocationAnywhere
 		if strings.Contains(whereText, "mars") {
-			location = model.LocationMars
+			location = model.CardApplyLocationMars
 		}
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
@@ -781,9 +781,9 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		}
 	case strings.Contains(whereText, "ocean"):
 		triggerType := model.TriggerOceanPlaced
-		location := model.LocationAnywhere
+		location := model.CardApplyLocationAnywhere
 		if strings.Contains(whereText, "mars") {
-			location = model.LocationMars
+			location = model.CardApplyLocationMars
 		}
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
@@ -791,9 +791,9 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		}
 	case strings.Contains(whereText, "greenery"):
 		triggerType := model.TriggerTilePlaced
-		location := model.LocationAnywhere
+		location := model.CardApplyLocationAnywhere
 		if strings.Contains(whereText, "mars") {
-			location = model.LocationMars
+			location = model.CardApplyLocationMars
 		}
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
@@ -816,7 +816,7 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 	// Create triggers list - will be added at the end
 	var triggers []model.Trigger
 	// Helper function to determine target based on resource type and context
-	getTarget := func(resourceType model.ResourceConditionType, isInput bool) model.TargetType {
+	getTarget := func(resourceType model.ResourceType, isInput bool) model.TargetType {
 		if isAttack {
 			return model.TargetAnyPlayer // Attack actions target other players
 		}
@@ -866,7 +866,7 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		// Convert resource values to ResourceCondition objects
 		resourceInputs := []struct {
 			value        int
-			resourceType model.ResourceConditionType
+			resourceType model.ResourceType
 		}{
 			{behavior.Megacredits, model.ResourceCredits},
 			{behavior.Steel, model.ResourceSteel},
@@ -909,7 +909,7 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		// Handle production resources (for attacks and regular production changes)
 		productionInputs := []struct {
 			value        int
-			resourceType model.ResourceConditionType
+			resourceType model.ResourceType
 		}{
 			{behavior.MegacreditProd, model.ResourceCreditsProduction},
 			{behavior.SteelProd, model.ResourceSteelProduction},
@@ -1029,7 +1029,7 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		// Global parameter changes (converted to ResourceCondition)
 		globalParams := []struct {
 			value        int
-			resourceType model.ResourceConditionType
+			resourceType model.ResourceType
 		}{
 			{behavior.RaiseTemp, model.ResourceTemperature},
 			{behavior.RaiseOxygen, model.ResourceOxygen},
@@ -1099,7 +1099,7 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 	}
 
 	// Find which resource column has "N" value
-	var resourceType model.ResourceConditionType
+	var resourceType model.ResourceType
 
 	// Check each resource column for "N" value
 	if behavior.MegacreditsRaw == "N" {
@@ -1135,8 +1135,8 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 	nEqualsLower := strings.ToLower(behavior.NEquals)
 
 	// Parse the per condition type and location
-	var perType model.ResourceConditionType
-	var location *model.Location
+	var perType model.ResourceType
+	var location *model.CardApplyLocation
 	var target *model.TargetType // For specifying whose tags/resources to count
 	var perAmount int = 1        // Default: per 1 of something
 	var tagType *model.CardTag   // For tag-based conditions
@@ -1145,22 +1145,22 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 	switch {
 	case strings.Contains(nEqualsLower, "any cities") || strings.Contains(nEqualsLower, "any city"):
 		perType = model.ResourceCityTile
-		locationVal := model.LocationAnywhere
+		locationVal := model.CardApplyLocationAnywhere
 		location = &locationVal
 
 	case strings.Contains(nEqualsLower, "city on mars") || strings.Contains(nEqualsLower, "cities on mars"):
 		perType = model.ResourceCityTile
-		locationVal := model.LocationMars
+		locationVal := model.CardApplyLocationMars
 		location = &locationVal
 
 	case strings.Contains(nEqualsLower, "ocean"):
 		perType = model.ResourceOceanTile
-		locationVal := model.LocationAnywhere
+		locationVal := model.CardApplyLocationAnywhere
 		location = &locationVal
 
 	case strings.Contains(nEqualsLower, "greenery"):
 		perType = model.ResourceGreeneryTile
-		locationVal := model.LocationAnywhere
+		locationVal := model.CardApplyLocationAnywhere
 		location = &locationVal
 
 	case strings.Contains(nEqualsLower, "tag"):
@@ -1168,7 +1168,7 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		perType = model.ResourceTag
 		perAmount = 1 // 1 resource per 1 tag
 		// Location for tags is always "anywhere" (tags don't have physical board location)
-		locationVal := model.LocationAnywhere
+		locationVal := model.CardApplyLocationAnywhere
 		location = &locationVal
 		// Check if it should target all players (ANY tags) or just self-player (own tags)
 		if strings.Contains(nEqualsLower, "any ") {
@@ -1257,7 +1257,7 @@ func parseConditionalOutput(behavior BehaviorData) *model.ResourceCondition {
 	}
 
 	// Parse the resource type from TextForm (e.g., "1 M€ per city" -> credits)
-	var resourceType model.ResourceConditionType
+	var resourceType model.ResourceType
 	var amount int = 1 // Default amount gained per condition
 
 	switch {
@@ -1279,8 +1279,8 @@ func parseConditionalOutput(behavior BehaviorData) *model.ResourceCondition {
 
 	// Parse the "per" condition from Where field and TextForm
 	whereLower := strings.ToLower(behavior.Where)
-	var perType model.ResourceConditionType
-	var location *model.Location
+	var perType model.ResourceType
+	var location *model.CardApplyLocation
 
 	switch {
 	case strings.Contains(whereLower, "city"):
@@ -1295,10 +1295,10 @@ func parseConditionalOutput(behavior BehaviorData) *model.ResourceCondition {
 
 	// Parse location constraint
 	if strings.Contains(whereLower, "mars") {
-		locationVal := model.LocationMars
+		locationVal := model.CardApplyLocationMars
 		location = &locationVal
 	} else {
-		locationVal := model.LocationAnywhere
+		locationVal := model.CardApplyLocationAnywhere
 		location = &locationVal
 	}
 
@@ -1322,7 +1322,7 @@ func createResourceStorage(behavior BehaviorData) *model.ResourceStorage {
 }
 
 func createResourceStorageFromType(resourceTypeStr string) *model.ResourceStorage {
-	var resourceType model.ResourceConditionType
+	var resourceType model.ResourceType
 
 	switch resourceTypeStr {
 	case "microbe":
@@ -1619,7 +1619,7 @@ func parseRequirements(record []string) []model.Requirement {
 		requirements = append(requirements, requirement)
 	case strings.Contains(requireWhat, "production"):
 		// Parse production requirements
-		var resourceType model.ResourceConditionType
+		var resourceType model.ResourceType
 		switch {
 		case strings.Contains(requireWhat, "titanium"):
 			resourceType = model.ResourceTitaniumProduction
@@ -1823,11 +1823,11 @@ func parseVictoryConditionsFromBehaviors(behaviors []BehaviorData, record []stri
 			}
 
 			// Convert target to location
-			var location model.Location
+			var location model.CardApplyLocation
 			if target == model.TargetAny {
-				location = model.LocationAnywhere
+				location = model.CardApplyLocationAnywhere
 			} else {
-				location = model.LocationAnywhere // Default for self-card resources
+				location = model.CardApplyLocationAnywhere // Default for self-card resources
 			}
 
 			condition := model.VictoryPointCondition{
@@ -1855,7 +1855,7 @@ func parseIntFromString(s string) int {
 	return 0
 }
 
-func parseResourceTypeFromString(s string) *model.ResourceConditionType {
+func parseResourceTypeFromString(s string) *model.ResourceType {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "animal":
 		r := model.ResourceAnimals
@@ -1903,7 +1903,7 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 	}
 
 	// Check if this is a tag-based VP condition or resource-based
-	var resourceType *model.ResourceConditionType
+	var resourceType *model.ResourceType
 	if resourceTypeStr != "" {
 		resourceType = parseResourceTypeFromString(resourceTypeStr)
 		if resourceType == nil {
@@ -1971,7 +1971,7 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 			Per: &model.PerCondition{
 				Type:     model.ResourceTag,
 				Amount:   1, // 1 VP per 1 tag (standard for tag-based VP)
-				Location: func() *model.Location { loc := model.LocationAnywhere; return &loc }(),
+				Location: func() *model.CardApplyLocation { loc := model.CardApplyLocationAnywhere; return &loc }(),
 				Tag:      &tagType,
 			},
 		}
@@ -1991,13 +1991,13 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 			MaxTrigger: &maxTrigger,
 			Per: &model.PerCondition{
 				Type:     *resourceType,
-				Amount:   per,                                                                     // Resources needed per VP
-				Location: func() *model.Location { loc := model.LocationAnywhere; return &loc }(), // Default to anywhere, could be refined based on context
+				Amount:   per,                                                                                       // Resources needed per VP
+				Location: func() *model.CardApplyLocation { loc := model.CardApplyLocationAnywhere; return &loc }(), // Default to anywhere, could be refined based on context
 			},
 		}
 	} else {
 		// Check for tile-based VP conditions (cities, oceans, greeneries, colonies)
-		var tileType model.ResourceConditionType
+		var tileType model.ResourceType
 		var perAmount int = 1 // Default amount per VP
 
 		// Extract number from vpPerStr if present (e.g., "any 3 cities" -> 3)
@@ -2022,9 +2022,9 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 		}
 
 		// Determine location
-		location := model.LocationAnywhere
+		location := model.CardApplyLocationAnywhere
 		if strings.Contains(vpPerStr, "mars") {
-			location = model.LocationMars
+			location = model.CardApplyLocationMars
 		}
 
 		condition = model.VictoryPointCondition{
@@ -2225,7 +2225,7 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 	// Basic resources
 	resourceTypes := []struct {
 		value        int
-		resourceType model.ResourceConditionType
+		resourceType model.ResourceType
 	}{
 		{choice.Megacredits, model.ResourceCredits},
 		{choice.Steel, model.ResourceSteel},
@@ -2334,7 +2334,7 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 	// Production resources
 	productionTypes := []struct {
 		value        int
-		resourceType model.ResourceConditionType
+		resourceType model.ResourceType
 	}{
 		{choice.MegacreditProd, model.ResourceCreditsProduction},
 		{choice.SteelProd, model.ResourceSteelProduction},
@@ -2566,8 +2566,8 @@ func createTriggeredChoiceBehavior(choiceBehavior ChoiceBehaviorData, card *mode
 	}
 }
 
-// parseResourceType converts string resource type to ResourceConditionType
-func parseResourceType(resourceType string) model.ResourceConditionType {
+// parseResourceType converts string resource type to ResourceType
+func parseResourceType(resourceType string) model.ResourceType {
 	switch strings.ToLower(resourceType) {
 	case "microbe":
 		return model.ResourceMicrobes

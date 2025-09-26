@@ -1,5 +1,4 @@
 import React from "react";
-import { CardType, CardTag } from "../../../types/cards.ts";
 import { PlayerDto } from "../../../types/generated/api-types.ts";
 // Modal components are now imported and managed in GameInterface
 
