@@ -51,7 +51,10 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
 
     clonedScene.scale.setScalar(scale);
 
-    // Apply terraforming color tint to all materials
+    // Rotate Mars 65 degrees to show a brighter area
+    clonedScene.rotation.y = (65 * Math.PI) / 180; // Convert degrees to radians
+
+    // Apply terraforming color tint and configure shadows for all materials
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
         const material = child.material.clone();
@@ -59,8 +62,16 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
           // Mix original color with terraforming progress tint
           const originalColor = material.color.clone();
           material.color = originalColor.lerp(marsColorTint, 0.3);
+
+          // Enhance material properties for better lighting response
+          material.roughness = 0.8; // Mars surface is rough
+          material.metalness = 0.1; // Very low metalness for rock/soil
         }
         child.material = material;
+
+        // Enable shadow casting and receiving
+        child.castShadow = true;
+        child.receiveShadow = true;
       }
     });
 
