@@ -164,21 +164,8 @@ class GlobalWebSocketManager implements WebSocketConnection {
 
   // Proxy method to underlying WebSocket service
   async playerConnect(playerName: string, gameId: string, playerId?: string) {
-    console.log("🌐 GlobalWebSocketManager.playerConnect called", {
-      playerName,
-      gameId,
-      playerId,
-      isInitialized: this.isInitialized,
-      webSocketService: typeof webSocketService,
-    });
-
     await this.ensureConnected();
-
-    console.log("🔗 About to call webSocketService.playerConnect");
-    const result = webSocketService.playerConnect(playerName, gameId, playerId);
-    console.log("📡 webSocketService.playerConnect result", result);
-
-    return result;
+    return webSocketService.playerConnect(playerName, gameId, playerId);
   }
 
   // Standard project actions
