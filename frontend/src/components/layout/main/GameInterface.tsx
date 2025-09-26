@@ -13,7 +13,7 @@ import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
-import UnplayableCardOverlay from "../../ui/overlay/UnplayableCardOverlay.tsx";
+import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
@@ -694,8 +694,8 @@ export default function GameInterface() {
         />
       )}
 
-      {/* Unplayable card overlay */}
-      <UnplayableCardOverlay
+      {/* Hexagonal shield overlay */}
+      <HexagonalShieldOverlay
         card={unplayableCard}
         reason={unplayableReason}
         isVisible={unplayableCard !== null}
