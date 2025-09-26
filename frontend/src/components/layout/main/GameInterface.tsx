@@ -12,9 +12,11 @@ import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
+import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
+import { skyboxCache } from "../../../services/SkyboxCache.ts";
 import {
   CardDto,
   FullStatePayload,
@@ -34,6 +36,9 @@ export default function GameInterface() {
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectionStep, setReconnectionStep] = useState<
+    "game" | "environment" | null
+  >(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
@@ -99,6 +104,7 @@ export default function GameInterface() {
       // If we were reconnecting, mark reconnection as successful
       if (isReconnecting) {
         setIsReconnecting(false);
+        setReconnectionStep(null);
       }
 
       // Set current player from updated game data
@@ -207,6 +213,9 @@ export default function GameInterface() {
 
       const { gameId, playerId, playerName } = JSON.parse(savedGameData);
 
+      // Step 1: Reconnect to game
+      setReconnectionStep("game");
+
       // Fetch current game state from server first
       const response = await fetch(
         `http://localhost:3001/api/v1/games/${gameId}`,
@@ -228,11 +237,18 @@ export default function GameInterface() {
       // Store player ID for WebSocket handlers
       currentPlayerIdRef.current = playerId;
 
+      // Step 2: Ensure 3D environment is loaded
+      if (!skyboxCache.isReady()) {
+        setReconnectionStep("environment");
+        await skyboxCache.preload();
+      }
+
       // Now establish WebSocket connection
       await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);
+      setReconnectionStep(null);
       // Don't navigate away - let user try manual reconnection
       // or they can manually navigate to home if needed
       console.error(
@@ -514,19 +530,29 @@ export default function GameInterface() {
   }, [showDebugDropdown]);
 
   if (!isConnected || !game || isReconnecting) {
+    let loadingMessage = "Connecting to game...";
+
+    if (isReconnecting && reconnectionStep) {
+      if (reconnectionStep === "game") {
+        loadingMessage = "Reconnecting to game...";
+      } else if (reconnectionStep === "environment") {
+        loadingMessage = "Loading 3D environment...";
+      }
+    }
+
     return (
       <div
         style={{
-          padding: "20px",
-          color: "white",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
           background: "#000011",
-          minHeight: "100vh",
+          zIndex: 9999,
         }}
       >
-        <h2>Loading Terraforming Mars...</h2>
-        <p>
-          {isReconnecting ? "Reconnecting to game..." : "Connecting to game..."}
-        </p>
+        <LoadingSpinner message={loadingMessage} />
       </div>
     );
   }
