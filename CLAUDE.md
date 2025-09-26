@@ -631,3 +631,4 @@ No need to be backwards compatible.
 - Use proper synchronization (channels, mutexes, etc.) when needed
 
 When encountering timing or state issues, always ask: "What is the proper state flow here?" rather than "How long should I wait?"
+- No mocks outside of tests.

@@ -19,6 +19,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/usecase/common"
+	"terraforming-mars-backend/internal/usecase/standard_project"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
@@ -33,8 +35,12 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
+	// Create UseCase dependencies for asteroid
+	actionValidator := common.NewActionValidator(gameRepo, playerRepo)
+	asteroidUseCase := standard_project.NewAsteroidUseCase(actionValidator, gameRepo, playerRepo, gameService)
+
 	// Register standard project handlers (validation moved to individual handlers)
-	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(standardProjectService))
+	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(asteroidUseCase))
 	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
