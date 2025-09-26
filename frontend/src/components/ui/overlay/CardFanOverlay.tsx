@@ -407,7 +407,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
         .card-hand-container {
           position: absolute;
-          bottom: 0px;
+          bottom: 48px; /* Position above BottomResourceBar (48px height) */
           left: 50%;
           transform: translateX(-50%);
           width: 100%;
