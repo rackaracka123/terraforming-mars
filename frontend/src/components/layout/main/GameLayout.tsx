@@ -44,6 +44,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     ...otherPlayer,
     cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
     startingSelection: [], // Add required startingSelection property
+    hasSelectedStartingCards: true, // Default to true for other players
   });
 
   // Create a map of all players (current + others) for easy lookup

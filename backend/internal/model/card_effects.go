@@ -1,64 +1,5 @@
 package model
 
-// ResourceConditionType represents different types of resources in the game
-type ResourceConditionType string
-
-const (
-	ResourceCredits  ResourceConditionType = "credits"
-	ResourceSteel    ResourceConditionType = "steel"
-	ResourceTitanium ResourceConditionType = "titanium"
-	ResourcePlants   ResourceConditionType = "plants"
-	ResourceEnergy   ResourceConditionType = "energy"
-	ResourceHeat     ResourceConditionType = "heat"
-	ResourceMicrobes ResourceConditionType = "microbes"
-	ResourceAnimals  ResourceConditionType = "animals"
-	ResourceFloaters ResourceConditionType = "floaters"
-	ResourceScience  ResourceConditionType = "science"
-	ResourceAsteroid ResourceConditionType = "asteroid"
-	ResourceDisease  ResourceConditionType = "disease"
-	ResourceCardDraw ResourceConditionType = "card-draw" // Drawing cards (take = peek, common case)
-	ResourceCardTake ResourceConditionType = "card-take" // Drawing cards (take from deck)
-	ResourceCardPeek ResourceConditionType = "card-peek" // Looking at cards (peek without taking all)
-
-	// Terraforming actions
-	ResourceCityPlacement     ResourceConditionType = "city-placement"     // Placing city tiles
-	ResourceOceanPlacement    ResourceConditionType = "ocean-placement"    // Placing ocean tiles
-	ResourceGreeneryPlacement ResourceConditionType = "greenery-placement" // Placing greenery tiles
-
-	// Tile counting (for per conditions)
-	ResourceCityTile     ResourceConditionType = "city-tile"     // Counting existing city tiles
-	ResourceOceanTile    ResourceConditionType = "ocean-tile"    // Counting existing ocean tiles
-	ResourceGreeneryTile ResourceConditionType = "greenery-tile" // Counting existing greenery tiles
-	ResourceColonyTile   ResourceConditionType = "colony-tile"   // Counting existing colonies
-
-	// Global parameters
-	ResourceTemperature ResourceConditionType = "temperature" // Temperature change
-	ResourceOxygen      ResourceConditionType = "oxygen"      // Oxygen change
-	ResourceVenus       ResourceConditionType = "venus"       // Venus change
-	ResourceTR          ResourceConditionType = "tr"          // Terraform Rating change
-
-	// Production resources (for spending production)
-	ResourceCreditsProduction  ResourceConditionType = "credits-production"  // Credits production
-	ResourceSteelProduction    ResourceConditionType = "steel-production"    // Steel production
-	ResourceTitaniumProduction ResourceConditionType = "titanium-production" // Titanium production
-	ResourcePlantsProduction   ResourceConditionType = "plants-production"   // Plants production
-	ResourceEnergyProduction   ResourceConditionType = "energy-production"   // Energy production
-	ResourceHeatProduction     ResourceConditionType = "heat-production"     // Heat production
-
-	// Effect type (for triggered effects like Rover Construction)
-	ResourceEffect ResourceConditionType = "effect" // Triggered effect
-
-	// Tag counting (for VP conditions like "1 VP per jovian tag")
-	ResourceTag ResourceConditionType = "tag" // Count tags of a specific type
-
-	// Special ongoing effects
-	ResourceGlobalParameterLenience ResourceConditionType = "global-parameter-lenience" // Global parameter requirement flexibility
-	ResourceVenusLenience           ResourceConditionType = "venus-lenience"            // Venus requirement flexibility (+/- steps)
-	ResourceDefense                 ResourceConditionType = "defense"                   // Protection from attacks or resource removal
-	ResourceDiscount                ResourceConditionType = "discount"                  // Cost reduction for playing cards
-	ResourceValueModifier           ResourceConditionType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
-)
-
 // TriggerType represents different trigger conditions
 type TriggerType string
 
@@ -97,12 +38,12 @@ const (
 
 // Requirement represents a single card requirement with flexible min/max values
 type Requirement struct {
-	Type     RequirementType        `json:"type" ts:"RequirementType"`                                 // Type of requirement
-	Min      *int                   `json:"min,omitempty" ts:"number | undefined"`                     // Minimum value required
-	Max      *int                   `json:"max,omitempty" ts:"number | undefined"`                     // Maximum value allowed
-	Location *Location              `json:"location,omitempty" ts:"Location | undefined"`              // Location constraint (Mars, anywhere, etc.)
-	Tag      *CardTag               `json:"tag,omitempty" ts:"CardTag | undefined"`                    // For tag requirements: which tag
-	Resource *ResourceConditionType `json:"resource,omitempty" ts:"ResourceConditionType | undefined"` // For production: which resource
+	Type     RequirementType    `json:"type" ts:"RequirementType"`                             // Type of requirement
+	Min      *int               `json:"min,omitempty" ts:"number | undefined"`                 // Minimum value required
+	Max      *int               `json:"max,omitempty" ts:"number | undefined"`                 // Maximum value allowed
+	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Location constraint (Mars, anywhere, etc.)
+	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`                // For tag requirements: which tag
+	Resource *ResourceType      `json:"resource,omitempty" ts:"ResourceType | undefined"`      // For production: which resource
 }
 
 // CardBehavior represents any card behavior - both immediate (when played) and repeatable (activated by player)
@@ -116,9 +57,9 @@ type CardBehavior struct {
 
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
-	Type     ResourceConditionType `json:"type" ts:"ResourceConditionType"`            // Type of resource stored
-	Capacity *int                  `json:"capacity,omitempty" ts:"number | undefined"` // Max capacity (if limited)
-	Starting int                   `json:"starting" ts:"number"`                       // Starting amount
+	Type     ResourceType `json:"type" ts:"ResourceType"`                     // Type of resource stored
+	Capacity *int         `json:"capacity,omitempty" ts:"number | undefined"` // Max capacity (if limited)
+	Starting int          `json:"starting" ts:"number"`                       // Starting amount
 }
 
 // VictoryPointCondition represents a VP condition like "1 VP per jovian tag"
@@ -138,12 +79,14 @@ const (
 	VPConditionFixed VPConditionType = "fixed" // Fixed VP amount (no condition)
 )
 
-// Location represents different locations where conditions can be evaluated
-type Location string
+// CardApplyLocation represents different locations where card conditions can be evaluated
+type CardApplyLocation string
 
 const (
-	LocationAnywhere Location = "anywhere" // No location restriction
-	LocationMars     Location = "mars"     // On Mars only
+	// CardApplyLocationAnywhere represents no location restriction
+	CardApplyLocationAnywhere CardApplyLocation = "anywhere"
+	// CardApplyLocationMars represents on Mars only
+	CardApplyLocationMars CardApplyLocation = "mars"
 )
 
 // DiscountEffect represents cost reductions for playing cards
@@ -184,11 +127,11 @@ const (
 
 // PerCondition represents what to count for conditional resource gains
 type PerCondition struct {
-	Type     ResourceConditionType `json:"type" ts:"ResourceConditionType"`              // What to count (city-tile, ocean-tile, etc.)
-	Amount   int                   `json:"amount" ts:"number"`                           // How many of the counted thing per gain
-	Location *Location             `json:"location,omitempty" ts:"Location | undefined"` // Location constraint (Mars, anywhere, etc.)
-	Target   *TargetType           `json:"target,omitempty" ts:"TargetType | undefined"` // Whose tags/resources to count (self-player, any-player, etc.)
-	Tag      *CardTag              `json:"tag,omitempty" ts:"CardTag | undefined"`       // For tag-based VP conditions (jovian tag, science tag, etc.)
+	Type     ResourceType       `json:"type" ts:"ResourceType"`                                // What to count (city-tile, ocean-tile, etc.)
+	Amount   int                `json:"amount" ts:"number"`                                    // How many of the counted thing per gain
+	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Location constraint (Mars, anywhere, etc.)
+	Target   *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`          // Whose tags/resources to count (self-player, any-player, etc.)
+	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`                // For tag-based VP conditions (jovian tag, science tag, etc.)
 }
 
 // Choice represents a single choice option with inputs and outputs
@@ -199,12 +142,12 @@ type Choice struct {
 
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
-	Type              ResourceConditionType `json:"type" ts:"ResourceConditionType"`                       // Type of resource
-	Amount            int                   `json:"amount" ts:"number"`                                    // Amount of resource
-	Target            TargetType            `json:"target" ts:"TargetType"`                                // Target for this resource condition
-	AffectedResources []string              `json:"affectedResources,omitempty" ts:"string[] | undefined"` // For defense: resources being protected
-	AffectedTags      []CardTag             `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // For discount: tags qualifying for discount
-	Per               *PerCondition         `json:"per,omitempty" ts:"PerCondition | undefined"`           // For conditional gains: what to count
+	Type              ResourceType  `json:"type" ts:"ResourceType"`                                // Type of resource
+	Amount            int           `json:"amount" ts:"number"`                                    // Amount of resource
+	Target            TargetType    `json:"target" ts:"TargetType"`                                // Target for this resource condition
+	AffectedResources []string      `json:"affectedResources,omitempty" ts:"string[] | undefined"` // For defense: resources being protected
+	AffectedTags      []CardTag     `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // For discount: tags qualifying for discount
+	Per               *PerCondition `json:"per,omitempty" ts:"PerCondition | undefined"`           // For conditional gains: what to count
 }
 
 // ResourceTriggerType represents different trigger types for resource exchanges
@@ -217,9 +160,9 @@ const (
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type         TriggerType `json:"type" ts:"TriggerType"`                             // What triggers this (onCityPlaced, etc.)
-	Location     *Location   `json:"location,omitempty" ts:"Location | undefined"`      // Where the trigger applies (mars, anywhere)
-	AffectedTags []CardTag   `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that trigger this effect
+	Type         TriggerType        `json:"type" ts:"TriggerType"`                                 // What triggers this (onCityPlaced, etc.)
+	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Where the trigger applies (mars, anywhere)
+	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // Tags that trigger this effect
 }
 
 // Trigger represents when and how an action or effect is activated

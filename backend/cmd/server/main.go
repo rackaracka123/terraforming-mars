@@ -76,7 +76,9 @@ func main() {
 	// Initialize CardService with SessionManager
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
+
+	boardService := service.NewBoardService()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
 

@@ -26,6 +26,7 @@ type GameRepository interface {
 	UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error
 	UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
 	UpdateCurrentTurn(ctx context.Context, gameID string, playerID *string) error
+	UpdateBoard(ctx context.Context, gameID string, board model.Board) error
 
 	SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error
 	SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error
@@ -409,6 +410,26 @@ func (r *GameRepositoryImpl) UpdateRemainingActions(ctx context.Context, gameID 
 	game.UpdatedAt = time.Now()
 
 	log.Debug("Remaining actions updated", zap.Int("actions", actions))
+
+	return nil
+}
+
+// UpdateBoard updates the board state for a game
+func (r *GameRepositoryImpl) UpdateBoard(ctx context.Context, gameID string, board model.Board) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	game.Board = board
+	game.UpdatedAt = time.Now()
+
+	log.Debug("Board updated", zap.Int("tiles", len(board.Tiles)))
 
 	return nil
 }

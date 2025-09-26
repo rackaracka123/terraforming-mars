@@ -60,6 +60,7 @@ type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	boardService   BoardService
 	sessionManager session.SessionManager
 }
 
@@ -68,12 +69,14 @@ func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardService *CardServiceImpl,
+	boardService BoardService,
 	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		cardService:    cardService,
+		boardService:   boardService,
 		sessionManager: sessionManager,
 	}
 }
@@ -96,7 +99,17 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		return model.Game{}, fmt.Errorf("failed to create game: %w", err)
 	}
 
-	log.Info("Game created via GameService", zap.String("game_id", game.ID))
+	// Initialize the board with default Mars tiles
+	board := s.boardService.GenerateDefaultBoard()
+	game.Board = board
+
+	// Update the game with the initialized board
+	if err := s.gameRepo.UpdateBoard(ctx, game.ID, board); err != nil {
+		log.Error("Failed to update game with board", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
+	}
+
+	log.Info("Game created via GameService", zap.String("game_id", game.ID), zap.Int("board_tiles", len(board.Tiles)))
 	return game, nil
 }
 
