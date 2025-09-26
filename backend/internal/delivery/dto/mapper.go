@@ -191,7 +191,8 @@ func ToGlobalParametersDto(params model.GlobalParameters) GlobalParametersDto {
 // ToGameSettingsDto converts model GameSettings to GameSettingsDto
 func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
-		MaxPlayers: settings.MaxPlayers,
+		MaxPlayers:      settings.MaxPlayers,
+		DevelopmentMode: settings.DevelopmentMode,
 	}
 }
 

@@ -115,3 +115,22 @@
     font-size: 11px;
   }
 }
+
+/* Dev Mode Chip */
+.devModeChip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff6b35;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid #e55a2e;
+  border-top: none;
+  z-index: 99;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}

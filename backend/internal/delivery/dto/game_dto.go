@@ -114,7 +114,8 @@ type ProductionPhaseDto struct {
 
 // GameSettingsDto contains configurable game parameters
 type GameSettingsDto struct {
-	MaxPlayers int `json:"maxPlayers" ts:"number"`
+	MaxPlayers      int  `json:"maxPlayers" ts:"number"`
+	DevelopmentMode bool `json:"developmentMode" ts:"boolean"`
 }
 
 // GlobalParametersDto represents the terraforming progress

@@ -69,7 +69,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   return (
     <MainContentProvider>
       <div className={styles.gameLayout}>
-        <TopMenuBar />
+        <TopMenuBar gameState={gameState} />
 
         <div className={styles.gameContent}>
           <MainContentDisplay gameState={gameState} />
