@@ -116,7 +116,7 @@ const MyComponent = () => {
   <RightSidebar />
 
   {/* Overlay layer - temporary UI */}
-  <CardsHandOverlay />
+  <CardFanOverlay />
 
   {/* Modal layer - managed by ModalProvider */}
   <ModalProvider>{children}</ModalProvider>

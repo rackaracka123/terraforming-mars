@@ -120,9 +120,8 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
             {/* Very low ambient light for deep shadows */}
             <ambientLight intensity={0.03} color="#1a1a2e" />
 
-            {/* Main sun light - balanced angle between front and side */}
             <directionalLight
-              position={[12, 6, 13]}
+              position={[8, 6, 15]}
               intensity={2.6}
               color="#fff8e1"
               castShadow

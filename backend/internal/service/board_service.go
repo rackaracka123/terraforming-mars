@@ -41,7 +41,15 @@ func (srv *BoardServiceImpl) generateTiles() []model.Tile {
 
 		for colIdx := 0; colIdx < hexCount; colIdx++ {
 			// Calculate axial coordinates for honeycomb pattern (same as frontend)
-			q := colIdx - hexCount/2 - r/2
+			// Use integer division that matches Math.floor behavior
+			q := colIdx - hexCount/2
+			if r < 0 {
+				// For negative r values, we need to subtract the floor division
+				q = q - (r-1)/2
+			} else {
+				// For positive r values, regular integer division works
+				q = q - r/2
+			}
 			s := -q - r
 
 			coordinate := model.HexPosition{
