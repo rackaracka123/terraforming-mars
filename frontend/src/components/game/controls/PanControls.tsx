@@ -14,6 +14,10 @@ export function PanControls() {
       isPointerDown.current = true;
       previousPointer.current = { x: event.clientX, y: event.clientY };
       gl.domElement.style.cursor = "grabbing";
+
+      // Add document-level listeners for global pointer tracking
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", handlePointerUp);
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -43,6 +47,10 @@ export function PanControls() {
     const handlePointerUp = () => {
       isPointerDown.current = false;
       gl.domElement.style.cursor = "grab";
+
+      // Remove document-level listeners when drag ends
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
     };
 
     const handleWheel = (event: WheelEvent) => {
@@ -76,19 +84,17 @@ export function PanControls() {
     // Set initial cursor
     domElement.style.cursor = "grab";
 
-    // Add event listeners
+    // Add event listeners - only pointerdown on canvas, others handled dynamically
     domElement.addEventListener("pointerdown", handlePointerDown);
-    domElement.addEventListener("pointermove", handlePointerMove);
-    domElement.addEventListener("pointerup", handlePointerUp);
-    domElement.addEventListener("pointerleave", handlePointerUp);
     domElement.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
       domElement.removeEventListener("pointerdown", handlePointerDown);
-      domElement.removeEventListener("pointermove", handlePointerMove);
-      domElement.removeEventListener("pointerup", handlePointerUp);
-      domElement.removeEventListener("pointerleave", handlePointerUp);
       domElement.removeEventListener("wheel", handleWheel);
+
+      // Clean up any remaining document listeners in case component unmounts during drag
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
     };
   }, [camera, gl]);
 
