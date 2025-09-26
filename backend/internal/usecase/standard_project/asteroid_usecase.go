@@ -66,7 +66,6 @@ func (u *AsteroidUseCase) Execute(ctx context.Context, request AsteroidRequest) 
 		}, err
 	}
 
-
 	// Get player to update
 	player, err := u.playerRepo.GetByID(ctx, request.GameID, request.PlayerID)
 	if err != nil {
