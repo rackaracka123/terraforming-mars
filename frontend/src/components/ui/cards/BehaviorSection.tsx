@@ -1,10 +1,12 @@
 import React from "react";
 import styles from "./BehaviorSection.module.css";
-import { CardBehaviorDto } from "@/types/generated/api-types.ts";
+import { CardBehaviorDto, ResourcesDto } from "@/types/generated/api-types.ts";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 
 interface BehaviorSectionProps {
   behaviors?: CardBehaviorDto[];
+  playerResources?: ResourcesDto; // Optional: if provided, enables dynamic affordability highlighting
+  greyOutAll?: boolean; // Optional: if true, grey out all resources (e.g., for played actions)
 }
 
 interface ClassifiedBehavior {
@@ -18,10 +20,44 @@ interface ClassifiedBehavior {
     | "discount";
 }
 
-const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
+const BehaviorSection: React.FC<BehaviorSectionProps> = ({
+  behaviors,
+  playerResources,
+  greyOutAll = false,
+}) => {
   if (!behaviors || behaviors.length === 0) {
     return null;
   }
+
+  // Helper function to check if a resource is affordable
+  const isResourceAffordable = (
+    resource: any,
+    isInput: boolean = true,
+  ): boolean => {
+    if (greyOutAll) return false; // Grey out everything if greyOutAll is true
+    if (!playerResources) return true; // If no player resources provided, show normally
+    if (!isInput) return true; // Outputs are always "affordable" unless greyOutAll
+
+    const resourceType = resource.resourceType || resource.type;
+    const amount = resource.amount || 1;
+
+    switch (resourceType) {
+      case "credits":
+        return playerResources.credits >= amount;
+      case "steel":
+        return playerResources.steel >= amount;
+      case "titanium":
+        return playerResources.titanium >= amount;
+      case "plants":
+        return playerResources.plants >= amount;
+      case "energy":
+        return playerResources.energy >= amount;
+      case "heat":
+        return playerResources.heat >= amount;
+      default:
+        return true; // For other resource types, show normally
+    }
+  };
 
   const getResourceIcon = (resourceType: string): string | null => {
     const iconMap: { [key: string]: string } = {
@@ -156,6 +192,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
     _isProduction: boolean = false,
     isAttack: boolean = false,
     context: "standalone" | "action" | "production" | "default" = "default",
+    isAffordable: boolean = true,
   ): React.ReactNode => {
     const cleanType = resourceType?.toLowerCase().replace(/[_\s]/g, "-");
     const icon = getIconUrl(resourceType);
@@ -197,7 +234,11 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
       iconClass = styles.tagIcon;
     }
 
-    return <img src={icon} alt={cleanType} className={iconClass} />;
+    const finalIconClass = !isAffordable
+      ? `${iconClass} ${styles.unaffordableResource}`
+      : iconClass;
+
+    return <img src={icon} alt={cleanType} className={finalIconClass} />;
   };
 
   interface LayoutRequirement {
@@ -537,6 +578,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
     resource?: any,
     isGroupedWithOtherNegatives: boolean = false,
     context: "standalone" | "action" | "production" | "default" = "default",
+    isAffordable: boolean = true,
   ): React.ReactNode => {
     const { resourceType, amount, displayMode } = displayInfo;
 
@@ -561,9 +603,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
       if (perIcon) {
         // Special handling for credits-production - use MegaCreditIcon with value inside
         if (baseResourceType === "credits") {
+          const itemClasses = !isAffordable
+            ? `${styles.flexibleResourceItem} ${styles.unaffordableResource}`
+            : styles.flexibleResourceItem;
+
           return (
             <div className={styles.gridProductionWrapper}>
-              <div className={styles.flexibleResourceItem}>
+              <div className={itemClasses}>
                 <MegaCreditIcon value={Math.abs(amount)} size="small" />
               </div>
               <span className={styles.perSeparator}>/</span>
@@ -581,6 +627,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
             false,
             isAttack,
             "production",
+            isAffordable,
           );
           if (productionIcon) {
             return (
@@ -613,8 +660,12 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
       const showMinusOutside =
         (isInput || amount < 0) && isGroupedWithOtherNegatives;
 
+      const finalCreditsClasses = !isAffordable
+        ? `${creditsClasses} ${styles.unaffordableResource}`
+        : creditsClasses;
+
       return (
-        <div className={creditsClasses}>
+        <div className={finalCreditsClasses}>
           {showMinusOutside && <span className={styles.minusSign}>-</span>}
           <MegaCreditIcon
             value={showMinusInside ? amount : Math.abs(amount)}
@@ -625,8 +676,12 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
     }
 
     if (isDiscount) {
+      const discountClasses = !isAffordable
+        ? `${styles.flexibleResourceItem} ${styles.numbered} ${styles.unaffordableResource}`
+        : `${styles.flexibleResourceItem} ${styles.numbered}`;
+
       return (
-        <div className={`${styles.flexibleResourceItem} ${styles.numbered}`}>
+        <div className={discountClasses}>
           <MegaCreditIcon value={-amount} size="small" />
         </div>
       );
@@ -638,7 +693,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
       iconContext = "production";
     }
 
-    const iconElement = renderIcon(resourceType, false, isAttack, iconContext);
+    const iconElement = renderIcon(
+      resourceType,
+      false,
+      isAttack,
+      iconContext,
+      isAffordable,
+    );
     if (!iconElement) {
       return (
         <span className={styles.resourceText}>
@@ -702,6 +763,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                           input,
                           false,
                           "action",
+                          isResourceAffordable(input, true),
                         )}
                       </React.Fragment>
                     );
@@ -732,6 +794,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                           output,
                           false,
                           "action",
+                          isResourceAffordable(output, false),
                         )}
                       </React.Fragment>
                     );
@@ -768,6 +831,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                     input,
                     false,
                     "action",
+                    isResourceAffordable(input, true),
                   )}
                 </React.Fragment>
               );
@@ -794,6 +858,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                     output,
                     false,
                     "action",
+                    isResourceAffordable(output, false),
                   )}
                 </React.Fragment>
               );
@@ -841,6 +906,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                     output,
                     false,
                     "default",
+                    isResourceAffordable(output, false),
                   )}
                 </React.Fragment>
               );
@@ -1060,6 +1126,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({ behaviors }) => {
                 output,
                 false,
                 "standalone",
+                isResourceAffordable(output, false),
               )}
             </React.Fragment>
           );

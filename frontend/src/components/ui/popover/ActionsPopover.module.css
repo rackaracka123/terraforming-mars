@@ -1,0 +1,337 @@
+.actionsPopover {
+  position: fixed;
+  bottom: 85px;
+  right: 30px;
+  width: 320px;
+  max-height: 400px;
+  background: linear-gradient(
+    145deg,
+    rgba(20, 30, 45, 0.98) 0%,
+    rgba(30, 40, 60, 0.95) 100%
+  );
+  border: 2px solid rgba(255, 100, 100, 0.6);
+  border-radius: 12px;
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(255, 100, 100, 0.3);
+  backdrop-filter: blur(15px);
+  z-index: 10001;
+  animation: popoverSlideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+.popoverArrow {
+  position: absolute;
+  bottom: -8px;
+  right: 50px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(255, 100, 100, 0.6);
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(50, 20, 20, 0.9) 0%,
+    rgba(60, 30, 30, 0.7) 100%
+  );
+  border-bottom: 1px solid rgba(255, 100, 100, 0.3);
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleIcon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.popoverHeader h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionsCount {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  background: rgba(255, 100, 100, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 100, 100, 0.3);
+}
+
+.detailsButton {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 150, 255, 0.8) 0%,
+    rgba(80, 120, 200, 0.9) 100%
+  );
+  border: 1px solid rgba(100, 150, 255, 0.6);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.detailsButton:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(100, 150, 255, 1) 0%,
+    rgba(80, 120, 200, 1) 100%
+  );
+  border-color: rgba(100, 150, 255, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(100, 150, 255, 0.3);
+}
+
+.popoverContent {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 100, 100, 0.5) rgba(50, 75, 125, 0.3);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 15px;
+  opacity: 0.6;
+}
+
+.emptyText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.emptySubtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.actionsList {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.4) 0%,
+    rgba(20, 40, 70, 0.3) 100%
+  );
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: actionSlideIn 0.4s ease-out both;
+}
+
+.actionItem:hover:not(.actionItemDisabled) {
+  transform: translateX(4px);
+  border-color: rgba(255, 100, 100, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.6) 0%,
+    rgba(20, 40, 70, 0.5) 100%
+  );
+  box-shadow: 0 4px 15px rgba(255, 100, 100, 0.2);
+}
+
+.actionItemDisabled {
+  opacity: 0.5;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.2) 0%,
+    rgba(20, 40, 70, 0.15) 100%
+  ) !important;
+  border-color: rgba(255, 100, 100, 0.15) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.actionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.actionTitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playedChip {
+  background: linear-gradient(
+    135deg,
+    rgba(120, 120, 120, 0.8) 0%,
+    rgba(80, 80, 80, 0.9) 100%
+  );
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 120, 120, 0.6);
+  text-shadow: none;
+  opacity: 1;
+}
+
+.behaviorContainer {
+  position: relative;
+  width: 100%;
+  min-height: 32px;
+}
+
+/* Override BehaviorSection positioning for popover context */
+.behaviorContainer > div {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100%;
+}
+
+/* Remove hover effects on the BehaviorSection component */
+.behaviorContainer > div:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+.actionArrow {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.actionItem:hover .actionArrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.arrowIcon {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes popoverSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes actionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom scrollbar */
+.popoverContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popoverContent::-webkit-scrollbar-track {
+  background: rgba(50, 75, 125, 0.3);
+  border-radius: 3px;
+}
+
+.popoverContent::-webkit-scrollbar-thumb {
+  background: rgba(255, 100, 100, 0.5);
+  border-radius: 3px;
+}
+
+.popoverContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 100, 100, 0.7);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .actionsPopover {
+    width: 280px;
+    right: 15px;
+    bottom: 70px;
+  }
+
+  .popoverArrow {
+    right: 40px;
+  }
+
+  .actionItem {
+    padding: 8px 12px;
+  }
+
+  .actionTitle {
+    font-size: 10px;
+  }
+}

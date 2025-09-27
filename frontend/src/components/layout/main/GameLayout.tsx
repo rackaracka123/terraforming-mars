@@ -10,6 +10,7 @@ import {
   GameDto,
   PlayerDto,
   OtherPlayerDto,
+  PlayerActionDto,
 } from "../../../types/generated/api-types.ts";
 import styles from "./GameLayout.module.css";
 
@@ -19,10 +20,11 @@ interface GameLayoutProps {
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;
-  onOpenActionsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenTagsModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
+  onOpenActionsModal?: () => void;
+  onActionSelect?: (action: PlayerActionDto) => void;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -31,10 +33,11 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
-  onOpenActionsModal,
   onOpenCardsPlayedModal,
   onOpenTagsModal,
   onOpenVictoryPointsModal,
+  onOpenActionsModal,
+  onActionSelect,
 }) => {
   // Convert OtherPlayerDto to PlayerDto for LeftSidebar compatibility
   const convertOtherPlayerToPlayerDto = (
@@ -95,11 +98,13 @@ const GameLayout: React.FC<GameLayoutProps> = ({
           <>
             <BottomResourceBar
               currentPlayer={currentPlayer}
+              gameState={gameState}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
-              onOpenActionsModal={onOpenActionsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
               onOpenTagsModal={onOpenTagsModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
+              onOpenActionsModal={onOpenActionsModal}
+              onActionSelect={onActionSelect}
             />
           </>
         )}
