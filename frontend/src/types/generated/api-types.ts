@@ -505,6 +505,15 @@ export interface PlayerEffectDto {
   affectedTags?: CardTag[]; // Tags that qualify for this effect (empty = all cards)
 }
 /**
+ * PlayerActionDto represents an action that a player can take for client consumption
+ */
+export interface PlayerActionDto {
+  cardId: string; // ID of the card that provides this action
+  cardName: string; // Name of the card for display purposes
+  behaviorIndex: number /* int */; // Which behavior on the card this action represents
+  behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
+}
+/**
  * PlayerDto represents a player in the game for client consumption
  */
 export interface PlayerDto {
@@ -521,6 +530,7 @@ export interface PlayerDto {
   victoryPoints: number /* int */;
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
+  actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
   /**
    * Card selection state - nullable, exists only during selection phase
    */
@@ -548,6 +558,7 @@ export interface OtherPlayerDto {
   victoryPoints: number /* int */;
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (public information)
+  actions: PlayerActionDto[]; // Available actions from played cards (public information)
   /**
    * Card selection state - limited visibility for other players
    */

@@ -285,6 +285,15 @@ type PlayerEffectDto struct {
 	AffectedTags []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for this effect (empty = all cards)
 }
 
+// PlayerActionDto represents an action that a player can take for client consumption
+type PlayerActionDto struct {
+	CardID        string          `json:"cardId" ts:"string"`            // ID of the card that provides this action
+	CardName      string          `json:"cardName" ts:"string"`          // Name of the card for display purposes
+	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this action represents
+	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
+	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
+}
+
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
@@ -300,6 +309,7 @@ type PlayerDto struct {
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
 	IsConnected      bool              `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (discounts, special abilities, etc.)
+	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"` // Available actions from played cards with manual triggers
 	// Card selection state - nullable, exists only during selection phase
 	CardSelection *ProductionPhaseDto `json:"productionSelection" ts:"ProductionPhaseDto | null"`
 	// Starting card selection - available during starting_card_selection phase
@@ -322,6 +332,7 @@ type OtherPlayerDto struct {
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
 	IsConnected      bool              `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (public information)
+	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"` // Available actions from played cards (public information)
 	// Card selection state - limited visibility for other players
 	IsSelectingCards bool `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
 }
@@ -339,9 +350,8 @@ type GameDto struct {
 	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
 	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
-	RemainingActions int                 `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
-	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`      // Turn order of all players in game
-	Board            BoardDto            `json:"board" ts:"BoardDto"`          // Game board with tiles and occupancy state
+	TurnOrder        []string            `json:"turnOrder" ts:"string[]"` // Turn order of all players in game
+	Board            BoardDto            `json:"board" ts:"BoardDto"`     // Game board with tiles and occupancy state
 }
 
 // Board-related DTOs for tygo generation

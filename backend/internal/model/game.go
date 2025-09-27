@@ -16,8 +16,7 @@ type Game struct {
 	ViewingPlayerID  string           `json:"viewingPlayerId" ts:"string"`  // The player viewing this game state
 	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
 	Generation       int              `json:"generation" ts:"number"`
-	RemainingActions int              `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
-	Board            Board            `json:"board" ts:"Board"`             // Game board with tiles and occupancy state
+	Board            Board            `json:"board" ts:"Board"` // Game board with tiles and occupancy state
 }
 
 // NewGame creates a new game with the given settings
