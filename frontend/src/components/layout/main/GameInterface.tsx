@@ -317,9 +317,10 @@ export default function GameInterface() {
 
   // Handle action selection from card actions
   const handleActionSelect = useCallback((action: PlayerActionDto) => {
-    console.warn("🎯 Player selected card action:", action.cardName, action);
-    // TODO: Implement action execution via WebSocket
-    // This will send the action to the backend for processing
+    void globalWebSocketManager.playCardAction(
+      action.cardId,
+      action.behaviorIndex,
+    );
   }, []);
 
   // Tab conflict handlers

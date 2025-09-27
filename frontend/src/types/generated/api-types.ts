@@ -12,6 +12,7 @@ export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
+export const ActionTypeCardAction: ActionType = "card-action";
 /**
  * Standard Projects
  */
@@ -45,6 +46,13 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+}
+/**
+ * PlayCardActionAction represents playing a card action from player's action list
+ */
+export interface PlayCardActionAction {
+  cardId: string;
+  behaviorIndex: number /* int */;
 }
 /**
  * HexPositionDto represents a position on the Mars board
@@ -126,6 +134,14 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+}
+/**
+ * ActionPlayCardActionRequest contains the action data for play card action actions
+ */
+export interface ActionPlayCardActionRequest {
+  type: ActionType;
+  cardId: string;
+  behaviorIndex: number /* int */;
 }
 /**
  * ActionSellPatentsRequest contains the action data for sell patents actions
@@ -782,6 +798,8 @@ export const MessageTypeActionSkipAction: MessageType =
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
+export const MessageTypeActionCardAction: MessageType =
+  "action.card.card-action";
 export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =

@@ -973,6 +973,12 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 			}
 		}
 
+		// Reset all player action play counts for the new generation
+		if err := s.resetPlayerActionPlayCounts(ctx, gameID); err != nil {
+			log.Error("Failed to reset player action play counts", zap.Error(err))
+			return nil, fmt.Errorf("failed to reset action play counts: %w", err)
+		}
+
 		// Advance to action phase
 		if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
 			log.Error("Failed to advance game phase to action", zap.Error(err))
@@ -1288,6 +1294,50 @@ func (s *GameServiceImpl) SetGlobalParameters(ctx context.Context, gameID string
 	log.Info("✅ Global parameters updated successfully",
 		zap.String("game_id", gameID),
 		zap.Any("new_parameters", modelParams))
+
+	return nil
+}
+
+// resetPlayerActionPlayCounts resets all player action play counts to 0 for a new generation
+func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameID string) error {
+	log := logger.WithGameContext(gameID, "")
+	log.Debug("🔄 Resetting player action play counts for new generation")
+
+	// Get all players in the game
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to list players: %w", err)
+	}
+
+	// Reset play counts for each player
+	for _, player := range players {
+		if len(player.Actions) == 0 {
+			// Player has no actions, skip
+			continue
+		}
+
+		// Create a copy of the actions with reset play counts
+		resetActions := make([]model.PlayerAction, len(player.Actions))
+		for i, action := range player.Actions {
+			resetActions[i] = *action.DeepCopy()
+			resetActions[i].PlayCount = 0
+		}
+
+		// Update the player's actions
+		if err := s.playerRepo.UpdatePlayerActions(ctx, gameID, player.ID, resetActions); err != nil {
+			log.Error("Failed to reset action play counts for player",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return fmt.Errorf("failed to reset action play counts for player %s: %w", player.ID, err)
+		}
+
+		log.Debug("✅ Reset action play counts for player",
+			zap.String("player_id", player.ID),
+			zap.Int("actions_count", len(resetActions)))
+	}
+
+	log.Info("🔄 Successfully reset all player action play counts for new generation",
+		zap.Int("players_updated", len(players)))
 
 	return nil
 }

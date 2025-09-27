@@ -31,6 +31,7 @@ const (
 
 	// Card message types
 	MessageTypeActionPlayCard           MessageType = "action.card.play-card"
+	MessageTypeActionCardAction         MessageType = "action.card.card-action"
 	MessageTypeActionSelectStartingCard MessageType = "action.card.select-starting-card"
 	MessageTypeActionSelectCards        MessageType = "action.card.select-cards"
 
