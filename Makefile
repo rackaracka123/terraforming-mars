@@ -70,7 +70,12 @@ test-verbose:
 test-coverage:
 	@echo "🧪 Running backend tests with coverage..."
 	cd backend && go test -v -coverprofile=coverage.out ./test/...
-	cd backend && ([ -s coverage.out ] && go tool cover -html=coverage.out -o coverage.html && echo "📊 Coverage report generated: backend/coverage.html") || (echo "⚠️ No coverage data generated - skipping HTML report" && exit 0)
+	@cd backend && if [ -s coverage.out ]; then \
+		go tool cover -html=coverage.out -o coverage.html && \
+		echo "📊 Coverage report generated: backend/coverage.html"; \
+	else \
+		echo "⚠️ No coverage data generated - skipping HTML report"; \
+	fi
 	@echo "✅ Test coverage completed"
 
 # Quick test commands for development
