@@ -69,7 +69,7 @@ test-verbose:
 
 test-coverage:
 	@echo "🧪 Running backend tests with coverage..."
-	cd backend && go test -v -coverprofile=coverage.out ./test/...
+	cd backend && go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./test/...
 	@cd backend && if [ -s coverage.out ]; then \
 		go tool cover -html=coverage.out -o coverage.html && \
 		echo "📊 Coverage report generated: backend/coverage.html"; \
