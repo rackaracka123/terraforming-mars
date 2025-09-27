@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -36,9 +37,10 @@ type StandardProjectService interface {
 
 // StandardProjectServiceImpl implements StandardProjectService interface
 type StandardProjectServiceImpl struct {
-	gameRepo    repository.GameRepository
-	playerRepo  repository.PlayerRepository
-	gameService GameService
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	gameService    GameService
+	sessionManager session.SessionManager
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
@@ -46,11 +48,13 @@ func NewStandardProjectService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	gameService GameService,
+	sessionManager session.SessionManager,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
-		gameRepo:    gameRepo,
-		playerRepo:  playerRepo,
-		gameService: gameService,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		gameService:    gameService,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -284,7 +288,8 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 		}
 	}
 
-	// Clean architecture: no manual game state sync needed
+	// Broadcast updated game state to all players
+	s.sessionManager.Broadcast(gameID)
 
 	log.Info("Standard project executed",
 		zap.String("project", string(project)),

@@ -37,20 +37,21 @@ func TestFullGameFlow(t *testing.T) {
 	var availableCards []string
 	var foundAvailableCards bool
 
-	// Parse game state from the message to get available cards from production field
+	// Parse game state from the message to get available cards from startingSelection field
 	if payload, ok := message.Payload.(map[string]interface{}); ok {
 		if gameData, ok := payload["game"].(map[string]interface{}); ok {
 			if currentPlayer, ok := gameData["currentPlayer"].(map[string]interface{}); ok {
-				if production, ok := currentPlayer["production"].(map[string]interface{}); ok {
-					if cardsData, ok := production["availableCards"].([]interface{}); ok && len(cardsData) > 0 {
-						for _, cardInterface := range cardsData {
-							if cardID, ok := cardInterface.(string); ok {
+				// Look for starting cards in the startingSelection field
+				if startingSelection, ok := currentPlayer["startingSelection"].([]interface{}); ok && len(startingSelection) > 0 {
+					for _, cardInterface := range startingSelection {
+						if card, ok := cardInterface.(map[string]interface{}); ok {
+							if cardID, ok := card["id"].(string); ok {
 								availableCards = append(availableCards, cardID)
 							}
 						}
-						foundAvailableCards = true
-						t.Logf("✅ Found %d available starting cards in game state: %v", len(availableCards), availableCards)
 					}
+					foundAvailableCards = true
+					t.Logf("✅ Found %d available starting cards in game state: %v", len(availableCards), availableCards)
 				}
 			}
 		}
