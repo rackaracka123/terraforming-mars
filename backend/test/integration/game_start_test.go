@@ -39,13 +39,25 @@ func TestStartGameFlow(t *testing.T) {
 	require.NotNil(t, message, "Game state message should not be nil")
 	t.Log("✅ Received game state confirmation")
 
-	// Extract player ID for later use
+	// Extract player ID from the game state
 	payload, ok := message.Payload.(map[string]interface{})
-	require.True(t, ok, "Player connected payload should be a map")
-	playerID, ok := payload["playerId"].(string)
-	require.True(t, ok, "Player ID should be present in payload")
-	client.playerID = playerID
-	t.Logf("✅ Player ID assigned: %s", playerID)
+	require.True(t, ok, "Game state payload should be a map")
+
+	// Navigate through the game state to find the current player ID
+	if gameData, ok := payload["game"].(map[string]interface{}); ok {
+		if currentPlayer, ok := gameData["currentPlayer"].(map[string]interface{}); ok {
+			if playerID, ok := currentPlayer["id"].(string); ok {
+				client.playerID = playerID
+				t.Logf("✅ Player ID assigned: %s", playerID)
+			} else {
+				t.Fatal("Failed to extract player ID from current player")
+			}
+		} else {
+			t.Fatal("Current player not found in game state")
+		}
+	} else {
+		t.Fatal("Game data not found in payload")
+	}
 
 	// Step 5: Start the game (as host)
 	err = client.StartGame()

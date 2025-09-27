@@ -58,7 +58,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {

@@ -28,7 +28,7 @@ func createTestStandardProjectService() service.StandardProjectService {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
-	return service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	return service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
 }
 
 func createTestPlayerService() service.PlayerService {
@@ -62,7 +62,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
 
 	ctx := context.Background()
 
