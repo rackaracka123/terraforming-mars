@@ -268,6 +268,70 @@ export const TagJovian: CardTag = "jovian";
 export const TagWildlife: CardTag = "wildlife";
 export const TagWild: CardTag = "wild";
 /**
+ * ResourceType represents different types of resources for client consumption
+ */
+export type ResourceType = string;
+export const ResourceTypeCredits: ResourceType = "credits";
+export const ResourceTypeSteel: ResourceType = "steel";
+export const ResourceTypeTitanium: ResourceType = "titanium";
+export const ResourceTypePlants: ResourceType = "plants";
+export const ResourceTypeEnergy: ResourceType = "energy";
+export const ResourceTypeHeat: ResourceType = "heat";
+export const ResourceTypeFloaters: ResourceType = "floaters";
+export const ResourceTypeMicrobes: ResourceType = "microbes";
+export const ResourceTypeAnimals: ResourceType = "animals";
+export const ResourceTypeScience: ResourceType = "science";
+export const ResourceTypeFighters: ResourceType = "fighters";
+export const ResourceTypeCamps: ResourceType = "camps";
+export const ResourceTypePreservation: ResourceType = "preservation";
+export const ResourceTypeData: ResourceType = "data";
+export const ResourceTypeAsteroid: ResourceType = "asteroid";
+export const ResourceTypeDisease: ResourceType = "disease";
+export const ResourceTypeSpecialized: ResourceType = "specialized";
+export const ResourceTypeDelegate: ResourceType = "delegate";
+export const ResourceTypeInfluence: ResourceType = "influence";
+export const ResourceTypeGreeneryTile: ResourceType = "greenery-tile";
+export const ResourceTypeCityTile: ResourceType = "city-tile";
+export const ResourceTypeOceanTile: ResourceType = "ocean-tile";
+export const ResourceTypeSpecialTile: ResourceType = "special-tile";
+export const ResourceTypeTerraformRating: ResourceType = "terraform-rating";
+export const ResourceTypeTemperature: ResourceType = "temperature";
+export const ResourceTypeOxygen: ResourceType = "oxygen";
+export const ResourceTypeOceans: ResourceType = "oceans";
+/**
+ * TargetType represents different targeting scopes for resource conditions for client consumption
+ */
+export type TargetType = string;
+export const TargetSelfPlayer: TargetType = "self-player";
+export const TargetSelfCard: TargetType = "self-card";
+export const TargetAnyPlayer: TargetType = "any-player";
+export const TargetOpponent: TargetType = "opponent";
+export const TargetAny: TargetType = "any";
+export const TargetNone: TargetType = "none";
+/**
+ * CardApplyLocation represents different locations where card conditions can be evaluated for client consumption
+ */
+export type CardApplyLocation = string;
+export const CardApplyLocationAnywhere: CardApplyLocation = "anywhere";
+export const CardApplyLocationMars: CardApplyLocation = "mars";
+/**
+ * TriggerType represents different trigger conditions for client consumption
+ */
+export type TriggerType = string;
+export const TriggerOceanPlaced: TriggerType = "ocean-placed";
+export const TriggerTemperatureRaise: TriggerType = "temperature-raise";
+export const TriggerOxygenRaise: TriggerType = "oxygen-raise";
+export const TriggerCityPlaced: TriggerType = "city-placed";
+export const TriggerCardPlayed: TriggerType = "card-played";
+export const TriggerTagPlayed: TriggerType = "tag-played";
+export const TriggerTilePlaced: TriggerType = "tile-placed";
+/**
+ * ResourceTriggerType represents different trigger types for resource exchanges for client consumption
+ */
+export type ResourceTriggerType = string;
+export const ResourceTriggerManual: ResourceTriggerType = "manual";
+export const ResourceTriggerAuto: ResourceTriggerType = "auto";
+/**
  * ResourceSet represents a collection of resources and their amounts
  */
 export interface ResourceSet {
@@ -279,13 +343,57 @@ export interface ResourceSet {
   heat: number /* int */;
 }
 /**
+ * ResourceConditionDto represents a resource condition for client consumption
+ */
+export interface ResourceConditionDto {
+  type: ResourceType;
+  amount: number /* int */;
+  target: TargetType;
+  affectedResources?: string[];
+  affectedTags?: CardTag[];
+  maxTrigger?: number /* int */;
+  per?: PerConditionDto;
+}
+/**
+ * PerConditionDto represents a per condition for client consumption
+ */
+export interface PerConditionDto {
+  type: ResourceType;
+  amount: number /* int */;
+  location?: CardApplyLocation;
+  target?: TargetType;
+  tag?: CardTag;
+}
+/**
+ * ChoiceDto represents a choice for client consumption
+ */
+export interface ChoiceDto {
+  inputs?: ResourceConditionDto[];
+  outputs?: ResourceConditionDto[];
+}
+/**
+ * TriggerDto represents a trigger for client consumption
+ */
+export interface TriggerDto {
+  type: ResourceTriggerType;
+  condition?: ResourceTriggerConditionDto;
+}
+/**
+ * ResourceTriggerConditionDto represents a resource trigger condition for client consumption
+ */
+export interface ResourceTriggerConditionDto {
+  type: TriggerType;
+  location?: CardApplyLocation;
+  affectedTags?: CardTag[];
+}
+/**
  * CardBehaviorDto represents a card behavior for client consumption
  */
 export interface CardBehaviorDto {
-  triggers?: any /* model.Trigger */[];
-  inputs?: any /* model.ResourceCondition */[];
-  outputs?: any /* model.ResourceCondition */[];
-  choices?: any /* model.Choice */[];
+  triggers?: TriggerDto[];
+  inputs?: ResourceConditionDto[];
+  outputs?: ResourceConditionDto[];
+  choices?: ChoiceDto[];
 }
 /**
  * ResourceStorageDto represents a card's resource storage capability for client consumption

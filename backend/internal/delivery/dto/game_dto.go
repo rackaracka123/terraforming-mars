@@ -54,6 +54,80 @@ const (
 	TagWild     CardTag = "wild"
 )
 
+// ResourceType represents different types of resources for client consumption
+type ResourceType string
+
+const (
+	ResourceTypeCredits         ResourceType = "credits"
+	ResourceTypeSteel           ResourceType = "steel"
+	ResourceTypeTitanium        ResourceType = "titanium"
+	ResourceTypePlants          ResourceType = "plants"
+	ResourceTypeEnergy          ResourceType = "energy"
+	ResourceTypeHeat            ResourceType = "heat"
+	ResourceTypeFloaters        ResourceType = "floaters"
+	ResourceTypeMicrobes        ResourceType = "microbes"
+	ResourceTypeAnimals         ResourceType = "animals"
+	ResourceTypeScience         ResourceType = "science"
+	ResourceTypeFighters        ResourceType = "fighters"
+	ResourceTypeCamps           ResourceType = "camps"
+	ResourceTypePreservation    ResourceType = "preservation"
+	ResourceTypeData            ResourceType = "data"
+	ResourceTypeAsteroid        ResourceType = "asteroid"
+	ResourceTypeDisease         ResourceType = "disease"
+	ResourceTypeSpecialized     ResourceType = "specialized"
+	ResourceTypeDelegate        ResourceType = "delegate"
+	ResourceTypeInfluence       ResourceType = "influence"
+	ResourceTypeGreeneryTile    ResourceType = "greenery-tile"
+	ResourceTypeCityTile        ResourceType = "city-tile"
+	ResourceTypeOceanTile       ResourceType = "ocean-tile"
+	ResourceTypeSpecialTile     ResourceType = "special-tile"
+	ResourceTypeTerraformRating ResourceType = "terraform-rating"
+	ResourceTypeTemperature     ResourceType = "temperature"
+	ResourceTypeOxygen          ResourceType = "oxygen"
+	ResourceTypeOceans          ResourceType = "oceans"
+)
+
+// TargetType represents different targeting scopes for resource conditions for client consumption
+type TargetType string
+
+const (
+	TargetSelfPlayer TargetType = "self-player"
+	TargetSelfCard   TargetType = "self-card"
+	TargetAnyPlayer  TargetType = "any-player"
+	TargetOpponent   TargetType = "opponent"
+	TargetAny        TargetType = "any"
+	TargetNone       TargetType = "none"
+)
+
+// CardApplyLocation represents different locations where card conditions can be evaluated for client consumption
+type CardApplyLocation string
+
+const (
+	CardApplyLocationAnywhere CardApplyLocation = "anywhere"
+	CardApplyLocationMars     CardApplyLocation = "mars"
+)
+
+// TriggerType represents different trigger conditions for client consumption
+type TriggerType string
+
+const (
+	TriggerOceanPlaced      TriggerType = "ocean-placed"
+	TriggerTemperatureRaise TriggerType = "temperature-raise"
+	TriggerOxygenRaise      TriggerType = "oxygen-raise"
+	TriggerCityPlaced       TriggerType = "city-placed"
+	TriggerCardPlayed       TriggerType = "card-played"
+	TriggerTagPlayed        TriggerType = "tag-played"
+	TriggerTilePlaced       TriggerType = "tile-placed"
+)
+
+// ResourceTriggerType represents different trigger types for resource exchanges for client consumption
+type ResourceTriggerType string
+
+const (
+	ResourceTriggerManual ResourceTriggerType = "manual"
+	ResourceTriggerAuto   ResourceTriggerType = "auto"
+)
+
 // ResourceSet represents a collection of resources and their amounts
 type ResourceSet struct {
 	Credits  int `json:"credits" ts:"number"`
@@ -64,12 +138,51 @@ type ResourceSet struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// ResourceConditionDto represents a resource condition for client consumption
+type ResourceConditionDto struct {
+	Type              ResourceType     `json:"type" ts:"ResourceType"`
+	Amount            int              `json:"amount" ts:"number"`
+	Target            TargetType       `json:"target" ts:"TargetType"`
+	AffectedResources []string         `json:"affectedResources,omitempty" ts:"string[] | undefined"`
+	AffectedTags      []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	MaxTrigger        *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per               *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+}
+
+// PerConditionDto represents a per condition for client consumption
+type PerConditionDto struct {
+	Type     ResourceType       `json:"type" ts:"ResourceType"`
+	Amount   int                `json:"amount" ts:"number"`
+	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
+	Target   *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`
+	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`
+}
+
+// ChoiceDto represents a choice for client consumption
+type ChoiceDto struct {
+	Inputs  []ResourceConditionDto `json:"inputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+	Outputs []ResourceConditionDto `json:"outputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+}
+
+// TriggerDto represents a trigger for client consumption
+type TriggerDto struct {
+	Type      ResourceTriggerType          `json:"type" ts:"ResourceTriggerType"`
+	Condition *ResourceTriggerConditionDto `json:"condition,omitempty" ts:"ResourceTriggerConditionDto | undefined"`
+}
+
+// ResourceTriggerConditionDto represents a resource trigger condition for client consumption
+type ResourceTriggerConditionDto struct {
+	Type         TriggerType        `json:"type" ts:"TriggerType"`
+	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
+	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+}
+
 // CardBehaviorDto represents a card behavior for client consumption
 type CardBehaviorDto struct {
-	Triggers []model.Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`
-	Inputs   []model.ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`
-	Outputs  []model.ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"`
-	Choices  []model.Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`
+	Triggers []TriggerDto           `json:"triggers,omitempty" ts:"TriggerDto[] | undefined"`
+	Inputs   []ResourceConditionDto `json:"inputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+	Outputs  []ResourceConditionDto `json:"outputs,omitempty" ts:"ResourceConditionDto[] | undefined"`
+	Choices  []ChoiceDto            `json:"choices,omitempty" ts:"ChoiceDto[] | undefined"`
 }
 
 // ResourceStorageDto represents a card's resource storage capability for client consumption
