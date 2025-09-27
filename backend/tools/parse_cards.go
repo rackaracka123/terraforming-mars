@@ -15,7 +15,6 @@ import (
 	"terraforming-mars-backend/internal/model"
 )
 
-// CSV column indices for cards.csv (same as before)
 const (
 	colID           = 0
 	colName         = 1
@@ -30,7 +29,6 @@ const (
 	colRequireWhat  = 10
 	colRequirements = 11
 
-	// Tags start at column 12
 	colBuilding = 12
 	colSpace    = 13
 	colCity     = 14
@@ -45,11 +43,8 @@ const (
 	colNone     = 23
 	colWild     = 24
 
-	// VP condition columns
-	colVPAmount = 33 // VP amount column
-	colVPPer    = 34 // VP per condition (e.g., "first resource only")
-
-	// Behaviors CSV columns (0-indexed)
+	colVPAmount              = 33
+	colVPPer                 = 34
 	behaviorID               = 0
 	behaviorName             = 1
 	behaviorRows             = 2
@@ -110,54 +105,48 @@ type BehaviorData struct {
 	BehaviorType string
 	Option       string
 	Trigger      string
-	NEquals      string // "N equals" column for value modifiers
+	NEquals      string
 
-	// Production changes
 	MegacreditProd    int
-	MegacreditProdRaw string // Raw string value for special cases like "N"
+	MegacreditProdRaw string
 	SteelProd         int
-	SteelProdRaw      string // Raw string value for special cases like "N"
+	SteelProdRaw      string
 	TitaniumProd      int
-	TitaniumProdRaw   string // Raw string value for special cases like "N"
+	TitaniumProdRaw   string
 	PlantProd         int
-	PlantProdRaw      string // Raw string value for special cases like "N"
+	PlantProdRaw      string
 	EnergyProd        int
-	EnergyProdRaw     string // Raw string value for special cases like "N"
+	EnergyProdRaw     string
 	HeatProd          int
-	HeatProdRaw       string // Raw string value for special cases like "N"
+	HeatProdRaw       string
 
-	// Resource gains
 	Megacredits    int
-	MegacreditsRaw string // Raw string value for special cases like "N"
+	MegacreditsRaw string
 	Steel          int
-	SteelRaw       string // Raw string value for special cases like "N"
+	SteelRaw       string
 	Titanium       int
-	TitaniumRaw    string // Raw string value for special cases like "N"
+	TitaniumRaw    string
 	Plants         int
-	PlantsRaw      string // Raw string value for special cases like "N"
+	PlantsRaw      string
 	Energy         int
-	EnergyRaw      string // Raw string value for special cases like "N"
+	EnergyRaw      string
 	Heat           int
-	HeatRaw        string // Raw string value for special cases like "N"
+	HeatRaw        string
 
-	// Tile placements
 	CityTile     int
 	OceanTile    int
 	GreeneryTile int
 
-	// Terraforming
 	RaiseTemp   int
 	RaiseOxygen int
 	RaiseVenus  int
 	RaiseTR     int
 
-	// Card operations
 	Cards         int
 	CardResources string
 	ResourceType  string
 	Where         string
 
-	// Text description
 	TextForm string
 }
 
@@ -260,16 +249,13 @@ func main() {
 	})
 	fmt.Printf("Cards sorted by ID\n")
 
-	// Write JSON output
 	output, err := json.MarshalIndent(cards, "", "  ")
 	if err != nil {
 		fmt.Printf("Error marshaling JSON: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Write to assets folder
-	assetsPath := filepath.Join("assets", filepath.Base(outputPath))
-	err = os.WriteFile(assetsPath, output, 0644)
+	err = os.WriteFile(outputPath, output, 0644)
 	if err != nil {
 		fmt.Printf("Error writing output file: %v\n", err)
 		os.Exit(1)
@@ -287,7 +273,7 @@ func parseBehaviorsCSV() (map[string][]BehaviorData, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields
+	reader.FieldsPerRecord = -1
 
 	behaviorsMap := make(map[string][]BehaviorData)
 	lineNum := 0
@@ -427,7 +413,7 @@ func parseCardsCSV(behaviorsMap map[string][]BehaviorData) ([]model.Card, error)
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields
+	reader.FieldsPerRecord = -1
 
 	var cards []model.Card
 	lineNum := 0
@@ -522,9 +508,9 @@ func parseCardFromRecord(record []string, behaviorsMap map[string][]BehaviorData
 	// Parse description from cards.csv
 	card.Description = parseDescription(record)
 
-	// Parse resource storage from cards.csv preserve column (column 37)
-	if len(record) > 37 && strings.TrimSpace(record[37]) != "" {
-		resourceTypeStr := strings.ToLower(strings.TrimSpace(record[37]))
+	// Parse resource storage from cards.csv "resource type held" column (column 36)
+	if len(record) > 36 && strings.TrimSpace(record[36]) != "" {
+		resourceTypeStr := strings.ToLower(strings.TrimSpace(record[36]))
 		resourceStorage := createResourceStorageFromType(resourceTypeStr)
 		if resourceStorage != nil {
 			card.ResourceStorage = resourceStorage
@@ -561,7 +547,15 @@ func processChoiceBehaviors(behaviors []BehaviorData) []ChoiceBehaviorData {
 
 	var result []ChoiceBehaviorData
 
-	for _, group := range behaviorGroups {
+	// Sort behavior group keys for deterministic output
+	var groupKeys []string
+	for key := range behaviorGroups {
+		groupKeys = append(groupKeys, key)
+	}
+	sort.Strings(groupKeys)
+
+	for _, key := range groupKeys {
+		group := behaviorGroups[key]
 		if hasChoiceOptions(group) {
 			// Create a choice behavior
 			base := group[0] // Use first as base
@@ -596,13 +590,38 @@ func processChoiceBehaviors(behaviors []BehaviorData) []ChoiceBehaviorData {
 	return result
 }
 
+// parseWhereToAffectedTags converts Where field values to CardTag slice for location-based targeting.
+//
+// Converts location strings from behaviors.csv Where column to appropriate CardTag arrays
+// for targeting cards with specific tags. Used when card effects should only apply to
+// cards with certain location tags (e.g., "add 2 animals to any Venus card").
+//
+// Examples:
+//
+//	parseWhereToAffectedTags("Venus") -> []CardTag{TagVenus}
+//	parseWhereToAffectedTags("jovian") -> []CardTag{TagJovian}
+//	parseWhereToAffectedTags("any") -> nil
+//	parseWhereToAffectedTags("") -> nil
+func parseWhereToAffectedTags(where string) []model.CardTag {
+	whereLower := strings.ToLower(strings.TrimSpace(where))
+	switch whereLower {
+	case "venus":
+		return []model.CardTag{model.TagVenus}
+	case "jovian":
+		return []model.CardTag{model.TagJovian}
+	case "earth":
+		return []model.CardTag{model.TagEarth}
+	default:
+		return nil
+	}
+}
+
 // hasChoiceOptions checks if a group of behaviors represents choice options (A, B, C)
 func hasChoiceOptions(behaviors []BehaviorData) bool {
 	if len(behaviors) <= 1 {
 		return false
 	}
 
-	// Check if all behaviors have non-empty Option values
 	optionCount := 0
 	for _, behavior := range behaviors {
 		if behavior.Option != "" {
@@ -610,7 +629,6 @@ func hasChoiceOptions(behaviors []BehaviorData) bool {
 		}
 	}
 
-	// If we have multiple behaviors with options, treat as choices
 	return optionCount > 1 && optionCount == len(behaviors)
 }
 
@@ -1008,25 +1026,24 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 			})
 		}
 
-		// Card resources (like floaters, microbes, animals)
 		if behavior.CardResources != "" && behavior.ResourceType != "" {
 			resourceType := parseResourceType(behavior.ResourceType)
-			target := model.TargetAny // Default for card resources
+			target := model.TargetAny
 			if behavior.Where == "self" || behavior.Where == "here" {
 				target = model.TargetSelfCard
 			} else if behavior.Where == "any" {
-				target = model.TargetAny // "any" means any card for card resources
+				target = model.TargetAny
 			}
 
 			cardResourceAmount := parseResourceAmount(behavior.CardResources)
+			affectedTags := parseWhereToAffectedTags(behavior.Where)
 			outputs = append(outputs, model.ResourceCondition{
-				Type:   resourceType,
-				Amount: cardResourceAmount,
-				Target: target,
+				Type:         resourceType,
+				Amount:       cardResourceAmount,
+				Target:       target,
+				AffectedTags: affectedTags,
 			})
 		}
-
-		// Global parameter changes (converted to ResourceCondition)
 		globalParams := []struct {
 			value        int
 			resourceType model.ResourceType
@@ -1140,6 +1157,7 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 	var target *model.TargetType // For specifying whose tags/resources to count
 	var perAmount int = 1        // Default: per 1 of something
 	var tagType *model.CardTag   // For tag-based conditions
+	var maxTrigger *int          // For MAX limitations like "MAX 4"
 
 	// Parse different patterns in "N equals"
 	switch {
@@ -1222,16 +1240,36 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 			return nil
 		}
 
+	case strings.Contains(nEqualsLower, "floaters here"):
+		perType = model.ResourceFloaters
+		perAmount = 1
+		targetVal := model.TargetSelfCard
+		target = &targetVal
+		locationVal := model.CardApplyLocationAnywhere
+		location = &locationVal
+
 	default:
 		// Unknown per condition
 		return nil
 	}
 
+	// Parse MAX limitations like "MAX 4"
+	if strings.Contains(nEqualsLower, "max ") {
+		// Extract the number after "max "
+		maxRegex := regexp.MustCompile(`max\s+(\d+)`)
+		if matches := maxRegex.FindStringSubmatch(nEqualsLower); len(matches) > 1 {
+			if maxVal, err := strconv.Atoi(matches[1]); err == nil {
+				maxTrigger = &maxVal
+			}
+		}
+	}
+
 	// Create the conditional output
 	return &model.ResourceCondition{
-		Type:   resourceType,
-		Amount: 1, // Amount gained per condition (N means 1 per)
-		Target: model.TargetSelfPlayer,
+		Type:       resourceType,
+		Amount:     1, // Amount gained per condition (N means 1 per)
+		Target:     model.TargetSelfPlayer,
+		MaxTrigger: maxTrigger,
 		Per: &model.PerCondition{
 			Type:     perType,
 			Amount:   perAmount,
@@ -1321,6 +1359,16 @@ func createResourceStorage(behavior BehaviorData) *model.ResourceStorage {
 	return nil
 }
 
+// createResourceStorageFromType creates ResourceStorage from "resource type held" CSV values.
+//
+// Converts resource type strings from cards.csv "resource type held" column to
+// ResourceStorage objects that define what types of resources a card can hold.
+//
+// Examples:
+//
+//	createResourceStorageFromType("animal") -> &ResourceStorage{Type: ResourceAnimals, Starting: 0}
+//	createResourceStorageFromType("floater") -> &ResourceStorage{Type: ResourceFloaters, Starting: 0}
+//	createResourceStorageFromType("unknown") -> nil
 func createResourceStorageFromType(resourceTypeStr string) *model.ResourceStorage {
 	var resourceType model.ResourceType
 
@@ -1343,7 +1391,7 @@ func createResourceStorageFromType(resourceTypeStr string) *model.ResourceStorag
 
 	return &model.ResourceStorage{
 		Type:     resourceType,
-		Starting: 0, // Will be set based on immediate actions
+		Starting: 0,
 	}
 }
 
@@ -1551,7 +1599,15 @@ func parseTags(record []string) []model.CardTag {
 		colWild:     model.TagWild,
 	}
 
-	for col, tag := range tagMap {
+	// Sort tag map keys for deterministic output
+	var tagCols []int
+	for col := range tagMap {
+		tagCols = append(tagCols, col)
+	}
+	sort.Ints(tagCols)
+
+	for _, col := range tagCols {
+		tag := tagMap[col]
 		if len(record) > col && record[col] != "" && record[col] != "0" {
 			count := 1
 			if num, err := strconv.Atoi(strings.TrimSpace(record[col])); err == nil && num > 1 {
@@ -2222,6 +2278,11 @@ func extractInputsAndOutputsFromChoice(choice BehaviorData, isActiveCard bool, i
 func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.ResourceCondition {
 	var effects []model.ResourceCondition
 
+	// Check for N-based conditional outputs first
+	if nCondition := parseNBasedConditionalOutput(choice); nCondition != nil {
+		effects = append(effects, *nCondition)
+	}
+
 	// Basic resources
 	resourceTypes := []struct {
 		value        int
@@ -2269,10 +2330,12 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 			amount = -amount         // Negate for attacks (removing resources)
 		}
 
+		affectedTags := parseWhereToAffectedTags(choice.Where)
 		effects = append(effects, model.ResourceCondition{
-			Type:   resourceType,
-			Amount: amount,
-			Target: target,
+			Type:         resourceType,
+			Amount:       amount,
+			Target:       target,
+			AffectedTags: affectedTags,
 		})
 	}
 

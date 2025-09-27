@@ -31,6 +31,10 @@ pids
 coverage/
 *.lcov
 
+# Go coverage files
+backend/coverage.out
+backend/coverage.html
+
 # IDE files
 .vscode/
 .idea/

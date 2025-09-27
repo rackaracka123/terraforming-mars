@@ -459,7 +459,7 @@ P35,Acquired Space Agency,1,0 Immediate,,155,5 Prelude,,,,,,,,,,,,,,6,,,,,2,has 
 225,Floating Habs,1,2 Action,,442,4 VenusNext,,,,,,,,,,,,-2,,,,,,,,,1,floater,any,,,,,,,0,,,,,0,,,,,,,,Spend 2 M€ to add 1 floater to ANY card.,#REF!
 226,Forced Precipitation,2,2 Action,A,443,4 VenusNext,,,,,,,,,,,,-2,,,,,,,,,1,floater,here,,,,,,,0,,,,,0,,,,,,,,Spend 2 M€ to add a floater to this card.,#REF!
 226,Forced Precipitation,2,2 Action,B,444,4 VenusNext,,,,,,,,,,,,,,,,,,,,,-2,floater,here,,,,,,,0,,,1,,1,,,,,,,,Spend 2 floaters here to increase Venus 1 step.,#REF!
-227,Freyja Biodomes,2,0 Immediate,A,445,4 VenusNext,,,,,2,,,,-1,,,,,,,,,,,,2,animal,here,,,,,,,0,,,,,0,,,,,,,,"Add 2 microbes TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",#REF!
+227,Freyja Biodomes,2,0 Immediate,A,445,4 VenusNext,,,,,2,,,,-1,,,,,,,,,,,,2,animal,Venus,,,,,,,0,,,,,0,,,,,,,,"Add 2 microbes TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",#REF!
 227,Freyja Biodomes,2,0 Immediate,B,446,4 VenusNext,,,,,2,,,,-1,,,,,,,,,,,,2,microbe,Venus,,,,,,,0,,,,,0,,,,,,,,"Add 2 animals TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",#REF!
 228,GHG Import From Venus,1,0 Immediate,,447,4 VenusNext,,,,,,,,,,3,,,,,,,,,,,,,,,,,,,,0,,,1,,1,,,,,,,,Raise Venus 1 step. Increase your heat production 3 steps.,#REF!
 229,Giant Solar Shade,1,0 Immediate,,448,4 VenusNext,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0,,,3,,3,,,,,,,,Raise Venus 3 steps.,#REF!

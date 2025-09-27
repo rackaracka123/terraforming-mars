@@ -193,6 +193,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "science",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 3,
@@ -388,14 +392,9 @@
         ],
         "outputs": [
           {
-            "type": "ocean-placement",
-            "amount": 1,
-            "target": "none"
-          },
-          {
-            "type": "temperature",
-            "amount": 1,
-            "target": "none"
+            "type": "plants",
+            "amount": 3,
+            "target": "any-player"
           }
         ]
       },
@@ -407,9 +406,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 3,
-            "target": "any-player"
+            "type": "ocean-placement",
+            "amount": 1,
+            "target": "none"
+          },
+          {
+            "type": "temperature",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -944,20 +948,6 @@
       {
         "triggers": [
           {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto",
             "condition": {
               "type": "ocean-placed",
@@ -969,6 +959,20 @@
           {
             "type": "plants",
             "amount": 2,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "plants",
+            "amount": 1,
             "target": "self-player"
           }
         ]
@@ -1006,6 +1010,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -1365,7 +1373,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "034",
@@ -1418,7 +1430,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "035",
@@ -1451,6 +1467,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -1587,14 +1607,9 @@
         ],
         "outputs": [
           {
-            "type": "steel",
-            "amount": 4,
-            "target": "self-player"
-          },
-          {
-            "type": "temperature",
-            "amount": 3,
-            "target": "none"
+            "type": "plants",
+            "amount": 8,
+            "target": "any-player"
           }
         ]
       },
@@ -1606,9 +1621,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 8,
-            "target": "any-player"
+            "type": "steel",
+            "amount": 4,
+            "target": "self-player"
+          },
+          {
+            "type": "temperature",
+            "amount": 3,
+            "target": "none"
           }
         ]
       }
@@ -1950,6 +1970,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -2061,20 +2085,6 @@
       {
         "triggers": [
           {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants-production",
-            "amount": -1,
-            "target": "any-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "manual"
           }
         ],
@@ -2085,8 +2095,26 @@
             "target": "self-card"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "plants-production",
+            "amount": -1,
+            "target": "any-player"
+          }
+        ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -2154,20 +2182,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "animals",
-            "amount": 1,
-            "target": "self-card"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -2178,8 +2192,26 @@
             "target": "any-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "animals",
+            "amount": 1,
+            "target": "self-card"
+          }
+        ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -2811,20 +2843,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "animals",
-            "amount": 1,
-            "target": "self-card"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -2835,8 +2853,26 @@
             "target": "any-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "animals",
+            "amount": 1,
+            "target": "self-card"
+          }
+        ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -3589,12 +3625,9 @@
         ],
         "outputs": [
           {
-            "type": "discount",
-            "amount": 2,
-            "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "type": "energy-production",
+            "amount": 6,
+            "target": "self-player"
           }
         ]
       },
@@ -3606,9 +3639,12 @@
         ],
         "outputs": [
           {
-            "type": "energy-production",
-            "amount": 6,
-            "target": "self-player"
+            "type": "discount",
+            "amount": 2,
+            "target": "self-player",
+            "affectedTags": [
+              "space"
+            ]
           }
         ]
       }
@@ -3647,6 +3683,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "science",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 2,
@@ -4759,6 +4799,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -4882,6 +4926,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -5476,6 +5524,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -5809,7 +5861,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "158",
@@ -6393,6 +6449,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -6859,6 +6919,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -6925,6 +6989,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "science",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -7621,20 +7689,6 @@
       {
         "triggers": [
           {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "energy-production",
-            "amount": -1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "manual"
           }
         ],
@@ -7642,6 +7696,20 @@
           {
             "type": "card-draw",
             "amount": 2,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "energy-production",
+            "amount": -1,
             "target": "self-player"
           }
         ]
@@ -7711,6 +7779,20 @@
       {
         "triggers": [
           {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 1,
+            "target": "any"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
             "type": "manual"
           }
         ],
@@ -7732,20 +7814,6 @@
                 "target": "any"
               }
             ]
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 1,
-            "target": "any"
           }
         ]
       }
@@ -7819,6 +7887,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -7877,6 +7949,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -7945,7 +8021,10 @@
           {
             "type": "floaters",
             "amount": 3,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "venus"
+            ]
           }
         ]
       }
@@ -8102,7 +8181,10 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "venus"
+            ]
           }
         ]
       }
@@ -8199,7 +8281,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "222",
@@ -8239,7 +8325,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "223",
@@ -8251,20 +8341,6 @@
       "venus"
     ],
     "behaviors": [
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "floaters",
-            "amount": 3,
-            "target": "self-card"
-          }
-        ]
-      },
       {
         "triggers": [
           {
@@ -8298,8 +8374,26 @@
             ]
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "floaters",
+            "amount": 3,
+            "target": "self-card"
+          }
+        ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "224",
@@ -8334,6 +8428,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -8386,6 +8484,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -8450,7 +8552,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "227",
@@ -8493,7 +8599,10 @@
               {
                 "type": "animals",
                 "amount": 2,
-                "target": "self-card"
+                "target": "any",
+                "affectedTags": [
+                  "venus"
+                ]
               }
             ]
           },
@@ -8502,7 +8611,10 @@
               {
                 "type": "microbes",
                 "amount": 2,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "venus"
+                ]
               }
             ]
           }
@@ -8618,7 +8730,10 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "venus"
+            ]
           }
         ]
       }
@@ -8753,7 +8868,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "235",
@@ -8799,7 +8918,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "236",
@@ -8913,7 +9036,10 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "venus"
+            ]
           }
         ]
       }
@@ -9111,7 +9237,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "244",
@@ -9277,11 +9407,18 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "venus"
+            ]
           }
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -9341,6 +9478,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -9419,7 +9560,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "252",
@@ -9476,7 +9621,10 @@
               {
                 "type": "microbes",
                 "amount": 1,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "venus"
+                ]
               }
             ]
           },
@@ -9498,7 +9646,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "254",
@@ -9677,6 +9829,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -9722,6 +9878,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -9771,7 +9931,10 @@
               {
                 "type": "animals",
                 "amount": 1,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "venus"
+                ]
               }
             ]
           },
@@ -9780,7 +9943,10 @@
               {
                 "type": "microbes",
                 "amount": 1,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "venus"
+                ]
               }
             ]
           }
@@ -10019,6 +10185,16 @@
         ],
         "outputs": [
           {
+            "type": "credits",
+            "amount": 30,
+            "target": "self-player"
+          },
+          {
+            "type": "steel",
+            "amount": 5,
+            "target": "self-player"
+          },
+          {
             "type": "steel-production",
             "amount": 1,
             "target": "self-player"
@@ -10032,16 +10208,6 @@
           }
         ],
         "outputs": [
-          {
-            "type": "credits",
-            "amount": 30,
-            "target": "self-player"
-          },
-          {
-            "type": "steel",
-            "amount": 5,
-            "target": "self-player"
-          },
           {
             "type": "steel-production",
             "amount": 1,
@@ -10520,7 +10686,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "C04",
@@ -10991,6 +11161,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -11033,14 +11207,36 @@
               {
                 "type": "floaters",
                 "amount": 1,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "jovian"
+                ]
               }
             ]
           },
-          {}
+          {
+            "outputs": [
+              {
+                "type": "credits",
+                "amount": 1,
+                "target": "self-player",
+                "maxTrigger": 4,
+                "per": {
+                  "type": "floaters",
+                  "amount": 1,
+                  "location": "anywhere",
+                  "target": "self-card"
+                }
+              }
+            ]
+          }
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -11191,6 +11387,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -11308,7 +11508,10 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "jovian"
+            ]
           },
           {
             "type": "tr",
@@ -11405,6 +11608,20 @@
       {
         "triggers": [
           {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 2,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
             "type": "manual"
           }
         ],
@@ -11435,22 +11652,12 @@
             ]
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "card-draw",
-            "amount": 2,
-            "target": "self-player"
-          }
-        ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 2,
@@ -11777,6 +11984,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -11835,6 +12046,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 2,
@@ -11862,7 +12077,10 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any",
+            "affectedTags": [
+              "jovian"
+            ]
           }
         ]
       },
@@ -11878,7 +12096,10 @@
               {
                 "type": "floaters",
                 "amount": 1,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "jovian"
+                ]
               }
             ]
           },
@@ -11894,6 +12115,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -11924,7 +12149,10 @@
               {
                 "type": "floaters",
                 "amount": 2,
-                "target": "any"
+                "target": "any",
+                "affectedTags": [
+                  "jovian"
+                ]
               }
             ]
           },
@@ -11940,6 +12168,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -12118,6 +12350,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "animals",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -12253,7 +12489,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    }
   },
   {
     "id": "P01",
@@ -13458,7 +13698,7 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "auto"
           }
         ],
         "outputs": [
@@ -13472,7 +13712,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -13483,7 +13723,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "P40",
@@ -14336,13 +14580,8 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 6,
+            "amount": 53,
             "target": "self-player"
-          },
-          {
-            "type": "credits",
-            "amount": 1,
-            "target": "self-card"
           }
         ]
       },
@@ -14355,8 +14594,13 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 53,
+            "amount": 6,
             "target": "self-player"
+          },
+          {
+            "type": "credits",
+            "amount": 1,
+            "target": "self-card"
           }
         ]
       }
@@ -14657,6 +14901,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -15155,6 +15403,17 @@
         ],
         "outputs": [
           {
+            "type": "credits",
+            "amount": 1,
+            "target": "self-player",
+            "per": {
+              "type": "floaters",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "self-card"
+            }
+          },
+          {
             "type": "floaters",
             "amount": -1,
             "target": "self-card"
@@ -15162,6 +15421,10 @@
         ]
       }
     ],
+    "resourceStorage": {
+      "type": "floaters",
+      "starting": 0
+    },
     "vpConditions": [
       {
         "amount": 1,
@@ -15271,7 +15534,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "X15",
@@ -15309,7 +15576,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "X16",
@@ -15362,7 +15633,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "X17",
@@ -15489,7 +15764,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "X20",
@@ -15868,8 +16147,8 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 3,
+            "type": "credits",
+            "amount": 1,
             "target": "self-player"
           }
         ]
@@ -15882,8 +16161,8 @@
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 1,
+            "type": "plants",
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -15908,9 +16187,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 6,
-            "target": "any-player"
+            "type": "steel",
+            "amount": 4,
+            "target": "self-player"
+          },
+          {
+            "type": "temperature",
+            "amount": 3,
+            "target": "none"
           }
         ]
       },
@@ -15922,14 +16206,9 @@
         ],
         "outputs": [
           {
-            "type": "steel",
-            "amount": 4,
-            "target": "self-player"
-          },
-          {
-            "type": "temperature",
-            "amount": 3,
-            "target": "none"
+            "type": "plants",
+            "amount": 6,
+            "target": "any-player"
           }
         ]
       }
@@ -16092,7 +16371,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "X35",
@@ -16453,12 +16736,7 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 40,
-            "target": "self-player"
-          },
-          {
-            "type": "steel",
-            "amount": 10,
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -16472,7 +16750,12 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 3,
+            "amount": 40,
+            "target": "self-player"
+          },
+          {
+            "type": "steel",
+            "amount": 10,
             "target": "self-player"
           }
         ]
@@ -16541,7 +16824,11 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "microbes",
+      "starting": 0
+    }
   },
   {
     "id": "XC3",
@@ -16553,6 +16840,20 @@
       "microbe"
     ],
     "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 44,
+            "target": "self-player"
+          }
+        ]
+      },
       {
         "triggers": [
           {
@@ -16577,20 +16878,6 @@
           {
             "type": "card-draw",
             "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 44,
             "target": "self-player"
           }
         ]
@@ -16677,6 +16964,20 @@
         "outputs": [
           {
             "type": "credits",
+            "amount": -3,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
             "amount": 48,
             "target": "self-player"
           },
@@ -16700,20 +17001,6 @@
             "target": "any-player"
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": -3,
-            "target": "self-player"
-          }
-        ]
       }
     ]
   },
@@ -16727,6 +17014,20 @@
       "building"
     ],
     "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "greenery-placement",
+            "amount": 1,
+            "target": "none"
+          }
+        ]
+      },
       {
         "triggers": [
           {
@@ -16803,20 +17104,6 @@
             "target": "self-player"
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "greenery-placement",
-            "amount": 1,
-            "target": "none"
-          }
-        ]
       }
     ]
   },
@@ -16830,6 +17117,25 @@
       "space"
     ],
     "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 35,
+            "target": "self-player"
+          },
+          {
+            "type": "asteroid",
+            "amount": 3,
+            "target": "self-card"
+          }
+        ]
+      },
       {
         "triggers": [
           {
@@ -16915,27 +17221,12 @@
             ]
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 35,
-            "target": "self-player"
-          },
-          {
-            "type": "asteroid",
-            "amount": 3,
-            "target": "self-card"
-          }
-        ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "asteroid",
+      "starting": 0
+    }
   },
   {
     "id": "XC8",
@@ -17019,6 +17310,10 @@
           }
         ]
       }
-    ]
+    ],
+    "resourceStorage": {
+      "type": "disease",
+      "starting": 0
+    }
   }
 ]

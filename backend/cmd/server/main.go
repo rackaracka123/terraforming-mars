@@ -80,7 +80,7 @@ func main() {
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 
