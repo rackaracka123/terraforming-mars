@@ -16,15 +16,16 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/usecase"
 	"terraforming-mars-backend/internal/usecase/common"
-	"terraforming-mars-backend/internal/usecase/standard_project"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) {
+func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -35,12 +36,13 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
-	// Create UseCase dependencies for asteroid
+	// Create single UseCase instance with all dependencies
 	actionValidator := common.NewActionValidator(gameRepo, playerRepo)
-	asteroidUseCase := standard_project.NewAsteroidUseCase(actionValidator, gameRepo, playerRepo, gameService)
+	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+	useCase := usecase.NewUseCase(actionValidator, gameRepo, playerRepo, gameService, sessionManager)
 
-	// Register standard project handlers (validation moved to individual handlers)
-	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(asteroidUseCase))
+	// Register standard project handlers with single UseCase
+	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(useCase))
 	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))

@@ -4,11 +4,6 @@ import (
 	"context"
 )
 
-// UseCase represents a generic use case interface
-type UseCase[TRequest, TResponse any] interface {
-	Execute(ctx context.Context, request TRequest) (TResponse, error)
-}
-
 // ActionCost represents the cost of an action in multiple resource types
 type ActionCost struct {
 	Credits  int `json:"credits" ts:"number"`
