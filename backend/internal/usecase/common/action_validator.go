@@ -55,18 +55,18 @@ func (v *ActionValidatorImpl) ValidatePlayerAction(ctx context.Context, gameID, 
 		return fmt.Errorf("not player's turn, current turn: %s", currentTurn)
 	}
 
-	// Check if player has remaining actions
-	if game.RemainingActions <= 0 {
-		log.Warn("Action attempted with no remaining actions",
-			zap.Int("remaining_actions", game.RemainingActions))
-		return fmt.Errorf("no remaining actions, current count: %d", game.RemainingActions)
-	}
-
-	// Get player to check resources
+	// Get player to check resources and available actions
 	player, err := v.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for resource validation", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Check if player has available actions
+	if player.AvailableActions <= 0 {
+		log.Warn("Action attempted with no remaining actions",
+			zap.Int("available_actions", player.AvailableActions))
+		return fmt.Errorf("no remaining actions, current count: %d", player.AvailableActions)
 	}
 
 	// Validate resource costs
@@ -79,7 +79,7 @@ func (v *ActionValidatorImpl) ValidatePlayerAction(ctx context.Context, gameID, 
 
 	log.Debug("Action validation passed",
 		zap.Any("cost", cost),
-		zap.Int("remaining_actions", game.RemainingActions))
+		zap.Int("available_actions", player.AvailableActions))
 
 	return nil
 }

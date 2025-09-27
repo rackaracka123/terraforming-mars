@@ -143,10 +143,12 @@ func (u *AsteroidUseCase) Execute(ctx context.Context, request AsteroidRequest) 
 		}
 	}
 
-	// Decrement remaining actions
-	if err := u.gameRepo.DecrementRemainingActions(ctx, request.GameID); err != nil {
-		log.Error("Failed to decrement remaining actions", zap.Error(err))
-		// Note: We don't return error here as the action was successful, just log the issue
+	// Decrement player's available actions
+	if player.AvailableActions > 0 {
+		if err := u.playerRepo.UpdateAvailableActions(ctx, request.GameID, request.PlayerID, player.AvailableActions-1); err != nil {
+			log.Error("Failed to decrement available actions", zap.Error(err))
+			// Note: We don't return error here as the action was successful, just log the issue
+		}
 	}
 
 	// Use the already fetched updated game state

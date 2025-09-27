@@ -70,10 +70,12 @@ func (u *UseCase) LaunchAsteroid(ctx context.Context, gameID, playerID string) e
 		}
 	}
 
-	// Decrement remaining actions
-	if err := u.gameRepo.DecrementRemainingActions(ctx, gameID); err != nil {
-		log.Error("Failed to decrement remaining actions", zap.Error(err))
-		// Note: We don't return error here as the action was successful, just log the issue
+	// Decrement player's available actions
+	if player.AvailableActions > 0 {
+		if err := u.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, player.AvailableActions-1); err != nil {
+			log.Error("Failed to decrement available actions", zap.Error(err))
+			// Note: We don't return error here as the action was successful, just log the issue
+		}
 	}
 
 	// Broadcast game state update to all players

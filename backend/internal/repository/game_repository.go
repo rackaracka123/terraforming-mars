@@ -34,8 +34,6 @@ type GameRepository interface {
 	RemovePlayerID(ctx context.Context, gameID string, playerID string) error
 	SetHostPlayer(ctx context.Context, gameID string, playerID string) error
 	UpdateGeneration(ctx context.Context, gameID string, generation int) error
-	UpdateRemainingActions(ctx context.Context, gameID string, actions int) error
-	DecrementRemainingActions(ctx context.Context, gameID string) error
 }
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
@@ -391,52 +389,6 @@ func (r *GameRepositoryImpl) UpdateGeneration(ctx context.Context, gameID string
 	game.UpdatedAt = time.Now()
 
 	log.Info("Generation updated", zap.Int("generation", generation))
-
-	return nil
-}
-
-// UpdateRemainingActions updates the remaining actions count
-func (r *GameRepositoryImpl) UpdateRemainingActions(ctx context.Context, gameID string, actions int) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, "")
-
-	game, exists := r.games[gameID]
-	if !exists {
-		return fmt.Errorf("game with ID %s not found", gameID)
-	}
-
-	game.RemainingActions = actions
-	game.UpdatedAt = time.Now()
-
-	log.Debug("Remaining actions updated", zap.Int("actions", actions))
-
-	return nil
-}
-
-// DecrementRemainingActions decrements the remaining actions count by 1
-func (r *GameRepositoryImpl) DecrementRemainingActions(ctx context.Context, gameID string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, "")
-
-	game, exists := r.games[gameID]
-	if !exists {
-		return fmt.Errorf("game with ID %s not found", gameID)
-	}
-
-	if game.RemainingActions <= 0 {
-		log.Warn("Attempted to decrement actions when none remaining",
-			zap.Int("current_actions", game.RemainingActions))
-		return fmt.Errorf("no remaining actions to decrement, current count: %d", game.RemainingActions)
-	}
-
-	game.RemainingActions--
-	game.UpdatedAt = time.Now()
-
-	log.Debug("Remaining actions decremented", zap.Int("new_count", game.RemainingActions))
 
 	return nil
 }

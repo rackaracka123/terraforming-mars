@@ -29,17 +29,17 @@ func TestActionValidator_ValidatePlayerAction_Success(t *testing.T) {
 	game, _ := gameRepo.Create(ctx, settings)
 	gameID = game.ID
 
-	// Set game to active with current turn and remaining actions
+	// Set game to active with current turn
 	gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
 	gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
-	gameRepo.UpdateRemainingActions(ctx, gameID, 1)
 	gameRepo.AddPlayerID(ctx, gameID, playerID)
 
-	// Create player with sufficient resources
+	// Create player with sufficient resources and available actions
 	player := model.Player{
-		ID:              playerID,
-		Name:            "Test Player",
-		TerraformRating: 20,
+		ID:               playerID,
+		Name:             "Test Player",
+		TerraformRating:  20,
+		AvailableActions: 1,
 		Resources: model.Resources{
 			Credits:  50,
 			Steel:    10,
@@ -110,7 +110,6 @@ func TestActionValidator_ValidatePlayerAction_NotPlayerTurn(t *testing.T) {
 
 	gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
 	gameRepo.SetCurrentTurn(ctx, gameID, &otherPlayerID) // Other player's turn
-	gameRepo.UpdateRemainingActions(ctx, gameID, 1)
 
 	cost := common.ActionCost{Credits: 14}
 
@@ -132,14 +131,25 @@ func TestActionValidator_ValidatePlayerAction_NoRemainingActions(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository()
 	validator := common.NewActionValidator(gameRepo, playerRepo)
 
-	// Set up game with no remaining actions
+	// Set up game with player having no available actions
 	settings := model.GameSettings{MaxPlayers: 2}
 	game, _ := gameRepo.Create(ctx, settings)
 	gameID = game.ID
 
 	gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
 	gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
-	gameRepo.UpdateRemainingActions(ctx, gameID, 0) // No remaining actions
+	gameRepo.AddPlayerID(ctx, gameID, playerID)
+
+	// Create player with no available actions
+	player := model.Player{
+		ID:               playerID,
+		Name:             "Test Player",
+		AvailableActions: 0, // No available actions
+		Resources: model.Resources{
+			Credits: 50,
+		},
+	}
+	playerRepo.Create(ctx, gameID, player)
 
 	cost := common.ActionCost{Credits: 14}
 
@@ -168,14 +178,14 @@ func TestActionValidator_ValidatePlayerAction_InsufficientCredits(t *testing.T) 
 
 	gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
 	gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
-	gameRepo.UpdateRemainingActions(ctx, gameID, 1)
 	gameRepo.AddPlayerID(ctx, gameID, playerID)
 
-	// Create player with insufficient credits
+	// Create player with insufficient credits but with available actions
 	player := model.Player{
-		ID:              playerID,
-		Name:            "Test Player",
-		TerraformRating: 20,
+		ID:               playerID,
+		Name:             "Test Player",
+		TerraformRating:  20,
+		AvailableActions: 1,
 		Resources: model.Resources{
 			Credits: 5, // Not enough for 14 credit cost
 		},
@@ -210,14 +220,14 @@ func TestActionValidator_ValidatePlayerAction_InsufficientMultipleResources(t *t
 
 	gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
 	gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
-	gameRepo.UpdateRemainingActions(ctx, gameID, 1)
 	gameRepo.AddPlayerID(ctx, gameID, playerID)
 
-	// Create player with insufficient steel
+	// Create player with insufficient steel but with available actions
 	player := model.Player{
-		ID:              playerID,
-		Name:            "Test Player",
-		TerraformRating: 20,
+		ID:               playerID,
+		Name:             "Test Player",
+		TerraformRating:  20,
+		AvailableActions: 1,
 		Resources: model.Resources{
 			Credits:  50,
 			Steel:    1, // Not enough steel
