@@ -629,5 +629,4 @@ No need to be backwards compatible.
 - Design predictable state machines
 - Create atomic operations and proper transaction boundaries
 - Use proper synchronization (channels, mutexes, etc.) when needed
-
-When encountering timing or state issues, always ask: "What is the proper state flow here?" rather than "How long should I wait?"
+- No mocks outside of tests.

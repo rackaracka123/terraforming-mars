@@ -7,24 +7,24 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/usecase"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles launch asteroid standard project action requests
 type Handler struct {
-	standardProjectService service.StandardProjectService
-	errorHandler           *utils.ErrorHandler
-	logger                 *zap.Logger
+	useCase      *usecase.UseCase
+	errorHandler *utils.ErrorHandler
+	logger       *zap.Logger
 }
 
 // NewHandler creates a new launch asteroid handler
-func NewHandler(standardProjectService service.StandardProjectService) *Handler {
+func NewHandler(useCase *usecase.UseCase) *Handler {
 	return &Handler{
-		standardProjectService: standardProjectService,
-		errorHandler:           utils.NewErrorHandler(),
-		logger:                 logger.Get(),
+		useCase:      useCase,
+		errorHandler: utils.NewErrorHandler(),
+		logger:       logger.Get(),
 	}
 }
 
@@ -43,9 +43,10 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	// Launch asteroid doesn't need payload parsing - it's a simple action
-	if err := h.standardProjectService.LaunchAsteroid(ctx, gameID, playerID); err != nil {
-		h.logger.Error("Failed to launch asteroid",
+	// Execute the asteroid use case
+	err := h.useCase.LaunchAsteroid(ctx, gameID, playerID)
+	if err != nil {
+		h.logger.Error("Failed to execute asteroid use case",
 			zap.Error(err),
 			zap.String("player_id", playerID),
 			zap.String("game_id", gameID))

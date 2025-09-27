@@ -23,12 +23,13 @@ func NewWebSocketService(
 	cardService service.CardService,
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
+	cardRepo repository.CardRepository,
 	hub *core.Hub,
 ) *WebSocketService {
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo)
+	RegisterHandlers(hub, gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, cardRepo)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

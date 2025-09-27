@@ -71,3 +71,5 @@ backend/server
 
 # Claude local settings
 /claude/*\.local\.*
+terraforming-mars.iml
+/backend/bin
