@@ -78,6 +78,7 @@ func ToPlayerDtoWithCardService(ctx context.Context, player model.Player) Player
 		VictoryPoints:            player.VictoryPoints,
 		IsConnected:              player.IsConnected,
 		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
+		Actions:                  ToPlayerActionDtoSlice(player.Actions),
 		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection:        []CardDto{}, // Empty until card service integration is resolved
 		HasSelectedStartingCards: player.HasSelectedStartingCards,
@@ -104,6 +105,7 @@ func ToPlayerDto(player model.Player, playerCards []CardDto, startingCards ...[]
 		VictoryPoints:            player.VictoryPoints,
 		IsConnected:              player.IsConnected,
 		Effects:                  ToPlayerEffectDtoSlice(player.Effects),
+		Actions:                  ToPlayerActionDtoSlice(player.Actions),
 		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection:        startingCardDtos, // Resolved starting card selection
 		HasSelectedStartingCards: player.HasSelectedStartingCards,
@@ -151,6 +153,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		VictoryPoints:    player.VictoryPoints,
 		IsConnected:      player.IsConnected,
 		Effects:          ToPlayerEffectDtoSlice(player.Effects),                               // Effects are public information
+		Actions:          ToPlayerActionDtoSlice(player.Actions),                               // Actions are public information
 		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Whether player is currently selecting cards (production or starting)
 	}
 }
@@ -212,7 +215,6 @@ func ToGameDtoBasic(game model.Game) GameDto {
 		ViewingPlayerID:  "",                 // No viewing player for basic view
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
-		RemainingActions: game.RemainingActions,
 		TurnOrder:        game.PlayerIDs,
 		Board:            ToBoardDto(game.Board),
 	}
@@ -400,6 +402,16 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 	}
 }
 
+// ToCardBehaviorDto converts a model CardBehavior to CardBehaviorDto
+func ToCardBehaviorDto(behavior model.CardBehavior) CardBehaviorDto {
+	return CardBehaviorDto{
+		Triggers: ToTriggerDtoSlice(behavior.Triggers),
+		Inputs:   ToResourceConditionDtoSlice(behavior.Inputs),
+		Outputs:  ToResourceConditionDtoSlice(behavior.Outputs),
+		Choices:  ToChoiceDtoSlice(behavior.Choices),
+	}
+}
+
 // ToCardBehaviorDtoSlice converts a slice of model CardBehaviors to CardBehaviorDto slice
 func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 	if behaviors == nil {
@@ -408,12 +420,7 @@ func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 
 	result := make([]CardBehaviorDto, len(behaviors))
 	for i, behavior := range behaviors {
-		result[i] = CardBehaviorDto{
-			Triggers: ToTriggerDtoSlice(behavior.Triggers),
-			Inputs:   ToResourceConditionDtoSlice(behavior.Inputs),
-			Outputs:  ToResourceConditionDtoSlice(behavior.Outputs),
-			Choices:  ToChoiceDtoSlice(behavior.Choices),
-		}
+		result[i] = ToCardBehaviorDto(behavior)
 	}
 	return result
 }
@@ -480,6 +487,29 @@ func ToPlayerEffectDtoSlice(effects []model.PlayerEffect) []PlayerEffectDto {
 	result := make([]PlayerEffectDto, len(effects))
 	for i, effect := range effects {
 		result[i] = ToPlayerEffectDto(effect)
+	}
+	return result
+}
+
+// ToPlayerActionDto converts a model PlayerAction to PlayerActionDto
+func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
+	return PlayerActionDto{
+		CardID:        action.CardID,
+		CardName:      action.CardName,
+		BehaviorIndex: action.BehaviorIndex,
+		Behavior:      ToCardBehaviorDto(action.Behavior),
+		PlayCount:     action.PlayCount,
+	}
+}
+
+// ToPlayerActionDtoSlice converts a slice of model PlayerActions to PlayerActionDto slice
+func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
+	if actions == nil {
+		return []PlayerActionDto{}
+	}
+	result := make([]PlayerActionDto, len(actions))
+	for i, action := range actions {
+		result[i] = ToPlayerActionDto(action)
 	}
 	return result
 }

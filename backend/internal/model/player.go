@@ -23,6 +23,7 @@ type Player struct {
 	VictoryPoints    int            `json:"victoryPoints" ts:"number"`
 	IsConnected      bool           `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
+	Actions          []PlayerAction `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
 	// Card selection and production phase - nullable, exists only during selection phase
 	ProductionSelection *ProductionPhase `json:"productionSelection" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
 	// Starting card selection - nullable, exists only during starting card selection phase
@@ -78,6 +79,12 @@ func (p *Player) DeepCopy() *Player {
 		}
 	}
 
+	// Deep copy actions slice
+	actionsCopy := make([]PlayerAction, len(p.Actions))
+	for i, action := range p.Actions {
+		actionsCopy[i] = *action.DeepCopy()
+	}
+
 	return &Player{
 		ID:                       p.ID,
 		Name:                     p.Name,
@@ -92,6 +99,7 @@ func (p *Player) DeepCopy() *Player {
 		VictoryPoints:            p.VictoryPoints,
 		IsConnected:              p.IsConnected,
 		Effects:                  effectsCopy,
+		Actions:                  actionsCopy,
 		ProductionSelection:      productionSelectionCopy,
 		StartingSelection:        startingSelectionCopy,
 		HasSelectedStartingCards: p.HasSelectedStartingCards,

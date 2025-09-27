@@ -29,6 +29,7 @@ type PlayerRepository interface {
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
 	UpdateEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error
+	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
 	PlayCard(ctx context.Context, gameID, playerID string, cardID string) error
@@ -377,6 +378,32 @@ func (r *PlayerRepositoryImpl) UpdateEffects(ctx context.Context, gameID, player
 		zap.Int("old_effects_count", oldEffectsCount),
 		zap.Int("new_effects_count", len(effects)))
 
+	return nil
+}
+
+// UpdatePlayerActions updates a player's available actions
+func (r *PlayerRepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Deep copy the actions to prevent external mutation
+	actionsCopy := make([]model.PlayerAction, len(actions))
+	for i, action := range actions {
+		actionsCopy[i] = *action.DeepCopy()
+	}
+
+	oldActionsCount := len(player.Actions)
+	player.Actions = actionsCopy
+
+	log.Info("⚡ Player actions updated",
+		zap.Int("old_actions_count", oldActionsCount),
+		zap.Int("new_actions_count", len(actions)))
 	return nil
 }
 
