@@ -1,0 +1,88 @@
+package service
+
+import (
+	"context"
+	"testing"
+
+	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestActionResetFunctionality(t *testing.T) {
+	// Test that verifies action play count logic works correctly
+	// This is a simpler test that doesn't require the full game service constructor
+
+	// Setup repositories
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+
+	// Create a test game
+	gameSettings := model.GameSettings{
+		MaxPlayers:      1,
+		DevelopmentMode: true,
+	}
+	game, err := gameRepo.Create(ctx, gameSettings)
+	require.NoError(t, err)
+	gameID := game.ID
+
+	// Create a player with an action that has been played
+	playerID := "player1"
+	testAction := model.PlayerAction{
+		CardID:        "space-elevator",
+		CardName:      "Space Elevator",
+		BehaviorIndex: 1,
+		PlayCount:     1, // Has been played this generation
+		Behavior: model.CardBehavior{
+			Triggers: []model.Trigger{
+				{Type: model.ResourceTriggerManual},
+			},
+			Inputs: []model.ResourceCondition{
+				{Type: model.ResourceSteel, Amount: 1},
+			},
+			Outputs: []model.ResourceCondition{
+				{Type: model.ResourceCredits, Amount: 5},
+			},
+		},
+	}
+
+	player := model.Player{
+		ID:               playerID,
+		Name:             "Test Player",
+		Resources:        model.Resources{Steel: 5, Credits: 20},
+		AvailableActions: 1,
+		Actions:          []model.PlayerAction{testAction},
+	}
+
+	err = playerRepo.Create(ctx, gameID, player)
+	require.NoError(t, err)
+
+	// Verify initial state - player has action with playCount = 1
+	initialPlayer, err := playerRepo.GetByID(ctx, gameID, playerID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, initialPlayer.Actions[0].PlayCount)
+
+	// Manually reset the action play count (simulating what happens in phase transition)
+	resetActions := make([]model.PlayerAction, len(initialPlayer.Actions))
+	for i, action := range initialPlayer.Actions {
+		resetActions[i] = *action.DeepCopy()
+		resetActions[i].PlayCount = 0 // Reset to 0
+	}
+
+	// Update the player's actions
+	err = playerRepo.UpdatePlayerActions(ctx, gameID, playerID, resetActions)
+	require.NoError(t, err)
+
+	// Verify the action play count has been reset
+	updatedPlayer, err := playerRepo.GetByID(ctx, gameID, playerID)
+	require.NoError(t, err)
+	assert.Equal(t, 0, updatedPlayer.Actions[0].PlayCount, "Action playCount should be reset to 0")
+
+	// Verify other action properties are preserved
+	assert.Equal(t, "space-elevator", updatedPlayer.Actions[0].CardID)
+	assert.Equal(t, "Space Elevator", updatedPlayer.Actions[0].CardName)
+	assert.Equal(t, 1, updatedPlayer.Actions[0].BehaviorIndex)
+}

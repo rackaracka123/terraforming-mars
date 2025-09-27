@@ -12,6 +12,7 @@ export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
+export const ActionTypePlayCardAction: ActionType = "play-card-action";
 /**
  * Standard Projects
  */
@@ -45,6 +46,13 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+}
+/**
+ * PlayCardActionAction represents playing a card action from player's action list
+ */
+export interface PlayCardActionAction {
+  cardId: string;
+  behaviorIndex: number /* int */;
 }
 /**
  * HexPositionDto represents a position on the Mars board
@@ -128,6 +136,14 @@ export interface ActionPlayCardRequest {
   cardId: string;
 }
 /**
+ * ActionPlayCardActionRequest contains the action data for play card action actions
+ */
+export interface ActionPlayCardActionRequest {
+  type: ActionType;
+  cardId: string;
+  behaviorIndex: number /* int */;
+}
+/**
  * ActionSellPatentsRequest contains the action data for sell patents actions
  */
 export interface ActionSellPatentsRequest {
@@ -175,8 +191,7 @@ export const AdminCommandTypeGiveCard: AdminCommandType = "give-card";
 export const AdminCommandTypeSetPhase: AdminCommandType = "set-phase";
 export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
 export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
-export const AdminCommandTypeSetGlobalParams: AdminCommandType =
-  "set-global-params";
+export const AdminCommandTypeSetGlobalParams: AdminCommandType = "set-global-params";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -226,12 +241,10 @@ export interface SetGlobalParamsAdminCommand {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase =
-  "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase =
-  "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -492,8 +505,7 @@ export interface ProductionDto {
  */
 export type PlayerEffectType = string;
 export const PlayerEffectTypeDiscount: PlayerEffectType = "discount"; // Cost reduction for playing cards
-export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType =
-  "global-parameter-lenience"; // Global parameter requirement flexibility
+export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType = "global-parameter-lenience"; // Global parameter requirement flexibility
 export const PlayerEffectTypeDefense: PlayerEffectType = "defense"; // Protection from attacks or resource removal
 export const PlayerEffectTypeValueModifier: PlayerEffectType = "value-modifier"; // Increases resource values (e.g., steel/titanium worth more)
 /**
@@ -753,39 +765,29 @@ export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
 export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
-export const MessageTypeProductionPhaseStarted: MessageType =
-  "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
  */
-export const MessageTypeActionSellPatents: MessageType =
-  "action.standard-project.sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType =
-  "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType =
-  "action.standard-project.build-power-plant";
-export const MessageTypeActionBuildAquifer: MessageType =
-  "action.standard-project.build-aquifer";
-export const MessageTypeActionPlantGreenery: MessageType =
-  "action.standard-project.plant-greenery";
-export const MessageTypeActionBuildCity: MessageType =
-  "action.standard-project.build-city";
+export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
 /**
  * Game management message types
  */
-export const MessageTypeActionStartGame: MessageType =
-  "action.game-management.start-game";
-export const MessageTypeActionSkipAction: MessageType =
-  "action.game-management.skip-action";
+export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
 /**
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionSelectStartingCard: MessageType =
-  "action.card.select-starting-card";
-export const MessageTypeActionSelectCards: MessageType =
-  "action.card.select-cards";
+export const MessageTypeActionPlayCardAction: MessageType = "action.card.play-card-action";
+export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
 /**
  * Admin message types (development mode only)
  */

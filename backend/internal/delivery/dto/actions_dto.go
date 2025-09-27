@@ -7,9 +7,10 @@ const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
 	ActionTypeSelectCards        ActionType = "select-cards"
 
-	ActionTypeStartGame  ActionType = "start-game"
-	ActionTypeSkipAction ActionType = "skip-action"
-	ActionTypePlayCard   ActionType = "play-card"
+	ActionTypeStartGame      ActionType = "start-game"
+	ActionTypeSkipAction     ActionType = "skip-action"
+	ActionTypePlayCard       ActionType = "play-card"
+	ActionTypePlayCardAction ActionType = "play-card-action"
 	// Standard Projects
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
@@ -38,6 +39,12 @@ type SkipAction struct {
 // PlayCardAction represents playing a card from hand
 type PlayCardAction struct {
 	CardID string `json:"cardId" ts:"string"`
+}
+
+// PlayCardActionAction represents playing a card action from player's action list
+type PlayCardActionAction struct {
+	CardID        string `json:"cardId" ts:"string"`
+	BehaviorIndex int    `json:"behaviorIndex" ts:"number"`
 }
 
 // HexPositionDto represents a position on the Mars board
@@ -129,6 +136,18 @@ type ActionPlayCardRequest struct {
 // GetAction returns the play card action
 func (ap *ActionPlayCardRequest) GetAction() *PlayCardAction {
 	return &PlayCardAction{CardID: ap.CardID}
+}
+
+// ActionPlayCardActionRequest contains the action data for play card action actions
+type ActionPlayCardActionRequest struct {
+	Type          ActionType `json:"type" ts:"ActionType"`
+	CardID        string     `json:"cardId" ts:"string"`
+	BehaviorIndex int        `json:"behaviorIndex" ts:"number"`
+}
+
+// GetAction returns the play card action action
+func (ap *ActionPlayCardActionRequest) GetAction() *PlayCardActionAction {
+	return &PlayCardActionAction{CardID: ap.CardID, BehaviorIndex: ap.BehaviorIndex}
 }
 
 // Standard Project Action Requests
