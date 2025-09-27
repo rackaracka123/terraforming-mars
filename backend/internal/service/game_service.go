@@ -1279,6 +1279,12 @@ func (s *GameServiceImpl) SetGlobalParameters(ctx context.Context, gameID string
 		return fmt.Errorf("failed to update global parameters: %w", err)
 	}
 
+	// Broadcast game state to all players
+	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
+		log.Error("Failed to broadcast game state after global parameters update", zap.Error(broadcastErr))
+		// Don't fail the operation, just log the error
+	}
+
 	log.Info("✅ Global parameters updated successfully",
 		zap.String("game_id", gameID),
 		zap.Any("new_parameters", modelParams))

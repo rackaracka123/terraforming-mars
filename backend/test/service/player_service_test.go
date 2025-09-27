@@ -264,3 +264,148 @@ func TestPlayerService_FindPlayerByName(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestPlayerService_AdminCommands_WithBroadcasting(t *testing.T) {
+	// Setup with a real session manager to test broadcasting
+	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository()
+	mockSessionManager := test.NewMockSessionManager()
+	playerService := service.NewPlayerService(gameRepo, playerRepo, mockSessionManager)
+
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, mockSessionManager)
+	boardService := service.NewBoardService()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, mockSessionManager)
+
+	ctx := context.Background()
+	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	require.NoError(t, err)
+
+	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
+	require.NoError(t, err)
+	playerID := game.PlayerIDs[0]
+
+	// Load cards for AddCardToHand test
+	err = cardRepo.LoadCards(ctx)
+	require.NoError(t, err)
+
+	t.Run("Admin AddCardToHand broadcasts game state", func(t *testing.T) {
+		// Get a test card
+		cards, err := cardRepo.GetStartingCardPool(ctx)
+		require.NoError(t, err)
+		require.Greater(t, len(cards), 0)
+		cardID := cards[0].ID
+
+		// Reset broadcast count
+		mockSessionManager.ResetBroadcastCount()
+
+		// Execute admin command
+		err = playerService.AddCardToHand(ctx, game.ID, playerID, cardID)
+		require.NoError(t, err)
+
+		// Verify broadcast was called
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "AddCardToHand should trigger game state broadcast")
+	})
+
+	t.Run("Admin SetResources broadcasts game state", func(t *testing.T) {
+		mockSessionManager.ResetBroadcastCount()
+
+		newResources := model.Resources{
+			Credits:  100,
+			Steel:    10,
+			Titanium: 5,
+			Plants:   8,
+			Energy:   3,
+			Heat:     12,
+		}
+
+		err = playerService.SetResources(ctx, game.ID, playerID, newResources)
+		require.NoError(t, err)
+
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetResources should trigger game state broadcast")
+	})
+
+	t.Run("Admin SetProduction broadcasts game state", func(t *testing.T) {
+		mockSessionManager.ResetBroadcastCount()
+
+		newProduction := model.Production{
+			Credits:  5,
+			Steel:    2,
+			Titanium: 1,
+			Plants:   3,
+			Energy:   2,
+			Heat:     1,
+		}
+
+		err = playerService.SetProduction(ctx, game.ID, playerID, newProduction)
+		require.NoError(t, err)
+
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetProduction should trigger game state broadcast")
+	})
+
+	t.Run("Admin SetGlobalParameters broadcasts game state", func(t *testing.T) {
+		mockSessionManager.ResetBroadcastCount()
+
+		newParams := model.GlobalParameters{
+			Temperature: -20,
+			Oxygen:      5,
+			Oceans:      3,
+		}
+
+		err = gameService.SetGlobalParameters(ctx, game.ID, newParams)
+		require.NoError(t, err)
+
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetGlobalParameters should trigger game state broadcast")
+	})
+
+	t.Run("Admin SetGamePhase broadcasts game state", func(t *testing.T) {
+		mockSessionManager.ResetBroadcastCount()
+
+		err = gameService.SetGamePhase(ctx, game.ID, "action")
+		require.NoError(t, err)
+
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetGamePhase should trigger game state broadcast")
+	})
+
+	t.Run("PlayCard broadcasts game state", func(t *testing.T) {
+		// Set the game to action phase and ensure player has actions available
+		err = gameService.SetGamePhase(ctx, game.ID, "action")
+		require.NoError(t, err)
+
+		// Setup for card play test
+
+		err = playerService.SetResources(ctx, game.ID, playerID, model.Resources{
+			Credits:  50, // Enough to pay for any card
+			Steel:    10,
+			Titanium: 10,
+			Plants:   10,
+			Energy:   10,
+			Heat:     10,
+		})
+		require.NoError(t, err)
+
+		// Add a card to player's hand for this test (use a different card than previous tests)
+		cards, err := cardRepo.GetStartingCardPool(ctx)
+		require.NoError(t, err)
+		require.GreaterOrEqual(t, len(cards), 2)
+		cardToPlay := cards[1].ID // Use second card to avoid conflicts with previous tests
+
+		err = playerService.AddCardToHand(ctx, game.ID, playerID, cardToPlay)
+		require.NoError(t, err)
+
+		// Reset broadcast count to test only PlayCard broadcasting
+		mockSessionManager.ResetBroadcastCount()
+
+		// Ensure player has available actions (needed for card play)
+		err = playerRepo.UpdateAvailableActions(ctx, game.ID, playerID, 2)
+		require.NoError(t, err)
+
+		// Execute card play
+		err = cardService.PlayCard(ctx, game.ID, playerID, cardToPlay)
+		require.NoError(t, err)
+
+		// Verify broadcast was called
+		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "PlayCard should trigger game state broadcast")
+	})
+}

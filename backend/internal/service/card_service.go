@@ -258,6 +258,12 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 	}
 	log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 
+	// Broadcast game state to all players after successful card play
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after card play", zap.Error(err))
+		// Don't fail the card play operation, just log the error
+	}
+
 	log.Info("✅ Card played successfully", zap.String("card_id", cardID), zap.String("card_name", card.Name))
 	return nil
 }

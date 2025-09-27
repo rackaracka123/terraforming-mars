@@ -356,6 +356,12 @@ func (s *PlayerServiceImpl) AddCardToHand(ctx context.Context, gameID, playerID,
 		return fmt.Errorf("failed to add card to player's hand: %w", err)
 	}
 
+	// Broadcast game state to all players
+	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
+		log.Error("Failed to broadcast game state after adding card", zap.Error(broadcastErr))
+		// Don't fail the operation, just log the error
+	}
+
 	log.Info("✅ Card added to player's hand successfully",
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID),
@@ -386,6 +392,12 @@ func (s *PlayerServiceImpl) SetResources(ctx context.Context, gameID, playerID s
 	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, modelResources); err != nil {
 		log.Error("Failed to set player resources", zap.Error(err))
 		return fmt.Errorf("failed to set player resources: %w", err)
+	}
+
+	// Broadcast game state to all players
+	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
+		log.Error("Failed to broadcast game state after setting resources", zap.Error(broadcastErr))
+		// Don't fail the operation, just log the error
 	}
 
 	log.Info("✅ Player resources set successfully",
@@ -425,6 +437,12 @@ func (s *PlayerServiceImpl) SetProduction(ctx context.Context, gameID, playerID 
 	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, modelProduction); err != nil {
 		log.Error("Failed to set player production", zap.Error(err))
 		return fmt.Errorf("failed to set player production: %w", err)
+	}
+
+	// Broadcast game state to all players
+	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
+		log.Error("Failed to broadcast game state after setting production", zap.Error(broadcastErr))
+		// Don't fail the operation, just log the error
 	}
 
 	log.Info("✅ Player production set successfully",
