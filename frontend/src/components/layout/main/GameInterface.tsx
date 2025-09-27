@@ -4,8 +4,8 @@ import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
-import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
+import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
@@ -27,6 +27,7 @@ import {
   GameStatusLobby,
   PlayerDisconnectedPayload,
   PlayerDto,
+  PlayerActionDto,
   ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
 import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
@@ -49,8 +50,8 @@ export default function GameInterface() {
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
-  const [showActionsModal, setShowActionsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
+  const [showActionsModal, setShowActionsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
 
   // Production phase modal state
@@ -314,6 +315,13 @@ export default function GameInterface() {
     handleDisconnect,
   ]);
 
+  // Handle action selection from card actions
+  const handleActionSelect = useCallback((action: PlayerActionDto) => {
+    console.warn("🎯 Player selected card action:", action.cardName, action);
+    // TODO: Implement action execution via WebSocket
+    // This will send the action to the backend for processing
+  }, []);
+
   // Tab conflict handlers
   const handleTabTakeOver = () => {
     if (conflictingTabInfo) {
@@ -461,10 +469,6 @@ export default function GameInterface() {
     return setupWebSocketListeners();
   }, [setupWebSocketListeners]);
 
-  const handleActionSelect = () => {
-    // In a real app, emit to server
-  };
-
   // Listen for debug dropdown toggle from TopMenuBar
   useEffect(() => {
     const handleToggleDebug = () => {
@@ -525,7 +529,7 @@ export default function GameInterface() {
             break;
           case "4":
             event.preventDefault();
-            setShowActionsModal(true);
+            // Actions are now handled via popover in BottomResourceBar
             break;
           case "5":
             event.preventDefault();
@@ -578,8 +582,8 @@ export default function GameInterface() {
     showCardsPlayedModal ||
     showTagsModal ||
     showVictoryPointsModal ||
-    showActionsModal ||
     showCardEffectsModal ||
+    showActionsModal ||
     showProductionPhaseModal;
 
   // Check if game is in lobby phase
@@ -593,10 +597,11 @@ export default function GameInterface() {
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
-        onOpenActionsModal={() => setShowActionsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenTagsModal={() => setShowTagsModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
+        onOpenActionsModal={() => setShowActionsModal(true)}
+        onActionSelect={handleActionSelect}
       />
 
       {/*<CorporationSelectionModal*/}
@@ -627,20 +632,21 @@ export default function GameInterface() {
         playerName={currentPlayer?.name}
       />
 
-      <ActionsModal
-        isVisible={showActionsModal}
-        onClose={() => setShowActionsModal(false)}
-        actions={[]}
-        playerName={currentPlayer?.name}
-        onActionSelect={handleActionSelect}
-      />
-
       <CardEffectsModal
         isVisible={showCardEffectsModal}
         onClose={() => setShowCardEffectsModal(false)}
         effects={[]}
         cards={[]}
         playerName={currentPlayer?.name}
+      />
+
+      <ActionsModal
+        isVisible={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        actions={currentPlayer?.actions || []}
+        playerName={currentPlayer?.name}
+        onActionSelect={handleActionSelect}
+        gameState={game}
       />
 
       <ProductionPhaseModal

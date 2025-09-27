@@ -1,5 +1,10 @@
-import React from "react";
-import { PlayerDto } from "../../../types/generated/api-types.ts";
+import React, { useRef, useState } from "react";
+import {
+  PlayerDto,
+  PlayerActionDto,
+  GameDto,
+} from "../../../types/generated/api-types.ts";
+import ActionsPopover from "../popover/ActionsPopover.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -13,21 +18,27 @@ interface ResourceData {
 
 interface BottomResourceBarProps {
   currentPlayer?: PlayerDto | null;
+  gameState?: GameDto;
   onOpenCardEffectsModal?: () => void;
-  onOpenActionsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenTagsModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
+  onOpenActionsModal?: () => void;
+  onActionSelect?: (action: PlayerActionDto) => void;
 }
 
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
+  gameState,
   onOpenCardEffectsModal,
-  onOpenActionsModal,
   onOpenCardsPlayedModal,
   onOpenTagsModal,
   onOpenVictoryPointsModal,
+  onOpenActionsModal,
+  onActionSelect,
 }) => {
+  const [showActionsPopover, setShowActionsPopover] = useState(false);
+  const actionsButtonRef = useRef<HTMLButtonElement>(null);
   // Helper function to create image with embedded number
   const createImageWithNumber = (
     imageSrc: string,
@@ -129,8 +140,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
   // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
-  // Get available actions from current player
-  const availableActions = currentPlayer?.availableActions || 0;
 
   // Modal handlers
   const handleOpenCardsModal = () => {
@@ -138,9 +147,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     onOpenCardsPlayedModal?.();
   };
 
-  const handleOpenActionsModal = () => {
-    // Opening actions modal
-    onOpenActionsModal?.();
+  const handleOpenActionsPopover = () => {
+    setShowActionsPopover(!showActionsPopover);
   };
 
   const handleOpenTagsModal = () => {
@@ -211,23 +219,34 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       {/* Action Buttons Section */}
       <div className="action-buttons-section">
         <button
-          className="action-button cards-button"
-          onClick={handleOpenCardsModal}
-          title="View Played Cards"
+          ref={actionsButtonRef}
+          className={`action-button actions-button ${
+            (currentPlayer?.actions?.length || 0) === 0
+              ? "actions-depleted"
+              : (currentPlayer?.actions?.length || 0) <= 1
+                ? "actions-low"
+                : ""
+          }`}
+          onClick={handleOpenActionsPopover}
+          title={`Card Actions: ${currentPlayer?.actions?.length || 0}`}
         >
-          <div className="button-icon">🃏</div>
-          <div className="button-count">{playedCardsCount}</div>
-          <div className="button-label">Played</div>
+          <div className="button-icon">⚡</div>
+          <div className="button-count">
+            {currentPlayer?.actions?.length || 0}
+          </div>
+          <div className="button-label">Actions</div>
         </button>
 
         <button
-          className="action-button tags-button"
-          onClick={handleOpenTagsModal}
-          title="View Tags"
+          className="action-button effects-button"
+          onClick={handleOpenCardEffectsModal}
+          title="View Card Effects"
         >
-          <div className="button-icon">🏷️</div>
-          <div className="button-count">{0}</div>
-          <div className="button-label">Tags</div>
+          <div className="button-icon">✨</div>
+          <div className="button-count">
+            {currentPlayer?.effects?.length || 0}
+          </div>
+          <div className="button-label">Effects</div>
         </button>
 
         <button
@@ -243,31 +262,23 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className={`action-button actions-button ${
-            availableActions === 0
-              ? "actions-depleted"
-              : availableActions <= 1
-                ? "actions-low"
-                : ""
-          }`}
-          onClick={handleOpenActionsModal}
-          title={`Available Actions: ${availableActions}`}
+          className="action-button tags-button"
+          onClick={handleOpenTagsModal}
+          title="View Tags"
         >
-          <div className="button-icon">⚡</div>
-          <div className="button-count">{availableActions}</div>
-          <div className="button-label">Actions</div>
+          <div className="button-icon">🏷️</div>
+          <div className="button-count">{0}</div>
+          <div className="button-label">Tags</div>
         </button>
 
         <button
-          className="action-button effects-button"
-          onClick={handleOpenCardEffectsModal}
-          title="View Card Effects"
+          className="action-button cards-button"
+          onClick={handleOpenCardsModal}
+          title="View Played Cards"
         >
-          <div className="button-icon">✨</div>
-          <div className="button-count">
-            {currentPlayer?.effects?.length || 0}
-          </div>
-          <div className="button-label">Effects</div>
+          <div className="button-icon">🃏</div>
+          <div className="button-count">{playedCardsCount}</div>
+          <div className="button-label">Played</div>
         </button>
       </div>
 
@@ -849,6 +860,21 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           }
         }
       `}</style>
+
+      {/* Actions Popover */}
+      <ActionsPopover
+        isVisible={showActionsPopover}
+        onClose={() => setShowActionsPopover(false)}
+        actions={currentPlayer?.actions || []}
+        playerName={currentPlayer?.name}
+        onActionSelect={(action) => {
+          onActionSelect?.(action);
+          setShowActionsPopover(false);
+        }}
+        onOpenDetails={onOpenActionsModal}
+        anchorRef={actionsButtonRef as React.RefObject<HTMLElement>}
+        gameState={gameState}
+      />
 
       {/* Modal components are now rendered in GameInterface */}
     </div>

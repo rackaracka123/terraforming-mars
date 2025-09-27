@@ -512,6 +512,7 @@ export interface PlayerActionDto {
   cardName: string; // Name of the card for display purposes
   behaviorIndex: number /* int */; // Which behavior on the card this action represents
   behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
+  playCount: number /* int */; // Number of times this action has been played this generation
 }
 /**
  * PlayerDto represents a player in the game for client consumption
@@ -579,7 +580,6 @@ export interface GameDto {
   viewingPlayerId: string; // The player viewing this game state
   currentTurn?: string; // Whose turn it is (nullable)
   generation: number /* int */;
-  remainingActions: number /* int */; // Remaining actions in the current turn
   turnOrder: string[]; // Turn order of all players in game
   board: BoardDto; // Game board with tiles and occupancy state
 }

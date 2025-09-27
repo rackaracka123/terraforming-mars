@@ -431,3 +431,116 @@ func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
 	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
 	assert.True(t, complete)
 }
+
+func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) {
+	// Setup
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+
+	ctx := context.Background()
+
+	// Create a test game in starting card selection phase
+	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	require.NoError(t, err)
+	gameID := createdGame.ID
+
+	// Set game to active status and starting card selection phase
+	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	require.NoError(t, err)
+	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
+	require.NoError(t, err)
+
+	// Create two test players
+	player1 := model.Player{
+		ID:   "player1",
+		Name: "Test Player 1",
+		Resources: model.Resources{
+			Credits: 40,
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	player2 := model.Player{
+		ID:   "player2",
+		Name: "Test Player 2",
+		Resources: model.Resources{
+			Credits: 40,
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	// Add players to game
+	err = playerRepo.Create(ctx, gameID, player1)
+	require.NoError(t, err)
+	err = playerRepo.Create(ctx, gameID, player2)
+	require.NoError(t, err)
+
+	// Load cards and get available starting cards
+	err = cardRepo.LoadCards(ctx)
+	require.NoError(t, err, "Should load card data for testing")
+
+	availableCards, err := cardService.GetStartingCards(ctx)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(availableCards), 2)
+
+	availableCardIDs := make([]string, len(availableCards))
+	for i, card := range availableCards {
+		availableCardIDs[i] = card.ID
+	}
+
+	// Set starting cards for both players
+	err = playerRepo.SetStartingSelection(ctx, gameID, player1.ID, availableCardIDs)
+	require.NoError(t, err)
+	err = playerRepo.SetStartingSelection(ctx, gameID, player2.ID, availableCardIDs)
+	require.NoError(t, err)
+
+	// Verify game is in starting card selection phase
+	game, err := gameRepo.GetByID(ctx, gameID)
+	require.NoError(t, err)
+	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
+
+	// First player selects starting cards (should NOT trigger phase transition)
+	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
+	require.NoError(t, err)
+
+	// Verify game is still in starting card selection phase
+	game, err = gameRepo.GetByID(ctx, gameID)
+	require.NoError(t, err)
+	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
+
+	// Second player selects starting cards (should trigger automatic phase transition)
+	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
+	require.NoError(t, err)
+
+	// Verify game automatically transitioned to action phase
+	game, err = gameRepo.GetByID(ctx, gameID)
+	require.NoError(t, err)
+	assert.Equal(t, model.GamePhaseAction, game.CurrentPhase, "Game should automatically transition to action phase when all players complete starting card selection")
+
+	// Verify both players have their selected cards
+	updatedPlayer1, err := playerRepo.GetByID(ctx, gameID, player1.ID)
+	require.NoError(t, err)
+	assert.Contains(t, updatedPlayer1.Cards, availableCardIDs[0])
+	assert.Equal(t, 37, updatedPlayer1.Resources.Credits) // 40 - 3 for 1 card
+
+	updatedPlayer2, err := playerRepo.GetByID(ctx, gameID, player2.ID)
+	require.NoError(t, err)
+	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
+	assert.Equal(t, 37, updatedPlayer2.Resources.Credits) // 40 - 3 for 1 card
+}

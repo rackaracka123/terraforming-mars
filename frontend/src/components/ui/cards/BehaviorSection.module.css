@@ -152,6 +152,11 @@
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
+.unaffordableResource {
+  opacity: 0.4;
+  filter: grayscale(0.7) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
 /* Larger icons for TR and placement tiles */
 .trIcon {
   width: 32px;
@@ -336,20 +341,6 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
-}
-
-/* Hover effects */
-.behaviorItem:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-}
-
-.behaviorItem.manual-action:hover {
-  box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4);
-}
-
-.behaviorItem.immediate-production:hover {
-  box-shadow: 0 3px 8px rgba(139, 89, 42, 0.35);
 }
 
 /* ============================================================================ */
