@@ -147,6 +147,7 @@ type ResourceCondition struct {
 	Target            TargetType    `json:"target" ts:"TargetType"`                                // Target for this resource condition
 	AffectedResources []string      `json:"affectedResources,omitempty" ts:"string[] | undefined"` // For defense: resources being protected
 	AffectedTags      []CardTag     `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // For discount: tags qualifying for discount
+	MaxTrigger        *int          `json:"maxTrigger,omitempty" ts:"number | undefined"`          // Max times it can trigger (-1 = unlimited), only for "per" conditions
 	Per               *PerCondition `json:"per,omitempty" ts:"PerCondition | undefined"`           // For conditional gains: what to count
 }
 

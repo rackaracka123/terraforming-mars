@@ -304,6 +304,102 @@ func ToProductionPhaseDto(phase *model.ProductionPhase) *ProductionPhaseDto {
 	}
 }
 
+// ToResourceConditionDto converts a model ResourceCondition to ResourceConditionDto
+func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
+	return ResourceConditionDto{
+		Type:              ResourceType(rc.Type),
+		Amount:            rc.Amount,
+		Target:            TargetType(rc.Target),
+		AffectedResources: rc.AffectedResources,
+		AffectedTags:      ToCardTagDtoSlice(rc.AffectedTags),
+		MaxTrigger:        rc.MaxTrigger,
+		Per:               ToPerConditionDto(rc.Per),
+	}
+}
+
+// ToResourceConditionDtoSlice converts a slice of model ResourceCondition to ResourceConditionDto slice
+func ToResourceConditionDtoSlice(conditions []model.ResourceCondition) []ResourceConditionDto {
+	if conditions == nil {
+		return nil
+	}
+
+	result := make([]ResourceConditionDto, len(conditions))
+	for i, condition := range conditions {
+		result[i] = ToResourceConditionDto(condition)
+	}
+	return result
+}
+
+// ToPerConditionDto converts a model PerCondition pointer to PerConditionDto pointer
+func ToPerConditionDto(per *model.PerCondition) *PerConditionDto {
+	if per == nil {
+		return nil
+	}
+
+	return &PerConditionDto{
+		Type:     ResourceType(per.Type),
+		Amount:   per.Amount,
+		Location: ToCardApplyLocationPointer(per.Location),
+		Target:   ToTargetTypePointer(per.Target),
+		Tag:      ToCardTagPointer(per.Tag),
+	}
+}
+
+// ToChoiceDto converts a model Choice to ChoiceDto
+func ToChoiceDto(choice model.Choice) ChoiceDto {
+	return ChoiceDto{
+		Inputs:  ToResourceConditionDtoSlice(choice.Inputs),
+		Outputs: ToResourceConditionDtoSlice(choice.Outputs),
+	}
+}
+
+// ToChoiceDtoSlice converts a slice of model Choice to ChoiceDto slice
+func ToChoiceDtoSlice(choices []model.Choice) []ChoiceDto {
+	if choices == nil {
+		return nil
+	}
+
+	result := make([]ChoiceDto, len(choices))
+	for i, choice := range choices {
+		result[i] = ToChoiceDto(choice)
+	}
+	return result
+}
+
+// ToTriggerDto converts a model Trigger to TriggerDto
+func ToTriggerDto(trigger model.Trigger) TriggerDto {
+	return TriggerDto{
+		Type:      ResourceTriggerType(trigger.Type),
+		Condition: ToResourceTriggerConditionDto(trigger.Condition),
+	}
+}
+
+// ToTriggerDtoSlice converts a slice of model Trigger to TriggerDto slice
+func ToTriggerDtoSlice(triggers []model.Trigger) []TriggerDto {
+	if triggers == nil {
+		return nil
+	}
+
+	result := make([]TriggerDto, len(triggers))
+	for i, trigger := range triggers {
+		result[i] = ToTriggerDto(trigger)
+	}
+	return result
+}
+
+// ToResourceTriggerConditionDto converts a model ResourceTriggerCondition pointer to ResourceTriggerConditionDto pointer
+func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *ResourceTriggerConditionDto {
+	if condition == nil {
+		return nil
+	}
+
+	return &ResourceTriggerConditionDto{
+		Type:         TriggerType(condition.Type),
+		Location:     ToCardApplyLocationPointer(condition.Location),
+		AffectedTags: ToCardTagDtoSlice(condition.AffectedTags),
+	}
+}
+
 // ToCardBehaviorDtoSlice converts a slice of model CardBehaviors to CardBehaviorDto slice
 func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 	if behaviors == nil {
@@ -313,13 +409,42 @@ func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 	result := make([]CardBehaviorDto, len(behaviors))
 	for i, behavior := range behaviors {
 		result[i] = CardBehaviorDto{
-			Triggers: behavior.Triggers,
-			Inputs:   behavior.Inputs,
-			Outputs:  behavior.Outputs,
-			Choices:  behavior.Choices,
+			Triggers: ToTriggerDtoSlice(behavior.Triggers),
+			Inputs:   ToResourceConditionDtoSlice(behavior.Inputs),
+			Outputs:  ToResourceConditionDtoSlice(behavior.Outputs),
+			Choices:  ToChoiceDtoSlice(behavior.Choices),
 		}
 	}
 	return result
+}
+
+// Helper functions for type conversions
+
+// ToCardApplyLocationPointer converts model CardApplyLocation pointer to DTO CardApplyLocation pointer
+func ToCardApplyLocationPointer(ptr *model.CardApplyLocation) *CardApplyLocation {
+	if ptr == nil {
+		return nil
+	}
+	result := CardApplyLocation(*ptr)
+	return &result
+}
+
+// ToTargetTypePointer converts model TargetType pointer to DTO TargetType pointer
+func ToTargetTypePointer(ptr *model.TargetType) *TargetType {
+	if ptr == nil {
+		return nil
+	}
+	result := TargetType(*ptr)
+	return &result
+}
+
+// ToCardTagPointer converts model CardTag pointer to DTO CardTag pointer
+func ToCardTagPointer(ptr *model.CardTag) *CardTag {
+	if ptr == nil {
+		return nil
+	}
+	result := CardTag(*ptr)
+	return &result
 }
 
 // ToPlayerEffectDto converts a model PlayerEffect to PlayerEffectDto
