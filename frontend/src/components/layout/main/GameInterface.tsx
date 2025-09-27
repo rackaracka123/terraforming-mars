@@ -12,9 +12,12 @@ import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
+import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
+import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
 import { getTabManager } from "../../../utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
+import { skyboxCache } from "../../../services/SkyboxCache.ts";
 import {
   CardDto,
   FullStatePayload,
@@ -26,6 +29,7 @@ import {
   PlayerDto,
   ProductionPhaseStartedPayload,
 } from "../../../types/generated/api-types.ts";
+import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
 
 export default function GameInterface() {
@@ -34,6 +38,9 @@ export default function GameInterface() {
   const [game, setGame] = useState<GameDto | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectionStep, setReconnectionStep] = useState<
+    "game" | "environment" | null
+  >(null);
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
@@ -55,6 +62,11 @@ export default function GameInterface() {
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
   const [cardDetails, setCardDetails] = useState<CardDto[]>([]);
+
+  // Unplayable card feedback state
+  const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
+  const [unplayableReason, setUnplayableReason] =
+    useState<UnplayableReason | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -99,6 +111,7 @@ export default function GameInterface() {
       // If we were reconnecting, mark reconnection as successful
       if (isReconnecting) {
         setIsReconnecting(false);
+        setReconnectionStep(null);
       }
 
       // Set current player from updated game data
@@ -150,13 +163,11 @@ export default function GameInterface() {
   }, [navigate]);
 
   const handlePlayerDisconnected = useCallback(
-    (payload: PlayerDisconnectedPayload) => {
+    (_payload: PlayerDisconnectedPayload) => {
       // Handle when any player disconnects (NOT this client)
       // Player disconnected from the game
-
-      if (payload.game) {
-        handleGameUpdated(payload.game);
-      }
+      // Note: PlayerDisconnectedPayload no longer contains game data
+      // Game state updates will come through separate game-updated events
     },
     [handleGameUpdated],
   );
@@ -197,6 +208,14 @@ export default function GameInterface() {
     }
   }, []);
 
+  const handleUnplayableCard = useCallback(
+    (card: CardDto | null, reason: UnplayableReason | null) => {
+      setUnplayableCard(card);
+      setUnplayableReason(reason);
+    },
+    [],
+  );
+
   // Attempt reconnection to the game
   const attemptReconnection = useCallback(async () => {
     try {
@@ -208,6 +227,9 @@ export default function GameInterface() {
       }
 
       const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+
+      // Step 1: Reconnect to game
+      setReconnectionStep("game");
 
       // Fetch current game state from server first
       const response = await fetch(
@@ -230,11 +252,18 @@ export default function GameInterface() {
       // Store player ID for WebSocket handlers
       currentPlayerIdRef.current = playerId;
 
+      // Step 2: Ensure 3D environment is loaded
+      if (!skyboxCache.isReady()) {
+        setReconnectionStep("environment");
+        await skyboxCache.preload();
+      }
+
       // Now establish WebSocket connection
       await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);
+      setReconnectionStep(null);
       // Don't navigate away - let user try manual reconnection
       // or they can manually navigate to home if needed
       console.error(
@@ -516,19 +545,29 @@ export default function GameInterface() {
   }, [showDebugDropdown]);
 
   if (!isConnected || !game || isReconnecting) {
+    let loadingMessage = "Connecting to game...";
+
+    if (isReconnecting && reconnectionStep) {
+      if (reconnectionStep === "game") {
+        loadingMessage = "Reconnecting to game...";
+      } else if (reconnectionStep === "environment") {
+        loadingMessage = "Loading 3D environment...";
+      }
+    }
+
     return (
       <div
         style={{
-          padding: "20px",
-          color: "white",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
           background: "#000011",
-          minHeight: "100vh",
+          zIndex: 9999,
         }}
       >
-        <h2>Loading Terraforming Mars...</h2>
-        <p>
-          {isReconnecting ? "Reconnecting to game..." : "Connecting to game..."}
-        </p>
+        <LoadingSpinner message={loadingMessage} />
       </div>
     );
   }
@@ -641,13 +680,25 @@ export default function GameInterface() {
       />
 
       {/* Card fan overlay for hand cards */}
-      <CardFanOverlay
-        cards={currentPlayer?.cards || []}
-        hideWhenModalOpen={showCardSelection || isLobbyPhase}
-        onCardSelect={(_cardId) => {
-          // TODO: Implement card selection logic (view details, etc.)
-        }}
-        onPlayCard={handlePlayCard}
+      {game && currentPlayer && (
+        <CardFanOverlay
+          cards={currentPlayer.cards || []}
+          game={game}
+          player={currentPlayer}
+          hideWhenModalOpen={showCardSelection || isLobbyPhase}
+          onCardSelect={(_cardId) => {
+            // TODO: Implement card selection logic (view details, etc.)
+          }}
+          onPlayCard={handlePlayCard}
+          onUnplayableCard={handleUnplayableCard}
+        />
+      )}
+
+      {/* Hexagonal shield overlay */}
+      <HexagonalShieldOverlay
+        card={unplayableCard}
+        reason={unplayableReason}
+        isVisible={unplayableCard !== null}
       />
 
       {/* Reconnection overlay */}

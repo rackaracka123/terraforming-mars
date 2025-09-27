@@ -10,6 +10,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/plant_greenery"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/play_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/sell_patents"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/admin/admin_command"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_cards"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_starting_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connect"
@@ -61,4 +62,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 
 	// Register play card handler
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(cardService, parser))
+
+	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService))
 }

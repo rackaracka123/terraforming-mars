@@ -53,6 +53,10 @@ type GameService interface {
 
 	// Handle player reconnection - updates connection status and sends complete game state
 	PlayerReconnected(ctx context.Context, gameID string, playerID string) error
+
+	// Admin methods (development mode only)
+	SetGamePhase(ctx context.Context, gameID string, phase string) error
+	SetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
 }
 
 // GameServiceImpl implements GameService interface
@@ -60,6 +64,7 @@ type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	boardService   BoardService
 	sessionManager session.SessionManager
 }
 
@@ -68,12 +73,14 @@ func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardService *CardServiceImpl,
+	boardService BoardService,
 	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		cardService:    cardService,
+		boardService:   boardService,
 		sessionManager: sessionManager,
 	}
 }
@@ -96,7 +103,17 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		return model.Game{}, fmt.Errorf("failed to create game: %w", err)
 	}
 
-	log.Info("Game created via GameService", zap.String("game_id", game.ID))
+	// Initialize the board with default Mars tiles
+	board := s.boardService.GenerateDefaultBoard()
+	game.Board = board
+
+	// Update the game with the initialized board
+	if err := s.gameRepo.UpdateBoard(ctx, game.ID, board); err != nil {
+		log.Error("Failed to update game with board", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
+	}
+
+	log.Info("Game created via GameService", zap.String("game_id", game.ID), zap.Int("board_tiles", len(board.Tiles)))
 	return game, nil
 }
 
@@ -1175,4 +1192,96 @@ func (s *GameServiceImpl) getPlayerName(players []model.Player, playerID string)
 		}
 	}
 	return "Unknown" // Fallback if player not found
+}
+
+// SetGamePhase sets the game phase directly (admin command)
+func (s *GameServiceImpl) SetGamePhase(ctx context.Context, gameID string, phase string) error {
+	log := logger.WithContext()
+
+	log.Info("🔄 Admin setting game phase",
+		zap.String("game_id", gameID),
+		zap.String("phase", phase))
+
+	// Convert string to GamePhase
+	gamePhase := model.GamePhase(phase)
+
+	// Validate that the phase is valid
+	validPhases := []model.GamePhase{
+		model.GamePhaseWaitingForGameStart,
+		model.GamePhaseStartingCardSelection,
+		model.GamePhaseStartGameSelection,
+		model.GamePhaseAction,
+		model.GamePhaseProductionAndCardDraw,
+		model.GamePhaseComplete,
+	}
+
+	isValid := false
+	for _, validPhase := range validPhases {
+		if gamePhase == validPhase {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		return fmt.Errorf("invalid game phase: %s", phase)
+	}
+
+	// Update the game phase in repository
+	if err := s.gameRepo.UpdatePhase(ctx, gameID, gamePhase); err != nil {
+		log.Error("Failed to update game phase", zap.Error(err))
+		return fmt.Errorf("failed to update game phase: %w", err)
+	}
+
+	// Broadcast game state to all players
+	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
+		log.Error("Failed to broadcast game state after phase update", zap.Error(broadcastErr))
+		// Don't fail the operation, just log the error
+	}
+
+	log.Info("✅ Game phase updated successfully",
+		zap.String("game_id", gameID),
+		zap.String("new_phase", phase))
+
+	return nil
+}
+
+// SetGlobalParameters sets the global parameters directly (admin command)
+func (s *GameServiceImpl) SetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error {
+	log := logger.WithContext()
+
+	log.Info("🌍 Admin setting global parameters",
+		zap.String("game_id", gameID),
+		zap.Any("parameters", params))
+
+	// Use params directly since they're already model.GlobalParameters
+	modelParams := params
+
+	// Validate parameter ranges
+	if modelParams.Temperature < model.MinTemperature || modelParams.Temperature > model.MaxTemperature {
+		return fmt.Errorf("temperature %d is out of range [%d, %d]",
+			modelParams.Temperature, model.MinTemperature, model.MaxTemperature)
+	}
+
+	if modelParams.Oxygen < model.MinOxygen || modelParams.Oxygen > model.MaxOxygen {
+		return fmt.Errorf("oxygen %d is out of range [%d, %d]",
+			modelParams.Oxygen, model.MinOxygen, model.MaxOxygen)
+	}
+
+	if modelParams.Oceans < model.MinOceans || modelParams.Oceans > model.MaxOceans {
+		return fmt.Errorf("oceans %d is out of range [%d, %d]",
+			modelParams.Oceans, model.MinOceans, model.MaxOceans)
+	}
+
+	// Update global parameters
+	if err := s.UpdateGlobalParameters(ctx, gameID, modelParams); err != nil {
+		log.Error("Failed to update global parameters", zap.Error(err))
+		return fmt.Errorf("failed to update global parameters: %w", err)
+	}
+
+	log.Info("✅ Global parameters updated successfully",
+		zap.String("game_id", gameID),
+		zap.Any("new_parameters", modelParams))
+
+	return nil
 }

@@ -13,6 +13,7 @@ interface ProjectedHexTileProps {
   tileData: ProjectedHexTileData;
   tileType: "empty" | "ocean" | "greenery" | "city" | "special";
   ownerId?: string | null;
+  displayName?: string;
   onClick: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function ProjectedHexTile({
   tileData,
   tileType,
   ownerId,
+  displayName,
   onClick,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -27,7 +29,7 @@ export default function ProjectedHexTile({
 
   // Create hexagon geometry that's oriented along the surface normal
   const hexGeometry = useMemo(() => {
-    const geometry = new THREE.CircleGeometry(0.16, 6);
+    const geometry = new THREE.CircleGeometry(0.166, 6);
     // Rotate to pointy-top orientation
     geometry.rotateZ(Math.PI / 2);
     return geometry;
@@ -35,14 +37,14 @@ export default function ProjectedHexTile({
 
   // Create hex border
   const borderGeometry = useMemo(() => {
-    const geometry = new THREE.RingGeometry(0.155, 0.16, 6);
+    const geometry = new THREE.RingGeometry(0.156, 0.166, 6);
     geometry.rotateZ(Math.PI / 2);
     return geometry;
   }, []);
 
   // Create ocean gradient geometry - full hex circle for gradient effect
   const oceanGradientGeometry = useMemo(() => {
-    const geometry = new THREE.CircleGeometry(0.16, 6); // Full circle for gradient
+    const geometry = new THREE.CircleGeometry(0.166, 6); // Full circle for gradient
     geometry.rotateZ(Math.PI / 2);
     return geometry;
   }, []);
@@ -87,17 +89,65 @@ export default function ProjectedHexTile({
     });
   }, []);
 
-  // Update shader time uniform
+  // Create hover glow material with pulsation
+  const hoverGlowMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float opacity;
+        varying vec2 vUv;
+
+        void main() {
+          // Convert UV to centered coordinates (-0.5 to 0.5)
+          vec2 center = vUv - 0.5;
+
+          // Calculate distance from center (0.0 at center, ~0.5 at edges)
+          float distFromCenter = length(center);
+
+          // Create gradient that's strong at edges and fades toward center
+          float gradient = smoothstep(0.15, 0.45, distFromCenter);
+
+          vec3 glowColor = vec3(0.95, 0.95, 1.0); // Slightly blue-white glow
+
+          vec3 finalColor = glowColor;
+          float alpha = gradient * opacity;
+
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      uniforms: {
+        time: { value: 0.0 },
+        opacity: { value: 0.0 },
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+  }, []);
+
+  // Update shader time uniforms and handle hover animations
   useFrame((state) => {
     if (oceanBorderMaterial.uniforms) {
       oceanBorderMaterial.uniforms.time.value = state.clock.elapsedTime;
     }
 
-    if (meshRef.current && hovered) {
-      const scale = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.05;
-      meshRef.current.scale.setScalar(scale);
-    } else if (meshRef.current) {
-      meshRef.current.scale.setScalar(1);
+    if (hoverGlowMaterial.uniforms) {
+      hoverGlowMaterial.uniforms.time.value = state.clock.elapsedTime;
+
+      // Animate opacity based on hover state - reduced intensity
+      const targetOpacity = hovered ? 0.3 : 0.0;
+      hoverGlowMaterial.uniforms.opacity.value = THREE.MathUtils.lerp(
+        hoverGlowMaterial.uniforms.opacity.value,
+        targetOpacity,
+        0.15,
+      );
     }
   });
 
@@ -136,10 +186,10 @@ export default function ProjectedHexTile({
     }
   }, [tileType, tileData.isOceanSpace, hovered]);
 
-  // Border color
+  // Border color - darker for better visibility
   const borderColor = useMemo(() => {
     if (hovered) return new THREE.Color("#ffffff");
-    return tileColor.clone().multiplyScalar(0.7);
+    return tileColor.clone().multiplyScalar(0.25);
   }, [tileColor, hovered]);
 
   // Bonus icons data - create individual icons for each bonus count
@@ -188,7 +238,7 @@ export default function ProjectedHexTile({
 
       {/* Hex border */}
       <mesh geometry={borderGeometry} position={[0, 0, 0.001]}>
-        <meshBasicMaterial color={borderColor} transparent opacity={0.8} />
+        <meshBasicMaterial color={borderColor} transparent opacity={0.9} />
       </mesh>
 
       {/* Ocean space indicator - blue gradient fading to center */}
@@ -199,6 +249,13 @@ export default function ProjectedHexTile({
           material={oceanBorderMaterial}
         />
       )}
+
+      {/* Hover glow effect with pulsation */}
+      <mesh
+        position={[0, 0, 0.0015]}
+        geometry={oceanGradientGeometry}
+        material={hoverGlowMaterial}
+      />
 
       {/* Tile type icon */}
       {tileType !== "empty" && (
@@ -221,16 +278,57 @@ export default function ProjectedHexTile({
         </Text>
       )}
 
-      {/* Bonus resource icons */}
-      {bonusIcons.map((iconPath, index) => {
-        return (
+      {/* Display name and bonus icons layout */}
+      {displayName && bonusIcons.length > 0 ? (
+        // Two-row layout when both displayName and bonuses exist
+        <>
+          {/* Display name in upper row */}
+          <Text
+            position={[0, 0.03, 0.01]}
+            fontSize={0.035}
+            color="white"
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={0.25}
+          >
+            {displayName}
+          </Text>
+
+          {/* Bonus icons in lower row */}
+          {bonusIcons.map((iconPath, index) => (
+            <BonusIcon
+              key={index}
+              iconPath={iconPath}
+              position={[
+                index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                -0.03,
+                0.01,
+              ]}
+            />
+          ))}
+        </>
+      ) : displayName ? (
+        // Display name centered when no bonuses
+        <Text
+          position={[0, 0, 0.01]}
+          fontSize={0.04}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={0.25}
+        >
+          {displayName}
+        </Text>
+      ) : (
+        // Only bonus icons when no display name
+        bonusIcons.map((iconPath, index) => (
           <BonusIcon
             key={index}
             iconPath={iconPath}
             position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, 0, 0.01]}
           />
-        );
-      })}
+        ))
+      )}
 
       {/* Owner indicator */}
       {ownerId && (

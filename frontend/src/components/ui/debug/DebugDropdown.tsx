@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import TreeNode from "./TreeNode.tsx";
+import AdminCommandPanel from "./AdminCommandPanel.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface DebugDropdownProps {
@@ -20,6 +21,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [expandAll, setExpandAll] = useState(false);
   const [expandAllSignal, setExpandAllSignal] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<"state" | "admin">("state");
   const [position, setPosition] = useState(() => {
     if (typeof window === "undefined") {
       return { x: 100, y: 60 };
@@ -306,7 +308,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
           }}
         >
           <span style={{ opacity: 0.7, fontSize: "12px" }}>⋮⋮</span>
-          🔍 Debug Game State
+          Admin Tools
         </h3>
         <button
           onClick={onClose}
@@ -324,139 +326,207 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
         </button>
       </div>
 
+      {/* Tab Navigation */}
       <div
         style={{
-          marginBottom: "12px",
           display: "flex",
-          gap: "8px",
-          cursor: "grab",
+          marginBottom: "12px",
+          borderBottom: "1px solid #333",
         }}
       >
-        <input
-          type="text"
-          placeholder="Search keys or values..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+        <button
+          onClick={() => setActiveTab("state")}
           onMouseDown={(e) => e.stopPropagation()}
           style={{
             flex: 1,
-            padding: "6px 10px",
-            background: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid #333",
-            borderRadius: "4px",
-            color: "white",
-            fontSize: "13px",
-          }}
-        />
-        <button
-          onClick={() => {
-            const newExpandAll = !expandAll;
-            setExpandAll(newExpandAll);
-            setExpandAllSignal(Date.now()); // Send signal to all tree nodes
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            padding: "6px 12px",
-            background: "rgba(155, 89, 182, 0.2)",
-            border: "1px solid #9b59b6",
-            borderRadius: "4px",
-            color: "#9b59b6",
+            padding: "8px",
+            background:
+              activeTab === "state" ? "rgba(155, 89, 182, 0.3)" : "transparent",
+            border: "none",
+            borderBottom:
+              activeTab === "state"
+                ? "2px solid #9b59b6"
+                : "2px solid transparent",
+            color: activeTab === "state" ? "#9b59b6" : "#abb2bf",
             fontSize: "12px",
             cursor: "pointer",
+            transition: "all 0.2s",
           }}
         >
-          {expandAll ? "Collapse" : "Expand"} All
+          Game State
         </button>
-        <button
-          onClick={handleCopyAll}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            padding: "6px 12px",
-            background: "rgba(155, 89, 182, 0.2)",
-            border: "1px solid #9b59b6",
-            borderRadius: "4px",
-            color: "#9b59b6",
-            fontSize: "12px",
-            cursor: "pointer",
-          }}
-        >
-          Copy JSON
-        </button>
-        <button
-          onClick={handleExportJSON}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            padding: "6px 12px",
-            background: "rgba(155, 89, 182, 0.2)",
-            border: "1px solid #9b59b6",
-            borderRadius: "4px",
-            color: "#9b59b6",
-            fontSize: "12px",
-            cursor: "pointer",
-          }}
-        >
-          Export
-        </button>
-      </div>
-
-      <div
-        className="debug-content-area"
-        style={{
-          flex: 1,
-          overflow: "auto",
-          background: "rgba(0, 0, 0, 0.5)",
-          padding: "12px",
-          borderRadius: "4px",
-          border: "1px solid #222",
-        }}
-      >
-        {displayState ? (
-          <div>
-            {Object.entries(displayState).map(([key, value]) => (
-              <TreeNode
-                key={key}
-                nodeKey={key}
-                value={value}
-                changedPaths={changedPaths}
-                expandAllSignal={expandAllSignal}
-                shouldExpandAll={expandAll}
-              />
-            ))}
-          </div>
-        ) : gameState ? (
-          <div style={{ color: "#666", textAlign: "center", padding: "20px" }}>
-            No matches found for "{searchTerm}"
-          </div>
-        ) : (
-          <div style={{ color: "#666", textAlign: "center", padding: "20px" }}>
-            No game state available
-          </div>
+        {gameState?.settings.developmentMode && (
+          <button
+            onClick={() => setActiveTab("admin")}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              flex: 1,
+              padding: "8px",
+              background:
+                activeTab === "admin"
+                  ? "rgba(155, 89, 182, 0.3)"
+                  : "transparent",
+              border: "none",
+              borderBottom:
+                activeTab === "admin"
+                  ? "2px solid #9b59b6"
+                  : "2px solid transparent",
+              color: activeTab === "admin" ? "#9b59b6" : "#abb2bf",
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            Commands
+          </button>
         )}
       </div>
 
-      <div
-        style={{
-          marginTop: "12px",
-          paddingTop: "12px",
-          borderTop: "1px solid #333",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          cursor: "grab",
-        }}
-      >
-        <span style={{ color: "#666", fontSize: "11px" }}>
-          {changedPaths.size > 0 && (
-            <span style={{ color: "#ffdf00" }}>
-              {changedPaths.size} change{changedPaths.size === 1 ? "" : "s"}{" "}
-              detected
+      {activeTab === "state" && (
+        <>
+          <div
+            style={{
+              marginBottom: "12px",
+              display: "flex",
+              gap: "8px",
+              cursor: "grab",
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search keys or values..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                flex: 1,
+                padding: "6px 10px",
+                background: "rgba(255, 255, 255, 0.1)",
+                border: "1px solid #333",
+                borderRadius: "4px",
+                color: "white",
+                fontSize: "13px",
+              }}
+            />
+            <button
+              onClick={() => {
+                const newExpandAll = !expandAll;
+                setExpandAll(newExpandAll);
+                setExpandAllSignal(Date.now()); // Send signal to all tree nodes
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                padding: "6px 12px",
+                background: "rgba(155, 89, 182, 0.2)",
+                border: "1px solid #9b59b6",
+                borderRadius: "4px",
+                color: "#9b59b6",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              {expandAll ? "Collapse" : "Expand"} All
+            </button>
+            <button
+              onClick={handleCopyAll}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                padding: "6px 12px",
+                background: "rgba(155, 89, 182, 0.2)",
+                border: "1px solid #9b59b6",
+                borderRadius: "4px",
+                color: "#9b59b6",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              Copy JSON
+            </button>
+            <button
+              onClick={handleExportJSON}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{
+                padding: "6px 12px",
+                background: "rgba(155, 89, 182, 0.2)",
+                border: "1px solid #9b59b6",
+                borderRadius: "4px",
+                color: "#9b59b6",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              Export
+            </button>
+          </div>
+
+          <div
+            className="debug-content-area"
+            style={{
+              flex: 1,
+              overflow: "auto",
+              background: "rgba(0, 0, 0, 0.5)",
+              padding: "12px",
+              borderRadius: "4px",
+              border: "1px solid #222",
+            }}
+          >
+            {displayState ? (
+              <div>
+                {Object.entries(displayState).map(([key, value]) => (
+                  <TreeNode
+                    key={key}
+                    nodeKey={key}
+                    value={value}
+                    changedPaths={changedPaths}
+                    expandAllSignal={expandAllSignal}
+                    shouldExpandAll={expandAll}
+                  />
+                ))}
+              </div>
+            ) : gameState ? (
+              <div
+                style={{ color: "#666", textAlign: "center", padding: "20px" }}
+              >
+                No matches found for "{searchTerm}"
+              </div>
+            ) : (
+              <div
+                style={{ color: "#666", textAlign: "center", padding: "20px" }}
+              >
+                No game state available
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              marginTop: "12px",
+              paddingTop: "12px",
+              borderTop: "1px solid #333",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              cursor: "grab",
+            }}
+          >
+            <span style={{ color: "#666", fontSize: "11px" }}>
+              {changedPaths.size > 0 && (
+                <span style={{ color: "#ffdf00" }}>
+                  {changedPaths.size} change{changedPaths.size === 1 ? "" : "s"}{" "}
+                  detected
+                </span>
+              )}
             </span>
-          )}
-        </span>
-        <span style={{ color: "#666", fontSize: "11px" }}>
-          Press Ctrl+D to toggle • Double-click values to copy
-        </span>
-      </div>
+            <span style={{ color: "#666", fontSize: "11px" }}>
+              Press Ctrl+D to toggle • Double-click values to copy
+            </span>
+          </div>
+        </>
+      )}
+
+      {activeTab === "admin" && gameState?.settings.developmentMode && (
+        <AdminCommandPanel gameState={gameState} />
+      )}
     </div>
   );
 };

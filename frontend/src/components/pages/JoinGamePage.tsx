@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
+import { skyboxCache } from "../../services/SkyboxCache.ts";
 import styles from "./JoinGamePage.module.css";
 
 // UUIDv4 validation regex
@@ -15,9 +16,20 @@ const JoinGamePage: React.FC = () => {
   const [playerName, setPlayerName] = useState("");
   const [isLoadingGameValidation, setIsLoadingGameValidation] = useState(false);
   const [isLoadingJoin, setIsLoadingJoin] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [gameValidated, setGameValidated] = useState(false);
   const [validatedGame, setValidatedGame] = useState<any>(null);
+  const [skyboxReady, setSkyboxReady] = useState(false);
+
+  // Check if skybox is already loaded on component mount
+  useEffect(() => {
+    if (skyboxCache.isReady()) {
+      setSkyboxReady(true);
+    }
+  }, []);
 
   // Handle URL parameter on mount
   useEffect(() => {
@@ -154,16 +166,22 @@ const JoinGamePage: React.FC = () => {
 
     setIsLoadingJoin(true);
     setError(null);
+    setLoadingStep("game");
 
     try {
-      // Global WebSocket manager handles connection automatically
-      // Connect player to the game
+      // Step 1: Connect player to the game
       const playerConnectedResult = await globalWebSocketManager.playerConnect(
         playerName.trim(),
         validatedGame.id,
       );
 
       if (playerConnectedResult.game) {
+        // Step 2: Load 3D environment if not already loaded
+        if (!skyboxReady) {
+          setLoadingStep("environment");
+          await skyboxCache.preload();
+        }
+
         const gameData = {
           gameId: validatedGame.id,
           playerId: playerConnectedResult.playerId,
@@ -197,6 +215,7 @@ const JoinGamePage: React.FC = () => {
       }
     } finally {
       setIsLoadingJoin(false);
+      setLoadingStep(null);
     }
   };
 
@@ -317,7 +336,10 @@ const JoinGamePage: React.FC = () => {
               {error && <div className={styles.errorMessage}>{error}</div>}
 
               {isLoadingJoin && (
-                <div className={styles.loadingMessage}>Joining game...</div>
+                <div className={styles.loadingMessage}>
+                  {loadingStep === "game" && "Joining game..."}
+                  {loadingStep === "environment" && "Loading 3D environment..."}
+                </div>
               )}
             </form>
           )}

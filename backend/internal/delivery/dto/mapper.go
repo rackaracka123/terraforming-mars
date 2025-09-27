@@ -55,6 +55,7 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, 
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
+		Board:            ToBoardDto(game.Board),
 	}
 }
 
@@ -190,7 +191,8 @@ func ToGlobalParametersDto(params model.GlobalParameters) GlobalParametersDto {
 // ToGameSettingsDto converts model GameSettings to GameSettingsDto
 func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
-		MaxPlayers: settings.MaxPlayers,
+		MaxPlayers:      settings.MaxPlayers,
+		DevelopmentMode: settings.DevelopmentMode,
 	}
 }
 
@@ -212,6 +214,7 @@ func ToGameDtoBasic(game model.Game) GameDto {
 		Generation:       game.Generation,
 		RemainingActions: game.RemainingActions,
 		TurnOrder:        game.PlayerIDs,
+		Board:            ToBoardDto(game.Board),
 	}
 }
 
@@ -354,4 +357,77 @@ func ToPlayerEffectDtoSlice(effects []model.PlayerEffect) []PlayerEffectDto {
 		result[i] = ToPlayerEffectDto(effect)
 	}
 	return result
+}
+
+// Board conversion functions
+
+// ToBoardDto converts a model Board to BoardDto
+func ToBoardDto(board model.Board) BoardDto {
+	return BoardDto{
+		Tiles: ToTileDtoSlice(board.Tiles),
+	}
+}
+
+// ToTileDto converts a model Tile to TileDto
+func ToTileDto(tile model.Tile) TileDto {
+	return TileDto{
+		Coordinates: HexPositionDto{
+			Q: tile.Coordinates.Q,
+			R: tile.Coordinates.R,
+			S: tile.Coordinates.S,
+		},
+		Tags:        tile.Tags,
+		Type:        string(tile.Type),
+		Location:    string(tile.Location),
+		DisplayName: tile.DisplayName,
+		Bonuses:     ToTileBonusDtoSlice(tile.Bonuses),
+		OccupiedBy:  ToTileOccupantDto(tile.OccupiedBy),
+		OwnerID:     tile.OwnerID,
+	}
+}
+
+// ToTileDtoSlice converts a slice of model Tiles to TileDto slice
+func ToTileDtoSlice(tiles []model.Tile) []TileDto {
+	if tiles == nil {
+		return nil
+	}
+
+	result := make([]TileDto, len(tiles))
+	for i, tile := range tiles {
+		result[i] = ToTileDto(tile)
+	}
+	return result
+}
+
+// ToTileBonusDto converts a model TileBonus to TileBonusDto
+func ToTileBonusDto(bonus model.TileBonus) TileBonusDto {
+	return TileBonusDto{
+		Type:   string(bonus.Type),
+		Amount: bonus.Amount,
+	}
+}
+
+// ToTileBonusDtoSlice converts a slice of model TileBonus to TileBonusDto slice
+func ToTileBonusDtoSlice(bonuses []model.TileBonus) []TileBonusDto {
+	if bonuses == nil {
+		return []TileBonusDto{}
+	}
+
+	result := make([]TileBonusDto, len(bonuses))
+	for i, bonus := range bonuses {
+		result[i] = ToTileBonusDto(bonus)
+	}
+	return result
+}
+
+// ToTileOccupantDto converts a model TileOccupant pointer to TileOccupantDto pointer
+func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
+	if occupant == nil {
+		return nil
+	}
+
+	return &TileOccupantDto{
+		Type: string(occupant.Type),
+		Tags: occupant.Tags,
+	}
 }

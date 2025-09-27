@@ -162,7 +162,7 @@ class GlobalWebSocketManager implements WebSocketConnection {
     }
   }
 
-  // Proxy method to underlying WebSocket service
+  // Proxy methods to underlying WebSocket service
   async playerConnect(playerName: string, gameId: string, playerId?: string) {
     await this.ensureConnected();
     return webSocketService.playerConnect(playerName, gameId, playerId);
@@ -224,6 +224,16 @@ class GlobalWebSocketManager implements WebSocketConnection {
   async selectCards(cardIds: string[]): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectCards(cardIds);
+  }
+
+  // Admin commands (development mode only)
+  async sendAdminCommand(adminRequest: any): Promise<string> {
+    await this.ensureConnected();
+    // Import the message type dynamically to avoid circular dependencies
+    const { MessageTypeAdminCommand } = await import(
+      "../types/generated/api-types.ts"
+    );
+    return webSocketService.send(MessageTypeAdminCommand, adminRequest);
   }
 
   get connected() {

@@ -1,15 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
+import { skyboxCache } from "../../services/SkyboxCache.ts";
 import styles from "./CreateGamePage.module.css";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState("");
+  const [developmentMode, setDevelopmentMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
+  const [skyboxReady, setSkyboxReady] = useState(false);
+
+  // Check if skybox is already loaded on component mount
+  useEffect(() => {
+    if (skyboxCache.isReady()) {
+      setSkyboxReady(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,11 +39,13 @@ const CreateGamePage: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+    setLoadingStep("game");
 
     try {
-      // Create game with default settings
+      // Step 1: Create game
       const gameSettings: GameSettingsDto = {
         maxPlayers: 4, // Default max players
+        developmentMode: developmentMode,
       };
 
       const game = await apiService.createGame(gameSettings);
@@ -42,6 +57,12 @@ const CreateGamePage: React.FC = () => {
       );
 
       if (playerConnectedResult.game) {
+        // Step 2: Load 3D environment if not already loaded
+        if (!skyboxReady) {
+          setLoadingStep("environment");
+          await skyboxCache.preload();
+        }
+
         const gameData = {
           gameId: playerConnectedResult.game.id,
           playerId: playerConnectedResult.playerId,
@@ -68,6 +89,7 @@ const CreateGamePage: React.FC = () => {
       setError(err instanceof Error ? err.message : "Failed to create game");
     } finally {
       setIsLoading(false);
+      setLoadingStep(null);
     }
   };
 
@@ -116,10 +138,37 @@ const CreateGamePage: React.FC = () => {
               </button>
             </div>
 
+            <div className={styles.developmentModeContainer}>
+              <label className={styles.developmentModeLabel}>
+                <input
+                  type="checkbox"
+                  checked={developmentMode}
+                  onChange={(e) => setDevelopmentMode(e.target.checked)}
+                  disabled={isLoading}
+                  className={styles.developmentModeCheckbox}
+                />
+                <span className={styles.checkboxText}>
+                  Development Mode
+                  <div className={styles.tooltipContainer}>
+                    <span className={styles.tooltipIcon}>ⓘ</span>
+                    <div className={styles.tooltipText}>
+                      Enable admin commands for debugging and testing. Allows
+                      you to give cards to players, modify resources/production,
+                      change game phases, and adjust global parameters through
+                      the debug panel.
+                    </div>
+                  </div>
+                </span>
+              </label>
+            </div>
+
             {error && <div className={styles.errorMessage}>{error}</div>}
 
             {isLoading && (
-              <div className={styles.loadingMessage}>Creating game...</div>
+              <div className={styles.loadingMessage}>
+                {loadingStep === "game" && "Creating game..."}
+                {loadingStep === "environment" && "Loading 3D environment..."}
+              </div>
             )}
           </form>
         </div>

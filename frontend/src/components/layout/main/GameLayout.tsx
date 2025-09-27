@@ -4,7 +4,6 @@ import TopMenuBar from "../panels/TopMenuBar.tsx";
 import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
-import CardsHandOverlay from "../../ui/overlay/CardsHandOverlay.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
@@ -29,7 +28,7 @@ interface GameLayoutProps {
 const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
-  isAnyModalOpen = false,
+  isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
   onOpenActionsModal,
@@ -44,6 +43,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     ...otherPlayer,
     cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
     startingSelection: [], // Add required startingSelection property
+    hasSelectedStartingCards: true, // Default to true for other players
   });
 
   // Create a map of all players (current + others) for easy lookup
@@ -68,7 +68,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   return (
     <MainContentProvider>
       <div className={styles.gameLayout}>
-        <TopMenuBar />
+        <TopMenuBar gameState={gameState} />
 
         <div className={styles.gameContent}>
           <MainContentDisplay gameState={gameState} />
@@ -101,8 +101,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               onOpenTagsModal={onOpenTagsModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
             />
-
-            <CardsHandOverlay hideWhenModalOpen={isAnyModalOpen} />
           </>
         )}
       </div>

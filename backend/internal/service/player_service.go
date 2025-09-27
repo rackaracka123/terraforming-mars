@@ -45,6 +45,11 @@ type PlayerService interface {
 	CanAffordStandardProject(player *model.Player, project model.StandardProject) bool
 	HasCardsToSell(player *model.Player, count int) bool
 	GetMaxCardsToSell(player *model.Player) int
+
+	// Admin methods (development mode only)
+	AddCardToHand(ctx context.Context, gameID, playerID, cardID string) error
+	SetResources(ctx context.Context, gameID, playerID string, resources model.Resources) error
+	SetProduction(ctx context.Context, gameID, playerID string, production model.Production) error
 }
 
 // PlayerServiceImpl implements PlayerService interface
@@ -326,4 +331,106 @@ func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerN
 // GetPlayersForGame returns all players in a specific game
 func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error) {
 	return s.playerRepo.ListByGameID(ctx, gameID)
+}
+
+// Admin methods (development mode only)
+
+// AddCardToHand adds a card to a player's hand (admin command)
+func (s *PlayerServiceImpl) AddCardToHand(ctx context.Context, gameID, playerID, cardID string) error {
+	log := logger.WithContext()
+
+	log.Info("🎴 Admin adding card to player's hand",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("card_id", cardID))
+
+	// Verify player exists before adding card
+	_, err := s.GetPlayer(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("player not found: %w", err)
+	}
+
+	// Add card to player's hand using repository method
+	if err := s.playerRepo.AddCard(ctx, gameID, playerID, cardID); err != nil {
+		log.Error("Failed to add card to player's hand", zap.Error(err))
+		return fmt.Errorf("failed to add card to player's hand: %w", err)
+	}
+
+	log.Info("✅ Card added to player's hand successfully",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("card_id", cardID))
+
+	return nil
+}
+
+// SetResources sets a player's resources directly (admin command)
+func (s *PlayerServiceImpl) SetResources(ctx context.Context, gameID, playerID string, resources model.Resources) error {
+	log := logger.WithContext()
+
+	log.Info("💰 Admin setting player resources",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Any("resources", resources))
+
+	// Use resources directly since they're already model.Resources
+	modelResources := resources
+
+	// Validate that resources are non-negative
+	if modelResources.Credits < 0 || modelResources.Steel < 0 || modelResources.Titanium < 0 ||
+		modelResources.Plants < 0 || modelResources.Energy < 0 || modelResources.Heat < 0 {
+		return fmt.Errorf("resource values cannot be negative")
+	}
+
+	// Update player resources
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, modelResources); err != nil {
+		log.Error("Failed to set player resources", zap.Error(err))
+		return fmt.Errorf("failed to set player resources: %w", err)
+	}
+
+	log.Info("✅ Player resources set successfully",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Any("new_resources", modelResources))
+
+	return nil
+}
+
+// SetProduction sets a player's production directly (admin command)
+func (s *PlayerServiceImpl) SetProduction(ctx context.Context, gameID, playerID string, production model.Production) error {
+	log := logger.WithContext()
+
+	log.Info("🏭 Admin setting player production",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Any("production", production))
+
+	// Use production directly since it's already model.Production
+	modelProduction := production
+
+	// Validate that production values are reasonable (can be negative but not too extreme)
+	const maxProduction = 50
+	const minProduction = -20
+
+	if modelProduction.Credits < minProduction || modelProduction.Credits > maxProduction ||
+		modelProduction.Steel < minProduction || modelProduction.Steel > maxProduction ||
+		modelProduction.Titanium < minProduction || modelProduction.Titanium > maxProduction ||
+		modelProduction.Plants < minProduction || modelProduction.Plants > maxProduction ||
+		modelProduction.Energy < minProduction || modelProduction.Energy > maxProduction ||
+		modelProduction.Heat < minProduction || modelProduction.Heat > maxProduction {
+		return fmt.Errorf("production values must be between %d and %d", minProduction, maxProduction)
+	}
+
+	// Update player production
+	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, modelProduction); err != nil {
+		log.Error("Failed to set player production", zap.Error(err))
+		return fmt.Errorf("failed to set player production: %w", err)
+	}
+
+	log.Info("✅ Player production set successfully",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Any("new_production", modelProduction))
+
+	return nil
 }

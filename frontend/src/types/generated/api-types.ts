@@ -167,6 +167,56 @@ export interface ActionBuildCityRequest {
   type: ActionType;
   hexPosition: HexPositionDto;
 }
+/**
+ * AdminCommandType represents different types of admin commands
+ */
+export type AdminCommandType = string;
+export const AdminCommandTypeGiveCard: AdminCommandType = "give-card";
+export const AdminCommandTypeSetPhase: AdminCommandType = "set-phase";
+export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
+export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
+export const AdminCommandTypeSetGlobalParams: AdminCommandType =
+  "set-global-params";
+/**
+ * AdminCommandRequest contains the admin command data
+ */
+export interface AdminCommandRequest {
+  commandType: AdminCommandType;
+  payload: any;
+}
+/**
+ * GiveCardAdminCommand represents giving a card to a player
+ */
+export interface GiveCardAdminCommand {
+  playerId: string;
+  cardId: string;
+}
+/**
+ * SetPhaseAdminCommand represents setting the game phase
+ */
+export interface SetPhaseAdminCommand {
+  phase: string;
+}
+/**
+ * SetResourcesAdminCommand represents setting a player's resources
+ */
+export interface SetResourcesAdminCommand {
+  playerId: string;
+  resources: ResourcesDto;
+}
+/**
+ * SetProductionAdminCommand represents setting a player's production
+ */
+export interface SetProductionAdminCommand {
+  playerId: string;
+  production: ProductionDto;
+}
+/**
+ * SetGlobalParamsAdminCommand represents setting global parameters
+ */
+export interface SetGlobalParamsAdminCommand {
+  globalParameters: GlobalParametersDto;
+}
 
 //////////
 // source: game_dto.go
@@ -241,7 +291,7 @@ export interface CardBehaviorDto {
  * ResourceStorageDto represents a card's resource storage capability for client consumption
  */
 export interface ResourceStorageDto {
-  type: any /* model.ResourceConditionType */;
+  type: any /* model.ResourceType */;
   capacity?: number /* int */;
   starting: number /* int */;
 }
@@ -286,6 +336,7 @@ export interface ProductionPhaseDto {
  */
 export interface GameSettingsDto {
   maxPlayers: number /* int */;
+  developmentMode: boolean;
 }
 /**
  * GlobalParametersDto represents the terraforming progress
@@ -411,6 +462,79 @@ export interface GameDto {
   generation: number /* int */;
   remainingActions: number /* int */; // Remaining actions in the current turn
   turnOrder: string[]; // Turn order of all players in game
+  board: BoardDto; // Game board with tiles and occupancy state
+}
+/**
+ * TileBonusDto represents a resource bonus provided by a tile when occupied
+ */
+export interface TileBonusDto {
+  /**
+   * Type specifies the resource type granted by this bonus
+   */
+  type: string;
+  /**
+   * Amount specifies the quantity of the bonus granted
+   */
+  amount: number /* int */;
+}
+/**
+ * TileOccupantDto represents what currently occupies a tile
+ */
+export interface TileOccupantDto {
+  /**
+   * Type specifies the type of occupant (city-tile, ocean-tile, greenery-tile, etc.)
+   */
+  type: string;
+  /**
+   * Tags specifies special properties of the occupant (e.g., "capital" for cities)
+   */
+  tags: string[];
+}
+/**
+ * TileDto represents a single hexagonal tile on the game board
+ */
+export interface TileDto {
+  /**
+   * Coordinates specifies the hex position of this tile
+   */
+  coordinates: HexPositionDto;
+  /**
+   * Tags specifies special properties for placement restrictions (e.g., "noctis-city")
+   */
+  tags: string[];
+  /**
+   * Type specifies the base type of tile (ocean-tile for ocean spaces, etc.)
+   */
+  type: string;
+  /**
+   * Location specifies which celestial body this tile is on
+   */
+  location: string;
+  /**
+   * DisplayName specifies the optional display name shown on the tile
+   */
+  displayName?: string;
+  /**
+   * Bonuses specifies the resource bonuses provided by this tile
+   */
+  bonuses: TileBonusDto[];
+  /**
+   * OccupiedBy specifies what currently occupies this tile, if anything
+   */
+  occupiedBy?: TileOccupantDto;
+  /**
+   * OwnerID specifies the player who owns this tile, if any
+   */
+  ownerId?: string;
+}
+/**
+ * BoardDto represents the game board containing all tiles
+ */
+export interface BoardDto {
+  /**
+   * Tiles specifies all tiles on the game board
+   */
+  tiles: TileDto[];
 }
 
 //////////
@@ -421,6 +545,7 @@ export interface GameDto {
  */
 export interface CreateGameRequest {
   maxPlayers: number /* int */;
+  developmentMode: boolean;
 }
 /**
  * CreateGameResponse represents the response for creating a game
@@ -542,6 +667,10 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+/**
+ * Admin message types (development mode only)
+ */
+export const MessageTypeAdminCommand: MessageType = "admin-command";
 
 //////////
 // source: websocket_dto.go
@@ -599,12 +728,11 @@ export interface PlayerReconnectedPayload {
   game: GameDto;
 }
 /**
- * PlayerDisconnectedPayload contains data about a disconnected player
+ * PlayerDisconnectedPayload contains data about a disconnected player (for internal handler use)
  */
 export interface PlayerDisconnectedPayload {
   playerId: string;
-  playerName: string;
-  game: GameDto;
+  gameId: string;
 }
 /**
  * PlayerProductionData contains production data for a single player

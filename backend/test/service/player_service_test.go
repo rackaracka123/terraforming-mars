@@ -27,7 +27,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), sessionManager)
+	boardService := service.NewBoardService()
+	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 
 	ctx := context.Background()
 	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})

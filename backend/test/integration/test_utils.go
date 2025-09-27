@@ -271,7 +271,8 @@ func (c *TestClient) CreateGameViaHTTP() (string, error) {
 
 	// Create request payload
 	requestBody := dto.CreateGameRequest{
-		MaxPlayers: 4,
+		MaxPlayers:      4,
+		DevelopmentMode: false, // Default to false for tests
 	}
 
 	jsonData, err := json.Marshal(requestBody)

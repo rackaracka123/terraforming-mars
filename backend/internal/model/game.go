@@ -17,6 +17,7 @@ type Game struct {
 	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
 	Generation       int              `json:"generation" ts:"number"`
 	RemainingActions int              `json:"remainingActions" ts:"number"` // Remaining actions in the current turn
+	Board            Board            `json:"board" ts:"Board"`             // Game board with tiles and occupancy state
 }
 
 // NewGame creates a new game with the given settings
@@ -37,6 +38,7 @@ func NewGame(id string, settings GameSettings) *Game {
 			Oceans:      0,
 		},
 		Generation: 1,
+		Board:      Board{Tiles: []Tile{}}, // Initialize with empty board, service will populate
 	}
 }
 

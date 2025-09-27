@@ -82,7 +82,7 @@ test-quick:
 	@cd backend && go test ./test/delivery/websocket/client_test.go && echo "✅ Client tests passed" || echo "❌ Client tests failed"
 
 # Code quality commands
-lint: lint-backend lint-frontend
+lint: lint-backend lint-frontend typecheck
 
 typecheck:
 	@echo "🔍 Running TypeScript type checking..."
