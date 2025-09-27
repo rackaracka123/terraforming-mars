@@ -6,6 +6,7 @@ type PlayerAction struct {
 	CardName      string       `json:"cardName" ts:"string"`       // Name of the card for display purposes
 	BehaviorIndex int          `json:"behaviorIndex" ts:"number"`  // Which behavior on the card this action represents
 	Behavior      CardBehavior `json:"behavior" ts:"CardBehavior"` // The actual behavior definition with inputs/outputs
+	PlayCount     int          `json:"playCount" ts:"number"`      // Number of times this action has been played this generation
 }
 
 // DeepCopy creates a deep copy of the PlayerAction
@@ -128,5 +129,6 @@ func (pa *PlayerAction) DeepCopy() *PlayerAction {
 		CardName:      pa.CardName,
 		BehaviorIndex: pa.BehaviorIndex,
 		Behavior:      behaviorCopy,
+		PlayCount:     pa.PlayCount,
 	}
 }

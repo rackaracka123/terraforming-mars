@@ -498,6 +498,7 @@ func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
 		CardName:      action.CardName,
 		BehaviorIndex: action.BehaviorIndex,
 		Behavior:      ToCardBehaviorDto(action.Behavior),
+		PlayCount:     action.PlayCount,
 	}
 }
 

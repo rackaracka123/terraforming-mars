@@ -291,6 +291,7 @@ type PlayerActionDto struct {
 	CardName      string          `json:"cardName" ts:"string"`          // Name of the card for display purposes
 	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this action represents
 	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
+	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
 }
 
 // PlayerDto represents a player in the game for client consumption
