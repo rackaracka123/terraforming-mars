@@ -45,6 +45,11 @@ func (e *EffectProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to apply global parameter lenience effects: %w", err)
 	}
 
+	// Extract and add manual actions from card behaviors
+	if err := e.extractAndAddManualActions(ctx, gameID, playerID, card); err != nil {
+		return fmt.Errorf("failed to extract manual actions: %w", err)
+	}
+
 	// Future implementation: Apply immediate resource effects
 	// if err := e.applyResourceEffects(ctx, gameID, playerID, card); err != nil {
 	//     return fmt.Errorf("failed to apply resource effects: %w", err)
@@ -254,6 +259,67 @@ func (e *EffectProcessor) applyGlobalParameterLenienceEffects(ctx context.Contex
 
 		log.Debug("✨ Global parameter lenience effects applied",
 			zap.Int("total_effects_count", len(lenienceEffectsFound)))
+	}
+
+	return nil
+}
+
+// extractAndAddManualActions extracts manual actions from card behaviors and adds them to the player
+func (e *EffectProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *model.Card) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Track manual actions found
+	var manualActions []model.PlayerAction
+
+	// Process all behaviors to find manual triggers
+	for behaviorIndex, behavior := range card.Behaviors {
+		// Check if this behavior has manual triggers
+		hasManualTrigger := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerManual {
+				hasManualTrigger = true
+				break
+			}
+		}
+
+		// If behavior has manual triggers, create a PlayerAction
+		if hasManualTrigger {
+			action := model.PlayerAction{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			}
+			manualActions = append(manualActions, action)
+
+			log.Debug("🎯 Found manual action",
+				zap.String("card_name", card.Name),
+				zap.Int("behavior_index", behaviorIndex))
+		}
+	}
+
+	// If manual actions were found, add them to the player
+	if len(manualActions) > 0 {
+		// Get current player to read current actions
+		player, err := e.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for manual actions update: %w", err)
+		}
+
+		// Create new actions slice with existing actions plus new manual actions
+		newActions := make([]model.PlayerAction, len(player.Actions)+len(manualActions))
+		copy(newActions, player.Actions)
+		copy(newActions[len(player.Actions):], manualActions)
+
+		// Update player actions via repository
+		if err := e.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, newActions); err != nil {
+			log.Error("Failed to update player manual actions", zap.Error(err))
+			return fmt.Errorf("failed to update player manual actions: %w", err)
+		}
+
+		log.Debug("⚡ Manual actions added",
+			zap.Int("actions_count", len(manualActions)),
+			zap.String("card_name", card.Name))
 	}
 
 	return nil

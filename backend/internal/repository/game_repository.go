@@ -34,7 +34,6 @@ type GameRepository interface {
 	RemovePlayerID(ctx context.Context, gameID string, playerID string) error
 	SetHostPlayer(ctx context.Context, gameID string, playerID string) error
 	UpdateGeneration(ctx context.Context, gameID string, generation int) error
-	UpdateRemainingActions(ctx context.Context, gameID string, actions int) error
 }
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
@@ -390,26 +389,6 @@ func (r *GameRepositoryImpl) UpdateGeneration(ctx context.Context, gameID string
 	game.UpdatedAt = time.Now()
 
 	log.Info("Generation updated", zap.Int("generation", generation))
-
-	return nil
-}
-
-// UpdateRemainingActions updates the remaining actions count
-func (r *GameRepositoryImpl) UpdateRemainingActions(ctx context.Context, gameID string, actions int) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, "")
-
-	game, exists := r.games[gameID]
-	if !exists {
-		return fmt.Errorf("game with ID %s not found", gameID)
-	}
-
-	game.RemainingActions = actions
-	game.UpdatedAt = time.Now()
-
-	log.Debug("Remaining actions updated", zap.Int("actions", actions))
 
 	return nil
 }
