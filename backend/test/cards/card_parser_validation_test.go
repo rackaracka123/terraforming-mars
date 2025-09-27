@@ -462,3 +462,63 @@ func TestCardUniqueFields(t *testing.T) {
 	t.Logf("  - Unique IDs: %d", len(seenIDs))
 	t.Logf("  - Unique names: %d", len(seenNames))
 }
+
+// TestSelfTargetingResourceOutputRequiresStorage validates that cards with self-targeting resource outputs have resourceStorage
+func TestSelfTargetingResourceOutputRequiresStorage(t *testing.T) {
+	cards := loadCards(t)
+
+	var violations []string
+
+	for _, card := range cards {
+		for behaviorIdx, behavior := range card.Behaviors {
+			// Check regular outputs
+			for outputIdx, output := range behavior.Outputs {
+				if requiresResourceStorage(output) && card.ResourceStorage == nil {
+					violations = append(violations,
+						fmt.Sprintf("Card %s (%s) behavior[%d] output[%d]: has self-targeting %s output but no resourceStorage field",
+							card.ID, card.Name, behaviorIdx, outputIdx, output.Type))
+				}
+			}
+
+			// Also check choices if they exist
+			for choiceIdx, choice := range behavior.Choices {
+				for outputIdx, output := range choice.Outputs {
+					if requiresResourceStorage(output) && card.ResourceStorage == nil {
+						violations = append(violations,
+							fmt.Sprintf("Card %s (%s) behavior[%d] choice[%d] output[%d]: has self-targeting %s output but no resourceStorage field",
+								card.ID, card.Name, behaviorIdx, choiceIdx, outputIdx, output.Type))
+					}
+				}
+			}
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d cards with self-targeting resource outputs lacking resourceStorage:", len(violations))
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}
+
+// requiresResourceStorage checks if a resource output targets the card itself and needs storage
+func requiresResourceStorage(output model.ResourceCondition) bool {
+	// Check if this is a resource type that can be stored on cards
+	resourceTypes := []model.ResourceType{
+		model.ResourceMicrobes,
+		model.ResourceAnimals,
+		model.ResourceFloaters,
+		model.ResourceScience,
+		model.ResourceAsteroid,
+		model.ResourceDisease,
+	}
+
+	// Check if the output type matches a storable resource
+	for _, resType := range resourceTypes {
+		if output.Type == resType && output.Target == model.TargetSelfCard {
+			return true
+		}
+	}
+
+	return false
+}
