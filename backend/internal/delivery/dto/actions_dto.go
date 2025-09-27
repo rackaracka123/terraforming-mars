@@ -7,10 +7,10 @@ const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
 	ActionTypeSelectCards        ActionType = "select-cards"
 
-	ActionTypeStartGame      ActionType = "start-game"
-	ActionTypeSkipAction     ActionType = "skip-action"
-	ActionTypePlayCard       ActionType = "play-card"
-	ActionTypePlayCardAction ActionType = "play-card-action"
+	ActionTypeStartGame  ActionType = "start-game"
+	ActionTypeSkipAction ActionType = "skip-action"
+	ActionTypePlayCard   ActionType = "play-card"
+	ActionTypeCardAction ActionType = "card-action"
 	// Standard Projects
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"

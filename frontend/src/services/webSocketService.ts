@@ -20,7 +20,7 @@ import {
   MessageTypeActionStartGame,
   MessageTypeActionSkipAction,
   MessageTypeActionPlayCard,
-  MessageTypeActionPlayCardAction,
+  MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
   // Payload types
@@ -292,8 +292,8 @@ export class WebSocketService {
   }
 
   playCardAction(cardId: string, behaviorIndex: number): string {
-    return this.send(MessageTypeActionPlayCardAction, {
-      type: "play-card-action",
+    return this.send(MessageTypeActionCardAction, {
+      type: "card-action",
       cardId,
       behaviorIndex,
     });

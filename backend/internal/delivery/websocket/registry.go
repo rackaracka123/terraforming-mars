@@ -57,7 +57,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(cardService, parser))
 
 	// Register play card action handler
-	hub.RegisterHandler(dto.MessageTypeActionPlayCardAction, play_card_action.NewHandler(cardService, parser))
+	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService))

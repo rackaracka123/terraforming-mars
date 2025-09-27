@@ -12,7 +12,7 @@ export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
-export const ActionTypePlayCardAction: ActionType = "play-card-action";
+export const ActionTypeCardAction: ActionType = "card-action";
 /**
  * Standard Projects
  */
@@ -798,8 +798,8 @@ export const MessageTypeActionSkipAction: MessageType =
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionPlayCardAction: MessageType =
-  "action.card.play-card-action";
+export const MessageTypeActionCardAction: MessageType =
+  "action.card.card-action";
 export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
