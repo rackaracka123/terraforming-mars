@@ -20,6 +20,7 @@ import {
   MessageTypeActionStartGame,
   MessageTypeActionSkipAction,
   MessageTypeActionPlayCard,
+  MessageTypeActionPlayCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
   // Payload types
@@ -290,6 +291,14 @@ export class WebSocketService {
     return this.send(MessageTypeActionPlayCard, { type: "play-card", cardId });
   }
 
+  playCardAction(cardId: string, behaviorIndex: number): string {
+    return this.send(MessageTypeActionPlayCardAction, {
+      type: "play-card-action",
+      cardId,
+      behaviorIndex,
+    });
+  }
+
   selectStartingCard(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectStartingCard, { cardIds });
   }
@@ -297,16 +306,6 @@ export class WebSocketService {
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
   }
-
-  // productionPhaseReady(): string {
-  //   if (!this.currentPlayerId) {
-  //     throw new Error("Cannot send production phase ready without player ID");
-  //   }
-
-  //   return this.send(MessageTypeProductionPhaseReady, {
-  //     playerId: this.currentPlayerId,
-  //   });
-  // }
 
   on(event: string, callback: EventCallback) {
     if (!this.listeners[event]) {
