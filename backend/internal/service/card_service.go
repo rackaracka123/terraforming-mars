@@ -78,12 +78,50 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 // Delegation methods - all operations are handled by the specialized cards service
 
 func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
 	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
 	if err != nil {
 		return err
 	}
 
-	// Broadcast updated game state to all players after successful card selection
+	log.Debug("🃏 Player completed starting card selection", zap.Strings("card_ids", cardIDs))
+
+	// Check if all players have completed their starting card selection
+	if s.selectionManager.IsAllPlayersCardSelectionComplete(ctx, gameID) {
+		log.Info("✅ All players completed starting card selection, advancing to action phase")
+
+		// Get current game state to validate phase transition
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game for phase advancement", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		// Validate current phase before transition
+		if game.CurrentPhase != model.GamePhaseStartingCardSelection {
+			log.Warn("Game is not in starting card selection phase, skipping phase transition",
+				zap.String("current_phase", string(game.CurrentPhase)))
+		} else if game.Status != model.GameStatusActive {
+			log.Warn("Game is not active, skipping phase transition",
+				zap.String("current_status", string(game.Status)))
+		} else {
+			// Advance to action phase
+			if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
+				log.Error("Failed to update game phase", zap.Error(err))
+				return fmt.Errorf("failed to update game phase: %w", err)
+			}
+
+			// Clear temporary card selection data
+			s.selectionManager.ClearGameSelectionData(gameID)
+
+			log.Info("🎯 Game phase advanced successfully",
+				zap.String("previous_phase", string(model.GamePhaseStartingCardSelection)),
+				zap.String("new_phase", string(model.GamePhaseAction)))
+		}
+	}
+
+	// Broadcast updated game state to all players after successful card selection (and potential phase change)
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
 		logger.Get().Error("Failed to broadcast game state after starting card selection",
 			zap.Error(err),
