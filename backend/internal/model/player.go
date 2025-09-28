@@ -116,15 +116,7 @@ func (p *Player) DeepCopy() *Player {
 	// Deep copy effects slice
 	effectsCopy := make([]PlayerEffect, len(p.Effects))
 	for i, effect := range p.Effects {
-		// Copy affected tags slice
-		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
-		copy(affectedTagsCopy, effect.AffectedTags)
-
-		effectsCopy[i] = PlayerEffect{
-			Type:         effect.Type,
-			Amount:       effect.Amount,
-			AffectedTags: affectedTagsCopy,
-		}
+		effectsCopy[i] = *effect.DeepCopy()
 	}
 
 	// Deep copy actions slice

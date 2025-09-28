@@ -160,19 +160,39 @@ func (e *EffectProcessor) applyDiscountEffects(ctx context.Context, gameID, play
 	var discountEffectsFound []model.PlayerEffect
 
 	// Process all behaviors to find discount effects
-	for _, behavior := range card.Behaviors {
+	for behaviorIndex, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
 			for _, output := range behavior.Outputs {
 				if output.Type == model.ResourceDiscount {
+					// Create effect behavior that represents this discount
+					effectBehavior := model.CardBehavior{
+						Triggers: []model.Trigger{
+							{
+								Type: model.ResourceTriggerAuto,
+							},
+						},
+						Outputs: []model.ResourceCondition{
+							{
+								Type:         model.ResourceDiscount,
+								Amount:       output.Amount,
+								Target:       model.TargetSelfPlayer,
+								AffectedTags: output.AffectedTags,
+							},
+						},
+					}
+
 					discountEffect := model.PlayerEffect{
-						Type:         model.PlayerEffectDiscount,
-						Amount:       output.Amount,
-						AffectedTags: output.AffectedTags,
+						CardID:        card.ID,
+						CardName:      card.Name,
+						BehaviorIndex: behaviorIndex,
+						Behavior:      effectBehavior,
 					}
 					discountEffectsFound = append(discountEffectsFound, discountEffect)
 
 					log.Debug("💰 Found discount effect",
+						zap.String("card_name", card.Name),
+						zap.Int("behavior_index", behaviorIndex),
 						zap.Int("amount", output.Amount),
 						zap.Any("affected_tags", output.AffectedTags))
 				}
@@ -214,29 +234,39 @@ func (e *EffectProcessor) applyGlobalParameterLenienceEffects(ctx context.Contex
 	var lenienceEffectsFound []model.PlayerEffect
 
 	// Process all behaviors to find global parameter lenience effects
-	for _, behavior := range card.Behaviors {
+	for behaviorIndex, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
 			for _, output := range behavior.Outputs {
 				if output.Type == model.ResourceGlobalParameterLenience {
-					// Create new global parameter lenience effect
-					var affectedTags []model.CardTag
-					// Set AffectedTags to nil if empty, so it gets omitted from JSON (for global effects)
-					if len(output.AffectedTags) > 0 {
-						affectedTags = make([]model.CardTag, len(output.AffectedTags))
-						copy(affectedTags, output.AffectedTags)
-					} else {
-						affectedTags = nil // Will be omitted from JSON due to omitempty tag
+					// Create effect behavior that represents this global parameter lenience
+					effectBehavior := model.CardBehavior{
+						Triggers: []model.Trigger{
+							{
+								Type: model.ResourceTriggerAuto,
+							},
+						},
+						Outputs: []model.ResourceCondition{
+							{
+								Type:         model.ResourceGlobalParameterLenience,
+								Amount:       output.Amount,
+								Target:       model.TargetSelfPlayer,
+								AffectedTags: output.AffectedTags,
+							},
+						},
 					}
 
 					lenienceEffect := model.PlayerEffect{
-						Type:         model.PlayerEffectGlobalParameterLenience,
-						Amount:       output.Amount,
-						AffectedTags: affectedTags,
+						CardID:        card.ID,
+						CardName:      card.Name,
+						BehaviorIndex: behaviorIndex,
+						Behavior:      effectBehavior,
 					}
 					lenienceEffectsFound = append(lenienceEffectsFound, lenienceEffect)
 
 					log.Debug("🎯 Found global parameter lenience effect",
+						zap.String("card_name", card.Name),
+						zap.Int("behavior_index", behaviorIndex),
 						zap.Int("amount", output.Amount),
 						zap.Any("affected_tags", output.AffectedTags))
 				}

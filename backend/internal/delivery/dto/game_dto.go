@@ -281,21 +281,14 @@ type ProductionDto struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
-// PlayerEffectType represents different types of ongoing effects a player can have
-type PlayerEffectType string
-
-const (
-	PlayerEffectTypeDiscount                PlayerEffectType = "discount"                  // Cost reduction for playing cards
-	PlayerEffectTypeGlobalParameterLenience PlayerEffectType = "global-parameter-lenience" // Global parameter requirement flexibility
-	PlayerEffectTypeDefense                 PlayerEffectType = "defense"                   // Protection from attacks or resource removal
-	PlayerEffectTypeValueModifier           PlayerEffectType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
-)
-
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption
+// Aligned with PlayerActionDto structure for consistent behavior handling
 type PlayerEffectDto struct {
-	Type         PlayerEffectType `json:"type" ts:"PlayerEffectType"`                        // Type of effect
-	Amount       int              `json:"amount" ts:"number"`                                // Effect amount (e.g., M€ discount, steps of flexibility)
-	AffectedTags []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for this effect (empty = all cards)
+	CardID        string          `json:"cardId" ts:"string"`            // ID of the card that provides this effect
+	CardName      string          `json:"cardName" ts:"string"`          // Name of the card for display purposes
+	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this effect represents
+	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
+	// Note: No PlayCount since effects are ongoing, not per-generation like actions
 }
 
 // PlayerActionDto represents an action that a player can take for client consumption

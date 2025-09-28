@@ -33,15 +33,7 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 	// Deep copy effects slice
 	effectsCopy := make([]PlayerEffect, len(player.Effects))
 	for i, effect := range player.Effects {
-		// Copy affected tags slice
-		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
-		copy(affectedTagsCopy, effect.AffectedTags)
-
-		effectsCopy[i] = PlayerEffect{
-			Type:         effect.Type,
-			Amount:       effect.Amount,
-			AffectedTags: affectedTagsCopy,
-		}
+		effectsCopy[i] = *effect.DeepCopy()
 	}
 
 	return &OtherPlayer{
@@ -74,15 +66,7 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 	// Deep copy effects slice
 	effectsCopy := make([]PlayerEffect, len(op.Effects))
 	for i, effect := range op.Effects {
-		// Copy affected tags slice
-		affectedTagsCopy := make([]CardTag, len(effect.AffectedTags))
-		copy(affectedTagsCopy, effect.AffectedTags)
-
-		effectsCopy[i] = PlayerEffect{
-			Type:         effect.Type,
-			Amount:       effect.Amount,
-			AffectedTags: affectedTagsCopy,
-		}
+		effectsCopy[i] = *effect.DeepCopy()
 	}
 
 	return &OtherPlayer{

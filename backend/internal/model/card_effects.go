@@ -96,21 +96,132 @@ type DiscountEffect struct {
 	Description string    `json:"description" ts:"string"`                   // Human readable description
 }
 
-// PlayerEffectType represents different types of ongoing effects a player can have
-type PlayerEffectType string
-
-const (
-	PlayerEffectDiscount                PlayerEffectType = "discount"                  // Cost reduction for playing cards
-	PlayerEffectGlobalParameterLenience PlayerEffectType = "global-parameter-lenience" // Global parameter requirement flexibility
-	PlayerEffectDefense                 PlayerEffectType = "defense"                   // Protection from attacks or resource removal
-	PlayerEffectValueModifier           PlayerEffectType = "value-modifier"            // Increases resource values (e.g., steel/titanium worth more)
-)
-
-// PlayerEffect represents ongoing effects that a player has active
+// PlayerEffect represents ongoing effects that a player has active, aligned with PlayerAction structure
 type PlayerEffect struct {
-	Type         PlayerEffectType `json:"type" ts:"PlayerEffectType"`                        // Type of effect
-	Amount       int              `json:"amount" ts:"number"`                                // Effect amount (e.g., M€ discount, steps of flexibility)
-	AffectedTags []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for this effect (empty = all cards)
+	CardID        string       `json:"cardId" ts:"string"`         // ID of the card that provides this effect
+	CardName      string       `json:"cardName" ts:"string"`       // Name of the card for display purposes
+	BehaviorIndex int          `json:"behaviorIndex" ts:"number"`  // Which behavior on the card this effect represents
+	Behavior      CardBehavior `json:"behavior" ts:"CardBehavior"` // The actual behavior definition with inputs/outputs
+	// Note: No PlayCount since effects are ongoing, not per-generation like actions
+}
+
+// DeepCopy creates a deep copy of the PlayerEffect
+func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
+	if pe == nil {
+		return nil
+	}
+
+	// Deep copy the behavior
+	var behaviorCopy CardBehavior
+
+	// Copy triggers slice
+	if pe.Behavior.Triggers != nil {
+		behaviorCopy.Triggers = make([]Trigger, len(pe.Behavior.Triggers))
+		for i, trigger := range pe.Behavior.Triggers {
+			behaviorCopy.Triggers[i] = trigger // Trigger is a struct, so it's copied by value
+		}
+	}
+
+	// Copy inputs slice
+	if pe.Behavior.Inputs != nil {
+		behaviorCopy.Inputs = make([]ResourceCondition, len(pe.Behavior.Inputs))
+		for i, input := range pe.Behavior.Inputs {
+			// Deep copy the resource condition
+			inputCopy := input // Copy struct by value
+
+			// Copy slices within the struct
+			if input.AffectedResources != nil {
+				inputCopy.AffectedResources = make([]string, len(input.AffectedResources))
+				copy(inputCopy.AffectedResources, input.AffectedResources)
+			}
+
+			if input.AffectedTags != nil {
+				inputCopy.AffectedTags = make([]CardTag, len(input.AffectedTags))
+				copy(inputCopy.AffectedTags, input.AffectedTags)
+			}
+
+			behaviorCopy.Inputs[i] = inputCopy
+		}
+	}
+
+	// Copy outputs slice
+	if pe.Behavior.Outputs != nil {
+		behaviorCopy.Outputs = make([]ResourceCondition, len(pe.Behavior.Outputs))
+		for i, output := range pe.Behavior.Outputs {
+			// Deep copy the resource condition
+			outputCopy := output // Copy struct by value
+
+			// Copy slices within the struct
+			if output.AffectedResources != nil {
+				outputCopy.AffectedResources = make([]string, len(output.AffectedResources))
+				copy(outputCopy.AffectedResources, output.AffectedResources)
+			}
+
+			if output.AffectedTags != nil {
+				outputCopy.AffectedTags = make([]CardTag, len(output.AffectedTags))
+				copy(outputCopy.AffectedTags, output.AffectedTags)
+			}
+
+			behaviorCopy.Outputs[i] = outputCopy
+		}
+	}
+
+	// Copy choices slice
+	if pe.Behavior.Choices != nil {
+		behaviorCopy.Choices = make([]Choice, len(pe.Behavior.Choices))
+		for i, choice := range pe.Behavior.Choices {
+			choiceCopy := Choice{}
+
+			// Copy inputs for this choice
+			if choice.Inputs != nil {
+				choiceCopy.Inputs = make([]ResourceCondition, len(choice.Inputs))
+				for j, input := range choice.Inputs {
+					inputCopy := input
+
+					if input.AffectedResources != nil {
+						inputCopy.AffectedResources = make([]string, len(input.AffectedResources))
+						copy(inputCopy.AffectedResources, input.AffectedResources)
+					}
+
+					if input.AffectedTags != nil {
+						inputCopy.AffectedTags = make([]CardTag, len(input.AffectedTags))
+						copy(inputCopy.AffectedTags, input.AffectedTags)
+					}
+
+					choiceCopy.Inputs[j] = inputCopy
+				}
+			}
+
+			// Copy outputs for this choice
+			if choice.Outputs != nil {
+				choiceCopy.Outputs = make([]ResourceCondition, len(choice.Outputs))
+				for j, output := range choice.Outputs {
+					outputCopy := output
+
+					if output.AffectedResources != nil {
+						outputCopy.AffectedResources = make([]string, len(output.AffectedResources))
+						copy(outputCopy.AffectedResources, output.AffectedResources)
+					}
+
+					if output.AffectedTags != nil {
+						outputCopy.AffectedTags = make([]CardTag, len(output.AffectedTags))
+						copy(outputCopy.AffectedTags, output.AffectedTags)
+					}
+
+					choiceCopy.Outputs[j] = outputCopy
+				}
+			}
+
+			behaviorCopy.Choices[i] = choiceCopy
+		}
+	}
+
+	return &PlayerEffect{
+		CardID:        pe.CardID,
+		CardName:      pe.CardName,
+		BehaviorIndex: pe.BehaviorIndex,
+		Behavior:      behaviorCopy,
+	}
 }
 
 // TargetType represents different targeting scopes for resource conditions
