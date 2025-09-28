@@ -191,8 +191,8 @@ export const AdminCommandTypeGiveCard: AdminCommandType = "give-card";
 export const AdminCommandTypeSetPhase: AdminCommandType = "set-phase";
 export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
 export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
-export const AdminCommandTypeSetGlobalParams: AdminCommandType =
-  "set-global-params";
+export const AdminCommandTypeSetGlobalParams: AdminCommandType = "set-global-params";
+export const AdminCommandTypeStartTileSelection: AdminCommandType = "start-tile-selection";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -233,6 +233,13 @@ export interface SetProductionAdminCommand {
 export interface SetGlobalParamsAdminCommand {
   globalParameters: GlobalParametersDto;
 }
+/**
+ * StartTileSelectionAdminCommand represents starting tile selection for testing
+ */
+export interface StartTileSelectionAdminCommand {
+  playerId: string;
+  tileType: string;
+}
 
 //////////
 // source: game_dto.go
@@ -242,12 +249,10 @@ export interface SetGlobalParamsAdminCommand {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase =
-  "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase =
-  "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -508,8 +513,7 @@ export interface ProductionDto {
  */
 export type PlayerEffectType = string;
 export const PlayerEffectTypeDiscount: PlayerEffectType = "discount"; // Cost reduction for playing cards
-export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType =
-  "global-parameter-lenience"; // Global parameter requirement flexibility
+export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType = "global-parameter-lenience"; // Global parameter requirement flexibility
 export const PlayerEffectTypeDefense: PlayerEffectType = "defense"; // Protection from attacks or resource removal
 export const PlayerEffectTypeValueModifier: PlayerEffectType = "value-modifier"; // Increases resource values (e.g., steel/titanium worth more)
 /**
@@ -529,6 +533,14 @@ export interface PlayerActionDto {
   behaviorIndex: number /* int */; // Which behavior on the card this action represents
   behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
   playCount: number /* int */; // Number of times this action has been played this generation
+}
+/**
+ * PendingTileSelectionDto represents a pending tile placement action for client consumption
+ */
+export interface PendingTileSelectionDto {
+  tileType: string; // "city", "greenery", "ocean"
+  availableHexes: string[]; // Backend-calculated valid hex coordinates
+  source: string; // What triggered this selection (card ID, standard project, etc.)
 }
 /**
  * PlayerDto represents a player in the game for client consumption
@@ -557,6 +569,10 @@ export interface PlayerDto {
    */
   startingSelection: CardDto[];
   hasSelectedStartingCards: boolean; // Whether player has completed starting card selection
+  /**
+   * Tile selection - nullable, exists only when player needs to place tiles
+   */
+  pendingTileSelection?: PendingTileSelectionDto; // Pending tile placement, null when no tiles to place
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -714,21 +730,9 @@ export interface ListGamesResponse {
   games: GameDto[];
 }
 /**
- * UpdateResourcesRequest represents the request body for updating player resources
- */
-export interface UpdateResourcesRequest {
-  resources: ResourcesDto;
-}
-/**
  * GetPlayerResponse represents the response for getting a player
  */
 export interface GetPlayerResponse {
-  player: PlayerDto;
-}
-/**
- * UpdatePlayerResourcesResponse represents the response for updating player resources
- */
-export interface UpdatePlayerResourcesResponse {
   player: PlayerDto;
 }
 /**
@@ -769,41 +773,33 @@ export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
 export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
-export const MessageTypeProductionPhaseStarted: MessageType =
-  "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
  */
-export const MessageTypeActionSellPatents: MessageType =
-  "action.standard-project.sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType =
-  "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType =
-  "action.standard-project.build-power-plant";
-export const MessageTypeActionBuildAquifer: MessageType =
-  "action.standard-project.build-aquifer";
-export const MessageTypeActionPlantGreenery: MessageType =
-  "action.standard-project.plant-greenery";
-export const MessageTypeActionBuildCity: MessageType =
-  "action.standard-project.build-city";
+export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
 /**
  * Game management message types
  */
-export const MessageTypeActionStartGame: MessageType =
-  "action.game-management.start-game";
-export const MessageTypeActionSkipAction: MessageType =
-  "action.game-management.skip-action";
+export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
+/**
+ * Tile selection message types
+ */
+export const MessageTypeActionTileSelected: MessageType = "action.tile-selection.tile-selected";
 /**
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionCardAction: MessageType =
-  "action.card.card-action";
-export const MessageTypeActionSelectStartingCard: MessageType =
-  "action.card.select-starting-card";
-export const MessageTypeActionSelectCards: MessageType =
-  "action.card.select-cards";
+export const MessageTypeActionCardAction: MessageType = "action.card.card-action";
+export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
 /**
  * Admin message types (development mode only)
  */

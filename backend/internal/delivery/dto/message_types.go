@@ -29,6 +29,9 @@ const (
 	MessageTypeActionStartGame  MessageType = "action.game-management.start-game"
 	MessageTypeActionSkipAction MessageType = "action.game-management.skip-action"
 
+	// Tile selection message types
+	MessageTypeActionTileSelected MessageType = "action.tile-selection.tile-selected"
+
 	// Card message types
 	MessageTypeActionPlayCard           MessageType = "action.card.play-card"
 	MessageTypeActionCardAction         MessageType = "action.card.card-action"

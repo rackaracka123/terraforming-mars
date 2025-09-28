@@ -8,11 +8,13 @@ import {
   AdminCommandTypeSetResources,
   AdminCommandTypeSetProduction,
   AdminCommandTypeSetGlobalParams,
+  AdminCommandTypeStartTileSelection,
   GiveCardAdminCommand,
   SetPhaseAdminCommand,
   SetResourcesAdminCommand,
   SetProductionAdminCommand,
   SetGlobalParamsAdminCommand,
+  StartTileSelectionAdminCommand,
   GamePhaseWaitingForGameStart,
   GamePhaseStartingCardSelection,
   GamePhaseAction,
@@ -22,9 +24,13 @@ import {
 
 interface AdminCommandPanelProps {
   gameState: GameDto;
+  onClose?: () => void;
 }
 
-const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
+const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
+  gameState,
+  onClose,
+}) => {
   const [selectedCommand, setSelectedCommand] = useState<string>("");
   const [validationErrors, setValidationErrors] = useState<
     Record<string, boolean>
@@ -113,6 +119,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     temperature: gameState.globalParameters.temperature,
     oxygen: gameState.globalParameters.oxygen,
     oceans: gameState.globalParameters.oceans,
+  });
+  const [tileSelectionForm, setTileSelectionForm] = useState({
+    playerId: "",
+    tileType: "",
   });
 
   const allPlayers = [gameState.currentPlayer, ...gameState.otherPlayers];
@@ -308,12 +318,40 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     await sendAdminCommand(AdminCommandTypeSetGlobalParams, command);
   };
 
+  const handleStartTileSelection = async () => {
+    const errors: Record<string, boolean> = {};
+
+    if (!tileSelectionForm.playerId) errors.tileSelectionPlayerId = true;
+    if (!tileSelectionForm.tileType) errors.tileSelectionTileType = true;
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setTimeout(() => setValidationErrors({}), 3000);
+      return;
+    }
+
+    const command: StartTileSelectionAdminCommand = {
+      playerId: tileSelectionForm.playerId,
+      tileType: tileSelectionForm.tileType,
+    };
+
+    await sendAdminCommand(AdminCommandTypeStartTileSelection, command);
+    setTileSelectionForm({ playerId: "", tileType: "" });
+
+    // Close the admin panel after starting tile selection
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const commandOptions = [
     { value: "give-card", label: "Give Card to Player" },
     { value: "set-phase", label: "Set Game Phase" },
     { value: "set-resources", label: "Set Player Resources" },
     { value: "set-production", label: "Set Player Production" },
     { value: "set-global-params", label: "Set Global Parameters" },
+    { value: "start-tile-selection", label: "Start Tile Selection (Demo)" },
   ];
 
   const phaseOptions = [
@@ -693,6 +731,68 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
         </div>
       )}
 
+      {selectedCommand === "start-tile-selection" && (
+        <div style={{ marginBottom: "16px" }}>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
+            Start Tile Selection (Demo)
+          </h4>
+          <div style={{ marginBottom: "8px" }}>
+            <select
+              value={tileSelectionForm.playerId}
+              onChange={(e) =>
+                setTileSelectionForm({
+                  ...tileSelectionForm,
+                  playerId: e.target.value,
+                })
+              }
+              style={getSelectStyle(validationErrors.tileSelectionPlayerId)}
+            >
+              <option value="">Select player...</option>
+              {allPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: "8px" }}>
+            <select
+              value={tileSelectionForm.tileType}
+              onChange={(e) =>
+                setTileSelectionForm({
+                  ...tileSelectionForm,
+                  tileType: e.target.value,
+                })
+              }
+              style={getSelectStyle(validationErrors.tileSelectionTileType)}
+            >
+              <option value="">Select tile type...</option>
+              <option value="city">City</option>
+              <option value="greenery">Greenery</option>
+              <option value="ocean">Ocean</option>
+            </select>
+          </div>
+          <button onClick={handleStartTileSelection} style={buttonStyle}>
+            Start Tile Selection
+          </button>
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "8px",
+              background: "rgba(255, 193, 7, 0.1)",
+              border: "1px solid rgba(255, 193, 7, 0.3)",
+              borderRadius: "4px",
+              fontSize: "11px",
+              color: "#ffc107",
+            }}
+          >
+            <strong>Demo:</strong> This will trigger tile selection for the
+            chosen player. Available hexes will be highlighted on the Mars
+            board. Click a highlighted hex to complete the tile placement.
+          </div>
+        </div>
+      )}
+
       {!selectedCommand && (
         <div
           style={{
@@ -712,6 +812,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
             <li>Set player resources</li>
             <li>Set player production</li>
             <li>Modify global parameters</li>
+            <li>Start tile selection (demo)</li>
           </ul>
         </div>
       )}

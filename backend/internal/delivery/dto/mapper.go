@@ -109,6 +109,7 @@ func ToPlayerDto(player model.Player, playerCards []CardDto, startingCards ...[]
 		CardSelection:            ToProductionPhaseDto(player.ProductionSelection),
 		StartingSelection:        startingCardDtos, // Resolved starting card selection
 		HasSelectedStartingCards: player.HasSelectedStartingCards,
+		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
 	}
 }
 
@@ -584,5 +585,18 @@ func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
 	return &TileOccupantDto{
 		Type: string(occupant.Type),
 		Tags: occupant.Tags,
+	}
+}
+
+// ToPendingTileSelectionDto converts a model PendingTileSelection pointer to PendingTileSelectionDto pointer
+func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTileSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	return &PendingTileSelectionDto{
+		TileType:       selection.TileType,
+		AvailableHexes: selection.AvailableHexes,
+		Source:         selection.Source,
 	}
 }

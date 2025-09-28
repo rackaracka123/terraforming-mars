@@ -28,6 +28,9 @@ type AdminService interface {
 
 	// OnAdminSetGlobalParameters sets the global terraforming parameters
 	OnAdminSetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
+
+	// OnAdminStartTileSelection starts tile selection for testing
+	OnAdminStartTileSelection(ctx context.Context, gameID, playerID, tileType string) error
 }
 
 // AdminServiceImpl implements AdminService interface
@@ -234,4 +237,87 @@ func (s *AdminServiceImpl) OnAdminSetGlobalParameters(ctx context.Context, gameI
 	}
 
 	return nil
+}
+
+// OnAdminStartTileSelection starts tile selection for testing
+func (s *AdminServiceImpl) OnAdminStartTileSelection(ctx context.Context, gameID, playerID, tileType string) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Info("🎯 Admin starting tile selection", zap.String("tile_type", tileType))
+
+	// Verify player exists
+	_, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Player not found", zap.Error(err))
+		return fmt.Errorf("player not found: %w", err)
+	}
+
+	// Get game to access the board
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Game not found", zap.Error(err))
+		return fmt.Errorf("game not found: %w", err)
+	}
+
+	// Calculate available hexes based on tile type (demo logic)
+	availableHexes := s.calculateDemoAvailableHexes(game, tileType)
+
+	if len(availableHexes) == 0 {
+		log.Warn("No valid positions available for tile type", zap.String("tile_type", tileType))
+		return fmt.Errorf("no valid positions available for %s placement", tileType)
+	}
+
+	// Set pending tile selection
+	pendingSelection := &model.PendingTileSelection{
+		TileType:       tileType,
+		AvailableHexes: availableHexes,
+		Source:         "admin_demo",
+	}
+
+	if err := s.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingSelection); err != nil {
+		log.Error("Failed to set pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to set pending tile selection: %w", err)
+	}
+
+	log.Info("✅ Tile selection started successfully",
+		zap.String("tile_type", tileType),
+		zap.Int("available_positions", len(availableHexes)))
+
+	// Broadcast updated game state
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after starting tile selection", zap.Error(err))
+		// Don't fail the operation, just log the error
+	}
+
+	return nil
+}
+
+// calculateDemoAvailableHexes calculates available positions for demo tile placement
+func (s *AdminServiceImpl) calculateDemoAvailableHexes(game model.Game, tileType string) []string {
+	var availableHexes []string
+
+	// Demo logic: just find empty tiles based on type
+	for _, tile := range game.Board.Tiles {
+		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+
+		// Tile must be empty
+		if tile.OccupiedBy != nil {
+			continue
+		}
+
+		switch tileType {
+		case "ocean":
+			// Ocean tiles can only be placed on ocean-designated spaces
+			if tile.Type == model.ResourceOceanTile {
+				availableHexes = append(availableHexes, hexKey)
+			}
+
+		case "city", "greenery":
+			// Cities and greenery can be placed on any empty land space
+			if tile.Type != model.ResourceOceanTile {
+				availableHexes = append(availableHexes, hexKey)
+			}
+		}
+	}
+
+	return availableHexes
 }

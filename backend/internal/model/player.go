@@ -8,6 +8,13 @@ type ProductionPhase struct {
 	SelectionComplete bool   `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
 }
 
+// PendingTileSelection represents a pending tile placement action
+type PendingTileSelection struct {
+	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
+	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
+	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID               string         `json:"id" ts:"string"`
@@ -29,6 +36,8 @@ type Player struct {
 	// Starting card selection - nullable, exists only during starting card selection phase
 	StartingSelection        []string `json:"startingSelection" ts:"string[]"`       // Starting card IDs available for selection (10 card IDs)
 	HasSelectedStartingCards bool     `json:"hasSelectedStartingCards" ts:"boolean"` // Whether player has completed starting card selection
+	// Tile selection - nullable, exists only when player needs to place tiles
+	PendingTileSelection *PendingTileSelection `json:"pendingTileSelection" ts:"PendingTileSelection | null"` // Pending tile placement, null when no tiles to place
 }
 
 // DeepCopy creates a deep copy of the Player
@@ -63,6 +72,20 @@ func (p *Player) DeepCopy() *Player {
 	if p.StartingSelection != nil {
 		startingSelectionCopy = make([]string, len(p.StartingSelection))
 		copy(startingSelectionCopy, p.StartingSelection)
+	}
+
+	// Deep copy pending tile selection if it exists
+	var pendingTileSelectionCopy *PendingTileSelection
+	if p.PendingTileSelection != nil {
+		// Copy available hexes slice
+		availableHexesCopy := make([]string, len(p.PendingTileSelection.AvailableHexes))
+		copy(availableHexesCopy, p.PendingTileSelection.AvailableHexes)
+
+		pendingTileSelectionCopy = &PendingTileSelection{
+			TileType:       p.PendingTileSelection.TileType,
+			AvailableHexes: availableHexesCopy,
+			Source:         p.PendingTileSelection.Source,
+		}
 	}
 
 	// Deep copy effects slice
@@ -103,5 +126,6 @@ func (p *Player) DeepCopy() *Player {
 		ProductionSelection:      productionSelectionCopy,
 		StartingSelection:        startingSelectionCopy,
 		HasSelectedStartingCards: p.HasSelectedStartingCards,
+		PendingTileSelection:     pendingTileSelectionCopy,
 	}
 }

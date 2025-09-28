@@ -294,6 +294,13 @@ type PlayerActionDto struct {
 	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
 }
 
+// PendingTileSelectionDto represents a pending tile placement action for client consumption
+type PendingTileSelectionDto struct {
+	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
+	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
+	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
+}
+
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
@@ -315,6 +322,8 @@ type PlayerDto struct {
 	// Starting card selection - available during starting_card_selection phase
 	StartingSelection        []CardDto `json:"startingSelection" ts:"CardDto[]"`
 	HasSelectedStartingCards bool      `json:"hasSelectedStartingCards" ts:"boolean"` // Whether player has completed starting card selection
+	// Tile selection - nullable, exists only when player needs to place tiles
+	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)

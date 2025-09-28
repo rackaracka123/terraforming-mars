@@ -18,6 +18,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -58,6 +59,9 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 
 	// Register play card action handler
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))
+
+	// Register tile selection handlers
+	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(playerService, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService, adminService))

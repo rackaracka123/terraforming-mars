@@ -525,7 +525,7 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
       )}
 
       {activeTab === "admin" && gameState?.settings.developmentMode && (
-        <AdminCommandPanel gameState={gameState} />
+        <AdminCommandPanel gameState={gameState} onClose={onClose} />
       )}
     </div>
   );
