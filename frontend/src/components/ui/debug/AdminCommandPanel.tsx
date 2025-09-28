@@ -158,7 +158,9 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
           ...prev,
           credits: (selectedPlayer.resourceProduction.credits || 0).toString(),
           steel: (selectedPlayer.resourceProduction.steel || 0).toString(),
-          titanium: (selectedPlayer.resourceProduction.titanium || 0).toString(),
+          titanium: (
+            selectedPlayer.resourceProduction.titanium || 0
+          ).toString(),
           plants: (selectedPlayer.resourceProduction.plants || 0).toString(),
           energy: (selectedPlayer.resourceProduction.energy || 0).toString(),
           heat: (selectedPlayer.resourceProduction.heat || 0).toString(),
@@ -206,13 +208,17 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     }
   };
 
-  const handleProductionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleProductionKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
     if (e.key === "Enter") {
       void handleSetProduction();
     }
   };
 
-  const handleGlobalParamsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleGlobalParamsKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
     if (e.key === "Enter") {
       void handleSetGlobalParams();
     }
@@ -288,11 +294,25 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     if (!resourcesForm.playerId) errors.setResourcesPlayerId = true;
 
     // Validate that all resource values are valid numbers
-    const resourceFields = ["credits", "steel", "titanium", "plants", "energy", "heat"];
+    const resourceFields = [
+      "credits",
+      "steel",
+      "titanium",
+      "plants",
+      "energy",
+      "heat",
+    ];
     for (const field of resourceFields) {
-      const value = resourcesForm[field as keyof typeof resourcesForm] as string;
-      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
-        errors[`setResources${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
+      const value = resourcesForm[
+        field as keyof typeof resourcesForm
+      ] as string;
+      if (
+        value !== "" &&
+        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
+      ) {
+        errors[
+          `setResources${field.charAt(0).toUpperCase() + field.slice(1)}`
+        ] = true;
       }
     }
 
@@ -324,11 +344,25 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     if (!productionForm.playerId) errors.setProductionPlayerId = true;
 
     // Validate that all production values are valid numbers
-    const productionFields = ["credits", "steel", "titanium", "plants", "energy", "heat"];
+    const productionFields = [
+      "credits",
+      "steel",
+      "titanium",
+      "plants",
+      "energy",
+      "heat",
+    ];
     for (const field of productionFields) {
-      const value = productionForm[field as keyof typeof productionForm] as string;
-      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
-        errors[`setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
+      const value = productionForm[
+        field as keyof typeof productionForm
+      ] as string;
+      if (
+        value !== "" &&
+        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
+      ) {
+        errors[
+          `setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`
+        ] = true;
       }
     }
 

@@ -6,7 +6,7 @@ import {
   GamePhaseAction,
 } from "@/types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
-import { canPerformActions } from "@/utils/actionUtils.ts";
+import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
 import styles from "./ActionsModal.module.css";
 
 // Utility function to check if an action is affordable and available
@@ -99,6 +99,11 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   // Determine if actions can be played using utility function
   const isGameActive = gameState?.status === GameStatusActive;
   const isActionPhase = gameState?.currentPhase === GamePhaseAction;
+  const isCurrentPlayerTurn =
+    gameState?.currentTurn === gameState?.viewingPlayerId;
+  const hasActionsLeft = hasActionsAvailable(
+    gameState?.currentPlayer?.availableActions,
+  );
 
   // Button should be visible only if game is active and in action phase
   const showPlayButton = isGameActive && isActionPhase;

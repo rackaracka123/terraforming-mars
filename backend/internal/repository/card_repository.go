@@ -18,6 +18,9 @@ type CardRepository interface {
 	// GetCardByID finds a card by its ID
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
+	// ListCardsByIdMap returns cards matching the given IDs
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error)
+
 	// GetAllCards returns all loaded cards
 	GetAllCards(ctx context.Context) ([]model.Card, error)
 
@@ -163,6 +166,26 @@ func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*m
 		return &cardCopy, nil
 	}
 	return nil, fmt.Errorf("card not found: %s", cardID)
+}
+
+// ListCardsByIdMap returns cards matching the given IDs
+func (r *CardRepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if !r.loaded {
+		return nil, fmt.Errorf("cards not loaded")
+	}
+
+	result := make(map[string]model.Card)
+	for id := range ids {
+		if card, exists := r.cardLookup[id]; exists {
+			// Return a copy to prevent external mutation
+			cardCopy := *card
+			result[id] = cardCopy
+		}
+	}
+	return result, nil
 }
 
 // GetAllCards returns all loaded cards

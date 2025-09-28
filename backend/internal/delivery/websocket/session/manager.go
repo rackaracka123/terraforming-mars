@@ -100,25 +100,36 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		return nil
 	}
 
-	// Debug: Check if players have starting card data
 	for _, player := range players {
 		log.Debug("🔍 Player data from repository",
 			zap.String("player_id", player.ID),
-			zap.String("player_name", player.Name),
-			zap.Int("starting_selection_count", len(player.StartingSelection)),
-			zap.Strings("starting_card_ids", player.StartingSelection))
+			zap.String("player_name", player.Name))
 	}
 
-	// Fetch cards for players once (shared data)
-	playerCards, err := sm.fetchPlayerCards(ctx, players)
-	if err != nil {
-		log.Warn("Failed to fetch player cards, using empty cards", zap.Error(err))
-		playerCards = make(map[string][]model.Card)
+	allCardIds := make(map[string]struct{})
+	for _, player := range players {
+		for _, cardID := range player.Cards {
+			allCardIds[cardID] = struct{}{}
+		}
+		for _, cardID := range player.PlayedCards {
+			allCardIds[cardID] = struct{}{}
+		}
+		if player.ProductionPhase != nil {
+			for _, cardID := range player.ProductionPhase.AvailableCards {
+				allCardIds[cardID] = struct{}{}
+			}
+		}
+		if player.SelectStartingCardsPhase != nil {
+			for _, cardID := range player.SelectStartingCardsPhase.AvailableCards {
+				allCardIds[cardID] = struct{}{}
+			}
+		}
 	}
-	startingCards, err := sm.fetchPlayerStartingCards(ctx, gameID, players)
+
+	resolvedCards, err := sm.cardRepo.ListCardsByIdMap(ctx, allCardIds)
 	if err != nil {
-		log.Warn("Failed to fetch player starting cards, using empty cards", zap.Error(err))
-		startingCards = make(map[string][]model.Card)
+		log.Error("Failed to resolve card data for broadcast", zap.Error(err))
+		return err
 	}
 
 	// Filter players based on target
@@ -139,7 +150,7 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	// Send personalized game state to target player(s)
 	for _, player := range playersToSend {
-		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, playerCards, startingCards)
+		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, resolvedCards)
 
 		// Send game state via direct session call
 		err = sm.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
@@ -167,85 +178,6 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	log.Info("✅ Game state broadcast completed")
 	return nil
-}
-
-// fetchPlayerCards retrieves card data for all players' hand cards
-func (sm *SessionManagerImpl) fetchPlayerCards(ctx context.Context, players []model.Player) (map[string][]model.Card, error) {
-	playerCards := make(map[string][]model.Card)
-
-	for _, player := range players {
-		if len(player.Cards) == 0 {
-			playerCards[player.ID] = []model.Card{}
-			continue
-		}
-
-		// Fetch cards for this player
-		cards := make([]model.Card, 0, len(player.Cards))
-		for _, cardID := range player.Cards {
-			card, err := sm.cardRepo.GetCardByID(ctx, cardID)
-			if err != nil {
-				// Log warning but continue with other cards
-				sm.logger.Warn("Failed to fetch card", zap.String("card_id", cardID), zap.Error(err))
-				continue
-			}
-			if card != nil {
-				cards = append(cards, *card)
-			}
-		}
-		playerCards[player.ID] = cards
-	}
-
-	return playerCards, nil
-}
-
-// fetchPlayerStartingCards retrieves card data for all players' starting card selections
-func (sm *SessionManagerImpl) fetchPlayerStartingCards(ctx context.Context, gameID string, players []model.Player) (map[string][]model.Card, error) {
-	playerStartingCards := make(map[string][]model.Card)
-
-	for _, player := range players {
-		// Fetch fresh player data from repository to get latest starting card data
-		freshPlayer, err := sm.playerRepo.GetByID(ctx, gameID, player.ID)
-		if err != nil {
-			sm.logger.Warn("Failed to fetch fresh player data, using cached data",
-				zap.String("player_id", player.ID),
-				zap.Error(err))
-			freshPlayer = player // Fall back to cached data
-		} else {
-			sm.logger.Debug("🔄 Fetched fresh player data for starting cards",
-				zap.String("player_id", player.ID),
-				zap.Int("cached_starting_cards", len(player.StartingSelection)),
-				zap.Int("fresh_starting_cards", len(freshPlayer.StartingSelection)))
-		}
-
-		sm.logger.Debug("🔍 Checking player starting cards",
-			zap.String("player_id", freshPlayer.ID),
-			zap.Int("starting_selection_count", len(freshPlayer.StartingSelection)),
-			zap.Strings("starting_card_ids", freshPlayer.StartingSelection))
-
-		if len(freshPlayer.StartingSelection) == 0 {
-			sm.logger.Debug("⚠️ Player has no starting cards to fetch",
-				zap.String("player_id", freshPlayer.ID))
-			playerStartingCards[freshPlayer.ID] = []model.Card{}
-			continue
-		}
-
-		// Fetch starting cards for this player
-		cards := make([]model.Card, 0, len(freshPlayer.StartingSelection))
-		for _, cardID := range freshPlayer.StartingSelection {
-			card, err := sm.cardRepo.GetCardByID(ctx, cardID)
-			if err != nil {
-				// Log warning but continue with other cards
-				sm.logger.Warn("Failed to fetch starting card", zap.String("card_id", cardID), zap.Error(err))
-				continue
-			}
-			if card != nil {
-				cards = append(cards, *card)
-			}
-		}
-		playerStartingCards[freshPlayer.ID] = cards
-	}
-
-	return playerStartingCards, nil
 }
 
 // sendToPlayerDirect sends a message directly to a specific player via the Hub

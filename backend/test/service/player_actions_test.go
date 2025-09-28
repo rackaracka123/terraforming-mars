@@ -292,6 +292,16 @@ func (m *MockCardRepository) GetCardByID(ctx context.Context, cardID string) (*m
 	return nil, nil
 }
 
+func (m *MockCardRepository) ListCardsByIdMap(ctx context.Context, cardIDs map[string]struct{}) (map[string]model.Card, error) {
+	result := make(map[string]model.Card)
+	for id := range cardIDs {
+		if card, exists := m.cards[id]; exists {
+			result[id] = card
+		}
+	}
+	return result, nil
+}
+
 func (m *MockCardRepository) GetAllCards(ctx context.Context) ([]model.Card, error) {
 	cards := make([]model.Card, 0, len(m.cards))
 	for _, card := range m.cards {

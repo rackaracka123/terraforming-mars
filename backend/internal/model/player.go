@@ -1,34 +1,72 @@
 package model
 
-// ConnectionStatus constants removed - now using simple boolean isConnected
-
 // ProductionPhase contains both card selection and production phase state for a player
 type ProductionPhase struct {
-	AvailableCards    []Card `json:"availableCards" ts:"CardDto[]"`  // Cards available for selection
-	SelectionComplete bool   `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	AvailableCards    []string  `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
+	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	BeforeResources   Resources `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources    Resources `json:"afterResources" ts:"ResourcesDto"`
+	EnergyConverted   int       `json:"energyConverted" ts:"number"`
+	CreditsIncome     int       `json:"creditsIncome" ts:"number"`
+}
+
+// DeepCopy creates a deep copy of the ProductionPhase
+func (p *ProductionPhase) DeepCopy() *ProductionPhase {
+	if p == nil {
+		return nil
+	}
+
+	return &ProductionPhase{
+		AvailableCards:    p.AvailableCards,
+		SelectionComplete: p.SelectionComplete,
+		BeforeResources:   p.BeforeResources.DeepCopy(),
+		AfterResources:    p.AfterResources.DeepCopy(),
+		EnergyConverted:   p.EnergyConverted,
+		CreditsIncome:     p.CreditsIncome,
+	}
+}
+
+type SelectStartingCardsPhase struct {
+	AvailableCards    []string `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
+	SelectionComplete bool     `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
 }
 
 // Player represents a player in the game
 type Player struct {
-	ID               string         `json:"id" ts:"string"`
-	Name             string         `json:"name" ts:"string"`
-	Corporation      *string        `json:"corporation" ts:"string | null"`
-	Cards            []string       `json:"cards" ts:"string[]"`
-	Resources        Resources      `json:"resources" ts:"Resources"`
-	Production       Production     `json:"production" ts:"Production"`
-	TerraformRating  int            `json:"terraformRating" ts:"number"`
-	PlayedCards      []string       `json:"playedCards" ts:"string[]"`
-	Passed           bool           `json:"passed" ts:"boolean"`
-	AvailableActions int            `json:"availableActions" ts:"number"`
-	VictoryPoints    int            `json:"victoryPoints" ts:"number"`
-	IsConnected      bool           `json:"isConnected" ts:"boolean"`
-	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
-	Actions          []PlayerAction `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
-	// Card selection and production phase - nullable, exists only during selection phase
-	ProductionSelection *ProductionPhase `json:"productionSelection" ts:"ProductionPhase | null"` // Card selection and production state, null when not selecting
-	// Starting card selection - nullable, exists only during starting card selection phase
-	StartingSelection        []string `json:"startingSelection" ts:"string[]"`       // Starting card IDs available for selection (10 card IDs)
-	HasSelectedStartingCards bool     `json:"hasSelectedStartingCards" ts:"boolean"` // Whether player has completed starting card selection
+	ID                       string                    `json:"id" ts:"string"`
+	Name                     string                    `json:"name" ts:"string"`
+	Corporation              *string                   `json:"corporation" ts:"string | null"`
+	Cards                    []string                  `json:"cards" ts:"string[]"`
+	Resources                Resources                 `json:"resources" ts:"Resources"`
+	Production               Production                `json:"production" ts:"Production"`
+	TerraformRating          int                       `json:"terraformRating" ts:"number"`
+	PlayedCards              []string                  `json:"playedCards" ts:"string[]"`
+	Passed                   bool                      `json:"passed" ts:"boolean"`
+	AvailableActions         int                       `json:"availableActions" ts:"number"`
+	VictoryPoints            int                       `json:"victoryPoints" ts:"number"`
+	IsConnected              bool                      `json:"isConnected" ts:"boolean"`
+	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
+	Actions                  []PlayerAction            `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
+	ProductionPhase          *ProductionPhase          `json:"productionPhase" ts:"ProductionPhase | null"`
+	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
+}
+
+// GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
+func (p *Player) GetStartingSelectionCards() []string {
+	if p.SelectStartingCardsPhase == nil {
+		return nil
+	}
+
+	return p.SelectStartingCardsPhase.AvailableCards
+}
+
+// GetProductionPhaseCards returns the player's production phase card selection, nil if not in that phase
+func (p *Player) GetProductionPhaseCards() []string {
+	if p.ProductionPhase == nil {
+		return nil
+	}
+
+	return p.ProductionPhase.AvailableCards
 }
 
 // DeepCopy creates a deep copy of the Player
@@ -47,22 +85,32 @@ func (p *Player) DeepCopy() *Player {
 
 	// Deep copy production selection if it exists
 	var productionSelectionCopy *ProductionPhase
-	if p.ProductionSelection != nil {
+	if p.ProductionPhase != nil {
 		// Copy available cards slice
-		availableCardsCopy := make([]Card, len(p.ProductionSelection.AvailableCards))
-		copy(availableCardsCopy, p.ProductionSelection.AvailableCards)
+		availableCardsCopy := make([]string, len(p.ProductionPhase.AvailableCards))
+		copy(availableCardsCopy, p.ProductionPhase.AvailableCards)
 
 		productionSelectionCopy = &ProductionPhase{
 			AvailableCards:    availableCardsCopy,
-			SelectionComplete: p.ProductionSelection.SelectionComplete,
+			SelectionComplete: p.ProductionPhase.SelectionComplete,
+
+			BeforeResources: p.ProductionPhase.BeforeResources.DeepCopy(),
+			AfterResources:  p.ProductionPhase.AfterResources.DeepCopy(),
+			EnergyConverted: p.ProductionPhase.EnergyConverted,
+			CreditsIncome:   p.ProductionPhase.CreditsIncome,
 		}
 	}
 
 	// Copy starting selection slice
-	var startingSelectionCopy []string
-	if p.StartingSelection != nil {
-		startingSelectionCopy = make([]string, len(p.StartingSelection))
-		copy(startingSelectionCopy, p.StartingSelection)
+	var startingSelectionCopy *SelectStartingCardsPhase
+	if p.SelectStartingCardsPhase != nil {
+		availableCardsCopy := make([]string, len(p.SelectStartingCardsPhase.AvailableCards))
+		copy(availableCardsCopy, p.SelectStartingCardsPhase.AvailableCards)
+
+		startingSelectionCopy = &SelectStartingCardsPhase{
+			AvailableCards:    availableCardsCopy,
+			SelectionComplete: p.SelectStartingCardsPhase.SelectionComplete,
+		}
 	}
 
 	// Deep copy effects slice
@@ -100,8 +148,7 @@ func (p *Player) DeepCopy() *Player {
 		IsConnected:              p.IsConnected,
 		Effects:                  effectsCopy,
 		Actions:                  actionsCopy,
-		ProductionSelection:      productionSelectionCopy,
-		StartingSelection:        startingSelectionCopy,
-		HasSelectedStartingCards: p.HasSelectedStartingCards,
+		ProductionPhase:          productionSelectionCopy,
+		SelectStartingCardsPhase: startingSelectionCopy,
 	}
 }

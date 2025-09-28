@@ -58,13 +58,13 @@ func TestCardSelectionFlow(t *testing.T) {
 	require.Len(t, players, 1)
 
 	player := players[0]
-	require.NotNil(t, player.StartingSelection, "Player should have starting card selection data")
-	require.Len(t, player.StartingSelection, 10, "Player should have 10 available starting cards")
+	require.NotNil(t, player.SelectStartingCardsPhase, "Player should have starting card selection data")
+	require.Len(t, player.SelectStartingCardsPhase.AvailableCards, 10, "Player should have 10 available starting cards")
 
-	t.Logf("✅ Starting cards available to player: %v", player.StartingSelection)
+	t.Logf("✅ Starting cards available to player: %v", player.SelectStartingCardsPhase.AvailableCards)
 
 	// Test card selection - select first 2 cards
-	selectedCardIDs := player.StartingSelection[:2]
+	selectedCardIDs := player.SelectStartingCardsPhase.AvailableCards[:2]
 	err = cardService.OnSelectStartingCards(ctx, game.ID, playerID, selectedCardIDs)
 	require.NoError(t, err)
 	t.Logf("✅ Cards selected successfully: %v", selectedCardIDs)

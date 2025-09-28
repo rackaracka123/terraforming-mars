@@ -448,12 +448,32 @@ export interface CorporationDto {
   specialEffects: string[];
   number: string;
 }
+export interface SelectStartingCardsPhaseDto {
+  availableCards: CardDto[]; // Cards available for selection
+  selectionComplete: boolean; // Whether player completed card selection
+}
+export interface SelectStartingCardsOtherPlayerDto {
+  selectionComplete: boolean; // Whether player completed card selection
+}
 /**
  * ProductionPhaseDto represents card selection and production phase state for a player
  */
 export interface ProductionPhaseDto {
   availableCards: CardDto[]; // Cards available for selection
   selectionComplete: boolean; // Whether player completed card selection
+  beforeResources: ResourcesDto;
+  afterResources: ResourcesDto;
+  resourceDelta: ResourcesDto;
+  energyConverted: number /* int */;
+  creditsIncome: number /* int */;
+}
+export interface ProductionPhaseOtherPlayerDto {
+  selectionComplete: boolean; // Whether player completed card selection
+  beforeResources: ResourcesDto;
+  afterResources: ResourcesDto;
+  resourceDelta: ResourcesDto;
+  energyConverted: number /* int */;
+  creditsIncome: number /* int */;
 }
 /**
  * GameSettingsDto contains configurable game parameters
@@ -474,17 +494,6 @@ export interface GlobalParametersDto {
  * ResourcesDto represents a player's resources
  */
 export interface ResourcesDto {
-  credits: number /* int */;
-  steel: number /* int */;
-  titanium: number /* int */;
-  plants: number /* int */;
-  energy: number /* int */;
-  heat: number /* int */;
-}
-/**
- * ResourceDelta represents the change in resources during production phase
- */
-export interface ResourceDelta {
   credits: number /* int */;
   steel: number /* int */;
   titanium: number /* int */;
@@ -531,11 +540,22 @@ export interface PlayerActionDto {
   playCount: number /* int */; // Number of times this action has been played this generation
 }
 /**
+ * PlayerStatus represents the current status of a player in the game
+ */
+export type PlayerStatus = string;
+export const PlayerStatusSelectingStartingCards: PlayerStatus =
+  "selecting-starting-cards";
+export const PlayerStatusSelectingProductionCards: PlayerStatus =
+  "selecting-production-cards";
+export const PlayerStatusWaiting: PlayerStatus = "waiting";
+export const PlayerStatusActive: PlayerStatus = "active";
+/**
  * PlayerDto represents a player in the game for client consumption
  */
 export interface PlayerDto {
   id: string;
   name: string;
+  status: PlayerStatus;
   corporation?: string;
   cards: CardDto[];
   resources: ResourcesDto;
@@ -548,15 +568,8 @@ export interface PlayerDto {
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
-  /**
-   * Card selection state - nullable, exists only during selection phase
-   */
-  productionSelection?: ProductionPhaseDto;
-  /**
-   * Starting card selection - available during starting_card_selection phase
-   */
-  startingSelection: CardDto[];
-  hasSelectedStartingCards: boolean; // Whether player has completed starting card selection
+  selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
+  productionPhase?: ProductionPhaseDto;
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -564,6 +577,7 @@ export interface PlayerDto {
 export interface OtherPlayerDto {
   id: string;
   name: string;
+  status: PlayerStatus;
   corporation: string;
   handCardCount: number /* int */; // Number of cards in hand (private)
   resources: ResourcesDto;
@@ -574,12 +588,10 @@ export interface OtherPlayerDto {
   availableActions: number /* int */;
   victoryPoints: number /* int */;
   isConnected: boolean;
-  effects: PlayerEffectDto[]; // Active ongoing effects (public information)
-  actions: PlayerActionDto[]; // Available actions from played cards (public information)
-  /**
-   * Card selection state - limited visibility for other players
-   */
-  isSelectingCards: boolean; // Whether player is currently selecting cards
+  effects: PlayerEffectDto[];
+  actions: PlayerActionDto[];
+  selectStartingCardsPhase?: SelectStartingCardsOtherPlayerDto;
+  productionPhase?: ProductionPhaseOtherPlayerDto;
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)
@@ -714,21 +726,9 @@ export interface ListGamesResponse {
   games: GameDto[];
 }
 /**
- * UpdateResourcesRequest represents the request body for updating player resources
- */
-export interface UpdateResourcesRequest {
-  resources: ResourcesDto;
-}
-/**
  * GetPlayerResponse represents the response for getting a player
  */
 export interface GetPlayerResponse {
-  player: PlayerDto;
-}
-/**
- * UpdatePlayerResourcesResponse represents the response for updating player resources
- */
-export interface UpdatePlayerResourcesResponse {
   player: PlayerDto;
 }
 /**
@@ -877,13 +877,7 @@ export interface PlayerDisconnectedPayload {
 export interface PlayerProductionData {
   playerId: string;
   playerName: string;
-  beforeResources: ResourcesDto;
-  afterResources: ResourcesDto;
-  resourceDelta: ResourceDelta;
   production: ProductionDto;
-  terraformRating: number /* int */;
-  energyConverted: number /* int */;
-  creditsIncome: number /* int */;
 }
 /**
  * ProductionPhaseStartedPayload contains data when production phase begins
