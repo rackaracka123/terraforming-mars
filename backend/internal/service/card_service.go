@@ -176,9 +176,14 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	if game.CurrentTurn == nil {
+		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
+		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+	}
+
 	if *game.CurrentTurn != playerID {
-		log.Error("Not current players turn", zap.Error(err))
-		return fmt.Errorf("Not current player turn: %w", err)
+		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
+		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
 	}
 
 	// Get the player to verify they have the card and available actions
@@ -329,9 +334,14 @@ func (s *CardServiceImpl) PlayCardAction(ctx context.Context, gameID, playerID, 
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	if game.CurrentTurn == nil {
+		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
+		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+	}
+
 	if *game.CurrentTurn != playerID {
-		log.Error("Not current players turn", zap.Error(err))
-		return fmt.Errorf("Not current player turn: %w", err)
+		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
+		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
 	}
 
 	// Get the player to validate they exist and check their actions
