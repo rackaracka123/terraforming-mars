@@ -169,6 +169,18 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card", zap.String("card_id", cardID))
 
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+
+	if err != nil {
+		log.Error("Failed to get game for card play", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	if *game.CurrentTurn != playerID {
+		log.Error("Not current players turn", zap.Error(err))
+		return fmt.Errorf("Not current player turn: %w", err)
+	}
+
 	// Get the player to verify they have the card and available actions
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
@@ -309,6 +321,18 @@ func (s *CardServiceImpl) PlayCardAction(ctx context.Context, gameID, playerID, 
 	log.Debug("🎯 Starting card action play",
 		zap.String("card_id", cardID),
 		zap.Int("behavior_index", behaviorIndex))
+
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+
+	if err != nil {
+		log.Error("Failed to get game for card action", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	if *game.CurrentTurn != playerID {
+		log.Error("Not current players turn", zap.Error(err))
+		return fmt.Errorf("Not current player turn: %w", err)
+	}
 
 	// Get the player to validate they exist and check their actions
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
