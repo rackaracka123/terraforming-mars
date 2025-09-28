@@ -38,7 +38,6 @@ type GameService interface {
 	// Get global parameters (read-only access)
 	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
 
-
 	// Process production phase ready acknowledgment from client
 	ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*model.Game, error)
 
@@ -1230,4 +1229,3 @@ func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameI
 
 	return nil
 }
-

@@ -195,7 +195,6 @@ func (s *PlayerServiceImpl) GetMaxCardsToSell(player *model.Player) int {
 	return len(player.Cards)
 }
 
-
 // UpdatePlayerConnectionStatus updates a player's connection status
 func (s *PlayerServiceImpl) updatePlayerConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error {
 	log := logger.WithGameContext(gameID, playerID)
@@ -239,7 +238,6 @@ func (s *PlayerServiceImpl) PlayerDisconnected(ctx context.Context, gameID, play
 	log.Info("✅ Player disconnection processed successfully")
 	return nil
 }
-
 
 // GetPlayerByName finds a player by name in a specific game
 func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error) {

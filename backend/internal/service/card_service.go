@@ -25,7 +25,6 @@ type CardService interface {
 	// Get starting cards for selection
 	GetStartingCards(ctx context.Context) ([]model.Card, error)
 
-
 	// Get card by ID
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
@@ -149,7 +148,6 @@ func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]model.Card, error) {
 	return s.cardRepo.GetStartingCardPool(ctx)
 }
-
 
 func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
 	return s.cardRepo.GetCardByID(ctx, cardID)
