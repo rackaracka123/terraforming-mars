@@ -354,15 +354,7 @@ func (r *PlayerRepositoryImpl) UpdateEffects(ctx context.Context, gameID, player
 	// Deep copy the effects to prevent external mutation
 	effectsCopy := make([]model.PlayerEffect, len(effects))
 	for i, effect := range effects {
-		// Copy affected tags slice
-		affectedTagsCopy := make([]model.CardTag, len(effect.AffectedTags))
-		copy(affectedTagsCopy, effect.AffectedTags)
-
-		effectsCopy[i] = model.PlayerEffect{
-			Type:         effect.Type,
-			Amount:       effect.Amount,
-			AffectedTags: affectedTagsCopy,
-		}
+		effectsCopy[i] = *effect.DeepCopy()
 	}
 
 	oldEffectsCount := len(player.Effects)

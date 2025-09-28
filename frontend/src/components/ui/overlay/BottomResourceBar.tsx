@@ -5,6 +5,7 @@ import {
   GameDto,
 } from "../../../types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
+import EffectsPopover from "../popover/EffectsPopover.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -38,7 +39,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   onActionSelect,
 }) => {
   const [showActionsPopover, setShowActionsPopover] = useState(false);
+  const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
+  const effectsButtonRef = useRef<HTMLButtonElement>(null);
   // Helper function to create image with embedded number
   const createImageWithNumber = (
     imageSrc: string,
@@ -151,6 +154,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     setShowActionsPopover(!showActionsPopover);
   };
 
+  const handleOpenEffectsPopover = () => {
+    setShowEffectsPopover(!showEffectsPopover);
+  };
+
   const handleOpenTagsModal = () => {
     // Opening tags modal
     onOpenTagsModal?.();
@@ -159,11 +166,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const handleOpenVictoryPointsModal = () => {
     // Opening victory points modal
     onOpenVictoryPointsModal?.();
-  };
-
-  const handleOpenCardEffectsModal = () => {
-    // Opening card effects modal
-    onOpenCardEffectsModal?.();
   };
 
   // Modal escape handling is now managed in GameInterface
@@ -238,8 +240,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
+          ref={effectsButtonRef}
           className="action-button effects-button"
-          onClick={handleOpenCardEffectsModal}
+          onClick={handleOpenEffectsPopover}
           title="View Card Effects"
         >
           <div className="button-icon">✨</div>
@@ -874,6 +877,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         onOpenDetails={onOpenActionsModal}
         anchorRef={actionsButtonRef as React.RefObject<HTMLElement>}
         gameState={gameState}
+      />
+
+      {/* Effects Popover */}
+      <EffectsPopover
+        isVisible={showEffectsPopover}
+        onClose={() => setShowEffectsPopover(false)}
+        effects={currentPlayer?.effects || []}
+        playerName={currentPlayer?.name}
+        onOpenDetails={onOpenCardEffectsModal}
+        anchorRef={effectsButtonRef as React.RefObject<HTMLElement>}
       />
 
       {/* Modal components are now rendered in GameInterface */}

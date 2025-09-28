@@ -4,7 +4,7 @@ import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
-import CardEffectsModal from "../../ui/modals/CardEffectsModal.tsx";
+import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
@@ -624,11 +624,10 @@ export default function GameInterface() {
         playerName={currentPlayer?.name}
       />
 
-      <CardEffectsModal
+      <EffectsModal
         isVisible={showCardEffectsModal}
         onClose={() => setShowCardEffectsModal(false)}
-        effects={[]}
-        cards={[]}
+        effects={currentPlayer?.effects || []}
         playerName={currentPlayer?.name}
       />
 

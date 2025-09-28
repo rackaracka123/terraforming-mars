@@ -513,21 +513,14 @@ export interface ProductionDto {
   heat: number /* int */;
 }
 /**
- * PlayerEffectType represents different types of ongoing effects a player can have
- */
-export type PlayerEffectType = string;
-export const PlayerEffectTypeDiscount: PlayerEffectType = "discount"; // Cost reduction for playing cards
-export const PlayerEffectTypeGlobalParameterLenience: PlayerEffectType =
-  "global-parameter-lenience"; // Global parameter requirement flexibility
-export const PlayerEffectTypeDefense: PlayerEffectType = "defense"; // Protection from attacks or resource removal
-export const PlayerEffectTypeValueModifier: PlayerEffectType = "value-modifier"; // Increases resource values (e.g., steel/titanium worth more)
-/**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
+ * Aligned with PlayerActionDto structure for consistent behavior handling
  */
 export interface PlayerEffectDto {
-  type: PlayerEffectType; // Type of effect
-  amount: number /* int */; // Effect amount (e.g., M€ discount, steps of flexibility)
-  affectedTags?: CardTag[]; // Tags that qualify for this effect (empty = all cards)
+  cardId: string; // ID of the card that provides this effect
+  cardName: string; // Name of the card for display purposes
+  behaviorIndex: number /* int */; // Which behavior on the card this effect represents
+  behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
 }
 /**
  * PlayerActionDto represents an action that a player can take for client consumption

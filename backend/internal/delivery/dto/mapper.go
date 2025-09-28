@@ -499,25 +499,11 @@ func ToCardTagPointer(ptr *model.CardTag) *CardTag {
 
 // ToPlayerEffectDto converts a model PlayerEffect to PlayerEffectDto
 func ToPlayerEffectDto(effect model.PlayerEffect) PlayerEffectDto {
-	// Convert model PlayerEffectType to DTO PlayerEffectType
-	var dtoType PlayerEffectType
-	switch effect.Type {
-	case model.PlayerEffectDiscount:
-		dtoType = PlayerEffectTypeDiscount
-	case model.PlayerEffectGlobalParameterLenience:
-		dtoType = PlayerEffectTypeGlobalParameterLenience
-	case model.PlayerEffectDefense:
-		dtoType = PlayerEffectTypeDefense
-	case model.PlayerEffectValueModifier:
-		dtoType = PlayerEffectTypeValueModifier
-	default:
-		dtoType = PlayerEffectType(effect.Type) // Fallback to string conversion
-	}
-
 	return PlayerEffectDto{
-		Type:         dtoType,
-		Amount:       effect.Amount,
-		AffectedTags: ToCardTagDtoSlice(effect.AffectedTags),
+		CardID:        effect.CardID,
+		CardName:      effect.CardName,
+		BehaviorIndex: effect.BehaviorIndex,
+		Behavior:      ToCardBehaviorDto(effect.Behavior),
 	}
 }
 
