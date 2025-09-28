@@ -42,7 +42,6 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	playerRoutes := api.PathPrefix("/games/{gameId}/players").Subrouter()
 	playerRoutes.HandleFunc("", playerHandler.JoinGame).Methods(http.MethodPost)
 	playerRoutes.HandleFunc("/{playerId}", playerHandler.GetPlayer).Methods(http.MethodGet)
-	playerRoutes.HandleFunc("/{playerId}/resources", playerHandler.UpdatePlayerResources).Methods(http.MethodPut)
 
 	// Card routes
 	cardRoutes := api.PathPrefix("/cards").Subrouter()

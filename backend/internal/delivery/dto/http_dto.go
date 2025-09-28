@@ -32,18 +32,8 @@ type ListGamesResponse struct {
 	Games []GameDto `json:"games" ts:"GameDto[]"`
 }
 
-// UpdateResourcesRequest represents the request body for updating player resources
-type UpdateResourcesRequest struct {
-	Resources ResourcesDto `json:"resources" ts:"ResourcesDto"`
-}
-
 // GetPlayerResponse represents the response for getting a player
 type GetPlayerResponse struct {
-	Player PlayerDto `json:"player" ts:"PlayerDto"`
-}
-
-// UpdatePlayerResourcesResponse represents the response for updating player resources
-type UpdatePlayerResourcesResponse struct {
 	Player PlayerDto `json:"player" ts:"PlayerDto"`
 }
 
