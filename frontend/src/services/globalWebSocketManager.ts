@@ -230,7 +230,11 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   // Tile selection actions
-  async selectTile(coordinate: { q: number; r: number; s: number }): Promise<string> {
+  async selectTile(coordinate: {
+    q: number;
+    r: number;
+    s: number;
+  }): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectTile(coordinate);
   }

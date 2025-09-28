@@ -63,7 +63,6 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
   }, []);
 
   const handleHexClick = (hexCoordinate: string) => {
-
     // Check if current player has a pending tile selection
     const currentPlayer = gameState.currentPlayer;
     if (!currentPlayer?.pendingTileSelection) {
