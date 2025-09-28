@@ -101,10 +101,8 @@ class GlobalWebSocketManager implements WebSocketConnection {
       this.emit("available-cards", payload);
     });
 
-    webSocketService.on("production-phase-started", (payload: any) => {
-      // WebSocket: Production phase started
-      this.emit("production-phase-started", payload);
-    });
+    // Note: production-phase-started is now handled via game state updates
+    // The production phase data is available in player.productionSelection
 
     webSocketService.on("error", (error: any) => {
       console.error("WebSocket: Error received", error);

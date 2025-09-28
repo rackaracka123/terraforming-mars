@@ -1,24 +1,32 @@
-import React, { useState, useEffect } from "react";
-import { ProductionPhaseStartedPayload } from "@/types/generated/api-types.ts";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  GameDto,
+  ProductionPhaseDto,
+  OtherPlayerDto,
+  PlayerDto,
+} from "@/types/generated/api-types.ts";
 import {
   RESOURCE_COLORS,
   RESOURCE_ICONS,
   RESOURCE_NAMES,
   ResourceType,
-} from "../../../utils/resourceColors.ts";
+} from "@/utils/resourceColors.ts";
+import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import styles from "./ProductionPhaseModal.module.css";
 
 interface ProductionPhaseModalProps {
   isOpen: boolean;
-  productionData: ProductionPhaseStartedPayload | null;
+  gameState: GameDto | null;
   onClose: () => void;
 }
 
 const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   isOpen,
-  productionData,
+  gameState,
   onClose,
 }) => {
+  const [hasSubmittedCardSelection, setHasSubmittedCardSelection] =
+    useState(false);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [animationStep, setAnimationStep] = useState<
     "energyConversion" | "production"
@@ -32,133 +40,89 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     "initial" | "fadeOut" | "fadeIn"
   >("initial");
 
-  // Fake data for testing
-  const fakeProductionData: ProductionPhaseStartedPayload = {
-    generation: 5,
-    game: {} as any, // We don't use this in the modal
-    playersData: [
-      {
-        playerId: "player1",
-        playerName: "Alice",
-        beforeResources: {
-          credits: 15,
-          steel: 3,
-          titanium: 2,
-          plants: 8,
-          energy: 6,
-          heat: 4,
-        },
-        afterResources: {
-          credits: 27, // +12 from TR + production
-          steel: 5, // +2 from production
-          titanium: 2, // no change
-          plants: 9, // +1 from production
-          energy: 3, // reset + production
-          heat: 10, // +6 from energy conversion
-        },
-        resourceDelta: {
-          credits: 12,
-          steel: 2,
-          titanium: 0,
-          plants: 1,
-          energy: -3,
-          heat: 6,
-        },
-        production: {
-          credits: 4,
-          steel: 2,
-          titanium: 0,
-          plants: 1,
-          energy: 3,
-          heat: 0,
-        },
-        terraformRating: 23,
-        energyConverted: 6,
-        creditsIncome: 12, // TR + production
-      },
-      {
-        playerId: "player2",
-        playerName: "Bob",
-        beforeResources: {
-          credits: 8,
-          steel: 1,
-          titanium: 4,
-          plants: 2,
-          energy: 4,
-          heat: 1,
-        },
-        afterResources: {
-          credits: 18, // +10 from TR + production
-          steel: 4, // +3 from production
-          titanium: 6, // +2 from production
-          plants: 2, // no change
-          energy: 2, // reset + production
-          heat: 5, // +4 from energy conversion
-        },
-        resourceDelta: {
-          credits: 10,
-          steel: 3,
-          titanium: 2,
-          plants: 0,
-          energy: -2,
-          heat: 4,
-        },
-        production: {
-          credits: 2,
-          steel: 3,
-          titanium: 2,
-          plants: 0,
-          energy: 2,
-          heat: 0,
-        },
-        terraformRating: 18,
-        energyConverted: 4,
-        creditsIncome: 10,
-      },
-      {
-        playerId: "player3",
-        playerName: "Charlie",
-        beforeResources: {
-          credits: 22,
-          steel: 0,
-          titanium: 1,
-          plants: 12,
-          energy: 2,
-          heat: 8,
-        },
-        afterResources: {
-          credits: 35, // +13 from TR + production
-          steel: 1, // +1 from production
-          titanium: 1, // no change
-          plants: 15, // +3 from production
-          energy: 1, // reset + production
-          heat: 10, // +2 from energy conversion
-        },
-        resourceDelta: {
-          credits: 13,
-          steel: 1,
-          titanium: 0,
-          plants: 3,
-          energy: -1,
-          heat: 2,
-        },
-        production: {
-          credits: 1,
-          steel: 1,
-          titanium: 0,
-          plants: 3,
-          energy: 1,
-          heat: 0,
-        },
-        terraformRating: 22,
-        energyConverted: 2,
-        creditsIncome: 13,
-      },
-    ],
-  };
+  // Handle closing the modal and sending card selection
+  const handleClose = useCallback(async () => {
+    // Only send card selection once per production phase
+    if (
+      !hasSubmittedCardSelection &&
+      gameState?.currentPlayer?.productionPhase
+    ) {
+      try {
+        // Send empty card selection (player not buying any cards)
+        await globalWebSocketManager.selectCards([]);
+        setHasSubmittedCardSelection(true);
+        // Don't call onClose here - let the game state update handle closing the modal
+        // The modal will close automatically when productionPhase is removed from the player
+      } catch (error) {
+        console.error("Failed to submit card selection:", error);
+        // On error, still close the modal manually
+        onClose();
+      }
+    } else {
+      // If already submitted or no production data, just close normally
+      onClose();
+    }
+  }, [hasSubmittedCardSelection, gameState, onClose]);
 
-  // Use real production data when available, fallback to fake data for testing
-  const modalProductionData = productionData || fakeProductionData;
+  // Reset submission flag when modal opens with new production data
+  useEffect(() => {
+    if (isOpen && gameState?.currentPlayer?.productionPhase) {
+      setHasSubmittedCardSelection(false);
+    }
+  }, [isOpen, gameState?.currentPlayer?.productionPhase]);
+
+  // Extract production data from game state
+  const modalProductionData = useMemo(() => {
+    if (!gameState || !gameState.currentPlayer?.productionPhase) {
+      return null;
+    }
+
+    // Gather all players' production data
+    const allPlayers: (PlayerDto | OtherPlayerDto)[] = [
+      gameState.currentPlayer,
+      ...gameState.otherPlayers,
+    ];
+
+    // Filter players that have production selection data
+    const playersWithProduction = allPlayers.filter(
+      (player) => player.productionPhase,
+    );
+
+    if (playersWithProduction.length === 0) {
+      return null;
+    }
+
+    // Transform into the format the modal expects
+    const playersData = playersWithProduction.map((player) => {
+      const productionPhase = player.productionPhase as ProductionPhaseDto;
+      // For the current player, we have full data
+      if ("cards" in player) {
+        const currentPlayer = player as PlayerDto;
+        return {
+          playerId: currentPlayer.id,
+          playerName: currentPlayer.name,
+          production: currentPlayer.resourceProduction,
+          terraformRating: currentPlayer.terraformRating,
+          ...productionPhase,
+        };
+      } else {
+        // For other players, we have limited data
+        const otherPlayer = player as OtherPlayerDto;
+        return {
+          playerId: otherPlayer.id,
+          playerName: otherPlayer.name,
+          production: otherPlayer.resourceProduction,
+          terraformRating: otherPlayer.terraformRating,
+          ...productionPhase,
+        };
+      }
+    });
+
+    return {
+      playersData,
+      generation: gameState.generation || 1,
+    };
+  }, [gameState]);
 
   // Resource configuration from utility
   const resourceIcons = RESOURCE_ICONS;
@@ -268,7 +232,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        void handleClose();
       }
     };
 
@@ -278,10 +242,12 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
 
     return () => {};
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   // Normal visibility check
   if (!isOpen) return null;
+
+  if (!modalProductionData) return null;
 
   const currentPlayerData = modalProductionData.playersData[currentPlayerIndex];
   if (!currentPlayerData) return null;
@@ -665,14 +631,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
+    <div className={styles.modalOverlay} onClick={handleClose}>
       <div className={styles.modalPopup} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h2>Production Phase</h2>
           <div className={styles.generationInfo}>
             Generation {modalProductionData.generation}
           </div>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <button className={styles.closeBtn} onClick={handleClose}>
             ×
           </button>
         </div>

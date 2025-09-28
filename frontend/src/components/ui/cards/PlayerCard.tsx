@@ -12,6 +12,7 @@ interface PlayerCardProps {
   onSkipAction?: () => void;
   actionsUsed?: number;
   totalActions?: number;
+  totalPlayers?: number; // Added to determine solo vs last player
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({
@@ -24,13 +25,23 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onSkipAction,
   actionsUsed = 0,
   totalActions = 2,
+  totalPlayers = 1,
 }) => {
   const isPassed = player.passed;
   const isDisconnected = !player.isConnected;
-  const actionsRemaining = totalActions - actionsUsed;
+  const hasUnlimitedActions = player.availableActions === -1;
 
-  // Determine button text based on actions used
-  const buttonText = actionsUsed > 0 ? "SKIP" : "PASS";
+  // For unlimited actions, calculate actionsRemaining and button text differently
+  const actionsRemaining = hasUnlimitedActions
+    ? -1
+    : totalActions - actionsUsed;
+
+  // Determine button text - always PASS for unlimited actions, otherwise SKIP if actions used
+  const buttonText = hasUnlimitedActions
+    ? "PASS"
+    : actionsUsed > 0
+      ? "SKIP"
+      : "PASS";
 
   return (
     <div
@@ -58,8 +69,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             )}
             {isCurrentTurn && isActionPhase && (
               <span className={`${styles.chip} ${styles.chipActions}`}>
-                {actionsRemaining}{" "}
-                {actionsRemaining === 1 ? "action" : "actions"} left
+                {hasUnlimitedActions
+                  ? totalPlayers === 1
+                    ? "Solo"
+                    : "Last player"
+                  : `${actionsRemaining} ${actionsRemaining === 1 ? "action" : "actions"} left`}
               </span>
             )}
           </div>

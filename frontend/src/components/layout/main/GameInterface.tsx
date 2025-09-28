@@ -14,10 +14,10 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
-import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
-import { getTabManager } from "../../../utils/tabManager.ts";
+import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
+import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
-import { skyboxCache } from "../../../services/SkyboxCache.ts";
+import { skyboxCache } from "@/services/SkyboxCache.ts";
 import {
   CardDto,
   FullStatePayload,
@@ -28,10 +28,9 @@ import {
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerActionDto,
-  ProductionPhaseStartedPayload,
-} from "../../../types/generated/api-types.ts";
-import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
-import { deepClone, findChangedPaths } from "../../../utils/deepCompare.ts";
+} from "@/types/generated/api-types.ts";
+import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
+import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -57,8 +56,6 @@ export default function GameInterface() {
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
     useState(false);
-  const [productionPhaseData, setProductionPhaseData] =
-    useState<ProductionPhaseStartedPayload | null>(null);
 
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
@@ -155,7 +152,7 @@ export default function GameInterface() {
       const savedGameData = localStorage.getItem("terraforming-mars-game");
       if (savedGameData) {
         // Attempt to reconnect in place
-        attemptReconnection();
+        void attemptReconnection();
       } else {
         // No saved game data, go to main menu
         navigate("/", { replace: true });
@@ -173,22 +170,25 @@ export default function GameInterface() {
     [handleGameUpdated],
   );
 
-  const handleProductionPhaseStarted = useCallback(
-    (payload: ProductionPhaseStartedPayload) => {
-      // Play production phase sound
+  // Check if we should show production phase modal based on game state
+  useEffect(() => {
+    if (!game || !currentPlayer) return;
+
+    // Check if current player has production phase data
+    const hasProductionData =
+      currentPlayer.productionPhase &&
+      currentPlayer.productionPhase.availableCards &&
+      currentPlayer.productionPhase.availableCards.length >= 0;
+
+    if (hasProductionData && !showProductionPhaseModal) {
+      // Play production phase sound when entering production phase
       void audioService.playProductionSound();
-
-      // Show production phase modal with animation data
-      setProductionPhaseData(payload);
       setShowProductionPhaseModal(true);
-
-      // Update game state if provided
-      if (payload.game) {
-        handleGameUpdated(payload.game);
-      }
-    },
-    [handleGameUpdated],
-  );
+    } else if (!hasProductionData && showProductionPhaseModal) {
+      // Production phase is over, hide the modal
+      setShowProductionPhaseModal(false);
+    }
+  }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
   const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
     try {
@@ -282,10 +282,6 @@ export default function GameInterface() {
     globalWebSocketManager.on("game-updated", handleGameUpdated);
     globalWebSocketManager.on("full-state", handleFullState);
     globalWebSocketManager.on("player-disconnected", handlePlayerDisconnected);
-    globalWebSocketManager.on(
-      "production-phase-started",
-      handleProductionPhaseStarted,
-    );
     globalWebSocketManager.on("error", handleError);
     globalWebSocketManager.on("disconnect", handleDisconnect);
 
@@ -298,10 +294,6 @@ export default function GameInterface() {
         "player-disconnected",
         handlePlayerDisconnected,
       );
-      globalWebSocketManager.off(
-        "production-phase-started",
-        handleProductionPhaseStarted,
-      );
       globalWebSocketManager.off("error", handleError);
       globalWebSocketManager.off("disconnect", handleDisconnect);
       isWebSocketInitialized.current = false;
@@ -310,7 +302,6 @@ export default function GameInterface() {
     handleGameUpdated,
     handleFullState,
     handlePlayerDisconnected,
-    handleProductionPhaseStarted,
     handleError,
     handleDisconnect,
   ]);
@@ -394,7 +385,7 @@ export default function GameInterface() {
         if (savedGameData) {
           // Start in-place reconnection instead of redirecting
           setIsReconnecting(true);
-          attemptReconnection();
+          void attemptReconnection();
           return;
         }
 
@@ -489,7 +480,7 @@ export default function GameInterface() {
 
   // Show/hide starting card selection overlay based on backend state
   useEffect(() => {
-    const cards = game?.currentPlayer?.startingSelection;
+    const cards = game?.currentPlayer?.selectStartingCardsPhase?.availableCards;
     const hasCardSelection = cards && cards.length > 0;
 
     if (
@@ -506,7 +497,7 @@ export default function GameInterface() {
   }, [
     game?.currentPhase,
     game?.status,
-    game?.currentPlayer?.startingSelection,
+    game?.currentPlayer?.selectStartingCardsPhase?.availableCards,
     showCardSelection,
     extractCardDetails,
   ]);
@@ -652,10 +643,9 @@ export default function GameInterface() {
 
       <ProductionPhaseModal
         isOpen={showProductionPhaseModal}
-        productionData={productionPhaseData}
+        gameState={game}
         onClose={() => {
           setShowProductionPhaseModal(false);
-          setProductionPhaseData(null);
         }}
       />
 

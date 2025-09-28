@@ -29,7 +29,7 @@ type GameService interface {
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
 	// Skip a player's turn (advance to next player)
-	SkipPlayerTurn(ctx context.Context, gameID string, playerID string) (*SkipPlayerTurnResult, error)
+	SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error
 
 	// Add player to game (join game flow)
 	JoinGame(ctx context.Context, gameID string, playerName string) (model.Game, error)
@@ -206,6 +206,17 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 		return fmt.Errorf("failed to distribute starting cards: %w", err)
 	}
 
+	// If we are starting a game with 1 player, give it unlimited actions (-1)
+	if len(players) == 1 {
+		soloPlayerID := players[0].ID
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, soloPlayerID, -1); err != nil {
+			log.Error("Failed to set unlimited actions for solo player", zap.Error(err))
+		}
+		log.Info("🏃 Solo player detected at game start - granting unlimited actions",
+			zap.String("player_id", soloPlayerID),
+			zap.Int("total_players", len(players)))
+	}
+
 	log.Info("Game started", zap.String("game_id", gameID))
 
 	// Broadcast game state to all players after starting
@@ -304,7 +315,11 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		}
 
 		// Update the player with starting card IDs
-		if err := s.playerRepo.SetStartingSelection(ctx, gameID, player.ID, playerStartingCardIDs); err != nil {
+		startingCardsPhase := model.SelectStartingCardsPhase{
+			AvailableCards: playerStartingCardIDs,
+		}
+
+		if err := s.playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &startingCardsPhase); err != nil {
 			log.Error("Failed to set starting selection for player",
 				zap.String("player_id", player.ID),
 				zap.Error(err))
@@ -327,7 +342,7 @@ type SkipPlayerTurnResult struct {
 	Game             *model.Game
 }
 
-func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, playerID string) (*SkipPlayerTurnResult, error) {
+func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("Skipping player turn via GameService")
 
@@ -335,18 +350,18 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	game, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for skip turn", zap.Error(err))
-		return nil, fmt.Errorf("failed to get game: %w", err)
+		return fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Validate game is active
 	if game.Status != model.GameStatusActive {
 		log.Warn("Attempted to skip turn in non-active game", zap.String("current_status", string(game.Status)))
-		return nil, fmt.Errorf("game is not active")
+		return fmt.Errorf("game is not active")
 	}
 
 	if game.CurrentTurn == nil {
 		log.Warn("Attempted to skip turn but current turn is not set")
-		return nil, fmt.Errorf("current turn is not set")
+		return fmt.Errorf("current turn is not set")
 	}
 
 	// Validate requesting player is the current player
@@ -354,7 +369,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 		log.Warn("Non-current player attempted to skip turn",
 			zap.String("current_player", *game.CurrentTurn),
 			zap.String("requesting_player", playerID))
-		return nil, fmt.Errorf("only the current player can skip their turn")
+		return fmt.Errorf("only the current player can skip their turn")
 	}
 
 	// Find current player and determine SKIP vs PASS behavior
@@ -368,7 +383,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 
 	if currentPlayerIndex == -1 {
 		log.Error("Current player not found in game", zap.String("player_id", playerID))
-		return nil, fmt.Errorf("player not found in game")
+		return fmt.Errorf("player not found in game")
 	}
 
 	gamePlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
@@ -385,32 +400,56 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	}
 	if currentPlayer == nil {
 		log.Error("Current player data not found", zap.String("player_id", playerID))
-		return nil, fmt.Errorf("player data not found")
+		return fmt.Errorf("player data not found")
 	}
 
-	isPassing := currentPlayer.AvailableActions == 2
+	// Check how many players are still active (not passed and have actions)
+	activePlayerCount := 0
+	for _, player := range gamePlayers {
+		if !player.Passed {
+			activePlayerCount++
+		}
+	}
+
+	isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1
 	if isPassing {
-		// PASS: Player hasn't done any actions, mark as passed for generation end check
+		// PASS: Player hasn't done any actions or has unlimited actions, mark as passed for generation end check
 		err = s.playerRepo.UpdatePassed(ctx, gameID, playerID, true)
 		if err != nil {
 			log.Error("Failed to mark player as passed", zap.Error(err))
-			return nil, fmt.Errorf("failed to update player passed status: %w", err)
-		}
-
-		// List all players again to reflect the passed status
-		gamePlayers, err = s.playerRepo.ListByGameID(ctx, gameID)
-		if err != nil {
-			log.Error("Failed to list players after passing", zap.Error(err))
+			return fmt.Errorf("failed to update player passed status: %w", err)
 		}
 
 		log.Debug("Player PASSED (marked as passed for generation)",
 			zap.String("player_id", playerID),
 			zap.Int("available_actions", currentPlayer.AvailableActions))
+
+		// If this means only one active player remains, grant them unlimited actions
+		if activePlayerCount == 2 {
+			for _, player := range gamePlayers {
+				if !player.Passed && player.ID != playerID {
+					err = s.playerRepo.UpdateAvailableActions(ctx, gameID, player.ID, -1)
+					if err != nil {
+						log.Error("Failed to grant unlimited actions to last active player", zap.String("player_id", player.ID), zap.Error(err))
+						return fmt.Errorf("failed to update last active player's actions: %w", err)
+					} else {
+						log.Info("🏃 Last active player granted unlimited actions due to others passing", zap.String("player_id", player.ID))
+					}
+				}
+			}
+		}
+
 	} else {
 		// SKIP: Player has done some actions, just advance turn without passing
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
 			zap.String("player_id", playerID),
 			zap.Int("available_actions", currentPlayer.AvailableActions))
+	}
+
+	// List all players again to reflect any status changes
+	gamePlayers, err = s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to list players after skip processing", zap.Error(err))
 	}
 
 	// Check if all players have exhausted their actions or formally passed
@@ -422,8 +461,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 			passedCount++
 		} else if player.AvailableActions == 0 {
 			playersWithNoActions++
-		} else {
-			// Player still has actions available
+		} else if player.AvailableActions > 0 || player.AvailableActions == -1 {
 			allPlayersFinished = false
 		}
 	}
@@ -442,10 +480,19 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 			zap.Int("passed_players", passedCount),
 			zap.Int("players_with_no_actions", playersWithNoActions))
 
-		return &SkipPlayerTurnResult{
-			AllPlayersPassed: true,
-			Game:             &game,
-		}, nil
+		_, err = s.executeProductionPhase(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to execute production phase", zap.Error(err))
+			return fmt.Errorf("failed to execute production phase: %w", err)
+		}
+
+		// Broadcast updated game state to all players
+		if err := s.sessionManager.Broadcast(gameID); err != nil {
+			log.Error("Failed to broadcast game state after production phase start", zap.Error(err))
+			// Don't fail the skip operation, just log the error
+		}
+
+		return nil
 	}
 
 	// Find next player who still has actions available
@@ -454,7 +501,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	// Cycle through players to find the next player with available actions
 	for i := 0; i < len(gamePlayers); i++ {
 		nextPlayer := &gamePlayers[nextPlayerIndex]
-		if !nextPlayer.Passed && nextPlayer.AvailableActions > 0 {
+		if !nextPlayer.Passed {
 			break
 		}
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(gamePlayers)
@@ -465,17 +512,20 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	// Update game through repository
 	if err := s.gameRepo.UpdateCurrentTurn(ctx, game.ID, game.CurrentTurn); err != nil {
 		log.Error("Failed to update game after skip turn", zap.Error(err))
-		return nil, fmt.Errorf("failed to update game: %w", err)
+		return fmt.Errorf("failed to update game: %w", err)
 	}
 
 	log.Info("Player turn skipped, advanced to next player",
 		zap.String("previous_player", playerID),
 		zap.String("current_player", *game.CurrentTurn))
 
-	return &SkipPlayerTurnResult{
-		AllPlayersPassed: false,
-		Game:             &game,
-	}, nil
+	// Broadcast updated game state to all players
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after skip turn", zap.Error(err))
+		// Don't fail the skip operation, just log the error
+	}
+
+	return nil
 }
 
 // AddPlayerToGame adds a player to the game (clean architecture pattern)
@@ -770,20 +820,24 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 	}
 
 	// Convert energy to heat and apply production to all players using repository methods
+	isSolo := len(gamePlayers) == 1
+	resetTurns := 2
+	if isSolo {
+		resetTurns = -1 // Unlimited actions for solo play
+	}
+
 	for i := range gamePlayers {
 		player := &gamePlayers[i]
 
-		// Get current resources to calculate energy conversion
 		energyConverted := player.Resources.Energy
-
-		// Calculate new resources after production
+		oldResources := player.Resources.DeepCopy()
 		newResources := model.Resources{
 			Credits:  player.Resources.Credits + player.Production.Credits + player.TerraformRating, // TR provides 1 credit per point
 			Steel:    player.Resources.Steel + player.Production.Steel,
 			Titanium: player.Resources.Titanium + player.Production.Titanium,
 			Plants:   player.Resources.Plants + player.Production.Plants,
-			Energy:   player.Production.Energy,                                         // Energy resets to production value (old energy converted to heat)
-			Heat:     player.Resources.Heat + energyConverted + player.Production.Heat, // Add converted energy + heat production
+			Energy:   player.Production.Energy,
+			Heat:     player.Resources.Heat + energyConverted + player.Production.Heat,
 		}
 
 		// Update player resources through repository (follows clean architecture)
@@ -802,11 +856,27 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 			return nil, fmt.Errorf("failed to reset player passed status: %w", err)
 		}
 
-		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, player.ID, 2); err != nil {
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, player.ID, resetTurns); err != nil {
 			log.Error("Failed to reset player available actions",
 				zap.String("player_id", player.ID),
 				zap.Error(err))
 			return nil, fmt.Errorf("failed to reset player available actions: %w", err)
+		}
+
+		// Set their production phase data
+		productionPhaseData := model.ProductionPhase{
+			AvailableCards:    []string{}, // TODO: Implement card draw logic at production phase
+			SelectionComplete: false,
+			BeforeResources:   oldResources,
+			AfterResources:    newResources,
+			EnergyConverted:   energyConverted,
+			CreditsIncome:     player.Production.Credits + player.TerraformRating,
+		}
+		if err := s.playerRepo.UpdateProductionPhase(ctx, gameID, player.ID, &productionPhaseData); err != nil {
+			log.Error("Failed to set player production phase data",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			return nil, fmt.Errorf("failed to set player production phase data: %w", err)
 		}
 
 		log.Debug("Applied production to player",
@@ -829,7 +899,7 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 		}
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction); err != nil {
+	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProductionAndCardDraw); err != nil {
 		log.Error("Failed to update game phase to action", zap.Error(err))
 		return nil, fmt.Errorf("failed to update game phase: %w", err)
 	}
@@ -840,7 +910,7 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 		return nil, fmt.Errorf("failed to get updated game: %w", err)
 	}
 
-	log.Info("Production phase executed",
+	log.Info("Production phase start",
 		zap.String("game_id", gameID),
 		zap.Int("generation", game.Generation),
 		zap.Int("player_count", len(gamePlayers)))
@@ -871,54 +941,6 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		return nil, fmt.Errorf("game is not in production phase")
 	}
 
-	gamePlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to list players for production ready", zap.Error(err))
-		return nil, fmt.Errorf("failed to list players: %w", err)
-	}
-
-	// Validate player exists in game
-	playerFound := false
-	for _, player := range gamePlayers {
-		if player.ID == playerID {
-			playerFound = true
-			break
-		}
-	}
-
-	if !playerFound {
-		log.Error("Player not found in game", zap.String("player_id", playerID))
-		return nil, fmt.Errorf("player not found in game")
-	}
-
-	// Check if player is already marked as ready
-	var currentPlayer *model.Player
-	for _, player := range gamePlayers {
-		if player.ID == playerID {
-			currentPlayer = &player
-			break
-		}
-	}
-
-	if currentPlayer != nil && currentPlayer.ProductionSelection == nil {
-		log.Debug("Player already marked as ready", zap.String("player_id", playerID))
-		// Player already ready, just return current game state
-		game, err = s.gameRepo.GetByID(ctx, gameID)
-		if err != nil {
-			log.Error("Failed to get game state", zap.Error(err))
-			return nil, fmt.Errorf("failed to get game: %w", err)
-		}
-		return &game, nil
-	}
-
-	// Mark player as ready by clearing their card selection
-	if err := s.playerRepo.ClearCardSelection(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to mark player as ready", zap.Error(err))
-		return nil, fmt.Errorf("failed to mark player as ready: %w", err)
-	}
-
-	log.Debug("Player marked as ready for production phase", zap.String("player_id", playerID))
-
 	// Check if all players are ready
 	updatedPlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {
@@ -929,7 +951,7 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 	allReady := true
 	readyCount := 0
 	for _, player := range updatedPlayers {
-		if player.ProductionSelection == nil {
+		if player.ProductionPhase.SelectionComplete {
 			readyCount++
 		} else {
 			allReady = false
@@ -947,9 +969,6 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 			zap.String("game_id", gameID),
 			zap.Int("generation", game.Generation))
 
-		// All players already have their ProductionSelection cleared (ready=true),
-		// so no need to reset ready status when advancing phase
-
 		// Set first player's turn for new generation
 		if len(updatedPlayers) > 0 {
 			firstPlayerID := updatedPlayers[0].ID
@@ -963,6 +982,16 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 		if err := s.resetPlayerActionPlayCounts(ctx, gameID); err != nil {
 			log.Error("Failed to reset player action play counts", zap.Error(err))
 			return nil, fmt.Errorf("failed to reset action play counts: %w", err)
+		}
+
+		// Clear production phase data for all players
+		for _, player := range updatedPlayers {
+			if err := s.playerRepo.UpdateProductionPhase(ctx, gameID, player.ID, nil); err != nil {
+				log.Error("Failed to clear player production phase data",
+					zap.String("player_id", player.ID),
+					zap.Error(err))
+				return nil, fmt.Errorf("failed to clear production phase data for player %s: %w", player.ID, err)
+			}
 		}
 
 		// Advance to action phase
@@ -980,6 +1009,12 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 	if err != nil {
 		log.Error("Failed to get updated game after production ready", zap.Error(err))
 		return nil, fmt.Errorf("failed to get updated game: %w", err)
+	}
+
+	err = s.sessionManager.Broadcast(gameID)
+	if err != nil {
+		log.Error("Failed to broadcast game state after production ready", zap.Error(err))
+		// Don't fail the operation, just log the error
 	}
 
 	return &game, nil
@@ -1011,63 +1046,6 @@ func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) erro
 	return nil
 }
 
-// advanceFromCardSelectionPhase advances the game from starting card selection to action phase (internal use only)
-func (s *GameServiceImpl) advanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
-	log := logger.WithGameContext(gameID, "")
-	log.Debug("Advancing game phase from card selection")
-
-	// Get current game state
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for phase advancement", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Validate current phase
-	if game.CurrentPhase != model.GamePhaseStartingCardSelection {
-		log.Warn("Attempted to advance from card selection phase but game is not in that phase",
-			zap.String("current_phase", string(game.CurrentPhase)))
-		return fmt.Errorf("game is not in starting card selection phase")
-	}
-
-	// Validate game is active
-	if game.Status != model.GameStatusActive {
-		log.Warn("Attempted to advance phase but game is not active",
-			zap.String("current_status", string(game.Status)))
-		return fmt.Errorf("game is not active")
-	}
-
-	// Advance to action phase using granular update
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
-		log.Error("Failed to update game phase", zap.Error(err))
-		return fmt.Errorf("failed to update game phase: %w", err)
-	}
-
-	// Clear temporary card selection data
-	if s.cardService != nil {
-		s.cardService.ClearGameSelectionData(gameID)
-	}
-
-	log.Info("Game phase advanced successfully",
-		zap.String("previous_phase", string(model.GamePhaseStartingCardSelection)),
-		zap.String("new_phase", string(model.GamePhaseAction)))
-
-	return nil
-}
-
-// updateGlobalParameters updates global terraforming parameters (internal use only)
-func (s *GameServiceImpl) updateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error {
-	log := logger.WithGameContext(gameID, "")
-
-	log.Info("Updating global parameters via GameService",
-		zap.Int("temperature", newParams.Temperature),
-		zap.Int("oxygen", newParams.Oxygen),
-		zap.Int("oceans", newParams.Oceans))
-
-	// Update through GameRepository using granular update
-	return s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams)
-}
-
 // GetGlobalParameters gets current global parameters
 func (s *GameServiceImpl) GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error) {
 	game, err := s.gameRepo.GetByID(ctx, gameID)
@@ -1075,78 +1053,6 @@ func (s *GameServiceImpl) GetGlobalParameters(ctx context.Context, gameID string
 		return model.GlobalParameters{}, err
 	}
 	return game.GlobalParameters, nil
-}
-
-// increaseTemperature increases temperature by specified steps (internal use only)
-func (s *GameServiceImpl) increaseTemperature(ctx context.Context, gameID string, steps int) error {
-	log := logger.WithGameContext(gameID, "")
-
-	// Get current parameters
-	params, err := s.GetGlobalParameters(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get global parameters", zap.Error(err))
-		return fmt.Errorf("failed to get parameters: %w", err)
-	}
-
-	// Calculate new temperature (max +8°C)
-	newTemp := params.Temperature + (steps * 2) // Each step = 2°C
-	if newTemp > 8 {
-		newTemp = 8
-	}
-
-	// Update parameters
-	updatedParams := params
-	updatedParams.Temperature = newTemp
-
-	return s.updateGlobalParameters(ctx, gameID, updatedParams)
-}
-
-// increaseOxygen increases oxygen by specified steps (internal use only)
-func (s *GameServiceImpl) increaseOxygen(ctx context.Context, gameID string, steps int) error {
-	log := logger.WithGameContext(gameID, "")
-
-	// Get current parameters
-	params, err := s.GetGlobalParameters(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get global parameters", zap.Error(err))
-		return fmt.Errorf("failed to get parameters: %w", err)
-	}
-
-	// Calculate new oxygen level (max 14%)
-	newOxygen := params.Oxygen + steps
-	if newOxygen > 14 {
-		newOxygen = 14
-	}
-
-	// Update parameters
-	updatedParams := params
-	updatedParams.Oxygen = newOxygen
-
-	return s.updateGlobalParameters(ctx, gameID, updatedParams)
-}
-
-// placeOcean places ocean tiles (internal use only)
-func (s *GameServiceImpl) placeOcean(ctx context.Context, gameID string, count int) error {
-	log := logger.WithGameContext(gameID, "")
-
-	// Get current parameters
-	params, err := s.GetGlobalParameters(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get global parameters", zap.Error(err))
-		return fmt.Errorf("failed to get parameters: %w", err)
-	}
-
-	// Calculate new ocean count (max 9 oceans)
-	newOceans := params.Oceans + count
-	if newOceans > 9 {
-		newOceans = 9
-	}
-
-	// Update parameters
-	updatedParams := params
-	updatedParams.Oceans = newOceans
-
-	return s.updateGlobalParameters(ctx, gameID, updatedParams)
 }
 
 // PlayerReconnected handles player reconnection by updating connection status and sending complete game state

@@ -93,21 +93,21 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
   const [setPhaseForm, setSetPhaseForm] = useState({ phase: "" });
   const [resourcesForm, setResourcesForm] = useState({
     playerId: "",
-    credits: 0,
-    steel: 0,
-    titanium: 0,
-    plants: 0,
-    energy: 0,
-    heat: 0,
+    credits: "",
+    steel: "",
+    titanium: "",
+    plants: "",
+    energy: "",
+    heat: "",
   });
   const [productionForm, setProductionForm] = useState({
     playerId: "",
-    credits: 0,
-    steel: 0,
-    titanium: 0,
-    plants: 0,
-    energy: 0,
-    heat: 0,
+    credits: "",
+    steel: "",
+    titanium: "",
+    plants: "",
+    energy: "",
+    heat: "",
   });
   const [globalParamsForm, setGlobalParamsForm] = useState({
     temperature: gameState.globalParameters.temperature,
@@ -126,24 +126,24 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
       if (selectedPlayer && selectedPlayer.resources) {
         setResourcesForm((prev) => ({
           ...prev,
-          credits: selectedPlayer.resources.credits || 0,
-          steel: selectedPlayer.resources.steel || 0,
-          titanium: selectedPlayer.resources.titanium || 0,
-          plants: selectedPlayer.resources.plants || 0,
-          energy: selectedPlayer.resources.energy || 0,
-          heat: selectedPlayer.resources.heat || 0,
+          credits: (selectedPlayer.resources.credits || 0).toString(),
+          steel: (selectedPlayer.resources.steel || 0).toString(),
+          titanium: (selectedPlayer.resources.titanium || 0).toString(),
+          plants: (selectedPlayer.resources.plants || 0).toString(),
+          energy: (selectedPlayer.resources.energy || 0).toString(),
+          heat: (selectedPlayer.resources.heat || 0).toString(),
         }));
       }
     } else {
       // Reset all fields when no player is selected
       setResourcesForm((prev) => ({
         ...prev,
-        credits: 0,
-        steel: 0,
-        titanium: 0,
-        plants: 0,
-        energy: 0,
-        heat: 0,
+        credits: "",
+        steel: "",
+        titanium: "",
+        plants: "",
+        energy: "",
+        heat: "",
       }));
     }
   }, [resourcesForm.playerId]);
@@ -156,24 +156,26 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
       if (selectedPlayer && selectedPlayer.resourceProduction) {
         setProductionForm((prev) => ({
           ...prev,
-          credits: selectedPlayer.resourceProduction.credits || 0,
-          steel: selectedPlayer.resourceProduction.steel || 0,
-          titanium: selectedPlayer.resourceProduction.titanium || 0,
-          plants: selectedPlayer.resourceProduction.plants || 0,
-          energy: selectedPlayer.resourceProduction.energy || 0,
-          heat: selectedPlayer.resourceProduction.heat || 0,
+          credits: (selectedPlayer.resourceProduction.credits || 0).toString(),
+          steel: (selectedPlayer.resourceProduction.steel || 0).toString(),
+          titanium: (
+            selectedPlayer.resourceProduction.titanium || 0
+          ).toString(),
+          plants: (selectedPlayer.resourceProduction.plants || 0).toString(),
+          energy: (selectedPlayer.resourceProduction.energy || 0).toString(),
+          heat: (selectedPlayer.resourceProduction.heat || 0).toString(),
         }));
       }
     } else {
       // Reset all fields when no player is selected
       setProductionForm((prev) => ({
         ...prev,
-        credits: 0,
-        steel: 0,
-        titanium: 0,
-        plants: 0,
-        energy: 0,
-        heat: 0,
+        credits: "",
+        steel: "",
+        titanium: "",
+        plants: "",
+        energy: "",
+        heat: "",
       }));
     }
   }, [productionForm.playerId]);
@@ -186,6 +188,41 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
       oceans: gameState.globalParameters.oceans,
     });
   }, [gameState.globalParameters]);
+
+  // Keyboard event handlers for Enter key support
+  const handleGiveCardKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      void handleGiveCard();
+    }
+  };
+
+  const handleSetPhaseKeyDown = (e: React.KeyboardEvent<HTMLSelectElement>) => {
+    if (e.key === "Enter") {
+      void handleSetPhase();
+    }
+  };
+
+  const handleResourcesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      void handleSetResources();
+    }
+  };
+
+  const handleProductionKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter") {
+      void handleSetProduction();
+    }
+  };
+
+  const handleGlobalParamsKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter") {
+      void handleSetGlobalParams();
+    }
+  };
 
   const sendAdminCommand = async (commandType: string, payload: any) => {
     const adminRequest: AdminCommandRequest = {
@@ -220,7 +257,8 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     };
 
     await sendAdminCommand(AdminCommandTypeGiveCard, command);
-    setGiveCardForm({ playerId: "", cardId: "" });
+    // Keep player selected, only clear card ID for next card
+    setGiveCardForm({ ...giveCardForm, cardId: "" });
   };
 
   const handleSetPhase = async () => {
@@ -242,10 +280,41 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     await sendAdminCommand(AdminCommandTypeSetPhase, command);
   };
 
+  const parseStringToNumber = (value: string): number => {
+    if (value === "" || value === undefined || value === null) {
+      return 0;
+    }
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? 0 : Math.max(0, parsed); // Ensure non-negative
+  };
+
   const handleSetResources = async () => {
     const errors: Record<string, boolean> = {};
 
     if (!resourcesForm.playerId) errors.setResourcesPlayerId = true;
+
+    // Validate that all resource values are valid numbers
+    const resourceFields = [
+      "credits",
+      "steel",
+      "titanium",
+      "plants",
+      "energy",
+      "heat",
+    ];
+    for (const field of resourceFields) {
+      const value = resourcesForm[
+        field as keyof typeof resourcesForm
+      ] as string;
+      if (
+        value !== "" &&
+        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
+      ) {
+        errors[
+          `setResources${field.charAt(0).toUpperCase() + field.slice(1)}`
+        ] = true;
+      }
+    }
 
     setValidationErrors(errors);
 
@@ -257,12 +326,12 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     const command: SetResourcesAdminCommand = {
       playerId: resourcesForm.playerId,
       resources: {
-        credits: resourcesForm.credits,
-        steel: resourcesForm.steel,
-        titanium: resourcesForm.titanium,
-        plants: resourcesForm.plants,
-        energy: resourcesForm.energy,
-        heat: resourcesForm.heat,
+        credits: parseStringToNumber(resourcesForm.credits),
+        steel: parseStringToNumber(resourcesForm.steel),
+        titanium: parseStringToNumber(resourcesForm.titanium),
+        plants: parseStringToNumber(resourcesForm.plants),
+        energy: parseStringToNumber(resourcesForm.energy),
+        heat: parseStringToNumber(resourcesForm.heat),
       },
     };
 
@@ -274,6 +343,29 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
 
     if (!productionForm.playerId) errors.setProductionPlayerId = true;
 
+    // Validate that all production values are valid numbers
+    const productionFields = [
+      "credits",
+      "steel",
+      "titanium",
+      "plants",
+      "energy",
+      "heat",
+    ];
+    for (const field of productionFields) {
+      const value = productionForm[
+        field as keyof typeof productionForm
+      ] as string;
+      if (
+        value !== "" &&
+        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
+      ) {
+        errors[
+          `setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`
+        ] = true;
+      }
+    }
+
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -284,12 +376,12 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
     const command: SetProductionAdminCommand = {
       playerId: productionForm.playerId,
       production: {
-        credits: productionForm.credits,
-        steel: productionForm.steel,
-        titanium: productionForm.titanium,
-        plants: productionForm.plants,
-        energy: productionForm.energy,
-        heat: productionForm.heat,
+        credits: parseStringToNumber(productionForm.credits),
+        steel: parseStringToNumber(productionForm.steel),
+        titanium: parseStringToNumber(productionForm.titanium),
+        plants: parseStringToNumber(productionForm.plants),
+        energy: parseStringToNumber(productionForm.energy),
+        heat: parseStringToNumber(productionForm.heat),
       },
     };
 
@@ -396,6 +488,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
               onChange={(e) =>
                 setGiveCardForm({ ...giveCardForm, cardId: e.target.value })
               }
+              onKeyDown={handleGiveCardKeyDown}
               style={{
                 ...getInputStyle(validationErrors.giveCardCardId),
                 width: "200px",
@@ -418,6 +511,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
             <select
               value={setPhaseForm.phase}
               onChange={(e) => setSetPhaseForm({ phase: e.target.value })}
+              onKeyDown={handleSetPhaseKeyDown}
               style={getSelectStyle(validationErrors.setPhase)}
             >
               <option value="">Select phase...</option>
@@ -479,18 +573,19 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
                     {resource}:
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={
                       resourcesForm[
                         resource as keyof typeof resourcesForm
-                      ] as number
+                      ] as string
                     }
                     onChange={(e) =>
                       setResourcesForm({
                         ...resourcesForm,
-                        [resource]: parseInt(e.target.value) || 0,
+                        [resource]: e.target.value,
                       })
                     }
+                    onKeyDown={handleResourcesKeyDown}
                     disabled={!resourcesForm.playerId}
                     style={{
                       ...getInputStyle(false, !resourcesForm.playerId),
@@ -558,18 +653,19 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
                     {resource}:
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     value={
                       productionForm[
                         resource as keyof typeof productionForm
-                      ] as number
+                      ] as string
                     }
                     onChange={(e) =>
                       setProductionForm({
                         ...productionForm,
-                        [resource]: parseInt(e.target.value) || 0,
+                        [resource]: e.target.value,
                       })
                     }
+                    onKeyDown={handleProductionKeyDown}
                     disabled={!productionForm.playerId}
                     style={{
                       ...getInputStyle(false, !productionForm.playerId),
@@ -623,6 +719,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
                     temperature: parseInt(e.target.value) || -30,
                   })
                 }
+                onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
                   width: "120px",
@@ -651,6 +748,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
                     oxygen: parseInt(e.target.value) || 0,
                   })
                 }
+                onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
                   width: "120px",
@@ -679,6 +777,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState }) => {
                     oceans: parseInt(e.target.value) || 0,
                   })
                 }
+                onKeyDown={handleGlobalParamsKeyDown}
                 style={{
                   ...getInputStyle(),
                   width: "120px",

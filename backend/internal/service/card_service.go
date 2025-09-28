@@ -181,8 +181,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Validate player has available actions
-	if player.AvailableActions <= 0 {
+	// Validate player has available actions (allow unlimited actions -1)
+	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
 		log.Warn("Player has no available actions", zap.Int("available_actions", player.AvailableActions))
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
@@ -257,14 +257,19 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// Consume one action now that all card playing steps have succeeded
-	newActions := player.AvailableActions - 1
-	if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-		log.Error("Failed to consume player action", zap.Error(err))
-		// Note: Card has already been played and effects applied, but we couldn't consume the action
-		// This is a critical error but we don't rollback the entire card play
-		return fmt.Errorf("card played but failed to consume action: %w", err)
+	// Handle unlimited actions (-1) - don't decrement them
+	if player.AvailableActions == -1 {
+		log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
+	} else {
+		newActions := player.AvailableActions - 1
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
+			log.Error("Failed to consume player action", zap.Error(err))
+			// Note: Card has already been played and effects applied, but we couldn't consume the action
+			// This is a critical error but we don't rollback the entire card play
+			return fmt.Errorf("card played but failed to consume action: %w", err)
+		}
+		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 	}
-	log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 
 	// Broadcast game state to all players after successful card play
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
@@ -340,7 +345,7 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 	}
 
 	// Check if player has available actions
-	if player.AvailableActions <= 0 {
+	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
 		return fmt.Errorf("no available actions remaining")
 	}
 
@@ -388,14 +393,18 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 	}
 
 	// Consume one action now that all steps have succeeded
-	newActions := player.AvailableActions - 1
-	if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-		log.Error("Failed to consume player action", zap.Error(err))
-		// Note: Action has already been applied, but we couldn't consume the action
-		// This is a critical error but we don't rollback the entire action
-		return fmt.Errorf("action applied but failed to consume available action: %w", err)
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
+			log.Error("Failed to consume player action", zap.Error(err))
+			// Note: Action has already been applied, but we couldn't consume the action
+			// This is a critical error but we don't rollback the entire action
+			return fmt.Errorf("action applied but failed to consume available action: %w", err)
+		}
+		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
+	} else {
+		log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
 	}
-	log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 
 	// Broadcast game state update
 	if err := s.sessionManager.Broadcast(gameID); err != nil {

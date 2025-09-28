@@ -72,18 +72,12 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 	}
 
 	// Clear the starting selection (this hides the modal)
-	if err := s.playerRepo.SetStartingSelection(ctx, gameID, playerID, nil); err != nil {
+	if err := s.playerRepo.SetStartingCardsSelectionComplete(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to clear starting selection", zap.Error(err))
 		return fmt.Errorf("failed to clear starting selection: %w", err)
 	}
 
-	// Set the completion flag
-	if err := s.playerRepo.SetHasSelectedStartingCards(ctx, gameID, playerID, true); err != nil {
-		log.Error("Failed to set starting cards selection completion flag", zap.Error(err))
-		return fmt.Errorf("failed to set completion flag: %w", err)
-	}
-
-	log.Info("Player starting card selection completed immediately",
+	log.Info("Player starting card selection completed",
 		zap.Strings("selected_cards", cardIDs),
 		zap.Int("cost", cost))
 
@@ -110,7 +104,14 @@ func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, pl
 		}
 	}
 
-	log.Info("Player completed production card selection",
+	// Mark player as ready for production phase
+	err = s.playerRepo.SetProductionCardsSelectionComplete(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to mark production card selection complete", zap.Error(err))
+		return fmt.Errorf("failed to mark production card selection complete: %w", err)
+	}
+
+	log.Info("Player production card selection completed",
 		zap.Strings("selected_cards", cardIDs))
 
 	return nil
@@ -132,15 +133,19 @@ func (s *SelectionManager) ValidateStartingCardSelection(ctx context.Context, ga
 		return fmt.Errorf("starting card selection already completed - you have %d cards in your hand", len(player.Cards))
 	}
 
+	if player.SelectStartingCardsPhase == nil {
+		return fmt.Errorf("starting card selection phase not initialized for player")
+	}
+
 	// Check if player has starting cards available for selection
-	if len(player.StartingSelection) == 0 {
+	if len(player.SelectStartingCardsPhase.AvailableCards) == 0 {
 		log.Debug("Player has no starting cards available",
 			zap.Int("cards_in_hand", len(player.Cards)),
-			zap.Bool("has_starting_selection", len(player.StartingSelection) > 0))
+			zap.Bool("has_starting_selection", len(player.SelectStartingCardsPhase.AvailableCards) > 0))
 		return fmt.Errorf("no starting cards available for selection - selection phase may have ended")
 	}
 
-	playerOptions := player.StartingSelection
+	playerOptions := player.SelectStartingCardsPhase.AvailableCards
 
 	// Check maximum cards (10 is the maximum starting cards dealt)
 	if len(cardIDs) > 10 {
@@ -165,8 +170,8 @@ func (s *SelectionManager) ValidateStartingCardSelection(ctx context.Context, ga
 
 	// Then validate selected cards are in player's options
 	optionsMap := make(map[string]bool)
-	for _, optionID := range playerOptions {
-		optionsMap[optionID] = true
+	for _, cardId := range playerOptions {
+		optionsMap[cardId] = true
 	}
 
 	for _, cardID := range cardIDs {
@@ -219,10 +224,15 @@ func (s *SelectionManager) checkStartingCardSelectionComplete(players []model.Pl
 
 	// Check the HasSelectedStartingCards flag for each player
 	for _, player := range players {
-		if player.HasSelectedStartingCards {
+		if player.SelectStartingCardsPhase == nil {
+			log.Debug("Player has no starting card selection phase initialized", zap.String("player_id", player.ID))
+			continue
+		}
+
+		if player.SelectStartingCardsPhase.SelectionComplete {
 			playersCompleted++
 			log.Debug("Player has completed starting card selection", zap.String("player_id", player.ID))
-		} else if len(player.StartingSelection) > 0 {
+		} else if len(player.SelectStartingCardsPhase.AvailableCards) > 0 {
 			log.Debug("Player has starting selection but hasn't completed yet", zap.String("player_id", player.ID))
 		} else {
 			log.Debug("Player has no starting selection", zap.String("player_id", player.ID))
@@ -247,10 +257,10 @@ func (s *SelectionManager) checkProductionCardSelectionComplete(players []model.
 
 	// Check each player's selection status
 	for _, player := range players {
-		if player.ProductionSelection != nil {
+		if player.ProductionPhase != nil {
 			playersWithSelectionData++
 			// If any player has selection data but hasn't completed, selection is not done
-			if !player.ProductionSelection.SelectionComplete {
+			if !player.ProductionPhase.SelectionComplete {
 				playersWithIncompleteSelection++
 			}
 		}
@@ -271,39 +281,6 @@ func (s *SelectionManager) checkProductionCardSelectionComplete(players []model.
 	return true
 }
 
-// GenerateStartingCardOptions generates 4 random starting card options for a player
-func (s *SelectionManager) GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]model.Card, error) {
-	startingCards, err := s.cardRepo.GetStartingCardPool(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get starting card pool: %w", err)
-	}
-
-	// For now, return first 4 cards as options
-	// In a full implementation, you'd randomize this selection
-	var options []model.Card
-	for i, card := range startingCards {
-		if i >= 4 {
-			break
-		}
-		options = append(options, card)
-	}
-
-	// Store the options for validation
-	s.StorePlayerCardOptions(gameID, playerID, options)
-
-	return options, nil
-}
-
-// StorePlayerCardOptions stores the starting card options for a player (called during game start)
-func (s *SelectionManager) StorePlayerCardOptions(gameID, playerID string, cardOptions []model.Card) {
-	ctx := context.Background()
-	productionPhase := &model.ProductionPhase{
-		AvailableCards:    cardOptions,
-		SelectionComplete: false,
-	}
-	s.playerRepo.SetCardSelection(ctx, gameID, playerID, productionPhase)
-}
-
 // ClearGameSelectionData clears temporary selection data for a game (called after selection phase completes)
 func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 	ctx := context.Background()
@@ -316,7 +293,22 @@ func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 	}
 
 	for _, player := range players {
-		s.playerRepo.ClearCardSelection(ctx, gameID, player.ID)
+		if player.SelectStartingCardsPhase != nil {
+			err = s.playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, nil)
+			if err != nil {
+				logger.WithGameContext(gameID, player.ID).Error("Failed to clear starting card selection data", zap.Error(err))
+				return
+			}
+		}
+
+		if player.ProductionPhase != nil {
+
+			err = s.playerRepo.UpdateProductionPhase(ctx, gameID, player.ID, nil)
+			if err != nil {
+				logger.WithGameContext(gameID, player.ID).Error("Failed to clear production phase data", zap.Error(err))
+				return
+			}
+		}
 	}
 
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
