@@ -65,7 +65,7 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	// Test card selection - select first 2 cards
 	selectedCardIDs := player.StartingSelection[:2]
-	err = cardService.SelectStartingCards(ctx, game.ID, playerID, selectedCardIDs)
+	err = cardService.OnSelectStartingCards(ctx, game.ID, playerID, selectedCardIDs)
 	require.NoError(t, err)
 	t.Logf("✅ Cards selected successfully: %v", selectedCardIDs)
 

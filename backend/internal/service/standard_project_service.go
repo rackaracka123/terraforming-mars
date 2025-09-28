@@ -39,7 +39,6 @@ type StandardProjectService interface {
 type StandardProjectServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
-	gameService    GameService
 	sessionManager session.SessionManager
 }
 
@@ -47,13 +46,11 @@ type StandardProjectServiceImpl struct {
 func NewStandardProjectService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	gameService GameService,
 	sessionManager session.SessionManager,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
-		gameService:    gameService,
 		sessionManager: sessionManager,
 	}
 }
@@ -133,10 +130,22 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 		// Increase terraform rating
 		player.TerraformRating++
 
-		// Increase temperature by 1 step (2°C)
-		if err := s.gameService.IncreaseTemperature(ctx, gameID, 1); err != nil {
-			log.Error("Failed to increase temperature", zap.Error(err))
-			return fmt.Errorf("failed to increase temperature: %w", err)
+		// Increase temperature by 1 step (2°C) - asteroid effect
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		newParams := game.GlobalParameters
+		newParams.Temperature += 2 // Each step is 2°C
+		if newParams.Temperature > model.MaxTemperature {
+			newParams.Temperature = model.MaxTemperature
+		}
+
+		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
+			log.Error("Failed to update temperature", zap.Error(err))
+			return fmt.Errorf("failed to update temperature: %w", err)
 		}
 
 		log.Info("Player launched asteroid",
@@ -163,8 +172,20 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 		// Increase terraform rating
 		player.TerraformRating++
 
-		// Place ocean tile (increase ocean count)
-		if err := s.gameService.PlaceOcean(ctx, gameID, 1); err != nil {
+		// Place ocean tile - increase ocean count by 1
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		newParams := game.GlobalParameters
+		newParams.Oceans++
+		if newParams.Oceans > model.MaxOceans {
+			newParams.Oceans = model.MaxOceans
+		}
+
+		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
 			log.Error("Failed to place ocean", zap.Error(err))
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
@@ -194,8 +215,20 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 		// Increase terraform rating
 		player.TerraformRating++
 
-		// Increase oxygen by 1 step
-		if err := s.gameService.IncreaseOxygen(ctx, gameID, 1); err != nil {
+		// Increase oxygen by 1% - greenery effect
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		newParams := game.GlobalParameters
+		newParams.Oxygen++
+		if newParams.Oxygen > model.MaxOxygen {
+			newParams.Oxygen = model.MaxOxygen
+		}
+
+		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
 			log.Error("Failed to increase oxygen", zap.Error(err))
 			return fmt.Errorf("failed to increase oxygen: %w", err)
 		}

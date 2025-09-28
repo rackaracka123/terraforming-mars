@@ -80,7 +80,8 @@ func main() {
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 
@@ -101,7 +102,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, cardRepo, hub)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

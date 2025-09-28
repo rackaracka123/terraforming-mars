@@ -28,9 +28,6 @@ type GameService interface {
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
-	// Private method used internally when all players complete starting card selection
-	AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error
-
 	// Skip a player's turn (advance to next player)
 	SkipPlayerTurn(ctx context.Context, gameID string, playerID string) (*SkipPlayerTurnResult, error)
 
@@ -38,25 +35,14 @@ type GameService interface {
 	JoinGame(ctx context.Context, gameID string, playerName string) (model.Game, error)
 	JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (model.Game, error)
 
-	// Global parameters methods (merged from GlobalParametersService)
-	UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error
+	// Get global parameters (read-only access)
 	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
-	IncreaseTemperature(ctx context.Context, gameID string, steps int) error
-	IncreaseOxygen(ctx context.Context, gameID string, steps int) error
-	PlaceOcean(ctx context.Context, gameID string, count int) error
-
-	// Execute production phase (update resources but keep in production phase)
-	ExecuteProductionPhase(ctx context.Context, gameID string) (*model.Game, error)
 
 	// Process production phase ready acknowledgment from client
 	ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*model.Game, error)
 
 	// Handle player reconnection - updates connection status and sends complete game state
 	PlayerReconnected(ctx context.Context, gameID string, playerID string) error
-
-	// Admin methods (development mode only)
-	SetGamePhase(ctx context.Context, gameID string, phase string) error
-	SetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
 }
 
 // GameServiceImpl implements GameService interface
@@ -759,8 +745,8 @@ func (s *GameServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID strin
 	return updatedGame, nil
 }
 
-// ExecuteProductionPhase updates all players' resources based on their production and advances generation
-func (s *GameServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string) (*model.Game, error) {
+// executeProductionPhase updates all players' resources based on their production and advances generation (internal use only)
+func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID string) (*model.Game, error) {
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Executing production phase via GameService")
 
@@ -1025,8 +1011,8 @@ func (s *GameServiceImpl) validateGameSettings(settings model.GameSettings) erro
 	return nil
 }
 
-// AdvanceFromCardSelectionPhase advances the game from starting card selection to action phase (internal use only)
-func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
+// advanceFromCardSelectionPhase advances the game from starting card selection to action phase (internal use only)
+func (s *GameServiceImpl) advanceFromCardSelectionPhase(ctx context.Context, gameID string) error {
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Advancing game phase from card selection")
 
@@ -1069,8 +1055,8 @@ func (s *GameServiceImpl) AdvanceFromCardSelectionPhase(ctx context.Context, gam
 	return nil
 }
 
-// UpdateGlobalParameters updates global terraforming parameters
-func (s *GameServiceImpl) UpdateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error {
+// updateGlobalParameters updates global terraforming parameters (internal use only)
+func (s *GameServiceImpl) updateGlobalParameters(ctx context.Context, gameID string, newParams model.GlobalParameters) error {
 	log := logger.WithGameContext(gameID, "")
 
 	log.Info("Updating global parameters via GameService",
@@ -1091,8 +1077,8 @@ func (s *GameServiceImpl) GetGlobalParameters(ctx context.Context, gameID string
 	return game.GlobalParameters, nil
 }
 
-// IncreaseTemperature increases temperature by specified steps
-func (s *GameServiceImpl) IncreaseTemperature(ctx context.Context, gameID string, steps int) error {
+// increaseTemperature increases temperature by specified steps (internal use only)
+func (s *GameServiceImpl) increaseTemperature(ctx context.Context, gameID string, steps int) error {
 	log := logger.WithGameContext(gameID, "")
 
 	// Get current parameters
@@ -1112,11 +1098,11 @@ func (s *GameServiceImpl) IncreaseTemperature(ctx context.Context, gameID string
 	updatedParams := params
 	updatedParams.Temperature = newTemp
 
-	return s.UpdateGlobalParameters(ctx, gameID, updatedParams)
+	return s.updateGlobalParameters(ctx, gameID, updatedParams)
 }
 
-// IncreaseOxygen increases oxygen by specified steps
-func (s *GameServiceImpl) IncreaseOxygen(ctx context.Context, gameID string, steps int) error {
+// increaseOxygen increases oxygen by specified steps (internal use only)
+func (s *GameServiceImpl) increaseOxygen(ctx context.Context, gameID string, steps int) error {
 	log := logger.WithGameContext(gameID, "")
 
 	// Get current parameters
@@ -1136,11 +1122,11 @@ func (s *GameServiceImpl) IncreaseOxygen(ctx context.Context, gameID string, ste
 	updatedParams := params
 	updatedParams.Oxygen = newOxygen
 
-	return s.UpdateGlobalParameters(ctx, gameID, updatedParams)
+	return s.updateGlobalParameters(ctx, gameID, updatedParams)
 }
 
-// PlaceOcean places ocean tiles
-func (s *GameServiceImpl) PlaceOcean(ctx context.Context, gameID string, count int) error {
+// placeOcean places ocean tiles (internal use only)
+func (s *GameServiceImpl) placeOcean(ctx context.Context, gameID string, count int) error {
 	log := logger.WithGameContext(gameID, "")
 
 	// Get current parameters
@@ -1160,7 +1146,7 @@ func (s *GameServiceImpl) PlaceOcean(ctx context.Context, gameID string, count i
 	updatedParams := params
 	updatedParams.Oceans = newOceans
 
-	return s.UpdateGlobalParameters(ctx, gameID, updatedParams)
+	return s.updateGlobalParameters(ctx, gameID, updatedParams)
 }
 
 // PlayerReconnected handles player reconnection by updating connection status and sending complete game state
@@ -1198,104 +1184,6 @@ func (s *GameServiceImpl) getPlayerName(players []model.Player, playerID string)
 		}
 	}
 	return "Unknown" // Fallback if player not found
-}
-
-// SetGamePhase sets the game phase directly (admin command)
-func (s *GameServiceImpl) SetGamePhase(ctx context.Context, gameID string, phase string) error {
-	log := logger.WithContext()
-
-	log.Info("🔄 Admin setting game phase",
-		zap.String("game_id", gameID),
-		zap.String("phase", phase))
-
-	// Convert string to GamePhase
-	gamePhase := model.GamePhase(phase)
-
-	// Validate that the phase is valid
-	validPhases := []model.GamePhase{
-		model.GamePhaseWaitingForGameStart,
-		model.GamePhaseStartingCardSelection,
-		model.GamePhaseStartGameSelection,
-		model.GamePhaseAction,
-		model.GamePhaseProductionAndCardDraw,
-		model.GamePhaseComplete,
-	}
-
-	isValid := false
-	for _, validPhase := range validPhases {
-		if gamePhase == validPhase {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return fmt.Errorf("invalid game phase: %s", phase)
-	}
-
-	// Update the game phase in repository
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, gamePhase); err != nil {
-		log.Error("Failed to update game phase", zap.Error(err))
-		return fmt.Errorf("failed to update game phase: %w", err)
-	}
-
-	// Broadcast game state to all players
-	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
-		log.Error("Failed to broadcast game state after phase update", zap.Error(broadcastErr))
-		// Don't fail the operation, just log the error
-	}
-
-	log.Info("✅ Game phase updated successfully",
-		zap.String("game_id", gameID),
-		zap.String("new_phase", phase))
-
-	return nil
-}
-
-// SetGlobalParameters sets the global parameters directly (admin command)
-func (s *GameServiceImpl) SetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error {
-	log := logger.WithContext()
-
-	log.Info("🌍 Admin setting global parameters",
-		zap.String("game_id", gameID),
-		zap.Any("parameters", params))
-
-	// Use params directly since they're already model.GlobalParameters
-	modelParams := params
-
-	// Validate parameter ranges
-	if modelParams.Temperature < model.MinTemperature || modelParams.Temperature > model.MaxTemperature {
-		return fmt.Errorf("temperature %d is out of range [%d, %d]",
-			modelParams.Temperature, model.MinTemperature, model.MaxTemperature)
-	}
-
-	if modelParams.Oxygen < model.MinOxygen || modelParams.Oxygen > model.MaxOxygen {
-		return fmt.Errorf("oxygen %d is out of range [%d, %d]",
-			modelParams.Oxygen, model.MinOxygen, model.MaxOxygen)
-	}
-
-	if modelParams.Oceans < model.MinOceans || modelParams.Oceans > model.MaxOceans {
-		return fmt.Errorf("oceans %d is out of range [%d, %d]",
-			modelParams.Oceans, model.MinOceans, model.MaxOceans)
-	}
-
-	// Update global parameters
-	if err := s.UpdateGlobalParameters(ctx, gameID, modelParams); err != nil {
-		log.Error("Failed to update global parameters", zap.Error(err))
-		return fmt.Errorf("failed to update global parameters: %w", err)
-	}
-
-	// Broadcast game state to all players
-	if broadcastErr := s.sessionManager.Broadcast(gameID); broadcastErr != nil {
-		log.Error("Failed to broadcast game state after global parameters update", zap.Error(broadcastErr))
-		// Don't fail the operation, just log the error
-	}
-
-	log.Info("✅ Global parameters updated successfully",
-		zap.String("game_id", gameID),
-		zap.Any("new_parameters", modelParams))
-
-	return nil
 }
 
 // resetPlayerActionPlayCounts resets all player action play counts to 0 for a new generation

@@ -16,6 +16,7 @@ import (
 func setupPlayerServiceTest(t *testing.T) (
 	service.PlayerService,
 	service.GameService,
+	repository.PlayerRepository,
 	model.Game,
 ) {
 	// EventBus no longer needed
@@ -37,11 +38,11 @@ func setupPlayerServiceTest(t *testing.T) (
 	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
 
-	return playerService, gameService, game
+	return playerService, gameService, playerRepo, game
 }
 
 func TestPlayerService_UpdatePlayerResources(t *testing.T) {
-	playerService, _, game := setupPlayerServiceTest(t)
+	playerService, _, playerRepo, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -55,7 +56,7 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 			Heat:     8,
 		}
 
-		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
+		err := playerRepo.UpdateResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
 		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
@@ -72,19 +73,19 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 
 	t.Run("Invalid game ID", func(t *testing.T) {
 		newResources := model.Resources{Credits: 30}
-		err := playerService.UpdatePlayerResources(ctx, "invalid-game-id", playerID, newResources)
+		err := playerRepo.UpdateResources(ctx, "invalid-game-id", playerID, newResources)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
 		newResources := model.Resources{Credits: 30}
-		err := playerService.UpdatePlayerResources(ctx, game.ID, "invalid-player-id", newResources)
+		err := playerRepo.UpdateResources(ctx, game.ID, "invalid-player-id", newResources)
 		assert.Error(t, err)
 	})
 
 	t.Run("Zero resources", func(t *testing.T) {
 		newResources := model.Resources{} // All zeros
-		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
+		err := playerRepo.UpdateResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
 		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
@@ -101,7 +102,7 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 }
 
 func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
-	playerService, _, game := setupPlayerServiceTest(t)
+	playerService, _, playerRepo, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -115,7 +116,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 			Heat:     2,
 		}
 
-		err := playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
+		err := playerRepo.UpdateProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
 		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
@@ -140,7 +141,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 			Heat:     0,
 		}
 
-		err := playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
+		err := playerRepo.UpdateProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
 		updatedPlayer, err := playerService.GetPlayer(ctx, game.ID, playerID)
@@ -157,19 +158,19 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 
 	t.Run("Invalid game ID", func(t *testing.T) {
 		newProduction := model.Production{Credits: 5}
-		err := playerService.UpdatePlayerProduction(ctx, "invalid-game-id", playerID, newProduction)
+		err := playerRepo.UpdateProduction(ctx, "invalid-game-id", playerID, newProduction)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
 		newProduction := model.Production{Credits: 5}
-		err := playerService.UpdatePlayerProduction(ctx, game.ID, "invalid-player-id", newProduction)
+		err := playerRepo.UpdateProduction(ctx, game.ID, "invalid-player-id", newProduction)
 		assert.Error(t, err)
 	})
 }
 
 func TestPlayerService_GetPlayer(t *testing.T) {
-	playerService, _, game := setupPlayerServiceTest(t)
+	playerService, _, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -193,7 +194,7 @@ func TestPlayerService_GetPlayer(t *testing.T) {
 }
 
 func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
-	playerService, _, game := setupPlayerServiceTest(t)
+	playerService, _, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -225,7 +226,7 @@ func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
 }
 
 func TestPlayerService_FindPlayerByName(t *testing.T) {
-	playerService, gameService, game := setupPlayerServiceTest(t)
+	playerService, gameService, _, game := setupPlayerServiceTest(t)
 	ctx := context.Background()
 
 	// Add another player to the game for testing
@@ -262,150 +263,5 @@ func TestPlayerService_FindPlayerByName(t *testing.T) {
 	t.Run("Empty player name", func(t *testing.T) {
 		_, err := playerService.GetPlayerByName(ctx, game.ID, "")
 		assert.Error(t, err)
-	})
-}
-
-func TestPlayerService_AdminCommands_WithBroadcasting(t *testing.T) {
-	// Setup with a real session manager to test broadcasting
-	playerRepo := repository.NewPlayerRepository()
-	gameRepo := repository.NewGameRepository()
-	mockSessionManager := test.NewMockSessionManager()
-	playerService := service.NewPlayerService(gameRepo, playerRepo, mockSessionManager)
-
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, mockSessionManager)
-	boardService := service.NewBoardService()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, mockSessionManager)
-
-	ctx := context.Background()
-	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
-	require.NoError(t, err)
-
-	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
-	require.NoError(t, err)
-	playerID := game.PlayerIDs[0]
-
-	// Load cards for AddCardToHand test
-	err = cardRepo.LoadCards(ctx)
-	require.NoError(t, err)
-
-	t.Run("Admin AddCardToHand broadcasts game state", func(t *testing.T) {
-		// Get a test card
-		cards, err := cardRepo.GetStartingCardPool(ctx)
-		require.NoError(t, err)
-		require.Greater(t, len(cards), 0)
-		cardID := cards[0].ID
-
-		// Reset broadcast count
-		mockSessionManager.ResetBroadcastCount()
-
-		// Execute admin command
-		err = playerService.AddCardToHand(ctx, game.ID, playerID, cardID)
-		require.NoError(t, err)
-
-		// Verify broadcast was called
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "AddCardToHand should trigger game state broadcast")
-	})
-
-	t.Run("Admin SetResources broadcasts game state", func(t *testing.T) {
-		mockSessionManager.ResetBroadcastCount()
-
-		newResources := model.Resources{
-			Credits:  100,
-			Steel:    10,
-			Titanium: 5,
-			Plants:   8,
-			Energy:   3,
-			Heat:     12,
-		}
-
-		err = playerService.SetResources(ctx, game.ID, playerID, newResources)
-		require.NoError(t, err)
-
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetResources should trigger game state broadcast")
-	})
-
-	t.Run("Admin SetProduction broadcasts game state", func(t *testing.T) {
-		mockSessionManager.ResetBroadcastCount()
-
-		newProduction := model.Production{
-			Credits:  5,
-			Steel:    2,
-			Titanium: 1,
-			Plants:   3,
-			Energy:   2,
-			Heat:     1,
-		}
-
-		err = playerService.SetProduction(ctx, game.ID, playerID, newProduction)
-		require.NoError(t, err)
-
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetProduction should trigger game state broadcast")
-	})
-
-	t.Run("Admin SetGlobalParameters broadcasts game state", func(t *testing.T) {
-		mockSessionManager.ResetBroadcastCount()
-
-		newParams := model.GlobalParameters{
-			Temperature: -20,
-			Oxygen:      5,
-			Oceans:      3,
-		}
-
-		err = gameService.SetGlobalParameters(ctx, game.ID, newParams)
-		require.NoError(t, err)
-
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetGlobalParameters should trigger game state broadcast")
-	})
-
-	t.Run("Admin SetGamePhase broadcasts game state", func(t *testing.T) {
-		mockSessionManager.ResetBroadcastCount()
-
-		err = gameService.SetGamePhase(ctx, game.ID, "action")
-		require.NoError(t, err)
-
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "SetGamePhase should trigger game state broadcast")
-	})
-
-	t.Run("PlayCard broadcasts game state", func(t *testing.T) {
-		// Set the game to action phase and ensure player has actions available
-		err = gameService.SetGamePhase(ctx, game.ID, "action")
-		require.NoError(t, err)
-
-		// Setup for card play test
-
-		err = playerService.SetResources(ctx, game.ID, playerID, model.Resources{
-			Credits:  50, // Enough to pay for any card
-			Steel:    10,
-			Titanium: 10,
-			Plants:   10,
-			Energy:   10,
-			Heat:     10,
-		})
-		require.NoError(t, err)
-
-		// Add a card to player's hand for this test (use a different card than previous tests)
-		cards, err := cardRepo.GetStartingCardPool(ctx)
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, len(cards), 2)
-		cardToPlay := cards[1].ID // Use second card to avoid conflicts with previous tests
-
-		err = playerService.AddCardToHand(ctx, game.ID, playerID, cardToPlay)
-		require.NoError(t, err)
-
-		// Reset broadcast count to test only PlayCard broadcasting
-		mockSessionManager.ResetBroadcastCount()
-
-		// Ensure player has available actions (needed for card play)
-		err = playerRepo.UpdateAvailableActions(ctx, game.ID, playerID, 2)
-		require.NoError(t, err)
-
-		// Execute card play
-		err = cardService.PlayCard(ctx, game.ID, playerID, cardToPlay)
-		require.NoError(t, err)
-
-		// Verify broadcast was called
-		assert.Greater(t, mockSessionManager.GetBroadcastCount(), 0, "PlayCard should trigger game state broadcast")
 	})
 }

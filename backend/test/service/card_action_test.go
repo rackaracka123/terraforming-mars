@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCardService_PlayCardAction_Success(t *testing.T) {
+func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -72,7 +72,7 @@ func TestCardService_PlayCardAction_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
 	require.NoError(t, err)
 
 	// Verify the player's resources were updated correctly
@@ -89,7 +89,7 @@ func TestCardService_PlayCardAction_Success(t *testing.T) {
 	assert.Equal(t, 1, updatedPlayer.Actions[0].PlayCount)
 }
 
-func TestCardService_PlayCardAction_InsufficientResources(t *testing.T) {
+func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -145,7 +145,7 @@ func TestCardService_PlayCardAction_InsufficientResources(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "insufficient steel: need 5, have 2")
 
@@ -159,7 +159,7 @@ func TestCardService_PlayCardAction_InsufficientResources(t *testing.T) {
 	assert.Equal(t, 0, updatedPlayer.Actions[0].PlayCount) // Unchanged
 }
 
-func TestCardService_PlayCardAction_NoAvailableActions(t *testing.T) {
+func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -215,12 +215,12 @@ func TestCardService_PlayCardAction_NoAvailableActions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no available actions remaining")
 }
 
-func TestCardService_PlayCardAction_ActionNotFound(t *testing.T) {
+func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -258,12 +258,12 @@ func TestCardService_PlayCardAction_ActionNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play a non-existent card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "card action not found in player's action list")
 }
 
-func TestCardService_PlayCardAction_AlreadyPlayed(t *testing.T) {
+func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -319,12 +319,12 @@ func TestCardService_PlayCardAction_AlreadyPlayed(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action again
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "action has already been played this generation")
 }
 
-func TestCardService_PlayCardAction_ProductionOutputs(t *testing.T) {
+func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -381,7 +381,7 @@ func TestCardService_PlayCardAction_ProductionOutputs(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "space-mirrors", 0)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-mirrors", 0)
 	require.NoError(t, err)
 
 	// Verify the player's resources and production were updated
@@ -398,7 +398,7 @@ func TestCardService_PlayCardAction_ProductionOutputs(t *testing.T) {
 	assert.Equal(t, 1, updatedPlayer.Actions[0].PlayCount)
 }
 
-func TestCardService_PlayCardAction_TerraformRating(t *testing.T) {
+func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -455,7 +455,7 @@ func TestCardService_PlayCardAction_TerraformRating(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.PlayCardAction(ctx, gameID, playerID, "equatorial-magnetizer", 0)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "equatorial-magnetizer", 0)
 	require.NoError(t, err)
 
 	// Verify the player's production and TR were updated

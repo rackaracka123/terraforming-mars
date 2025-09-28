@@ -18,16 +18,13 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
-	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
-	"terraforming-mars-backend/internal/usecase"
-	"terraforming-mars-backend/internal/usecase/common"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
+func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -38,13 +35,8 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
-	// Create single UseCase instance with all dependencies
-	actionValidator := common.NewActionValidator(gameRepo, playerRepo)
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
-	useCase := usecase.NewUseCase(actionValidator, gameRepo, playerRepo, gameService, sessionManager)
-
-	// Register standard project handlers with single UseCase
-	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(useCase))
+	// Register standard project handlers
+	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
@@ -68,5 +60,5 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
-	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService))
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService, adminService))
 }

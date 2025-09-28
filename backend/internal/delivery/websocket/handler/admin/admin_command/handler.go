@@ -20,16 +20,18 @@ type Handler struct {
 	gameService   service.GameService
 	playerService service.PlayerService
 	cardService   service.CardService
+	adminService  service.AdminService
 	errorHandler  *utils.ErrorHandler
 	logger        *zap.Logger
 }
 
 // NewHandler creates a new admin command handler
-func NewHandler(gameService service.GameService, playerService service.PlayerService, cardService service.CardService) *Handler {
+func NewHandler(gameService service.GameService, playerService service.PlayerService, cardService service.CardService, adminService service.AdminService) *Handler {
 	return &Handler{
 		gameService:   gameService,
 		playerService: playerService,
 		cardService:   cardService,
+		adminService:  adminService,
 		errorHandler:  utils.NewErrorHandler(),
 		logger:        logger.Get(),
 	}
@@ -143,18 +145,8 @@ func (h *Handler) handleGiveCard(ctx context.Context, gameID string, payload int
 		zap.String("player_id", command.PlayerID),
 		zap.String("card_id", command.CardID))
 
-	// Verify card exists
-	card, err := h.cardService.GetCardByID(ctx, command.CardID)
-	if err != nil || card == nil {
-		return fmt.Errorf("card not found: %s", command.CardID)
-	}
-
-	// Add card to player's hand
-	if err := h.playerService.AddCardToHand(ctx, gameID, command.PlayerID, command.CardID); err != nil {
-		return fmt.Errorf("failed to add card to player's hand: %w", err)
-	}
-
-	return nil
+	// Use AdminService to give the card
+	return h.adminService.OnAdminGiveCard(ctx, gameID, command.PlayerID, command.CardID)
 }
 
 // handleSetPhase sets the game phase
@@ -168,11 +160,8 @@ func (h *Handler) handleSetPhase(ctx context.Context, gameID string, payload int
 		zap.String("game_id", gameID),
 		zap.String("phase", command.Phase))
 
-	if err := h.gameService.SetGamePhase(ctx, gameID, command.Phase); err != nil {
-		return fmt.Errorf("failed to set game phase: %w", err)
-	}
-
-	return nil
+	// Use AdminService to set the phase
+	return h.adminService.OnAdminSetPhase(ctx, gameID, model.GamePhase(command.Phase))
 }
 
 // handleSetResources sets a player's resources
@@ -197,11 +186,8 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		Heat:     command.Resources.Heat,
 	}
 
-	if err := h.playerService.SetResources(ctx, gameID, command.PlayerID, resources); err != nil {
-		return fmt.Errorf("failed to set player resources: %w", err)
-	}
-
-	return nil
+	// Use AdminService to set resources
+	return h.adminService.OnAdminSetResources(ctx, gameID, command.PlayerID, resources)
 }
 
 // handleSetProduction sets a player's production
@@ -226,11 +212,8 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		Heat:     command.Production.Heat,
 	}
 
-	if err := h.playerService.SetProduction(ctx, gameID, command.PlayerID, production); err != nil {
-		return fmt.Errorf("failed to set player production: %w", err)
-	}
-
-	return nil
+	// Use AdminService to set production
+	return h.adminService.OnAdminSetProduction(ctx, gameID, command.PlayerID, production)
 }
 
 // handleSetGlobalParams sets the global parameters
@@ -251,11 +234,8 @@ func (h *Handler) handleSetGlobalParams(ctx context.Context, gameID string, payl
 		Oceans:      command.GlobalParameters.Oceans,
 	}
 
-	if err := h.gameService.SetGlobalParameters(ctx, gameID, globalParams); err != nil {
-		return fmt.Errorf("failed to set global parameters: %w", err)
-	}
-
-	return nil
+	// Use AdminService to set global parameters
+	return h.adminService.OnAdminSetGlobalParameters(ctx, gameID, globalParams)
 }
 
 // parsePayload parses the payload interface{} into the target struct

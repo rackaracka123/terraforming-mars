@@ -81,7 +81,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 	}
 
 	// Execute the play card action
-	err := h.cardService.PlayCardAction(ctx, gameID, playerID, request.CardID, request.BehaviorIndex)
+	err := h.cardService.OnPlayCardAction(ctx, gameID, playerID, request.CardID, request.BehaviorIndex)
 	if err != nil {
 		h.logger.Warn("Failed to play card action",
 			zap.String("connection_id", connection.ID),

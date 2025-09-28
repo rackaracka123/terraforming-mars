@@ -58,7 +58,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -66,7 +67,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, gameRepo, playerRepo, cardRepo, hub)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

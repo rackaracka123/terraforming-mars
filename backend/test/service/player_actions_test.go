@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCardService_PlayCard_WithManualTriggers_AddsActions(t *testing.T) {
+func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -37,6 +37,10 @@ func TestCardService_PlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 	gameID := game.ID
+
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
 
 	// Create a test player with available actions and credits
 	player := model.Player{
@@ -84,7 +88,7 @@ func TestCardService_PlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	cardRepo.cards["manual-card"] = cardWithManual
 
 	// Play the card
-	err = cardService.PlayCard(ctx, gameID, playerID, "manual-card")
+	err = cardService.OnPlayCard(ctx, gameID, playerID, "manual-card")
 	require.NoError(t, err)
 
 	// Verify the player has the action
@@ -109,7 +113,7 @@ func TestCardService_PlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	assert.Equal(t, 5, updatedPlayer.Resources.Credits)
 }
 
-func TestCardService_PlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
+func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
@@ -134,6 +138,10 @@ func TestCardService_PlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 	gameID := game.ID
+
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
 
 	// Create a test player with available actions and credits
 	player := model.Player{
@@ -174,7 +182,7 @@ func TestCardService_PlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	cardRepo.cards["auto-card"] = cardWithAuto
 
 	// Play the card
-	err = cardService.PlayCard(ctx, gameID, playerID, "auto-card")
+	err = cardService.OnPlayCard(ctx, gameID, playerID, "auto-card")
 	require.NoError(t, err)
 
 	// Verify the player has no actions

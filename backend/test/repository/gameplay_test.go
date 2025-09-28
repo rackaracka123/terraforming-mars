@@ -30,7 +30,7 @@ func TestGameplayLogic(t *testing.T) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
+	_ = service.NewPlayerService(gameRepo, playerRepo, nil)
 
 	ctx := context.Background()
 
@@ -79,7 +79,7 @@ func TestGameplayLogic(t *testing.T) {
 			Heat:     12,
 		}
 
-		err = playerService.UpdatePlayerResources(ctx, game.ID, playerID, newResources)
+		err = playerRepo.UpdateResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
 		// Verify resources updated using clean architecture
@@ -112,7 +112,7 @@ func TestGameplayLogic(t *testing.T) {
 			Heat:     2,
 		}
 
-		err = playerService.UpdatePlayerProduction(ctx, game.ID, playerID, newProduction)
+		err = playerRepo.UpdateProduction(ctx, game.ID, playerID, newProduction)
 		assert.NoError(t, err)
 
 		// Verify production updated using clean architecture
@@ -124,66 +124,6 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 4, updatedPlayer.Production.Plants)
 		assert.Equal(t, 3, updatedPlayer.Production.Energy)
 		assert.Equal(t, 2, updatedPlayer.Production.Heat)
-	})
-
-	t.Run("Test Terraforming Progress", func(t *testing.T) {
-		// Create game
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
-		assert.NoError(t, err)
-
-		// Test temperature increase
-		err = gameService.IncreaseTemperature(ctx, game.ID, 3) // 3 steps = 6°C
-		assert.NoError(t, err)
-
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, -24, updatedGame.GlobalParameters.Temperature) // -30 + 6 = -24
-
-		// Test oxygen increase
-		err = gameService.IncreaseOxygen(ctx, game.ID, 5)
-		assert.NoError(t, err)
-
-		updatedGame, err = gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 5, updatedGame.GlobalParameters.Oxygen)
-
-		// Test ocean placement
-		err = gameService.PlaceOcean(ctx, game.ID, 2)
-		assert.NoError(t, err)
-
-		finalGame, err := gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 2, finalGame.GlobalParameters.Oceans)
-	})
-
-	t.Run("Test Terraforming Limits", func(t *testing.T) {
-		// Create game
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
-		assert.NoError(t, err)
-
-		// Test maximum temperature (should cap at +8°C)
-		err = gameService.IncreaseTemperature(ctx, game.ID, 20) // Way more than needed
-		assert.NoError(t, err)
-
-		updatedGame, err := gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 8, updatedGame.GlobalParameters.Temperature) // Capped at +8
-
-		// Test maximum oxygen (should cap at 14%)
-		err = gameService.IncreaseOxygen(ctx, game.ID, 20) // Way more than needed
-		assert.NoError(t, err)
-
-		updatedGame, err = gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 14, updatedGame.GlobalParameters.Oxygen) // Capped at 14
-
-		// Test maximum oceans (should cap at 9)
-		err = gameService.PlaceOcean(ctx, game.ID, 15) // Way more than possible
-		assert.NoError(t, err)
-
-		finalGame, err := gameService.GetGame(ctx, game.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 9, finalGame.GlobalParameters.Oceans) // Capped at 9
 	})
 
 	t.Run("Test Game Capacity Limits", func(t *testing.T) {

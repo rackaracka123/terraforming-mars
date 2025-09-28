@@ -92,7 +92,7 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	if err := h.cardService.SelectProductionCards(ctx, gameID, playerID, cardIDs); err != nil {
+	if err := h.cardService.OnSelectProductionCards(ctx, gameID, playerID, cardIDs); err != nil {
 		log.Error("Failed to select production cards", zap.Error(err))
 		return fmt.Errorf("card selection failed: %w", err)
 	}

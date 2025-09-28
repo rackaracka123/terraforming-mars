@@ -22,13 +22,8 @@ func createTestStandardProjectService() service.StandardProjectService {
 	// EventBus no longer needed
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-	boardService := service.NewBoardService()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
-	return service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
+	return service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 }
 
 func createTestPlayerService() service.PlayerService {
@@ -62,7 +57,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, gameService, sessionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 
 	ctx := context.Background()
 
@@ -86,7 +81,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 		Energy:   10,
 		Heat:     10,
 	}
-	err = playerService.UpdatePlayerResources(ctx, game.ID, playerID, updatedResources)
+	err = playerRepo.UpdateResources(ctx, game.ID, playerID, updatedResources)
 	require.NoError(t, err)
 
 	// Add some cards to the player's hand
@@ -149,7 +144,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
-	standardProjectService, _, playerService, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build power plant", func(t *testing.T) {
@@ -174,7 +169,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 	t.Run("Insufficient credits", func(t *testing.T) {
 		// Set player credits to less than cost
 		insufficientResources := model.Resources{Credits: 5}
-		err := playerService.UpdatePlayerResources(ctx, game.ID, playerID, insufficientResources)
+		err := playerRepo.UpdateResources(ctx, game.ID, playerID, insufficientResources)
 		require.NoError(t, err)
 
 		err = standardProjectService.BuildPowerPlant(ctx, game.ID, playerID)
