@@ -1,0 +1,65 @@
+import {
+  GameDto,
+  GameStatusActive,
+  GamePhaseAction,
+} from "@/types/generated/api-types.ts";
+
+/**
+ * Utility functions for handling player actions and available actions logic
+ */
+
+/**
+ * Checks if a player has actions available
+ * Handles both normal actions (positive numbers) and unlimited actions (-1)
+ */
+export const hasActionsAvailable = (availableActions?: number): boolean => {
+  if (availableActions === undefined || availableActions === null) {
+    return false;
+  }
+  // Unlimited actions (-1) or any positive number means actions are available
+  return availableActions === -1 || availableActions > 0;
+};
+
+/**
+ * Checks if a player can perform actions based on game state and conditions
+ */
+export const canPerformActions = (gameState?: GameDto): boolean => {
+  if (!gameState?.currentPlayer) {
+    return false;
+  }
+
+  const isGameActive = gameState.status === GameStatusActive;
+  const isActionPhase = gameState.currentPhase === GamePhaseAction;
+  const isCurrentPlayerTurn =
+    gameState.currentTurn === gameState.viewingPlayerId;
+  const hasActions = hasActionsAvailable(
+    gameState.currentPlayer.availableActions,
+  );
+
+  return isGameActive && isActionPhase && isCurrentPlayerTurn && hasActions;
+};
+
+/**
+ * Checks if a player has unlimited actions (-1)
+ */
+export const hasUnlimitedActions = (availableActions?: number): boolean => {
+  return availableActions === -1;
+};
+
+/**
+ * Gets the display text for available actions
+ * Returns "∞" for -1, number for positive values, "0" for zero or undefined
+ */
+export const getActionsDisplayText = (availableActions?: number): string => {
+  if (availableActions === -1) {
+    return "∞";
+  }
+  return (availableActions || 0).toString();
+};
+
+/**
+ * Checks if the action button should be enabled for play actions
+ */
+export const canPlayAction = (gameState?: GameDto): boolean => {
+  return canPerformActions(gameState);
+};

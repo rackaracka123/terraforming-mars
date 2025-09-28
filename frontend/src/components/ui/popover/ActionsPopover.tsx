@@ -2,10 +2,12 @@ import React, { useEffect, useRef } from "react";
 import {
   PlayerActionDto,
   GameDto,
-  GameStatusActive,
-  GamePhaseAction,
 } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
+import {
+  canPerformActions,
+  hasActionsAvailable,
+} from "../../../utils/actionUtils.ts";
 import styles from "./ActionsPopover.module.css";
 
 // Utility function to check if an action is affordable and available
@@ -107,16 +109,15 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
 
   if (!isVisible) return null;
 
-  // Determine if actions can be played (same logic as ActionsModal)
-  const isGameActive = gameState?.status === GameStatusActive;
-  const isActionPhase = gameState?.currentPhase === GamePhaseAction;
+  // Determine if actions can be played using utility function
   const isCurrentPlayerTurn =
     gameState?.currentTurn === gameState?.viewingPlayerId;
-  const hasActionsLeft = (gameState?.currentPlayer?.availableActions || 0) > 0;
+  const hasActionsLeft = hasActionsAvailable(
+    gameState?.currentPlayer?.availableActions,
+  );
 
   // Actions should be clickable only if all conditions are met
-  const canPlayActions =
-    isGameActive && isActionPhase && isCurrentPlayerTurn && hasActionsLeft;
+  const canPlayActions = canPerformActions(gameState);
 
   const handleActionClick = (action: PlayerActionDto) => {
     if (onActionSelect) {

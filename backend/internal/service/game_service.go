@@ -388,29 +388,63 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 		return nil, fmt.Errorf("player data not found")
 	}
 
-	isPassing := currentPlayer.AvailableActions == 2
-	if isPassing {
-		// PASS: Player hasn't done any actions, mark as passed for generation end check
+	// Check how many players are still active (not passed and have actions)
+	activePlayerCount := 0
+	for _, player := range gamePlayers {
+		if !player.Passed && (player.AvailableActions > 0 || player.AvailableActions == -1) {
+			activePlayerCount++
+		}
+	}
+
+	// Solo player logic: if only one player remains active, give them unlimited actions
+	if activePlayerCount == 1 && !currentPlayer.Passed {
+		if currentPlayer.AvailableActions != -1 {
+			// Set unlimited actions for solo player
+			err = s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, -1)
+			if err != nil {
+				log.Error("Failed to set unlimited actions for solo player", zap.Error(err))
+				return nil, fmt.Errorf("failed to set unlimited actions: %w", err)
+			}
+			log.Info("🏃 Solo player detected - granting unlimited actions",
+				zap.String("player_id", playerID),
+				zap.Int("total_players", len(gamePlayers)))
+		}
+
+		// For unlimited action players, skip always means PASS
 		err = s.playerRepo.UpdatePassed(ctx, gameID, playerID, true)
 		if err != nil {
-			log.Error("Failed to mark player as passed", zap.Error(err))
+			log.Error("Failed to mark solo player as passed", zap.Error(err))
 			return nil, fmt.Errorf("failed to update player passed status: %w", err)
 		}
 
-		// List all players again to reflect the passed status
-		gamePlayers, err = s.playerRepo.ListByGameID(ctx, gameID)
-		if err != nil {
-			log.Error("Failed to list players after passing", zap.Error(err))
-		}
-
-		log.Debug("Player PASSED (marked as passed for generation)",
-			zap.String("player_id", playerID),
-			zap.Int("available_actions", currentPlayer.AvailableActions))
+		log.Debug("Solo player PASSED (unlimited actions exhausted)",
+			zap.String("player_id", playerID))
 	} else {
-		// SKIP: Player has done some actions, just advance turn without passing
-		log.Debug("Player SKIPPED (turn advanced, not passed)",
-			zap.String("player_id", playerID),
-			zap.Int("available_actions", currentPlayer.AvailableActions))
+		// Normal multi-player logic
+		isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1
+		if isPassing {
+			// PASS: Player hasn't done any actions or has unlimited actions, mark as passed for generation end check
+			err = s.playerRepo.UpdatePassed(ctx, gameID, playerID, true)
+			if err != nil {
+				log.Error("Failed to mark player as passed", zap.Error(err))
+				return nil, fmt.Errorf("failed to update player passed status: %w", err)
+			}
+
+			log.Debug("Player PASSED (marked as passed for generation)",
+				zap.String("player_id", playerID),
+				zap.Int("available_actions", currentPlayer.AvailableActions))
+		} else {
+			// SKIP: Player has done some actions, just advance turn without passing
+			log.Debug("Player SKIPPED (turn advanced, not passed)",
+				zap.String("player_id", playerID),
+				zap.Int("available_actions", currentPlayer.AvailableActions))
+		}
+	}
+
+	// List all players again to reflect any status changes
+	gamePlayers, err = s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to list players after skip processing", zap.Error(err))
 	}
 
 	// Check if all players have exhausted their actions or formally passed
@@ -422,8 +456,8 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 			passedCount++
 		} else if player.AvailableActions == 0 {
 			playersWithNoActions++
-		} else {
-			// Player still has actions available
+		} else if player.AvailableActions > 0 || player.AvailableActions == -1 {
+			// Player still has actions available (including unlimited actions)
 			allPlayersFinished = false
 		}
 	}
@@ -454,7 +488,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	// Cycle through players to find the next player with available actions
 	for i := 0; i < len(gamePlayers); i++ {
 		nextPlayer := &gamePlayers[nextPlayerIndex]
-		if !nextPlayer.Passed && nextPlayer.AvailableActions > 0 {
+		if !nextPlayer.Passed && (nextPlayer.AvailableActions > 0 || nextPlayer.AvailableActions == -1) {
 			break
 		}
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(gamePlayers)
@@ -471,6 +505,12 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	log.Info("Player turn skipped, advanced to next player",
 		zap.String("previous_player", playerID),
 		zap.String("current_player", *game.CurrentTurn))
+
+	// Broadcast updated game state to all players
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after skip turn", zap.Error(err))
+		// Don't fail the skip operation, just log the error
+	}
 
 	return &SkipPlayerTurnResult{
 		AllPlayersPassed: false,
@@ -1041,6 +1081,22 @@ func (s *GameServiceImpl) advanceFromCardSelectionPhase(ctx context.Context, gam
 	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
+	}
+
+	// Check if this is a single player game and set unlimited actions
+	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for solo check", zap.Error(err))
+		// Don't fail phase advancement for this
+	} else if len(players) == 1 {
+		// Set unlimited actions for solo player when entering action phase
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, players[0].ID, -1); err != nil {
+			log.Error("Failed to set unlimited actions for solo player", zap.Error(err))
+			// Don't fail phase advancement for this
+		} else {
+			log.Info("🏃 Solo game detected - granting unlimited actions when entering action phase",
+				zap.String("player_id", players[0].ID))
+		}
 	}
 
 	// Clear temporary card selection data

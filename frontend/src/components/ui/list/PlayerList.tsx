@@ -52,9 +52,14 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
   // Calculate actions used based on remaining actions
   useEffect(() => {
-    const totalActions = 2; // Default total actions per turn
-    const used = totalActions - (remainingActions || 0);
-    setActionsUsed(Math.max(0, used));
+    // Handle unlimited actions (-1) separately
+    if (remainingActions === -1) {
+      setActionsUsed(0); // For unlimited actions, we don't track usage in the traditional sense
+    } else {
+      const totalActions = 2; // Default total actions per turn
+      const used = totalActions - (remainingActions || 0);
+      setActionsUsed(Math.max(0, used));
+    }
   }, [remainingActions]);
 
   const handleSkipAction = async () => {
@@ -84,6 +89,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
             onSkipAction={handleSkipAction}
             actionsUsed={actionsUsed}
             totalActions={2}
+            totalPlayers={players.length}
           />
         );
       })}
