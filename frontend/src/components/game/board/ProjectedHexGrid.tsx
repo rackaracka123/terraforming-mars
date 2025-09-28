@@ -158,8 +158,6 @@ export default function ProjectedHexGrid({
             ownerId={tileData.ownerId}
             displayName={tile.backendTile?.displayName}
             onClick={() => {
-              console.log("🎯 ProjectedHexGrid onClick called for hex:", hexKey);
-              console.log("🎯 onHexClick callback exists:", !!onHexClick);
               onHexClick?.(hexKey);
             }}
             isAvailableForPlacement={isAvailable}

@@ -273,16 +273,12 @@ export default function ProjectedHexTile({
         ref={meshRef}
         geometry={hexGeometry}
         onPointerEnter={() => {
-          console.log("🎯 Hex pointer enter:", tileData.coordinate);
           setHovered(true);
         }}
         onPointerLeave={() => {
-          console.log("🎯 Hex pointer leave:", tileData.coordinate);
           setHovered(false);
         }}
         onClick={(event) => {
-          console.log("🎯 Hex mesh clicked!", tileData.coordinate, "Available:", isAvailableForPlacement);
-          console.log("🎯 Click event details:", event);
           event.stopPropagation();
           onClick();
         }}

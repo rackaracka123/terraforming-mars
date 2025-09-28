@@ -63,25 +63,17 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
   }, []);
 
   const handleHexClick = (hexCoordinate: string) => {
-    console.log("🎯 handleHexClick called with:", hexCoordinate);
-    console.log("🎯 Game state:", gameState.id, "Current player:", gameState.currentPlayer?.id);
 
     // Check if current player has a pending tile selection
     const currentPlayer = gameState.currentPlayer;
     if (!currentPlayer?.pendingTileSelection) {
-      console.log("⚠️ No pending tile selection for current player");
       return;
     }
 
     const { pendingTileSelection } = currentPlayer;
-    console.log("🎯 Pending tile selection:", pendingTileSelection);
 
     // Validate that the clicked hex is in the available positions provided by backend
     if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
-      console.log("❌ Invalid hex selection:", {
-        clicked: hexCoordinate,
-        available: pendingTileSelection.availableHexes,
-      });
       return;
     }
 
@@ -91,11 +83,7 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
       const [q, r, s] = hexCoordinate.split(",").map(Number);
       const coordinate = { q, r, s };
 
-      console.log("✅ Sending tile selection:", {
-        coordinate,
-        tileType: pendingTileSelection.tileType,
-        source: pendingTileSelection.source,
-      });
+      // Send tile selection to backend
 
       webSocketService.selectTile(coordinate);
     } catch (error) {

@@ -222,11 +222,11 @@ func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 type AdminCommandType string
 
 const (
-	AdminCommandTypeGiveCard        AdminCommandType = "give-card"
-	AdminCommandTypeSetPhase        AdminCommandType = "set-phase"
-	AdminCommandTypeSetResources    AdminCommandType = "set-resources"
-	AdminCommandTypeSetProduction   AdminCommandType = "set-production"
-	AdminCommandTypeSetGlobalParams AdminCommandType = "set-global-params"
+	AdminCommandTypeGiveCard           AdminCommandType = "give-card"
+	AdminCommandTypeSetPhase           AdminCommandType = "set-phase"
+	AdminCommandTypeSetResources       AdminCommandType = "set-resources"
+	AdminCommandTypeSetProduction      AdminCommandType = "set-production"
+	AdminCommandTypeSetGlobalParams    AdminCommandType = "set-global-params"
 	AdminCommandTypeStartTileSelection AdminCommandType = "start-tile-selection"
 )
 
