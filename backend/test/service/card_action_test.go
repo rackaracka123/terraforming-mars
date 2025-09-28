@@ -38,6 +38,10 @@ func TestCardService_PlayCardAction_Success(t *testing.T) {
 	require.NoError(t, err)
 	gameID := game.ID
 
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
+
 	// Create a test player with action and sufficient resources
 	testAction := model.PlayerAction{
 		CardID:        "space-elevator",
@@ -107,6 +111,10 @@ func TestCardService_PlayCardAction_InsufficientResources(t *testing.T) {
 	require.NoError(t, err)
 	gameID := game.ID
 
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
+
 	// Create a player with insufficient resources
 	testAction := model.PlayerAction{
 		CardID:        "space-elevator",
@@ -173,6 +181,10 @@ func TestCardService_PlayCardAction_NoAvailableActions(t *testing.T) {
 	require.NoError(t, err)
 	gameID := game.ID
 
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
+
 	// Create a player with no available actions
 	testAction := model.PlayerAction{
 		CardID:        "space-elevator",
@@ -230,6 +242,10 @@ func TestCardService_PlayCardAction_ActionNotFound(t *testing.T) {
 	require.NoError(t, err)
 	gameID := game.ID
 
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
+
 	// Create a player with no actions
 	player := model.Player{
 		ID:               playerID,
@@ -268,6 +284,10 @@ func TestCardService_PlayCardAction_AlreadyPlayed(t *testing.T) {
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 	gameID := game.ID
+
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
 
 	// Create an action that has already been played this generation
 	testAction := model.PlayerAction{
@@ -325,6 +345,10 @@ func TestCardService_PlayCardAction_ProductionOutputs(t *testing.T) {
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 	gameID := game.ID
+
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
 
 	// Create an action that affects production
 	testAction := model.PlayerAction{
@@ -395,6 +419,10 @@ func TestCardService_PlayCardAction_TerraformRating(t *testing.T) {
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 	gameID := game.ID
+
+	// Set current turn to the test player
+	err = gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	require.NoError(t, err)
 
 	// Create an action that affects terraform rating
 	testAction := model.PlayerAction{

@@ -177,8 +177,8 @@ func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID
 	}
 
 	if game.CurrentTurn == nil {
-		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
-		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+		log.Error("No current player turn set", zap.String("requesting_player", playerID))
+		return fmt.Errorf("no current player turn set, requesting player is %s", playerID)
 	}
 
 	if *game.CurrentTurn != playerID {
@@ -335,8 +335,8 @@ func (s *CardServiceImpl) PlayCardAction(ctx context.Context, gameID, playerID, 
 	}
 
 	if game.CurrentTurn == nil {
-		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
-		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+		log.Error("No current player turn set", zap.String("requesting_player", playerID))
+		return fmt.Errorf("no current player turn set, requesting player is %s", playerID)
 	}
 
 	if *game.CurrentTurn != playerID {
