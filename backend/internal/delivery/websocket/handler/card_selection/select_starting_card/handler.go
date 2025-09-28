@@ -95,7 +95,7 @@ func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string) {
 func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	if err := h.cardService.SelectStartingCards(ctx, gameID, playerID, cardIDs); err != nil {
+	if err := h.cardService.OnSelectStartingCards(ctx, gameID, playerID, cardIDs); err != nil {
 		log.Error("Failed to select starting cards", zap.Error(err))
 		return fmt.Errorf("card selection failed: %w", err)
 	}

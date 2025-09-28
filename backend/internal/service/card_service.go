@@ -16,32 +16,24 @@ import (
 
 // CardService handles card-related operations
 type CardService interface {
-	// Select starting cards for a player (immediately commits to hand)
-	SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
+	// Player actions for card selection and play
+	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
-	// SelectProductionCards stores the starting card options for a player (called during game start)
-	SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
-
-	// Validate starting card selection
-	ValidateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
-
-	// Check if all players have completed card selection
-	IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool
+	// Player action for production card selection
+	OnSelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
 	// Get starting cards for selection
 	GetStartingCards(ctx context.Context) ([]model.Card, error)
 
-	// Generate starting card options for a player
-	GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]model.Card, error)
 
 	// Get card by ID
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
-	// Play a card from player's hand
-	PlayCard(ctx context.Context, gameID, playerID, cardID string) error
+	// Player actions for playing cards
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error
 
 	// Play a card action from player's action list
-	PlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error
+	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
@@ -80,7 +72,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 
 // Delegation methods - all operations are handled by the specialized cards service
 
-func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
@@ -91,7 +83,7 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	log.Debug("🃏 Player completed starting card selection", zap.Strings("card_ids", cardIDs))
 
 	// Check if all players have completed their starting card selection
-	if s.selectionManager.IsAllPlayersCardSelectionComplete(ctx, gameID) {
+	if s.isAllPlayersCardSelectionComplete(ctx, gameID) {
 		log.Info("✅ All players completed starting card selection, advancing to action phase")
 
 		// Get current game state to validate phase transition
@@ -136,16 +128,17 @@ func (s *CardServiceImpl) SelectStartingCards(ctx context.Context, gameID, playe
 	return nil
 }
 
-func (s *CardServiceImpl) SelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+func (s *CardServiceImpl) OnSelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	return s.selectionManager.SelectProductionCards(ctx, gameID, playerID, cardIDs)
 }
 
-func (s *CardServiceImpl) ValidateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+// validateStartingCardSelection validates a player's starting card selection (internal use only)
+func (s *CardServiceImpl) validateStartingCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	return s.selectionManager.ValidateStartingCardSelection(ctx, gameID, playerID, cardIDs)
 }
 
-// IsAllPlayersCardSelectionComplete checks if all players in the game have completed card selection
-func (s *CardServiceImpl) IsAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool {
+// isAllPlayersCardSelectionComplete checks if all players in the game have completed card selection (internal use only)
+func (s *CardServiceImpl) isAllPlayersCardSelectionComplete(ctx context.Context, gameID string) bool {
 	return s.selectionManager.IsAllPlayersCardSelectionComplete(ctx, gameID)
 }
 
@@ -157,15 +150,12 @@ func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]model.Card, e
 	return s.cardRepo.GetStartingCardPool(ctx)
 }
 
-func (s *CardServiceImpl) GenerateStartingCardOptions(ctx context.Context, gameID, playerID string) ([]model.Card, error) {
-	return s.selectionManager.GenerateStartingCardOptions(ctx, gameID, playerID)
-}
 
 func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card", zap.String("card_id", cardID))
 
@@ -320,8 +310,8 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 	return paginatedCards, totalCount, nil
 }
 
-// PlayCardAction plays a card action from the player's action list
-func (s *CardServiceImpl) PlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
+// OnPlayCardAction plays a card action from the player's action list
+func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Starting card action play",
 		zap.String("card_id", cardID),

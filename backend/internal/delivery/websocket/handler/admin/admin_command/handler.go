@@ -9,7 +9,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
@@ -149,12 +148,8 @@ func (h *Handler) handleGiveCard(ctx context.Context, gameID string, payload int
 		return fmt.Errorf("card not found: %s", command.CardID)
 	}
 
-	// Add card to player's hand
-	if err := h.playerService.AddCardToHand(ctx, gameID, command.PlayerID, command.CardID); err != nil {
-		return fmt.Errorf("failed to add card to player's hand: %w", err)
-	}
-
-	return nil
+	// Admin method removed - functionality moved to proper user actions
+	return fmt.Errorf("admin add card functionality has been removed")
 }
 
 // handleSetPhase sets the game phase
@@ -168,11 +163,8 @@ func (h *Handler) handleSetPhase(ctx context.Context, gameID string, payload int
 		zap.String("game_id", gameID),
 		zap.String("phase", command.Phase))
 
-	if err := h.gameService.SetGamePhase(ctx, gameID, command.Phase); err != nil {
-		return fmt.Errorf("failed to set game phase: %w", err)
-	}
-
-	return nil
+	// Admin method removed - game phases should transition naturally
+	return fmt.Errorf("admin set phase functionality has been removed")
 }
 
 // handleSetResources sets a player's resources
@@ -187,21 +179,8 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		zap.String("player_id", command.PlayerID),
 		zap.Any("resources", command.Resources))
 
-	// Convert DTO to model
-	resources := model.Resources{
-		Credits:  command.Resources.Credits,
-		Steel:    command.Resources.Steel,
-		Titanium: command.Resources.Titanium,
-		Plants:   command.Resources.Plants,
-		Energy:   command.Resources.Energy,
-		Heat:     command.Resources.Heat,
-	}
-
-	if err := h.playerService.SetResources(ctx, gameID, command.PlayerID, resources); err != nil {
-		return fmt.Errorf("failed to set player resources: %w", err)
-	}
-
-	return nil
+	// Admin method removed - resources should change through game actions
+	return fmt.Errorf("admin set resources functionality has been removed")
 }
 
 // handleSetProduction sets a player's production
@@ -216,21 +195,8 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		zap.String("player_id", command.PlayerID),
 		zap.Any("production", command.Production))
 
-	// Convert DTO to model
-	production := model.Production{
-		Credits:  command.Production.Credits,
-		Steel:    command.Production.Steel,
-		Titanium: command.Production.Titanium,
-		Plants:   command.Production.Plants,
-		Energy:   command.Production.Energy,
-		Heat:     command.Production.Heat,
-	}
-
-	if err := h.playerService.SetProduction(ctx, gameID, command.PlayerID, production); err != nil {
-		return fmt.Errorf("failed to set player production: %w", err)
-	}
-
-	return nil
+	// Admin method removed - production should change through game actions
+	return fmt.Errorf("admin set production functionality has been removed")
 }
 
 // handleSetGlobalParams sets the global parameters
@@ -244,18 +210,8 @@ func (h *Handler) handleSetGlobalParams(ctx context.Context, gameID string, payl
 		zap.String("game_id", gameID),
 		zap.Any("global_parameters", command.GlobalParameters))
 
-	// Convert DTO to model
-	globalParams := model.GlobalParameters{
-		Temperature: command.GlobalParameters.Temperature,
-		Oxygen:      command.GlobalParameters.Oxygen,
-		Oceans:      command.GlobalParameters.Oceans,
-	}
-
-	if err := h.gameService.SetGlobalParameters(ctx, gameID, globalParams); err != nil {
-		return fmt.Errorf("failed to set global parameters: %w", err)
-	}
-
-	return nil
+	// Admin method removed - global parameters should change through game actions
+	return fmt.Errorf("admin set global parameters functionality has been removed")
 }
 
 // parsePayload parses the payload interface{} into the target struct

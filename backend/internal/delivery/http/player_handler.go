@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
@@ -125,25 +124,8 @@ func (h *PlayerHandler) UpdatePlayerResources(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Convert DTO to model
-	resources := model.Resources{
-		Credits:  req.Resources.Credits,
-		Steel:    req.Resources.Steel,
-		Titanium: req.Resources.Titanium,
-		Plants:   req.Resources.Plants,
-		Energy:   req.Resources.Energy,
-		Heat:     req.Resources.Heat,
-	}
-
-	// Delegate to service
-	err := h.playerService.UpdatePlayerResources(r.Context(), gameID, playerID, resources)
-	if err != nil {
-		h.logger.Error("Failed to update player resources", zap.Error(err),
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID))
-		h.WriteErrorResponse(w, http.StatusBadRequest, "Failed to update player resources")
-		return
-	}
+	// Admin endpoint removed - use admin commands instead
+	h.WriteErrorResponse(w, http.StatusNotImplemented, "Admin resource updates have been moved to admin commands")
 
 	// Get updated player state
 	player, err := h.playerService.GetPlayer(r.Context(), gameID, playerID)
