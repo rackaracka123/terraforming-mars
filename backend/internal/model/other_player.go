@@ -15,8 +15,7 @@ type OtherPlayer struct {
 	AvailableActions int            `json:"availableActions" ts:"number"`
 	VictoryPoints    int            `json:"victoryPoints" ts:"number"`
 	IsConnected      bool           `json:"isConnected" ts:"boolean"`
-	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"`   // Active ongoing effects (public information)
-	IsSelectingCards bool           `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
+	Effects          []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (public information)
 }
 
 // NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player
@@ -58,8 +57,7 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		AvailableActions: player.AvailableActions,
 		VictoryPoints:    player.VictoryPoints,
 		IsConnected:      player.IsConnected,
-		Effects:          effectsCopy,                                                          // Effects are public information
-		IsSelectingCards: player.ProductionSelection != nil || player.StartingSelection != nil, // Calculate from selection state
+		Effects:          effectsCopy, // Effects are public information
 	}
 }
 
@@ -101,6 +99,5 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		VictoryPoints:    op.VictoryPoints,
 		IsConnected:      op.IsConnected,
 		Effects:          effectsCopy,
-		IsSelectingCards: op.IsSelectingCards,
 	}
 }

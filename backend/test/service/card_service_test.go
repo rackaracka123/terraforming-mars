@@ -78,7 +78,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		startingCards[3].ID,
 	}
 	// Set up player's starting card selection (the cards they can choose from)
-	err = playerRepo.SetStartingSelection(ctx, gameID, player.ID, availableCardIDs)
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:    availableCardIDs,
+		SelectionComplete: false,
+	})
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -163,7 +166,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			}
 
 			// Reset player's starting selection
-			err = playerRepo.SetStartingSelection(ctx, gameID, player.ID, availableCardIDs)
+			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, resetPlayer.ID, &model.SelectStartingCardsPhase{
+				AvailableCards:    availableCardIDs,
+				SelectionComplete: false,
+			})
 			require.NoError(t, err)
 
 			// Execute
@@ -273,9 +279,15 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	}
 
 	// Set starting cards for both players
-	err = playerRepo.SetStartingSelection(ctx, gameID, player1.ID, availableCardIDs)
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player1.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:    availableCardIDs,
+		SelectionComplete: false,
+	})
 	require.NoError(t, err)
-	err = playerRepo.SetStartingSelection(ctx, gameID, player2.ID, availableCardIDs)
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player2.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:    availableCardIDs,
+		SelectionComplete: false,
+	})
 	require.NoError(t, err)
 
 	// Verify game is in starting card selection phase

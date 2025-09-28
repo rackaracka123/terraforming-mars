@@ -39,14 +39,13 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenActionsModal,
   onActionSelect,
 }) => {
-  // Convert OtherPlayerDto to PlayerDto for LeftSidebar compatibility
   const convertOtherPlayerToPlayerDto = (
     otherPlayer: OtherPlayerDto,
   ): PlayerDto => ({
     ...otherPlayer,
-    cards: [], // OtherPlayerDto doesn't expose actual cards, only handCardCount
-    startingSelection: [], // Add required startingSelection property
-    hasSelectedStartingCards: true, // Default to true for other players
+    cards: [],
+    selectStartingCardsPhase: undefined,
+    productionPhase: undefined,
   });
 
   // Create a map of all players (current + others) for easy lookup

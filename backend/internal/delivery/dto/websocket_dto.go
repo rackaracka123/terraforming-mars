@@ -55,15 +55,9 @@ type PlayerDisconnectedPayload struct {
 
 // PlayerProductionData contains production data for a single player
 type PlayerProductionData struct {
-	PlayerID        string        `json:"playerId" ts:"string"`
-	PlayerName      string        `json:"playerName" ts:"string"`
-	BeforeResources ResourcesDto  `json:"beforeResources" ts:"ResourcesDto"`
-	AfterResources  ResourcesDto  `json:"afterResources" ts:"ResourcesDto"`
-	ResourceDelta   ResourceDelta `json:"resourceDelta" ts:"ResourceDelta"`
-	Production      ProductionDto `json:"production" ts:"ProductionDto"`
-	TerraformRating int           `json:"terraformRating" ts:"number"`
-	EnergyConverted int           `json:"energyConverted" ts:"number"`
-	CreditsIncome   int           `json:"creditsIncome" ts:"number"`
+	PlayerID   string        `json:"playerId" ts:"string"`
+	PlayerName string        `json:"playerName" ts:"string"`
+	Production ProductionDto `json:"production" ts:"ProductionDto"`
 }
 
 // ProductionPhaseStartedPayload contains data when production phase begins

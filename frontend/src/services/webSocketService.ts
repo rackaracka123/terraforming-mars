@@ -9,7 +9,6 @@ import {
   MessageTypeGameUpdated,
   MessageTypePlayerConnect,
   MessageTypePlayerDisconnected,
-  MessageTypeProductionPhaseStarted,
   // New message types
   MessageTypeActionSellPatents,
   MessageTypeActionLaunchAsteroid,
@@ -26,7 +25,6 @@ import {
   MessageTypeActionTileSelected,
   // Payload types
   PlayerDisconnectedPayload,
-  ProductionPhaseStartedPayload,
   WebSocketMessage,
   HexPositionDto,
 } from "../types/generated/api-types.ts";
@@ -154,12 +152,8 @@ export class WebSocketService {
         this.emit("full-state", statePayload);
         break;
       }
-      case MessageTypeProductionPhaseStarted: {
-        const productionPayload =
-          message.payload as ProductionPhaseStartedPayload;
-        this.emit("production-phase-started", productionPayload);
-        break;
-      }
+      // Note: production-phase-started is now handled via game state updates
+      // The production phase data is available in player.productionSelection
       default:
         console.warn("Unknown message type:", message.type);
     }

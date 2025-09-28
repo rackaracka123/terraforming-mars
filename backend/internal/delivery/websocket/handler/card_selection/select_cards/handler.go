@@ -85,7 +85,17 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		return err
 	}
 
-	return h.markPlayerReady(ctx, gameID, playerID, cardIDs)
+	updatedGame, err := h.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to process production phase ready", zap.Error(err))
+		return fmt.Errorf("failed to process production phase ready: %w", err)
+	}
+
+	log.Info("Player completed production card selection and marked as ready",
+		zap.Strings("selected_cards", cardIDs),
+		zap.String("game_phase", string(updatedGame.CurrentPhase)))
+
+	return nil
 }
 
 // selectCards processes the card selection through the service
@@ -96,23 +106,6 @@ func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, card
 		log.Error("Failed to select production cards", zap.Error(err))
 		return fmt.Errorf("card selection failed: %w", err)
 	}
-
-	return nil
-}
-
-// markPlayerReady marks the player as ready for production phase
-func (h *Handler) markPlayerReady(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	updatedGame, err := h.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to process production phase ready", zap.Error(err))
-		return fmt.Errorf("failed to process production phase ready: %w", err)
-	}
-
-	log.Info("Player completed production card selection and marked as ready",
-		zap.Strings("selected_cards", cardIDs),
-		zap.String("game_phase", string(updatedGame.CurrentPhase)))
 
 	return nil
 }

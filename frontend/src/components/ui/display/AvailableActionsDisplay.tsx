@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  hasActionsAvailable,
+  getActionsDisplayText,
+} from "../../../utils/actionUtils.ts";
 
 interface AvailableActionsDisplayProps {
   availableActions: number;
@@ -27,6 +31,10 @@ const AvailableActionsDisplay: React.FC<AvailableActionsDisplayProps> = ({
   };
 
   const dimensions = sizeMap[size];
+
+  // Use utility functions to handle unlimited actions
+  const hasActions = hasActionsAvailable(availableActions);
+  const actionsDisplayText = getActionsDisplayText(availableActions);
 
   return (
     <button
@@ -107,19 +115,17 @@ const AvailableActionsDisplay: React.FC<AvailableActionsDisplayProps> = ({
               lineHeight: "1",
               minWidth: "16px",
               textAlign: "center",
-              background:
-                availableActions > 0
-                  ? "rgba(0, 255, 100, 0.2)"
-                  : "rgba(100, 100, 100, 0.2)",
+              background: hasActions
+                ? "rgba(0, 255, 100, 0.2)"
+                : "rgba(100, 100, 100, 0.2)",
               padding: "2px 4px",
               borderRadius: "3px",
-              border:
-                availableActions > 0
-                  ? "1px solid rgba(0, 255, 100, 0.3)"
-                  : "1px solid rgba(100, 100, 100, 0.3)",
+              border: hasActions
+                ? "1px solid rgba(0, 255, 100, 0.3)"
+                : "1px solid rgba(100, 100, 100, 0.3)",
             }}
           >
-            {availableActions}
+            {actionsDisplayText}
           </span>
         </div>
       </div>

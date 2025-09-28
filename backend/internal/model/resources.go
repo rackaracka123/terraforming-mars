@@ -37,3 +37,15 @@ type Production struct {
 	Energy   int `json:"energy" ts:"number"`
 	Heat     int `json:"heat" ts:"number"`
 }
+
+// DeepCopy creates a deep copy of the Production struct
+func (p Production) DeepCopy() Production {
+	return Production{
+		Credits:  p.Credits,
+		Steel:    p.Steel,
+		Titanium: p.Titanium,
+		Plants:   p.Plants,
+		Energy:   p.Energy,
+		Heat:     p.Heat,
+	}
+}

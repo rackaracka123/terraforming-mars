@@ -62,6 +62,5 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 // handle processes the skip action (internal method)
 func (h *Handler) handle(ctx context.Context, gameID, playerID string) error {
 	// Let the service handle all validation and business logic
-	_, err := h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
-	return err
+	return h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
 }

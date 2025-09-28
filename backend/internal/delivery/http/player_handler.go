@@ -95,7 +95,7 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO and respond
-	playerDto := dto.ToPlayerDto(player, []dto.CardDto{})
+	playerDto := dto.ToPlayerDto(player, nil)
 	response := dto.GetPlayerResponse{
 		Player: playerDto,
 	}

@@ -219,10 +219,33 @@ type CorporationDto struct {
 	Number             string      `json:"number" ts:"string"`
 }
 
-// ProductionPhaseDto represents card selection and production phase state for a player
-type ProductionPhaseDto struct {
+type SelectStartingCardsPhaseDto struct {
 	AvailableCards    []CardDto `json:"availableCards" ts:"CardDto[]"`  // Cards available for selection
 	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+}
+
+type SelectStartingCardsOtherPlayerDto struct {
+	SelectionComplete bool `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+}
+
+// ProductionPhaseDto represents card selection and production phase state for a player
+type ProductionPhaseDto struct {
+	AvailableCards    []CardDto    `json:"availableCards" ts:"CardDto[]"`  // Cards available for selection
+	SelectionComplete bool         `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	BeforeResources   ResourcesDto `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources    ResourcesDto `json:"afterResources" ts:"ResourcesDto"`
+	ResourceDelta     ResourcesDto `json:"resourceDelta" ts:"ResourceDelta"`
+	EnergyConverted   int          `json:"energyConverted" ts:"number"`
+	CreditsIncome     int          `json:"creditsIncome" ts:"number"`
+}
+
+type ProductionPhaseOtherPlayerDto struct {
+	SelectionComplete bool         `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	BeforeResources   ResourcesDto `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources    ResourcesDto `json:"afterResources" ts:"ResourcesDto"`
+	ResourceDelta     ResourcesDto `json:"resourceDelta" ts:"ResourceDelta"`
+	EnergyConverted   int          `json:"energyConverted" ts:"number"`
+	CreditsIncome     int          `json:"creditsIncome" ts:"number"`
 }
 
 // GameSettingsDto contains configurable game parameters
@@ -240,16 +263,6 @@ type GlobalParametersDto struct {
 
 // ResourcesDto represents a player's resources
 type ResourcesDto struct {
-	Credits  int `json:"credits" ts:"number"`
-	Steel    int `json:"steel" ts:"number"`
-	Titanium int `json:"titanium" ts:"number"`
-	Plants   int `json:"plants" ts:"number"`
-	Energy   int `json:"energy" ts:"number"`
-	Heat     int `json:"heat" ts:"number"`
-}
-
-// ResourceDelta represents the change in resources during production phase
-type ResourceDelta struct {
 	Credits  int `json:"credits" ts:"number"`
 	Steel    int `json:"steel" ts:"number"`
 	Titanium int `json:"titanium" ts:"number"`
@@ -301,10 +314,21 @@ type PendingTileSelectionDto struct {
 	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
 }
 
+// PlayerStatus represents the current status of a player in the game
+type PlayerStatus string
+
+const (
+	PlayerStatusSelectingStartingCards   PlayerStatus = "selecting-starting-cards"
+	PlayerStatusSelectingProductionCards PlayerStatus = "selecting-production-cards"
+	PlayerStatusWaiting                  PlayerStatus = "waiting"
+	PlayerStatusActive                   PlayerStatus = "active"
+)
+
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
 	Name             string            `json:"name" ts:"string"`
+	Status           PlayerStatus      `json:"status" ts:"PlayerStatus"`
 	Corporation      *string           `json:"corporation" ts:"string | null"`
 	Cards            []CardDto         `json:"cards" ts:"CardDto[]"`
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
@@ -317,11 +341,9 @@ type PlayerDto struct {
 	IsConnected      bool              `json:"isConnected" ts:"boolean"`
 	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (discounts, special abilities, etc.)
 	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"` // Available actions from played cards with manual triggers
-	// Card selection state - nullable, exists only during selection phase
-	CardSelection *ProductionPhaseDto `json:"productionSelection" ts:"ProductionPhaseDto | null"`
-	// Starting card selection - available during starting_card_selection phase
-	StartingSelection        []CardDto `json:"startingSelection" ts:"CardDto[]"`
-	HasSelectedStartingCards bool      `json:"hasSelectedStartingCards" ts:"boolean"` // Whether player has completed starting card selection
+
+	SelectStartingCardsPhase *SelectStartingCardsPhaseDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
+	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
 }
@@ -330,6 +352,7 @@ type PlayerDto struct {
 type OtherPlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
 	Name             string            `json:"name" ts:"string"`
+	Status           PlayerStatus      `json:"status" ts:"PlayerStatus"`
 	Corporation      string            `json:"corporation" ts:"string"`
 	HandCardCount    int               `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
@@ -340,10 +363,11 @@ type OtherPlayerDto struct {
 	AvailableActions int               `json:"availableActions" ts:"number"`
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
 	IsConnected      bool              `json:"isConnected" ts:"boolean"`
-	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (public information)
-	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"` // Available actions from played cards (public information)
-	// Card selection state - limited visibility for other players
-	IsSelectingCards bool `json:"isSelectingCards" ts:"boolean"` // Whether player is currently selecting cards
+	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"`
+	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"`
+
+	SelectStartingCardsPhase *SelectStartingCardsOtherPlayerDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsOtherPlayerDto | null"`
+	ProductionPhase          *ProductionPhaseOtherPlayerDto     `json:"productionPhase" ts:"ProductionPhaseOtherPlayerDto | null"`
 }
 
 // GameDto represents a game for client consumption (clean architecture)
