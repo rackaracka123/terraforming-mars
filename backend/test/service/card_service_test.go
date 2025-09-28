@@ -167,7 +167,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.SelectStartingCards(ctx, gameID, player.ID, tt.selectedCards)
+			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, tt.selectedCards)
 
 			// Assert
 			if tt.expectedError {
@@ -196,241 +196,9 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	}
 }
 
-func TestCardService_ValidateStartingCardSelection(t *testing.T) {
-	// Setup
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-
-	ctx := context.Background()
-
-	// Create a test game
-	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
-	game.Status = model.GameStatusActive
-	game.CurrentPhase = model.GamePhaseStartingCardSelection
-
-	// Create test player
-	player1 := model.Player{
-		ID:              "player1",
-		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 40},
-		Production:      model.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
-	}
-
-	// Create game using clean architecture
-	createdGame, err := gameRepo.Create(ctx, game.Settings)
-	require.NoError(t, err)
-	gameID := createdGame.ID
-
-	// Set game status and phase
-	err = gameRepo.UpdateStatus(ctx, gameID, game.Status)
-	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, game.CurrentPhase)
-	require.NoError(t, err)
-
-	// Add player using clean architecture
-	err = playerRepo.Create(ctx, gameID, player1)
-	require.NoError(t, err)
-	err = gameRepo.AddPlayerID(ctx, gameID, player1.ID)
-	require.NoError(t, err)
-
-	// Load cards and get real card IDs for testing
-	err = cardRepo.LoadCards(context.Background())
-	require.NoError(t, err, "Should load card data for testing")
-
-	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
-	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
-
-	// Store starting card IDs using real card data
-	availableCardIDs := []string{
-		startingCards[0].ID,
-		startingCards[1].ID,
-		startingCards[2].ID,
-		startingCards[3].ID,
-	}
-
-	// Get a card that exists but is NOT in the player's options
-	var cardNotInOptions string
-	for _, card := range startingCards {
-		found := false
-		for _, available := range availableCardIDs {
-			if card.ID == available {
-				found = true
-				break
-			}
-		}
-		if !found {
-			cardNotInOptions = card.ID
-			break
-		}
-	}
-
-	// Set up player's starting card selection
-	err = playerRepo.SetStartingSelection(ctx, gameID, "player1", availableCardIDs)
-	require.NoError(t, err)
-
-	tests := []struct {
-		name          string
-		cardIDs       []string
-		expectedError bool
-		errorMessage  string
-	}{
-		{
-			name:          "Valid selection from options",
-			cardIDs:       []string{availableCardIDs[0], availableCardIDs[1]},
-			expectedError: false,
-		},
-		{
-			name:          "Empty selection is valid",
-			cardIDs:       []string{},
-			expectedError: false,
-		},
-		{
-			name:          "Card not in player's options",
-			cardIDs:       []string{cardNotInOptions}, // Real card but not in player's options
-			expectedError: true,
-			errorMessage:  "not in player's available options",
-		},
-		{
-			name:          "Too many cards",
-			cardIDs:       append(availableCardIDs, "extra-card"),
-			expectedError: true,
-			errorMessage:  "invalid card ID: extra-card",
-		},
-		{
-			name:          "Non-existent card ID",
-			cardIDs:       []string{"fake-card-id"},
-			expectedError: true,
-			errorMessage:  "invalid card ID: fake-card-id",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Reset player's starting selection
-			err = playerRepo.SetStartingSelection(ctx, gameID, "player1", availableCardIDs)
-			require.NoError(t, err)
-
-			err := cardService.ValidateStartingCardSelection(ctx, gameID, "player1", tt.cardIDs)
-
-			if tt.expectedError {
-				assert.Error(t, err)
-				if tt.errorMessage != "" {
-					assert.Contains(t, err.Error(), tt.errorMessage)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestCardService_IsAllPlayersCardSelectionComplete(t *testing.T) {
-	// Setup
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-
-	ctx := context.Background()
-
-	// Create a test game with multiple players
-	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
-	game.Status = model.GameStatusActive
-	game.CurrentPhase = model.GamePhaseStartingCardSelection
-
-	// Create test players
-	player1 := model.Player{
-		ID:              "player1",
-		Name:            "Player 1",
-		Resources:       model.Resources{Credits: 40},
-		Production:      model.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
-	}
-
-	player2 := model.Player{
-		ID:              "player2",
-		Name:            "Player 2",
-		Resources:       model.Resources{Credits: 40},
-		Production:      model.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
-	}
-
-	// Create game using clean architecture
-	createdGame, err := gameRepo.Create(ctx, game.Settings)
-	require.NoError(t, err)
-	gameID := createdGame.ID
-
-	// Set game status and phase
-	err = gameRepo.UpdateStatus(ctx, gameID, game.Status)
-	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, game.CurrentPhase)
-	require.NoError(t, err)
-
-	// Add players using clean architecture
-	err = playerRepo.Create(ctx, gameID, player1)
-	require.NoError(t, err)
-	err = gameRepo.AddPlayerID(ctx, gameID, player1.ID)
-	require.NoError(t, err)
-	err = playerRepo.Create(ctx, gameID, player2)
-	require.NoError(t, err)
-	err = gameRepo.AddPlayerID(ctx, gameID, player2.ID)
-	require.NoError(t, err)
-
-	// Load cards and get real card IDs for testing
-	err = cardRepo.LoadCards(context.Background())
-	require.NoError(t, err, "Should load card data for testing")
-
-	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
-	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
-
-	// Test: No players have selection data
-	complete := cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
-	assert.False(t, complete)
-
-	// Setup card options for both players using real card IDs
-	availableCardIDs := []string{
-		startingCards[0].ID,
-		startingCards[1].ID,
-		startingCards[2].ID,
-		startingCards[3].ID,
-	}
-
-	// Set up starting card selections for both players
-	err = playerRepo.SetStartingSelection(ctx, gameID, player1.ID, availableCardIDs)
-	require.NoError(t, err)
-	err = playerRepo.SetStartingSelection(ctx, gameID, player2.ID, availableCardIDs)
-	require.NoError(t, err)
-
-	// Test: No players have completed selection
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
-	assert.False(t, complete)
-
-	// Test: Only one player completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
-	require.NoError(t, err)
-
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
-	assert.False(t, complete)
-
-	// Test: All players completed selection
-	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
-	require.NoError(t, err)
-
-	complete = cardService.IsAllPlayersCardSelectionComplete(ctx, gameID)
-	assert.True(t, complete)
-}
+// TestCardService_ValidateStartingCardSelection and TestCardService_IsAllPlayersCardSelectionComplete
+// have been removed as these methods are now internal implementation details.
+// Their behavior is tested through the public OnSelectStartingCards method.
 
 func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) {
 	// Setup
@@ -516,7 +284,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// First player selects starting cards (should NOT trigger phase transition)
-	err = cardService.SelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
+	err = cardService.OnSelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
 	require.NoError(t, err)
 
 	// Verify game is still in starting card selection phase
@@ -525,7 +293,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// Second player selects starting cards (should trigger automatic phase transition)
-	err = cardService.SelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
+	err = cardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
 	require.NoError(t, err)
 
 	// Verify game automatically transitioned to action phase
