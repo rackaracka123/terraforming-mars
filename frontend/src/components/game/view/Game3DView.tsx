@@ -10,6 +10,7 @@ import {
   skyboxCache,
   SkyboxLoadingState,
 } from "../../../services/SkyboxCache.ts";
+import { webSocketService } from "../../../services/webSocketService.ts";
 
 interface Game3DViewProps {
   gameState: GameDto;
@@ -62,26 +63,31 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
   }, []);
 
   const handleHexClick = (hexCoordinate: string) => {
-    console.warn("Hex clicked:", hexCoordinate);
+    // Check if current player has a pending tile selection
+    const currentPlayer = gameState.currentPlayer;
+    if (!currentPlayer?.pendingTileSelection) {
+      return;
+    }
 
-    // TODO: Implement proper tile placement validation
-    // For now, just show the coordinate that was clicked
+    const { pendingTileSelection } = currentPlayer;
 
-    // Basic validation would check:
-    // 1. Is it the current player's turn?
-    // 2. Does the player have resources to place a tile?
-    // 3. Is the tile placement valid based on game rules?
-    // 4. Are there adjacency requirements?
+    // Validate that the clicked hex is in the available positions provided by backend
+    if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
+      return;
+    }
 
-    // Example future implementation:
-    // if (canPlaceTile(hexCoordinate, gameState)) {
-    //   // Send tile placement to server
-    //   socket.emit('place-tile', {
-    //     coordinate: hexCoordinate,
-    //     tileType: selectedTileType,
-    //     playerId: currentPlayer.id
-    //   });
-    // }
+    // Send tile selection to backend
+    try {
+      // Parse hexCoordinate string (format: "q,r,s") back to coordinate object
+      const [q, r, s] = hexCoordinate.split(",").map(Number);
+      const coordinate = { q, r, s };
+
+      // Send tile selection to backend
+
+      webSocketService.selectTile(coordinate);
+    } catch (error) {
+      console.error("❌ Failed to send tile selection:", error);
+    }
   };
 
   return (

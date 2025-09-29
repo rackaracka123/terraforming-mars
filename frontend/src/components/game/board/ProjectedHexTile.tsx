@@ -15,6 +15,7 @@ interface ProjectedHexTileProps {
   ownerId?: string | null;
   displayName?: string;
   onClick: () => void;
+  isAvailableForPlacement?: boolean;
 }
 
 export default function ProjectedHexTile({
@@ -23,6 +24,7 @@ export default function ProjectedHexTile({
   ownerId,
   displayName,
   onClick,
+  isAvailableForPlacement = false,
 }: ProjectedHexTileProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
@@ -132,6 +134,50 @@ export default function ProjectedHexTile({
     });
   }, []);
 
+  // Create available placement glow material with pulsing effect
+  const availableGlowMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec2 vUv;
+
+        void main() {
+          // Convert UV to centered coordinates (-0.5 to 0.5)
+          vec2 center = vUv - 0.5;
+
+          // Calculate distance from center (0.0 at center, ~0.5 at edges)
+          float distFromCenter = length(center);
+
+          // Create gradient that's strong at edges and fades toward center
+          float gradient = smoothstep(0.15, 0.45, distFromCenter);
+
+          // Pulsing animation
+          float pulse = 0.5 + 0.3 * sin(time * 2.0);
+
+          vec3 glowColor = vec3(0.4, 1.0, 0.4); // Green glow
+
+          vec3 finalColor = glowColor;
+          float alpha = gradient * pulse * 0.6; // Pulsing green glow
+
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      uniforms: {
+        time: { value: 0.0 },
+      },
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    });
+  }, []);
+
   // Update shader time uniforms and handle hover animations
   useFrame((state) => {
     if (oceanBorderMaterial.uniforms) {
@@ -148,6 +194,10 @@ export default function ProjectedHexTile({
         targetOpacity,
         0.15,
       );
+    }
+
+    if (availableGlowMaterial.uniforms) {
+      availableGlowMaterial.uniforms.time.value = state.clock.elapsedTime;
     }
   });
 
@@ -222,9 +272,16 @@ export default function ProjectedHexTile({
       <mesh
         ref={meshRef}
         geometry={hexGeometry}
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
-        onClick={onClick}
+        onPointerEnter={() => {
+          setHovered(true);
+        }}
+        onPointerLeave={() => {
+          setHovered(false);
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick();
+        }}
       >
         <meshStandardMaterial
           color={tileColor}
@@ -256,6 +313,15 @@ export default function ProjectedHexTile({
         geometry={oceanGradientGeometry}
         material={hoverGlowMaterial}
       />
+
+      {/* Available placement glow effect with pulsing animation */}
+      {isAvailableForPlacement && (
+        <mesh
+          position={[0, 0, 0.002]}
+          geometry={oceanGradientGeometry}
+          material={availableGlowMaterial}
+        />
+      )}
 
       {/* Tile type icon */}
       {tileType !== "empty" && (

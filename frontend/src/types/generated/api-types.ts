@@ -193,6 +193,8 @@ export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
 export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
 export const AdminCommandTypeSetGlobalParams: AdminCommandType =
   "set-global-params";
+export const AdminCommandTypeStartTileSelection: AdminCommandType =
+  "start-tile-selection";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -232,6 +234,13 @@ export interface SetProductionAdminCommand {
  */
 export interface SetGlobalParamsAdminCommand {
   globalParameters: GlobalParametersDto;
+}
+/**
+ * StartTileSelectionAdminCommand represents starting tile selection for testing
+ */
+export interface StartTileSelectionAdminCommand {
+  playerId: string;
+  tileType: string;
 }
 
 //////////
@@ -533,6 +542,14 @@ export interface PlayerActionDto {
   playCount: number /* int */; // Number of times this action has been played this generation
 }
 /**
+ * PendingTileSelectionDto represents a pending tile placement action for client consumption
+ */
+export interface PendingTileSelectionDto {
+  tileType: string; // "city", "greenery", "ocean"
+  availableHexes: string[]; // Backend-calculated valid hex coordinates
+  source: string; // What triggered this selection (card ID, standard project, etc.)
+}
+/**
  * PlayerStatus represents the current status of a player in the game
  */
 export type PlayerStatus = string;
@@ -563,6 +580,10 @@ export interface PlayerDto {
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
+  /**
+   * Tile selection - nullable, exists only when player needs to place tiles
+   */
+  pendingTileSelection?: PendingTileSelectionDto; // Pending tile placement, null when no tiles to place
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -787,6 +808,11 @@ export const MessageTypeActionStartGame: MessageType =
   "action.game-management.start-game";
 export const MessageTypeActionSkipAction: MessageType =
   "action.game-management.skip-action";
+/**
+ * Tile selection message types
+ */
+export const MessageTypeActionTileSelected: MessageType =
+  "action.tile-selection.tile-selected";
 /**
  * Card message types
  */

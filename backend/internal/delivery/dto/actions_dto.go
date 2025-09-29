@@ -222,11 +222,12 @@ func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 type AdminCommandType string
 
 const (
-	AdminCommandTypeGiveCard        AdminCommandType = "give-card"
-	AdminCommandTypeSetPhase        AdminCommandType = "set-phase"
-	AdminCommandTypeSetResources    AdminCommandType = "set-resources"
-	AdminCommandTypeSetProduction   AdminCommandType = "set-production"
-	AdminCommandTypeSetGlobalParams AdminCommandType = "set-global-params"
+	AdminCommandTypeGiveCard           AdminCommandType = "give-card"
+	AdminCommandTypeSetPhase           AdminCommandType = "set-phase"
+	AdminCommandTypeSetResources       AdminCommandType = "set-resources"
+	AdminCommandTypeSetProduction      AdminCommandType = "set-production"
+	AdminCommandTypeSetGlobalParams    AdminCommandType = "set-global-params"
+	AdminCommandTypeStartTileSelection AdminCommandType = "start-tile-selection"
 )
 
 // AdminCommandRequest contains the admin command data
@@ -261,4 +262,10 @@ type SetProductionAdminCommand struct {
 // SetGlobalParamsAdminCommand represents setting global parameters
 type SetGlobalParamsAdminCommand struct {
 	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`
+}
+
+// StartTileSelectionAdminCommand represents starting tile selection for testing
+type StartTileSelectionAdminCommand struct {
+	PlayerID string `json:"playerId" ts:"string"`
+	TileType string `json:"tileType" ts:"string"`
 }

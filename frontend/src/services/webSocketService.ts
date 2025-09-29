@@ -22,6 +22,7 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionTileSelected,
   // Payload types
   PlayerDisconnectedPayload,
   WebSocketMessage,
@@ -299,6 +300,11 @@ export class WebSocketService {
 
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
+  }
+
+  // Tile selection actions
+  selectTile(coordinate: { q: number; r: number; s: number }): string {
+    return this.send(MessageTypeActionTileSelected, { coordinate });
   }
 
   on(event: string, callback: EventCallback) {

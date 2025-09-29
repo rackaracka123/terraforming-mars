@@ -128,6 +128,8 @@ func (h *Handler) handleAdminCommand(ctx context.Context, gameID, playerID strin
 		return h.handleSetProduction(ctx, gameID, request.Payload)
 	case dto.AdminCommandTypeSetGlobalParams:
 		return h.handleSetGlobalParams(ctx, gameID, request.Payload)
+	case dto.AdminCommandTypeStartTileSelection:
+		return h.handleStartTileSelection(ctx, gameID, request.Payload)
 	default:
 		return fmt.Errorf("unknown admin command type: %s", request.CommandType)
 	}
@@ -236,6 +238,22 @@ func (h *Handler) handleSetGlobalParams(ctx context.Context, gameID string, payl
 
 	// Use AdminService to set global parameters
 	return h.adminService.OnAdminSetGlobalParameters(ctx, gameID, globalParams)
+}
+
+// handleStartTileSelection starts tile selection for testing
+func (h *Handler) handleStartTileSelection(ctx context.Context, gameID string, payload interface{}) error {
+	var command dto.StartTileSelectionAdminCommand
+	if err := h.parsePayload(payload, &command); err != nil {
+		return fmt.Errorf("invalid start tile selection payload: %w", err)
+	}
+
+	h.logger.Info("🎯 Admin starting tile selection",
+		zap.String("game_id", gameID),
+		zap.String("player_id", command.PlayerID),
+		zap.String("tile_type", command.TileType))
+
+	// Use AdminService to start tile selection
+	return h.adminService.OnAdminStartTileSelection(ctx, gameID, command.PlayerID, command.TileType)
 }
 
 // parsePayload parses the payload interface{} into the target struct

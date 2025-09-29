@@ -34,6 +34,11 @@ type GameRepository interface {
 	RemovePlayerID(ctx context.Context, gameID string, playerID string) error
 	SetHostPlayer(ctx context.Context, gameID string, playerID string) error
 	UpdateGeneration(ctx context.Context, gameID string, generation int) error
+
+	// Tile operations
+	UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error
+	UpdateTemperature(ctx context.Context, gameID string, temperature int) error
+	UpdateOxygen(ctx context.Context, gameID string, oxygen int) error
 }
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
@@ -426,6 +431,113 @@ func (r *GameRepositoryImpl) validateGlobalParameters(params *model.GlobalParame
 	if params.Oceans < 0 || params.Oceans > 9 {
 		return fmt.Errorf("oceans must be between 0 and 9, got %d", params.Oceans)
 	}
+
+	return nil
+}
+
+// UpdateTileOccupancy updates a tile's occupancy and ownership
+func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Find the tile to update
+	var targetTile *model.Tile
+	for i := range game.Board.Tiles {
+		tile := &game.Board.Tiles[i]
+		if tile.Coordinates.Q == coord.Q && tile.Coordinates.R == coord.R && tile.Coordinates.S == coord.S {
+			targetTile = tile
+			break
+		}
+	}
+
+	if targetTile == nil {
+		return fmt.Errorf("tile not found at coordinate %d,%d,%d", coord.Q, coord.R, coord.S)
+	}
+
+	// Update occupancy and ownership
+	targetTile.OccupiedBy = occupant
+	targetTile.OwnerID = ownerID
+
+	game.UpdatedAt = time.Now()
+
+	occupantType := "empty"
+	ownerName := "none"
+	if occupant != nil {
+		occupantType = string(occupant.Type)
+	}
+	if ownerID != nil {
+		ownerName = *ownerID
+	}
+
+	log.Info("Tile occupancy updated",
+		zap.Int("q", coord.Q),
+		zap.Int("r", coord.R),
+		zap.Int("s", coord.S),
+		zap.String("occupant", occupantType),
+		zap.String("owner", ownerName))
+
+	return nil
+}
+
+// UpdateTemperature updates the global temperature parameter
+func (r *GameRepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, temperature int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Validate temperature range
+	if temperature < -30 || temperature > 8 {
+		return fmt.Errorf("temperature must be between -30 and 8, got %d", temperature)
+	}
+
+	oldTemp := game.GlobalParameters.Temperature
+	game.GlobalParameters.Temperature = temperature
+	game.UpdatedAt = time.Now()
+
+	log.Info("Temperature updated",
+		zap.Int("old_temperature", oldTemp),
+		zap.Int("new_temperature", temperature))
+
+	return nil
+}
+
+// UpdateOxygen updates the global oxygen parameter
+func (r *GameRepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Validate oxygen range
+	if oxygen < 0 || oxygen > 14 {
+		return fmt.Errorf("oxygen must be between 0 and 14, got %d", oxygen)
+	}
+
+	oldOxygen := game.GlobalParameters.Oxygen
+	game.GlobalParameters.Oxygen = oxygen
+	game.UpdatedAt = time.Now()
+
+	log.Info("Oxygen updated",
+		zap.Int("old_oxygen", oldOxygen),
+		zap.Int("new_oxygen", oxygen))
 
 	return nil
 }

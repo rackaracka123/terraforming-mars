@@ -29,4 +29,7 @@ export interface WebSocketConnection {
   playCard(cardId: string): Promise<string>;
   selectStartingCard(cardIds: string[]): Promise<string>;
   selectCards(cardIds: string[]): Promise<string>;
+
+  // Tile selection actions
+  selectTile(coordinate: { q: number; r: number; s: number }): Promise<string>;
 }

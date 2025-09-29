@@ -37,6 +37,11 @@ type PlayerRepository interface {
 
 	UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *model.ProductionPhase) error
 	SetProductionCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
+
+	// Tile selection methods
+	UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *model.PendingTileSelection) error
+	GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
+	ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -605,4 +610,70 @@ func (r *PlayerRepositoryImpl) SetProductionCardsSelectionComplete(ctx context.C
 	log.Info("Player completed production phase selection")
 
 	return nil
+}
+
+// UpdatePendingTileSelection updates the pending tile selection for a player
+func (r *PlayerRepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *model.PendingTileSelection) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Handle nil input properly - set to nil to clear selection
+	if selection == nil {
+		player.PendingTileSelection = nil
+		log.Info("🎯 Pending tile selection cleared for player")
+	} else {
+		// Create a deep copy to prevent external mutation
+		availableHexesCopy := make([]string, len(selection.AvailableHexes))
+		copy(availableHexesCopy, selection.AvailableHexes)
+
+		player.PendingTileSelection = &model.PendingTileSelection{
+			TileType:       selection.TileType,
+			AvailableHexes: availableHexesCopy,
+			Source:         selection.Source,
+		}
+
+		log.Info("🎯 Pending tile selection updated for player",
+			zap.String("tile_type", selection.TileType),
+			zap.String("source", selection.Source),
+			zap.Int("available_hexes", len(selection.AvailableHexes)))
+	}
+
+	return nil
+}
+
+// GetPendingTileSelection retrieves the pending tile selection for a player
+func (r *PlayerRepositoryImpl) GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.PendingTileSelection == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to prevent external mutation
+	availableHexesCopy := make([]string, len(player.PendingTileSelection.AvailableHexes))
+	copy(availableHexesCopy, player.PendingTileSelection.AvailableHexes)
+
+	return &model.PendingTileSelection{
+		TileType:       player.PendingTileSelection.TileType,
+		AvailableHexes: availableHexesCopy,
+		Source:         player.PendingTileSelection.Source,
+	}, nil
+}
+
+// ClearPendingTileSelection clears the pending tile selection for a player
+func (r *PlayerRepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error {
+	return r.UpdatePendingTileSelection(ctx, gameID, playerID, nil)
 }

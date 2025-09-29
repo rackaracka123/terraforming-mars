@@ -229,6 +229,16 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.selectCards(cardIds);
   }
 
+  // Tile selection actions
+  async selectTile(coordinate: {
+    q: number;
+    r: number;
+    s: number;
+  }): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.selectTile(coordinate);
+  }
+
   // Admin commands (development mode only)
   async sendAdminCommand(adminRequest: any): Promise<string> {
     await this.ensureConnected();

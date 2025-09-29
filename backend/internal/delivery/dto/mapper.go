@@ -93,6 +93,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		Actions:                  ToPlayerActionDtoSlice(player.Actions),
 		SelectStartingCardsPhase: ToSelectStartingCardsPhaseDto(player.SelectStartingCardsPhase, resolvedCards),
 		ProductionPhase:          ToProductionPhaseDto(player.ProductionPhase, resolvedCards),
+		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
 	}
 }
 
@@ -613,5 +614,18 @@ func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
 	return &TileOccupantDto{
 		Type: string(occupant.Type),
 		Tags: occupant.Tags,
+	}
+}
+
+// ToPendingTileSelectionDto converts a model PendingTileSelection pointer to PendingTileSelectionDto pointer
+func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTileSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	return &PendingTileSelectionDto{
+		TileType:       selection.TileType,
+		AvailableHexes: selection.AvailableHexes,
+		Source:         selection.Source,
 	}
 }

@@ -139,11 +139,16 @@ export default function ProjectedHexGrid({
     return { type: "empty", ownerId: null, specialType: null };
   };
 
+  // Get available hexes from current player's pending tile selection
+  const availableHexes =
+    gameState?.currentPlayer?.pendingTileSelection?.availableHexes || [];
+
   return (
     <>
       {projectedHexGrid.map((tile) => {
         const hexKey = HexGrid2D.coordinateToKey(tile.coordinate);
         const tileData = getTileData(tile);
+        const isAvailable = availableHexes.includes(hexKey);
 
         return (
           <ProjectedHexTile
@@ -152,7 +157,10 @@ export default function ProjectedHexGrid({
             tileType={tileData.type}
             ownerId={tileData.ownerId}
             displayName={tile.backendTile?.displayName}
-            onClick={() => onHexClick?.(hexKey)}
+            onClick={() => {
+              onHexClick?.(hexKey);
+            }}
+            isAvailableForPlacement={isAvailable}
           />
         );
       })}

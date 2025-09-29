@@ -36,6 +36,9 @@ type PlayerService interface {
 	CanAffordStandardProject(player *model.Player, project model.StandardProject) bool
 	HasCardsToSell(player *model.Player, count int) bool
 	GetMaxCardsToSell(player *model.Player) int
+
+	// Tile selection methods
+	OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error
 }
 
 // PlayerServiceImpl implements PlayerService interface
@@ -267,4 +270,117 @@ func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerN
 // GetPlayersForGame returns all players in a specific game
 func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error) {
 	return s.playerRepo.ListByGameID(ctx, gameID)
+}
+
+// OnTileSelected handles player tile selection and placement
+func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Info("🎯 Processing tile selection",
+		zap.Int("q", coordinate.Q),
+		zap.Int("r", coordinate.R),
+		zap.Int("s", coordinate.S))
+
+	// Get player's pending tile selection to determine tile type
+	pendingSelection, err := s.playerRepo.GetPendingTileSelection(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to get pending tile selection: %w", err)
+	}
+
+	if pendingSelection == nil {
+		log.Warn("No pending tile selection found for player")
+		return fmt.Errorf("player has no pending tile selection")
+	}
+
+	// Convert coordinate to string for validation (temporary until we update the validation system)
+	coordinateKey := fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)
+
+	// Basic validation that the clicked tile is in the available hexes
+	validTile := false
+	for _, hexID := range pendingSelection.AvailableHexes {
+		if hexID == coordinateKey {
+			validTile = true
+			break
+		}
+	}
+
+	if !validTile {
+		log.Error("Invalid tile selection",
+			zap.String("coordinate", coordinateKey),
+			zap.Strings("available", pendingSelection.AvailableHexes))
+		return fmt.Errorf("selected coordinate %s is not in available positions", coordinateKey)
+	}
+
+	// Place the tile using the private method
+	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
+		log.Error("Failed to place tile", zap.Error(err))
+		return fmt.Errorf("failed to place tile: %w", err)
+	}
+
+	// For admin demo selections, don't clear the pending selection to allow continuous testing
+	// For real game selections, clear the pending tile selection to complete the basic flow
+	if err := s.playerRepo.ClearPendingTileSelection(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to clear pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to clear pending tile selection: %w", err)
+	}
+	log.Info("🎯 Real game tile selection - cleared pending selection")
+
+	// Broadcast updated game state
+	if s.sessionManager != nil {
+		if err := s.sessionManager.Broadcast(gameID); err != nil {
+			log.Error("Failed to broadcast game state after tile selection", zap.Error(err))
+			return fmt.Errorf("failed to broadcast game state: %w", err)
+		}
+	}
+
+	log.Info("✅ Tile selection processed successfully",
+		zap.String("coordinate", coordinateKey),
+		zap.String("tile_type", pendingSelection.TileType))
+
+	return nil
+}
+
+// placeTile places a tile of the specified type at the given coordinate
+func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, tileType string, coordinate model.HexPosition) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Info("🔧 Placing tile",
+		zap.String("tile_type", tileType),
+		zap.Int("q", coordinate.Q),
+		zap.Int("r", coordinate.R),
+		zap.Int("s", coordinate.S))
+
+	// Create the tile occupant based on the tile type
+	var occupant *model.TileOccupant
+	switch tileType {
+	case "city":
+		occupant = &model.TileOccupant{
+			Type: model.ResourceCityTile,
+			Tags: []string{},
+		}
+	case "greenery":
+		occupant = &model.TileOccupant{
+			Type: model.ResourceGreeneryTile,
+			Tags: []string{},
+		}
+	case "ocean":
+		occupant = &model.TileOccupant{
+			Type: model.ResourceOceanTile,
+			Tags: []string{},
+		}
+	default:
+		log.Error("Unknown tile type", zap.String("tile_type", tileType))
+		return fmt.Errorf("unknown tile type: %s", tileType)
+	}
+
+	// Update the tile occupancy in the game board
+	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
+		log.Error("Failed to update tile occupancy", zap.Error(err))
+		return fmt.Errorf("failed to update tile occupancy: %w", err)
+	}
+
+	log.Info("✅ Tile placed successfully",
+		zap.String("tile_type", tileType),
+		zap.String("coordinate", fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)))
+
+	return nil
 }
