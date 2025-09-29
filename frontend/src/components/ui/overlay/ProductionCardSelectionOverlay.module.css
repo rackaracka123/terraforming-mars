@@ -1,0 +1,36 @@
+/* Import all styles from StartingCardSelectionOverlay */
+@import "./StartingCardSelectionOverlay.module.css";
+
+/* Additional styles for production card selection */
+.buttonsContainer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.returnButton {
+  padding: 12px 24px;
+  background: rgba(100, 150, 200, 0.1);
+  border: 1px solid rgba(100, 150, 200, 0.3);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.returnButton:hover {
+  background: rgba(100, 150, 200, 0.2);
+  border-color: rgba(100, 150, 200, 0.5);
+  transform: translateY(-1px);
+}
+
+.returnButton:active {
+  transform: translateY(0);
+}
+
+/* Adjust the existing confirmButton to work in the flex container */
+.confirmButton {
+  white-space: nowrap;
+}

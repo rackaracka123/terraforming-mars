@@ -12,18 +12,23 @@ import {
   ResourceType,
 } from "@/utils/resourceColors.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
+import ProductionCardSelectionOverlay from "@/components/ui/overlay/ProductionCardSelectionOverlay.tsx";
 import styles from "./ProductionPhaseModal.module.css";
 
 interface ProductionPhaseModalProps {
   isOpen: boolean;
   gameState: GameDto | null;
   onClose: () => void;
+  onHide?: () => void;
+  openDirectlyToCardSelection?: boolean;
 }
 
 const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   isOpen,
   gameState,
   onClose,
+  onHide,
+  openDirectlyToCardSelection = false,
 }) => {
   const [hasSubmittedCardSelection, setHasSubmittedCardSelection] =
     useState(false);
@@ -32,44 +37,53 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     "energyConversion" | "production"
   >("energyConversion");
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
   const [resourceAnimationState, setResourceAnimationState] = useState<
     "initial" | "fadeInResources" | "showProduction" | "fadeOut" | "fadeIn"
   >("initial");
   const [energyAnimationState, setEnergyAnimationState] = useState<
     "initial" | "fadeOut" | "fadeIn"
   >("initial");
+  const [showCardSelection, setShowCardSelection] = useState(false);
 
-  // Handle closing the modal and sending card selection
-  const handleClose = useCallback(async () => {
-    // Only send card selection once per production phase
-    if (
-      !hasSubmittedCardSelection &&
-      gameState?.currentPlayer?.productionPhase
-    ) {
+  // The modal should ONLY close when card selection is confirmed
+  // Removed handleClose - modal cannot be closed by user except through card selection
+
+  // Handle card selection submission
+  const handleCardSelection = useCallback(
+    async (selectedCardIds: string[]) => {
       try {
-        // Send empty card selection (player not buying any cards)
-        await globalWebSocketManager.selectCards([]);
+        await globalWebSocketManager.selectCards(selectedCardIds);
         setHasSubmittedCardSelection(true);
+        setShowCardSelection(false);
         // Don't call onClose here - let the game state update handle closing the modal
-        // The modal will close automatically when productionPhase is removed from the player
       } catch (error) {
         console.error("Failed to submit card selection:", error);
         // On error, still close the modal manually
         onClose();
       }
-    } else {
-      // If already submitted or no production data, just close normally
-      onClose();
+    },
+    [onClose],
+  );
+
+  // Handle hiding from card selection (hide entire modal to inspect game)
+  const handleReturnFromCardSelection = useCallback(() => {
+    // Instead of just hiding card selection, hide the entire modal
+    if (onHide) {
+      onHide();
     }
-  }, [hasSubmittedCardSelection, gameState, onClose]);
+  }, [onHide]);
 
   // Reset submission flag when modal opens with new production data
   useEffect(() => {
     if (isOpen && gameState?.currentPlayer?.productionPhase) {
       setHasSubmittedCardSelection(false);
+      setShowCardSelection(openDirectlyToCardSelection);
     }
-  }, [isOpen, gameState?.currentPlayer?.productionPhase]);
+  }, [
+    isOpen,
+    gameState?.currentPlayer?.productionPhase,
+    openDirectlyToCardSelection,
+  ]);
 
   // Extract production data from game state
   const modalProductionData = useMemo(() => {
@@ -128,6 +142,21 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   const resourceIcons = RESOURCE_ICONS;
   const resourceNames = RESOURCE_NAMES;
 
+  // Set initial animation step based on energy conversion
+  useEffect(() => {
+    if (modalProductionData && modalProductionData.playersData.length > 0) {
+      const currentPlayerData =
+        modalProductionData.playersData[currentPlayerIndex];
+      const hasEnergyToConvert = currentPlayerData.energyConverted > 0;
+
+      if (hasEnergyToConvert) {
+        setAnimationStep("energyConversion");
+      } else {
+        setAnimationStep("production");
+      }
+    }
+  }, [modalProductionData, currentPlayerIndex]);
+
   // Auto-advance through animation steps within each player (but not between players)
   useEffect(() => {
     if (!isAnimating) return;
@@ -149,10 +178,19 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
   // Handle player selection
   const handlePlayerSelect = (playerIndex: number) => {
-    if (playerIndex !== currentPlayerIndex || showSummary) {
-      setShowSummary(false);
+    if (playerIndex !== currentPlayerIndex && modalProductionData) {
       setCurrentPlayerIndex(playerIndex);
-      setAnimationStep("energyConversion");
+
+      // Check if player has energy to convert - skip energy animation if none
+      const playerData = modalProductionData.playersData[playerIndex];
+      const hasEnergyToConvert = playerData.energyConverted > 0;
+
+      if (hasEnergyToConvert) {
+        setAnimationStep("energyConversion");
+      } else {
+        setAnimationStep("production");
+      }
+
       setIsAnimating(true);
       setResourceAnimationState("initial");
       setEnergyAnimationState("initial");
@@ -228,11 +266,15 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
   }, [currentPlayerIndex, animationStep]);
 
-  // Handle ESC key to close modal
+  // Handle Enter key to open card selection
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        void handleClose();
+      if (
+        event.key === "Enter" &&
+        !hasSubmittedCardSelection &&
+        !showCardSelection
+      ) {
+        setShowCardSelection(true);
       }
     };
 
@@ -242,7 +284,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     }
 
     return () => {};
-  }, [isOpen, handleClose]);
+  }, [isOpen, hasSubmittedCardSelection, showCardSelection]);
 
   // Normal visibility check
   if (!isOpen) return null;
@@ -497,96 +539,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     );
   };
 
-  const renderResourceDelta = (
-    resourceType: ResourceType,
-    deltaAmount: number,
-  ) => {
-    if (deltaAmount === 0) return null;
-
-    return (
-      <div
-        key={resourceType}
-        className={styles.summaryResourceItem}
-        style={
-          {
-            "--resource-color": RESOURCE_COLORS[resourceType],
-          } as React.CSSProperties
-        }
-      >
-        <div className={styles.resourceIcon}>
-          <img
-            src={RESOURCE_ICONS[resourceType]}
-            alt={RESOURCE_NAMES[resourceType]}
-          />
-        </div>
-        <div className={styles.deltaAmount}>
-          <span className={deltaAmount > 0 ? styles.positive : styles.negative}>
-            {deltaAmount > 0 ? `+${deltaAmount}` : deltaAmount}
-          </span>
-        </div>
-        <div className={styles.resourceLabel}>
-          {RESOURCE_NAMES[resourceType]}
-        </div>
-      </div>
-    );
-  };
-
-  const renderSummaryView = () => {
-    return (
-      <div className={styles.summaryView}>
-        <div className={styles.summaryTitle}>
-          Resource Changes Summary - Generation {modalProductionData.generation}
-        </div>
-        <div className={styles.playersGrid}>
-          {modalProductionData.playersData.map((player) => (
-            <div key={player.playerId} className={styles.playerSummary}>
-              <div className={styles.playerName}>{player.playerName}</div>
-              <div className={styles.resourceDeltas}>
-                {renderResourceDelta(
-                  "credits" as ResourceType,
-                  player.resourceDelta.credits,
-                )}
-                {renderResourceDelta(
-                  "steel" as ResourceType,
-                  player.resourceDelta.steel,
-                )}
-                {renderResourceDelta(
-                  "titanium" as ResourceType,
-                  player.resourceDelta.titanium,
-                )}
-                {renderResourceDelta(
-                  "plants" as ResourceType,
-                  player.resourceDelta.plants,
-                )}
-                {renderResourceDelta(
-                  "energy" as ResourceType,
-                  player.resourceDelta.energy,
-                )}
-                {renderResourceDelta(
-                  "heat" as ResourceType,
-                  player.resourceDelta.heat,
-                )}
-              </div>
-              <div className={styles.creditsBreakdown}>
-                Credits: {player.terraformRating} (TR) +{" "}
-                {player.production.credits} (Production) ={" "}
-                {player.creditsIncome}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const renderProductionPhase = () => {
     return (
       <div className={styles.productionPhase}>
-        <div className={styles.productionTitle}>
-          {animationStep === "energyConversion"
-            ? "Energy → Heat Conversion"
-            : "Resource Production"}
-        </div>
         <div className={styles.resourcesGrid}>
           {renderResourceAnimation(
             "credits" as ResourceType,
@@ -619,77 +574,65 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             currentPlayerData.afterResources.heat,
           )}
         </div>
-        <div className={styles.productionInfo}>
-          <div className={styles.creditsBreakdown}>
-            Credits Income: {currentPlayerData.terraformRating} (TR) +{" "}
-            {currentPlayerData.production.credits} (Production) ={" "}
-            {currentPlayerData.creditsIncome}
-          </div>
-        </div>
       </div>
     );
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={handleClose}>
+    <div className={styles.modalOverlay}>
       <div className={styles.modalPopup} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2>Production Phase</h2>
+          <h2>Production</h2>
           <div className={styles.generationInfo}>
             Generation {modalProductionData.generation}
           </div>
-          <button className={styles.closeBtn} onClick={handleClose}>
-            ×
-          </button>
         </div>
 
-        <div className={styles.playerProgress}>
-          {modalProductionData.playersData.map((player, index) => (
-            <button
-              key={player.playerId}
-              className={`${styles.playerTab} ${
-                index === currentPlayerIndex && !showSummary
-                  ? styles.current
-                  : ""
-              }`}
-              onClick={() => handlePlayerSelect(index)}
-            >
-              {player.playerName}
-            </button>
-          ))}
-          <button
-            className={`${styles.playerTab} ${styles.summaryTab} ${
-              showSummary ? styles.current : ""
-            }`}
-            onClick={() => setShowSummary(true)}
-          >
-            Summary
-          </button>
-        </div>
+        {/* Only show player tabs if more than 1 player */}
+        {modalProductionData.playersData.length > 1 && (
+          <div className={styles.playerProgress}>
+            {modalProductionData.playersData.map((player, index) => (
+              <button
+                key={player.playerId}
+                className={`${styles.playerTab} ${
+                  index === currentPlayerIndex ? styles.current : ""
+                }`}
+                onClick={() => handlePlayerSelect(index)}
+              >
+                {player.playerName}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={styles.currentPlayerSection}>
-          {showSummary ? (
-            <div className={styles.animationContent}>{renderSummaryView()}</div>
-          ) : (
-            <>
-              <div className={styles.playerHeader}>
-                <div className={styles.playerName}>
-                  {currentPlayerData.playerName}
-                </div>
-                <div className={styles.animationStep}>
-                  {animationStep === "energyConversion"
-                    ? "Energy → Heat Conversion"
-                    : "Resource Production"}
-                </div>
-              </div>
-
-              <div className={styles.animationContent}>
-                {renderProductionPhase()}
-              </div>
-            </>
-          )}
+          <div className={styles.animationContent}>
+            {renderProductionPhase()}
+          </div>
         </div>
       </div>
+
+      {!hasSubmittedCardSelection && !showCardSelection && (
+        <button
+          className={styles.nextBtn}
+          onClick={() => setShowCardSelection(true)}
+        >
+          →
+        </button>
+      )}
+
+      {/* Card Selection Overlay */}
+      {showCardSelection && (
+        <ProductionCardSelectionOverlay
+          isOpen={showCardSelection}
+          cards={
+            gameState?.currentPlayer?.productionPhase?.availableCards || []
+          }
+          playerCredits={gameState?.currentPlayer?.resources.credits || 0}
+          onSelectCards={handleCardSelection}
+          onReturn={handleReturnFromCardSelection}
+        />
+      )}
     </div>
   );
 };

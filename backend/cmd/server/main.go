@@ -78,7 +78,7 @@ func main() {
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	boardService := service.NewBoardService()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// Inject GameService into CardService to avoid circular dependency
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
