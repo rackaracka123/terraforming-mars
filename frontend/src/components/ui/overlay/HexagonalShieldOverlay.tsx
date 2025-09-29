@@ -15,30 +15,38 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
 }) => {
   const [shouldRender, setShouldRender] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const [isAnimatingIn, setIsAnimatingIn] = useState(false);
   const [lastValidCard, setLastValidCard] = useState<CardDto | null>(null);
   const [lastValidReason, setLastValidReason] =
     useState<UnplayableReason | null>(null);
 
   useEffect(() => {
     if (isVisible && card && reason) {
-      // Show immediately when visible and store the valid data
+      // Mount first
       setShouldRender(true);
-      setIsAnimatingOut(false);
       setLastValidCard(card);
       setLastValidReason(reason);
+
+      // Next tick → trigger fade-in
+      requestAnimationFrame(() => {
+        setIsAnimatingOut(false);
+        setIsAnimatingIn(true);
+      });
+      return undefined;
     } else if (shouldRender) {
-      // Start fade-out animation but keep using last valid data
+      // Start fade-out
       setIsAnimatingOut(true);
-      // Remove from DOM after animation completes
+      setIsAnimatingIn(false);
+
       const timer = setTimeout(() => {
         setShouldRender(false);
         setIsAnimatingOut(false);
         setLastValidCard(null);
         setLastValidReason(null);
-      }, 300); // Match longest animation duration
+      }, 300);
       return () => clearTimeout(timer);
     }
-    return () => {};
+    return undefined;
   }, [isVisible, card, reason, shouldRender]);
 
   // Don't render if not supposed to be visible and not animating
@@ -46,8 +54,11 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     return null;
   }
 
-  const overlayClass = isAnimatingOut ? "hidden" : "visible";
-
+  const overlayClass = isAnimatingOut
+    ? "hidden"
+    : isAnimatingIn
+      ? "visible"
+      : "hidden";
   // Use last valid data during fade-out animation
   const displayCard = lastValidCard;
   const displayReason = lastValidReason;
@@ -58,7 +69,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   }
 
   // Get the appropriate icon for the requirement type
-  const getRequirementIcon = (reason: UnplayableReason) => {
+  const getRequirementIcon = (reason: UnplayableReason): string | null => {
     const iconMap: { [key: string]: string } = {
       // Cost
       cost: "/assets/resources/megacredit.png",
@@ -222,24 +233,15 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         // Create circular gradient opacity (more opaque in center, transparent at edges)
         const opacity = Math.max(0, 1 - normalizedDistance * 0.8);
 
-        // Add tiny random delay for organic fade effect (0-100ms)
-        const randomDelay = Math.random() * 0.1; // 0.1s max random delay
-
         hexagons.push(
           <polygon
             key={`hex-${row}-${col}`}
             points={generateHexagonPoints(x, y, hexSize)}
-            fill="rgba(120, 120, 120, 0.4)"
-            stroke="rgba(100, 100, 100, 0.6)"
-            strokeWidth="1"
+            fill="rgba(80, 40, 0, 0.3)"
+            stroke="rgba(255, 152, 0, 0.8)"
+            strokeWidth="2"
             opacity={opacity}
             className="hex-tile"
-            style={
-              {
-                "--random-delay": `${randomDelay}s`,
-                animationDelay: `var(--random-delay)`,
-              } as React.CSSProperties
-            }
           />,
         );
       }
@@ -279,32 +281,6 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         {/* Shield text overlay - directly on hexagons */}
         <div className="shield-text-overlay">
           <div className="shield-text-content">
-            <div className="shield-title">
-              <div className="stop-symbol">
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="30"
-                    fill="none"
-                    stroke="#dc1414"
-                    strokeWidth="8"
-                    className="stop-circle"
-                  />
-                  <line
-                    x1="18.8"
-                    y1="18.8"
-                    x2="61.2"
-                    y2="61.2"
-                    stroke="#dc1414"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    className="stop-line"
-                  />
-                </svg>
-              </div>
-            </div>
-
             {displayReason.type === "multiple" &&
             displayReason.failedRequirements ? (
               <div className="requirements-list">
@@ -356,7 +332,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           justify-content: center;
           align-items: center;
           opacity: 0;
-          transition: opacity 0.2s ease-out;
+          transition: opacity 0.3s ease-in-out;
         }
 
         .hexagonal-shield-overlay.visible {
@@ -385,56 +361,20 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           width: 100%;
           height: 100%;
           opacity: 0.9;
-          filter: blur(0.5px);
+          filter: blur(0.5px) drop-shadow(0 0 12px rgba(255, 152, 0, 0.8));
         }
 
         .hex-tile {
-          transform-origin: center;
-          transform-style: preserve-3d;
+          transition: opacity 0.5s ease-in-out;
+          filter: drop-shadow(0 0 8px rgba(255, 152, 0, 0.9));
         }
 
         .visible .hex-tile {
           opacity: 1;
-          transform: rotateY(0deg);
-          animation: hexRotateIn 0.3s ease-out forwards;
-          animation-delay: var(--random-delay);
         }
 
         .hidden .hex-tile {
           opacity: 0;
-          transform: rotateY(90deg);
-          animation: hexRotateOut 0.3s ease-out forwards;
-          animation-delay: var(--random-delay);
-        }
-
-        @keyframes hexRotateIn {
-          0% {
-            opacity: 0;
-            transform: rotateY(90deg);
-          }
-          50% {
-            opacity: 0.7;
-            transform: rotateY(45deg);
-          }
-          100% {
-            opacity: 1;
-            transform: rotateY(0deg);
-          }
-        }
-
-        @keyframes hexRotateOut {
-          0% {
-            opacity: 1;
-            transform: rotateY(0deg);
-          }
-          50% {
-            opacity: 0.7;
-            transform: rotateY(-45deg);
-          }
-          100% {
-            opacity: 0;
-            transform: rotateY(-90deg);
-          }
         }
 
         .shield-text-overlay {
@@ -453,62 +393,17 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         .shield-text-content {
           text-align: center;
           max-width: 80%;
+          transition: opacity 0.3s ease-out, transform 0.3s ease-out;
         }
 
         .visible .shield-text-content {
           opacity: 1;
           transform: scale(1);
-          animation: shieldTextFadeIn 0.4s ease-out 0.2s both;
         }
 
         .hidden .shield-text-content {
           opacity: 0;
           transform: scale(0.9);
-          animation: shieldTextFadeOut 0.2s ease-out both;
-        }
-
-        @keyframes shieldTextFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes shieldTextFadeOut {
-          from {
-            opacity: 1;
-            transform: scale(1);
-          }
-          to {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-        }
-
-        .shield-title {
-          margin-bottom: 20px;
-        }
-
-        .stop-symbol {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .stop-symbol svg {
-          filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.8));
-        }
-
-        .stop-circle {
-          filter: drop-shadow(0 0 8px rgba(220, 20, 20, 0.6));
-        }
-
-        .stop-line {
-          filter: drop-shadow(0 0 6px rgba(220, 20, 20, 0.8));
         }
 
         .requirements-list {
@@ -526,8 +421,9 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           background: rgba(0, 0, 0, 0.7);
           padding: 12px 20px;
           border-radius: 12px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          border: 2px solid rgba(255, 152, 0, 0.6);
           backdrop-filter: blur(8px);
+          box-shadow: 0 0 24px rgba(255, 152, 0, 0.6);
         }
 
         .requirement-icon {

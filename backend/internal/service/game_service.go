@@ -49,7 +49,9 @@ type GameService interface {
 type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
+	cardRepo       repository.CardRepository
 	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	cardDeckRepo   repository.CardDeckRepository
 	boardService   BoardService
 	sessionManager session.SessionManager
 }
@@ -58,14 +60,18 @@ type GameServiceImpl struct {
 func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
+	cardRepo repository.CardRepository,
 	cardService *CardServiceImpl,
+	cardDeckRepo repository.CardDeckRepository,
 	boardService BoardService,
 	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
+		cardRepo:       cardRepo,
 		cardService:    cardService,
+		cardDeckRepo:   cardDeckRepo,
 		boardService:   boardService,
 		sessionManager: sessionManager,
 	}
@@ -99,7 +105,22 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
 	}
 
-	log.Info("Game created via GameService", zap.String("game_id", game.ID), zap.Int("board_tiles", len(board.Tiles)))
+	// Initialize the card deck with all project cards
+	projectCards, err := s.cardRepo.GetProjectCards(ctx)
+	if err != nil {
+		log.Error("Failed to get project cards for deck initialization", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to get project cards: %w", err)
+	}
+
+	if err := s.cardDeckRepo.InitializeDeck(ctx, game.ID, projectCards); err != nil {
+		log.Error("Failed to initialize card deck", zap.Error(err))
+		return model.Game{}, fmt.Errorf("failed to initialize card deck: %w", err)
+	}
+
+	log.Info("Game created via GameService",
+		zap.String("game_id", game.ID),
+		zap.Int("board_tiles", len(board.Tiles)),
+		zap.Int("deck_size", len(projectCards)))
 	return game, nil
 }
 
@@ -863,9 +884,29 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 			return nil, fmt.Errorf("failed to reset player available actions: %w", err)
 		}
 
+		// Draw 4 cards from deck for production phase card selection
+		drawnCards := []string{}
+		for i := 0; i < 4; i++ {
+			cardID, err := s.cardDeckRepo.Pop(ctx, gameID)
+			if err != nil {
+				log.Warn("Failed to draw card from deck for production phase",
+					zap.String("player_id", player.ID),
+					zap.Int("drawn_so_far", i),
+					zap.Error(err))
+				// If we can't draw more cards, continue with whatever we have
+				break
+			}
+			drawnCards = append(drawnCards, cardID)
+		}
+
+		log.Debug("Drew cards for production phase",
+			zap.String("player_id", player.ID),
+			zap.Strings("drawn_cards", drawnCards),
+			zap.Int("cards_drawn", len(drawnCards)))
+
 		// Set their production phase data
 		productionPhaseData := model.ProductionPhase{
-			AvailableCards:    []string{}, // TODO: Implement card draw logic at production phase
+			AvailableCards:    drawnCards,
 			SelectionComplete: false,
 			BeforeResources:   oldResources,
 			AfterResources:    newResources,

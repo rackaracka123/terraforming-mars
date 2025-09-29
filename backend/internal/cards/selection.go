@@ -89,11 +89,33 @@ func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, pl
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("Processing production card selection", zap.Strings("card_ids", cardIDs))
 
+	// Validate the selection
+	if err := s.ValidateProductionCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
+		log.Error("Production card selection validation failed", zap.Error(err))
+		return fmt.Errorf("invalid card selection: %w", err)
+	}
+
 	// Get current player
-	_, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Calculate cost (3 MC per card)
+	cost := len(cardIDs) * 3
+
+	// Check if player can afford the selection
+	if player.Resources.Credits < cost {
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
+	}
+
+	// Update player resources immediately (deduct credits)
+	updatedResources := player.Resources
+	updatedResources.Credits -= cost
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
 	// Add selected cards to player's hand using granular updates
@@ -112,7 +134,8 @@ func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, pl
 	}
 
 	log.Info("Player production card selection completed",
-		zap.Strings("selected_cards", cardIDs))
+		zap.Strings("selected_cards", cardIDs),
+		zap.Int("cost", cost))
 
 	return nil
 }
@@ -169,6 +192,59 @@ func (s *SelectionManager) ValidateStartingCardSelection(ctx context.Context, ga
 	}
 
 	// Then validate selected cards are in player's options
+	optionsMap := make(map[string]bool)
+	for _, cardId := range playerOptions {
+		optionsMap[cardId] = true
+	}
+
+	for _, cardID := range cardIDs {
+		if !optionsMap[cardID] {
+			return fmt.Errorf("card %s is not in player's available options", cardID)
+		}
+	}
+
+	return nil
+}
+
+// ValidateProductionCardSelection validates a player's production card selection
+func (s *SelectionManager) ValidateProductionCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player to check production card selection state
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	if player.ProductionPhase == nil {
+		return fmt.Errorf("production card selection phase not initialized for player")
+	}
+
+	// Check if player has production cards available for selection
+	if len(player.ProductionPhase.AvailableCards) == 0 {
+		log.Debug("Player has no production cards available")
+		return fmt.Errorf("no production cards available for selection - selection phase may have ended")
+	}
+
+	playerOptions := player.ProductionPhase.AvailableCards
+
+	// Validate card IDs exist in the general card pool (production cards can be any card, not just starting cards)
+	allCards, err := s.cardRepo.GetAllCards(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get card pool: %w", err)
+	}
+	cardMap := make(map[string]bool)
+	for _, card := range allCards {
+		cardMap[card.ID] = true
+	}
+
+	for _, cardID := range cardIDs {
+		if !cardMap[cardID] {
+			return fmt.Errorf("invalid card ID: %s", cardID)
+		}
+	}
+
+	// Then validate selected cards are in player's available options
 	optionsMap := make(map[string]bool)
 	for _, cardId := range playerOptions {
 		optionsMap[cardId] = true

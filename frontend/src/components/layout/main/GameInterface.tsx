@@ -31,6 +31,7 @@ import {
 } from "@/types/generated/api-types.ts";
 import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
+import styles from "./GameInterface.module.css";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -56,6 +57,10 @@ export default function GameInterface() {
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
     useState(false);
+  const [isProductionModalHidden, setIsProductionModalHidden] = useState(false);
+  const [openProductionToCardSelection, setOpenProductionToCardSelection] =
+    useState(false);
+  const isInitialMount = useRef(true);
 
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
@@ -181,12 +186,21 @@ export default function GameInterface() {
       currentPlayer.productionPhase.availableCards.length >= 0;
 
     if (hasProductionData && !showProductionPhaseModal) {
-      // Play production phase sound when entering production phase
-      void audioService.playProductionSound();
+      // Only play sound if this is not the initial mount (skip on page reload)
+      if (!isInitialMount.current) {
+        void audioService.playProductionSound();
+      }
       setShowProductionPhaseModal(true);
+      // Reset the flag for opening directly to card selection on new production phase
+      setOpenProductionToCardSelection(false);
     } else if (!hasProductionData && showProductionPhaseModal) {
       // Production phase is over, hide the modal
       setShowProductionPhaseModal(false);
+    }
+
+    // Mark that initial mount is complete
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
@@ -641,11 +655,18 @@ export default function GameInterface() {
       />
 
       <ProductionPhaseModal
-        isOpen={showProductionPhaseModal}
+        isOpen={showProductionPhaseModal && !isProductionModalHidden}
         gameState={game}
         onClose={() => {
           setShowProductionPhaseModal(false);
+          setIsProductionModalHidden(false);
+          setOpenProductionToCardSelection(false);
         }}
+        onHide={() => {
+          setIsProductionModalHidden(true);
+          setOpenProductionToCardSelection(false);
+        }}
+        openDirectlyToCardSelection={openProductionToCardSelection}
       />
 
       <DebugDropdown
@@ -739,6 +760,19 @@ export default function GameInterface() {
             }
           `}</style>
         </div>
+      )}
+
+      {/* Return to Production Modal button */}
+      {showProductionPhaseModal && isProductionModalHidden && (
+        <button
+          className={styles.returnToProductionButton}
+          onClick={() => {
+            setIsProductionModalHidden(false);
+            setOpenProductionToCardSelection(true);
+          }}
+        >
+          Return to Production
+        </button>
       )}
     </>
   );

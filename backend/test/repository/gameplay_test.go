@@ -25,11 +25,17 @@ func TestGameplayLogic(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository()
 
 	cardRepo := repository.NewCardRepository()
+	// Load card data for testing
+	err = cardRepo.LoadCards(context.Background())
+	if err != nil {
+		t.Fatal("Failed to load card data:", err)
+	}
+
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardService.(*service.CardServiceImpl), boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	_ = service.NewPlayerService(gameRepo, playerRepo, nil)
 
 	ctx := context.Background()

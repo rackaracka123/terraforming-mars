@@ -45,7 +45,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const [cardRotations, setCardRotations] = useState<Record<string, number>>(
     {},
   );
-  const [cardsExpanded, setCardsExpanded] = useState(false);
   const [cardPlayability, setCardPlayability] = useState<
     Map<string, { playable: boolean; reason?: UnplayableReason }>
   >(new Map());
@@ -195,7 +194,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   // Handle card hover scale and rotation changes
   const handleCardHover = (cardId: string) => {
     setHoveredCard(cardId);
-    if (cardsExpanded && (!highlightedCard || highlightedCard !== cardId)) {
+    if (!highlightedCard || highlightedCard !== cardId) {
       setCardScale(cardId, 1.2);
       setCardRotation(cardId, 0);
     }
@@ -209,18 +208,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     }
   };
 
-  // Handle card click (highlight and expand cards)
+  // Handle card click (highlight card)
   const handleCardClick = (cardId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (isDragging || justDragged) return;
 
-    // If cards are collapsed, just expand them without selecting a specific card
-    if (!cardsExpanded) {
-      setCardsExpanded(true);
-      return;
-    }
-
-    // Handle card selection when expanded
+    // Toggle card selection
     if (highlightedCard === cardId) {
       setHighlightedCard(null);
       resetCardScale(cardId);
@@ -239,10 +232,8 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     event.preventDefault();
 
     // Always allow drag to start - we'll check playability when hovering over Mars
-    // Expand cards when drag starts if not already expanded
-    if (!cardsExpanded) {
-      setCardsExpanded(true);
-    }
+    // Clear hover state when drag starts
+    setHoveredCard(null);
 
     const cardIndex = cards.findIndex((c) => c.id === cardId);
     const spreadCard = highlightedCard || hoveredCard;
@@ -253,15 +244,14 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       cardIndex,
       cards.length,
       spreadIndex,
-      cardsExpanded,
+      false,
     );
     const containerRect = handRef.current?.getBoundingClientRect();
 
     if (containerRect) {
       let adjustedY = cardPosition.y;
-      if (!cardsExpanded) {
-        adjustedY += 90;
-      }
+      // Always add offset for collapsed state
+      adjustedY += 90;
 
       const cardScreenX =
         containerRect.left + containerRect.width / 2 + cardPosition.x;
@@ -321,6 +311,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             setIsDragging(false);
             setIsInThrowZone(false);
             setIsHoveringMars(false);
+            setHoveredCard(null);
 
             // After animation completes, reset all states
             setTimeout(() => {
@@ -341,6 +332,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           setIsDragging(false);
           setIsInThrowZone(false);
           setIsHoveringMars(false);
+          setHoveredCard(null);
 
           // After animation completes, reset all states
           setTimeout(() => {
@@ -360,6 +352,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         setIsDragging(false);
         setIsInThrowZone(false);
         setIsHoveringMars(false);
+        setHoveredCard(null);
 
         // After animation completes, reset all states
         setTimeout(() => {
@@ -406,7 +399,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const handleDocumentClick = useCallback((event: MouseEvent) => {
     if (handRef.current && !handRef.current.contains(event.target as Node)) {
       setHighlightedCard(null);
-      setCardsExpanded(false);
     }
   }, []);
 
@@ -499,141 +491,101 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   }
 
   return (
-    <div className="card-fan-overlay">
-      <div
-        className={`card-hand-container ${cardsExpanded ? "expanded" : ""}`}
-        ref={handRef}
-      >
-        {cards.map((card, index) => {
-          const spreadCard = highlightedCard || hoveredCard;
-          const spreadIndex = spreadCard
-            ? cards.findIndex((c) => c.id === spreadCard)
-            : null;
-          const position = calculateCardPosition(
-            index,
-            cards.length,
-            spreadIndex,
-            cardsExpanded,
-          );
-          const isHighlighted = highlightedCard === card.id;
-          const isDraggedCard = draggedCard === card.id;
-          const isHovered = hoveredCard === card.id;
-          const isReturning = returningCard === card.id;
-          const playabilityInfo = cardPlayability.get(card.id);
-          const isUnplayableInThrowZone =
-            isDraggedCard && isInThrowZone && !playabilityInfo?.playable;
-          const isUnplayableOverMars =
-            isDraggedCard && isHoveringMars && !playabilityInfo?.playable;
+    <div className="card-fan-overlay" ref={handRef}>
+      {cards.map((card, index) => {
+        const spreadCard = highlightedCard || hoveredCard;
+        const spreadIndex = spreadCard
+          ? cards.findIndex((c) => c.id === spreadCard)
+          : null;
+        const position = calculateCardPosition(
+          index,
+          cards.length,
+          spreadIndex,
+          false,
+        );
+        const isHighlighted = highlightedCard === card.id;
+        const isDraggedCard = draggedCard === card.id;
+        const isHovered = hoveredCard === card.id;
+        const isReturning = returningCard === card.id;
+        const playabilityInfo = cardPlayability.get(card.id);
+        const isUnplayableInThrowZone =
+          isDraggedCard && isInThrowZone && !playabilityInfo?.playable;
+        const isUnplayableOverMars =
+          isDraggedCard && isHoveringMars && !playabilityInfo?.playable;
 
-          let finalX = position.x;
-          let finalY = position.y;
-          const finalRotation = getCardRotation(card.id, position.rotation);
-          let scale = getCardScale(card.id);
+        let finalX = position.x;
+        let finalY = position.y;
+        const finalRotation = getCardRotation(card.id, position.rotation);
+        let scale = getCardScale(card.id);
 
-          // Apply expanded state offset and scaling
-          if (!cardsExpanded) {
-            finalY += 160; // Push cards down to show only top portion
-            scale = 0.8; // Smaller scale when collapsed
-          } else {
-            scale = Math.max(scale, 1.0); // Normal scale when expanded
+        // Cards are always in collapsed state - show only top portion
+        finalY += 160;
+        scale = Math.max(scale * 0.8, 0.8); // Smaller scale when collapsed
+
+        if (isHovered && !isDragging && !isHighlighted) {
+          finalY -= 60;
+        }
+
+        if (isHighlighted && !isDragging) {
+          finalY -= 80;
+        }
+
+        if (isDraggedCard && !isReturning) {
+          const containerRect = handRef.current?.getBoundingClientRect();
+          if (containerRect) {
+            const targetScreenX = dragPosition.x + dragOffset.x;
+            const targetScreenY = dragPosition.y + dragOffset.y;
+
+            finalX =
+              targetScreenX - (containerRect.left + containerRect.width / 2);
+            finalY = targetScreenY - containerRect.bottom;
           }
+        }
 
-          if (isHovered && !isDragging && !isHighlighted && cardsExpanded) {
-            finalY -= 60;
-          }
+        // If card is returning, use normal hand position (no drag offset)
+        if (isReturning) {
+          // Card will smoothly animate back to its normal hand position
+          // finalX and finalY are already set to the correct hand position
+        }
 
-          if (isHighlighted && !isDragging && cardsExpanded) {
-            finalY -= 80;
-          }
-
-          if (isDraggedCard && !isReturning) {
-            const containerRect = handRef.current?.getBoundingClientRect();
-            if (containerRect) {
-              const targetScreenX = dragPosition.x + dragOffset.x;
-              const targetScreenY = dragPosition.y + dragOffset.y;
-
-              finalX =
-                targetScreenX - (containerRect.left + containerRect.width / 2);
-              finalY = targetScreenY - containerRect.bottom;
+        return (
+          <div
+            key={card.id}
+            className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard && !isReturning ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone && playabilityInfo?.playable ? "throw-zone" : ""} ${isUnplayableInThrowZone ? "unplayable-throw-zone" : ""} ${isUnplayableOverMars ? "unplayable-over-mars" : ""} ${isReturning ? "returning" : ""}`}
+            style={
+              {
+                transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
+                "--card-x": `${finalX}px`,
+                "--card-y": `${finalY}px`,
+                "--card-rotation": `${finalRotation}deg`,
+                "--card-scale": scale,
+              } as React.CSSProperties
             }
-          }
-
-          // If card is returning, use normal hand position (no drag offset)
-          if (isReturning) {
-            // Card will smoothly animate back to its normal hand position
-            // finalX and finalY are already set to the correct hand position
-          }
-
-          return (
-            <div
-              key={card.id}
-              className={`terraforming-card ${isHighlighted ? "highlighted" : ""} ${isDraggedCard && !isReturning ? "dragged" : ""} ${isHovered ? "hovered" : ""} ${isDraggedCard && isInThrowZone && playabilityInfo?.playable ? "throw-zone" : ""} ${isUnplayableInThrowZone ? "unplayable-throw-zone" : ""} ${isUnplayableOverMars ? "unplayable-over-mars" : ""} ${isReturning ? "returning" : ""}`}
-              style={
-                {
-                  transform: `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg) scale(${scale})`,
-                  "--card-x": `${finalX}px`,
-                  "--card-y": `${finalY}px`,
-                  "--card-rotation": `${finalRotation}deg`,
-                  "--card-scale": scale,
-                } as React.CSSProperties
-              }
-              onClick={(e) => handleCardClick(card.id, e)}
-              onMouseDown={(e) => handleDragStart(card.id, e)}
-              onMouseEnter={() => handleCardHover(card.id)}
-              onMouseLeave={() => handleCardLeave(card.id)}
-            >
-              <SimpleGameCard
-                card={card}
-                isSelected={isHighlighted}
-                onSelect={() => {}} // Handled by parent div click
-                animationDelay={0}
-              />
-            </div>
-          );
-        })}
-      </div>
+            onClick={(e) => handleCardClick(card.id, e)}
+            onMouseDown={(e) => handleDragStart(card.id, e)}
+            onMouseEnter={() => handleCardHover(card.id)}
+            onMouseLeave={() => handleCardLeave(card.id)}
+          >
+            <SimpleGameCard
+              card={card}
+              isSelected={isHighlighted}
+              onSelect={() => {}} // Handled by parent div click
+              animationDelay={0}
+            />
+          </div>
+        );
+      })}
 
       <style>{`
         .card-fan-overlay {
           position: fixed;
           bottom: 48px; /* Position above BottomResourceBar */
-          left: 0;
-          right: 0;
-          height: 300px; /* Cards area height */
-          z-index: 1100; /* Above bottom bar (1000) and its content (1001) */
-          pointer-events: none;
-        }
-
-        .card-hand-container {
-          position: absolute;
-          bottom: 48px; /* Position above BottomResourceBar (48px height) */
           left: 50%;
           transform: translateX(-50%);
-          width: 100%;
-          height: 240px;
-          pointer-events: auto;
-          transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        .card-hand-container.expanded {
-          height: 300px;
-        }
-
-        .card-hand-container:not(.expanded) {
-          cursor: pointer;
-        }
-
-        .card-hand-container:not(.expanded) .terraforming-card {
-          box-shadow:
-            0 0 15px rgba(100, 150, 255, 0.3),
-            0 4px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        .card-hand-container:not(.expanded):hover .terraforming-card {
-          transform: translate(var(--card-x), calc(var(--card-y) - 10px)) rotate(var(--card-rotation)) scale(var(--card-scale));
-          box-shadow:
-            0 0 20px rgba(100, 150, 255, 0.5),
-            0 6px 25px rgba(0, 0, 0, 0.5);
+          width: 0; /* No blocking width */
+          height: 300px; /* Cards area height */
+          z-index: 1100; /* Above bottom bar (1000) and its content (1001) */
+          pointer-events: none; /* Don't block clicks - cards handle their own events */
         }
 
         .terraforming-card {
@@ -697,26 +649,10 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           .card-fan-overlay {
             height: 250px;
           }
-
-          .card-hand-container {
-            height: 200px;
-          }
-
-          .card-hand-container.expanded {
-            height: 250px;
-          }
         }
 
         @media (max-width: 768px) {
           .card-fan-overlay {
-            height: 200px;
-          }
-
-          .card-hand-container {
-            height: 160px;
-          }
-
-          .card-hand-container.expanded {
             height: 200px;
           }
         }
