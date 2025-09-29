@@ -1,4 +1,9 @@
-import { CardDto, GameDto, PlayerDto } from "../types/generated/api-types.ts";
+import {
+  CardDto,
+  GameDto,
+  GamePhaseAction,
+  PlayerDto,
+} from "../types/generated/api-types.ts";
 
 // Cache for all cards fetched from the backend
 let cardCache: Map<string, CardDto> | null = null;
@@ -51,6 +56,7 @@ export interface UnplayableReason {
     | "tag"
     | "production"
     | "resource"
+    | "phase"
     | "multiple";
   requirement: any;
   message: string;
@@ -281,7 +287,21 @@ export async function checkCardPlayability(
 ): Promise<{ playable: boolean; reason?: UnplayableReason }> {
   const failedRequirements: UnplayableReason[] = [];
 
-  // First check: Cost (highest priority)
+  // First check: Game phase (must be action phase to play cards)
+  if (game.currentPhase !== GamePhaseAction) {
+    return {
+      playable: false,
+      reason: {
+        type: "phase",
+        requirement: { phase: game.currentPhase },
+        message: "Cards can only be played during the action phase",
+        currentValue: game.currentPhase,
+        requiredValue: GamePhaseAction,
+      },
+    };
+  }
+
+  // Second check: Cost (highest priority after phase)
   if (player.resources.credits < card.cost) {
     failedRequirements.push({
       type: "cost",

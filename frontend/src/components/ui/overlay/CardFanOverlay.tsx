@@ -435,7 +435,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             currentCard &&
             currentPlayabilityInfo?.reason
           ) {
-            onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
+            // Don't show shield for phase restrictions (only visual dimming)
+            if (currentPlayabilityInfo.reason.type === "phase") {
+              onUnplayableCard(null, null);
+            } else {
+              onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
+            }
           } else if (currentPlayabilityInfo?.playable) {
             // Clear feedback if card is actually playable
             onUnplayableCard(null, null);
