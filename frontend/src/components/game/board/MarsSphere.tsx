@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import ProjectedHexGrid from "./ProjectedHexGrid.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
@@ -13,7 +12,6 @@ interface MarsSphereProps {
 
 export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
   const { marsGroupRef } = useMarsRotation();
-  const { camera } = useThree();
 
   // Load the Mars GLTF model
   const { scene } = useGLTF("/assets/models/mars.glb");
@@ -68,6 +66,11 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
           // Enhance material properties for better lighting response
           material.roughness = 0.8; // Mars surface is rough
           material.metalness = 0.1; // Very low metalness for rock/soil
+
+          // Fix texture encoding for sRGB textures
+          if (material.map) {
+            material.map.colorSpace = THREE.SRGBColorSpace;
+          }
         }
         child.material = material;
 
@@ -80,65 +83,10 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
     return clonedScene;
   }, [scene, marsColorTint]);
 
-  // Create atmospheric fresnel effect material
-  const atmosphereMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
-      vertexShader: `
-        varying vec3 vWorldPosition;
-        varying vec3 vNormal;
-
-        void main() {
-          vNormal = normalize(normalMatrix * normal);
-          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPosition.xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 cameraPosition;
-        uniform vec3 atmosphereColor;
-        uniform float intensity;
-
-        varying vec3 vWorldPosition;
-        varying vec3 vNormal;
-
-        void main() {
-          vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-          float fresnel = 1.0 - abs(dot(viewDirection, vNormal));
-          fresnel = pow(fresnel, 2.0);
-
-          float alpha = fresnel * intensity;
-          gl_FragColor = vec4(atmosphereColor, alpha);
-        }
-      `,
-      uniforms: {
-        cameraPosition: { value: new THREE.Vector3() },
-        atmosphereColor: { value: new THREE.Color(0.8, 0.4, 0.2) }, // Mars-like atmospheric color
-        intensity: { value: 0.6 },
-      },
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide, // Render from inside out for better effect
-    });
-  }, []);
-
-  // Update camera position in shader uniforms for fresnel effect
-  useFrame(() => {
-    if (atmosphereMaterial.uniforms.cameraPosition) {
-      atmosphereMaterial.uniforms.cameraPosition.value.copy(camera.position);
-    }
-  });
-
   return (
     <group ref={marsGroupRef}>
       {/* Mars GLB model with terraforming color tint */}
       <primitive object={marsScene} />
-
-      {/* Atmospheric fresnel effect - slightly larger sphere */}
-      <mesh scale={[2.08, 2.08, 2.08]}>
-        <sphereGeometry args={[1, 64, 64]} />
-        <primitive object={atmosphereMaterial} />
-      </mesh>
 
       {/* Projected hexagonal grid "wrapped" around Mars sphere */}
       <ProjectedHexGrid gameState={gameState} onHexClick={onHexClick} />
