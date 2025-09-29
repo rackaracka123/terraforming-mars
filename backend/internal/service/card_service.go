@@ -155,10 +155,11 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 
 func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("🎯 Playing card", zap.String("card_id", cardID))
+	log.Debug("🎯 Starting card play validation and execution", zap.String("card_id", cardID))
 
+	// STEP 1: Validate turn state
+	log.Debug("1️⃣ Validating turn state")
 	game, err := s.gameRepo.GetByID(ctx, gameID)
-
 	if err != nil {
 		log.Error("Failed to get game for card play", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
@@ -173,8 +174,10 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
 		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
 	}
+	log.Debug("✅ Turn state validation passed")
 
-	// Get the player to verify they have the card and available actions
+	// STEP 2: Validate player state and actions
+	log.Debug("2️⃣ Validating player state and available actions")
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for card play", zap.Error(err))
@@ -186,14 +189,18 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		log.Warn("Player has no available actions", zap.Int("available_actions", player.AvailableActions))
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
+	log.Debug("✅ Player actions validation passed", zap.Int("available_actions", player.AvailableActions))
 
-	// Check if the player has the card in their hand
+	// STEP 3: Validate card ownership
+	log.Debug("3️⃣ Validating card ownership")
 	if !slices.Contains(player.Cards, cardID) {
 		log.Warn("Player attempted to play card they don't have", zap.String("card_id", cardID))
 		return fmt.Errorf("player does not have card %s", cardID)
 	}
+	log.Debug("✅ Card ownership validation passed")
 
-	// Get the card data to validate it exists
+	// STEP 4: Get and validate card data
+	log.Debug("4️⃣ Retrieving and validating card data")
 	card, err := s.cardRepo.GetCardByID(ctx, cardID)
 	if err != nil {
 		log.Error("Failed to get card data", zap.String("card_id", cardID), zap.Error(err))
@@ -204,36 +211,35 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("card %s not found", cardID)
 	}
 
-	// Debug card requirements and validate
-	log.Debug("🃏 Card details",
+	log.Debug("🃏 Card loaded successfully",
 		zap.String("card_name", card.Name),
 		zap.Int("card_cost", card.Cost),
 		zap.Any("requirements", card.Requirements))
 
-	// Validate card requirements using enhanced validator
+	// STEP 5: Validate card requirements
+	log.Debug("5️⃣ Validating card requirements")
 	if s.requirementsValidator.HasRequirements(card) {
-		log.Debug("🚨 Validating card requirements - card has requirements to check")
-		game, err := s.gameRepo.GetByID(ctx, gameID)
-		if err != nil {
-			log.Error("Failed to get game for validation", zap.Error(err))
-			return fmt.Errorf("failed to get game: %w", err)
-		}
+		log.Debug("🚨 Card has requirements to validate")
 		if err := s.requirementsValidator.ValidateCardRequirements(ctx, gameID, playerID, card, &game, &player); err != nil {
 			log.Warn("❌ Card requirements not met", zap.String("card_id", cardID), zap.Error(err))
 			return fmt.Errorf("card requirements not met: %w", err)
 		}
 		log.Debug("✅ Card requirements validation passed")
 	} else {
-		log.Debug("⏭️ Skipping validation - card has no requirements")
+		log.Debug("⏭️ No requirements to validate")
 	}
 
-	// Handle card cost payment
-	if card.Cost > 0 {
-		if player.Resources.Credits < card.Cost {
-			return fmt.Errorf("insufficient credits: need %d, have %d", card.Cost, player.Resources.Credits)
-		}
+	// STEP 6: Validate complete affordability (cost + behavioral resource deductions)
+	log.Debug("6️⃣ Validating complete card affordability")
+	if err := s.requirementsValidator.ValidateCardAffordability(ctx, gameID, playerID, card, &player); err != nil {
+		log.Warn("❌ Card affordability validation failed", zap.String("card_id", cardID), zap.Error(err))
+		return fmt.Errorf("cannot afford to play card: %w", err)
+	}
+	log.Debug("✅ Card affordability validation passed")
 
-		// Deduct card cost from player's resources
+	// STEP 7: Apply card cost payment
+	log.Debug("7️⃣ Processing card cost payment")
+	if card.Cost > 0 {
 		updatedResources := player.Resources
 		updatedResources.Credits -= card.Cost
 		if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
@@ -241,23 +247,29 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
 		log.Debug("💰 Card cost paid", zap.Int("cost", card.Cost), zap.Int("remaining_credits", updatedResources.Credits))
+	} else {
+		log.Debug("💰 No card cost to pay (free card)")
 	}
 
-	// Remove the card from player's hand and add to played cards
-	err = s.playerRepo.PlayCard(ctx, gameID, playerID, cardID)
+	// STEP 8: Move card from hand to played cards
+	log.Debug("8️⃣ Moving card from hand to played cards")
+	err = s.playerRepo.RemoveCardFromHand(ctx, gameID, playerID, cardID)
 	if err != nil {
 		log.Error("Failed to play card", zap.String("card_id", cardID), zap.Error(err))
 		return fmt.Errorf("failed to play card: %w", err)
 	}
+	log.Debug("🃏 Card moved to played cards successfully")
 
-	// Apply card effects using the effect processor
+	// STEP 9: Apply card effects
+	log.Debug("9️⃣ Applying card effects")
 	if err := s.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card); err != nil {
 		log.Error("Failed to apply card effects", zap.String("card_id", cardID), zap.Error(err))
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}
+	log.Debug("✨ Card effects applied successfully")
 
-	// Consume one action now that all card playing steps have succeeded
-	// Handle unlimited actions (-1) - don't decrement them
+	// STEP 10: Consume player action
+	log.Debug("🔟 Consuming player action")
 	if player.AvailableActions == -1 {
 		log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
 	} else {
@@ -271,7 +283,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 	}
 
-	// Broadcast game state to all players after successful card play
+	// STEP 11: Broadcast game state update
+	log.Debug("1️⃣1️⃣ Broadcasting game state update")
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
 		log.Error("Failed to broadcast game state after card play", zap.Error(err))
 		// Don't fail the card play operation, just log the error

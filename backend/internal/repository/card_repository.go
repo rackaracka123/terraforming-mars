@@ -7,7 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+
+	"go.uber.org/zap"
 )
 
 // CardRepository manages card data as the single source of truth
@@ -70,6 +74,7 @@ type CardRepositoryImpl struct {
 	preludeCards     []model.Card
 	cardLookup       map[string]*model.Card
 	loaded           bool
+	whitelist        *CardWhitelist
 }
 
 // No need for separate JSONCard struct - use model.Card directly
@@ -78,6 +83,7 @@ type CardRepositoryImpl struct {
 func NewCardRepository() CardRepository {
 	return &CardRepositoryImpl{
 		cardLookup: make(map[string]*model.Card),
+		whitelist:  NewCardWhitelist(),
 	}
 }
 
@@ -115,19 +121,65 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	}
 
 	// Parse JSON directly into model.Card array since JSON matches the model exactly
-	var allCards []model.Card
-	if err := json.Unmarshal(data, &allCards); err != nil {
+	var allLoadedCards []model.Card
+	if err := json.Unmarshal(data, &allLoadedCards); err != nil {
 		return fmt.Errorf("failed to parse card data: %w", err)
 	}
 
-	// Initialize slices
+	log := logger.Get()
+	log.Info("📦 Starting card whitelist filtering",
+		zap.Int("total_loaded", len(allLoadedCards)))
+
+	// Filter cards using the whitelist
+	whitelistResult := r.whitelist.FilterCards(allLoadedCards)
+
+	log.Info("✅ Card whitelist filtering completed",
+		zap.Int("total_loaded", whitelistResult.TotalLoaded),
+		zap.Int("total_approved", whitelistResult.TotalApproved),
+		zap.Int("total_rejected", whitelistResult.TotalRejected),
+		zap.Float64("approval_percentage", float64(whitelistResult.TotalApproved)/float64(whitelistResult.TotalLoaded)*100))
+
+	// Log detailed information about rejected cards
+	if len(whitelistResult.RejectedCards) > 0 {
+		log.Info("🚫 Rejected cards (not in whitelist)",
+			zap.Int("count", len(whitelistResult.RejectedCards)))
+
+		// Log sample of rejected cards (first 10 to avoid log spam)
+		sampleSize := 10
+		if len(whitelistResult.RejectedCards) < sampleSize {
+			sampleSize = len(whitelistResult.RejectedCards)
+		}
+
+		rejectedNames := make([]string, sampleSize)
+		for i := 0; i < sampleSize; i++ {
+			rejectedNames[i] = whitelistResult.RejectedCards[i].Card.Name
+		}
+
+		log.Info("❌ Sample rejected cards",
+			zap.Strings("cards", rejectedNames),
+			zap.Int("showing", sampleSize),
+			zap.Int("total_rejected", len(whitelistResult.RejectedCards)))
+	}
+
+	// Log approved cards for verification
+	if len(whitelistResult.ApprovedCards) > 0 {
+		approvedNames := make([]string, len(whitelistResult.ApprovedCards))
+		for i, card := range whitelistResult.ApprovedCards {
+			approvedNames[i] = card.Name
+		}
+		log.Info("✅ Approved cards (in whitelist)",
+			zap.Strings("cards", approvedNames),
+			zap.Int("count", len(whitelistResult.ApprovedCards)))
+	}
+
+	// Initialize slices with supported cards only
 	r.allCards = make([]model.Card, 0)
 	r.projectCards = make([]model.Card, 0)
 	r.corporationCards = make([]model.Card, 0)
 	r.preludeCards = make([]model.Card, 0)
 
-	// Process all cards from array
-	for _, card := range allCards {
+	// Process only approved cards
+	for _, card := range whitelistResult.ApprovedCards {
 		// Categorize by card type
 		switch card.Type {
 		case model.CardTypeCorporation:
@@ -142,6 +194,13 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 		r.allCards = append(r.allCards, card)
 		r.cardLookup[card.ID] = &card
 	}
+
+	// Log final card counts by type
+	log.Info("✅ Approved cards loaded successfully",
+		zap.Int("total_cards", len(r.allCards)),
+		zap.Int("project_cards", len(r.projectCards)),
+		zap.Int("corporation_cards", len(r.corporationCards)),
+		zap.Int("prelude_cards", len(r.preludeCards)))
 
 	r.loaded = true
 	return nil
@@ -287,14 +346,30 @@ func (r *CardRepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.C
 	}
 
 	var startingCards []model.Card
+	var filteredStartingCards []string
 
 	// Include automated, active, and event cards with reasonable cost (up to 25 MC)
 	// This ensures we have enough cards for starting selection
 	for _, card := range r.projectCards {
 		if card.ID != "" && card.Cost <= 25 &&
 			(card.Type == model.CardTypeAutomated || card.Type == model.CardTypeActive || card.Type == model.CardTypeEvent) {
-			startingCards = append(startingCards, card)
+
+			// Additional validation: ensure card is approved in whitelist
+			// Note: Since LoadCards already filters non-approved cards, this is mostly defensive
+			if r.whitelist.IsCardApproved(card.ID) {
+				startingCards = append(startingCards, card)
+			} else {
+				filteredStartingCards = append(filteredStartingCards, card.Name)
+			}
 		}
+	}
+
+	// Log if any potential starting cards were filtered (shouldn't happen with current whitelist)
+	if len(filteredStartingCards) > 0 {
+		log := logger.Get()
+		log.Warn("⚠️ Some potential starting cards were filtered due to not being in whitelist",
+			zap.Strings("filtered_cards", filteredStartingCards),
+			zap.Int("remaining_starting_cards", len(startingCards)))
 	}
 
 	return startingCards, nil
