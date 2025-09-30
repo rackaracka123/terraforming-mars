@@ -347,14 +347,9 @@
         ],
         "outputs": [
           {
-            "type": "titanium",
-            "amount": 2,
-            "target": "self-player"
-          },
-          {
-            "type": "temperature",
-            "amount": 1,
-            "target": "none"
+            "type": "plants",
+            "amount": 3,
+            "target": "any-player"
           }
         ]
       },
@@ -366,9 +361,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 3,
-            "target": "any-player"
+            "type": "titanium",
+            "amount": 2,
+            "target": "self-player"
+          },
+          {
+            "type": "temperature",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -392,9 +392,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 3,
-            "target": "any-player"
+            "type": "ocean-placement",
+            "amount": 1,
+            "target": "none"
+          },
+          {
+            "type": "temperature",
+            "amount": 1,
+            "target": "none"
           }
         ]
       },
@@ -406,14 +411,9 @@
         ],
         "outputs": [
           {
-            "type": "ocean-placement",
-            "amount": 1,
-            "target": "none"
-          },
-          {
-            "type": "temperature",
-            "amount": 1,
-            "target": "none"
+            "type": "plants",
+            "amount": 3,
+            "target": "any-player"
           }
         ]
       }
@@ -437,14 +437,9 @@
         ],
         "outputs": [
           {
-            "type": "titanium",
+            "type": "plants",
             "amount": 4,
-            "target": "self-player"
-          },
-          {
-            "type": "temperature",
-            "amount": 2,
-            "target": "none"
+            "target": "any-player"
           }
         ]
       },
@@ -456,9 +451,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
+            "type": "titanium",
             "amount": 4,
-            "target": "any-player"
+            "target": "self-player"
+          },
+          {
+            "type": "temperature",
+            "amount": 2,
+            "target": "none"
           }
         ]
       }
@@ -948,6 +948,20 @@
       {
         "triggers": [
           {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "plants",
+            "amount": 1,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
             "type": "auto",
             "condition": {
               "type": "ocean-placed",
@@ -959,20 +973,6 @@
           {
             "type": "plants",
             "amount": 2,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants",
-            "amount": 1,
             "target": "self-player"
           }
         ]
@@ -1022,7 +1022,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -1175,7 +1176,8 @@
         "per": {
           "type": "asteroid",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -1479,7 +1481,8 @@
         "per": {
           "type": "microbes",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -1982,7 +1985,8 @@
         "per": {
           "type": "microbes",
           "amount": 4,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -2085,20 +2089,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "animals",
-            "amount": 1,
-            "target": "self-card"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -2107,6 +2097,20 @@
             "type": "plants-production",
             "amount": -1,
             "target": "any-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "animals",
+            "amount": 1,
+            "target": "self-card"
           }
         ]
       }
@@ -2123,7 +2127,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -2220,7 +2225,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -2541,14 +2547,9 @@
         ],
         "outputs": [
           {
-            "type": "steel",
+            "type": "plants",
             "amount": 2,
-            "target": "self-player"
-          },
-          {
-            "type": "oxygen",
-            "amount": 1,
-            "target": "none"
+            "target": "any-player"
           }
         ]
       },
@@ -2560,9 +2561,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
+            "type": "steel",
             "amount": 2,
-            "target": "any-player"
+            "target": "self-player"
+          },
+          {
+            "type": "oxygen",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -2881,7 +2887,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -3114,9 +3121,12 @@
         ],
         "outputs": [
           {
-            "type": "energy-production",
-            "amount": 4,
-            "target": "self-player"
+            "type": "discount",
+            "amount": 2,
+            "target": "self-player",
+            "affectedTags": [
+              "space"
+            ]
           }
         ]
       },
@@ -3128,12 +3138,9 @@
         ],
         "outputs": [
           {
-            "type": "discount",
-            "amount": 2,
-            "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "type": "energy-production",
+            "amount": 4,
+            "target": "self-player"
           }
         ]
       }
@@ -3625,9 +3632,12 @@
         ],
         "outputs": [
           {
-            "type": "energy-production",
-            "amount": 6,
-            "target": "self-player"
+            "type": "discount",
+            "amount": 2,
+            "target": "self-player",
+            "affectedTags": [
+              "space"
+            ]
           }
         ]
       },
@@ -3639,12 +3649,9 @@
         ],
         "outputs": [
           {
-            "type": "discount",
-            "amount": 2,
-            "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "type": "energy-production",
+            "amount": 6,
+            "target": "self-player"
           }
         ]
       }
@@ -3695,7 +3702,8 @@
         "per": {
           "type": "science",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -4811,7 +4819,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -4938,7 +4947,8 @@
         "per": {
           "type": "microbes",
           "amount": 3,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -5494,20 +5504,6 @@
       {
         "triggers": [
           {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants-production",
-            "amount": -1,
-            "target": "any-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto",
             "condition": {
               "type": "tile-placed",
@@ -5520,6 +5516,20 @@
             "type": "animals",
             "amount": 1,
             "target": "self-card"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "plants-production",
+            "amount": -1,
+            "target": "any-player"
           }
         ]
       }
@@ -5536,7 +5546,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -6461,7 +6472,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -6931,7 +6943,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -7077,9 +7090,9 @@
         ],
         "outputs": [
           {
-            "type": "ocean-placement",
-            "amount": 1,
-            "target": "none"
+            "type": "credits",
+            "amount": 4,
+            "target": "any-player"
           }
         ]
       },
@@ -7091,9 +7104,9 @@
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 4,
-            "target": "any-player"
+            "type": "ocean-placement",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -7689,20 +7702,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "card-draw",
-            "amount": 2,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -7710,6 +7709,20 @@
           {
             "type": "energy-production",
             "amount": -1,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 2,
             "target": "self-player"
           }
         ]
@@ -7740,9 +7753,9 @@
         ],
         "outputs": [
           {
-            "type": "temperature",
-            "amount": 1,
-            "target": "none"
+            "type": "plants",
+            "amount": 2,
+            "target": "any-player"
           }
         ]
       },
@@ -7754,9 +7767,9 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 2,
-            "target": "any-player"
+            "type": "temperature",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -7899,7 +7912,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -8300,20 +8314,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "floaters",
-            "amount": 1,
-            "target": "any"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -8322,6 +8322,20 @@
             "type": "floaters",
             "amount": 1,
             "target": "self-card"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "floaters",
+            "amount": 1,
+            "target": "any"
           }
         ]
       }
@@ -8341,6 +8355,20 @@
       "venus"
     ],
     "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "floaters",
+            "amount": 3,
+            "target": "self-card"
+          }
+        ]
+      },
       {
         "triggers": [
           {
@@ -8372,20 +8400,6 @@
                 "target": "none"
               }
             ]
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "floaters",
-            "amount": 3,
-            "target": "self-card"
           }
         ]
       }
@@ -8440,7 +8454,8 @@
         "per": {
           "type": "microbes",
           "amount": 3,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -8496,7 +8511,8 @@
         "per": {
           "type": "floaters",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -9427,7 +9443,8 @@
         "per": {
           "type": "floaters",
           "amount": 3,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -9490,7 +9507,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -9841,7 +9859,8 @@
         "per": {
           "type": "animals",
           "amount": 1,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -9890,7 +9909,8 @@
         "per": {
           "type": "microbes",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -10122,13 +10142,13 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "auto"
           }
         ],
         "outputs": [
           {
-            "type": "card-draw",
-            "amount": 3,
+            "type": "credits",
+            "amount": 45,
             "target": "self-player"
           }
         ]
@@ -10153,13 +10173,13 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "manual"
           }
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 45,
+            "type": "card-draw",
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -10275,20 +10295,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "city-placement",
-            "amount": 1,
-            "target": "none"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto",
             "condition": {
               "type": "city-placed",
@@ -10319,6 +10325,20 @@
             "type": "credits-production",
             "amount": 1,
             "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "city-placement",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -10577,9 +10597,9 @@
         ],
         "outputs": [
           {
-            "type": "floaters",
-            "amount": -1,
-            "target": "any"
+            "type": "credits",
+            "amount": 5,
+            "target": "any-player"
           }
         ]
       },
@@ -10591,9 +10611,9 @@
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 5,
-            "target": "any-player"
+            "type": "floaters",
+            "amount": -1,
+            "target": "any"
           }
         ]
       }
@@ -11173,7 +11193,8 @@
         "per": {
           "type": "floaters",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -11996,7 +12017,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -12324,14 +12346,9 @@
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 45,
-            "target": "self-player"
-          },
-          {
-            "type": "credits-production",
-            "amount": 2,
-            "target": "self-player"
+            "type": "animals",
+            "amount": 1,
+            "target": "self-card"
           }
         ]
       },
@@ -12343,9 +12360,14 @@
         ],
         "outputs": [
           {
-            "type": "animals",
-            "amount": 1,
-            "target": "self-card"
+            "type": "credits",
+            "amount": 45,
+            "target": "self-player"
+          },
+          {
+            "type": "credits-production",
+            "amount": 2,
+            "target": "self-player"
           }
         ]
       }
@@ -12362,7 +12384,8 @@
         "per": {
           "type": "animals",
           "amount": 2,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -12464,20 +12487,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "floaters",
-            "amount": 1,
-            "target": "any"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -12486,6 +12495,20 @@
             "type": "floaters",
             "amount": 1,
             "target": "self-card"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "floaters",
+            "amount": 1,
+            "target": "any"
           }
         ]
       }
@@ -13872,12 +13895,7 @@
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 38,
-            "target": "self-player"
-          },
-          {
-            "type": "titanium-production",
+            "type": "card-draw",
             "amount": 1,
             "target": "self-player"
           }
@@ -13891,7 +13909,12 @@
         ],
         "outputs": [
           {
-            "type": "card-draw",
+            "type": "credits",
+            "amount": 38,
+            "target": "self-player"
+          },
+          {
+            "type": "titanium-production",
             "amount": 1,
             "target": "self-player"
           }
@@ -13906,6 +13929,20 @@
     "cost": 0,
     "description": "Action: Spend 4 M€ to increase (one of) your LOWEST PRODUCTION 1 step. You start with 47 M€.",
     "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 47,
+            "target": "self-player"
+          }
+        ]
+      },
       {
         "triggers": [
           {
@@ -13975,20 +14012,6 @@
             ]
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 47,
-            "target": "self-player"
-          }
-        ]
       }
     ]
   },
@@ -14002,25 +14025,6 @@
       "earth"
     ],
     "behaviors": [
-      {
-        "triggers": [
-          {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "card-take",
-            "amount": 1,
-            "target": "self-player"
-          },
-          {
-            "type": "card-peek",
-            "amount": 3,
-            "target": "self-player"
-          }
-        ]
-      },
       {
         "triggers": [
           {
@@ -14049,6 +14053,25 @@
             "affectedTags": [
               "science"
             ]
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "card-take",
+            "amount": 1,
+            "target": "self-player"
+          },
+          {
+            "type": "card-peek",
+            "amount": 3,
+            "target": "self-player"
           }
         ]
       }
@@ -14861,20 +14884,6 @@
       {
         "triggers": [
           {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "card-draw",
-            "amount": 2,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
             "type": "auto"
           }
         ],
@@ -14882,6 +14891,20 @@
           {
             "type": "credits",
             "amount": 42,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 2,
             "target": "self-player"
           }
         ]
@@ -14913,7 +14936,8 @@
         "per": {
           "type": "floaters",
           "amount": 3,
-          "location": "anywhere"
+          "location": "anywhere",
+          "target": "self-card"
         }
       }
     ]
@@ -14969,7 +14993,7 @@
         ],
         "outputs": [
           {
-            "type": "steel",
+            "type": "energy",
             "amount": 1,
             "target": "self-player"
           }
@@ -14983,7 +15007,7 @@
         ],
         "outputs": [
           {
-            "type": "titanium",
+            "type": "heat",
             "amount": 1,
             "target": "self-player"
           }
@@ -15011,7 +15035,7 @@
         ],
         "outputs": [
           {
-            "type": "energy",
+            "type": "steel",
             "amount": 1,
             "target": "self-player"
           }
@@ -15025,7 +15049,7 @@
         ],
         "outputs": [
           {
-            "type": "heat",
+            "type": "titanium",
             "amount": 1,
             "target": "self-player"
           }
@@ -15043,20 +15067,6 @@
       "venus"
     ],
     "behaviors": [
-      {
-        "triggers": [
-          {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "card-draw",
-            "amount": 3,
-            "target": "self-player"
-          }
-        ]
-      },
       {
         "triggers": [
           {
@@ -15081,6 +15091,20 @@
           {
             "type": "venus-lenience",
             "amount": 2,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "card-draw",
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -15495,6 +15519,25 @@
         ],
         "outputs": [
           {
+            "type": "defense",
+            "amount": 1,
+            "target": "self-card",
+            "affectedResources": [
+              "plants",
+              "microbes",
+              "animals"
+            ]
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
             "type": "energy-production",
             "amount": -1,
             "target": "self-player"
@@ -15512,25 +15555,6 @@
             "type": "asteroid",
             "amount": 1,
             "target": "self-card"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "defense",
-            "amount": 1,
-            "target": "self-card",
-            "affectedResources": [
-              "plants",
-              "microbes",
-              "animals"
-            ]
           }
         ]
       }
@@ -16187,14 +16211,9 @@
         ],
         "outputs": [
           {
-            "type": "steel",
-            "amount": 4,
-            "target": "self-player"
-          },
-          {
-            "type": "temperature",
-            "amount": 3,
-            "target": "none"
+            "type": "plants",
+            "amount": 6,
+            "target": "any-player"
           }
         ]
       },
@@ -16206,9 +16225,14 @@
         ],
         "outputs": [
           {
-            "type": "plants",
-            "amount": 6,
-            "target": "any-player"
+            "type": "steel",
+            "amount": 4,
+            "target": "self-player"
+          },
+          {
+            "type": "temperature",
+            "amount": 3,
+            "target": "none"
           }
         ]
       }
@@ -16736,7 +16760,12 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 3,
+            "amount": 40,
+            "target": "self-player"
+          },
+          {
+            "type": "steel",
+            "amount": 10,
             "target": "self-player"
           }
         ]
@@ -16750,12 +16779,7 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 40,
-            "target": "self-player"
-          },
-          {
-            "type": "steel",
-            "amount": 10,
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -16773,25 +16797,6 @@
       "microbe"
     ],
     "behaviors": [
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 38,
-            "target": "self-player"
-          },
-          {
-            "type": "steel-production",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
       {
         "triggers": [
           {
@@ -16821,6 +16826,25 @@
                 "target": "self-player"
               }
             ]
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 38,
+            "target": "self-player"
+          },
+          {
+            "type": "steel-production",
+            "amount": 1,
+            "target": "self-player"
           }
         ]
       }
@@ -16964,7 +16988,12 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": -3,
+            "amount": 48,
+            "target": "self-player"
+          },
+          {
+            "type": "credits-production",
+            "amount": 4,
             "target": "self-player"
           }
         ]
@@ -16978,12 +17007,7 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 48,
-            "target": "self-player"
-          },
-          {
-            "type": "credits-production",
-            "amount": 4,
+            "amount": -3,
             "target": "self-player"
           }
         ]
@@ -17014,20 +17038,6 @@
       "building"
     ],
     "behaviors": [
-      {
-        "triggers": [
-          {
-            "type": "manual"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "greenery-placement",
-            "amount": 1,
-            "target": "none"
-          }
-        ]
-      },
       {
         "triggers": [
           {
@@ -17102,6 +17112,20 @@
             "type": "credits",
             "amount": 47,
             "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "manual"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "greenery-placement",
+            "amount": 1,
+            "target": "none"
           }
         ]
       }
@@ -17266,6 +17290,25 @@
         ],
         "outputs": [
           {
+            "type": "credits",
+            "amount": -4,
+            "target": "self-player"
+          },
+          {
+            "type": "disease",
+            "amount": 1,
+            "target": "self-card"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
             "type": "disease",
             "amount": -1,
             "target": "self-card"
@@ -17288,25 +17331,6 @@
             "type": "tr",
             "amount": 3,
             "target": "none"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": -4,
-            "target": "self-player"
-          },
-          {
-            "type": "disease",
-            "amount": 1,
-            "target": "self-card"
           }
         ]
       }
