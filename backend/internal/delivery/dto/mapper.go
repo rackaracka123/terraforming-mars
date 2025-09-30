@@ -94,6 +94,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		SelectStartingCardsPhase: ToSelectStartingCardsPhaseDto(player.SelectStartingCardsPhase, resolvedCards),
 		ProductionPhase:          ToProductionPhaseDto(player.ProductionPhase, resolvedCards),
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
+		ResourceStorage:          player.ResourceStorage,
 	}
 }
 
@@ -139,6 +140,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		Actions:                  ToPlayerActionDtoSlice(player.Actions),
 		SelectStartingCardsPhase: ToSelectStartingCardsOtherPlayerDto(player.SelectStartingCardsPhase),
 		ProductionPhase:          ToProductionPhaseOtherPlayerDto(player.ProductionPhase),
+		ResourceStorage:          player.ResourceStorage, // Resource storage is public information
 	}
 }
 

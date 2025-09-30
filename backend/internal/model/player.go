@@ -58,6 +58,8 @@ type Player struct {
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection *PendingTileSelection `json:"pendingTileSelection" ts:"PendingTileSelection | null"` // Pending tile placement, null when no tiles to place
+	// Resource storage - maps card IDs to resource counts stored on those cards
+	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -148,6 +150,12 @@ func (p *Player) DeepCopy() *Player {
 		actionsCopy[i] = *action.DeepCopy()
 	}
 
+	// Deep copy resource storage map
+	resourceStorageCopy := make(map[string]int)
+	for cardID, count := range p.ResourceStorage {
+		resourceStorageCopy[cardID] = count
+	}
+
 	return &Player{
 		ID:                       p.ID,
 		Name:                     p.Name,
@@ -166,5 +174,6 @@ func (p *Player) DeepCopy() *Player {
 		ProductionPhase:          productionSelectionCopy,
 		SelectStartingCardsPhase: startingSelectionCopy,
 		PendingTileSelection:     pendingTileSelectionCopy,
+		ResourceStorage:          resourceStorageCopy,
 	}
 }

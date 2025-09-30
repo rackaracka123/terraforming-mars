@@ -119,7 +119,33 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 	}
 	log.Debug("🃏 Card moved to played cards")
 
-	// STEP 3: Apply card effects
+	// STEP 3: Initialize resource storage if the card has storage capability
+	if card.ResourceStorage != nil {
+		// Get current player to access resource storage map
+		player, err := cm.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for resource storage init: %w", err)
+		}
+
+		// Initialize the map if it's nil
+		if player.ResourceStorage == nil {
+			player.ResourceStorage = make(map[string]int)
+		}
+
+		// Set the starting amount for this card's resource storage
+		player.ResourceStorage[cardID] = card.ResourceStorage.Starting
+
+		// Update the player's resource storage
+		if err := cm.playerRepo.UpdateResourceStorage(ctx, gameID, playerID, player.ResourceStorage); err != nil {
+			return fmt.Errorf("failed to initialize card resource storage: %w", err)
+		}
+
+		log.Debug("💾 Card resource storage initialized",
+			zap.String("resource_type", string(card.ResourceStorage.Type)),
+			zap.Int("starting_amount", card.ResourceStorage.Starting))
+	}
+
+	// STEP 4: Apply card effects
 	if err := cm.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}

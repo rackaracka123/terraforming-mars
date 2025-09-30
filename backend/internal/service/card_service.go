@@ -176,7 +176,7 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.AvailableActions <= 0 {
+	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
 

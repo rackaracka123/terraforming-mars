@@ -339,6 +339,8 @@ type PlayerDto struct {
 	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
+	// Resource storage - maps card IDs to resource counts stored on those cards
+	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -361,6 +363,8 @@ type OtherPlayerDto struct {
 
 	SelectStartingCardsPhase *SelectStartingCardsOtherPlayerDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsOtherPlayerDto | null"`
 	ProductionPhase          *ProductionPhaseOtherPlayerDto     `json:"productionPhase" ts:"ProductionPhaseOtherPlayerDto | null"`
+	// Resource storage - maps card IDs to resource counts stored on those cards (public information)
+	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
 
 // GameDto represents a game for client consumption (clean architecture)
