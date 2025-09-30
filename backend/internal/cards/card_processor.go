@@ -135,8 +135,6 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 	return nil
 }
 
-
-
 // extractAndAddManualActions extracts manual actions from card behaviors and adds them to the player
 func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *model.Card) error {
 	log := logger.WithGameContext(gameID, playerID)

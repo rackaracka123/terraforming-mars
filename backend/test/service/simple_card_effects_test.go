@@ -37,10 +37,10 @@ func setupCardTest(t *testing.T) (context.Context, string, string, service.CardS
 	// Create test player
 	player := model.Player{
 		ID: "player1", Name: "Test Player",
-		Resources: model.Resources{Credits: 50},
-		Production: model.Production{Credits: 1},
+		Resources:       model.Resources{Credits: 50},
+		Production:      model.Production{Credits: 1},
 		TerraformRating: 20, IsConnected: true,
-		AvailableActions: -1, // Unlimited actions for testing
+		AvailableActions: 2, // Sufficient actions for testing
 	}
 
 	playerRepo.Create(ctx, game.ID, player)
