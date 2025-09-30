@@ -50,8 +50,7 @@ type CardServiceImpl struct {
 	// Specialized managers from cards package
 	selectionManager      *cards.SelectionManager
 	requirementsValidator *cards.RequirementsValidator
-	effectProcessor       *cards.EffectProcessor
-	tagManager            *cards.TagManager
+	effectProcessor       *cards.CardProcessor
 }
 
 // NewCardService creates a new CardService instance
@@ -64,8 +63,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		sessionManager:        sessionManager,
 		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
-		effectProcessor:       cards.NewEffectProcessor(gameRepo, playerRepo),
-		tagManager:            cards.NewTagManager(cardRepo),
+		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
 	}
 }
 
@@ -184,8 +182,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Validate player has available actions (allow unlimited actions -1)
-	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
+	// Validate player has available actions
+	if player.AvailableActions <= 0 {
 		log.Warn("Player has no available actions", zap.Int("available_actions", player.AvailableActions))
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}

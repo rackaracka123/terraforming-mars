@@ -360,6 +360,7 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+			// Check inputs (explicit costs)
 			for _, input := range behavior.Inputs {
 				switch input.Type {
 				case model.ResourceCredits:
@@ -374,6 +375,26 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 					totalCosts.Energy += input.Amount
 				case model.ResourceHeat:
 					totalCosts.Heat += input.Amount
+				}
+			}
+
+			// Check outputs with negative amounts (resource deductions)
+			for _, output := range behavior.Outputs {
+				if output.Amount < 0 {
+					switch output.Type {
+					case model.ResourceCredits:
+						totalCosts.Credits += -output.Amount
+					case model.ResourceSteel:
+						totalCosts.Steel += -output.Amount
+					case model.ResourceTitanium:
+						totalCosts.Titanium += -output.Amount
+					case model.ResourcePlants:
+						totalCosts.Plants += -output.Amount
+					case model.ResourceEnergy:
+						totalCosts.Energy += -output.Amount
+					case model.ResourceHeat:
+						totalCosts.Heat += -output.Amount
+					}
 				}
 			}
 		}
