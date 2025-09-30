@@ -205,9 +205,9 @@
 /* Actions Grid */
 .actionsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 280px);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-  justify-content: center;
+  justify-items: center;
 }
 
 .actionBox {
@@ -217,8 +217,9 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   animation: actionSlideIn 0.6s ease-out both;
-  width: 280px;
-  height: 200px;
+  width: 100%;
+  max-width: 320px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   background: linear-gradient(

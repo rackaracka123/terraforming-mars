@@ -1,0 +1,265 @@
+.storagesPopover {
+  position: fixed;
+  bottom: 85px;
+  right: 30px;
+  width: 320px;
+  max-height: 400px;
+  background: linear-gradient(
+    145deg,
+    rgba(20, 30, 45, 0.98) 0%,
+    rgba(30, 40, 60, 0.95) 100%
+  );
+  border: 2px solid rgba(100, 150, 255, 0.6);
+  border-radius: 12px;
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(100, 150, 255, 0.3);
+  backdrop-filter: blur(15px);
+  z-index: 10001;
+  animation: popoverSlideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+.popoverArrow {
+  position: absolute;
+  bottom: -8px;
+  right: 50px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(100, 150, 255, 0.6);
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background: linear-gradient(
+    90deg,
+    rgba(20, 40, 60, 0.9) 0%,
+    rgba(30, 50, 70, 0.7) 100%
+  );
+  border-bottom: 1px solid rgba(100, 150, 255, 0.3);
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titleIcon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+}
+
+.popoverHeader h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.storagesCount {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  background: rgba(100, 150, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(100, 150, 255, 0.3);
+}
+
+.popoverContent {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 150, 255, 0.5) rgba(50, 75, 125, 0.3);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 15px;
+  opacity: 0.6;
+}
+
+.emptyText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.emptySubtitle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.storagesList {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.storageItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.4) 0%,
+    rgba(20, 40, 70, 0.3) 100%
+  );
+  border: 1px solid rgba(100, 150, 255, 0.3);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  animation: storageSlideIn 0.4s ease-out both;
+}
+
+.storageItem:hover {
+  border-color: rgba(100, 150, 255, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 60, 90, 0.5) 0%,
+    rgba(20, 40, 70, 0.4) 100%
+  );
+  box-shadow: 0 2px 8px rgba(100, 150, 255, 0.2);
+}
+
+.storageContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.storageTitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  flex: 1;
+}
+
+.resourceDisplay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(20, 30, 40, 0.6);
+  border: 1px solid rgba(100, 150, 200, 0.4);
+  border-radius: 6px;
+}
+
+.resourceCount {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 1;
+  min-width: 20px;
+  text-align: right;
+}
+
+.resourceIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}
+
+@keyframes popoverSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes storageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom scrollbar */
+.popoverContent::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popoverContent::-webkit-scrollbar-track {
+  background: rgba(50, 75, 125, 0.3);
+  border-radius: 3px;
+}
+
+.popoverContent::-webkit-scrollbar-thumb {
+  background: rgba(100, 150, 255, 0.5);
+  border-radius: 3px;
+}
+
+.popoverContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 150, 255, 0.7);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .storagesPopover {
+    width: 280px;
+    right: 15px;
+    bottom: 70px;
+  }
+
+  .popoverArrow {
+    right: 40px;
+  }
+
+  .storageItem {
+    padding: 8px 12px;
+  }
+
+  .storageTitle {
+    font-size: 12px;
+  }
+
+  .resourceCount {
+    font-size: 14px;
+  }
+
+  .resourceIcon {
+    width: 18px;
+    height: 18px;
+  }
+}

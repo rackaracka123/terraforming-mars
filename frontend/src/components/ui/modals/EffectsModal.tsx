@@ -7,7 +7,6 @@ interface EffectsModalProps {
   isVisible: boolean;
   onClose: () => void;
   effects: PlayerEffectDto[];
-  playerName?: string;
 }
 
 type FilterType = "all" | string; // "all" or specific card names
@@ -17,7 +16,6 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
   isVisible,
   onClose,
   effects,
-  playerName = "Player",
 }) => {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("card");
@@ -131,7 +129,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
         {/* Header */}
         <div className={styles.modalHeader}>
           <div className={styles.headerLeft}>
-            <h1 className={styles.modalTitle}>{playerName}'s Card Effects</h1>
+            <h1 className={styles.modalTitle}>Card Effects</h1>
             <div className={styles.effectsSummary}>
               <div className={styles.summaryItem}>
                 <span className={styles.summaryValue}>{effectStats.total}</span>

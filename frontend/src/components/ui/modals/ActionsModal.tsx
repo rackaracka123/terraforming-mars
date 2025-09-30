@@ -58,7 +58,6 @@ interface ActionsModalProps {
   isVisible: boolean;
   onClose: () => void;
   actions: PlayerActionDto[];
-  playerName?: string;
   onActionSelect?: (action: PlayerActionDto) => void;
   gameState?: GameDto;
 }
@@ -69,7 +68,6 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   isVisible,
   onClose,
   actions,
-  playerName: _playerName = "Player",
   onActionSelect,
   gameState,
 }) => {

@@ -50,7 +50,6 @@ interface VictoryPointsModalProps {
   terraformRating?: number;
   greeneryTiles?: number;
   cityTiles?: number;
-  playerName?: string;
 }
 
 type FilterType =
@@ -71,7 +70,6 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   terraformRating = 20,
   greeneryTiles = 0,
   cityTiles = 0,
-  playerName = "Player",
 }) => {
   const [selectedSource, setSelectedSource] = useState<VPSource | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
@@ -283,7 +281,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <div className="header-left">
-            <h1 className="modal-title">{playerName}'s Victory Points</h1>
+            <h1 className="modal-title">Victory Points</h1>
             <div className="total-vp">
               <VictoryPointsDisplay victoryPoints={totalVP} size="large" />
             </div>

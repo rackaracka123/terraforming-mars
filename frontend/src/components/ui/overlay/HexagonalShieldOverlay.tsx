@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { CardDto } from "../../../types/generated/api-types.ts";
 import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
+import ProductionIcon from "../display/ProductionIcon.tsx";
 
 interface HexagonalShieldOverlayProps {
   card: CardDto | null;
@@ -139,10 +140,38 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
       return iconMap[resourceName];
     }
 
+    // For resource type, use the resource icon
+    if (reason.type === "resource" && reason.requirement?.resource) {
+      const resourceName = reason.requirement.resource.toLowerCase();
+      // Handle special naming conventions
+      if (resourceName === "power") {
+        return iconMap["energy"];
+      }
+      if (resourceName === "plant") {
+        return iconMap["plants"];
+      }
+      return iconMap[resourceName];
+    }
+
     return null;
   };
 
   const icon = getRequirementIcon(displayReason);
+
+  // Helper to get resource icon path for production display
+  const getResourceIconPath = (resourceType: string): string => {
+    const resourceIconMap: { [key: string]: string } = {
+      credits: "/assets/resources/megacredit.png",
+      steel: "/assets/resources/steel.png",
+      titanium: "/assets/resources/titanium.png",
+      plants: "/assets/resources/plant.png",
+      plant: "/assets/resources/plant.png",
+      energy: "/assets/resources/power.png",
+      power: "/assets/resources/power.png",
+      heat: "/assets/resources/heat.png",
+    };
+    return resourceIconMap[resourceType.toLowerCase()] || "";
+  };
 
   // Determine which global parameters are affected
   const getAffectedParameters = (reason: UnplayableReason): string[] => {
@@ -237,7 +266,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           <polygon
             key={`hex-${row}-${col}`}
             points={generateHexagonPoints(x, y, hexSize)}
-            fill="rgba(80, 40, 0, 0.3)"
+            fill="rgba(40, 20, 5, 0.85)"
             stroke="rgba(255, 152, 0, 0.8)"
             strokeWidth="2"
             opacity={opacity}
@@ -286,32 +315,52 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
               <div className="requirements-list">
                 {displayReason.failedRequirements.map((req, index) => {
                   const reqIcon = getRequirementIcon(req);
+                  const isProduction = req.type === "production";
                   return (
                     <div key={index} className="requirement-item">
-                      {reqIcon && (
-                        <img
-                          src={reqIcon}
-                          alt="requirement"
-                          className="requirement-icon"
-                        />
-                      )}
                       <span className="requirement-text">{req.message}</span>
+                      {isProduction && req.requirement?.resource ? (
+                        <ProductionIcon
+                          resourceIcon={getResourceIconPath(
+                            req.requirement.resource,
+                          )}
+                          size="medium"
+                        />
+                      ) : (
+                        reqIcon && (
+                          <img
+                            src={reqIcon}
+                            alt="requirement"
+                            className="requirement-icon"
+                          />
+                        )
+                      )}
                     </div>
                   );
                 })}
               </div>
             ) : (
               <div className="single-requirement">
-                {icon && (
-                  <img
-                    src={icon}
-                    alt="requirement"
-                    className="requirement-icon"
-                  />
-                )}
                 <span className="requirement-text">
                   {displayReason.message}
                 </span>
+                {displayReason.type === "production" &&
+                displayReason.requirement?.resource ? (
+                  <ProductionIcon
+                    resourceIcon={getResourceIconPath(
+                      displayReason.requirement.resource,
+                    )}
+                    size="medium"
+                  />
+                ) : (
+                  icon && (
+                    <img
+                      src={icon}
+                      alt="requirement"
+                      className="requirement-icon"
+                    />
+                  )
+                )}
               </div>
             )}
           </div>

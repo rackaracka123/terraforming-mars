@@ -11,17 +11,18 @@ import {
   PlayerDto,
   OtherPlayerDto,
   PlayerActionDto,
+  CardDto,
 } from "../../../types/generated/api-types.ts";
 import styles from "./GameLayout.module.css";
 
 interface GameLayoutProps {
   gameState: GameDto;
   currentPlayer: PlayerDto | null;
+  playedCards?: CardDto[];
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
-  onOpenTagsModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
@@ -30,11 +31,11 @@ interface GameLayoutProps {
 const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
+  playedCards = [],
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
-  onOpenTagsModal,
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
@@ -98,9 +99,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             <BottomResourceBar
               currentPlayer={currentPlayer}
               gameState={gameState}
+              playedCards={playedCards}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
-              onOpenTagsModal={onOpenTagsModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
               onOpenActionsModal={onOpenActionsModal}
               onActionSelect={onActionSelect}

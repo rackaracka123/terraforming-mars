@@ -1,24 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { CardType, CardTag } from "../../../types/cards.ts";
+import { CardDto } from "../../../types/generated/api-types.ts";
+import { CardType } from "../../../types/cards.ts";
 import CostDisplay from "../display/CostDisplay.tsx";
-import VictoryPointsDisplay from "../display/VictoryPointsDisplay.tsx";
-
-interface Card {
-  id: string;
-  name: string;
-  type: CardType;
-  cost: number;
-  description: string;
-  tags?: CardTag[];
-  victoryPoints?: number;
-  playOrder?: number;
-}
+import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 
 interface CardsPlayedModalProps {
   isVisible: boolean;
   onClose: () => void;
-  cards: Card[];
-  playerName?: string;
+  cards: CardDto[];
 }
 
 type FilterType =
@@ -28,27 +17,21 @@ type FilterType =
   | CardType.ACTIVE
   | CardType.EVENT
   | CardType.PRELUDE;
-type SortType = "playOrder" | "cost" | "name" | "type" | "victoryPoints";
+type SortType = "cost" | "name" | "type";
 
 const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
   isVisible,
   onClose,
   cards,
-  playerName = "Player",
 }) => {
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const [sortType, setSortType] = useState<SortType>("playOrder");
+  const [sortType, setSortType] = useState<SortType>("cost");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (selectedCard) {
-          setSelectedCard(null);
-        } else {
-          onClose();
-        }
+        onClose();
       }
     };
 
@@ -61,7 +44,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
     };
-  }, [isVisible, onClose, selectedCard]);
+  }, [isVisible, onClose]);
 
   if (!isVisible) return null;
 
@@ -106,38 +89,12 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
     return styles[type] || styles[CardType.AUTOMATED];
   };
 
-  const getTagIcon = (tag: CardTag): string => {
-    const tagIcons: Record<CardTag, string> = {
-      [CardTag.BUILDING]: "/assets/tags/building.png",
-      [CardTag.SPACE]: "/assets/tags/space.png",
-      [CardTag.POWER]: "/assets/tags/power.png",
-      [CardTag.SCIENCE]: "/assets/tags/science.png",
-      [CardTag.MICROBE]: "/assets/tags/microbe.png",
-      [CardTag.ANIMAL]: "/assets/tags/animal.png",
-      [CardTag.PLANT]: "/assets/tags/plant.png",
-      [CardTag.EARTH]: "/assets/tags/earth.png",
-      [CardTag.JOVIAN]: "/assets/tags/jovian.png",
-      [CardTag.CITY]: "/assets/tags/city.png",
-      [CardTag.VENUS]: "/assets/tags/venus.png",
-      [CardTag.MARS]: "/assets/tags/mars.png",
-      [CardTag.MOON]: "/assets/tags/moon.png",
-      [CardTag.WILD]: "/assets/tags/wild.png",
-      [CardTag.EVENT]: "/assets/tags/event.png",
-      [CardTag.CLONE]: "/assets/tags/clone.png",
-    };
-    return tagIcons[tag] || "/assets/tags/empty.png";
-  };
-
   const filteredAndSortedCards = cards
     .filter((card) => filterType === "all" || card.type === filterType)
     .sort((a, b) => {
       let aValue, bValue;
 
       switch (sortType) {
-        case "playOrder":
-          aValue = a.playOrder || 0;
-          bValue = b.playOrder || 0;
-          break;
         case "cost":
           aValue = a.cost;
           bValue = b.cost;
@@ -149,10 +106,6 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         case "type":
           aValue = a.type;
           bValue = b.type;
-          break;
-        case "victoryPoints":
-          aValue = a.victoryPoints || 0;
-          bValue = b.victoryPoints || 0;
           break;
         default:
           return 0;
@@ -174,7 +127,6 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
       event: cards.filter((c) => c.type === CardType.EVENT).length,
       prelude: cards.filter((c) => c.type === CardType.PRELUDE).length,
     },
-    totalVP: cards.reduce((sum, card) => sum + (card.victoryPoints || 0), 0),
     totalCost: cards.reduce((sum, card) => sum + card.cost, 0),
   };
 
@@ -186,20 +138,12 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <div className="header-left">
-            <h1 className="modal-title">{playerName}'s Played Cards</h1>
+            <h1 className="modal-title">Played Cards</h1>
             <div className="cards-stats">
               <div className="stat-item">
                 <span className="stat-value">{cardStats.total}</span>
                 <span className="stat-label">Cards</span>
               </div>
-              {cardStats.totalVP > 0 && (
-                <div className="stat-item">
-                  <VictoryPointsDisplay
-                    victoryPoints={cardStats.totalVP}
-                    size="small"
-                  />
-                </div>
-              )}
               <div className="stat-item">
                 <CostDisplay cost={cardStats.totalCost} size="small" />
               </div>
@@ -230,11 +174,9 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
               >
-                <option value="playOrder">Play Order</option>
                 <option value="cost">Cost</option>
                 <option value="name">Name</option>
                 <option value="type">Type</option>
-                <option value="victoryPoints">Victory Points</option>
               </select>
               <button
                 className="sort-order-btn"
@@ -271,77 +213,16 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             </div>
           ) : (
             <div className="cards-grid">
-              {filteredAndSortedCards.map((card, index) => {
-                const cardStyle = getCardTypeStyle(card.type);
-                return (
-                  <div
-                    key={card.id}
-                    className="card-item"
-                    style={{
-                      background: cardStyle.background,
-                      borderColor: cardStyle.borderColor,
-                      boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 30px ${cardStyle.glowColor}`,
-                      animationDelay: `${index * 0.05}s`,
-                    }}
-                    onClick={() => setSelectedCard(card)}
-                  >
-                    {/* Card Header */}
-                    <div className="card-header">
-                      <div
-                        className="card-type-badge"
-                        style={{ backgroundColor: cardStyle.badgeColor }}
-                      >
-                        {card.type.toUpperCase()}
-                      </div>
-                      <div className="card-costs">
-                        <CostDisplay cost={card.cost} size="small" />
-                        {card.victoryPoints !== undefined &&
-                          card.victoryPoints > 0 && (
-                            <VictoryPointsDisplay
-                              victoryPoints={card.victoryPoints}
-                              size="small"
-                            />
-                          )}
-                      </div>
-                    </div>
-
-                    {/* Card Name */}
-                    <h3 className="card-name">{card.name}</h3>
-
-                    {/* Card Tags */}
-                    {card.tags && card.tags.length > 0 && (
-                      <div className="card-tags">
-                        {card.tags.slice(0, 4).map((tag, tagIndex) => (
-                          <img
-                            key={tagIndex}
-                            src={getTagIcon(tag)}
-                            alt={tag}
-                            className="tag-icon"
-                            title={tag.charAt(0).toUpperCase() + tag.slice(1)}
-                          />
-                        ))}
-                        {card.tags.length > 4 && (
-                          <span className="more-tags">
-                            +{card.tags.length - 4}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Card Description Preview */}
-                    <p className="card-description-preview">
-                      {card.description.length > 80
-                        ? card.description.substring(0, 80) + "..."
-                        : card.description}
-                    </p>
-
-                    {/* Play Order */}
-                    {card.playOrder && (
-                      <div className="play-order">#{card.playOrder}</div>
-                    )}
-                  </div>
-                );
-              })}
+              {filteredAndSortedCards.map((card, index) => (
+                <div key={card.id} className="card-wrapper">
+                  <SimpleGameCard
+                    card={card}
+                    isSelected={false}
+                    onSelect={() => {}}
+                    animationDelay={index * 50}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -379,74 +260,6 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Card Detail Modal */}
-      {selectedCard && (
-        <div
-          className="card-detail-overlay"
-          onClick={() => setSelectedCard(null)}
-        >
-          <div
-            className="card-detail-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="card-detail-header">
-              <h2>{selectedCard.name}</h2>
-              <button
-                className="close-detail-btn"
-                onClick={() => setSelectedCard(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="card-detail-content">
-              <div className="card-detail-costs">
-                <CostDisplay cost={selectedCard.cost} size="medium" />
-                {selectedCard.victoryPoints !== undefined &&
-                  selectedCard.victoryPoints > 0 && (
-                    <VictoryPointsDisplay
-                      victoryPoints={selectedCard.victoryPoints}
-                      size="medium"
-                    />
-                  )}
-              </div>
-
-              {selectedCard.tags && selectedCard.tags.length > 0 && (
-                <div className="card-detail-tags">
-                  <h4>Tags:</h4>
-                  <div className="tags-list">
-                    {selectedCard.tags.map((tag, tagIndex) => (
-                      <div key={tagIndex} className="tag-item">
-                        <img
-                          src={getTagIcon(tag)}
-                          alt={tag}
-                          className="tag-icon-large"
-                        />
-                        <span>
-                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="card-detail-description">
-                <h4>Description:</h4>
-                <p>{selectedCard.description}</p>
-              </div>
-
-              {selectedCard.playOrder && (
-                <div className="card-detail-play-order">
-                  <h4>Play Order:</h4>
-                  <span>#{selectedCard.playOrder}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <style>{`
         .steam-cards-played-modal {
@@ -657,102 +470,14 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
 
         .cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 20px;
-          justify-items: stretch;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 15px;
+          justify-items: center;
         }
 
-        .card-item {
-          border: 2px solid;
-          border-radius: 12px;
-          padding: 20px;
-          position: relative;
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          backdrop-filter: blur(10px);
-          animation: cardSlideIn 0.6s ease-out both;
-          min-height: 200px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .card-item:hover {
-          transform: translateY(-8px) scale(1.02);
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 12px;
-        }
-
-        .card-type-badge {
-          color: #000000;
-          font-size: 10px;
-          font-weight: bold;
-          padding: 4px 8px;
-          border-radius: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .card-costs {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .card-name {
-          color: #ffffff;
-          font-size: 18px;
-          font-weight: bold;
-          margin: 0 0 12px 0;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-          line-height: 1.3;
-          flex-shrink: 0;
-        }
-
-        .card-tags {
-          display: flex;
-          gap: 4px;
-          align-items: center;
-          margin-bottom: 12px;
-          flex-wrap: wrap;
-        }
-
-        .tag-icon {
-          width: 18px;
-          height: 18px;
-        }
-
-        .more-tags {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 12px;
-          font-weight: bold;
-          background: rgba(0, 0, 0, 0.3);
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-
-        .card-description-preview {
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 13px;
-          line-height: 1.4;
-          margin: 0 0 12px 0;
-          flex: 1;
-        }
-
-        .play-order {
-          position: absolute;
-          bottom: 8px;
-          right: 8px;
-          background: rgba(0, 0, 0, 0.7);
-          color: rgba(255, 255, 255, 0.8);
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: bold;
+        .card-wrapper {
+          width: 100%;
+          max-width: 280px;
         }
 
         .type-stats-bar {
@@ -805,147 +530,6 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
           letter-spacing: 0.5px;
         }
 
-        /* Card Detail Modal */
-        .card-detail-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 4000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.9);
-          backdrop-filter: blur(15px);
-        }
-
-        .card-detail-modal {
-          background: linear-gradient(
-            145deg,
-            rgba(25, 35, 50, 0.98) 0%,
-            rgba(35, 45, 65, 0.95) 100%
-          );
-          border: 3px solid rgba(100, 150, 255, 0.5);
-          border-radius: 15px;
-          max-width: 600px;
-          width: 100%;
-          max-height: 80vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-        }
-
-        .card-detail-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 25px;
-          border-bottom: 2px solid rgba(100, 150, 255, 0.3);
-          background: linear-gradient(
-            90deg,
-            rgba(30, 40, 60, 0.9) 0%,
-            rgba(40, 50, 70, 0.7) 100%
-          );
-        }
-
-        .card-detail-header h2 {
-          color: #ffffff;
-          margin: 0;
-          font-size: 24px;
-          font-weight: bold;
-        }
-
-        .close-detail-btn {
-          background: rgba(255, 80, 80, 0.8);
-          border: 1px solid rgba(255, 120, 120, 0.6);
-          border-radius: 50%;
-          width: 35px;
-          height: 35px;
-          color: #ffffff;
-          font-size: 20px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .card-detail-content {
-          padding: 25px;
-        }
-
-        .card-detail-costs {
-          display: flex;
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-
-        .card-detail-tags {
-          margin-bottom: 20px;
-        }
-
-        .card-detail-tags h4 {
-          color: #ffffff;
-          margin: 0 0 10px 0;
-          font-size: 16px;
-        }
-
-        .tags-list {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .tag-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: rgba(0, 0, 0, 0.3);
-          padding: 6px 10px;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .tag-icon-large {
-          width: 20px;
-          height: 20px;
-        }
-
-        .tag-item span {
-          color: #ffffff;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .card-detail-description {
-          margin-bottom: 20px;
-        }
-
-        .card-detail-description h4 {
-          color: #ffffff;
-          margin: 0 0 10px 0;
-          font-size: 16px;
-        }
-
-        .card-detail-description p {
-          color: rgba(255, 255, 255, 0.9);
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        .card-detail-play-order h4 {
-          color: #ffffff;
-          margin: 0 0 5px 0;
-          font-size: 16px;
-        }
-
-        .card-detail-play-order span {
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 18px;
-          font-weight: bold;
-          font-family: "Courier New", monospace;
-        }
-
         @keyframes modalFadeIn {
           from {
             opacity: 0;
@@ -980,8 +564,12 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         /* Responsive Design */
         @media (max-width: 1200px) {
           .cards-grid {
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+          }
+
+          .card-wrapper {
+            max-width: 260px;
           }
         }
 
