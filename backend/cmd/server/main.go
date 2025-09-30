@@ -81,7 +81,7 @@ func main() {
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// Inject GameService into CardService to avoid circular dependency
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 

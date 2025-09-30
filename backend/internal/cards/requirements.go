@@ -431,10 +431,10 @@ func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Contex
 		}
 	}
 
-	// Check that negative production changes don't exceed current production
-	// (production can't go below 0)
-	if productionChanges.Credits < 0 && player.Production.Credits+productionChanges.Credits < 0 {
-		return fmt.Errorf("insufficient credit production: card would reduce production to %d (below 0)",
+	// Check that negative production changes don't exceed minimum allowed production
+	// Credits production can go down to -5, other productions can't go below 0
+	if productionChanges.Credits < 0 && player.Production.Credits+productionChanges.Credits < -5 {
+		return fmt.Errorf("insufficient credit production: card would reduce production to %d (below minimum of -5)",
 			player.Production.Credits+productionChanges.Credits)
 	}
 	if productionChanges.Steel < 0 && player.Production.Steel+productionChanges.Steel < 0 {

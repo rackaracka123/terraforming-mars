@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"math"
 
 	"terraforming-mars-backend/internal/model"
@@ -9,6 +10,7 @@ import (
 // BoardService interface defines board-related operations
 type BoardService interface {
 	GenerateDefaultBoard() model.Board
+	CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error)
 }
 
 // BoardServiceImpl handles board-related operations
@@ -183,4 +185,98 @@ func (srv *BoardServiceImpl) hexToPixel(coord model.HexPosition) (float64, float
 	y := (size * 3 / 2) * float64(coord.R)
 
 	return x, y
+}
+
+// CalculateAvailableHexesForTileType returns available hexes for a specific tile type
+func (srv *BoardServiceImpl) CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error) {
+	switch tileType {
+	case "ocean":
+		return srv.calculateAvailableOceanHexes(game)
+	case "city":
+		// TODO: Implement city placement logic (need to avoid ocean tiles and check adjacency rules)
+		return srv.calculateAvailableCityHexes(game)
+	case "greenery":
+		// TODO: Implement greenery placement logic (any empty land tile)
+		return srv.calculateAvailableGreeneryHexes(game)
+	default:
+		// Unknown tile types return empty list
+		return []string{}, nil
+	}
+}
+
+// calculateAvailableOceanHexes returns available ocean hexes based on board state
+func (srv *BoardServiceImpl) calculateAvailableOceanHexes(game model.Game) ([]string, error) {
+	// Count actual oceans placed on board (board is source of truth)
+	oceansPlaced := 0
+	availableHexes := make([]string, 0)
+
+	for _, tile := range game.Board.Tiles {
+		if tile.Type == model.ResourceOceanTile {
+			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+				// This ocean space is occupied
+				oceansPlaced++
+			} else {
+				// This ocean space is available for placement
+				hexKey := srv.formatHexCoordinate(tile.Coordinates)
+				availableHexes = append(availableHexes, hexKey)
+			}
+		}
+	}
+
+	// Check if we've reached maximum oceans based on actual board state
+	if oceansPlaced >= model.MaxOceans {
+		return []string{}, nil
+	}
+
+	return availableHexes, nil
+}
+
+// calculateAvailableCityHexes returns available hexes for city placement
+func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]string, error) {
+	availableHexes := make([]string, 0)
+
+	fmt.Printf("🏙️ Calculating city placement hexes - Total board tiles: %d\n", len(game.Board.Tiles))
+
+	oceanCount := 0
+	occupiedCount := 0
+	availableCount := 0
+
+	// For now, allow cities on any empty land tile (not ocean tiles)
+	// TODO: Add adjacency rules later (cities cannot be adjacent to each other)
+	for _, tile := range game.Board.Tiles {
+		// Skip ocean tiles
+		if tile.Type == model.ResourceOceanTile {
+			oceanCount++
+			continue
+		}
+
+		// Skip occupied tiles
+		if tile.OccupiedBy != nil {
+			occupiedCount++
+			fmt.Printf("🏙️ Tile %d,%d,%d is occupied by: %v\n", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S, tile.OccupiedBy.Type)
+			continue
+		}
+
+		// This tile is available for city placement
+		availableCount++
+		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+		availableHexes = append(availableHexes, hexKey)
+	}
+
+	fmt.Printf("🏙️ City placement summary - Ocean tiles: %d, Occupied tiles: %d, Available tiles: %d\n",
+		oceanCount, occupiedCount, availableCount)
+
+	return availableHexes, nil
+}
+
+// calculateAvailableGreeneryHexes returns available hexes for greenery placement
+func (srv *BoardServiceImpl) calculateAvailableGreeneryHexes(game model.Game) ([]string, error) {
+	// TODO: Implement greenery placement logic
+	// Greenery can be placed on any empty land tile
+	return []string{}, nil
+}
+
+// formatHexCoordinate converts hex coordinates to string format
+func (srv *BoardServiceImpl) formatHexCoordinate(coord model.HexPosition) string {
+	return fmt.Sprintf("%d,%d,%d", coord.Q, coord.R, coord.S)
 }

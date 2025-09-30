@@ -61,6 +61,11 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to apply resource effects: %w", err)
 	}
 
+	// Apply tile placement effects
+	if err := cp.applyTileEffects(ctx, gameID, playerID, card); err != nil {
+		return fmt.Errorf("failed to apply tile effects: %w", err)
+	}
+
 	// Future implementation: Apply global parameter effects
 	// if err := cp.applyGlobalParameterEffects(ctx, gameID, card); err != nil {
 	//     return fmt.Errorf("failed to apply global parameter effects: %w", err)
@@ -333,10 +338,37 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 	return nil
 }
 
-// Future expansion: Additional effect types can be implemented here
-// Examples:
-// - applyResourceEffects: immediate resource gains/losses
-// - applyGlobalParameterEffects: temperature, oxygen, ocean changes
-// - applySpecialEffects: unique card abilities
-// - applyTileEffects: board tile placements
-// These will be added when the card model is extended with the corresponding fields
+// applyTileEffects handles tile placement effects from card behaviors
+func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+	// Collect all tile placements from card behaviors
+	var tilePlacementQueue []string
+
+	// Process all behaviors to find tile placement effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+			for _, output := range behavior.Outputs {
+				switch output.Type {
+				case model.ResourceCityPlacement:
+					// Add each city placement to the queue individually
+					for i := 0; i < output.Amount; i++ {
+						tilePlacementQueue = append(tilePlacementQueue, "city")
+					}
+				case model.ResourceOceanPlacement:
+					// Add each ocean placement to the queue individually
+					for i := 0; i < output.Amount; i++ {
+						tilePlacementQueue = append(tilePlacementQueue, "ocean")
+					}
+				case model.ResourceGreeneryPlacement:
+					// Add each greenery placement to the queue individually
+					for i := 0; i < output.Amount; i++ {
+						tilePlacementQueue = append(tilePlacementQueue, "greenery")
+					}
+				}
+			}
+		}
+	}
+
+	// Delegate to PlayerRepository to handle the queue creation and processing
+	return cp.playerRepo.CreateTileQueue(ctx, gameID, playerID, card.ID, tilePlacementQueue)
+}

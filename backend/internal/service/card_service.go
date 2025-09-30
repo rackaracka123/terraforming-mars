@@ -176,7 +176,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.AvailableActions <= 0 {
+	// -1 Available actions means we have infinite (solo game)
+	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
 
@@ -193,6 +194,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
+
+	// Note: Tile queue processing is handled by the PlayerService via the repository layer
 
 	// STEP 4: Service-level post-play actions (consume action, broadcast)
 	if player.AvailableActions != -1 {
@@ -596,5 +599,36 @@ func (s *CardServiceImpl) incrementActionPlayCount(ctx context.Context, gameID, 
 		return fmt.Errorf("failed to update player actions: %w", err)
 	}
 
+	return nil
+}
+
+// processPendingTileQueues checks for and processes any pending tile queues created by card effects
+func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, playerID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current player to check for pending tile queues
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player for tile queue processing: %w", err)
+	}
+
+	// Check if player has any pending tile queues
+	if player.PendingTileSelection == nil || len(player.PendingTileSelection.TileQueue) == 0 {
+		log.Debug("🏗️ No pending tile queues to process")
+		return nil // No tile queues to process
+	}
+
+	log.Info("🏗️ Processing pending tile queues",
+		zap.Int("queue_length", len(player.PendingTileSelection.TileQueue)),
+		zap.String("next_tile_type", player.PendingTileSelection.TileQueue[0]))
+
+	// Process the next tile in queue through repository layer
+	// This will trigger the proper flow: Repository -> Service validation -> BoardService hex calculation
+	if err := s.playerRepo.ProcessNextTileInQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process next tile in queue", zap.Error(err))
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	log.Debug("✅ Successfully processed pending tile queue")
 	return nil
 }

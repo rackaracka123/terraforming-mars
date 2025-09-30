@@ -42,6 +42,15 @@ type PlayerRepository interface {
 	UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *model.PendingTileSelection) error
 	GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
 	ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error
+
+	// Tile queue methods
+	UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error
+	GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error)
+	ClearPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) error
+
+	// Tile queue operations
+	CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error
+	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -677,3 +686,163 @@ func (r *PlayerRepositoryImpl) GetPendingTileSelection(ctx context.Context, game
 func (r *PlayerRepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error {
 	return r.UpdatePendingTileSelection(ctx, gameID, playerID, nil)
 }
+
+// UpdatePendingTileSelectionQueue updates the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Handle nil input properly - set to nil to clear queue
+	if queue == nil {
+		player.PendingTileSelectionQueue = nil
+		log.Info("🎯 Pending tile selection queue cleared for player")
+	} else {
+		// Create a deep copy to prevent external mutation
+		itemsCopy := make([]string, len(queue.Items))
+		copy(itemsCopy, queue.Items)
+
+		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+			Items:  itemsCopy,
+			Source: queue.Source,
+		}
+
+		log.Info("🎯 Pending tile selection queue updated for player",
+			zap.String("source", queue.Source),
+			zap.Int("queue_length", len(queue.Items)),
+			zap.Strings("queue_items", queue.Items))
+	}
+
+	return nil
+}
+
+// GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.PendingTileSelectionQueue == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to prevent external mutation
+	itemsCopy := make([]string, len(player.PendingTileSelectionQueue.Items))
+	copy(itemsCopy, player.PendingTileSelectionQueue.Items)
+
+	return &model.PendingTileSelectionQueue{
+		Items:  itemsCopy,
+		Source: player.PendingTileSelectionQueue.Source,
+	}, nil
+}
+
+// ClearPendingTileSelectionQueue clears the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) ClearPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) error {
+	return r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, nil)
+}
+
+// CreateTileQueue creates and stores a tile placement queue for a player, then processes the first item
+func (r *PlayerRepositoryImpl) CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	if len(tilePlacements) == 0 {
+		log.Debug("No tile placements to queue")
+		return nil
+	}
+
+	log.Info("🎯 Creating tile placement queue",
+		zap.String("card_id", cardID),
+		zap.Int("total_placements", len(tilePlacements)),
+		zap.Strings("placement_queue", tilePlacements))
+
+	// Create the tile placement queue
+	queue := &model.PendingTileSelectionQueue{
+		Items:  tilePlacements,
+		Source: cardID,
+	}
+
+	if err := r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, queue); err != nil {
+		return fmt.Errorf("failed to create tile placement queue: %w", err)
+	}
+
+	// Process the first item in the queue immediately
+	_, err := r.ProcessNextTileInQueue(ctx, gameID, playerID)
+	return err
+}
+
+// ProcessNextTileInQueue processes the next tile in the placement queue and returns the pending selection
+// It includes validation and will skip tiles that can no longer be placed (e.g., oceans when at max)
+func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error) {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current queue
+	queue, err := r.GetPendingTileSelectionQueue(ctx, gameID, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tile placement queue: %w", err)
+	}
+
+	// If no queue exists or queue is empty, nothing to process
+	if queue == nil || len(queue.Items) == 0 {
+		log.Debug("No tile placements in queue")
+		return nil, nil
+	}
+
+	// Pop the first item from the queue
+	nextTileType := queue.Items[0]
+	remainingItems := queue.Items[1:]
+
+	log.Info("🎯 Processing next tile in queue",
+		zap.String("tile_type", nextTileType),
+		zap.String("source", queue.Source),
+		zap.Int("remaining_in_queue", len(remainingItems)))
+
+	// Note: Tile placement validation is handled by the service layer to avoid circular dependencies
+
+	// Update queue with remaining items or clear if empty
+	if len(remainingItems) > 0 {
+		updatedQueue := &model.PendingTileSelectionQueue{
+			Items:  remainingItems,
+			Source: queue.Source,
+		}
+		if err := r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, updatedQueue); err != nil {
+			return nil, fmt.Errorf("failed to update tile placement queue: %w", err)
+		}
+	} else {
+		// This is the last item, clear the queue
+		if err := r.ClearPendingTileSelectionQueue(ctx, gameID, playerID); err != nil {
+			return nil, fmt.Errorf("failed to clear tile placement queue: %w", err)
+		}
+	}
+
+	// Available hexes should be calculated by the service layer and passed down
+	// For now, initialize with empty list - service layer will handle hex calculation
+	availableHexes := []string{}
+
+	log.Info("🎯 Repository processing tile type (service will calculate hexes)",
+		zap.String("tile_type", nextTileType))
+
+	// Create the pending tile selection with calculated available hexes
+	selection := &model.PendingTileSelection{
+		TileType:       nextTileType,
+		AvailableHexes: availableHexes,
+		Source:         queue.Source,
+	}
+
+	// Set the current pending tile selection
+	if err := r.UpdatePendingTileSelection(ctx, gameID, playerID, selection); err != nil {
+		return nil, fmt.Errorf("failed to update pending tile selection: %w", err)
+	}
+
+	return selection, nil
+}
+

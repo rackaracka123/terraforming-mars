@@ -1176,3 +1176,46 @@ func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameI
 
 	return nil
 }
+
+// CalculateAvailableOceanHexes returns a list of hex coordinate strings that are available for ocean placement
+func (s *GameServiceImpl) CalculateAvailableOceanHexes(ctx context.Context, gameID string) ([]string, error) {
+	log := logger.WithGameContext(gameID, "")
+
+	// Get the current game state
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Count actual oceans placed on board (board is source of truth)
+	oceansPlaced := 0
+	availableHexes := make([]string, 0)
+
+	for _, tile := range game.Board.Tiles {
+		if tile.Type == model.ResourceOceanTile {
+			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+				// This ocean space is occupied
+				oceansPlaced++
+			} else {
+				// This ocean space is available for placement
+				hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+				availableHexes = append(availableHexes, hexKey)
+			}
+		}
+	}
+
+	// Check if we've reached maximum oceans based on actual board state
+	if oceansPlaced >= model.MaxOceans {
+		log.Debug("🌊 Maximum oceans reached, no more ocean placement allowed",
+			zap.Int("oceans_placed", oceansPlaced),
+			zap.Int("max_oceans", model.MaxOceans))
+		return []string{}, nil
+	}
+
+	log.Debug("🌊 Ocean hex availability calculated",
+		zap.Int("available_hexes", len(availableHexes)),
+		zap.Int("oceans_placed", oceansPlaced),
+		zap.Int("max_oceans", model.MaxOceans))
+
+	return availableHexes, nil
+}

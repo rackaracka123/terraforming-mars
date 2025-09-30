@@ -54,9 +54,9 @@ func NewTestServer(port int) (*TestServer, error) {
 	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
 
 	// Create services with proper SessionManager dependency
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)

@@ -30,7 +30,8 @@ func createTestPlayerService() service.PlayerService {
 	// EventBus no longer needed
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
-	return service.NewPlayerService(gameRepo, playerRepo, nil)
+	boardService := service.NewBoardService()
+	return service.NewPlayerService(gameRepo, playerRepo, nil, boardService)
 }
 
 func setupStandardProjectServiceTest(t *testing.T) (
@@ -62,7 +63,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, nil, boardService)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 
 	ctx := context.Background()

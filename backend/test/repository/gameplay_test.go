@@ -36,7 +36,7 @@ func TestGameplayLogic(t *testing.T) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
 	boardService := service.NewBoardService()
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	_ = service.NewPlayerService(gameRepo, playerRepo, nil)
+	_ = service.NewPlayerService(gameRepo, playerRepo, nil, boardService)
 
 	ctx := context.Background()
 
