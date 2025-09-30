@@ -30,7 +30,7 @@ type PlayerRepository interface {
 	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
-	PlayCard(ctx context.Context, gameID, playerID string, cardID string) error
+	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID string) error
 
 	UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *model.SelectStartingCardsPhase) error
 	SetStartingCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
@@ -449,7 +449,7 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 }
 
 // PlayCard moves a card from hand to played cards
-func (r *PlayerRepositoryImpl) PlayCard(ctx context.Context, gameID, playerID string, cardID string) error {
+func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 

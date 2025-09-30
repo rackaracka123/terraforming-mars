@@ -7,7 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+
+	"go.uber.org/zap"
 )
 
 // CardRepository manages card data as the single source of truth
@@ -115,19 +119,23 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	}
 
 	// Parse JSON directly into model.Card array since JSON matches the model exactly
-	var allCards []model.Card
-	if err := json.Unmarshal(data, &allCards); err != nil {
+	var allLoadedCards []model.Card
+	if err := json.Unmarshal(data, &allLoadedCards); err != nil {
 		return fmt.Errorf("failed to parse card data: %w", err)
 	}
 
-	// Initialize slices
+	log := logger.Get()
+	log.Info("📦 Loading cards from JSON",
+		zap.Int("total_loaded", len(allLoadedCards)))
+
+	// Initialize slices for all cards
 	r.allCards = make([]model.Card, 0)
 	r.projectCards = make([]model.Card, 0)
 	r.corporationCards = make([]model.Card, 0)
 	r.preludeCards = make([]model.Card, 0)
 
-	// Process all cards from array
-	for _, card := range allCards {
+	// Process all loaded cards
+	for _, card := range allLoadedCards {
 		// Categorize by card type
 		switch card.Type {
 		case model.CardTypeCorporation:
@@ -142,6 +150,13 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 		r.allCards = append(r.allCards, card)
 		r.cardLookup[card.ID] = &card
 	}
+
+	// Log final card counts by type
+	log.Info("✅ All cards loaded successfully",
+		zap.Int("total_cards", len(r.allCards)),
+		zap.Int("project_cards", len(r.projectCards)),
+		zap.Int("corporation_cards", len(r.corporationCards)),
+		zap.Int("prelude_cards", len(r.preludeCards)))
 
 	r.loaded = true
 	return nil

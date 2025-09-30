@@ -12,14 +12,14 @@ All commands should be run from the **project root directory**. The project now 
 
 ### 🚀 Quick Start
 ```bash
-make run         # Run both frontend (3000) and backend (3001) servers
+make run         # Run both frontend (3000) and backend (3001) servers with hot reload
 make help        # Show all available commands with descriptions
 ```
 
 ### 🎯 Main Commands
 ```bash
-make frontend    # Start React development server (port 3000)
-make backend     # Start Go backend server (port 3001)
+make frontend    # Start React development server with hot reload (port 3000)
+make backend     # Start Go backend server with hot reload via Air (port 3001)
 ```
 
 ### 🧪 Testing
@@ -529,6 +529,7 @@ npm run lint           # Check for ESLint errors
 
 ### Full-Stack Development
 - **Both servers** must be running for full functionality (`make run`)
+- **Hot Reload**: Both frontend (Vite) and backend (Air) automatically reload on file changes for rapid development
 - **Type Generation**: Run `make generate` after Go struct changes
 - **State Flow**: All game state changes originate from Go backend via WebSocket
 - **Development Workflow**: Go changes -> generate types -> React implementation

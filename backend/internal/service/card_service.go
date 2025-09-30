@@ -50,8 +50,8 @@ type CardServiceImpl struct {
 	// Specialized managers from cards package
 	selectionManager      *cards.SelectionManager
 	requirementsValidator *cards.RequirementsValidator
-	effectProcessor       *cards.EffectProcessor
-	tagManager            *cards.TagManager
+	effectProcessor       *cards.CardProcessor
+	cardManager           cards.CardManager
 }
 
 // NewCardService creates a new CardService instance
@@ -64,8 +64,8 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		sessionManager:        sessionManager,
 		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
-		effectProcessor:       cards.NewEffectProcessor(gameRepo, playerRepo),
-		tagManager:            cards.NewTagManager(cardRepo),
+		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
+		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo),
 	}
 }
 
@@ -155,129 +155,61 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 
 func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("🎯 Playing card", zap.String("card_id", cardID))
+	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
 
+	// STEP 1: Service-level validations (turn, actions, ownership)
 	game, err := s.gameRepo.GetByID(ctx, gameID)
-
 	if err != nil {
-		log.Error("Failed to get game for card play", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
 	if game.CurrentTurn == nil {
-		log.Error("No current player turn set", zap.String("requesting_player", playerID))
-		return fmt.Errorf("no current player turn set, requesting player is %s", playerID)
+		return fmt.Errorf("no current player turn set")
 	}
 
 	if *game.CurrentTurn != playerID {
-		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
-		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+		return fmt.Errorf("not current player's turn: current turn is %s", *game.CurrentTurn)
 	}
 
-	// Get the player to verify they have the card and available actions
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
-		log.Error("Failed to get player for card play", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Validate player has available actions (allow unlimited actions -1)
-	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
-		log.Warn("Player has no available actions", zap.Int("available_actions", player.AvailableActions))
+	if player.AvailableActions <= 0 {
 		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
 
-	// Check if the player has the card in their hand
 	if !slices.Contains(player.Cards, cardID) {
-		log.Warn("Player attempted to play card they don't have", zap.String("card_id", cardID))
 		return fmt.Errorf("player does not have card %s", cardID)
 	}
 
-	// Get the card data to validate it exists
-	card, err := s.cardRepo.GetCardByID(ctx, cardID)
-	if err != nil {
-		log.Error("Failed to get card data", zap.String("card_id", cardID), zap.Error(err))
-		return fmt.Errorf("failed to get card data: %w", err)
+	// STEP 2: Use CardManager for card-specific validation
+	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID); err != nil {
+		return fmt.Errorf("card cannot be played: %w", err)
 	}
 
-	if card == nil {
-		return fmt.Errorf("card %s not found", cardID)
-	}
-
-	// Debug card requirements and validate
-	log.Debug("🃏 Card details",
-		zap.String("card_name", card.Name),
-		zap.Int("card_cost", card.Cost),
-		zap.Any("requirements", card.Requirements))
-
-	// Validate card requirements using enhanced validator
-	if s.requirementsValidator.HasRequirements(card) {
-		log.Debug("🚨 Validating card requirements - card has requirements to check")
-		game, err := s.gameRepo.GetByID(ctx, gameID)
-		if err != nil {
-			log.Error("Failed to get game for validation", zap.Error(err))
-			return fmt.Errorf("failed to get game: %w", err)
-		}
-		if err := s.requirementsValidator.ValidateCardRequirements(ctx, gameID, playerID, card, &game, &player); err != nil {
-			log.Warn("❌ Card requirements not met", zap.String("card_id", cardID), zap.Error(err))
-			return fmt.Errorf("card requirements not met: %w", err)
-		}
-		log.Debug("✅ Card requirements validation passed")
-	} else {
-		log.Debug("⏭️ Skipping validation - card has no requirements")
-	}
-
-	// Handle card cost payment
-	if card.Cost > 0 {
-		if player.Resources.Credits < card.Cost {
-			return fmt.Errorf("insufficient credits: need %d, have %d", card.Cost, player.Resources.Credits)
-		}
-
-		// Deduct card cost from player's resources
-		updatedResources := player.Resources
-		updatedResources.Credits -= card.Cost
-		if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
-			log.Error("Failed to update player resources for card cost", zap.Error(err))
-			return fmt.Errorf("failed to update player resources: %w", err)
-		}
-		log.Debug("💰 Card cost paid", zap.Int("cost", card.Cost), zap.Int("remaining_credits", updatedResources.Credits))
-	}
-
-	// Remove the card from player's hand and add to played cards
-	err = s.playerRepo.PlayCard(ctx, gameID, playerID, cardID)
-	if err != nil {
-		log.Error("Failed to play card", zap.String("card_id", cardID), zap.Error(err))
+	// STEP 3: Use CardManager to play the card
+	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 
-	// Apply card effects using the effect processor
-	if err := s.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card); err != nil {
-		log.Error("Failed to apply card effects", zap.String("card_id", cardID), zap.Error(err))
-		return fmt.Errorf("failed to apply card effects: %w", err)
-	}
-
-	// Consume one action now that all card playing steps have succeeded
-	// Handle unlimited actions (-1) - don't decrement them
-	if player.AvailableActions == -1 {
-		log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
-	} else {
+	// STEP 4: Service-level post-play actions (consume action, broadcast)
+	if player.AvailableActions != -1 {
 		newActions := player.AvailableActions - 1
 		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-			log.Error("Failed to consume player action", zap.Error(err))
-			// Note: Card has already been played and effects applied, but we couldn't consume the action
-			// This is a critical error but we don't rollback the entire card play
 			return fmt.Errorf("card played but failed to consume action: %w", err)
 		}
 		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
 	}
 
-	// Broadcast game state to all players after successful card play
+	// STEP 5: Broadcast game state update
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
 		log.Error("Failed to broadcast game state after card play", zap.Error(err))
 		// Don't fail the card play operation, just log the error
 	}
 
-	log.Info("✅ Card played successfully", zap.String("card_id", cardID), zap.String("card_name", card.Name))
+	log.Info("✅ Card played successfully", zap.String("card_id", cardID))
 	return nil
 }
 

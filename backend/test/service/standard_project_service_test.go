@@ -298,7 +298,7 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 	})
 
 	t.Run("Invalid hex position", func(t *testing.T) {
-		invalidHexPosition := model.HexPosition{Q: 1, R: 2, S: 3} // Sum != 0
+		invalidHexPosition := model.HexPosition{Q: 1, R: 2, S: -2} // Sum != 0 (1+2-2=1)
 
 		err := standardProjectService.PlantGreenery(ctx, game.ID, playerID, invalidHexPosition)
 		assert.Error(t, err)
@@ -332,7 +332,7 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 	})
 
 	t.Run("Invalid hex position", func(t *testing.T) {
-		invalidHexPosition := model.HexPosition{Q: 0, R: 0, S: 1} // Sum != 0
+		invalidHexPosition := model.HexPosition{Q: 0, R: 0, S: 1} // Sum != 0 (0+0+1=1)
 
 		err := standardProjectService.BuildCity(ctx, game.ID, playerID, invalidHexPosition)
 		assert.Error(t, err)
