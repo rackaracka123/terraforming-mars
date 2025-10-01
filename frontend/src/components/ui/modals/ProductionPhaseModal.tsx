@@ -522,7 +522,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           } as React.CSSProperties
         }
       >
-        <div className="resourceIcon mb-3">
+        <div className="resourceIcon mb-3 flex justify-center">
           <img
             src={resourceIcons[resourceType]}
             alt={resourceNames[resourceType]}
