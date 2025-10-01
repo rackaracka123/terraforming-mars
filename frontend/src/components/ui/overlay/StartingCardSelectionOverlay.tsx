@@ -75,16 +75,16 @@ const StartingCardSelectionOverlay: React.FC<
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
       {/* Translucent background */}
-      <div className="absolute inset-0 bg-[rgba(10,20,40,0.9)] [backdrop-filter:blur(4px)]" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Content container */}
-      <div className="relative z-[1] w-[90%] max-w-[1400px] max-h-[90vh] flex flex-col bg-[linear-gradient(135deg,#0f1419_0%,#1a2332_100%)] border border-[rgba(100,150,200,0.2)] rounded-2xl overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.6)] max-[768px]:w-full max-[768px]:h-screen max-[768px]:max-h-screen max-[768px]:rounded-none">
+      <div className="relative z-[1] w-[90%] max-w-[1400px] max-h-[90vh] flex flex-col bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_60px_rgba(30,60,150,0.5)] max-[768px]:w-full max-[768px]:h-screen max-[768px]:max-h-screen max-[768px]:rounded-none">
         {/* Header */}
-        <div className="py-6 px-8 bg-[rgba(10,20,40,0.4)] border-b border-[rgba(100,150,200,0.2)] max-[768px]:p-5">
-          <h2 className="m-0 text-[28px] font-semibold text-white tracking-[0.5px] max-[768px]:text-2xl">
+        <div className="py-6 px-8 bg-black/40 border-b border-space-blue-600 max-[768px]:p-5">
+          <h2 className="m-0 font-orbitron text-[28px] font-bold text-white text-shadow-glow tracking-wider max-[768px]:text-2xl">
             Select Starting Cards
           </h2>
-          <p className="mt-2 mb-0 text-base text-white/70 max-[768px]:text-sm">
+          <p className="mt-2 mb-0 text-base text-white/80 max-[768px]:text-sm">
             Choose your starting cards. First card is FREE, additional cards
             cost 3 MC each.
           </p>
@@ -112,7 +112,7 @@ const StartingCardSelectionOverlay: React.FC<
         </div>
 
         {/* Footer with cost and confirm button */}
-        <div className="py-6 px-8 bg-[rgba(10,20,40,0.5)] border-t border-[rgba(100,150,200,0.2)] flex justify-between items-center max-[768px]:p-5 max-[768px]:flex-col max-[768px]:gap-5">
+        <div className="py-6 px-8 bg-black/40 border-t border-space-blue-600 flex justify-between items-center max-[768px]:p-5 max-[768px]:flex-col max-[768px]:gap-5">
           <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between">
             <div className="flex items-center gap-3">
               <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
@@ -152,7 +152,7 @@ const StartingCardSelectionOverlay: React.FC<
               )}
             </div>
             <button
-              className="py-3 px-8 bg-[linear-gradient(135deg,#4a90e2_0%,#357abd_100%)] text-white border-none rounded-lg text-base font-semibold cursor-pointer transition-all duration-300 uppercase tracking-[1px] hover:enabled:-translate-y-0.5 hover:enabled:shadow-[0_6px_20px_rgba(74,144,226,0.4)] active:enabled:translate-y-0 disabled:bg-[linear-gradient(135deg,#333_0%,#222_100%)] disabled:text-white/30 disabled:cursor-not-allowed max-[768px]:w-full"
+              className="py-4 px-8 bg-space-black-darker/90 border-2 border-space-blue-800 rounded-xl text-xl font-bold text-white cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_20px_rgba(30,60,150,0.3)] hover:enabled:bg-space-black-darker/95 hover:enabled:border-space-blue-600 hover:enabled:-translate-y-0.5 hover:enabled:shadow-glow active:enabled:translate-y-0 disabled:bg-gray-700/50 disabled:border-gray-500/30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:opacity-60 max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
               onClick={handleConfirm}
               disabled={totalCost > playerCredits}
             >
