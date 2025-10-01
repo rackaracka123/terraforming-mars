@@ -134,7 +134,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
 
       <div className="relative w-full max-w-[1400px] max-h-[90vh] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between py-[25px] px-[30px] bg-black/40 border-b border-space-blue-600 flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
+        <div className="flex items-start justify-between py-[25px] px-[30px] bg-black/40 border-b border-space-blue-600 flex-shrink-0 max-md:p-5">
           <div className="flex flex-col gap-[15px]">
             <h1 className="m-0 font-orbitron text-white text-[28px] font-bold text-shadow-glow tracking-wider">
               Played Cards
@@ -154,52 +154,54 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-5 items-center max-md:flex-col max-md:gap-2.5 max-md:w-full">
-            <div className="flex gap-2 items-center text-white text-sm">
-              <label>Filter:</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as FilterType)}
-                className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
-              >
-                <option value="all">All Cards</option>
-                <option value={CardType.CORPORATION}>Corporations</option>
-                <option value={CardType.AUTOMATED}>Automated</option>
-                <option value={CardType.ACTIVE}>Active</option>
-                <option value={CardType.EVENT}>Events</option>
-                <option value={CardType.PRELUDE}>Preludes</option>
-              </select>
+          <div className="flex gap-5 items-start max-md:flex-col max-md:gap-2.5">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex gap-2 items-center text-white text-sm">
+                <label>Filter:</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as FilterType)}
+                  className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
+                >
+                  <option value="all">All Cards</option>
+                  <option value={CardType.CORPORATION}>Corporations</option>
+                  <option value={CardType.AUTOMATED}>Automated</option>
+                  <option value={CardType.ACTIVE}>Active</option>
+                  <option value={CardType.EVENT}>Events</option>
+                  <option value={CardType.PRELUDE}>Preludes</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 items-center text-white text-sm">
+                <label>Sort by:</label>
+                <select
+                  value={sortType}
+                  onChange={(e) => setSortType(e.target.value as SortType)}
+                  className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
+                >
+                  <option value="cost">Cost</option>
+                  <option value="name">Name</option>
+                  <option value="type">Type</option>
+                </select>
+                <button
+                  className="bg-space-blue-400/20 border border-space-blue-400/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-space-blue-400/30 hover:scale-110"
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
+                >
+                  {sortOrder === "asc" ? "↑" : "↓"}
+                </button>
+              </div>
             </div>
 
-            <div className="flex gap-2 items-center text-white text-sm">
-              <label>Sort by:</label>
-              <select
-                value={sortType}
-                onChange={(e) => setSortType(e.target.value as SortType)}
-                className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
-              >
-                <option value="cost">Cost</option>
-                <option value="name">Name</option>
-                <option value="type">Type</option>
-              </select>
-              <button
-                className="bg-space-blue-400/20 border border-space-blue-400/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-space-blue-400/30 hover:scale-110"
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </button>
-            </div>
+            <button
+              className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex-shrink-0 hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
+              onClick={onClose}
+            >
+              ×
+            </button>
           </div>
-
-          <button
-            className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
-            onClick={onClose}
-          >
-            ×
-          </button>
         </div>
 
         {/* Cards Content */}
