@@ -12,6 +12,29 @@
   z-index: 10;
 }
 
+.backButton {
+  position: fixed;
+  top: 30px;
+  left: 30px;
+  background: rgba(10, 10, 15, 0.8);
+  border: 2px solid rgba(30, 60, 150, 0.4);
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.backButton:hover {
+  background: rgba(10, 10, 15, 0.9);
+  border-color: rgba(30, 60, 150, 0.8);
+  box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
+  transform: translateY(-2px);
+}
+
 .container {
   max-width: 600px;
   width: 100%;
