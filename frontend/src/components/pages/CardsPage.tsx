@@ -795,11 +795,9 @@ const CardsPage: React.FC = () => {
           margin: 0;
           text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
           font-weight: bold;
-          flex: 0 1 auto;
-          max-width: 300px;
+          flex: 1;
           text-align: center;
           letter-spacing: 2px;
-          line-height: 1.3;
         }
 
         .right-section {
