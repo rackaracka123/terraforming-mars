@@ -86,7 +86,6 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
           )}
 
           <div className={styles.joinLinkSection}>
-            <label>Share this link with friends:</label>
             <CopyLinkButton textToCopy={joinUrl} defaultText="Copy Join Link" />
           </div>
         </div>

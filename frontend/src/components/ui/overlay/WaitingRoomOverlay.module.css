@@ -87,14 +87,6 @@
   margin-top: 24px;
 }
 
-.joinLinkSection label {
-  display: block;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 12px;
-}
-
 @media (max-width: 768px) {
   .waitingRoomControls {
     min-width: 320px;
