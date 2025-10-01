@@ -439,10 +439,13 @@ const CardsPage: React.FC = () => {
   }, [cards, visibleRange, getCardsPerRow]);
 
   return (
-    <div className="cards-page" style={{
-      opacity: isFadedIn ? 1 : 0,
-      transition: 'opacity 0.3s ease-in',
-    }}>
+    <div
+      className="cards-page"
+      style={{
+        opacity: isFadedIn ? 1 : 0,
+        transition: "opacity 0.3s ease-in",
+      }}
+    >
       <div className={`sticky-header ${isScrolled ? "scrolled" : ""}`}>
         <div className="sticky-content">
           <button onClick={handleBackToHome} className="back-button">

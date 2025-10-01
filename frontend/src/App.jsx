@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { useEffect, useState } from "react";
 import GameInterface from "./components/layout/main/GameInterface.tsx";
 import CreateGamePage from "./components/pages/CreateGamePage.tsx";
@@ -68,7 +73,9 @@ function AppWithBackground() {
   const location = useLocation();
 
   // Show space background for landing, create, and join pages
-  const showSpaceBackground = ['/', '/create', '/join'].includes(location.pathname);
+  const showSpaceBackground = ["/", "/create", "/join"].includes(
+    location.pathname,
+  );
 
   return (
     <>

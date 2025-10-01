@@ -96,7 +96,20 @@ const GameLandingPage: React.FC = () => {
         zIndex: 10,
       }}
     >
-      <div style={{ textAlign: "center", maxWidth: "500px", padding: "20px" }}>
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          minHeight: "100vh",
+        }}
+      >
+        <div
+          style={{ textAlign: "center", maxWidth: "500px", padding: "20px" }}
+        >
         {/* Title with Orbitron font */}
         <h1
           style={{
@@ -199,12 +212,12 @@ const GameLandingPage: React.FC = () => {
             JOIN
           </button>
         </div>
-      </div>
+        </div>
 
-      {/* View Cards button - bottom right corner */}
-      <button
-        onClick={handleViewCards}
-        style={{
+        {/* View Cards button - bottom right corner */}
+        <button
+          onClick={handleViewCards}
+          style={{
           position: "fixed",
           bottom: "30px",
           right: "30px",
@@ -231,9 +244,10 @@ const GameLandingPage: React.FC = () => {
           e.currentTarget.style.background = "rgba(10, 10, 15, 0.8)";
           e.currentTarget.style.boxShadow = "none";
         }}
-      >
-        View Cards
-      </button>
+        >
+          View Cards
+        </button>
+      </div>
 
       <LoadingOverlay
         isLoading={isLoading}

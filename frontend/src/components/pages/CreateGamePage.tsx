@@ -128,12 +128,13 @@ const CreateGamePage: React.FC = () => {
         transition: "opacity 0.3s ease-in",
       }}
     >
-      <button onClick={handleBackToHome} className={styles.backButton}>
-        ← Back to Home
-      </button>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <h1 className={styles.title}>Create a new game</h1>
+      <div className={styles.contentWrapper}>
+        <button onClick={handleBackToHome} className={styles.backButton}>
+          ← Back to Home
+        </button>
+        <div className={styles.container}>
+          <div className={styles.content}>
+            <h1 className={styles.title}>Create a new game</h1>
 
           <form onSubmit={handleSubmit} className={styles.createGameForm}>
             <div className={styles.inputContainer}>
@@ -189,6 +190,7 @@ const CreateGamePage: React.FC = () => {
 
             {error && <div className={styles.errorMessage}>{error}</div>}
           </form>
+          </div>
         </div>
       </div>
 

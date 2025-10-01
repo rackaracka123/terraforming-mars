@@ -12,6 +12,16 @@
   z-index: 10;
 }
 
+.contentWrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+}
+
 .backButton {
   position: fixed;
   top: 30px;

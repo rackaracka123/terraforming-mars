@@ -2,10 +2,7 @@ import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import SkyboxLoader from "../game/view/SkyboxLoader.tsx";
 import LoadingSpinner from "../game/view/LoadingSpinner.tsx";
-import {
-  skyboxCache,
-  SkyboxLoadingState,
-} from "../../services/SkyboxCache.ts";
+import { skyboxCache, SkyboxLoadingState } from "../../services/SkyboxCache.ts";
 import * as THREE from "three";
 
 interface SpaceBackgroundProps {

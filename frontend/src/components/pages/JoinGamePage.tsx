@@ -275,10 +275,11 @@ const JoinGamePage: React.FC = () => {
         transition: "opacity 0.3s ease-in",
       }}
     >
-      <button onClick={handleBackToHome} className={styles.backButton}>
-        ← Back to Home
-      </button>
-      <div className={styles.container}>
+      <div className={styles.contentWrapper}>
+        <button onClick={handleBackToHome} className={styles.backButton}>
+          ← Back to Home
+        </button>
+        <div className={styles.container}>
         <div className={styles.content}>
           <h1>Join a game</h1>
 
@@ -359,6 +360,7 @@ const JoinGamePage: React.FC = () => {
             </form>
           )}
         </div>
+      </div>
       </div>
 
       <LoadingOverlay

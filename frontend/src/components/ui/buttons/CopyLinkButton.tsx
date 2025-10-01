@@ -42,7 +42,9 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
       onClick={handleCopy}
       disabled={isCopied}
     >
-      <span className={`${styles.buttonText} ${isCopied ? styles.fadeOut : styles.fadeIn}`}>
+      <span
+        className={`${styles.buttonText} ${isCopied ? styles.fadeOut : styles.fadeIn}`}
+      >
         {isCopied ? copiedText : defaultText}
       </span>
     </button>
