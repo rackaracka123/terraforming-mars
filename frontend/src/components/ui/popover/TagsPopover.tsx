@@ -65,7 +65,7 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
 
       <div className="py-[15px] px-5 bg-black/40 border-b border-b-[#64ff96]/60">
         <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
-          {totalTags} Total Tags
+          {totalTags} tags
         </h3>
       </div>
 
