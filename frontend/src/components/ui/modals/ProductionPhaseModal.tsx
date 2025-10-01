@@ -577,29 +577,29 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/90 [backdrop-filter:blur(8px)] flex items-center justify-center z-[3000] p-5">
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[3000] p-5 animate-[modalFadeIn_0.3s_ease-out]">
       <div
-        className="bg-[linear-gradient(135deg,rgba(10,20,40,0.98)_0%,rgba(20,30,50,0.96)_50%,rgba(15,25,45,0.98)_100%)] border-2 border-[rgba(100,150,255,0.5)] rounded-[20px] max-w-[800px] min-w-[600px] w-full max-h-[90vh] overflow-y-auto [backdrop-filter:blur(20px)] shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(100,150,255,0.3)] relative animate-[modalFadeIn_0.3s_ease-out]"
+        className="bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] max-w-[800px] min-w-[600px] w-full max-h-[90vh] overflow-y-auto backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] relative animate-[modalSlideIn_0.4s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-center py-[30px] px-[30px] pb-5 border-b border-[rgba(100,150,255,0.3)] relative">
-          <h2 className="text-[28px] text-white m-0 mb-2 [text-shadow:0_2px_4px_rgba(0,0,0,0.8)]">
+        <div className="text-center py-[30px] px-[30px] pb-5 bg-black/40 border-b border-space-blue-600 relative">
+          <h2 className="text-[28px] font-orbitron text-white font-bold text-shadow-glow tracking-wider m-0 mb-2">
             Production
           </h2>
-          <div className="text-base text-[rgba(100,200,255,0.9)] font-semibold [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
+          <div className="text-base text-space-blue-300 font-semibold text-shadow-dark">
             Generation {modalProductionData.generation}
           </div>
         </div>
 
         {/* Only show player tabs if more than 1 player */}
         {modalProductionData.playersData.length > 1 && (
-          <div className="flex justify-center gap-3 p-5 border-b border-[rgba(100,150,255,0.2)]">
+          <div className="flex justify-center gap-3 p-5 border-b border-space-blue-600/30">
             {modalProductionData.playersData.map((player, index) => (
               <button
                 key={player.playerId}
-                className={`bg-[linear-gradient(135deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0.2)_100%)] border-2 border-[rgba(100,150,255,0.4)] rounded-lg text-white/80 text-sm font-semibold py-2 px-4 cursor-pointer transition-all duration-300 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] hover:border-[rgba(100,150,255,0.6)] hover:text-white/90 hover:-translate-y-px ${
+                className={`bg-space-black-darker/60 border-2 border-space-blue-400/40 rounded-lg text-white/80 text-sm font-semibold py-2 px-4 cursor-pointer transition-all duration-300 text-shadow-dark hover:border-space-blue-400/60 hover:text-white/90 hover:-translate-y-px ${
                   index === currentPlayerIndex
-                    ? "!bg-[linear-gradient(135deg,rgba(100,150,255,0.3)_0%,rgba(100,150,255,0.2)_100%)] !border-[rgba(100,150,255,0.8)] !text-white shadow-[0_0_15px_rgba(100,150,255,0.4)]"
+                    ? "!bg-space-blue-400/20 !border-space-blue-400 !text-white shadow-[0_0_15px_rgba(30,60,150,0.4)]"
                     : ""
                 }`}
                 onClick={() => handlePlayerSelect(index)}
@@ -619,7 +619,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
       {!hasSubmittedCardSelection && !showCardSelection && (
         <button
-          className="absolute left-1/2 top-1/2 -translate-y-1/2 translate-x-[calc(400px+40px)] bg-[linear-gradient(135deg,rgba(50,120,200,0.8)_0%,rgba(30,100,180,0.9)_100%)] border-2 border-[rgba(100,150,255,0.6)] rounded-full text-white text-[32px] font-bold w-[60px] h-[60px] cursor-pointer transition-all duration-300 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] shadow-[0_4px_15px_rgba(0,0,0,0.3)] flex items-center justify-center z-[3001] p-0 hover:bg-[linear-gradient(135deg,rgba(60,130,210,0.9)_0%,rgba(40,110,190,1)_100%)] hover:border-[rgba(100,150,255,0.8)] hover:translate-x-[calc(400px+45px)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] active:translate-x-[calc(400px+40px)] active:scale-95 active:shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+          className="absolute left-1/2 top-1/2 -translate-y-1/2 translate-x-[calc(400px+40px)] bg-[linear-gradient(135deg,rgba(30,60,150,0.8)_0%,rgba(20,40,120,0.9)_100%)] border-2 border-space-blue-400 rounded-full text-white text-[32px] font-bold w-[60px] h-[60px] cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex items-center justify-center z-[3001] p-0 hover:bg-[linear-gradient(135deg,rgba(40,70,160,0.9)_0%,rgba(30,50,130,1)_100%)] hover:border-space-blue-500 hover:translate-x-[calc(400px+45px)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:translate-x-[calc(400px+40px)] active:scale-95 active:shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
           onClick={() => setShowCardSelection(true)}
         >
           →
