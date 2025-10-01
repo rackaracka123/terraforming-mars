@@ -195,34 +195,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     },
   ];
 
-  // Resource click handlers
-  const handleResourceClick = (resource: ResourceData) => {
-    // Show resource information
-    alert(
-      `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
-    );
-
-    // Special handling for different resources
-    switch (resource.id) {
-      case "plants":
-        if (resource.current >= 8) {
-          alert("Can convert plants to greenery tile!");
-        }
-        break;
-      case "heat":
-        if (resource.current >= 8) {
-          alert("Can convert heat to raise temperature!");
-        }
-        break;
-      case "energy":
-        alert("Energy converts to heat at end of turn");
-        break;
-      default:
-        // Resource info displayed
-        break;
-    }
-  };
-
   // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
 
@@ -266,14 +238,20 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           {playerResources.map((resource) => (
             <div
               key={resource.id}
-              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-[rgba(30,60,90,0.8)] to-[rgba(20,40,70,0.7)] border-2 rounded-xl p-2 transition-all duration-150 cursor-pointer relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:opacity-10 before:transition-opacity before:duration-150 hover:before:opacity-20"
+              className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 transition-all duration-200 cursor-pointer relative overflow-hidden hover:-translate-y-0.5"
               style={
                 {
                   "--resource-color": resource.color,
                   borderColor: resource.color,
+                  boxShadow: `0 0 10px ${resource.color}40`,
                 } as React.CSSProperties
               }
-              onClick={() => handleResourceClick(resource)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${resource.color}`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
+              }}
               title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
               <div className="flex items-center justify-center mb-1">
