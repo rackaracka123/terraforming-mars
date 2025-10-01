@@ -710,13 +710,8 @@ const CardsPage: React.FC = () => {
         }
 
         .back-button {
-          background: linear-gradient(
-            135deg,
-            rgba(20, 30, 50, 0.95) 0%,
-            rgba(30, 40, 60, 0.93) 50%,
-            rgba(25, 35, 55, 0.95) 100%
-          );
-          border: 2px solid rgba(100, 150, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           padding: 12px 20px;
           color: white;
@@ -727,8 +722,9 @@ const CardsPage: React.FC = () => {
         }
 
         .back-button:hover {
-          border-color: rgba(100, 150, 255, 0.6);
-          box-shadow: 0 4px 15px rgba(100, 150, 255, 0.2);
+          background: rgba(10, 10, 15, 0.9);
+          border-color: rgba(30, 60, 150, 0.8);
+          box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
           transform: translateY(-2px);
         }
 
