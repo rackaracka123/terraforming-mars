@@ -25,6 +25,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       }, 300); // Match CSS transition duration (faster)
       return () => clearTimeout(timeout);
     }
+    return undefined;
   }, [isLoading, isVisible]);
 
   if (!isVisible) return null;

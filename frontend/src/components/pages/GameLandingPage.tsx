@@ -10,7 +10,7 @@ const GameLandingPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const { preloadSkybox, isLoaded: isSkyboxLoaded } = useSpaceBackground();
+  const { preloadSkybox } = useSpaceBackground();
 
   useEffect(() => {
     const checkExistingGame = async () => {
