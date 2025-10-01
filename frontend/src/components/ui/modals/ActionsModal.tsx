@@ -155,7 +155,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
           <div className="flex gap-5 items-start max-md:flex-col max-md:gap-2.5">
             <div className="flex gap-2 items-center text-white text-sm">
-              <label>Sort by:</label>
+              <label>Sort:</label>
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
