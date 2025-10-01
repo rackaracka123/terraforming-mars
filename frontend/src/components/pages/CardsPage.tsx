@@ -790,7 +790,7 @@ const CardsPage: React.FC = () => {
 
         h1 {
           font-family: 'Orbitron', sans-serif;
-          font-size: 28px;
+          font-size: 20px;
           color: #ffffff;
           margin: 0;
           text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
