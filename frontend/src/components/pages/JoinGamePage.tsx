@@ -280,87 +280,90 @@ const JoinGamePage: React.FC = () => {
           ← Back to Home
         </button>
         <div className={styles.container}>
-        <div className={styles.content}>
-          <h1>Join a game</h1>
+          <div className={styles.content}>
+            <h1>Join a game</h1>
 
-          {!gameValidated ? (
-            <form onSubmit={handleGameIdSubmit} className={styles.joinGameForm}>
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={gameId}
-                  onChange={handleGameIdChange}
-                  onKeyDown={handleGameIdKeyDown}
-                  placeholder="Enter game ID"
-                  disabled={isLoadingGameValidation}
-                  className={styles.playerNameInput}
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={isLoadingGameValidation || !gameId.trim()}
-                  className={styles.submitButton}
-                  title="Find Game"
-                >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Find Game"
-                    className={styles.arrowIcon}
+            {!gameValidated ? (
+              <form
+                onSubmit={handleGameIdSubmit}
+                className={styles.joinGameForm}
+              >
+                <div className={styles.inputContainer}>
+                  <input
+                    type="text"
+                    value={gameId}
+                    onChange={handleGameIdChange}
+                    onKeyDown={handleGameIdKeyDown}
+                    placeholder="Enter game ID"
+                    disabled={isLoadingGameValidation}
+                    className={styles.playerNameInput}
+                    autoFocus
                   />
-                </button>
-              </div>
-
-              {error && <div className={styles.errorMessage}>{error}</div>}
-            </form>
-          ) : (
-            <form
-              onSubmit={handlePlayerNameSubmit}
-              className={styles.joinGameForm}
-            >
-              <div className={styles.gameInfo}>
-                <p>
-                  Game found!
                   <button
-                    type="button"
-                    onClick={handleEditGameId}
-                    className={styles.editGameIdButton}
+                    type="submit"
+                    disabled={isLoadingGameValidation || !gameId.trim()}
+                    className={styles.submitButton}
+                    title="Find Game"
                   >
-                    (edit)
+                    <img
+                      src="/assets/misc/arrow.png"
+                      alt="Find Game"
+                      className={styles.arrowIcon}
+                    />
                   </button>
-                </p>
-              </div>
+                </div>
 
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={handlePlayerNameChange}
-                  onKeyDown={handlePlayerNameKeyDown}
-                  placeholder="Enter your name"
-                  disabled={isLoadingJoin}
-                  className={styles.playerNameInput}
-                  autoFocus
-                  maxLength={50}
-                />
-                <button
-                  type="submit"
-                  disabled={isLoadingJoin || !playerName.trim()}
-                  className={styles.submitButton}
-                  title="Join Game"
-                >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Join Game"
-                    className={styles.arrowIcon}
+                {error && <div className={styles.errorMessage}>{error}</div>}
+              </form>
+            ) : (
+              <form
+                onSubmit={handlePlayerNameSubmit}
+                className={styles.joinGameForm}
+              >
+                <div className={styles.gameInfo}>
+                  <p>
+                    Game found!
+                    <button
+                      type="button"
+                      onClick={handleEditGameId}
+                      className={styles.editGameIdButton}
+                    >
+                      (edit)
+                    </button>
+                  </p>
+                </div>
+
+                <div className={styles.inputContainer}>
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={handlePlayerNameChange}
+                    onKeyDown={handlePlayerNameKeyDown}
+                    placeholder="Enter your name"
+                    disabled={isLoadingJoin}
+                    className={styles.playerNameInput}
+                    autoFocus
+                    maxLength={50}
                   />
-                </button>
-              </div>
+                  <button
+                    type="submit"
+                    disabled={isLoadingJoin || !playerName.trim()}
+                    className={styles.submitButton}
+                    title="Join Game"
+                  >
+                    <img
+                      src="/assets/misc/arrow.png"
+                      alt="Join Game"
+                      className={styles.arrowIcon}
+                    />
+                  </button>
+                </div>
 
-              {error && <div className={styles.errorMessage}>{error}</div>}
-            </form>
-          )}
+                {error && <div className={styles.errorMessage}>{error}</div>}
+              </form>
+            )}
+          </div>
         </div>
-      </div>
       </div>
 
       <LoadingOverlay

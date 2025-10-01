@@ -136,60 +136,60 @@ const CreateGamePage: React.FC = () => {
           <div className={styles.content}>
             <h1 className={styles.title}>Create a new game</h1>
 
-          <form onSubmit={handleSubmit} className={styles.createGameForm}>
-            <div className={styles.inputContainer}>
-              <input
-                type="text"
-                value={playerName}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Enter your name"
-                disabled={isLoading}
-                className={styles.playerNameInput}
-                autoFocus
-                maxLength={50}
-              />
-
-              <button
-                type="submit"
-                disabled={isLoading || !playerName.trim()}
-                className={styles.submitButton}
-                title="Connect"
-              >
-                <img
-                  src="/assets/misc/arrow.png"
-                  alt="Connect"
-                  className={styles.arrowIcon}
-                />
-              </button>
-            </div>
-
-            <div className={styles.developmentModeContainer}>
-              <label className={styles.developmentModeLabel}>
+            <form onSubmit={handleSubmit} className={styles.createGameForm}>
+              <div className={styles.inputContainer}>
                 <input
-                  type="checkbox"
-                  checked={developmentMode}
-                  onChange={(e) => setDevelopmentMode(e.target.checked)}
+                  type="text"
+                  value={playerName}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter your name"
                   disabled={isLoading}
-                  className={styles.developmentModeCheckbox}
+                  className={styles.playerNameInput}
+                  autoFocus
+                  maxLength={50}
                 />
-                <span className={styles.checkboxText}>
-                  Development Mode
-                  <div className={styles.tooltipContainer}>
-                    <span className={styles.tooltipIcon}>ⓘ</span>
-                    <div className={styles.tooltipText}>
-                      Enable admin commands for debugging and testing. Allows
-                      you to give cards to players, modify resources/production,
-                      change game phases, and adjust global parameters through
-                      the debug panel.
-                    </div>
-                  </div>
-                </span>
-              </label>
-            </div>
 
-            {error && <div className={styles.errorMessage}>{error}</div>}
-          </form>
+                <button
+                  type="submit"
+                  disabled={isLoading || !playerName.trim()}
+                  className={styles.submitButton}
+                  title="Connect"
+                >
+                  <img
+                    src="/assets/misc/arrow.png"
+                    alt="Connect"
+                    className={styles.arrowIcon}
+                  />
+                </button>
+              </div>
+
+              <div className={styles.developmentModeContainer}>
+                <label className={styles.developmentModeLabel}>
+                  <input
+                    type="checkbox"
+                    checked={developmentMode}
+                    onChange={(e) => setDevelopmentMode(e.target.checked)}
+                    disabled={isLoading}
+                    className={styles.developmentModeCheckbox}
+                  />
+                  <span className={styles.checkboxText}>
+                    Development Mode
+                    <div className={styles.tooltipContainer}>
+                      <span className={styles.tooltipIcon}>ⓘ</span>
+                      <div className={styles.tooltipText}>
+                        Enable admin commands for debugging and testing. Allows
+                        you to give cards to players, modify
+                        resources/production, change game phases, and adjust
+                        global parameters through the debug panel.
+                      </div>
+                    </div>
+                  </span>
+                </label>
+              </div>
+
+              {error && <div className={styles.errorMessage}>{error}</div>}
+            </form>
           </div>
         </div>
       </div>
