@@ -271,12 +271,12 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
           <div
             className={`flex flex-col items-center gap-1 py-2 px-3 border rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === "all" ? "scale-105" : ""}`}
             style={{
-              borderColor: "rgba(30, 60, 150, 0.5)",
+              borderColor: "#9664ff",
               background:
-                "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
+                "linear-gradient(145deg, rgba(150, 100, 255, 0.2) 0%, rgba(120, 80, 200, 0.3) 100%)",
               boxShadow:
                 filterType === "all"
-                  ? "0 0 15px rgba(100, 150, 255, 0.5)"
+                  ? "0 0 15px rgba(150, 100, 255, 0.5)"
                   : "none",
             }}
             onClick={() => setFilterType("all")}
