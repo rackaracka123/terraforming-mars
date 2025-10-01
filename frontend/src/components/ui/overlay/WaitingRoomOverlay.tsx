@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { GameDto } from "../../../types/generated/api-types.ts";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
+import CopyLinkButton from "../buttons/CopyLinkButton.tsx";
 import styles from "./WaitingRoomOverlay.module.css";
 
 interface WaitingRoomOverlayProps {
@@ -14,7 +15,6 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   playerId,
   onStartGame,
 }) => {
-  const [copyText, setCopyText] = useState("Copy");
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
@@ -26,18 +26,6 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
     // Send start game action via WebSocket
     void globalWebSocketManager.startGame();
     onStartGame?.();
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(joinUrl);
-      setCopyText("Copied!");
-      setTimeout(() => setCopyText("Copy"), 2000);
-    } catch (err) {
-      console.error("Failed to copy link:", err);
-      setCopyText("Failed");
-      setTimeout(() => setCopyText("Copy"), 2000);
-    }
   };
 
   return (
@@ -99,27 +87,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
           <div className={styles.joinLinkSection}>
             <label>Share this link with friends:</label>
-            <div className={styles.joinLinkContainer}>
-              <input
-                type="text"
-                value={joinUrl}
-                readOnly
-                className={styles.joinLinkInput}
-              />
-              <button className={styles.copyButton} onClick={handleCopyLink}>
-                <img
-                  src="/assets/misc/copy.png"
-                  alt="Copy"
-                  className={styles.copyIcon}
-                  onError={(e) => {
-                    // Fallback if copy icon doesn't exist
-                    e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling!.textContent = copyText;
-                  }}
-                />
-                <span className={styles.copyText}>{copyText}</span>
-              </button>
-            </div>
+            <CopyLinkButton textToCopy={joinUrl} defaultText="Copy Join Link" />
           </div>
         </div>
       </div>

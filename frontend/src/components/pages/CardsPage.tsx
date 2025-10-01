@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import SimpleGameCard from "../ui/cards/SimpleGameCard";
+import CopyLinkButton from "../ui/buttons/CopyLinkButton";
 import { CardDto } from "@/types/generated/api-types";
 
 const CardsPage: React.FC = () => {
@@ -22,7 +23,6 @@ const CardsPage: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
 
   // Get tag icon mapping from tags folder
@@ -397,7 +397,7 @@ const CardsPage: React.FC = () => {
     setSelectedCards(new Set());
   };
 
-  const handleCopyPermalink = useCallback(() => {
+  const generatePermalinkUrl = useCallback(() => {
     const params = new URLSearchParams();
 
     // Add selected card IDs as multiple cId parameters
@@ -405,16 +405,7 @@ const CardsPage: React.FC = () => {
       params.append("cId", cardId);
     });
 
-    const permalink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-
-    // Copy to clipboard
-    void navigator.clipboard.writeText(permalink);
-
-    // Show "Copied!" feedback
-    setLinkCopied(true);
-    setTimeout(() => {
-      setLinkCopied(false);
-    }, 1000);
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   }, [selectedCards]);
 
   // Calculate total height for the container
@@ -481,13 +472,11 @@ const CardsPage: React.FC = () => {
               </button>
             )}
             {selectedCards.size > 0 && !isPermalinkView && (
-              <button
+              <CopyLinkButton
+                textToCopy={generatePermalinkUrl()}
+                defaultText={`Link (${selectedCards.size})`}
                 className="link-button"
-                onClick={handleCopyPermalink}
-                title={`Create permalink for ${selectedCards.size} selected cards`}
-              >
-                {linkCopied ? "Copied!" : `Link (${selectedCards.size})`}
-              </button>
+              />
             )}
             <button
               className="filter-toggle-button"
