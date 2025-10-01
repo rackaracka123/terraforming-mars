@@ -151,7 +151,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.credits,
       production: currentPlayer.resourceProduction.credits,
       icon: "/assets/resources/megacredit.png",
-      color: "#f1c40f",
+      color: "#f1c40f", // Gold - OK already
     },
     {
       id: "steel",
@@ -159,7 +159,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.steel,
       production: currentPlayer.resourceProduction.steel,
       icon: "/assets/resources/steel.png",
-      color: "#95a5a6",
+      color: "#d2691e", // Brown/orangy
     },
     {
       id: "titanium",
@@ -167,7 +167,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.titanium,
       production: currentPlayer.resourceProduction.titanium,
       icon: "/assets/resources/titanium.png",
-      color: "#e74c3c",
+      color: "#ffd700", // Yellow
     },
     {
       id: "plants",
@@ -175,7 +175,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.plants,
       production: currentPlayer.resourceProduction.plants,
       icon: "/assets/resources/plant.png",
-      color: "#27ae60",
+      color: "#27ae60", // Green - OK already
     },
     {
       id: "energy",
@@ -183,7 +183,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.energy,
       production: currentPlayer.resourceProduction.energy,
       icon: "/assets/resources/power.png",
-      color: "#3498db",
+      color: "#9b59b6", // Purple
     },
     {
       id: "heat",
@@ -191,7 +191,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.heat,
       production: currentPlayer.resourceProduction.heat,
       icon: "/assets/resources/heat.png",
-      color: "#e67e22",
+      color: "#ff4500", // Red/orange
     },
   ];
 
