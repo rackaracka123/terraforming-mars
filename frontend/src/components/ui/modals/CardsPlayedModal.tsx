@@ -160,7 +160,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
-                className="bg-black/50 border border-[rgba(0,255,120,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
+                className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="all">All Cards</option>
                 <option value={CardType.CORPORATION}>Corporations</option>
@@ -176,14 +176,14 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
-                className="bg-black/50 border border-[rgba(0,255,120,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
+                className="bg-black/50 border border-space-blue-400/40 rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="cost">Cost</option>
                 <option value="name">Name</option>
                 <option value="type">Type</option>
               </select>
               <button
-                className="bg-[rgba(0,255,120,0.2)] border border-[rgba(0,255,120,0.4)] rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[rgba(0,255,120,0.3)] hover:scale-110"
+                className="bg-space-blue-400/20 border border-space-blue-400/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-space-blue-400/30 hover:scale-110"
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
