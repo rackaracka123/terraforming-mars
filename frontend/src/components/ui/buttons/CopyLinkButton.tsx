@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import styles from "./CopyLinkButton.module.css";
 
 interface CopyLinkButtonProps {
   textToCopy: string;
@@ -38,12 +37,12 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
 
   return (
     <button
-      className={`${styles.copyLinkButton} ${className}`}
+      className={`bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold backdrop-blur-space min-w-[120px] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5 disabled:cursor-default disabled:transform-none ${className}`}
       onClick={handleCopy}
       disabled={isCopied}
     >
       <span
-        className={`${styles.buttonText} ${isCopied ? styles.fadeOut : styles.fadeIn}`}
+        className={`inline-block transition-opacity duration-300 ${isCopied ? "opacity-70" : "opacity-100"}`}
       >
         {isCopied ? copiedText : defaultText}
       </span>
