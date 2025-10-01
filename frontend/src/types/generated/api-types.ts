@@ -46,6 +46,7 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+  choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
 }
 /**
  * PlayCardActionAction represents playing a card action from player's action list
@@ -53,6 +54,7 @@ export interface PlayCardAction {
 export interface PlayCardActionAction {
   cardId: string;
   behaviorIndex: number /* int */;
+  choiceIndex?: number /* int */; // Optional: index of choice to play (for actions with choices)
 }
 /**
  * HexPositionDto represents a position on the Mars board
@@ -134,6 +136,7 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+  choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
 }
 /**
  * ActionPlayCardActionRequest contains the action data for play card action actions
@@ -142,6 +145,7 @@ export interface ActionPlayCardActionRequest {
   type: ActionType;
   cardId: string;
   behaviorIndex: number /* int */;
+  choiceIndex?: number /* int */; // Optional: index of choice to play (for actions with choices)
 }
 /**
  * ActionSellPatentsRequest contains the action data for sell patents actions

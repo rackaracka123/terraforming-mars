@@ -70,8 +70,8 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Execute the play card action
-	err := h.cardService.OnPlayCard(ctx, gameID, playerID, request.CardID)
+	// Execute the play card action with optional choice index
+	err := h.cardService.OnPlayCard(ctx, gameID, playerID, request.CardID, request.ChoiceIndex)
 	if err != nil {
 		h.logger.Warn("Failed to play card",
 			zap.String("connection_id", connection.ID),

@@ -27,12 +27,13 @@ func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.
 
 // ApplyCardEffects applies all effects when a card is played to the game state
 // This function assumes all requirements and affordability checks have already been validated
-func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+// choiceIndex is optional and used when the card has choices between different effects
+func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎭 Applying card effects", zap.String("card_name", card.Name))
 
 	// Apply production effects if the card has them
-	if err := cp.applyProductionEffects(ctx, gameID, playerID, card); err != nil {
+	if err := cp.applyProductionEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
 		return fmt.Errorf("failed to apply production effects: %w", err)
 	}
 
@@ -47,7 +48,7 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 	// }
 
 	// Extract and add manual actions from card behaviors
-	if err := cp.extractAndAddManualActions(ctx, gameID, playerID, card); err != nil {
+	if err := cp.extractAndAddManualActions(ctx, gameID, playerID, card, choiceIndex); err != nil {
 		return fmt.Errorf("failed to extract manual actions: %w", err)
 	}
 
@@ -57,7 +58,7 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 	}
 
 	// Apply immediate resource effects
-	if err := cp.applyResourceEffects(ctx, gameID, playerID, card); err != nil {
+	if err := cp.applyResourceEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
 		return fmt.Errorf("failed to apply resource effects: %w", err)
 	}
 
@@ -71,7 +72,8 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 }
 
 // applyProductionEffects applies production changes from a card's behaviors
-func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+// choiceIndex is optional and used when the card has choices between different effects
+func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current production
@@ -90,7 +92,20 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
-			for _, output := range behavior.Outputs {
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+				log.Debug("🎯 Applying choice outputs for production",
+					zap.Int("choice_index", *choiceIndex),
+					zap.Int("choice_outputs_count", len(selectedChoice.Outputs)))
+			}
+
+			// Process all aggregated outputs
+			for _, output := range allOutputs {
 				switch output.Type {
 				case model.ResourceCreditsProduction:
 					newProduction.Credits += output.Amount
@@ -136,7 +151,8 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 }
 
 // extractAndAddManualActions extracts manual actions from card behaviors and adds them to the player
-func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *model.Card) error {
+// choiceIndex is optional - manual actions can also have choices that need to be resolved when the action is played
+func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Track manual actions found
@@ -154,6 +170,8 @@ func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID,
 		}
 
 		// If behavior has manual triggers, create a PlayerAction
+		// Note: Manual actions can have their own choices, which are independent from the choice made when playing the card
+		// The choiceIndex parameter here is for auto-triggered effects, not for manual actions
 		if hasManualTrigger {
 			action := model.PlayerAction{
 				CardID:        card.ID,
@@ -265,7 +283,8 @@ func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID
 }
 
 // applyResourceEffects applies immediate resource gains/losses from a card's behaviors
-func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+// choiceIndex is optional and used when the card has choices between different effects
+func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources
@@ -284,7 +303,20 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
-			for _, output := range behavior.Outputs {
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+				log.Debug("🎯 Applying choice outputs for resources",
+					zap.Int("choice_index", *choiceIndex),
+					zap.Int("choice_outputs_count", len(selectedChoice.Outputs)))
+			}
+
+			// Process all aggregated outputs
+			for _, output := range allOutputs {
 				switch output.Type {
 				case model.ResourceCredits:
 					newResources.Credits += output.Amount

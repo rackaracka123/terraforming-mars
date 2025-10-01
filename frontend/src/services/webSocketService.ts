@@ -282,15 +282,24 @@ export class WebSocketService {
   }
 
   // Card actions
-  playCard(cardId: string): string {
-    return this.send(MessageTypeActionPlayCard, { type: "play-card", cardId });
+  playCard(cardId: string, choiceIndex?: number): string {
+    return this.send(MessageTypeActionPlayCard, {
+      type: "play-card",
+      cardId,
+      ...(choiceIndex !== undefined && { choiceIndex }),
+    });
   }
 
-  playCardAction(cardId: string, behaviorIndex: number): string {
+  playCardAction(
+    cardId: string,
+    behaviorIndex: number,
+    choiceIndex?: number,
+  ): string {
     return this.send(MessageTypeActionCardAction, {
       type: "card-action",
       cardId,
       behaviorIndex,
+      ...(choiceIndex !== undefined && { choiceIndex }),
     });
   }
 
