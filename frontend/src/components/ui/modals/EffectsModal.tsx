@@ -123,15 +123,15 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 z-[3000] flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]">
       <div
-        className="absolute top-0 left-0 right-0 bottom-0 bg-black/85 backdrop-blur-[10px] cursor-pointer"
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm cursor-pointer"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-[linear-gradient(145deg,rgba(20,30,45,0.98)_0%,rgba(30,40,60,0.95)_100%)] border-[3px] border-[rgba(255,150,255,0.4)] rounded-[20px] overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_60px_rgba(255,150,255,0.4)] backdrop-blur-[20px] animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
+      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-space-black-darker/95 border-2 border-[#ff96ff] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_30px_#ff96ff] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between py-[25px] px-[30px] bg-[linear-gradient(90deg,rgba(40,20,50,0.9)_0%,rgba(50,30,60,0.7)_100%)] border-b-2 border-[rgba(255,150,255,0.3)] flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
+        <div className="flex items-center justify-between py-[25px] px-[30px] bg-black/40 border-b border-[#ff96ff]/60 flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
           <div className="flex flex-col gap-[15px]">
-            <h1 className="m-0 text-white text-[28px] font-bold [text-shadow:2px_2px_4px_rgba(0,0,0,0.8)]">
+            <h1 className="m-0 font-orbitron text-white text-[28px] font-bold text-shadow-glow tracking-wider">
               Card Effects
             </h1>
             <div className="flex gap-5 items-center">
@@ -160,7 +160,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
-                className="bg-black/50 border border-[rgba(255,150,255,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
+                className="bg-black/50 border border-[#ff96ff]/40 rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="all">All Effects ({effectStats.total})</option>
                 {getUniqueCardNames().map((cardName) => (
@@ -176,13 +176,13 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
-                className="bg-black/50 border border-[rgba(255,150,255,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
+                className="bg-black/50 border border-[#ff96ff]/40 rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="card">Card Name</option>
                 <option value="behavior">Behavior Type</option>
               </select>
               <button
-                className="bg-[rgba(255,150,255,0.2)] border border-[rgba(255,150,255,0.4)] rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[rgba(255,150,255,0.3)] hover:scale-110"
+                className="bg-[#ff96ff]/20 border border-[#ff96ff]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#ff96ff]/30 hover:scale-110"
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
@@ -202,7 +202,7 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
         </div>
 
         {/* Effects Content */}
-        <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,150,255,0.5)_rgba(75,50,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(75,50,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(255,150,255,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(255,150,255,0.7)] max-md:p-5">
+        <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff96ff_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff96ff]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff96ff] max-md:p-5">
           {filteredEffects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
               <img
@@ -234,16 +234,16 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
                 {filteredEffects.map((effect, index) => (
                   <div
                     key={`${effect.cardId}-${effect.behaviorIndex}`}
-                    className="border-2 border-[rgba(255,150,255,0.4)] rounded-xl p-5 bg-[linear-gradient(135deg,rgba(50,30,70,0.4)_0%,rgba(40,20,60,0.3)_100%)] backdrop-blur-[10px] shadow-[0_8px_25px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(255,150,255,0.3)] w-full animate-[actionSlideIn_0.6s_ease-out_both]"
+                    className="border-2 border-[#ff96ff]/40 rounded-xl p-5 bg-space-black-darker/60 backdrop-blur-[10px] shadow-[0_8px_25px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_35px_#ff96ff40] w-full animate-[actionSlideIn_0.6s_ease-out_both]"
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     {/* Effect Header */}
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/20">
-                      <div className="bg-[rgba(255,150,255,0.2)] border border-[rgba(255,150,255,0.4)] rounded-lg py-1.5 px-3 text-white text-xs font-semibold uppercase tracking-wider">
+                      <div className="bg-[#ff96ff]/20 border border-[#ff96ff]/40 rounded-lg py-1.5 px-3 text-white text-xs font-semibold uppercase tracking-wider">
                         {effect.cardName}
                       </div>
 
-                      <div className="w-8 h-8 flex items-center justify-center bg-[rgba(255,150,255,0.1)] rounded-full border border-[rgba(255,150,255,0.3)]">
+                      <div className="w-8 h-8 flex items-center justify-center bg-[#ff96ff]/10 rounded-full border border-[#ff96ff]/30">
                         <img
                           src="/assets/misc/asterisc.png"
                           alt="Effect"
