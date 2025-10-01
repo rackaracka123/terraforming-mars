@@ -134,7 +134,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
+      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-space-black-darker/95 border-2 border-[#ff6464] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_30px_#ff6464] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between py-[25px] px-[30px] bg-black/40 border-b border-space-blue-600 flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
           <div className="flex flex-col gap-[15px]">

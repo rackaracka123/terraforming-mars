@@ -109,25 +109,25 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
 
   return (
     <div
-      className="fixed bottom-[85px] right-[30px] w-[320px] max-h-[400px] bg-[linear-gradient(145deg,rgba(20,30,45,0.98)_0%,rgba(30,40,60,0.95)_100%)] border-2 border-[rgba(100,150,255,0.6)] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(100,150,255,0.3)] [backdrop-filter:blur(15px)] z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] max-[768px]:right-[15px] max-[768px]:bottom-[70px]"
+      className="fixed bottom-[85px] right-[30px] w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#6496ff] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#6496ff] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] max-[768px]:right-[15px] max-[768px]:bottom-[70px]"
       ref={popoverRef}
     >
-      <div className="absolute -bottom-2 right-[50px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[rgba(100,150,255,0.6)] max-[768px]:right-[40px]" />
+      <div className="absolute -bottom-2 right-[50px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#6496ff] max-[768px]:right-[40px]" />
 
-      <div className="flex items-center justify-between py-[15px] px-5 bg-[linear-gradient(90deg,rgba(20,40,60,0.9)_0%,rgba(30,50,70,0.7)_100%)] border-b border-b-[rgba(100,150,255,0.3)]">
+      <div className="flex items-center justify-between py-[15px] px-5 bg-black/40 border-b border-b-[#6496ff]/60">
         <div className="flex items-center gap-2.5">
-          <h3 className="m-0 text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+          <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
             Card Storages
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-white/80 text-xs bg-[rgba(100,150,255,0.2)] py-1 px-2 rounded-md border border-[rgba(100,150,255,0.3)]">
+          <div className="text-white/80 text-xs bg-[#6496ff]/20 py-1 px-2 rounded-md border border-[#6496ff]/30">
             {storageItems.length} card{storageItems.length !== 1 ? "s" : ""}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(100,150,255,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(100,150,255,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(100,150,255,0.7)]">
+      <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#6496ff_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#6496ff]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#6496ff]">
         {storageItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
             <img
@@ -150,7 +150,7 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
               return (
                 <div
                   key={storage.cardId}
-                  className="flex items-center gap-3 py-2.5 px-[15px] bg-[linear-gradient(135deg,rgba(30,60,90,0.4)_0%,rgba(20,40,70,0.3)_100%)] border border-[rgba(100,150,255,0.3)] rounded-lg transition-all duration-300 animate-[storageSlideIn_0.4s_ease-out_both] hover:border-[rgba(100,150,255,0.5)] hover:bg-[linear-gradient(135deg,rgba(30,60,90,0.5)_0%,rgba(20,40,70,0.4)_100%)] hover:shadow-[0_2px_8px_rgba(100,150,255,0.2)] max-[768px]:py-2 max-[768px]:px-3"
+                  className="flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#6496ff]/30 rounded-lg transition-all duration-300 animate-[storageSlideIn_0.4s_ease-out_both] hover:translate-x-1 hover:border-[#6496ff] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#6496ff40] max-[768px]:py-2 max-[768px]:px-3"
                   style={{
                     animationDelay: `${index * 0.05}s`,
                   }}

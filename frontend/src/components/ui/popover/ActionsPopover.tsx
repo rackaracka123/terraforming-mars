@@ -127,7 +127,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
 
   return (
     <div
-      className="fixed bottom-[85px] right-[30px] w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff6464] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_30px_#ff6464] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] max-[768px]:right-[15px] max-[768px]:bottom-[70px]"
+      className="fixed bottom-[85px] right-[30px] w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff6464] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#ff6464] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] max-[768px]:right-[15px] max-[768px]:bottom-[70px]"
       ref={popoverRef}
     >
       <div className="absolute -bottom-2 right-[50px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#ff6464] max-[768px]:right-[40px]" />
