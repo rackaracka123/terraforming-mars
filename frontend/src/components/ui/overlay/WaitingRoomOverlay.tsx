@@ -64,9 +64,14 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                 return orderedPlayers.map((player) => (
                   <div key={player.id} className={styles.playerItem}>
                     <span className={styles.playerName}>{player.name}</span>
-                    {game.hostPlayerId === player.id && (
-                      <span className={styles.hostBadge}>Host</span>
-                    )}
+                    <div className={styles.badgeContainer}>
+                      {player.id === playerId && (
+                        <span className={styles.youBadge}>You</span>
+                      )}
+                      {game.hostPlayerId === player.id && (
+                        <span className={styles.hostBadge}>Host</span>
+                      )}
+                    </div>
                   </div>
                 ));
               })()}
