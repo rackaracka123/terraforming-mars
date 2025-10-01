@@ -35,19 +35,14 @@ const ProductionDisplay: React.FC<ProductionDisplayProps> = ({
 
   return (
     <div
-      className={`production-display ${className}`}
+      className={`inline-flex items-center ${className}`}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
         gap: `${dimensions.gap}px`,
       }}
     >
       <div
+        className="relative inline-flex items-center justify-center"
         style={{
-          position: "relative",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
           width: `${dimensions.productionIcon}px`,
           height: `${dimensions.productionIcon}px`,
         }}
@@ -64,11 +59,8 @@ const ProductionDisplay: React.FC<ProductionDisplayProps> = ({
           <img
             src={getResourceIcon(resourceType)}
             alt={resourceType}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
               width: `${dimensions.resourceIcon}px`,
               height: `${dimensions.resourceIcon}px`,
             }}
@@ -76,13 +68,9 @@ const ProductionDisplay: React.FC<ProductionDisplayProps> = ({
         )}
       </div>
       <span
+        className="text-white font-bold font-[Arial,sans-serif] leading-none [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]"
         style={{
-          color: "#ffffff",
-          fontWeight: "bold",
           fontSize: dimensions.fontSize,
-          textShadow: "1px 1px 2px rgba(0, 0, 0, 0.8)",
-          fontFamily: "Arial, sans-serif",
-          lineHeight: "1",
         }}
       >
         {amount}

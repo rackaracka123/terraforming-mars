@@ -56,28 +56,32 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     // For credits, use larger custom display
     if (type === "credits") {
       return (
-        <div className="resource-item-large">
+        <div className="flex items-center gap-2.5 bg-white/15 px-3 py-2 rounded-lg text-sm text-white">
           {isProduction && (
-            <div className="production-display-custom">
-              <div className="production-icon-container">
+            <div className="inline-flex items-center gap-2.5">
+              <div className="relative inline-flex items-center justify-center">
                 <img
                   src="/assets/misc/production.png"
                   alt="Production"
-                  className="production-icon-xlarge"
+                  className="w-8 h-8"
                 />
                 <img
                   src={icon}
                   alt={type}
-                  className="resource-icon-in-production"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5"
                 />
               </div>
-              <span className="resource-amount-xlarge">{amount}</span>
+              <span className="font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                {amount}
+              </span>
             </div>
           )}
           {!isProduction && (
-            <div className="resource-credits-display">
-              <img src={icon} alt={type} className="resource-icon-xlarge" />
-              <span className="resource-amount-xlarge">{amount}</span>
+            <div className="relative inline-flex items-center justify-center">
+              <img src={icon} alt={type} className="w-8 h-8" />
+              <span className="font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                {amount}
+              </span>
             </div>
           )}
         </div>
@@ -85,29 +89,31 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     }
 
     return (
-      <div className="resource-item-large">
+      <div className="flex items-center gap-2.5 bg-white/15 px-3 py-2 rounded-lg text-sm text-white">
         {isProduction && (
-          <div className="production-display-custom">
-            <div className="production-icon-container">
+          <div className="inline-flex items-center gap-2.5">
+            <div className="relative inline-flex items-center justify-center">
               <img
                 src="/assets/misc/production.png"
                 alt="Production"
-                className="production-icon-xlarge"
+                className="w-8 h-8"
               />
               <img
                 src={icon}
                 alt={type}
-                className="resource-icon-in-production"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5"
               />
             </div>
-            <span className="resource-amount-xlarge">{amount}</span>
+            <span className="font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+              {amount}
+            </span>
           </div>
         )}
+        {!isProduction && <img src={icon} alt={type} className="w-8 h-8" />}
         {!isProduction && (
-          <img src={icon} alt={type} className="resource-icon-xlarge" />
-        )}
-        {!isProduction && (
-          <span className="resource-amount-xlarge">{amount}</span>
+          <span className="font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+            {amount}
+          </span>
         )}
       </div>
     );
@@ -115,27 +121,29 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
   return (
     <div
-      className={`corporation-card ${isSelected ? "selected" : ""}`}
+      className={`relative bg-[linear-gradient(135deg,rgba(30,50,80,0.6)_0%,rgba(20,40,70,0.5)_100%)] border-2 border-white/20 rounded-xl p-5 cursor-pointer transition-all duration-300 ease-[ease] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_20px_rgba(100,150,255,0.3)] hover:border-[rgba(100,150,255,0.5)] ${isSelected ? "border-[rgba(150,255,150,0.8)] shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_30px_rgba(150,255,150,0.4)] bg-[linear-gradient(135deg,rgba(30,60,30,0.6)_0%,rgba(20,50,20,0.5)_100%)]" : ""}`}
       onClick={() => onSelect(corporation.id)}
     >
-      <div className="corporation-header">
+      <div className="flex items-center mb-[15px] gap-[15px]">
         {corporation.logoPath && (
           <img
             src={corporation.logoPath}
             alt={corporation.name}
-            className="corporation-logo"
+            className="w-[60px] h-[60px] rounded-lg object-cover"
           />
         )}
-        <div className="corporation-info">
-          <h3 className="corporation-name">{corporation.name}</h3>
-          <div className="starting-credits">
-            <div className="mega-credits-display">
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-white m-0 mb-2 [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
+            {corporation.name}
+          </h3>
+          <div className="flex items-center justify-center bg-[rgba(241,196,15,0.2)] py-3 px-4 rounded-xl">
+            <div className="relative inline-flex items-center justify-center">
               <img
                 src="/assets/resources/megacredit.png"
                 alt="Megacredits"
-                className="mega-credits-icon"
+                className="w-14 h-14"
               />
-              <span className="mega-credits-amount">
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-bold text-lg font-[Arial,sans-serif] [text-shadow:0.5px_0.5px_1px_rgba(255,255,255,0.8)] leading-none">
                 {corporation.startingMegaCredits}
               </span>
             </div>
@@ -143,14 +151,18 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         </div>
       </div>
 
-      <div className="corporation-description">{corporation.description}</div>
+      <div className="text-sm text-white/90 leading-[1.5] mb-[15px]">
+        {corporation.description}
+      </div>
 
       {(corporation.startingProduction || corporation.startingResources) && (
-        <div className="starting-resources">
+        <div className="mt-[15px] pt-[15px] border-t border-white/10">
           {corporation.startingProduction && (
-            <div className="production-resources">
-              <h4>Starting Production:</h4>
-              <div className="resources-list">
+            <div>
+              <h4 className="text-xs text-white/80 m-0 mb-2 uppercase tracking-[0.5px]">
+                Starting Production:
+              </h4>
+              <div className="flex flex-wrap gap-2">
                 {Object.entries(corporation.startingProduction).map(
                   ([type, amount]) =>
                     amount > 0 ? renderResourceIcon(type, amount, true) : null,
@@ -160,9 +172,11 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
           )}
 
           {corporation.startingResources && (
-            <div className="initial-resources">
-              <h4>Starting Resources:</h4>
-              <div className="resources-list">
+            <div>
+              <h4 className="text-xs text-white/80 m-0 mb-2 uppercase tracking-[0.5px]">
+                Starting Resources:
+              </h4>
+              <div className="flex flex-wrap gap-2">
                 {Object.entries(corporation.startingResources).map(
                   ([type, amount]) =>
                     amount > 0 ? renderResourceIcon(type, amount, false) : null,
@@ -174,230 +188,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       )}
 
       {corporation.expansion && (
-        <div className="expansion-badge">{corporation.expansion}</div>
+        <div className="absolute top-2.5 right-2.5 bg-[rgba(100,150,255,0.3)] text-white/80 py-1 px-2 rounded text-[10px] uppercase tracking-[0.5px]">
+          {corporation.expansion}
+        </div>
       )}
-
-      <style>{`
-        .corporation-card {
-          background: linear-gradient(
-            135deg,
-            rgba(30, 50, 80, 0.6) 0%,
-            rgba(20, 40, 70, 0.5) 100%
-          );
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          border-radius: 12px;
-          padding: 20px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        .corporation-card:hover {
-          transform: translateY(-2px);
-          box-shadow:
-            0 8px 25px rgba(0, 0, 0, 0.4),
-            0 0 20px rgba(100, 150, 255, 0.3);
-          border-color: rgba(100, 150, 255, 0.5);
-        }
-
-        .corporation-card.selected {
-          border-color: rgba(150, 255, 150, 0.8);
-          box-shadow:
-            0 8px 25px rgba(0, 0, 0, 0.4),
-            0 0 30px rgba(150, 255, 150, 0.4);
-          background: linear-gradient(
-            135deg,
-            rgba(30, 60, 30, 0.6) 0%,
-            rgba(20, 50, 20, 0.5) 100%
-          );
-        }
-
-        .corporation-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 15px;
-          gap: 15px;
-        }
-
-        .corporation-logo {
-          width: 60px;
-          height: 60px;
-          border-radius: 8px;
-          object-fit: cover;
-        }
-
-        .corporation-info {
-          flex: 1;
-        }
-
-        .corporation-name {
-          font-size: 20px;
-          font-weight: bold;
-          color: #ffffff;
-          margin: 0 0 8px 0;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
-        .starting-credits {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(241, 196, 15, 0.2);
-          padding: 12px 16px;
-          border-radius: 12px;
-        }
-
-        .mega-credits-display {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .mega-credits-icon {
-          width: 56px;
-          height: 56px;
-        }
-
-        .mega-credits-amount {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: #000000;
-          font-weight: bold;
-          font-size: 18px;
-          font-family: Arial, sans-serif;
-          text-shadow: 0.5px 0.5px 1px rgba(255, 255, 255, 0.8);
-          line-height: 1;
-        }
-
-        .corporation-description {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.9);
-          line-height: 1.5;
-          margin-bottom: 15px;
-        }
-
-        .starting-resources {
-          margin-top: 15px;
-          padding-top: 15px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .starting-resources h4 {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.8);
-          margin: 0 0 8px 0;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .resources-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .resource-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: rgba(255, 255, 255, 0.1);
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          color: #ffffff;
-        }
-
-        .resource-item-large {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(255, 255, 255, 0.15);
-          padding: 8px 12px;
-          border-radius: 8px;
-          font-size: 14px;
-          color: #ffffff;
-        }
-
-        .resource-credits-display {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .resource-icon {
-          width: 16px;
-          height: 16px;
-        }
-
-        .resource-icon-large {
-          width: 24px;
-          height: 24px;
-        }
-
-        .resource-icon-xlarge {
-          width: 32px;
-          height: 32px;
-        }
-
-        .resource-amount {
-          font-weight: bold;
-        }
-
-        .resource-amount-large {
-          font-weight: bold;
-          font-size: 14px;
-        }
-
-        .resource-amount-xlarge {
-          font-weight: bold;
-          font-size: 16px;
-          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        .production-display-custom {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .production-icon-container {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .production-icon-xlarge {
-          width: 32px;
-          height: 32px;
-        }
-
-        .resource-icon-in-production {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 20px;
-          height: 20px;
-        }
-
-        .expansion-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: rgba(100, 150, 255, 0.3);
-          color: rgba(255, 255, 255, 0.8);
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-      `}</style>
     </div>
   );
 };

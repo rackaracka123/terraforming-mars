@@ -7,7 +7,6 @@ import {
 } from "@/types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
 import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
-import styles from "./ActionsModal.module.css";
 
 // Utility function to check if an action is affordable and available
 const isActionAvailable = (
@@ -129,33 +128,43 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   };
 
   return (
-    <div className={styles.actionsModal}>
-      <div className={styles.backdrop} onClick={onClose} />
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[3000] flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]">
+      <div
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/85 backdrop-blur-[10px] cursor-pointer"
+        onClick={onClose}
+      />
 
-      <div className={styles.modalContainer}>
+      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-[linear-gradient(145deg,rgba(20,30,45,0.98)_0%,rgba(30,40,60,0.95)_100%)] border-[3px] border-[rgba(0,255,120,0.4)] rounded-[20px] overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_60px_rgba(0,255,120,0.4)] backdrop-blur-[20px] animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className={styles.modalHeader}>
-          <div className={styles.headerLeft}>
-            <h1 className={styles.modalTitle}>Card Actions</h1>
-            <div className={styles.actionSummary}>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryValue}>{actions.length}</span>
-                <span className={styles.summaryLabel}>Total Actions</span>
+        <div className="flex items-center justify-between py-[25px] px-[30px] bg-[linear-gradient(90deg,rgba(20,50,30,0.9)_0%,rgba(30,60,40,0.7)_100%)] border-b-2 border-[rgba(0,255,120,0.3)] flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
+          <div className="flex flex-col gap-[15px]">
+            <h1 className="m-0 text-white text-[28px] font-bold [text-shadow:2px_2px_4px_rgba(0,0,0,0.8)]">
+              Card Actions
+            </h1>
+            <div className="flex gap-5 items-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-lg font-bold font-[Courier_New,monospace] text-white">
+                  {actions.length}
+                </span>
+                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">
+                  Total Actions
+                </span>
               </div>
             </div>
           </div>
 
-          <div className={styles.headerControls}>
-            <div className={styles.sortControls}>
+          <div className="flex gap-5 items-center max-md:flex-col max-md:gap-2.5 max-md:w-full">
+            <div className="flex gap-2 items-center text-white text-sm">
               <label>Sort by:</label>
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
+                className="bg-black/50 border border-[rgba(0,255,120,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="cardName">Card Name</option>
               </select>
               <button
-                className={styles.sortOrderBtn}
+                className="bg-[rgba(0,255,120,0.2)] border border-[rgba(0,255,120,0.4)] rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[rgba(0,255,120,0.3)] hover:scale-110"
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
@@ -166,25 +175,32 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
             </div>
           </div>
 
-          <button className={styles.closeButton} onClick={onClose}>
+          <button
+            className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
+            onClick={onClose}
+          >
             ×
           </button>
         </div>
 
         {/* Actions Content */}
-        <div className={styles.actionsContent}>
+        <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,255,120,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(0,255,120,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,255,120,0.7)] max-md:p-5">
           {sortedActions.length === 0 ? (
-            <div className={styles.emptyState}>
+            <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
               <img
                 src="/assets/misc/corpCard.png"
                 alt="No actions"
-                className={styles.emptyIcon}
+                className="w-16 h-16 mb-5 opacity-60"
               />
-              <h3>No Card Actions Available</h3>
-              <p>Play cards with manual triggers to gain actions</p>
+              <h3 className="text-white text-2xl m-0 mb-2.5">
+                No Card Actions Available
+              </h3>
+              <p className="text-white/70 text-base m-0">
+                Play cards with manual triggers to gain actions
+              </p>
             </div>
           ) : (
-            <div className={styles.actionsGrid}>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5 justify-items-center max-[1200px]:grid-cols-[repeat(auto-fill,260px)] max-[1200px]:gap-[15px] max-md:grid-cols-[repeat(auto-fill,240px)] max-md:gap-[15px]">
               {sortedActions.map((action, index) => {
                 const isAvailable = isActionAvailable(action, gameState);
                 const isActionPlayable = isPlayButtonEnabled && isAvailable;
@@ -192,18 +208,20 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                 return (
                   <div
                     key={`${action.cardId}-${action.behaviorIndex}`}
-                    className={`${styles.actionBox} ${!isAvailable ? styles.actionBoxUnavailable : ""}`}
+                    className={`border-2 border-[rgba(255,100,100,0.4)] rounded-xl p-[15px] transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] backdrop-blur-[10px] animate-[actionSlideIn_0.6s_ease-out_both] w-full max-w-[320px] min-h-[200px] flex flex-col bg-[linear-gradient(135deg,rgba(30,60,90,0.4)_0%,rgba(20,40,70,0.3)_100%)] shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative ${!isAvailable ? "opacity-60 !border-[rgba(255,100,100,0.2)] !bg-[linear-gradient(135deg,rgba(30,60,90,0.2)_0%,rgba(20,40,70,0.15)_100%)]" : ""} max-[1200px]:w-[260px] max-[1200px]:h-[180px] max-md:w-[240px] max-md:h-[160px] max-md:p-3`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
-                    <div className={styles.actionContent}>
-                      <div className={styles.actionTitle}>
+                    <div className="flex flex-col gap-2.5 flex-1 overflow-hidden">
+                      <div className="text-white/90 text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.3] text-center m-0 flex-shrink-0 flex items-center justify-center gap-2 flex-wrap max-md:text-xs">
                         {action.cardName}
                         {action.playCount > 0 && (
-                          <span className={styles.playedChip}>played</span>
+                          <span className="bg-[linear-gradient(135deg,rgba(120,120,120,0.8)_0%,rgba(80,80,80,0.9)_100%)] text-white/90 text-[10px] font-semibold uppercase tracking-[0.3px] py-[3px] px-2 rounded-[10px] border border-[rgba(120,120,120,0.6)] [text-shadow:none] opacity-100">
+                            played
+                          </span>
                         )}
                       </div>
 
-                      <div className={styles.behaviorContainer}>
+                      <div className="relative w-full min-h-[40px] flex items-center justify-center [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
                         <BehaviorSection
                           behaviors={[action.behavior]}
                           playerResources={gameState?.currentPlayer?.resources}
@@ -214,7 +232,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
 
                     {showPlayButton && (
                       <button
-                        className={`${styles.actionButton} ${!isActionPlayable ? styles.actionButtonDisabled : ""}`}
+                        className={`absolute bottom-2.5 right-2.5 bg-[linear-gradient(135deg,rgba(100,200,100,0.8)_0%,rgba(80,160,80,0.9)_100%)] border border-[rgba(100,200,100,0.6)] rounded-md text-black text-[11px] font-semibold py-1.5 px-3 cursor-pointer transition-all duration-200 [text-shadow:none] shadow-[0_2px_4px_rgba(0,0,0,0.3)] z-10 hover:bg-[linear-gradient(135deg,rgba(100,200,100,1)_0%,rgba(80,160,80,1)_100%)] hover:border-[rgba(100,200,100,0.8)] hover:-translate-y-px hover:shadow-[0_3px_8px_rgba(100,200,100,0.3)] disabled:!bg-[linear-gradient(135deg,rgba(120,120,120,0.5)_0%,rgba(80,80,80,0.6)_100%)] disabled:!border-[rgba(120,120,120,0.4)] disabled:!text-black/50 disabled:!cursor-not-allowed disabled:!transform-none disabled:!shadow-[0_1px_2px_rgba(0,0,0,0.2)] max-md:text-[10px] max-md:py-1 max-md:px-2 max-md:bottom-2 max-md:right-2 ${!isActionPlayable ? "!bg-[linear-gradient(135deg,rgba(120,120,120,0.5)_0%,rgba(80,80,80,0.6)_100%)] !border-[rgba(120,120,120,0.4)] !text-black/50 !cursor-not-allowed !transform-none !shadow-[0_1px_2px_rgba(0,0,0,0.2)]" : ""}`}
                         onClick={() =>
                           isActionPlayable && handleActionClick(action)
                         }

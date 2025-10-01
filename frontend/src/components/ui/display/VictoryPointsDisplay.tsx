@@ -21,45 +21,21 @@ const VictoryPointsDisplay: React.FC<VictoryPointsDisplayProps> = ({
 
   return (
     <div
-      className={`victory-points-display ${className}`}
+      className={`inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(20,40,60,0.9)_0%,rgba(30,50,70,0.8)_100%)] border-2 border-[rgba(255,215,0,0.6)] rounded-lg shadow-[0_4px_15px_rgba(0,0,0,0.5),0_0_20px_rgba(255,215,0,0.3)] backdrop-blur-[10px] ${className}`}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "linear-gradient(135deg, rgba(20, 40, 60, 0.9) 0%, rgba(30, 50, 70, 0.8) 100%)",
-        border: "2px solid rgba(255, 215, 0, 0.6)",
-        borderRadius: "8px",
         padding: dimensions.padding,
-        boxShadow:
-          "0 4px 15px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3)",
-        backdropFilter: "blur(10px)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
+      <div className="flex items-center gap-2">
         <img
           src="/assets/resources/tr.png"
           alt="Victory Points"
-          style={{
-            width: "20px",
-            height: "20px",
-            filter: "brightness(1.2)",
-          }}
+          className="w-5 h-5 brightness-[1.2]"
         />
         <span
+          className="text-white font-bold font-[Courier_New,monospace] [text-shadow:2px_2px_4px_rgba(0,0,0,0.8)] leading-none"
           style={{
-            color: "#ffffff",
-            fontWeight: "bold",
             fontSize: dimensions.fontSize,
-            fontFamily: "Courier New, monospace",
-            textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)",
-            lineHeight: "1",
           }}
         >
           {victoryPoints}

@@ -137,7 +137,7 @@ const CreateGamePage: React.FC = () => {
             </h1>
 
             <form onSubmit={handleSubmit} className="max-w-[400px] mx-auto">
-              <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow">
+              <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow overflow-hidden">
                 <input
                   type="text"
                   value={playerName}
@@ -145,7 +145,7 @@ const CreateGamePage: React.FC = () => {
                   onKeyDown={handleKeyDown}
                   placeholder="Enter your name"
                   disabled={isLoading}
-                  className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none rounded-l-xl placeholder:text-white/50 disabled:opacity-60"
+                  className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none placeholder:text-white/50 disabled:opacity-60"
                   autoFocus
                   maxLength={50}
                 />
@@ -153,13 +153,13 @@ const CreateGamePage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading || !playerName.trim()}
-                  className="bg-gradient-to-br from-space-blue-800 to-space-blue-600 border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:from-space-blue-900 hover:to-space-blue-800 hover:shadow-glow hover:translate-x-0.5 disabled:bg-gray-700/50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="bg-transparent border-none py-4 px-5 cursor-pointer flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 group"
                   title="Connect"
                 >
                   <img
                     src="/assets/misc/arrow.png"
                     alt="Connect"
-                    className="w-6 h-6 brightness-0 invert disabled:opacity-60"
+                    className="w-5 h-5 brightness-0 invert transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:scale-110"
                   />
                 </button>
               </div>

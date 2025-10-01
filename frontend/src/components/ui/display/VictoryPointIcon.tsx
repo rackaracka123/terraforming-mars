@@ -1,5 +1,4 @@
 import React from "react";
-import styles from "./VictoryPointIcon.module.css";
 
 interface VictoryPointIconProps {
   value?: number | string; // Deprecated: for backward compatibility
@@ -32,6 +31,12 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
     return iconMap[tag.toLowerCase()] || null;
   };
 
+  const sizeClasses = {
+    small: "w-8 h-8 text-[calc(32px*0.7)]",
+    medium: "w-10 h-10 text-[calc(40px*0.7)]",
+    large: "w-12 h-12 text-[calc(48px*0.7)]",
+  };
+
   // If vpConditions is provided, use the new system
   if (vpConditions && Array.isArray(vpConditions) && vpConditions.length > 0) {
     // Handle multiple VP conditions - for now, render each separately or combine them
@@ -44,9 +49,17 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         // Fixed VP amount
         if (condition.amount === 0) return null;
         return (
-          <div className={`${styles.container} ${styles[size]}`}>
-            <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-            <span className={styles.value}>{condition.amount}</span>
+          <div
+            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
+          >
+            <img
+              src="/assets/mars.png"
+              alt="VP"
+              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
+              {condition.amount}
+            </span>
           </div>
         );
       } else if (condition.condition === "per" && condition.per) {
@@ -65,15 +78,21 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
 
         return (
           <div
-            className={`${styles.container} ${styles[size]} ${styles.perCondition}`}
+            className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
           >
-            <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-            <span className={styles.value}>{displayText}</span>
+            <img
+              src="/assets/mars.png"
+              alt="VP"
+              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] text-[calc(100%*1.8)] tracking-[-0.5px]">
+              {displayText}
+            </span>
             {tagIcon && (
               <img
                 src={tagIcon}
                 alt={perCondition.tag}
-                className={styles.tagIcon}
+                className="w-4/5 h-4/5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.4))]"
               />
             )}
           </div>
@@ -82,9 +101,17 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         // Once condition - similar to fixed but different styling?
         if (condition.amount === 0) return null;
         return (
-          <div className={`${styles.container} ${styles[size]}`}>
-            <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-            <span className={styles.value}>{condition.amount}</span>
+          <div
+            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
+          >
+            <img
+              src="/assets/mars.png"
+              alt="VP"
+              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
+              {condition.amount}
+            </span>
           </div>
         );
       }
@@ -114,24 +141,38 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
 
         return (
           <div
-            className={`${styles.container} ${styles[size]} ${styles.perCondition}`}
+            className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
           >
-            <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-            <span className={styles.value}>{displayText}</span>
+            <img
+              src="/assets/mars.png"
+              alt="VP"
+              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] text-[calc(100%*1.8)] tracking-[-0.5px]">
+              {displayText}
+            </span>
             {tagIcon && (
               <img
                 src={tagIcon}
                 alt={perCondition.tag}
-                className={styles.tagIcon}
+                className="w-4/5 h-4/5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.4))]"
               />
             )}
           </div>
         );
       } else if (totalFixed > 0) {
         return (
-          <div className={`${styles.container} ${styles[size]}`}>
-            <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-            <span className={styles.value}>{totalFixed}</span>
+          <div
+            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
+          >
+            <img
+              src="/assets/mars.png"
+              alt="VP"
+              className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+            />
+            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
+              {totalFixed}
+            </span>
           </div>
         );
       }
@@ -168,9 +209,17 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
   };
 
   return (
-    <div className={`${styles.container} ${styles[size]}`}>
-      <img src="/assets/mars.png" alt="VP" className={styles.icon} />
-      <span className={styles.value}>{formatVictoryPoints(value)}</span>
+    <div
+      className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
+    >
+      <img
+        src="/assets/mars.png"
+        alt="VP"
+        className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
+      />
+      <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
+        {formatVictoryPoints(value)}
+      </span>
     </div>
   );
 };

@@ -37,7 +37,7 @@ const CopyLinkButton: React.FC<CopyLinkButtonProps> = ({
 
   return (
     <button
-      className={`bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold backdrop-blur-space min-w-[120px] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5 disabled:cursor-default disabled:transform-none ${className}`}
+      className={`bg-space-black-darker/90 border-2 border-space-blue-800 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm font-semibold backdrop-blur-space min-w-[120px] hover:bg-space-black-darker/95 hover:border-space-blue-600 hover:shadow-glow hover:-translate-y-0.5 disabled:cursor-default disabled:transform-none ${className}`}
       onClick={handleCopy}
       disabled={isCopied}
     >

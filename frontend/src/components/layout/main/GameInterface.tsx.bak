@@ -13,7 +13,6 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
-import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
@@ -34,6 +33,7 @@ import {
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
+import styles from "./GameInterface.module.css";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -106,13 +106,6 @@ export default function GameInterface() {
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
   const [unplayableReason, setUnplayableReason] =
     useState<UnplayableReason | null>(null);
-
-  // Choice selection state
-  const [showChoiceSelection, setShowChoiceSelection] = useState(false);
-  const [cardPendingChoice, setCardPendingChoice] = useState<CardDto | null>(
-    null,
-  );
-  const [pendingCardBehaviorIndex, setPendingCardBehaviorIndex] = useState(0);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -257,70 +250,13 @@ export default function GameInterface() {
     }
   }, []);
 
-  const handlePlayCard = useCallback(
-    async (cardId: string) => {
-      try {
-        // Find the card to check if it has choices
-        const card = currentPlayer?.cards.find((c) => c.id === cardId);
-        if (!card) {
-          console.error(`Card ${cardId} not found in player's hand`);
-          return;
-        }
-
-        // Check if any behavior has choices
-        const behaviorWithChoices = card.behaviors?.findIndex(
-          (b) => b.choices && b.choices.length > 0,
-        );
-
-        if (
-          behaviorWithChoices !== undefined &&
-          behaviorWithChoices >= 0 &&
-          card.behaviors?.[behaviorWithChoices]?.choices
-        ) {
-          // Card has choices, show the choice selection popover
-          setCardPendingChoice(card);
-          setPendingCardBehaviorIndex(behaviorWithChoices);
-          setShowChoiceSelection(true);
-        } else {
-          // No choices, play the card directly
-          await globalWebSocketManager.playCard(cardId);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to play card ${cardId}:`, error);
-        throw error; // Re-throw to allow CardFanOverlay to handle the error
-      }
-    },
-    [currentPlayer?.cards],
-  );
-
-  const handleChoiceSelect = useCallback(
-    async (choiceIndex: number) => {
-      if (!cardPendingChoice) return;
-
-      try {
-        setShowChoiceSelection(false);
-        await globalWebSocketManager.playCard(
-          cardPendingChoice.id,
-          choiceIndex,
-        );
-        setCardPendingChoice(null);
-        setPendingCardBehaviorIndex(0);
-      } catch (error) {
-        console.error(
-          `❌ Failed to play card ${cardPendingChoice.id} with choice ${choiceIndex}:`,
-          error,
-        );
-        setCardPendingChoice(null);
-        setPendingCardBehaviorIndex(0);
-      }
-    },
-    [cardPendingChoice],
-  );
-
-  const handleChoiceCancel = useCallback(() => {
-    setShowChoiceSelection(false);
-    setCardPendingChoice(null);
-    setPendingCardBehaviorIndex(0);
+  const handlePlayCard = useCallback(async (cardId: string) => {
+    try {
+      await globalWebSocketManager.playCard(cardId);
+    } catch (error) {
+      console.error(`❌ Failed to play card ${cardId}:`, error);
+      throw error; // Re-throw to allow CardFanOverlay to handle the error
+    }
   }, []);
 
   const handleUnplayableCard = useCallback(
@@ -802,17 +738,6 @@ export default function GameInterface() {
         isVisible={unplayableCard !== null}
       />
 
-      {/* Choice selection popover */}
-      {cardPendingChoice && (
-        <ChoiceSelectionPopover
-          card={cardPendingChoice}
-          behaviorIndex={pendingCardBehaviorIndex}
-          onChoiceSelect={handleChoiceSelect}
-          onCancel={handleChoiceCancel}
-          isVisible={showChoiceSelection}
-        />
-      )}
-
       {/* Reconnection overlay */}
       {isReconnecting && (
         <div
@@ -860,7 +785,7 @@ export default function GameInterface() {
       {/* Return to Production Modal button */}
       {showProductionPhaseModal && isProductionModalHidden && (
         <button
-          className="fixed top-[80px] left-[70%] bg-[linear-gradient(135deg,rgba(10,20,40,0.95)_0%,rgba(20,30,50,0.98)_50%,rgba(15,25,45,0.95)_100%)] border-2 border-[rgba(100,150,255,0.5)] rounded-xl text-white text-base font-semibold py-3.5 px-7 cursor-pointer transition-all duration-300 [text-shadow:0_2px_4px_rgba(0,0,0,0.8)] shadow-[0_4px_15px_rgba(0,0,0,0.5),0_0_20px_rgba(100,150,255,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] [backdrop-filter:blur(10px)] z-[1000] whitespace-nowrap hover:bg-[linear-gradient(135deg,rgba(15,25,50,0.98)_0%,rgba(25,35,60,1)_50%,rgba(20,30,55,0.98)_100%)] hover:border-[rgba(100,150,255,0.7)] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.6),0_0_30px_rgba(100,150,255,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] active:translate-y-0 active:shadow-[0_2px_10px_rgba(0,0,0,0.4),0_0_15px_rgba(100,150,255,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]"
+          className={styles.returnToProductionButton}
           onClick={() => {
             setIsProductionModalHidden(false);
             setOpenProductionToCardSelection(true);

@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import styles from "./ModalPortal.module.css";
 
 interface ModalPortalProps {
   children: React.ReactNode;
@@ -70,12 +71,9 @@ const ModalPortal: React.FC<ModalPortalProps> = ({
   if (!container) return null;
 
   return createPortal(
-    <div
-      className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 [backdrop-filter:blur(5px)] flex items-center justify-center p-5 max-[800px]:p-2.5"
-      onClick={onClose}
-    >
+    <div className={styles.modalOverlay} onClick={onClose}>
       <div
-        className="bg-[linear-gradient(135deg,rgba(10,20,40,0.98)_0%,rgba(20,30,50,0.96)_50%,rgba(15,25,45,0.98)_100%)] border-2 border-[rgba(100,150,255,0.5)] rounded-[20px] max-w-[1000px] max-h-[80vh] w-full overflow-y-auto [backdrop-filter:blur(20px)] shadow-[0_20px_60px_rgba(0,0,0,0.8),0_0_40px_rgba(100,150,255,0.3)] relative isolate max-[800px]:max-h-[90vh]"
+        className={styles.modalContainer}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

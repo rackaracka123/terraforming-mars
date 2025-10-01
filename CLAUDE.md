@@ -472,11 +472,55 @@ npm run lint           # Check for ESLint errors
 
 **Note**: These commands must be run from the respective directories (backend/ and frontend/). Always format both backend and frontend code after any changes, even if you only modified one side, to maintain consistent code quality across the entire codebase.
 
-**Lint Error Policy**: 
+**Lint Error Policy**:
 - All lint ERRORS must be fixed immediately - no exceptions
 - Lint warnings should be addressed when practical
 - Never commit code with lint errors
 - Run these commands after any significant code changes
+
+### Tailwind CSS v4 Styling Architecture
+
+**CRITICAL**: This project uses Tailwind CSS v4 with CSS-based configuration. Traditional CSS Modules and custom `.module.css` files are **DEPRECATED** and should NEVER be used.
+
+#### Tailwind v4 Configuration
+- **Configuration File**: `/frontend/src/index.css` contains the `@theme {}` block
+- **No tailwind.config.js**: The JavaScript config file is **IGNORED** by Tailwind v4
+- **Import Syntax**: Use `@import "tailwindcss";` instead of `@tailwind` directives
+
+#### Custom Theme Utilities
+The project defines custom utilities in `index.css` under `@theme {}`:
+
+**Colors**:
+- `space-black`: #0a0a0f
+- `space-black-darker`: #050509
+- `space-black-light`: #141420
+- `space-blue-500/600/900`: rgba(30, 60, 150, ...) variants
+- `error-red`: #ff6b6b
+
+**Typography**:
+- `font-orbitron`: Orbitron font family (use for titles and headings)
+- `text-shadow-glow-strong`: Blue glow text shadow
+- `tracking-wider-2xl`: Extra wide letter spacing
+
+**Effects**:
+- `shadow-glow/glow-sm/glow-lg`: Blue glow box shadows
+- `backdrop-blur-space/space-light`: Backdrop blur utilities
+
+#### Styling Guidelines
+1. **NEVER create CSS Module files** (`.module.css`)
+2. **Use Tailwind utilities** with arbitrary values: `bg-[rgba(10,20,40,0.95)]`
+3. **Use custom theme classes**: `font-orbitron`, `shadow-glow`, `border-space-blue-500`
+4. **Add new theme values** to `@theme {}` in index.css if needed
+5. **Global animations** go in index.css as `@keyframes` blocks
+
+#### Migration from CSS Modules
+When converting existing CSS Module components:
+1. Create a `.bak` backup of the original component
+2. Remove the CSS module import
+3. Convert all className references to Tailwind utilities
+4. Add any animations to index.css
+5. Delete the `.module.css` file
+6. Run `npm run format:write`
 
 **Logging Guidelines**:
 - Use emojis in log messages where appropriate to make them more visually distinctive
