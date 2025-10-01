@@ -1,5 +1,5 @@
 .createGamePage {
-  background: #000011;
+  background: transparent;
   color: white;
   min-height: 100vh;
   display: flex;
@@ -8,6 +8,8 @@
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
     "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  position: relative;
+  z-index: 10;
 }
 
 .container {
@@ -21,11 +23,13 @@
 }
 
 .title {
-  font-size: 48px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 42px;
   color: #ffffff;
   margin-bottom: 60px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-  font-weight: bold;
+  text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 .createGameForm {
@@ -37,8 +41,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 10, 15, 0.8);
+  border: 2px solid rgba(30, 60, 150, 0.4);
   border-radius: 12px;
   padding: 0;
   transition: all 0.2s ease;
@@ -46,8 +50,8 @@
 }
 
 .inputContainer:focus-within {
-  border-color: #4a90e2;
-  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+  border-color: rgba(30, 60, 150, 0.8);
+  box-shadow: 0 0 25px rgba(30, 60, 150, 0.5);
 }
 
 .playerNameInput {
@@ -62,7 +66,7 @@
 }
 
 .playerNameInput::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .playerNameInput:disabled {
@@ -70,7 +74,7 @@
 }
 
 .submitButton {
-  background: linear-gradient(135deg, #4a90e2 0%, #5ba0f2 100%);
+  background: linear-gradient(135deg, rgba(30, 60, 150, 0.8) 0%, rgba(40, 80, 180, 0.8) 100%);
   border: none;
   padding: 20px 24px;
   cursor: pointer;
@@ -83,12 +87,13 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #357abd 0%, #4a90e2 100%);
+  background: linear-gradient(135deg, rgba(40, 80, 180, 0.9) 0%, rgba(50, 100, 200, 0.9) 100%);
+  box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
   transform: translateX(2px);
 }
 
 .submitButton:disabled {
-  background: rgba(100, 100, 100, 0.5);
+  background: rgba(40, 40, 40, 0.5);
   cursor: not-allowed;
   transform: none;
 }
@@ -114,14 +119,15 @@
 }
 
 .loadingMessage {
-  color: #4a90e2;
+  color: rgba(30, 60, 150, 1);
   margin-top: 16px;
   padding: 12px;
-  background: rgba(74, 144, 226, 0.1);
-  border: 1px solid rgba(74, 144, 226, 0.3);
+  background: rgba(30, 60, 150, 0.15);
+  border: 1px solid rgba(30, 60, 150, 0.4);
   border-radius: 8px;
   font-size: 14px;
   animation: pulse 2s infinite;
+  box-shadow: 0 0 15px rgba(30, 60, 150, 0.3);
 }
 
 @keyframes pulse {
@@ -202,7 +208,7 @@
 .developmentModeCheckbox {
   width: 18px;
   height: 18px;
-  accent-color: #4a90e2;
+  accent-color: rgba(30, 60, 150, 1);
   cursor: pointer;
   margin: 0;
 }
@@ -229,7 +235,7 @@
 }
 
 .tooltipIcon {
-  color: #4a90e2;
+  color: rgba(30, 60, 150, 1);
   font-size: 16px;
   cursor: help;
   width: 18px;
@@ -238,13 +244,15 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(74, 144, 226, 0.1);
-  border: 1px solid rgba(74, 144, 226, 0.3);
+  background: rgba(30, 60, 150, 0.15);
+  border: 1px solid rgba(30, 60, 150, 0.4);
   transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(30, 60, 150, 0.2);
 }
 
 .tooltipIcon:hover {
-  background: rgba(74, 144, 226, 0.2);
+  background: rgba(30, 60, 150, 0.25);
+  box-shadow: 0 0 15px rgba(30, 60, 150, 0.4);
 }
 
 .tooltipContainer:hover .tooltipText {
@@ -256,7 +264,7 @@
   visibility: hidden;
   opacity: 0;
   width: 280px;
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: rgba(5, 5, 10, 0.98);
   color: white;
   text-align: left;
   border-radius: 8px;
@@ -267,8 +275,8 @@
   right: 0;
   font-size: 13px;
   line-height: 1.4;
-  border: 1px solid rgba(74, 144, 226, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(30, 60, 150, 0.4);
+  box-shadow: 0 4px 20px rgba(30, 60, 150, 0.3);
   transition:
     opacity 0.3s ease,
     visibility 0.3s ease;
@@ -281,7 +289,7 @@
   right: 12px;
   border-width: 8px;
   border-style: solid;
-  border-color: rgba(0, 0, 0, 0.95) transparent transparent transparent;
+  border-color: rgba(5, 5, 10, 0.98) transparent transparent transparent;
 }
 
 @media (max-width: 768px) {

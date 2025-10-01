@@ -16,12 +16,17 @@ const CreateGamePage: React.FC = () => {
   );
   const [error, setError] = useState<string | null>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
+  const [isFadedIn, setIsFadedIn] = useState(false);
 
   // Check if skybox is already loaded on component mount
   useEffect(() => {
     if (skyboxCache.isReady()) {
       setSkyboxReady(true);
     }
+    // Trigger fade in animation
+    setTimeout(() => {
+      setIsFadedIn(true);
+    }, 10);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,75 +110,78 @@ const CreateGamePage: React.FC = () => {
   };
 
   return (
-    <div className={styles.createGamePage}>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <h1 className={styles.title}>Create a new game</h1>
+    <div className={styles.createGamePage} style={{
+      opacity: isFadedIn ? 1 : 0,
+      transition: "opacity 0.3s ease-in",
+    }}>
+        <div className={styles.container}>
+          <div className={styles.content}>
+            <h1 className={styles.title}>Create a new game</h1>
 
-          <form onSubmit={handleSubmit} className={styles.createGameForm}>
-            <div className={styles.inputContainer}>
-              <input
-                type="text"
-                value={playerName}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Enter your name"
-                disabled={isLoading}
-                className={styles.playerNameInput}
-                autoFocus
-                maxLength={50}
-              />
-
-              <button
-                type="submit"
-                disabled={isLoading || !playerName.trim()}
-                className={styles.submitButton}
-                title="Connect"
-              >
-                <img
-                  src="/assets/misc/arrow.png"
-                  alt="Connect"
-                  className={styles.arrowIcon}
-                />
-              </button>
-            </div>
-
-            <div className={styles.developmentModeContainer}>
-              <label className={styles.developmentModeLabel}>
+            <form onSubmit={handleSubmit} className={styles.createGameForm}>
+              <div className={styles.inputContainer}>
                 <input
-                  type="checkbox"
-                  checked={developmentMode}
-                  onChange={(e) => setDevelopmentMode(e.target.checked)}
+                  type="text"
+                  value={playerName}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter your name"
                   disabled={isLoading}
-                  className={styles.developmentModeCheckbox}
+                  className={styles.playerNameInput}
+                  autoFocus
+                  maxLength={50}
                 />
-                <span className={styles.checkboxText}>
-                  Development Mode
-                  <div className={styles.tooltipContainer}>
-                    <span className={styles.tooltipIcon}>ⓘ</span>
-                    <div className={styles.tooltipText}>
-                      Enable admin commands for debugging and testing. Allows
-                      you to give cards to players, modify resources/production,
-                      change game phases, and adjust global parameters through
-                      the debug panel.
-                    </div>
-                  </div>
-                </span>
-              </label>
-            </div>
 
-            {error && <div className={styles.errorMessage}>{error}</div>}
-
-            {isLoading && (
-              <div className={styles.loadingMessage}>
-                {loadingStep === "game" && "Creating game..."}
-                {loadingStep === "environment" && "Loading 3D environment..."}
+                <button
+                  type="submit"
+                  disabled={isLoading || !playerName.trim()}
+                  className={styles.submitButton}
+                  title="Connect"
+                >
+                  <img
+                    src="/assets/misc/arrow.png"
+                    alt="Connect"
+                    className={styles.arrowIcon}
+                  />
+                </button>
               </div>
-            )}
-          </form>
+
+              <div className={styles.developmentModeContainer}>
+                <label className={styles.developmentModeLabel}>
+                  <input
+                    type="checkbox"
+                    checked={developmentMode}
+                    onChange={(e) => setDevelopmentMode(e.target.checked)}
+                    disabled={isLoading}
+                    className={styles.developmentModeCheckbox}
+                  />
+                  <span className={styles.checkboxText}>
+                    Development Mode
+                    <div className={styles.tooltipContainer}>
+                      <span className={styles.tooltipIcon}>ⓘ</span>
+                      <div className={styles.tooltipText}>
+                        Enable admin commands for debugging and testing. Allows
+                        you to give cards to players, modify resources/production,
+                        change game phases, and adjust global parameters through
+                        the debug panel.
+                      </div>
+                    </div>
+                  </span>
+                </label>
+              </div>
+
+              {error && <div className={styles.errorMessage}>{error}</div>}
+
+              {isLoading && (
+                <div className={styles.loadingMessage}>
+                  {loadingStep === "game" && "Creating game..."}
+                  {loadingStep === "environment" && "Loading 3D environment..."}
+                </div>
+              )}
+            </form>
+          </div>
         </div>
       </div>
-    </div>
   );
 };
 
