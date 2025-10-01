@@ -130,15 +130,15 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 z-[3000] flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]">
       <div
-        className="absolute top-0 left-0 right-0 bottom-0 bg-black/85 backdrop-blur-[10px] cursor-pointer"
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm cursor-pointer"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-[linear-gradient(145deg,rgba(20,30,45,0.98)_0%,rgba(30,40,60,0.95)_100%)] border-[3px] border-[rgba(0,255,120,0.4)] rounded-[20px] overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_60px_rgba(0,255,120,0.4)] backdrop-blur-[20px] animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
+      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between py-[25px] px-[30px] bg-[linear-gradient(90deg,rgba(20,50,30,0.9)_0%,rgba(30,60,40,0.7)_100%)] border-b-2 border-[rgba(0,255,120,0.3)] flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
+        <div className="flex items-center justify-between py-[25px] px-[30px] bg-black/40 border-b border-space-blue-600 flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
           <div className="flex flex-col gap-[15px]">
-            <h1 className="m-0 text-white text-[28px] font-bold [text-shadow:2px_2px_4px_rgba(0,0,0,0.8)]">
+            <h1 className="m-0 font-orbitron text-white text-[28px] font-bold text-shadow-glow tracking-wider">
               Card Actions
             </h1>
             <div className="flex gap-5 items-center">
