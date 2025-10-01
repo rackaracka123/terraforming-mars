@@ -268,21 +268,16 @@ const JoinGamePage: React.FC = () => {
   };
 
   return (
-    <>
-      <LoadingOverlay
-        isLoading={isLoadingGameValidation || isLoadingJoin}
-        message={getLoadingMessage()}
-      />
-      <div
-        className={styles.joinGamePage}
-        style={{
-          opacity: isFadedIn ? 1 : 0,
-          transition: "opacity 0.3s ease-in",
-        }}
-      >
-        <button onClick={handleBackToHome} className={styles.backButton}>
-          ← Back to Home
-        </button>
+    <div
+      className={styles.joinGamePage}
+      style={{
+        opacity: isFadedIn ? 1 : 0,
+        transition: "opacity 0.3s ease-in",
+      }}
+    >
+      <button onClick={handleBackToHome} className={styles.backButton}>
+        ← Back to Home
+      </button>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1>Join a game</h1>
@@ -365,8 +360,12 @@ const JoinGamePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <LoadingOverlay
+        isLoading={isLoadingGameValidation || isLoadingJoin}
+        message={getLoadingMessage()}
+      />
     </div>
-    </>
   );
 };
 

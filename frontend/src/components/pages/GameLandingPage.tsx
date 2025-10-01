@@ -81,11 +81,6 @@ const GameLandingPage: React.FC = () => {
   };
 
   return (
-    <>
-      <LoadingOverlay
-        isLoading={isLoading}
-        message="Checking for existing game..."
-      />
     <div
       style={{
         display: "flex",
@@ -239,8 +234,12 @@ const GameLandingPage: React.FC = () => {
       >
         View Cards
       </button>
+
+      <LoadingOverlay
+        isLoading={isLoading}
+        message="Checking for existing game..."
+      />
     </div>
-    </>
   );
 };
 

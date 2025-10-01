@@ -121,18 +121,16 @@ const CreateGamePage: React.FC = () => {
   };
 
   return (
-    <>
-      <LoadingOverlay isLoading={isLoading} message={getLoadingMessage()} />
-      <div
-        className={styles.createGamePage}
-        style={{
-          opacity: isFadedIn ? 1 : 0,
-          transition: "opacity 0.3s ease-in",
-        }}
-      >
-        <button onClick={handleBackToHome} className={styles.backButton}>
-          ← Back to Home
-        </button>
+    <div
+      className={styles.createGamePage}
+      style={{
+        opacity: isFadedIn ? 1 : 0,
+        transition: "opacity 0.3s ease-in",
+      }}
+    >
+      <button onClick={handleBackToHome} className={styles.backButton}>
+        ← Back to Home
+      </button>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>Create a new game</h1>
@@ -193,8 +191,9 @@ const CreateGamePage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      <LoadingOverlay isLoading={isLoading} message={getLoadingMessage()} />
     </div>
-    </>
   );
 };
 

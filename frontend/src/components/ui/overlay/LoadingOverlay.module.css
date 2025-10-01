@@ -1,5 +1,5 @@
 .overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -11,12 +11,14 @@
   justify-content: center;
   z-index: 9999;
   opacity: 1;
-  transition: all 0.4s ease;
+  transition: all 0.3s ease;
+  pointer-events: all;
 }
 
 .overlay.fadeOut {
   opacity: 0;
   backdrop-filter: blur(0px);
+  pointer-events: none;
 }
 
 .spinnerContainer {

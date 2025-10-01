@@ -23,7 +23,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       // Remove overlay after animation completes
       const timeout = setTimeout(() => {
         setIsVisible(false);
-      }, 400); // Match CSS transition duration
+      }, 300); // Match CSS transition duration (faster)
       return () => clearTimeout(timeout);
     }
   }, [isLoading, isVisible]);
