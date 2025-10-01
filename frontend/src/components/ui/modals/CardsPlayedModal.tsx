@@ -131,32 +131,41 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
   };
 
   return (
-    <div className="steam-cards-played-modal">
-      <div className="backdrop" onClick={onClose} />
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[3000] flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]">
+      <div
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+        onClick={onClose}
+      />
 
-      <div className="modal-container">
+      <div className="relative w-full max-w-[1400px] max-h-[90vh] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className="modal-header">
-          <div className="header-left">
-            <h1 className="modal-title">Played Cards</h1>
-            <div className="cards-stats">
-              <div className="stat-item">
-                <span className="stat-value">{cardStats.total}</span>
-                <span className="stat-label">Cards</span>
+        <div className="flex items-center justify-between py-[25px] px-[30px] bg-black/40 border-b border-space-blue-600 flex-shrink-0 max-md:p-5 max-md:flex-col max-md:gap-[15px] max-md:items-start">
+          <div className="flex flex-col gap-[15px]">
+            <h1 className="m-0 font-orbitron text-white text-[28px] font-bold text-shadow-glow tracking-wider">
+              Played Cards
+            </h1>
+            <div className="flex gap-5 items-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-lg font-bold font-[Courier_New,monospace] text-white">
+                  {cardStats.total}
+                </span>
+                <span className="text-white/70 text-xs uppercase tracking-[0.5px]">
+                  Cards
+                </span>
               </div>
-              <div className="stat-item">
+              <div className="flex flex-col items-center gap-1">
                 <CostDisplay cost={cardStats.totalCost} size="small" />
               </div>
             </div>
           </div>
 
-          <div className="header-controls">
-            {/* Filter Controls */}
-            <div className="filter-controls">
+          <div className="flex gap-5 items-center max-md:flex-col max-md:gap-2.5 max-md:w-full">
+            <div className="flex gap-2 items-center text-white text-sm">
               <label>Filter:</label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as FilterType)}
+                className="bg-black/50 border border-[rgba(0,255,120,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="all">All Cards</option>
                 <option value={CardType.CORPORATION}>Corporations</option>
@@ -167,19 +176,19 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
               </select>
             </div>
 
-            {/* Sort Controls */}
-            <div className="sort-controls">
+            <div className="flex gap-2 items-center text-white text-sm">
               <label>Sort by:</label>
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
+                className="bg-black/50 border border-[rgba(0,255,120,0.4)] rounded-md text-white py-1.5 px-3 text-sm"
               >
                 <option value="cost">Cost</option>
                 <option value="name">Name</option>
                 <option value="type">Type</option>
               </select>
               <button
-                className="sort-order-btn"
+                className="bg-[rgba(0,255,120,0.2)] border border-[rgba(0,255,120,0.4)] rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[rgba(0,255,120,0.3)] hover:scale-110"
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
@@ -190,31 +199,34 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             </div>
           </div>
 
-          <button className="close-button" onClick={onClose}>
+          <button
+            className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
+            onClick={onClose}
+          >
             ×
           </button>
         </div>
 
         {/* Cards Content */}
-        <div className="cards-content">
+        <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,255,120,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(0,255,120,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,255,120,0.7)] max-md:p-5">
           {filteredAndSortedCards.length === 0 ? (
-            <div className="empty-state">
+            <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
               <img
                 src="/assets/misc/corpCard.png"
                 alt="No cards"
-                className="empty-icon"
+                className="w-16 h-16 mb-5 opacity-60"
               />
-              <h3>No Cards Found</h3>
-              <p>
+              <h3 className="text-white text-2xl m-0 mb-2.5">No Cards Found</h3>
+              <p className="text-white/70 text-base m-0">
                 {filterType === "all"
                   ? "No cards have been played yet"
                   : `No ${filterType} cards have been played`}
               </p>
             </div>
           ) : (
-            <div className="cards-grid">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-[15px] justify-items-center">
               {filteredAndSortedCards.map((card, index) => (
-                <div key={card.id} className="card-wrapper">
+                <div key={card.id} className="w-full max-w-[280px]">
                   <SimpleGameCard
                     card={card}
                     isSelected={false}
@@ -228,7 +240,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         </div>
 
         {/* Type Statistics Bar */}
-        <div className="type-stats-bar">
+        <div className="flex gap-2.5 py-5 px-[30px] bg-black/40 border-t border-space-blue-600 flex-shrink-0 flex-wrap">
           {Object.entries(cardStats.byType).map(([type, count]) => {
             if (count === 0) return null;
             const cardType = type as keyof typeof cardStats.byType;
@@ -239,375 +251,39 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             return (
               <div
                 key={type}
-                className={`type-stat ${filterType === cardTypeEnum ? "active" : ""}`}
+                className={`flex flex-col items-center gap-1 py-2 px-3 border rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === cardTypeEnum ? "shadow-[0_0_15px_rgba(100,150,255,0.5)] scale-105" : ""}`}
                 style={{
                   borderColor: style.borderColor,
-                  backgroundColor: style.background,
+                  background: style.background,
                 }}
                 onClick={() => setFilterType(cardTypeEnum as FilterType)}
               >
-                <span className="type-count">{count}</span>
-                <span className="type-name">{type}</span>
+                <span className="text-white text-base font-bold font-[Courier_New,monospace]">
+                  {count}
+                </span>
+                <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
+                  {type}
+                </span>
               </div>
             );
           })}
           <div
-            className={`type-stat ${filterType === "all" ? "active" : ""}`}
+            className={`flex flex-col items-center gap-1 py-2 px-3 border border-space-blue-400 rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === "all" ? "shadow-[0_0_15px_rgba(100,150,255,0.5)] scale-105" : ""}`}
+            style={{
+              background:
+                "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
+            }}
             onClick={() => setFilterType("all")}
           >
-            <span className="type-count">{cardStats.total}</span>
-            <span className="type-name">All</span>
+            <span className="text-white text-base font-bold font-[Courier_New,monospace]">
+              {cardStats.total}
+            </span>
+            <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
+              All
+            </span>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .steam-cards-played-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 3000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          animation: modalFadeIn 0.3s ease-out;
-        }
-
-        .backdrop {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.85);
-          backdrop-filter: blur(10px);
-          cursor: pointer;
-        }
-
-        .modal-container {
-          position: relative;
-          width: 100%;
-          max-width: 1400px;
-          max-height: 90vh;
-          background: linear-gradient(
-            145deg,
-            rgba(20, 30, 45, 0.98) 0%,
-            rgba(30, 40, 60, 0.95) 100%
-          );
-          border: 3px solid rgba(100, 150, 255, 0.4);
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow:
-            0 25px 80px rgba(0, 0, 0, 0.8),
-            0 0 60px rgba(50, 100, 200, 0.4);
-          backdrop-filter: blur(20px);
-          animation: modalSlideIn 0.4s ease-out;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 25px 30px;
-          background: linear-gradient(
-            90deg,
-            rgba(20, 30, 50, 0.9) 0%,
-            rgba(30, 40, 60, 0.7) 100%
-          );
-          border-bottom: 2px solid rgba(100, 150, 255, 0.3);
-          flex-shrink: 0;
-        }
-
-        .header-left {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .modal-title {
-          margin: 0;
-          color: #ffffff;
-          font-size: 28px;
-          font-weight: bold;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        }
-
-        .cards-stats {
-          display: flex;
-          gap: 20px;
-          align-items: center;
-        }
-
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .stat-value {
-          color: #ffffff;
-          font-size: 18px;
-          font-weight: bold;
-          font-family: "Courier New", monospace;
-        }
-
-        .stat-label {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .header-controls {
-          display: flex;
-          gap: 20px;
-          align-items: center;
-        }
-
-        .filter-controls,
-        .sort-controls {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          color: #ffffff;
-          font-size: 14px;
-        }
-
-        .filter-controls select,
-        .sort-controls select {
-          background: rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(100, 150, 255, 0.4);
-          border-radius: 6px;
-          color: #ffffff;
-          padding: 6px 12px;
-          font-size: 14px;
-        }
-
-        .sort-order-btn {
-          background: rgba(100, 150, 255, 0.2);
-          border: 1px solid rgba(100, 150, 255, 0.4);
-          border-radius: 4px;
-          color: #ffffff;
-          padding: 6px 8px;
-          cursor: pointer;
-          font-size: 16px;
-          transition: all 0.2s ease;
-        }
-
-        .sort-order-btn:hover {
-          background: rgba(100, 150, 255, 0.3);
-          transform: scale(1.1);
-        }
-
-        .close-button {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 80, 80, 0.8) 0%,
-            rgba(200, 40, 40, 0.9) 100%
-          );
-          border: 2px solid rgba(255, 120, 120, 0.6);
-          border-radius: 50%;
-          width: 45px;
-          height: 45px;
-          color: #ffffff;
-          font-size: 24px;
-          font-weight: bold;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        }
-
-        .close-button:hover {
-          transform: scale(1.1);
-          box-shadow: 0 6px 25px rgba(255, 80, 80, 0.5);
-        }
-
-        .cards-content {
-          flex: 1;
-          padding: 25px 30px;
-          overflow-y: auto;
-          scrollbar-width: thin;
-          scrollbar-color: rgba(100, 150, 255, 0.5) rgba(50, 75, 125, 0.3);
-        }
-
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
-          text-align: center;
-          min-height: 300px;
-        }
-
-        .empty-icon {
-          width: 64px;
-          height: 64px;
-          margin-bottom: 20px;
-          opacity: 0.6;
-        }
-
-        .empty-state h3 {
-          color: #ffffff;
-          font-size: 24px;
-          margin: 0 0 10px 0;
-        }
-
-        .empty-state p {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 16px;
-          margin: 0;
-        }
-
-        .cards-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-          gap: 15px;
-          justify-items: center;
-        }
-
-        .card-wrapper {
-          width: 100%;
-          max-width: 280px;
-        }
-
-        .type-stats-bar {
-          display: flex;
-          gap: 10px;
-          padding: 20px 30px;
-          background: linear-gradient(
-            90deg,
-            rgba(15, 20, 35, 0.9) 0%,
-            rgba(25, 30, 45, 0.7) 100%
-          );
-          border-top: 1px solid rgba(100, 150, 255, 0.2);
-          flex-shrink: 0;
-          flex-wrap: wrap;
-        }
-
-        .type-stat {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          padding: 8px 12px;
-          border: 1px solid;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 60px;
-        }
-
-        .type-stat:hover,
-        .type-stat.active {
-          transform: scale(1.05);
-        }
-
-        .type-stat.active {
-          box-shadow: 0 0 15px rgba(100, 150, 255, 0.5);
-        }
-
-        .type-count {
-          color: #ffffff;
-          font-size: 16px;
-          font-weight: bold;
-          font-family: "Courier New", monospace;
-        }
-
-        .type-name {
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-50px) scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes cardSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-          .cards-grid {
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-          }
-
-          .card-wrapper {
-            max-width: 260px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .modal-container {
-            margin: 10px;
-            max-width: calc(100vw - 20px);
-            max-height: 95vh;
-          }
-
-          .modal-header {
-            padding: 20px;
-            flex-direction: column;
-            gap: 15px;
-            align-items: flex-start;
-          }
-
-          .header-controls {
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-          }
-
-          .cards-grid {
-            grid-template-columns: 1fr;
-            gap: 15px;
-          }
-
-          .type-stats-bar {
-            padding: 15px 20px;
-          }
-
-          .type-stat {
-            min-width: 50px;
-            padding: 6px 10px;
-          }
-        }
-      `}</style>
     </div>
   );
 };
