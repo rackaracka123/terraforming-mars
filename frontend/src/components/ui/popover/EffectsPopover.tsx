@@ -73,7 +73,7 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
           </div>
           {onOpenDetails && (
             <button
-              className="bg-space-black-darker/90 border-2 border-space-blue-400 rounded-lg text-white text-[11px] font-semibold py-1 px-2.5 cursor-pointer transition-all duration-200 text-shadow-dark pointer-events-auto relative z-[1] hover:bg-space-black-darker/95 hover:border-space-blue-600 hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(30,60,150,0.4)]"
+              className="bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-lg text-white text-[11px] font-semibold py-1 px-2.5 cursor-pointer transition-all duration-200 text-shadow-dark pointer-events-auto relative z-[1] hover:bg-space-black-darker/95 hover:border-[#ff96ff] hover:-translate-y-px hover:shadow-[0_2px_8px_#ff96ff60]"
               onClick={() => {
                 onOpenDetails();
                 onClose();
