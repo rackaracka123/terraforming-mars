@@ -100,7 +100,7 @@
 }
 
 .submitButton {
-  background: linear-gradient(135deg, rgba(30, 60, 150, 0.8) 0%, rgba(40, 80, 180, 0.8) 100%);
+  background: transparent;
   border: none;
   padding: 20px 24px;
   cursor: pointer;
@@ -113,13 +113,13 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(40, 80, 180, 0.9) 0%, rgba(50, 100, 200, 0.9) 100%);
+  background: rgba(30, 60, 150, 0.2);
   box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
   transform: translateX(2px);
 }
 
 .submitButton:disabled {
-  background: rgba(40, 40, 40, 0.5);
+  background: transparent;
   cursor: not-allowed;
   transform: none;
 }
