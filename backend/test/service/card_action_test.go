@@ -72,7 +72,7 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1, nil)
 	require.NoError(t, err)
 
 	// Verify the player's resources were updated correctly
@@ -145,7 +145,7 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "insufficient steel: need 5, have 2")
 
@@ -215,7 +215,7 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no available actions remaining")
 }
@@ -258,7 +258,7 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play a non-existent card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "card action not found in player's action list")
 }
@@ -319,7 +319,7 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	require.NoError(t, err)
 
 	// Attempt to play the card action again
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-elevator", 1, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "action has already been played this generation")
 }
@@ -381,7 +381,7 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-mirrors", 0)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "space-mirrors", 0, nil)
 	require.NoError(t, err)
 
 	// Verify the player's resources and production were updated
@@ -455,7 +455,7 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	require.NoError(t, err)
 
 	// Play the card action
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "equatorial-magnetizer", 0)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, "equatorial-magnetizer", 0, nil)
 	require.NoError(t, err)
 
 	// Verify the player's production and TR were updated

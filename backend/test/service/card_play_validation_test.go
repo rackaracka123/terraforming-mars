@@ -128,7 +128,7 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID)
+			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID, nil)
 
 			// Cleanup
 			cleanupErr := tt.cleanupFunc()
@@ -175,15 +175,25 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	allCards, err := cardRepo.GetAllCards(ctx)
 	require.NoError(t, err)
 
-	// Find a card with a reasonable cost for testing
+	// Find a card with a reasonable cost for testing (without choices to simplify the test)
 	var expensiveCard *model.Card
 	for _, card := range allCards {
 		if card.Cost > 30 { // Find a card that costs more than what we'll give the player
-			expensiveCard = &card
-			break
+			// Skip cards with choices to simplify affordability testing
+			hasChoices := false
+			for _, behavior := range card.Behaviors {
+				if len(behavior.Choices) > 0 {
+					hasChoices = true
+					break
+				}
+			}
+			if !hasChoices {
+				expensiveCard = &card
+				break
+			}
 		}
 	}
-	require.NotNil(t, expensiveCard, "Need at least one card with cost > 30 for testing")
+	require.NotNil(t, expensiveCard, "Need at least one card with cost > 30 without choices for testing")
 
 	// Create test game
 	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -220,7 +230,7 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID)
+	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID, nil)
 
 	// Assert - should fail due to insufficient credits
 	assert.Error(t, err)

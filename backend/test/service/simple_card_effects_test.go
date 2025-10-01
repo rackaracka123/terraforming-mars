@@ -67,7 +67,7 @@ func TestColonizerTrainingCamp(t *testing.T) {
 	assert.Equal(t, 50, playerBefore.Resources.Credits)
 
 	// Play the card
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil)
 	require.NoError(t, err, "Should successfully play Colonizer Training Camp")
 
 	// Verify effects
@@ -91,7 +91,7 @@ func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
 	// Attempt to play the card - should fail
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil)
 	assert.Error(t, err, "Should fail when oxygen requirement not met")
 	assert.Contains(t, err.Error(), "requirements not met")
 
@@ -119,7 +119,7 @@ func TestSpaceElevator_ImmediateEffect(t *testing.T) {
 	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
 
 	// Play Space Elevator
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil)
 	require.NoError(t, err, "Should successfully play Space Elevator")
 
 	// Verify immediate effects applied
@@ -160,7 +160,7 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
 	// Play Space Elevator first to get the action
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil)
 	require.NoError(t, err)
 
 	// Get state after playing card
@@ -170,7 +170,7 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 
 	// Use the Space Elevator action (spend 1 steel → gain 5 credits)
 	behaviorIndex := 1 // The manual action is the second behavior
-	err = cardService.OnPlayCardAction(ctx, gameID, playerID, cardID, behaviorIndex)
+	err = cardService.OnPlayCardAction(ctx, gameID, playerID, cardID, behaviorIndex, nil)
 	require.NoError(t, err, "Should successfully use Space Elevator action")
 
 	// Verify action effects

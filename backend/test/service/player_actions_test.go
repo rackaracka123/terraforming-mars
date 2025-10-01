@@ -88,7 +88,7 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	cardRepo.cards["manual-card"] = cardWithManual
 
 	// Play the card
-	err = cardService.OnPlayCard(ctx, gameID, playerID, "manual-card")
+	err = cardService.OnPlayCard(ctx, gameID, playerID, "manual-card", nil)
 	require.NoError(t, err)
 
 	// Verify the player has the action
@@ -182,7 +182,7 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	cardRepo.cards["auto-card"] = cardWithAuto
 
 	// Play the card
-	err = cardService.OnPlayCard(ctx, gameID, playerID, "auto-card")
+	err = cardService.OnPlayCard(ctx, gameID, playerID, "auto-card", nil)
 	require.NoError(t, err)
 
 	// Verify the player has no actions

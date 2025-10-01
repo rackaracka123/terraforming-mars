@@ -249,7 +249,7 @@ func TestRequirementsValidator_AffordabilityValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validator.ValidateCardAffordability(ctx, "gameID", "playerID", &tt.card, &player)
+			err := validator.ValidateCardAffordability(ctx, "gameID", "playerID", &tt.card, &player, nil)
 
 			if tt.expectedError {
 				assert.Error(t, err)
