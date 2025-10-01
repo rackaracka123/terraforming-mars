@@ -54,6 +54,7 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
 
   // Filter out tags with 0 count
   const visibleTags = tagCounts.filter((tag) => tag.count > 0);
+  const totalTags = visibleTags.reduce((sum, tag) => sum + tag.count, 0);
 
   return (
     <div
@@ -61,6 +62,12 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
       className="fixed bottom-[85px] right-[140px] bg-space-black-darker/95 border-2 border-[#64ff96] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#64ff96] backdrop-blur-space z-[2000] animate-[popoverSlideUp_0.2s_ease-out]"
     >
       <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#64ff96] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.3))]" />
+
+      <div className="py-[15px] px-5 bg-black/40 border-b border-b-[#64ff96]/60">
+        <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
+          {totalTags} Total Tags
+        </h3>
+      </div>
 
       {visibleTags.length === 0 ? (
         <div className="py-8 px-5 text-center">
