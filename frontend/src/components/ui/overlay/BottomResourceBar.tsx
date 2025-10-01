@@ -167,7 +167,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.titanium,
       production: currentPlayer.resourceProduction.titanium,
       icon: "/assets/resources/titanium.png",
-      color: "#ffd700", // Yellow
+      color: "#95a5a6", // Grey
     },
     {
       id: "plants",
