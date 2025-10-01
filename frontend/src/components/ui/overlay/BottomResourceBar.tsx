@@ -293,13 +293,39 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
-          className={`flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(255,100,100,0.3)] ${
+          className={`flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5 ${
             (currentPlayer?.actions?.length || 0) === 0
-              ? "border-[rgba(150,150,150,0.4)] bg-gradient-to-br from-[rgba(40,40,40,0.6)] to-[rgba(30,30,30,0.5)] opacity-70 hover:border-[rgba(150,150,150,0.6)] hover:opacity-80"
+              ? "border-[#969696] opacity-70 hover:opacity-80"
               : (currentPlayer?.actions?.length || 0) <= 1
-                ? "border-[rgba(255,200,0,0.6)] bg-gradient-to-br from-[rgba(60,50,0,0.6)] to-[rgba(40,30,0,0.5)] hover:border-[rgba(255,200,0,0.9)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(255,200,0,0.4)]"
-                : "border-[rgba(255,100,100,0.4)] hover:border-[rgba(255,100,100,0.8)]"
+                ? "border-[#ffc800]"
+                : "border-[#ff6464]"
           }`}
+          style={{
+            boxShadow:
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "0 0 10px #96969640"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "0 0 10px #ffc80040"
+                  : "0 0 10px #ff646440",
+          }}
+          onMouseEnter={(e) => {
+            const color =
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "#969696"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "#ffc800"
+                  : "#ff6464";
+            e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${color}`;
+          }}
+          onMouseLeave={(e) => {
+            const color =
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "#969696"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "#ffc800"
+                  : "#ff6464";
+            e.currentTarget.style.boxShadow = `0 0 10px ${color}40`;
+          }}
           onClick={handleOpenActionsPopover}
           title={`Card Actions: ${currentPlayer?.actions?.length || 0}`}
         >
@@ -318,7 +344,15 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={effectsButtonRef}
-          className="flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 border-[rgba(255,150,255,0.4)] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:border-[rgba(255,150,255,0.8)] hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(255,150,255,0.3)]"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #ff96ff40" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
+          }}
           onClick={handleOpenEffectsPopover}
           title="View Card Effects"
         >
@@ -335,7 +369,15 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={tagsButtonRef}
-          className="flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 border-[rgba(100,255,150,0.4)] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:border-[rgba(100,255,150,0.8)] hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(100,255,150,0.3)]"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #64ff9640" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
+          }}
           onClick={handleOpenTagsPopover}
           title="View Tags"
         >
@@ -352,7 +394,15 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
         <button
           ref={storagesButtonRef}
-          className="flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 border-[rgba(100,150,200,0.4)] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:border-[rgba(100,150,200,0.8)] hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(100,150,200,0.3)]"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #6496c840" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
+          }}
           onClick={handleOpenStoragesPopover}
           title="View Card Storages"
         >
@@ -368,7 +418,15 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className="flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 border-[rgba(150,100,255,0.4)] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:border-[rgba(150,100,255,0.8)] hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(150,100,255,0.3)]"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #9664ff40" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
+          }}
           onClick={handleOpenCardsModal}
           title="View Played Cards"
         >
@@ -384,7 +442,15 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className="flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 border-[rgba(255,200,100,0.4)] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:border-[rgba(255,200,100,0.8)] hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(255,200,100,0.3)]"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #ffc86440" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
+          }}
           onClick={handleOpenVictoryPointsModal}
           title="View Victory Points"
         >
