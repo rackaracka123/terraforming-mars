@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface TagCount {
   tag: string;
@@ -20,6 +20,19 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
   anchorRef,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ bottom: 85, right: 140 });
+
+  useEffect(() => {
+    if (isVisible && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const padding = 30;
+
+      const bottom = window.innerHeight - rect.top + 15;
+      const right = Math.max(padding, window.innerWidth - rect.right);
+
+      setPosition({ bottom, right });
+    }
+  }, [isVisible, anchorRef]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -59,9 +72,10 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
   return (
     <div
       ref={popoverRef}
-      className="fixed bottom-[85px] right-[140px] bg-space-black-darker/95 border-2 border-[#64ff96] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#64ff96] backdrop-blur-space z-[2000] animate-[popoverSlideUp_0.2s_ease-out]"
+      className="fixed bg-space-black-darker/95 border-2 border-[#64ff96] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#64ff96] backdrop-blur-space z-[2000] animate-[popoverSlideUp_0.2s_ease-out]"
+      style={{ bottom: `${position.bottom}px`, right: `${position.right}px` }}
     >
-      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#64ff96] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.3))]" />
+      <div className="absolute -bottom-2 right-[30px] w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#64ff96] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.3))]" />
 
       <div className="py-[15px] px-5 bg-black/40 border-b border-b-[#64ff96]/60">
         <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">

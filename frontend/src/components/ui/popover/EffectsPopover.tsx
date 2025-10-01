@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PlayerEffectDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
 
@@ -20,6 +20,19 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
   anchorRef,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ bottom: 85, right: 30 });
+
+  useEffect(() => {
+    if (isVisible && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const padding = 30;
+
+      const bottom = window.innerHeight - rect.top + 15;
+      const right = Math.max(padding, window.innerWidth - rect.right);
+
+      setPosition({ bottom, right });
+    }
+  }, [isVisible, anchorRef]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -56,10 +69,11 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
 
   return (
     <div
-      className="fixed bottom-[85px] right-[30px] w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff96ff] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#ff96ff] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px] max-[768px]:right-[15px] max-[768px]:bottom-[70px]"
+      className="fixed w-[320px] max-h-[400px] bg-space-black-darker/95 border-2 border-[#ff96ff] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_#ff96ff] backdrop-blur-space z-[10001] animate-[popoverSlideUp_0.3s_ease-out] flex flex-col overflow-hidden isolate pointer-events-auto max-[768px]:w-[280px]"
       ref={popoverRef}
+      style={{ bottom: `${position.bottom}px`, right: `${position.right}px` }}
     >
-      <div className="absolute -bottom-2 right-[50px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#ff96ff] max-[768px]:right-[40px]" />
+      <div className="absolute -bottom-2 right-[30px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-[#ff96ff]" />
 
       <div className="flex items-center justify-between py-[15px] px-5 bg-black/40 border-b border-b-[#ff96ff]/60">
         <div className="flex items-center gap-2.5">
