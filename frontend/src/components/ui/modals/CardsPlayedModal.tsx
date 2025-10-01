@@ -53,37 +53,32 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
       [CardType.CORPORATION]: {
         background:
           "linear-gradient(145deg, rgba(0, 200, 100, 0.2) 0%, rgba(0, 150, 80, 0.3) 100%)",
-        borderColor: "rgba(0, 255, 120, 0.7)",
-        glowColor: "rgba(0, 255, 120, 0.4)",
-        badgeColor: "#00ff78",
+        borderColor: "#00ff78",
+        glowColor: "rgba(0, 255, 120, 0.5)",
       },
       [CardType.AUTOMATED]: {
         background:
-          "linear-gradient(145deg, rgba(0, 150, 255, 0.2) 0%, rgba(0, 100, 200, 0.3) 100%)",
-        borderColor: "rgba(0, 180, 255, 0.7)",
-        glowColor: "rgba(0, 180, 255, 0.4)",
-        badgeColor: "#00b4ff",
+          "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
+        borderColor: "rgba(30, 60, 150, 0.5)",
+        glowColor: "rgba(100, 150, 255, 0.5)",
       },
       [CardType.ACTIVE]: {
         background:
           "linear-gradient(145deg, rgba(255, 150, 0, 0.2) 0%, rgba(200, 100, 0, 0.3) 100%)",
-        borderColor: "rgba(255, 180, 0, 0.7)",
-        glowColor: "rgba(255, 180, 0, 0.4)",
-        badgeColor: "#ffb400",
+        borderColor: "#ffb400",
+        glowColor: "rgba(255, 180, 0, 0.5)",
       },
       [CardType.EVENT]: {
         background:
           "linear-gradient(145deg, rgba(255, 80, 80, 0.2) 0%, rgba(200, 50, 50, 0.3) 100%)",
-        borderColor: "rgba(255, 120, 120, 0.7)",
-        glowColor: "rgba(255, 120, 120, 0.4)",
-        badgeColor: "#ff7878",
+        borderColor: "#ff7878",
+        glowColor: "rgba(255, 120, 120, 0.5)",
       },
       [CardType.PRELUDE]: {
         background:
           "linear-gradient(145deg, rgba(200, 100, 255, 0.2) 0%, rgba(150, 50, 200, 0.3) 100%)",
-        borderColor: "rgba(220, 120, 255, 0.7)",
-        glowColor: "rgba(220, 120, 255, 0.4)",
-        badgeColor: "#dc78ff",
+        borderColor: "#dc78ff",
+        glowColor: "rgba(220, 120, 255, 0.5)",
       },
     };
     return styles[type] || styles[CardType.AUTOMATED];
@@ -251,10 +246,14 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             return (
               <div
                 key={type}
-                className={`flex flex-col items-center gap-1 py-2 px-3 border rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === cardTypeEnum ? "shadow-[0_0_15px_rgba(100,150,255,0.5)] scale-105" : ""}`}
+                className={`flex flex-col items-center gap-1 py-2 px-3 border rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === cardTypeEnum ? "scale-105" : ""}`}
                 style={{
                   borderColor: style.borderColor,
                   background: style.background,
+                  boxShadow:
+                    filterType === cardTypeEnum
+                      ? `0 0 15px ${style.glowColor}`
+                      : "none",
                 }}
                 onClick={() => setFilterType(cardTypeEnum as FilterType)}
               >
@@ -268,10 +267,15 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
             );
           })}
           <div
-            className={`flex flex-col items-center gap-1 py-2 px-3 border border-space-blue-400 rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === "all" ? "shadow-[0_0_15px_rgba(100,150,255,0.5)] scale-105" : ""}`}
+            className={`flex flex-col items-center gap-1 py-2 px-3 border rounded-lg cursor-pointer transition-all duration-300 min-w-[60px] hover:scale-105 ${filterType === "all" ? "scale-105" : ""}`}
             style={{
+              borderColor: "rgba(30, 60, 150, 0.5)",
               background:
                 "linear-gradient(145deg, rgba(30, 60, 90, 0.4) 0%, rgba(20, 40, 70, 0.3) 100%)",
+              boxShadow:
+                filterType === "all"
+                  ? "0 0 15px rgba(100, 150, 255, 0.5)"
+                  : "none",
             }}
             onClick={() => setFilterType("all")}
           >
