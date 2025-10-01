@@ -4,6 +4,7 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
+import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import styles from "./CreateGamePage.module.css";
 
 const CreateGamePage: React.FC = () => {
@@ -113,17 +114,25 @@ const CreateGamePage: React.FC = () => {
     navigate("/");
   };
 
+  const getLoadingMessage = () => {
+    if (loadingStep === "game") return "Creating game...";
+    if (loadingStep === "environment") return "Loading 3D environment...";
+    return "Loading...";
+  };
+
   return (
-    <div
-      className={styles.createGamePage}
-      style={{
-        opacity: isFadedIn ? 1 : 0,
-        transition: "opacity 0.3s ease-in",
-      }}
-    >
-      <button onClick={handleBackToHome} className={styles.backButton}>
-        ← Back to Home
-      </button>
+    <>
+      <LoadingOverlay isLoading={isLoading} message={getLoadingMessage()} />
+      <div
+        className={styles.createGamePage}
+        style={{
+          opacity: isFadedIn ? 1 : 0,
+          transition: "opacity 0.3s ease-in",
+        }}
+      >
+        <button onClick={handleBackToHome} className={styles.backButton}>
+          ← Back to Home
+        </button>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>Create a new game</h1>
@@ -181,17 +190,11 @@ const CreateGamePage: React.FC = () => {
             </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}
-
-            {isLoading && (
-              <div className={styles.loadingMessage}>
-                {loadingStep === "game" && "Creating game..."}
-                {loadingStep === "environment" && "Loading 3D environment..."}
-              </div>
-            )}
           </form>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

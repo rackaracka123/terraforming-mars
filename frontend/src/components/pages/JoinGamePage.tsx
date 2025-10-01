@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
+import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import styles from "./JoinGamePage.module.css";
 
 // UUIDv4 validation regex
@@ -259,17 +260,29 @@ const JoinGamePage: React.FC = () => {
     navigate("/");
   };
 
+  const getLoadingMessage = () => {
+    if (isLoadingGameValidation) return "Finding game...";
+    if (loadingStep === "game") return "Joining game...";
+    if (loadingStep === "environment") return "Loading 3D environment...";
+    return "Loading...";
+  };
+
   return (
-    <div
-      className={styles.joinGamePage}
-      style={{
-        opacity: isFadedIn ? 1 : 0,
-        transition: "opacity 0.3s ease-in",
-      }}
-    >
-      <button onClick={handleBackToHome} className={styles.backButton}>
-        ← Back to Home
-      </button>
+    <>
+      <LoadingOverlay
+        isLoading={isLoadingGameValidation || isLoadingJoin}
+        message={getLoadingMessage()}
+      />
+      <div
+        className={styles.joinGamePage}
+        style={{
+          opacity: isFadedIn ? 1 : 0,
+          transition: "opacity 0.3s ease-in",
+        }}
+      >
+        <button onClick={handleBackToHome} className={styles.backButton}>
+          ← Back to Home
+        </button>
       <div className={styles.container}>
         <div className={styles.content}>
           <h1>Join a game</h1>
@@ -302,10 +315,6 @@ const JoinGamePage: React.FC = () => {
               </div>
 
               {error && <div className={styles.errorMessage}>{error}</div>}
-
-              {isLoadingGameValidation && (
-                <div className={styles.loadingMessage}>Finding game...</div>
-              )}
             </form>
           ) : (
             <form
@@ -352,18 +361,12 @@ const JoinGamePage: React.FC = () => {
               </div>
 
               {error && <div className={styles.errorMessage}>{error}</div>}
-
-              {isLoadingJoin && (
-                <div className={styles.loadingMessage}>
-                  {loadingStep === "game" && "Joining game..."}
-                  {loadingStep === "environment" && "Loading 3D environment..."}
-                </div>
-              )}
             </form>
           )}
         </div>
       </div>
     </div>
+    </>
   );
 };
 
