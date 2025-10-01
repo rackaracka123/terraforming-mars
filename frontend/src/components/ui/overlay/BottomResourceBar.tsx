@@ -256,14 +256,17 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Modal escape handling is now managed in GameInterface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-12 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)]">
+    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto">
+      {/* Background bar */}
+      <div className="absolute inset-0 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)] -z-10" />
+
       {/* Resource Grid */}
-      <div className="flex-[2] -translate-y-[30px] pointer-events-auto z-[1001] relative">
+      <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
         <div className="grid grid-cols-6 gap-[15px] max-w-[500px]">
           {playerResources.map((resource) => (
             <div
               key={resource.id}
-              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-[rgba(30,60,90,0.4)] to-[rgba(20,40,70,0.3)] border-2 rounded-xl p-2 transition-all duration-150 cursor-pointer relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:opacity-10 before:transition-opacity before:duration-150 hover:before:opacity-20"
+              className="flex flex-col items-center gap-1.5 bg-gradient-to-br from-[rgba(30,60,90,0.8)] to-[rgba(20,40,70,0.7)] border-2 rounded-xl p-2 transition-all duration-150 cursor-pointer relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:opacity-10 before:transition-opacity before:duration-150 hover:before:opacity-20"
               style={
                 {
                   "--resource-color": resource.color,
@@ -309,7 +312,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       </div>
 
       {/* Action Buttons Section */}
-      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto z-[1001] relative">
+      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
           className={`flex flex-col items-center gap-1 bg-gradient-to-br from-[rgba(30,60,90,0.6)] to-[rgba(20,40,70,0.5)] border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-150 min-w-[60px] backdrop-blur-[5px] hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-[rgba(30,60,90,0.8)] hover:to-[rgba(20,40,70,0.7)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.3),0_0_15px_rgba(255,100,100,0.3)] ${
