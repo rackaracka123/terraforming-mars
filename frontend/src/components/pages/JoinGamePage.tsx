@@ -4,7 +4,6 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
-import styles from "./JoinGamePage.module.css";
 
 // UUIDv4 validation regex
 const UUID_V4_REGEX =
@@ -269,26 +268,27 @@ const JoinGamePage: React.FC = () => {
 
   return (
     <div
-      className={styles.joinGamePage}
-      style={{
-        opacity: isFadedIn ? 1 : 0,
-        transition: "opacity 0.3s ease-in",
-      }}
+      className={`bg-transparent text-white min-h-screen flex items-center justify-center font-sans relative z-10 transition-opacity duration-300 ease-in ${isFadedIn ? "opacity-100" : "opacity-0"}`}
     >
-      <div className={styles.contentWrapper}>
-        <button onClick={handleBackToHome} className={styles.backButton}>
+      <div className="relative z-[1] flex items-center justify-center w-full min-h-screen">
+        <button
+          onClick={handleBackToHome}
+          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm backdrop-blur-space z-[100] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5"
+        >
           ← Back to Home
         </button>
-        <div className={styles.container}>
-          <div className={styles.content}>
-            <h1>Join a game</h1>
+        <div className="max-w-[600px] w-full px-5 py-10">
+          <div className="text-center">
+            <h1 className="font-orbitron text-[42px] text-white mb-[60px] text-shadow-glow font-bold tracking-wider">
+              Join a game
+            </h1>
 
             {!gameValidated ? (
               <form
                 onSubmit={handleGameIdSubmit}
-                className={styles.joinGameForm}
+                className="max-w-[400px] mx-auto"
               >
-                <div className={styles.inputContainer}>
+                <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow">
                   <input
                     type="text"
                     value={gameId}
@@ -296,44 +296,48 @@ const JoinGamePage: React.FC = () => {
                     onKeyDown={handleGameIdKeyDown}
                     placeholder="Enter game ID"
                     disabled={isLoadingGameValidation}
-                    className={styles.playerNameInput}
+                    className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none rounded-l-xl placeholder:text-white/50 disabled:opacity-60"
                     autoFocus
                   />
                   <button
                     type="submit"
                     disabled={isLoadingGameValidation || !gameId.trim()}
-                    className={styles.submitButton}
+                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
                     title="Find Game"
                   >
                     <img
                       src="/assets/misc/arrow.png"
                       alt="Find Game"
-                      className={styles.arrowIcon}
+                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
                     />
                   </button>
                 </div>
 
-                {error && <div className={styles.errorMessage}>{error}</div>}
+                {error && (
+                  <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
               </form>
             ) : (
               <form
                 onSubmit={handlePlayerNameSubmit}
-                className={styles.joinGameForm}
+                className="max-w-[400px] mx-auto"
               >
-                <div className={styles.gameInfo}>
-                  <p>
+                <div className="mb-[30px]">
+                  <p className="text-white/90 text-base m-0">
                     Game found!
                     <button
                       type="button"
                       onClick={handleEditGameId}
-                      className={styles.editGameIdButton}
+                      className="bg-transparent border-none text-space-blue-solid cursor-pointer text-sm ml-1.5 underline transition-all duration-200 hover:text-space-blue-900 hover:text-shadow-glow-sm"
                     >
                       (edit)
                     </button>
                   </p>
                 </div>
 
-                <div className={styles.inputContainer}>
+                <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow">
                   <input
                     type="text"
                     value={playerName}
@@ -341,25 +345,29 @@ const JoinGamePage: React.FC = () => {
                     onKeyDown={handlePlayerNameKeyDown}
                     placeholder="Enter your name"
                     disabled={isLoadingJoin}
-                    className={styles.playerNameInput}
+                    className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none rounded-l-xl placeholder:text-white/50 disabled:opacity-60"
                     autoFocus
                     maxLength={50}
                   />
                   <button
                     type="submit"
                     disabled={isLoadingJoin || !playerName.trim()}
-                    className={styles.submitButton}
+                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
                     title="Join Game"
                   >
                     <img
                       src="/assets/misc/arrow.png"
                       alt="Join Game"
-                      className={styles.arrowIcon}
+                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
                     />
                   </button>
                 </div>
 
-                {error && <div className={styles.errorMessage}>{error}</div>}
+                {error && (
+                  <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
               </form>
             )}
           </div>

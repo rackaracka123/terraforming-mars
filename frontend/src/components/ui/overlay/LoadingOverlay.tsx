@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import styles from "./LoadingOverlay.module.css";
 
 interface LoadingOverlayProps {
   isLoading: boolean;
@@ -31,10 +30,18 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className={`${styles.overlay} ${isFadingOut ? styles.fadeOut : ""}`}>
-      <div className={styles.spinnerContainer}>
-        <div className={styles.spinner} />
-        <div className={styles.message}>{message}</div>
+    <div
+      className={`absolute top-0 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-space flex items-center justify-center z-[9999] transition-all duration-300 ${
+        isFadingOut
+          ? "opacity-0 backdrop-blur-none pointer-events-none"
+          : "opacity-100 pointer-events-auto"
+      }`}
+    >
+      <div className="flex flex-col items-center gap-5">
+        <div className="w-[60px] h-[60px] border-4 border-space-blue-200 border-t-space-blue-solid rounded-full animate-spin shadow-glow" />
+        <div className="text-white text-lg font-medium text-shadow-glow font-orbitron tracking-wide">
+          {message}
+        </div>
       </div>
     </div>
   );
