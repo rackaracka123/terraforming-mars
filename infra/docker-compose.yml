@@ -47,28 +47,6 @@ services:
     labels:
       - "traefik.enable=false"
 
-  # GitHub Webhook Server for Auto-Deployment
-  webhook:
-    build:
-      context: .
-      dockerfile: Dockerfile.webhook
-    container_name: tm-webhook
-    restart: unless-stopped
-    environment:
-      - WEBHOOK_PORT=9000
-      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
-      - DEPLOY_SCRIPT=/deploy/infra/deploy-host.sh
-      - DEPLOY_BRANCH=${DEPLOY_BRANCH}
-      - REPO_DIR=/home/mhm/terraforming-mars
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /home/mhm/terraforming-mars:/deploy
-      - /home/mhm/.ssh:/root/.ssh:ro
-    networks:
-      - tm-network
-    labels:
-      - "traefik.enable=false"
-
 networks:
   tm-network:
     driver: bridge
