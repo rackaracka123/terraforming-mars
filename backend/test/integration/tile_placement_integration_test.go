@@ -155,18 +155,18 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 
 	// STEP 8: Verify production changes from Field-Capped City
 	// Field-Capped City should increase credits production by 2 and energy production by 1
-	production, ok := currentPlayerMap["production"].(map[string]interface{})
-	require.True(t, ok, "production should be a map")
+	production, ok := currentPlayerMap["resourceProduction"].(map[string]interface{})
+	require.True(t, ok, "resourceProduction should be a map")
 
 	creditsProduction, ok := production["credits"].(float64)
 	require.True(t, ok, "credits production should be a number")
-	assert.Equal(t, float64(2), creditsProduction, "Credits production should be increased by 2")
+	assert.Equal(t, float64(3), creditsProduction, "Credits production should be 3 (1 starting + 2 from card)")
 
 	energyProduction, ok := production["energy"].(float64)
 	require.True(t, ok, "energy production should be a number")
 	assert.Equal(t, float64(1), energyProduction, "Energy production should be increased by 1")
 
-	t.Log("✅ Production changes verified: +2 credits production, +1 energy production")
+	t.Log("✅ Production changes verified: 3 credits production (1 starting + 2 from card), 1 energy production")
 
 	// STEP 9: Verify player received 3 plants
 	resources, ok := currentPlayerMap["resources"].(map[string]interface{})
