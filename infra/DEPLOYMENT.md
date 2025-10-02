@@ -11,14 +11,16 @@ This guide will help you deploy Terraforming Mars on your Raspberry Pi using Doc
 
 ## Architecture
 
-The deployment consists of three Docker containers:
+The deployment consists of four Docker containers:
 
-1. **Backend** - Go server (port 3001)
-2. **Frontend** - React app served by Nginx (port 8080)
+1. **Backend** - Go server (port 3001, internal)
+2. **Frontend** - React app served by Nginx (port 8080, internal)
 3. **Cloudflared** - Cloudflare Tunnel for secure HTTPS access
+4. **Webhook** - GitHub webhook server for auto-deployment (port 9000, internal)
 
 ```
 Internet → Cloudflare Tunnel → Frontend (Nginx) → Backend (Go)
+                              → Webhook Server → Deploy Script
 ```
 
 ## Installation Steps
@@ -55,54 +57,46 @@ cd /path/to/terraforming-mars
 
 ### 3. Set Up Cloudflare Tunnel
 
-Run the automated setup script:
+You need to manually create a Cloudflare Tunnel in your Cloudflare dashboard:
 
-```bash
-./cloudflare-tunnel-setup.sh
-```
-
-This script will:
-1. Install `cloudflared` CLI (if not already installed)
-2. Authenticate with your Cloudflare account
-3. Create a new tunnel
-4. Configure DNS for your domain
-5. Generate a tunnel token
-
-Follow the prompts:
-- Choose a tunnel name (e.g., `terraforming-mars`)
-- Enter your domain (e.g., `example.com`)
-- Enter a subdomain (e.g., `tm` for `tm.example.com`) or leave empty for root domain
+1. Go to Cloudflare Zero Trust dashboard
+2. Navigate to **Access** → **Tunnels**
+3. Create a new tunnel (e.g., `terraforming-mars`)
+4. Note the tunnel token
+5. Configure tunnel routes:
+   - Main app: `yourdomain.com` → `http://frontend:8080`
+   - Webhook: `webhook.yourdomain.com` → `http://webhook:9000`
 
 ### 4. Configure Environment Variables
 
-Create a `.env` file from the example:
+Navigate to the infra directory and configure your environment:
 
 ```bash
+cd infra
 cp .env.example .env
-```
-
-Edit `.env` and add your tunnel token:
-
-```bash
 nano .env
 ```
 
+Update the `.env` file with your values:
+
 ```env
-TM_LOG_LEVEL=info
+# Cloudflare tunnel token from step 3
 TUNNEL_TOKEN=your_actual_tunnel_token_here
+
+# Backend log level
+TM_LOG_LEVEL=info
+
+# GitHub webhook secret (generate with: openssl rand -hex 32)
+WEBHOOK_SECRET=your_generated_secret_here
 ```
 
 ### 5. Build and Deploy
 
-Build the Docker images:
+From the `infra` directory, build and start all services:
 
 ```bash
+cd infra
 docker compose build
-```
-
-Start the services:
-
-```bash
 docker compose up -d
 ```
 
@@ -122,28 +116,45 @@ docker compose logs -f
 docker compose logs -f backend
 docker compose logs -f frontend
 docker compose logs -f cloudflared
+docker compose logs -f webhook
 ```
 
 ### 6. Verify Deployment
 
-1. **Local Access** (optional, if you exposed port 8080):
+1. **Check all containers are running**:
    ```bash
-   curl http://localhost:8080/health
+   docker compose ps
    ```
 
 2. **Domain Access**:
    Visit `https://your-domain.com` in your browser
 
-3. **Check Container Health**:
+3. **Test backend health**:
    ```bash
-   docker compose ps
+   docker compose exec frontend wget -O- http://backend:3001/api/health
    ```
-   All containers should show "healthy" status.
+
+### 7. Set Up GitHub Webhook (Optional - for auto-deployment)
+
+1. Go to your GitHub repository → Settings → Webhooks
+2. Add webhook:
+   - **Payload URL**: `https://webhook.yourdomain.com/webhook`
+   - **Content type**: `application/json`
+   - **Secret**: Use `WEBHOOK_SECRET` from your `.env` file
+   - **Events**: Just the push event
+3. Save webhook
+4. GitHub will send a ping - check webhook logs:
+   ```bash
+   docker compose logs webhook
+   ```
 
 ## Management Commands
 
+**Note**: All commands should be run from the `infra/` directory.
+
 ### Start Services
 ```bash
+cd infra
 docker compose up -d
 ```
 
@@ -164,17 +175,38 @@ docker compose logs -f
 
 # Specific service
 docker compose logs -f backend
+docker compose logs -f webhook
 ```
 
 ### Update Deployment
 
+#### Manual Update
 After making code changes:
 
 ```bash
-# Rebuild and restart
+cd infra
 docker compose down
 docker compose build
 docker compose up -d
+```
+
+#### Automatic Update (via webhook)
+If webhook is configured, simply push to main:
+
+```bash
+git add .
+git commit -m "Your changes"
+git push origin main
+```
+
+The webhook will automatically:
+1. Pull latest code
+2. Rebuild containers
+3. Restart services
+
+Watch the deployment:
+```bash
+docker compose logs -f webhook
 ```
 
 ### Remove Everything
@@ -184,13 +216,15 @@ docker compose down --volumes --rmi all
 
 ## Troubleshooting
 
-### Check Container Health
+**Note**: Run all commands from the `infra/` directory.
+
+### Check Container Status
 
 ```bash
 docker compose ps
 ```
 
-Expected output shows all services as "healthy".
+All containers should show "Up" status.
 
 ### Backend Issues
 
@@ -324,26 +358,21 @@ All containers communicate via the `tm-network` Docker bridge network:
 
 ## Updating Cloudflare Tunnel
 
-To change your domain or recreate the tunnel:
+To change your domain or update tunnel configuration:
 
 1. Stop services:
    ```bash
+   cd infra
    docker compose down
    ```
 
-2. Delete existing tunnel:
-   ```bash
-   cloudflared tunnel delete terraforming-mars
-   ```
+2. Update tunnel in Cloudflare dashboard:
+   - Modify routes/domains as needed
+   - Get new tunnel token if recreating
 
-3. Re-run setup:
-   ```bash
-   ./cloudflare-tunnel-setup.sh
-   ```
+3. Update `.env` with new token (if changed)
 
-4. Update `.env` with new token
-
-5. Restart services:
+4. Restart services:
    ```bash
    docker compose up -d
    ```
@@ -378,12 +407,7 @@ Cloudflare Tunnel automatically handles SSL certificates. No additional configur
 
 ### Multiple Domains
 
-To serve the app on multiple domains:
-
-```bash
-# Add additional DNS routes
-cloudflared tunnel route dns terraforming-mars second-domain.com
-```
+To serve the app on multiple domains, add additional routes in your Cloudflare Tunnel dashboard configuration.
 
 ### Local Development Alongside Docker
 
