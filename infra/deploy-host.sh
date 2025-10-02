@@ -39,32 +39,16 @@ log "✅ Updated to commit: $COMMIT_HASH"
 # Navigate to infra directory
 cd "$CONTAINER_REPO_DIR/infra" || exit 1
 
-# Stop existing containers
-log "🛑 Stopping existing containers"
-docker compose down
+# Rebuild and restart services with zero downtime
+log "🏗️  Building and restarting services..."
+docker compose up -d --build
 
-# Remove old images to force rebuild
-log "🗑️  Removing old images"
-docker compose down --rmi local || true
-
-# Rebuild images
-log "🏗️  Building new Docker images"
-docker compose build --no-cache
-
-# Start services
-log "▶️  Starting services"
-docker compose up -d
-
-# Wait for services to start
-log "⏳ Waiting for services to be healthy..."
-sleep 10
+# Wait for services to be healthy
+log "⏳ Waiting for services to stabilize..."
+sleep 5
 
 # Check container status
 log "📊 Container status:"
 docker compose ps | tee -a "$LOG_FILE"
-
-# Cleanup old Docker resources
-log "🧹 Cleaning up old Docker resources"
-docker system prune -f
 
 log "🎉 Deployment complete for commit $COMMIT_HASH"
