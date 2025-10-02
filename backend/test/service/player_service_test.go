@@ -22,7 +22,10 @@ func setupPlayerServiceTest(t *testing.T) (
 	// EventBus no longer needed
 	playerRepo := repository.NewPlayerRepository()
 	gameRepo := repository.NewGameRepository()
-	playerService := service.NewPlayerService(gameRepo, playerRepo, nil)
+	boardService := service.NewBoardService()
+	sessionManager := test.NewMockSessionManager()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -32,9 +35,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-	boardService := service.NewBoardService()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()

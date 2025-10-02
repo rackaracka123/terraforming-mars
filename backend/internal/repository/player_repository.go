@@ -43,6 +43,15 @@ type PlayerRepository interface {
 	GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
 	ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error
 
+	// Tile queue methods
+	UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error
+	GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error)
+	ClearPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) error
+
+	// Tile queue operations
+	CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error
+	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error)
+
 	// Resource storage methods
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 }
@@ -679,6 +688,146 @@ func (r *PlayerRepositoryImpl) GetPendingTileSelection(ctx context.Context, game
 // ClearPendingTileSelection clears the pending tile selection for a player
 func (r *PlayerRepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error {
 	return r.UpdatePendingTileSelection(ctx, gameID, playerID, nil)
+}
+
+// UpdatePendingTileSelectionQueue updates the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Handle nil input properly - set to nil to clear queue
+	if queue == nil {
+		player.PendingTileSelectionQueue = nil
+		log.Info("🎯 Pending tile selection queue cleared for player")
+	} else {
+		// Create a deep copy to prevent external mutation
+		itemsCopy := make([]string, len(queue.Items))
+		copy(itemsCopy, queue.Items)
+
+		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+			Items:  itemsCopy,
+			Source: queue.Source,
+		}
+
+		log.Info("🎯 Pending tile selection queue updated for player",
+			zap.String("source", queue.Source),
+			zap.Int("queue_length", len(queue.Items)),
+			zap.Strings("queue_items", queue.Items))
+	}
+
+	return nil
+}
+
+// GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.PendingTileSelectionQueue == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to prevent external mutation
+	itemsCopy := make([]string, len(player.PendingTileSelectionQueue.Items))
+	copy(itemsCopy, player.PendingTileSelectionQueue.Items)
+
+	return &model.PendingTileSelectionQueue{
+		Items:  itemsCopy,
+		Source: player.PendingTileSelectionQueue.Source,
+	}, nil
+}
+
+// ClearPendingTileSelectionQueue clears the pending tile selection queue for a player
+func (r *PlayerRepositoryImpl) ClearPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) error {
+	return r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, nil)
+}
+
+// CreateTileQueue creates and stores a tile placement queue for a player
+// Note: This is a pure data operation - processing and validation is handled by the service layer
+func (r *PlayerRepositoryImpl) CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	if len(tilePlacements) == 0 {
+		log.Debug("No tile placements to queue")
+		return nil
+	}
+
+	log.Info("🎯 Creating tile placement queue",
+		zap.String("card_id", cardID),
+		zap.Int("total_placements", len(tilePlacements)),
+		zap.Strings("placement_queue", tilePlacements))
+
+	// Create the tile placement queue
+	queue := &model.PendingTileSelectionQueue{
+		Items:  tilePlacements,
+		Source: cardID,
+	}
+
+	if err := r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, queue); err != nil {
+		return fmt.Errorf("failed to create tile placement queue: %w", err)
+	}
+
+	log.Debug("✅ Tile queue created (service layer will handle processing)")
+	return nil
+}
+
+// ProcessNextTileInQueue pops the next tile type from the queue and returns it
+// Returns empty string if queue is empty or doesn't exist
+// This is a pure data operation - validation is handled by the service layer
+func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error) {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current queue
+	queue, err := r.GetPendingTileSelectionQueue(ctx, gameID, playerID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get tile placement queue: %w", err)
+	}
+
+	// If no queue exists or queue is empty, nothing to process
+	if queue == nil || len(queue.Items) == 0 {
+		log.Debug("No tile placements in queue")
+		return "", nil
+	}
+
+	// Pop the first item from the queue
+	nextTileType := queue.Items[0]
+	remainingItems := queue.Items[1:]
+
+	log.Info("🎯 Popping next tile from queue",
+		zap.String("tile_type", nextTileType),
+		zap.String("source", queue.Source),
+		zap.Int("remaining_in_queue", len(remainingItems)))
+
+	// Update queue with remaining items or clear if empty
+	if len(remainingItems) > 0 {
+		updatedQueue := &model.PendingTileSelectionQueue{
+			Items:  remainingItems,
+			Source: queue.Source,
+		}
+		if err := r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, updatedQueue); err != nil {
+			return "", fmt.Errorf("failed to update tile placement queue: %w", err)
+		}
+	} else {
+		// This is the last item, clear the queue
+		if err := r.ClearPendingTileSelectionQueue(ctx, gameID, playerID); err != nil {
+			return "", fmt.Errorf("failed to clear tile placement queue: %w", err)
+		}
+	}
+
+	log.Debug("✅ Tile popped from queue", zap.String("tile_type", nextTileType))
+	return nextTileType, nil
 }
 
 // UpdateResourceStorage updates a player's resource storage map

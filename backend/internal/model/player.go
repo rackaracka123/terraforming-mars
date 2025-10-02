@@ -38,6 +38,12 @@ type PendingTileSelection struct {
 	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
 }
 
+// PendingTileSelectionQueue represents a queue of tile placements to be made
+type PendingTileSelectionQueue struct {
+	Items  []string `json:"items" ts:"string[]"` // Queue of tile types: ["city", "city", "ocean"]
+	Source string   `json:"source" ts:"string"`  // Card ID that triggered all placements
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -57,7 +63,8 @@ type Player struct {
 	ProductionPhase          *ProductionPhase          `json:"productionPhase" ts:"ProductionPhase | null"`
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
 	// Tile selection - nullable, exists only when player needs to place tiles
-	PendingTileSelection *PendingTileSelection `json:"pendingTileSelection" ts:"PendingTileSelection | null"` // Pending tile placement, null when no tiles to place
+	PendingTileSelection      *PendingTileSelection      `json:"pendingTileSelection" ts:"PendingTileSelection | null"`           // Current active tile placement, null when no tiles to place
+	PendingTileSelectionQueue *PendingTileSelectionQueue `json:"pendingTileSelectionQueue" ts:"PendingTileSelectionQueue | null"` // Queue of remaining tile placements from cards
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
@@ -138,6 +145,19 @@ func (p *Player) DeepCopy() *Player {
 		}
 	}
 
+	// Deep copy pending tile selection queue if it exists
+	var pendingTileSelectionQueueCopy *PendingTileSelectionQueue
+	if p.PendingTileSelectionQueue != nil {
+		// Copy items slice
+		itemsCopy := make([]string, len(p.PendingTileSelectionQueue.Items))
+		copy(itemsCopy, p.PendingTileSelectionQueue.Items)
+
+		pendingTileSelectionQueueCopy = &PendingTileSelectionQueue{
+			Items:  itemsCopy,
+			Source: p.PendingTileSelectionQueue.Source,
+		}
+	}
+
 	// Deep copy effects slice
 	effectsCopy := make([]PlayerEffect, len(p.Effects))
 	for i, effect := range p.Effects {
@@ -157,23 +177,24 @@ func (p *Player) DeepCopy() *Player {
 	}
 
 	return &Player{
-		ID:                       p.ID,
-		Name:                     p.Name,
-		Corporation:              p.Corporation,
-		Cards:                    cardsCopy,
-		Resources:                p.Resources,  // Resources is a struct, so this is copied by value
-		Production:               p.Production, // Production is a struct, so this is copied by value
-		TerraformRating:          p.TerraformRating,
-		PlayedCards:              playedCardsCopy,
-		Passed:                   p.Passed,
-		AvailableActions:         p.AvailableActions,
-		VictoryPoints:            p.VictoryPoints,
-		IsConnected:              p.IsConnected,
-		Effects:                  effectsCopy,
-		Actions:                  actionsCopy,
-		ProductionPhase:          productionSelectionCopy,
-		SelectStartingCardsPhase: startingSelectionCopy,
-		PendingTileSelection:     pendingTileSelectionCopy,
-		ResourceStorage:          resourceStorageCopy,
+		ID:                        p.ID,
+		Name:                      p.Name,
+		Corporation:               p.Corporation,
+		Cards:                     cardsCopy,
+		Resources:                 p.Resources,  // Resources is a struct, so this is copied by value
+		Production:                p.Production, // Production is a struct, so this is copied by value
+		TerraformRating:           p.TerraformRating,
+		PlayedCards:               playedCardsCopy,
+		Passed:                    p.Passed,
+		AvailableActions:          p.AvailableActions,
+		VictoryPoints:             p.VictoryPoints,
+		IsConnected:               p.IsConnected,
+		Effects:                   effectsCopy,
+		Actions:                   actionsCopy,
+		ProductionPhase:           productionSelectionCopy,
+		SelectStartingCardsPhase:  startingSelectionCopy,
+		PendingTileSelection:      pendingTileSelectionCopy,
+		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
+		ResourceStorage:           resourceStorageCopy,
 	}
 }

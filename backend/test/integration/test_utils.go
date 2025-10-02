@@ -272,7 +272,7 @@ func (c *TestClient) CreateGameViaHTTP() (string, error) {
 	// Create request payload
 	requestBody := dto.CreateGameRequest{
 		MaxPlayers:      4,
-		DevelopmentMode: false, // Default to false for tests
+		DevelopmentMode: true, // Enable development mode for tests (allows admin commands)
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -706,4 +706,18 @@ func (c *TestClient) SendRawMessage(messageType dto.MessageType, payload interfa
 	defer c.writeMu.Unlock()
 
 	return c.conn.WriteJSON(message)
+}
+
+// SendAction sends a generic action message
+func (c *TestClient) SendAction(messageType dto.MessageType, payload map[string]interface{}) error {
+	return c.SendRawMessage(messageType, payload)
+}
+
+// SendAdminCommand sends an admin command message
+func (c *TestClient) SendAdminCommand(commandType dto.AdminCommandType, payload interface{}) error {
+	adminPayload := map[string]interface{}{
+		"commandType": string(commandType),
+		"payload":     payload,
+	}
+	return c.SendRawMessage(dto.MessageTypeAdminCommand, adminPayload)
 }

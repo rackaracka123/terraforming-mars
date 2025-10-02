@@ -46,14 +46,18 @@ type PlayerServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	sessionManager session.SessionManager
+	boardService   BoardService
+	tileService    TileService
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService) PlayerService {
 	return &PlayerServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		sessionManager: sessionManager,
+		boardService:   boardService,
+		tileService:    tileService,
 	}
 }
 
@@ -292,8 +296,8 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("player has no pending tile selection")
 	}
 
-	// Convert coordinate to string for validation (temporary until we update the validation system)
-	coordinateKey := fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)
+	// Convert coordinate to string for validation
+	coordinateKey := coordinate.String()
 
 	// Basic validation that the clicked tile is in the available hexes
 	validTile := false
@@ -317,13 +321,19 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to place tile: %w", err)
 	}
 
-	// For admin demo selections, don't clear the pending selection to allow continuous testing
-	// For real game selections, clear the pending tile selection to complete the basic flow
+	// Clear the current pending tile selection
 	if err := s.playerRepo.ClearPendingTileSelection(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to clear pending tile selection", zap.Error(err))
 		return fmt.Errorf("failed to clear pending tile selection: %w", err)
 	}
-	log.Info("🎯 Real game tile selection - cleared pending selection")
+
+	// Process the next tile in the queue with validation using TileService
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process next tile in queue", zap.Error(err))
+		return fmt.Errorf("failed to process next tile in queue: %w", err)
+	}
+
+	log.Info("🎯 Tile placed and queue processed")
 
 	// Broadcast updated game state
 	if s.sessionManager != nil {
@@ -349,27 +359,17 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		zap.Int("r", coordinate.R),
 		zap.Int("s", coordinate.S))
 
-	// Create the tile occupant based on the tile type
-	var occupant *model.TileOccupant
-	switch tileType {
-	case "city":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceCityTile,
-			Tags: []string{},
-		}
-	case "greenery":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceGreeneryTile,
-			Tags: []string{},
-		}
-	case "ocean":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceOceanTile,
-			Tags: []string{},
-		}
-	default:
+	// Convert tile type string to ResourceType
+	resourceType, err := model.TileTypeToResourceType(tileType)
+	if err != nil {
 		log.Error("Unknown tile type", zap.String("tile_type", tileType))
-		return fmt.Errorf("unknown tile type: %s", tileType)
+		return err
+	}
+
+	// Create the tile occupant
+	occupant := &model.TileOccupant{
+		Type: resourceType,
+		Tags: []string{},
 	}
 
 	// Update the tile occupancy in the game board
@@ -378,9 +378,142 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		return fmt.Errorf("failed to update tile occupancy: %w", err)
 	}
 
+	// Award placement bonuses to the player
+	if err := s.awardTilePlacementBonuses(ctx, gameID, playerID, coordinate); err != nil {
+		log.Error("Failed to award tile placement bonuses", zap.Error(err))
+		return fmt.Errorf("failed to award tile placement bonuses: %w", err)
+	}
+
 	log.Info("✅ Tile placed successfully",
 		zap.String("tile_type", tileType),
-		zap.String("coordinate", fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)))
+		zap.String("coordinate", coordinate.String()))
 
 	return nil
+}
+
+// awardTilePlacementBonuses awards bonuses to the player for placing a tile
+func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get the game state to access the board
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// Find the placed tile in the board
+	var placedTile *model.Tile
+	for i, tile := range game.Board.Tiles {
+		if tile.Coordinates.Equals(coordinate) {
+			placedTile = &game.Board.Tiles[i]
+			break
+		}
+	}
+
+	if placedTile == nil {
+		log.Warn("Placed tile not found in board", zap.Any("coordinate", coordinate))
+		return nil // Not critical, just skip bonuses
+	}
+
+	// Get current player resources
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	newResources := player.Resources
+	var totalCreditsBonus int
+	var bonusesAwarded []string
+
+	// Award tile bonuses (steel, titanium, plants, card draw)
+	for _, bonus := range placedTile.Bonuses {
+		if description, applied := s.applyTileBonus(&newResources, bonus, log); applied {
+			bonusesAwarded = append(bonusesAwarded, description)
+		}
+	}
+
+	// Award ocean adjacency bonus (+2 MC per adjacent ocean)
+	oceanAdjacencyBonus := s.calculateOceanAdjacencyBonus(game, coordinate)
+	if oceanAdjacencyBonus > 0 {
+		totalCreditsBonus += oceanAdjacencyBonus
+		bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d MC (ocean adjacency)", oceanAdjacencyBonus))
+		log.Info("🌊 Ocean adjacency bonus awarded",
+			zap.Int("bonus", oceanAdjacencyBonus))
+	}
+
+	// Apply credits bonus if any
+	if totalCreditsBonus > 0 {
+		newResources.Credits += totalCreditsBonus
+	}
+
+	// Update player resources if any bonuses were awarded
+	if len(bonusesAwarded) > 0 {
+		if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
+			return fmt.Errorf("failed to update player resources: %w", err)
+		}
+
+		log.Info("✅ All tile placement bonuses awarded",
+			zap.Strings("bonuses", bonusesAwarded))
+	}
+
+	return nil
+}
+
+// calculateOceanAdjacencyBonus calculates the bonus from adjacent ocean tiles
+func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, coordinate model.HexPosition) int {
+	adjacentOceanCount := 0
+
+	// Check each adjacent position for ocean tiles
+	for _, adjacentCoord := range coordinate.GetNeighbors() {
+		// Find the adjacent tile in the board
+		for _, tile := range game.Board.Tiles {
+			if tile.Coordinates.Equals(adjacentCoord) {
+				// Check if this tile has an ocean
+				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+					adjacentOceanCount++
+				}
+				break
+			}
+		}
+	}
+
+	// Each adjacent ocean provides +2 MC
+	return adjacentOceanCount * 2
+}
+
+// applyTileBonus applies a single tile bonus to player resources
+// Returns a description of the bonus and whether it was successfully applied
+func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool) {
+	var resourceName string
+
+	switch bonus.Type {
+	case model.ResourceSteel:
+		resources.Steel += bonus.Amount
+		resourceName = "steel"
+
+	case model.ResourceTitanium:
+		resources.Titanium += bonus.Amount
+		resourceName = "titanium"
+
+	case model.ResourcePlants:
+		resources.Plants += bonus.Amount
+		resourceName = "plants"
+
+	case model.ResourceCardDraw:
+		// TODO: Implement card drawing bonus
+		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
+			zap.String("type", "card-draw"),
+			zap.Int("amount", bonus.Amount))
+		return fmt.Sprintf("+%d cards", bonus.Amount), true
+
+	default:
+		// Unknown bonus type, skip it
+		return "", false
+	}
+
+	log.Info("🎁 Tile bonus awarded",
+		zap.String("type", resourceName),
+		zap.Int("amount", bonus.Amount))
+
+	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
 }

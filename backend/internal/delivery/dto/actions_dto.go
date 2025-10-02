@@ -228,6 +228,7 @@ const (
 	AdminCommandTypeSetProduction      AdminCommandType = "set-production"
 	AdminCommandTypeSetGlobalParams    AdminCommandType = "set-global-params"
 	AdminCommandTypeStartTileSelection AdminCommandType = "start-tile-selection"
+	AdminCommandTypeSetCurrentTurn     AdminCommandType = "set-current-turn"
 )
 
 // AdminCommandRequest contains the admin command data

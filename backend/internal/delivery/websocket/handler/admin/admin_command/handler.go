@@ -130,6 +130,8 @@ func (h *Handler) handleAdminCommand(ctx context.Context, gameID, playerID strin
 		return h.handleSetGlobalParams(ctx, gameID, request.Payload)
 	case dto.AdminCommandTypeStartTileSelection:
 		return h.handleStartTileSelection(ctx, gameID, request.Payload)
+	case dto.AdminCommandTypeSetCurrentTurn:
+		return h.handleSetCurrentTurn(ctx, gameID, request.Payload)
 	default:
 		return fmt.Errorf("unknown admin command type: %s", request.CommandType)
 	}
@@ -254,6 +256,26 @@ func (h *Handler) handleStartTileSelection(ctx context.Context, gameID string, p
 
 	// Use AdminService to start tile selection
 	return h.adminService.OnAdminStartTileSelection(ctx, gameID, command.PlayerID, command.TileType)
+}
+
+// handleSetCurrentTurn sets the current player turn
+func (h *Handler) handleSetCurrentTurn(ctx context.Context, gameID string, payload interface{}) error {
+	payloadMap, ok := payload.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid payload type: expected map[string]interface{}, got %T", payload)
+	}
+
+	playerID, ok := payloadMap["playerId"].(string)
+	if !ok {
+		return fmt.Errorf("playerId is required and must be a string")
+	}
+
+	h.logger.Info("🔄 Admin setting current turn",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
+
+	// Use AdminService to set current turn
+	return h.adminService.OnAdminSetCurrentTurn(ctx, gameID, playerID)
 }
 
 // parsePayload parses the payload interface{} into the target struct

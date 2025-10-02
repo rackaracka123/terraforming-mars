@@ -1,7 +1,6 @@
 package service_test
 
 import (
-	"fmt"
 	"testing"
 
 	"terraforming-mars-backend/internal/service"
@@ -77,12 +76,11 @@ func TestBoardService_GenerateDefaultBoard(t *testing.T) {
 	// Test that no duplicate coordinates exist
 	coordMap := make(map[string]bool)
 	for _, tile := range board.Tiles {
-		key := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
-		if coordMap[key] {
+		if coordMap[tile.Coordinates.String()] {
 			t.Errorf("Duplicate coordinate found: (q=%d, r=%d, s=%d)",
 				tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
 		}
-		coordMap[key] = true
+		coordMap[tile.Coordinates.String()] = true
 	}
 }
 

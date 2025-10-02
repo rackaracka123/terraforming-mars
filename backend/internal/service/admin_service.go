@@ -31,6 +31,9 @@ type AdminService interface {
 
 	// OnAdminStartTileSelection starts tile selection for testing
 	OnAdminStartTileSelection(ctx context.Context, gameID, playerID, tileType string) error
+
+	// OnAdminSetCurrentTurn sets the current player turn
+	OnAdminSetCurrentTurn(ctx context.Context, gameID, playerID string) error
 }
 
 // AdminServiceImpl implements AdminService interface
@@ -291,14 +294,41 @@ func (s *AdminServiceImpl) OnAdminStartTileSelection(ctx context.Context, gameID
 	return nil
 }
 
+// OnAdminSetCurrentTurn sets the current player turn
+func (s *AdminServiceImpl) OnAdminSetCurrentTurn(ctx context.Context, gameID, playerID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Info("🔄 Admin setting current turn")
+
+	// Verify player exists
+	_, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Player not found", zap.Error(err))
+		return fmt.Errorf("player not found: %w", err)
+	}
+
+	// Set current turn
+	if err := s.gameRepo.SetCurrentTurn(ctx, gameID, &playerID); err != nil {
+		log.Error("Failed to set current turn", zap.Error(err))
+		return fmt.Errorf("failed to set current turn: %w", err)
+	}
+
+	log.Info("✅ Current turn set successfully")
+
+	// Broadcast updated game state
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after setting current turn", zap.Error(err))
+		// Don't fail the operation, just log the error
+	}
+
+	return nil
+}
+
 // calculateDemoAvailableHexes calculates available positions for demo tile placement
 func (s *AdminServiceImpl) calculateDemoAvailableHexes(game model.Game, tileType string) []string {
 	var availableHexes []string
 
 	// Demo logic: just find empty tiles based on type
 	for _, tile := range game.Board.Tiles {
-		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
-
 		// Tile must be empty
 		if tile.OccupiedBy != nil {
 			continue
@@ -308,13 +338,13 @@ func (s *AdminServiceImpl) calculateDemoAvailableHexes(game model.Game, tileType
 		case "ocean":
 			// Ocean tiles can only be placed on ocean-designated spaces
 			if tile.Type == model.ResourceOceanTile {
-				availableHexes = append(availableHexes, hexKey)
+				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 
 		case "city", "greenery":
 			// Cities and greenery can be placed on any empty land space
 			if tile.Type != model.ResourceOceanTile {
-				availableHexes = append(availableHexes, hexKey)
+				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 		}
 	}
