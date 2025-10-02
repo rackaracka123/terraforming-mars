@@ -3,9 +3,12 @@ import {
   PlayerDto,
   PlayerActionDto,
   GameDto,
-} from "../../../types/generated/api-types.ts";
+  CardDto,
+} from "@/types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
+import TagsPopover from "../popover/TagsPopover.tsx";
+import StoragesPopover from "../popover/StoragesPopover.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -20,9 +23,9 @@ interface ResourceData {
 interface BottomResourceBarProps {
   currentPlayer?: PlayerDto | null;
   gameState?: GameDto;
+  playedCards?: CardDto[];
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
-  onOpenTagsModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
@@ -31,17 +34,21 @@ interface BottomResourceBarProps {
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   gameState,
+  playedCards = [],
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
-  onOpenTagsModal,
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
 }) => {
   const [showActionsPopover, setShowActionsPopover] = useState(false);
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
+  const [showTagsPopover, setShowTagsPopover] = useState(false);
+  const [showStoragesPopover, setShowStoragesPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
+  const tagsButtonRef = useRef<HTMLButtonElement>(null);
+  const storagesButtonRef = useRef<HTMLButtonElement>(null);
   // Helper function to create image with embedded number
   const createImageWithNumber = (
     imageSrc: string,
@@ -55,6 +62,81 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       </div>
     );
   };
+
+  // Get tag icon mapping
+  const getTagIcon = (tag: string): string => {
+    const iconMap: { [key: string]: string } = {
+      space: "/assets/tags/space.png",
+      earth: "/assets/tags/earth.png",
+      science: "/assets/tags/science.png",
+      power: "/assets/tags/power.png",
+      building: "/assets/tags/building.png",
+      microbe: "/assets/tags/microbe.png",
+      animal: "/assets/tags/animal.png",
+      plant: "/assets/tags/plant.png",
+      event: "/assets/tags/event.png",
+      city: "/assets/tags/city.png",
+      venus: "/assets/tags/venus.png",
+      jovian: "/assets/tags/jovian.png",
+      wildlife: "/assets/tags/wildlife.png",
+      wild: "/assets/tags/wild.png",
+      mars: "/assets/tags/mars.png",
+      moon: "/assets/tags/moon.png",
+      clone: "/assets/tags/clone.png",
+      crime: "/assets/tags/crime.png",
+    };
+    return iconMap[tag.toLowerCase()] || "/assets/tags/empty.png";
+  };
+
+  // Count tags from played cards
+  const tagCounts = React.useMemo(() => {
+    if (!playedCards || playedCards.length === 0) return [];
+
+    const counts: { [key: string]: number } = {};
+
+    // Count tags from played cards
+    playedCards.forEach((card) => {
+      if (card.tags) {
+        card.tags.forEach((tag) => {
+          const tagKey = tag.toLowerCase();
+          counts[tagKey] = (counts[tagKey] || 0) + 1;
+        });
+      }
+    });
+
+    // All possible tags
+    const allTags = [
+      "space",
+      "earth",
+      "science",
+      "power",
+      "building",
+      "microbe",
+      "animal",
+      "plant",
+      "event",
+      "city",
+      "venus",
+      "jovian",
+      "wild",
+      "mars",
+      "moon",
+      "clone",
+      "crime",
+    ];
+
+    return allTags.map((tag) => ({
+      tag,
+      count: counts[tag] || 0,
+      icon: getTagIcon(tag),
+    }));
+  }, [playedCards]);
+
+  // Count storage cards (cards with resource storage)
+  const storageCardsCount = React.useMemo(() => {
+    if (!currentPlayer?.resourceStorage) return 0;
+    return Object.keys(currentPlayer.resourceStorage).length;
+  }, [currentPlayer?.resourceStorage]);
 
   // Early return if no player data available
   if (!currentPlayer?.resources || !currentPlayer?.resourceProduction) {
@@ -158,9 +240,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     setShowEffectsPopover(!showEffectsPopover);
   };
 
-  const handleOpenTagsModal = () => {
-    // Opening tags modal
-    onOpenTagsModal?.();
+  const handleOpenStoragesPopover = () => {
+    setShowStoragesPopover(!showStoragesPopover);
+  };
+
+  const handleOpenTagsPopover = () => {
+    setShowTagsPopover(!showTagsPopover);
   };
 
   const handleOpenVictoryPointsModal = () => {
@@ -253,25 +338,27 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
 
         <button
-          className="action-button vp-button"
-          onClick={handleOpenVictoryPointsModal}
-          title="View Victory Points"
-        >
-          <div className="button-icon">🏆</div>
-          <div className="button-count">
-            {currentPlayer?.victoryPoints || 0}
-          </div>
-          <div className="button-label">VP</div>
-        </button>
-
-        <button
+          ref={tagsButtonRef}
           className="action-button tags-button"
-          onClick={handleOpenTagsModal}
+          onClick={handleOpenTagsPopover}
           title="View Tags"
         >
           <div className="button-icon">🏷️</div>
-          <div className="button-count">{0}</div>
+          <div className="button-count">
+            {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
+          </div>
           <div className="button-label">Tags</div>
+        </button>
+
+        <button
+          ref={storagesButtonRef}
+          className="action-button storages-button"
+          onClick={handleOpenStoragesPopover}
+          title="View Card Storages"
+        >
+          <div className="button-icon">💾</div>
+          <div className="button-count">{storageCardsCount}</div>
+          <div className="button-label">Storages</div>
         </button>
 
         <button
@@ -282,6 +369,18 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           <div className="button-icon">🃏</div>
           <div className="button-count">{playedCardsCount}</div>
           <div className="button-label">Played</div>
+        </button>
+
+        <button
+          className="action-button vp-button"
+          onClick={handleOpenVictoryPointsModal}
+          title="View Victory Points"
+        >
+          <div className="button-icon">🏆</div>
+          <div className="button-count">
+            {currentPlayer?.victoryPoints || 0}
+          </div>
+          <div className="button-label">VP</div>
         </button>
       </div>
 
@@ -355,7 +454,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           border: 2px solid var(--resource-color);
           border-radius: 12px;
           padding: 8px 6px;
-          transition: all 0.3s ease;
+          transition: all 0.15s ease;
           cursor: pointer;
           position: relative;
           overflow: hidden;
@@ -370,7 +469,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           bottom: 0;
           background: var(--resource-color);
           opacity: 0.1;
-          transition: opacity 0.3s ease;
+          transition: opacity 0.15s ease;
         }
 
         .resource-item:hover::before {
@@ -491,7 +590,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           border-radius: 12px;
           padding: 10px 8px;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.15s ease;
           min-width: 60px;
           backdrop-filter: blur(5px);
         }
@@ -887,6 +986,22 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         playerName={currentPlayer?.name}
         onOpenDetails={onOpenCardEffectsModal}
         anchorRef={effectsButtonRef as React.RefObject<HTMLElement>}
+      />
+
+      {/* Tags Popover */}
+      <TagsPopover
+        isVisible={showTagsPopover}
+        onClose={() => setShowTagsPopover(false)}
+        tagCounts={tagCounts}
+        anchorRef={tagsButtonRef as React.RefObject<HTMLElement>}
+      />
+
+      {/* Storages Popover */}
+      <StoragesPopover
+        isVisible={showStoragesPopover}
+        onClose={() => setShowStoragesPopover(false)}
+        player={currentPlayer}
+        anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
 
       {/* Modal components are now rendered in GameInterface */}

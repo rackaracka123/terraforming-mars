@@ -22,6 +22,7 @@ const CardsPage: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Get tag icon mapping from tags folder
   const getTagIcon = (tag: string) => {
@@ -70,12 +71,18 @@ const CardsPage: React.FC = () => {
     setSortBy(sort);
     setSelectedTags(new Set(tags ? tags.split(",").filter(Boolean) : []));
     setSelectedTypes(new Set(types ? types.split(",").filter(Boolean) : []));
+
+    // Don't select cards when viewing a permalink - just show them
     // Don't auto-close filters panel when filters are removed
   }, [searchParams]);
 
   // Update URL parameters when state changes
   const updateURL = useCallback(() => {
     const params = new URLSearchParams();
+
+    // Preserve cId parameters if they exist
+    const cardIds = searchParams.getAll("cId");
+    cardIds.forEach((id) => params.append("cId", id));
 
     if (searchQuery.trim()) {
       params.set("q", searchQuery.trim());
@@ -94,7 +101,14 @@ const CardsPage: React.FC = () => {
     }
 
     setSearchParams(params, { replace: true });
-  }, [searchQuery, sortBy, selectedTags, selectedTypes, setSearchParams]);
+  }, [
+    searchQuery,
+    sortBy,
+    selectedTags,
+    selectedTypes,
+    searchParams,
+    setSearchParams,
+  ]);
 
   const loadAllCards = useCallback(async () => {
     if (loading) return;
@@ -135,28 +149,34 @@ const CardsPage: React.FC = () => {
   const applyFiltersAndSort = useCallback(() => {
     let filtered = [...allCards];
 
-    // Apply search filter (including ID search)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (card) =>
-          card.id.toLowerCase().includes(query) ||
-          card.name.toLowerCase().includes(query) ||
-          card.description.toLowerCase().includes(query) ||
-          card.tags.some((tag) => tag.toLowerCase().includes(query)),
-      );
-    }
+    // Check if we have card IDs in URL - if so, only show those cards
+    const cardIds = searchParams.getAll("cId");
+    if (cardIds.length > 0) {
+      filtered = filtered.filter((card) => cardIds.includes(card.id));
+    } else {
+      // Apply search filter (including ID search)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(
+          (card) =>
+            card.id.toLowerCase().includes(query) ||
+            card.name.toLowerCase().includes(query) ||
+            card.description.toLowerCase().includes(query) ||
+            card.tags.some((tag) => tag.toLowerCase().includes(query)),
+        );
+      }
 
-    // Apply tag filter (if any tags selected, show cards with ANY of the selected tags)
-    if (selectedTags.size > 0) {
-      filtered = filtered.filter((card) =>
-        card.tags.some((tag) => selectedTags.has(tag)),
-      );
-    }
+      // Apply tag filter (if any tags selected, show cards with ANY of the selected tags)
+      if (selectedTags.size > 0) {
+        filtered = filtered.filter((card) =>
+          card.tags.some((tag) => selectedTags.has(tag)),
+        );
+      }
 
-    // Apply type filter (if any types selected, show cards with ANY of the selected types)
-    if (selectedTypes.size > 0) {
-      filtered = filtered.filter((card) => selectedTypes.has(card.type));
+      // Apply type filter (if any types selected, show cards with ANY of the selected types)
+      if (selectedTypes.size > 0) {
+        filtered = filtered.filter((card) => selectedTypes.has(card.type));
+      }
     }
 
     // Apply sorting (only if not unsorted)
@@ -178,7 +198,14 @@ const CardsPage: React.FC = () => {
     }
 
     setCards(filtered);
-  }, [allCards, searchQuery, selectedTags, selectedTypes, sortBy]);
+  }, [
+    allCards,
+    searchQuery,
+    selectedTags,
+    selectedTypes,
+    sortBy,
+    searchParams,
+  ]);
 
   // Search functionality
   const handleSearch = useCallback((query: string) => {
@@ -356,6 +383,35 @@ const CardsPage: React.FC = () => {
     navigate("/");
   };
 
+  // Check if we're in permalink view mode
+  const isPermalinkView = searchParams.getAll("cId").length > 0;
+
+  const handleClearView = () => {
+    // Clear all query params to return to normal view
+    setSearchParams(new URLSearchParams(), { replace: true });
+    setSelectedCards(new Set());
+  };
+
+  const handleCopyPermalink = useCallback(() => {
+    const params = new URLSearchParams();
+
+    // Add selected card IDs as multiple cId parameters
+    Array.from(selectedCards).forEach((cardId) => {
+      params.append("cId", cardId);
+    });
+
+    const permalink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+
+    // Copy to clipboard
+    void navigator.clipboard.writeText(permalink);
+
+    // Show "Copied!" feedback
+    setLinkCopied(true);
+    setTimeout(() => {
+      setLinkCopied(false);
+    }, 1000);
+  }, [selectedCards]);
+
   // Calculate total height for the container
   const totalHeight = useMemo(() => {
     const cardsPerRow = getCardsPerRow();
@@ -407,6 +463,24 @@ const CardsPage: React.FC = () => {
                 </span>
               )}
             </div>
+            {isPermalinkView && (
+              <button
+                className="clear-view-button"
+                onClick={handleClearView}
+                title="Clear permalink view and return to all cards"
+              >
+                Clear View
+              </button>
+            )}
+            {selectedCards.size > 0 && !isPermalinkView && (
+              <button
+                className="link-button"
+                onClick={handleCopyPermalink}
+                title={`Create permalink for ${selectedCards.size} selected cards`}
+              >
+                {linkCopied ? "Copied!" : `Link (${selectedCards.size})`}
+              </button>
+            )}
             <button
               className="filter-toggle-button"
               onClick={() => setShowFilters(!showFilters)}
@@ -557,6 +631,7 @@ const CardsPage: React.FC = () => {
                 isSelected={selectedCards.has(card.id)}
                 onSelect={handleCardSelect}
                 animationDelay={0}
+                showCheckbox={!isPermalinkView}
               />
             </div>
           ))}
@@ -647,8 +722,68 @@ const CardsPage: React.FC = () => {
           transform: translateY(-2px);
         }
 
+        .link-button {
+          background: linear-gradient(
+            135deg,
+            rgba(76, 175, 80, 0.2) 0%,
+            rgba(76, 175, 80, 0.3) 50%,
+            rgba(76, 175, 80, 0.2) 100%
+          );
+          border: 2px solid rgba(76, 175, 80, 0.5);
+          border-radius: 8px;
+          padding: 12px 20px;
+          color: white;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          backdrop-filter: blur(10px);
+          font-weight: 600;
+        }
+
+        .link-button:hover {
+          border-color: rgba(76, 175, 80, 0.8);
+          box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+          transform: translateY(-2px);
+          background: linear-gradient(
+            135deg,
+            rgba(76, 175, 80, 0.3) 0%,
+            rgba(76, 175, 80, 0.4) 50%,
+            rgba(76, 175, 80, 0.3) 100%
+          );
+        }
+
+        .clear-view-button {
+          background: linear-gradient(
+            135deg,
+            rgba(255, 107, 107, 0.2) 0%,
+            rgba(255, 107, 107, 0.3) 50%,
+            rgba(255, 107, 107, 0.2) 100%
+          );
+          border: 2px solid rgba(255, 107, 107, 0.5);
+          border-radius: 8px;
+          padding: 12px 20px;
+          color: white;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          backdrop-filter: blur(10px);
+          font-weight: 600;
+        }
+
+        .clear-view-button:hover {
+          border-color: rgba(255, 107, 107, 0.8);
+          box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+          transform: translateY(-2px);
+          background: linear-gradient(
+            135deg,
+            rgba(255, 107, 107, 0.3) 0%,
+            rgba(255, 107, 107, 0.4) 50%,
+            rgba(255, 107, 107, 0.3) 100%
+          );
+        }
+
         h1 {
-          font-size: 36px;
+          font-size: 28px;
           color: #ffffff;
           margin: 0;
           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);

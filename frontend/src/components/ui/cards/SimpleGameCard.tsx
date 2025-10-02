@@ -11,6 +11,7 @@ interface SimpleGameCardProps {
   isSelected: boolean;
   onSelect: (cardId: string) => void;
   animationDelay?: number;
+  showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
 }
 
 const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
@@ -18,6 +19,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   isSelected,
   onSelect,
   animationDelay = 0,
+  showCheckbox = false,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -119,12 +121,14 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         </h3>
       </div>
 
-      {/* Selection indicator at bottom center, peeking out */}
-      <div className={styles.selectionIndicator}>
-        <div className={styles.checkbox}>
-          {isSelected && <span className={styles.checkmark}>✓</span>}
+      {/* Selection indicator at bottom center, peeking out (only shown when showCheckbox is true) */}
+      {showCheckbox && (
+        <div className={styles.selectionIndicator}>
+          <div className={styles.checkbox}>
+            {isSelected && <span className={styles.checkmark}>✓</span>}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Behavior section */}
       <BehaviorSection behaviors={card.behaviors} />

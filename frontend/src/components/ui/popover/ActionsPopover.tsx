@@ -132,7 +132,6 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
 
       <div className={styles.popoverHeader}>
         <div className={styles.headerTitle}>
-          <div className={styles.titleIcon}>⚡</div>
           <h3>Card Actions</h3>
         </div>
         <div className={styles.headerControls}>

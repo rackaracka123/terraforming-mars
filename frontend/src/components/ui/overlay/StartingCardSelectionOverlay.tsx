@@ -103,6 +103,7 @@ const StartingCardSelectionOverlay: React.FC<
                   isSelected={isSelected}
                   onSelect={handleCardSelect}
                   animationDelay={index * 100}
+                  showCheckbox={true}
                 />
               );
             })}

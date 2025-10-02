@@ -102,6 +102,7 @@ const ProductionCardSelectionOverlay: React.FC<
                   isSelected={isSelected}
                   onSelect={handleCardSelect}
                   animationDelay={index * 100}
+                  showCheckbox={true}
                 />
               );
             })}

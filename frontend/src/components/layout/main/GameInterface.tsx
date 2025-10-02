@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import GameLayout from "./GameLayout.tsx";
 import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
-import TagsModal from "../../ui/modals/TagsModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
@@ -29,7 +28,10 @@ import {
   PlayerDto,
   PlayerActionDto,
 } from "@/types/generated/api-types.ts";
-import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
+import {
+  UnplayableReason,
+  fetchAllCards,
+} from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
 import styles from "./GameInterface.module.css";
 
@@ -48,11 +50,45 @@ export default function GameInterface() {
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
-  const [showTagsModal, setShowTagsModal] = useState(false);
   const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+
+  // Played cards state
+  const [playedCards, setPlayedCards] = useState<CardDto[]>([]);
+
+  // Fetch and resolve played cards when currentPlayer changes
+  useEffect(() => {
+    const loadPlayedCards = async () => {
+      if (
+        !currentPlayer?.playedCards ||
+        currentPlayer.playedCards.length === 0
+      ) {
+        setPlayedCards([]);
+        return;
+      }
+
+      try {
+        const allCards = await fetchAllCards();
+        const resolvedCards: CardDto[] = [];
+
+        for (const cardId of currentPlayer.playedCards) {
+          const card = allCards.get(cardId);
+          if (card) {
+            resolvedCards.push(card);
+          }
+        }
+
+        setPlayedCards(resolvedCards);
+      } catch (error) {
+        console.error("Failed to load played cards:", error);
+        setPlayedCards([]);
+      }
+    };
+
+    void loadPlayedCards();
+  }, [currentPlayer?.playedCards]);
 
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
@@ -527,10 +563,6 @@ export default function GameInterface() {
             break;
           case "2":
             event.preventDefault();
-            setShowTagsModal(true);
-            break;
-          case "3":
-            event.preventDefault();
             setShowVictoryPointsModal(true);
             break;
           case "4":
@@ -586,7 +618,6 @@ export default function GameInterface() {
   const isAnyModalOpen =
     showCorporationModal ||
     showCardsPlayedModal ||
-    showTagsModal ||
     showVictoryPointsModal ||
     showCardEffectsModal ||
     showActionsModal ||
@@ -600,11 +631,11 @@ export default function GameInterface() {
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
+        playedCards={playedCards}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
-        onOpenTagsModal={() => setShowTagsModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
@@ -619,15 +650,7 @@ export default function GameInterface() {
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
-        cards={[]}
-        playerName={currentPlayer?.name}
-      />
-
-      <TagsModal
-        isVisible={showTagsModal}
-        onClose={() => setShowTagsModal(false)}
-        cards={[]}
-        playerName={currentPlayer?.name}
+        cards={playedCards}
       />
 
       <VictoryPointsModal
@@ -635,21 +658,18 @@ export default function GameInterface() {
         onClose={() => setShowVictoryPointsModal(false)}
         cards={[]}
         terraformRating={currentPlayer?.terraformRating}
-        playerName={currentPlayer?.name}
       />
 
       <EffectsModal
         isVisible={showCardEffectsModal}
         onClose={() => setShowCardEffectsModal(false)}
         effects={currentPlayer?.effects || []}
-        playerName={currentPlayer?.name}
       />
 
       <ActionsModal
         isVisible={showActionsModal}
         onClose={() => setShowActionsModal(false)}
         actions={currentPlayer?.actions || []}
-        playerName={currentPlayer?.name}
         onActionSelect={handleActionSelect}
         gameState={game}
       />

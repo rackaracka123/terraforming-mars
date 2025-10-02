@@ -219,6 +219,58 @@ func parseCardID(id string) (string, int) {
 	return prefix, num
 }
 
+// sortBehaviors canonicalizes the order of behaviors for deterministic output.
+// Sorts by: trigger type (alphabetically), then first input type, then first output type.
+func sortBehaviors(behaviors []model.CardBehavior) {
+	sort.Slice(behaviors, func(i, j int) bool {
+		bI := behaviors[i]
+		bJ := behaviors[j]
+
+		// Compare by first trigger type (alphabetically)
+		triggerI := getTriggerSortKey(bI)
+		triggerJ := getTriggerSortKey(bJ)
+		if triggerI != triggerJ {
+			return triggerI < triggerJ
+		}
+
+		// Compare by first input type (alphabetically)
+		inputI := getInputSortKey(bI)
+		inputJ := getInputSortKey(bJ)
+		if inputI != inputJ {
+			return inputI < inputJ
+		}
+
+		// Compare by first output type (alphabetically)
+		outputI := getOutputSortKey(bI)
+		outputJ := getOutputSortKey(bJ)
+		return outputI < outputJ
+	})
+}
+
+// getTriggerSortKey returns the first trigger type as a string for sorting, or empty string if no triggers
+func getTriggerSortKey(behavior model.CardBehavior) string {
+	if len(behavior.Triggers) > 0 {
+		return string(behavior.Triggers[0].Type)
+	}
+	return ""
+}
+
+// getInputSortKey returns the first input type as a string for sorting, or empty string if no inputs
+func getInputSortKey(behavior model.CardBehavior) string {
+	if len(behavior.Inputs) > 0 {
+		return string(behavior.Inputs[0].Type)
+	}
+	return ""
+}
+
+// getOutputSortKey returns the first output type as a string for sorting, or empty string if no outputs
+func getOutputSortKey(behavior model.CardBehavior) string {
+	if len(behavior.Outputs) > 0 {
+		return string(behavior.Outputs[0].Type)
+	}
+	return ""
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run parse_cards_enhanced.go <output.json>")
@@ -747,6 +799,8 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 
 	// Set the enhanced data on the card
 	if len(cardBehaviors) > 0 {
+		// Sort behaviors for deterministic output
+		sortBehaviors(cardBehaviors)
 		card.Behaviors = cardBehaviors
 	}
 	if resourceStorage != nil {
@@ -2041,6 +2095,13 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 			}
 		}
 
+		// Check if the condition refers to resources on this card ("resource here" or "resources here")
+		var target *model.TargetType
+		if strings.Contains(strings.ToLower(vpPerStr), "here") {
+			t := model.TargetSelfCard
+			target = &t
+		}
+
 		condition = model.VictoryPointCondition{
 			Amount:     vpAmount, // VP amount from column 37
 			Condition:  model.VPConditionPer,
@@ -2049,6 +2110,7 @@ func parseVictoryConditionsFromCardsCSV(record []string) []model.VictoryPointCon
 				Type:     *resourceType,
 				Amount:   per,                                                                                       // Resources needed per VP
 				Location: func() *model.CardApplyLocation { loc := model.CardApplyLocationAnywhere; return &loc }(), // Default to anywhere, could be refined based on context
+				Target:   target,                                                                                    // Set to self-card when "here" is detected
 			},
 		}
 	} else {

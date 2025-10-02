@@ -61,7 +61,6 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
 
       <div className={styles.popoverHeader}>
         <div className={styles.headerTitle}>
-          <div className={styles.titleIcon}>✨</div>
           <h3>Card Effects</h3>
         </div>
         <div className={styles.headerControls}>

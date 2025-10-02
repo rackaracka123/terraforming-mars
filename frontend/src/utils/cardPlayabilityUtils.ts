@@ -100,6 +100,221 @@ async function countPlayerTags(
 }
 
 /**
+ * Checks if player can afford negative resource/production costs in card behaviors
+ */
+function checkBehaviorCosts(
+  card: CardDto,
+  player: PlayerDto,
+  game: GameDto,
+): UnplayableReason[] {
+  const failedReasons: UnplayableReason[] = [];
+
+  if (!card.behaviors || card.behaviors.length === 0) {
+    return failedReasons;
+  }
+
+  for (const behavior of card.behaviors) {
+    if (!behavior.outputs || behavior.outputs.length === 0) {
+      continue;
+    }
+
+    for (const output of behavior.outputs) {
+      // Skip positive amounts
+      if (output.amount >= 0) {
+        continue;
+      }
+
+      // Only check self-player and any-player targets
+      // (any-player means you can target yourself or opponents, but SOMEONE must have it)
+      if (output.target !== "self-player" && output.target !== "any-player") {
+        continue;
+      }
+
+      const absAmount = Math.abs(output.amount);
+      const resourceType = output.type.toLowerCase();
+
+      // Helper to get production value
+      const getProduction = (prod: any, baseResource: string): number => {
+        switch (baseResource) {
+          case "credits":
+          case "megacredits":
+            return prod?.credits || 0;
+          case "steel":
+            return prod?.steel || 0;
+          case "titanium":
+            return prod?.titanium || 0;
+          case "plants":
+          case "plant":
+            return prod?.plants || 0;
+          case "energy":
+          case "power":
+            return prod?.energy || 0;
+          case "heat":
+            return prod?.heat || 0;
+          default:
+            return 0;
+        }
+      };
+
+      // Helper to get resource amount
+      const getResourceAmount = (res: any, resType: string): number => {
+        switch (resType) {
+          case "credits":
+          case "megacredits":
+            return res?.credits || 0;
+          case "steel":
+            return res?.steel || 0;
+          case "titanium":
+            return res?.titanium || 0;
+          case "plants":
+          case "plant":
+            return res?.plants || 0;
+          case "energy":
+          case "power":
+            return res?.energy || 0;
+          case "heat":
+            return res?.heat || 0;
+          default:
+            return 0;
+        }
+      };
+
+      // Check if it's a production type (ends with -production)
+      if (resourceType.endsWith("-production")) {
+        const baseResource = resourceType.replace("-production", "");
+
+        if (output.target === "any-player") {
+          // Check if ANY player has enough
+          const currentProduction = getProduction(
+            player.resourceProduction,
+            baseResource,
+          );
+          let anyoneHasEnough = currentProduction >= absAmount;
+
+          if (!anyoneHasEnough && game.otherPlayers) {
+            for (const other of game.otherPlayers) {
+              if (
+                getProduction(other.resourceProduction, baseResource) >=
+                absAmount
+              ) {
+                anyoneHasEnough = true;
+                break;
+              }
+            }
+          }
+
+          if (!anyoneHasEnough) {
+            failedReasons.push({
+              type: "production",
+              requirement: { resource: baseResource, amount: absAmount },
+              message: `${absAmount}`,
+              currentValue: currentProduction,
+              requiredValue: absAmount,
+            });
+          }
+        } else {
+          // self-player only
+          const currentProduction = getProduction(
+            player.resourceProduction,
+            baseResource,
+          );
+
+          if (currentProduction < absAmount) {
+            failedReasons.push({
+              type: "production",
+              requirement: { resource: baseResource, amount: absAmount },
+              message: `${absAmount}`,
+              currentValue: currentProduction,
+              requiredValue: absAmount,
+            });
+          }
+        }
+      } else {
+        // Regular resource
+        if (output.target === "any-player") {
+          const currentAmount = getResourceAmount(
+            player.resources,
+            resourceType,
+          );
+          let anyoneHasEnough = currentAmount >= absAmount;
+
+          if (!anyoneHasEnough && game.otherPlayers) {
+            for (const other of game.otherPlayers) {
+              if (
+                getResourceAmount(other.resources, resourceType) >= absAmount
+              ) {
+                anyoneHasEnough = true;
+                break;
+              }
+            }
+          }
+
+          // Skip special resource types stored on cards
+          const isStandardResource = [
+            "credits",
+            "megacredits",
+            "steel",
+            "titanium",
+            "plants",
+            "plant",
+            "energy",
+            "power",
+            "heat",
+          ].includes(resourceType);
+          if (!isStandardResource) {
+            continue;
+          }
+
+          if (!anyoneHasEnough) {
+            failedReasons.push({
+              type: "resource",
+              requirement: { resource: resourceType, amount: absAmount },
+              message: `${absAmount}`,
+              currentValue: currentAmount,
+              requiredValue: absAmount,
+            });
+          }
+        } else {
+          // self-player only
+          const currentAmount = getResourceAmount(
+            player.resources,
+            resourceType,
+          );
+
+          // Skip special resource types
+          const isStandardResource = [
+            "credits",
+            "megacredits",
+            "steel",
+            "titanium",
+            "plants",
+            "plant",
+            "energy",
+            "power",
+            "heat",
+          ].includes(resourceType);
+          if (!isStandardResource) {
+            continue;
+          }
+
+          if (currentAmount < absAmount) {
+            failedReasons.push({
+              type: "resource",
+              requirement: { resource: resourceType, amount: absAmount },
+              message: `${absAmount}`,
+              currentValue: currentAmount,
+              requiredValue: absAmount,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return failedReasons;
+}
+
+/**
  * Checks if a specific requirement is met
  */
 async function checkRequirement(
@@ -118,7 +333,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Temperature must be at least ${min}°C (current: ${currentTemp}°C)`,
+            message: `${min}°C`,
             currentValue: currentTemp,
             requiredValue: min,
             requirementType: "min",
@@ -131,7 +346,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Temperature must be at most ${max}°C (current: ${currentTemp}°C)`,
+            message: `Max ${max}°C`,
             currentValue: currentTemp,
             requiredValue: max,
             requirementType: "max",
@@ -149,7 +364,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Oxygen must be at least ${min}% (current: ${currentOxygen}%)`,
+            message: `${min}%`,
             currentValue: currentOxygen,
             requiredValue: min,
             requirementType: "min",
@@ -162,7 +377,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Oxygen must be at most ${max}% (current: ${currentOxygen}%)`,
+            message: `Max ${max}%`,
             currentValue: currentOxygen,
             requiredValue: max,
             requirementType: "max",
@@ -180,7 +395,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Must have at least ${min} ocean${min !== 1 ? "s" : ""} (current: ${currentOceans})`,
+            message: `${min}`,
             currentValue: currentOceans,
             requiredValue: min,
             requirementType: "min",
@@ -193,7 +408,7 @@ async function checkRequirement(
           reason: {
             type: "global-param",
             requirement,
-            message: `Must have at most ${max} ocean${max !== 1 ? "s" : ""} (current: ${currentOceans})`,
+            message: `Max ${max}`,
             currentValue: currentOceans,
             requiredValue: max,
             requirementType: "max",
@@ -213,7 +428,7 @@ async function checkRequirement(
             reason: {
               type: "tag",
               requirement,
-              message: `Need ${requiredCount} ${tag} tag${requiredCount !== 1 ? "s" : ""} (have ${tagCount})`,
+              message: `${requiredCount}`,
               currentValue: tagCount,
               requiredValue: requiredCount,
               requirementType: "min",
@@ -260,7 +475,7 @@ async function checkRequirement(
             reason: {
               type: "production",
               requirement,
-              message: `Need ${requiredProduction} ${resource} production (have ${currentProduction})`,
+              message: `${requiredProduction}`,
               currentValue: currentProduction,
               requiredValue: requiredProduction,
               requirementType: "min",
@@ -306,11 +521,15 @@ export async function checkCardPlayability(
     failedRequirements.push({
       type: "cost",
       requirement: { cost: card.cost },
-      message: `Not enough credits (need ${card.cost}, have ${player.resources.credits})`,
+      message: `${card.cost}`,
       currentValue: player.resources.credits,
       requiredValue: card.cost,
     });
   }
+
+  // Third check: Behavior costs (negative resource/production costs)
+  const behaviorCostFailures = checkBehaviorCosts(card, player, game);
+  failedRequirements.push(...behaviorCostFailures);
 
   // Check all requirements
   if (card.requirements && card.requirements.length > 0) {

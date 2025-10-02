@@ -578,6 +578,10 @@ export interface PlayerDto {
    * Tile selection - nullable, exists only when player needs to place tiles
    */
   pendingTileSelection?: PendingTileSelectionDto; // Pending tile placement, null when no tiles to place
+  /**
+   * Resource storage - maps card IDs to resource counts stored on those cards
+   */
+  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -600,6 +604,10 @@ export interface OtherPlayerDto {
   actions: PlayerActionDto[];
   selectStartingCardsPhase?: SelectStartingCardsOtherPlayerDto;
   productionPhase?: ProductionPhaseOtherPlayerDto;
+  /**
+   * Resource storage - maps card IDs to resource counts stored on those cards (public information)
+   */
+  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)

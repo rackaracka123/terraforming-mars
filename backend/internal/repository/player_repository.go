@@ -51,6 +51,9 @@ type PlayerRepository interface {
 	// Tile queue operations
 	CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error
 	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error)
+
+	// Resource storage methods
+	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -825,4 +828,31 @@ func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameI
 
 	log.Debug("✅ Tile popped from queue", zap.String("tile_type", nextTileType))
 	return nextTileType, nil
+}
+
+// UpdateResourceStorage updates a player's resource storage map
+func (r *PlayerRepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Deep copy the map to prevent external mutation
+	if resourceStorage == nil {
+		player.ResourceStorage = make(map[string]int)
+	} else {
+		player.ResourceStorage = make(map[string]int)
+		for cardID, count := range resourceStorage {
+			player.ResourceStorage[cardID] = count
+		}
+	}
+
+	log.Debug("Player resource storage updated", zap.Int("storage_entries", len(player.ResourceStorage)))
+
+	return nil
 }
