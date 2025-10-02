@@ -12,7 +12,7 @@ set -e
 CONTAINER_REPO_DIR="/deploy"
 HOST_REPO_DIR="${REPO_DIR:-/home/mhm/terraforming-mars}"
 LOG_FILE="${LOG_FILE:-/tmp/terraforming-mars-deploy.log}"
-BRANCH="${DEPLOY_BRANCH"
+BRANCH="${DEPLOY_BRANCH}"
 
 # Logging function
 log() {
