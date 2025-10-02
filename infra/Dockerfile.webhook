@@ -4,8 +4,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install Docker CLI, Git, SSH, and other deployment dependencies
-RUN apk add --no-cache docker-cli git bash openssh-client
+# Install Docker CLI, Docker Compose, Git, SSH, and other deployment dependencies
+RUN apk add --no-cache docker-cli docker-cli-compose git bash openssh-client
 
 # Copy webhook server
 COPY webhook-server.js .
