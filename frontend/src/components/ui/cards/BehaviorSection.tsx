@@ -1,5 +1,4 @@
 import React from "react";
-import styles from "./BehaviorSection.module.css";
 import { CardBehaviorDto, ResourcesDto } from "@/types/generated/api-types.ts";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 
@@ -199,7 +198,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     if (!icon) return null;
 
-    let iconClass = styles.resourceIcon;
+    let iconClass =
+      "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
     const isTag = getTagIcon(cleanType);
     const isPlacement =
       cleanType === "city-placement" ||
@@ -221,21 +221,27 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       context === "standalone" && (isStandaloneTile || isStandaloneCard);
 
     if (isAttack) {
-      iconClass = styles.attackResourceIcon;
+      iconClass =
+        "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite] max-md:w-[22px] max-md:h-[22px]";
     } else if (shouldUseStandaloneSize) {
-      iconClass = styles.standaloneIcon;
+      iconClass =
+        "w-9 h-9 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.7))] max-md:w-8 max-md:h-8";
     } else if (isPlacement) {
-      iconClass = styles.placementIcon;
+      iconClass =
+        "w-[30px] h-[30px] object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-[26px] max-md:h-[26px]";
     } else if (isTR) {
-      iconClass = styles.trIcon;
+      iconClass =
+        "w-8 h-8 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-7 max-md:h-7";
     } else if (isCard) {
-      iconClass = styles.cardIcon;
+      iconClass =
+        "w-[30px] h-[30px] object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-[26px] max-md:h-[26px]";
     } else if (isTag) {
-      iconClass = styles.tagIcon;
+      iconClass =
+        "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
     }
 
     const finalIconClass = !isAffordable
-      ? `${iconClass} ${styles.unaffordableResource}`
+      ? `${iconClass} opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]`
       : iconClass;
 
     return <img src={icon} alt={cleanType} className={finalIconClass} />;
@@ -604,19 +610,21 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         // Special handling for credits-production - use MegaCreditIcon with value inside
         if (baseResourceType === "credits") {
           const itemClasses = !isAffordable
-            ? `${styles.flexibleResourceItem} ${styles.unaffordableResource}`
-            : styles.flexibleResourceItem;
+            ? "flex items-center gap-px relative opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+            : "flex items-center gap-px relative";
 
           return (
-            <div className={styles.gridProductionWrapper}>
+            <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
               <div className={itemClasses}>
                 <MegaCreditIcon value={Math.abs(amount)} size="small" />
               </div>
-              <span className={styles.perSeparator}>/</span>
+              <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+                /
+              </span>
               <img
                 src={perIcon}
                 alt={hasPer.tag || hasPer.type}
-                className={styles.tagIcon}
+                className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
               />
             </div>
           );
@@ -631,18 +639,22 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
           );
           if (productionIcon) {
             return (
-              <div className={styles.gridProductionWrapper}>
-                <div className={styles.flexibleResourceItem}>
+              <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+                <div className="flex items-center gap-px relative">
                   {amount > 1 && (
-                    <span className={styles.resourceAmount}>{amount}</span>
+                    <span className="text-lg font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] leading-none flex items-center ml-0.5 max-md:text-xs">
+                      {amount}
+                    </span>
                   )}
                   {productionIcon}
                 </div>
-                <span className={styles.perSeparator}>/</span>
+                <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+                  /
+                </span>
                 <img
                   src={perIcon}
                   alt={hasPer.tag || hasPer.type}
-                  className={styles.tagIcon}
+                  className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
                 />
               </div>
             );
@@ -652,7 +664,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     }
 
     if (isCredits) {
-      const creditsClasses = `${styles.flexibleResourceItem} ${styles.numbered} ${isAttack ? styles.attackCreditsWrapper : ""}`;
+      const creditsClasses = `flex items-center gap-0.5 relative ${isAttack ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulseCredits_2s_ease-in-out_infinite]" : ""}`;
 
       // Show minus inside icon if not grouped with other negative resources
       const showMinusInside = amount < 0 && !isGroupedWithOtherNegatives;
@@ -661,12 +673,16 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         (isInput || amount < 0) && isGroupedWithOtherNegatives;
 
       const finalCreditsClasses = !isAffordable
-        ? `${creditsClasses} ${styles.unaffordableResource}`
+        ? `${creditsClasses} opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]`
         : creditsClasses;
 
       return (
         <div className={finalCreditsClasses}>
-          {showMinusOutside && <span className={styles.minusSign}>-</span>}
+          {showMinusOutside && (
+            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
+              -
+            </span>
+          )}
           <MegaCreditIcon
             value={showMinusInside ? amount : Math.abs(amount)}
             size="small"
@@ -677,8 +693,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     if (isDiscount) {
       const discountClasses = !isAffordable
-        ? `${styles.flexibleResourceItem} ${styles.numbered} ${styles.unaffordableResource}`
-        : `${styles.flexibleResourceItem} ${styles.numbered}`;
+        ? "flex items-center gap-0.5 relative opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+        : "flex items-center gap-0.5 relative";
 
       return (
         <div className={discountClasses}>
@@ -702,7 +718,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     );
     if (!iconElement) {
       return (
-        <span className={styles.resourceText}>
+        <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
           {isInput ? "-" : "+"}
           {amount} {resourceType}
         </span>
@@ -712,9 +728,11 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     if (displayMode === "individual") {
       const absoluteAmount = Math.abs(amount);
       return (
-        <div className={`${styles.flexibleResourceItem} ${styles.individual}`}>
+        <div className="flex items-center gap-px relative">
           {(isInput || amount < 0) && (
-            <span className={styles.minusSign}>-</span>
+            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
+              -
+            </span>
           )}
           {Array.from({ length: absoluteAmount }, (_, i) => (
             <React.Fragment key={i}>{iconElement}</React.Fragment>
@@ -723,11 +741,15 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       );
     } else {
       return (
-        <div
-          className={`${styles.flexibleResourceItem} ${styles.numbered} ${styles.numberIconDisplay}`}
-        >
-          {isInput && <span className={styles.minusSign}>-</span>}
-          <span className={styles.resourceAmount}>{amount}</span>
+        <div className="flex items-center gap-0.5 relative">
+          {isInput && (
+            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
+              -
+            </span>
+          )}
+          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] mr-px">
+            {amount}
+          </span>
           {iconElement}
         </div>
       );
@@ -741,11 +763,14 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     // Handle choice-based behaviors
     if (behavior.choices && behavior.choices.length > 0) {
       return (
-        <div className={styles.choicesContainer}>
+        <div className="flex flex-col gap-1.5 items-center w-full">
           {behavior.choices.map((choice: any, choiceIndex: number) => (
-            <div key={`choice-${choiceIndex}`} className={styles.choiceOption}>
+            <div
+              key={`choice-${choiceIndex}`}
+              className="flex items-center gap-1 w-full justify-center"
+            >
               {/* Input side for this choice */}
-              <div className={styles.actionInputs}>
+              <div className="flex flex-col gap-0.5 items-center min-w-0">
                 {choice.inputs &&
                   choice.inputs.map((input: any, inputIndex: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(
@@ -772,11 +797,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
               {/* Arrow separator for this choice */}
               {choice.inputs?.length > 0 && choice.outputs?.length > 0 && (
-                <div className={styles.gridSeparator}>→</div>
+                <div className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+                  →
+                </div>
               )}
 
               {/* Output side for this choice */}
-              <div className={styles.actionOutputs}>
+              <div className="flex flex-col gap-0.5 items-center min-w-0">
                 {choice.outputs &&
                   choice.outputs.map((output: any, outputIndex: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(
@@ -803,7 +830,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
               {/* Add "OR" separator between choices (except for the last one) */}
               {choiceIndex < behavior.choices.length - 1 && (
-                <div className={styles.choiceSeparator}>OR</div>
+                <div className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] my-0.5 mx-2 bg-white/10 py-0.5 px-1.5 rounded-[2px] backdrop-blur-[2px]">
+                  OR
+                </div>
               )}
             </div>
           ))}
@@ -813,9 +842,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     // Regular behavior handling
     return (
-      <div className={styles.balancedActionLayout}>
+      <div className="flex items-center justify-center gap-2 w-full">
         {/* Input side */}
-        <div className={styles.actionInputs}>
+        <div className="flex flex-col gap-0.5 items-center min-w-0">
           {behavior.inputs &&
             behavior.inputs.map((input: any, inputIndex: number) => {
               const displayInfo = analyzeResourceDisplayWithConstraints(
@@ -839,10 +868,12 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         </div>
 
         {/* Arrow separator */}
-        <div className={styles.gridSeparator}>→</div>
+        <div className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+          →
+        </div>
 
         {/* Output side */}
-        <div className={styles.actionOutputs}>
+        <div className="flex flex-col gap-0.5 items-center min-w-0">
           {behavior.outputs &&
             behavior.outputs.map((output: any, outputIndex: number) => {
               const displayInfo = analyzeResourceDisplayWithConstraints(
@@ -874,19 +905,24 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     _layoutPlan: LayoutPlan,
   ): React.ReactNode => {
     return (
-      <div className={styles.iconGrid}>
-        <div className={styles.iconGridRow}>
+      <div className="flex flex-col gap-[3px] items-center justify-center">
+        <div className="flex gap-[3px] items-center justify-center">
           {/* Trigger conditions */}
           {behavior.triggers && behavior.triggers.length > 0 && (
             <>
-              <div className={styles.triggerConditions}>
+              <div className="flex gap-[3px] items-center">
                 {behavior.triggers.map((trigger: any, triggerIndex: number) => (
-                  <span key={triggerIndex} className={styles.triggerText}>
+                  <span
+                    key={triggerIndex}
+                    className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]"
+                  >
                     {trigger.description || trigger.type || "trigger"}
                   </span>
                 ))}
               </div>
-              <span className={styles.gridSeparator}>:</span>
+              <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+                :
+              </span>
             </>
           )}
 
@@ -964,14 +1000,14 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     );
 
     return (
-      <div className={styles.immediateResourceGrid}>
+      <div className="flex flex-wrap gap-[3px] items-center justify-center max-w-full">
         {/* Regular production outputs in wrapper with row-based grouping */}
         {regularProduction.length > 0 && (
-          <div className={styles.gridProductionWrapper}>
-            <div className={styles.iconGrid}>
+          <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+            <div className="flex flex-col gap-[3px] items-center justify-center">
               {/* Negative production on first row */}
               {negativeProduction.length > 0 && (
-                <div className={styles.iconGridRow}>
+                <div className="flex gap-[3px] items-center justify-center">
                   {negativeProduction.map((output: any, index: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(
                       output,
@@ -996,7 +1032,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
               {/* Positive production on second row */}
               {positiveProduction.length > 0 && (
-                <div className={styles.iconGridRow}>
+                <div className="flex gap-[3px] items-center justify-center">
                   {positiveProduction.map((output: any, index: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(
                       output,
@@ -1023,7 +1059,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
         {/* Per-condition production outputs (already have their own wrapper) */}
         {perConditionProduction.length > 0 && (
-          <div className={styles.iconGrid}>
+          <div className="flex flex-col gap-[3px] items-center justify-center">
             {perConditionProduction.map((output: any, index: number) => {
               const displayInfo = analyzeResourceDisplayWithConstraints(
                 output,
@@ -1047,10 +1083,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
         {/* Non-production outputs */}
         {nonProductionOutputs.length > 0 && (
-          <div className={styles.iconGrid}>
+          <div className="flex flex-col gap-[3px] items-center justify-center">
             {/* Negative resources on first row */}
             {negativeOutputs.length > 0 && (
-              <div className={styles.iconGridRow}>
+              <div className="flex gap-[3px] items-center justify-center">
                 {negativeOutputs.map((output: any, index: number) => {
                   const displayInfo = analyzeResourceDisplayWithConstraints(
                     output,
@@ -1075,7 +1111,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
             {/* Positive resources on second row */}
             {positiveOutputs.length > 0 && (
-              <div className={styles.iconGridRow}>
+              <div className="flex gap-[3px] items-center justify-center">
                 {positiveOutputs.map((output: any, index: number) => {
                   const displayInfo = analyzeResourceDisplayWithConstraints(
                     output,
@@ -1110,8 +1146,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
     return (
-      <div className={styles.iconGridRow}>
-        <span className={styles.gridSeparator}>:</span>
+      <div className="flex gap-[3px] items-center justify-center">
+        <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+          :
+        </span>
         {behavior.outputs.map((output: any, index: number) => {
           const displayInfo = analyzeResourceDisplayWithConstraints(
             output,
@@ -1165,17 +1203,33 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     // Wrap in appropriate container based on type
     if (type === "auto-no-background" || type === "discount") {
       return (
-        <div key={index} className={styles.autoEffectContainer}>
+        <div
+          key={index}
+          className="flex items-center justify-center my-px p-[3px] min-h-8 max-md:p-px max-md:my-px"
+        >
           {behaviorContent}
         </div>
       );
     } else {
+      const typeStyles = {
+        "manual-action":
+          "bg-[linear-gradient(135deg,rgba(33,150,243,0.35)_0%,rgba(25,118,210,0.3)_100%)] border-[rgba(33,150,243,0.5)] shadow-[0_2px_4px_rgba(33,150,243,0.3)] w-auto min-w-[100px] max-w-[calc(100%-20px)]",
+        "triggered-effect":
+          "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+        "immediate-production":
+          "bg-[linear-gradient(135deg,rgba(139,89,42,0.35)_0%,rgba(101,67,33,0.3)_100%)] border-[rgba(139,89,42,0.5)] shadow-[0_2px_4px_rgba(139,89,42,0.25)]",
+        "immediate-effect":
+          "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+      };
+
       return (
         <div
           key={index}
-          className={`${styles.behaviorItem} ${styles[type]} ${type === "manual-action" ? styles.fitContent : ""}`}
+          className={`rounded-[3px] px-2 py-1 min-h-8 my-px border border-white/10 backdrop-blur-[2px] flex items-center w-[calc(100%-20px)] ${typeStyles[type] || ""} max-md:px-1.5 max-md:py-[3px] max-md:min-h-7 max-md:my-px`}
         >
-          <div className={styles.behaviorContent}>{behaviorContent}</div>
+          <div className="flex items-center gap-1.5 flex-nowrap w-full justify-center max-md:gap-1">
+            {behaviorContent}
+          </div>
         </div>
       );
     }
@@ -1370,8 +1424,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     // If overflow is needed, prepare for future rolling effect
     const containerClass = cardLayoutPlan.needsOverflowHandling
-      ? `${styles.behaviorSection} ${styles.behaviorOverflow}`
-      : styles.behaviorSection;
+      ? "absolute bottom-[45px] left-2 right-2 flex flex-col gap-[3px] items-center z-0 max-h-[120px] overflow-y-auto scroll-smooth [scrollbar-width:thin] [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-white/10 [&::-webkit-scrollbar-track]:rounded-px [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-px max-md:bottom-[35px] max-md:left-1.5 max-md:right-1.5 max-md:gap-px"
+      : "absolute bottom-[45px] left-2 right-2 flex flex-col gap-[3px] items-center z-0 max-md:bottom-[35px] max-md:left-1.5 max-md:right-1.5 max-md:gap-px";
 
     return (
       <div className={containerClass}>
@@ -1381,7 +1435,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
         {/* Future: Add rolling effect indicators here when needed */}
         {cardLayoutPlan.needsOverflowHandling && (
-          <div className={styles.overflowIndicator}>
+          <div className="flex items-center justify-center h-4 text-[10px] text-white/60 italic">
             {/* This could be a visual indicator that there are more behaviors */}
           </div>
         )}

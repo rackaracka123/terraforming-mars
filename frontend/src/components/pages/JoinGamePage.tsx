@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
-import styles from "./JoinGamePage.module.css";
+import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 
 // UUIDv4 validation regex
 const UUID_V4_REGEX =
@@ -23,12 +23,17 @@ const JoinGamePage: React.FC = () => {
   const [gameValidated, setGameValidated] = useState(false);
   const [validatedGame, setValidatedGame] = useState<any>(null);
   const [skyboxReady, setSkyboxReady] = useState(false);
+  const [isFadedIn, setIsFadedIn] = useState(false);
 
   // Check if skybox is already loaded on component mount
   useEffect(() => {
     if (skyboxCache.isReady()) {
       setSkyboxReady(true);
     }
+    // Trigger fade in animation
+    setTimeout(() => {
+      setIsFadedIn(true);
+    }, 10);
   }, []);
 
   // Handle URL parameter on mount
@@ -39,7 +44,7 @@ const JoinGamePage: React.FC = () => {
     if (codeParam && UUID_V4_REGEX.test(codeParam)) {
       setGameId(codeParam);
       // Auto-validate the game ID from URL
-      validateGameFromUrl(codeParam);
+      void validateGameFromUrl(codeParam);
     }
   }, [location.search]);
 
@@ -231,7 +236,7 @@ const JoinGamePage: React.FC = () => {
 
   const handleGameIdKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleGameIdSubmit(e as React.FormEvent);
+      void handleGameIdSubmit(e as React.FormEvent);
     }
   };
 
@@ -239,7 +244,7 @@ const JoinGamePage: React.FC = () => {
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Enter") {
-      handlePlayerNameSubmit(e as React.FormEvent);
+      void handlePlayerNameSubmit(e as React.FormEvent);
     }
   };
 
@@ -250,101 +255,129 @@ const JoinGamePage: React.FC = () => {
     setError(null);
   };
 
+  const handleBackToHome = () => {
+    navigate("/");
+  };
+
+  const getLoadingMessage = () => {
+    if (isLoadingGameValidation) return "Finding game...";
+    if (loadingStep === "game") return "Joining game...";
+    if (loadingStep === "environment") return "Loading 3D environment...";
+    return "Loading...";
+  };
+
   return (
-    <div className={styles.joinGamePage}>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          <h1>Join a game</h1>
+    <div
+      className={`bg-transparent text-white min-h-screen flex items-center justify-center font-sans relative z-10 transition-opacity duration-300 ease-in ${isFadedIn ? "opacity-100" : "opacity-0"}`}
+    >
+      <div className="relative z-[1] flex items-center justify-center w-full min-h-screen">
+        <button
+          onClick={handleBackToHome}
+          className="fixed top-[30px] left-[30px] bg-space-black-darker/80 border-2 border-space-blue-400 rounded-lg py-3 px-5 text-white cursor-pointer transition-all duration-300 text-sm backdrop-blur-space z-[100] hover:bg-space-black-darker/90 hover:border-space-blue-800 hover:shadow-glow hover:-translate-y-0.5"
+        >
+          ← Back to Home
+        </button>
+        <div className="max-w-[600px] w-full px-5 py-10">
+          <div className="text-center">
+            <h1 className="font-orbitron text-[42px] text-white mb-[60px] text-shadow-glow font-bold tracking-wider">
+              Join a game
+            </h1>
 
-          {!gameValidated ? (
-            <form onSubmit={handleGameIdSubmit} className={styles.joinGameForm}>
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={gameId}
-                  onChange={handleGameIdChange}
-                  onKeyDown={handleGameIdKeyDown}
-                  placeholder="Enter game ID"
-                  disabled={isLoadingGameValidation}
-                  className={styles.playerNameInput}
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={isLoadingGameValidation || !gameId.trim()}
-                  className={styles.submitButton}
-                  title="Find Game"
-                >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Find Game"
-                    className={styles.arrowIcon}
+            {!gameValidated ? (
+              <form
+                onSubmit={handleGameIdSubmit}
+                className="max-w-[400px] mx-auto"
+              >
+                <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow">
+                  <input
+                    type="text"
+                    value={gameId}
+                    onChange={handleGameIdChange}
+                    onKeyDown={handleGameIdKeyDown}
+                    placeholder="Enter game ID"
+                    disabled={isLoadingGameValidation}
+                    className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none rounded-l-xl placeholder:text-white/50 disabled:opacity-60"
+                    autoFocus
                   />
-                </button>
-              </div>
-
-              {error && <div className={styles.errorMessage}>{error}</div>}
-
-              {isLoadingGameValidation && (
-                <div className={styles.loadingMessage}>Finding game...</div>
-              )}
-            </form>
-          ) : (
-            <form
-              onSubmit={handlePlayerNameSubmit}
-              className={styles.joinGameForm}
-            >
-              <div className={styles.gameInfo}>
-                <p>
-                  Game found!
                   <button
-                    type="button"
-                    onClick={handleEditGameId}
-                    className={styles.editGameIdButton}
+                    type="submit"
+                    disabled={isLoadingGameValidation || !gameId.trim()}
+                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
+                    title="Find Game"
                   >
-                    (edit)
+                    <img
+                      src="/assets/misc/arrow.png"
+                      alt="Find Game"
+                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
+                    />
                   </button>
-                </p>
-              </div>
-
-              <div className={styles.inputContainer}>
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={handlePlayerNameChange}
-                  onKeyDown={handlePlayerNameKeyDown}
-                  placeholder="Enter your name"
-                  disabled={isLoadingJoin}
-                  className={styles.playerNameInput}
-                  autoFocus
-                  maxLength={50}
-                />
-                <button
-                  type="submit"
-                  disabled={isLoadingJoin || !playerName.trim()}
-                  className={styles.submitButton}
-                  title="Join Game"
-                >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Join Game"
-                    className={styles.arrowIcon}
-                  />
-                </button>
-              </div>
-
-              {error && <div className={styles.errorMessage}>{error}</div>}
-
-              {isLoadingJoin && (
-                <div className={styles.loadingMessage}>
-                  {loadingStep === "game" && "Joining game..."}
-                  {loadingStep === "environment" && "Loading 3D environment..."}
                 </div>
-              )}
-            </form>
-          )}
+
+                {error && (
+                  <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </form>
+            ) : (
+              <form
+                onSubmit={handlePlayerNameSubmit}
+                className="max-w-[400px] mx-auto"
+              >
+                <div className="mb-[30px]">
+                  <p className="text-white/90 text-base m-0">
+                    Game found!
+                    <button
+                      type="button"
+                      onClick={handleEditGameId}
+                      className="bg-transparent border-none text-space-blue-solid cursor-pointer text-sm ml-1.5 underline transition-all duration-200 hover:text-space-blue-900 hover:text-shadow-glow-sm"
+                    >
+                      (edit)
+                    </button>
+                  </p>
+                </div>
+
+                <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow">
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={handlePlayerNameChange}
+                    onKeyDown={handlePlayerNameKeyDown}
+                    placeholder="Enter your name"
+                    disabled={isLoadingJoin}
+                    className="flex-1 bg-transparent border-none py-5 px-6 text-white text-lg outline-none rounded-l-xl placeholder:text-white/50 disabled:opacity-60"
+                    autoFocus
+                    maxLength={50}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoadingJoin || !playerName.trim()}
+                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
+                    title="Join Game"
+                  >
+                    <img
+                      src="/assets/misc/arrow.png"
+                      alt="Join Game"
+                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
+                    />
+                  </button>
+                </div>
+
+                {error && (
+                  <div className="text-error-red mt-4 p-3 bg-error-red/10 border border-error-red/30 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
         </div>
       </div>
+
+      <LoadingOverlay
+        isLoading={isLoadingGameValidation || isLoadingJoin}
+        message={getLoadingMessage()}
+      />
     </div>
   );
 };

@@ -25,43 +25,26 @@ const CreditIconWithAmount: React.FC<CreditIconWithAmountProps> = ({
 
   return (
     <div
-      className={`credit-icon-with-amount ${className}`}
+      className={`relative inline-flex items-center justify-center rounded ${className}`}
       style={{
-        position: "relative",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
         width: `${dimensions.container}px`,
         height: `${dimensions.container}px`,
-        borderRadius: "4px",
       }}
     >
       <img
         src="/assets/resources/megacredit.png"
         alt="Megacredits"
+        className="block"
         style={{
           width: `${dimensions.icon}px`,
           height: `${dimensions.icon}px`,
-          display: "block",
         }}
       />
       <span
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-center font-[Arial,sans-serif] leading-none whitespace-nowrap ${showMinus ? "text-[#ffcdd2] [text-shadow:1px_1px_2px_rgba(0,0,0,0.8),0_0_3px_rgba(0,0,0,0.9)]" : "text-black [text-shadow:0.5px_0.5px_1px_rgba(255,255,255,0.8)]"}`}
         style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
           zIndex: Z_INDEX.COST_DISPLAY,
-          color: showMinus ? "#ffcdd2" : "#000000",
-          fontWeight: "bold",
           fontSize: dimensions.fontSize,
-          textAlign: "center",
-          fontFamily: "Arial, sans-serif",
-          lineHeight: "1",
-          textShadow: showMinus
-            ? "1px 1px 2px rgba(0, 0, 0, 0.8), 0 0 3px rgba(0, 0, 0, 0.9)"
-            : "0.5px 0.5px 1px rgba(255, 255, 255, 0.8)",
-          whiteSpace: "nowrap",
         }}
       >
         {displayAmount}

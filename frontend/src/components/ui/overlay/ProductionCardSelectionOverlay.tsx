@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 import { CardDto } from "../../../types/generated/api-types.ts";
-import styles from "./ProductionCardSelectionOverlay.module.css";
 
 interface ProductionCardSelectionOverlayProps {
   isOpen: boolean;
@@ -74,23 +73,25 @@ const ProductionCardSelectionOverlay: React.FC<
   };
 
   return (
-    <div className={styles.overlay}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
       {/* Translucent background */}
-      <div className={styles.backdrop} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Content container */}
-      <div className={styles.contentContainer}>
+      <div className="relative z-[1] w-[90%] max-w-[1400px] max-h-[90vh] flex flex-col bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_60px_rgba(30,60,150,0.5)] max-[768px]:w-full max-[768px]:h-screen max-[768px]:max-h-screen max-[768px]:rounded-none">
         {/* Header */}
-        <div className={styles.header}>
-          <h2 className={styles.title}>Select Cards to Buy</h2>
-          <p className={styles.subtitle}>
+        <div className="py-6 px-8 bg-black/40 border-b border-space-blue-600 max-[768px]:p-5">
+          <h2 className="m-0 font-orbitron text-[28px] font-bold text-white text-shadow-glow tracking-wider max-[768px]:text-2xl">
+            Select Cards to Buy
+          </h2>
+          <p className="mt-2 mb-0 text-base text-white/80 max-[768px]:text-sm">
             Choose cards to buy for your next turn. Each card costs 3 MC.
           </p>
         </div>
 
         {/* Cards display */}
-        <div className={styles.cardsContainer}>
-          <div className={styles.cardsRow}>
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center bg-[radial-gradient(ellipse_at_center,rgba(139,69,19,0.1)_0%,transparent_70%)] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-white/30 max-[768px]:p-5">
+          <div className="flex gap-6 mx-auto py-5 max-[768px]:gap-4">
             {cards.map((card, index) => {
               const cardIndex = selectedCardIds.indexOf(card.id);
               const isSelected = cardIndex !== -1;
@@ -110,45 +111,54 @@ const ProductionCardSelectionOverlay: React.FC<
         </div>
 
         {/* Footer with cost and confirm button */}
-        <div className={styles.footer}>
-          <div className={styles.costInfo}>
-            <div className={styles.creditsDisplay}>
-              <span className={styles.label}>Your Credits:</span>
+        <div className="py-6 px-8 bg-black/40 border-t border-space-blue-600 flex justify-between items-center max-[768px]:p-5 max-[768px]:flex-col max-[768px]:gap-5">
+          <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
+                Your Credits:
+              </span>
               <MegaCreditIcon value={playerCredits} size="large" />
             </div>
-            <div className={styles.totalCost}>
-              <span className={styles.label}>Total Cost:</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
+                Total Cost:
+              </span>
               {totalCost > 0 ? (
                 <MegaCreditIcon value={totalCost} size="large" />
               ) : (
-                <span className={styles.free}>FREE</span>
+                <span className="!text-[#4caf50] font-bold tracking-[1px]">
+                  FREE
+                </span>
               )}
             </div>
           </div>
 
-          <div className={styles.actions}>
-            <div className={styles.selectionInfo}>
+          <div className="flex items-center gap-6 max-[768px]:w-full max-[768px]:flex-col max-[768px]:gap-3">
+            <div className="text-sm">
               {selectedCardIds.length === 0 ? (
                 showConfirmation ? (
-                  <span className={styles.warning}>
+                  <span className="text-[#ff9800]">
                     Are you sure you don't want to buy any cards?
                   </span>
                 ) : (
-                  <span className={styles.info}>No cards selected</span>
+                  <span className="text-white/70">No cards selected</span>
                 )
               ) : (
-                <span className={styles.info}>
+                <span className="text-white/70">
                   {selectedCardIds.length} card
                   {selectedCardIds.length !== 1 ? "s" : ""} selected
                 </span>
               )}
             </div>
-            <div className={styles.buttonsContainer}>
-              <button className={styles.returnButton} onClick={onReturn}>
+            <div className="flex gap-3 items-center">
+              <button
+                className="py-3 px-6 bg-space-black-darker/60 border-2 border-space-blue-800/60 rounded-lg text-white font-medium cursor-pointer transition-all duration-200 whitespace-nowrap hover:-translate-y-px hover:bg-space-black-darker/80 hover:border-space-blue-600 active:translate-y-0"
+                onClick={onReturn}
+              >
                 Hide
               </button>
               <button
-                className={styles.confirmButton}
+                className="py-4 px-8 bg-space-black-darker/90 border-2 border-space-blue-800 rounded-xl text-xl font-bold text-white cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_20px_rgba(30,60,150,0.3)] whitespace-nowrap hover:enabled:bg-space-black-darker/95 hover:enabled:border-space-blue-600 hover:enabled:-translate-y-0.5 hover:enabled:shadow-glow active:enabled:translate-y-0 disabled:bg-gray-700/50 disabled:border-gray-500/30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:opacity-60 max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
                 onClick={handleConfirm}
                 disabled={totalCost > playerCredits}
               >

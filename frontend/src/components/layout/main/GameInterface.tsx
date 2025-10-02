@@ -34,7 +34,6 @@ import {
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
-import styles from "./GameInterface.module.css";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -861,7 +860,7 @@ export default function GameInterface() {
       {/* Return to Production Modal button */}
       {showProductionPhaseModal && isProductionModalHidden && (
         <button
-          className={styles.returnToProductionButton}
+          className="fixed top-[80px] left-[70%] bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl text-white text-base font-semibold py-3.5 px-7 cursor-pointer transition-all duration-300 text-shadow-glow shadow-[0_4px_15px_rgba(0,0,0,0.5),0_0_20px_rgba(30,60,150,0.4)] backdrop-blur-space z-[1000] whitespace-nowrap hover:bg-space-black-darker hover:border-space-blue-500 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.6),0_0_35px_rgba(30,60,150,0.6)] active:translate-y-0 active:shadow-[0_2px_10px_rgba(0,0,0,0.4),0_0_20px_rgba(30,60,150,0.4)]"
           onClick={() => {
             setIsProductionModalHidden(false);
             setOpenProductionToCardSelection(true);

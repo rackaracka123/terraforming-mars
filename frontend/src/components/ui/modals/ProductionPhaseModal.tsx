@@ -13,7 +13,6 @@ import {
 } from "@/utils/resourceColors.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import ProductionCardSelectionOverlay from "@/components/ui/overlay/ProductionCardSelectionOverlay.tsx";
-import styles from "./ProductionPhaseModal.module.css";
 
 interface ProductionPhaseModalProps {
   isOpen: boolean;
@@ -359,11 +358,11 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     const getAnimationStateClass = () => {
       switch (resourceAnimationState) {
         case "initial":
-          return styles.initialState;
+          return ""; // initialState
         case "fadeOut":
-          return styles.fadeOutState;
+          return "[&_.beforeAmount]:animate-[fadeOutAnimation_0.4s_ease-out_forwards] [&_.changeIndicator]:animate-[fadeOutAnimation_0.4s_ease-out_forwards]"; // fadeOutState
         case "fadeIn":
-          return styles.fadeInState;
+          return "[&_.finalValue]:text-white [&_.finalValue]:[text-shadow:0_1px_3px_rgba(0,0,0,0.8)] [&_.finalValue]:animate-[fadeInAnimation_0.3s_ease-out_forwards]"; // fadeInState
         default:
           return "";
       }
@@ -377,9 +376,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           resourceAnimationState === "fadeInResources")
       ) {
         return (
-          <div className={styles.enhancedResourceAmounts}>
+          <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
             <div
-              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+              className={`beforeAmount text-white/70 ${displayBeforeAmount < 0 ? "!text-red-500 [text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
             >
               {displayBeforeAmount}
             </div>
@@ -394,14 +393,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         change !== 0
       ) {
         return (
-          <div className={styles.enhancedResourceAmounts}>
+          <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
             <div
-              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+              className={`beforeAmount text-white/70 ${displayBeforeAmount < 0 ? "!text-red-500 [text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
             >
               {displayBeforeAmount}
             </div>
             <div
-              className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+              className={`changeIndicator text-sm font-bold text-green-400 [text-shadow:0_0_10px_#4ade80] animate-[fadeInUp_0.5s_ease-out_0.5s_both] ${change < 0 ? "!text-red-500 ![text-shadow:0_0_10px_#ef4444]" : ""}`}
             >
               {change > 0 ? `+${change}` : change}
             </div>
@@ -413,11 +412,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       if (animationStep === "energyConversion" && shouldAnimate) {
         if (energyAnimationState === "fadeIn") {
           return (
-            <div
-              className={`${styles.enhancedResourceAmounts} ${styles.fadeInState}`}
-            >
+            <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px] [&_.finalValue]:text-white [&_.finalValue]:[text-shadow:0_1px_3px_rgba(0,0,0,0.8)] [&_.finalValue]:animate-[fadeInAnimation_0.3s_ease-out_forwards]">
               <div
-                className={`${styles.finalValue} ${displayAfterAmount < 0 ? styles.negative : ""}`}
+                className={`finalValue text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${displayAfterAmount < 0 ? "!text-red-500 ![text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
               >
                 {displayAfterAmount}
               </div>
@@ -425,16 +422,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           );
         } else if (energyAnimationState === "fadeOut") {
           return (
-            <div
-              className={`${styles.enhancedResourceAmounts} ${styles.fadeOutState}`}
-            >
+            <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px] [&_.beforeAmount]:animate-[fadeOutAnimation_0.4s_ease-out_forwards] [&_.changeIndicator]:animate-[fadeOutAnimation_0.4s_ease-out_forwards]">
               <div
-                className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+                className={`beforeAmount text-white/70 ${displayBeforeAmount < 0 ? "!text-red-500 [text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
               >
                 {displayBeforeAmount}
               </div>
               <div
-                className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+                className={`changeIndicator text-sm font-bold text-green-400 [text-shadow:0_0_10px_#4ade80] ${change < 0 ? "!text-red-500 ![text-shadow:0_0_10px_#ef4444]" : ""}`}
               >
                 {change > 0 ? `+${change}` : change}
               </div>
@@ -443,14 +438,14 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         } else {
           // Initial state for energy conversion
           return (
-            <div className={styles.enhancedResourceAmounts}>
+            <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
               <div
-                className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+                className={`beforeAmount text-white/70 ${displayBeforeAmount < 0 ? "!text-red-500 [text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
               >
                 {displayBeforeAmount}
               </div>
               <div
-                className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+                className={`changeIndicator text-sm font-bold text-green-400 [text-shadow:0_0_10px_#4ade80] ${change < 0 ? "!text-red-500 ![text-shadow:0_0_10px_#ef4444]" : ""}`}
               >
                 {change > 0 ? `+${change}` : change}
               </div>
@@ -462,9 +457,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       // For resources that don't animate, just show the current value
       if (!shouldAnimate) {
         return (
-          <div className={styles.enhancedResourceAmounts}>
+          <div className="flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px]">
             <div
-              className={`${styles.beforeAmount} ${displayBeforeAmount < 0 ? styles.negative : ""}`}
+              className={`beforeAmount text-white/70 ${displayBeforeAmount < 0 ? "!text-red-500 [text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
             >
               {displayBeforeAmount}
             </div>
@@ -475,10 +470,10 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       if (resourceAnimationState === "fadeIn") {
         return (
           <div
-            className={`${styles.enhancedResourceAmounts} ${getAnimationStateClass()}`}
+            className={`flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px] ${getAnimationStateClass()}`}
           >
             <div
-              className={`${styles.finalValue} ${displayAfterAmount < 0 ? styles.negative : ""}`}
+              className={`finalValue text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${displayAfterAmount < 0 ? "!text-red-500 ![text-shadow:0_1px_3px_rgba(0,0,0,0.8),0_0_8px_#ef4444]" : ""}`}
             >
               {displayAfterAmount}
             </div>
@@ -488,11 +483,13 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
       return (
         <div
-          className={`${styles.enhancedResourceAmounts} ${getAnimationStateClass()}`}
+          className={`flex items-center justify-center gap-2 mb-2 text-base font-bold relative min-h-[24px] ${getAnimationStateClass()}`}
         >
-          <div className={styles.beforeAmount}>{displayBeforeAmount}</div>
+          <div className="beforeAmount text-white/70">
+            {displayBeforeAmount}
+          </div>
           <div
-            className={`${styles.changeIndicator} ${change < 0 ? styles.negativeChange : ""}`}
+            className={`changeIndicator text-sm font-bold text-green-400 [text-shadow:0_0_10px_#4ade80] ${change < 0 ? "!text-red-500 ![text-shadow:0_0_10px_#ef4444]" : ""}`}
           >
             {change > 0 ? `+${change}` : change}
           </div>
@@ -503,20 +500,20 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
     return (
       <div
         key={resourceType}
-        className={`${styles.resourceItem} ${shouldAnimate ? styles.active : ""} ${
+        className={`bg-[linear-gradient(135deg,rgba(0,0,0,0.4)_0%,rgba(0,0,0,0.2)_100%)] border-2 border-[var(--resource-color,rgba(255,255,255,0.2))] rounded-xl p-5 text-center transition-all duration-300 relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:bottom-0 before:bg-[var(--resource-color,transparent)] before:opacity-10 before:pointer-events-none ${shouldAnimate ? "!border-[var(--resource-color,#00d4ff)] scale-[1.02]" : ""} ${
           (animationStep === "energyConversion" && !shouldAnimate) ||
           (animationStep === "production" &&
             resourceAnimationState === "initial" &&
             !shouldAnimate &&
             resourceType !== "energy" &&
             resourceType !== "heat")
-            ? styles.dimmed
+            ? "opacity-30"
             : ""
         } ${
           animationStep === "energyConversion" &&
           resourceType === "energy" &&
           energyAnimationState === "initial"
-            ? styles.overheating
+            ? "[&_.resourceIcon_img]:animate-[energyShake_0.1s_ease-in-out_infinite_alternate,energyGlow_2s_ease-in-out_infinite_alternate] [&_.resourceIcon_img]:[filter:drop-shadow(0_0_15px_#ef4444)_drop-shadow(0_0_30px_#ef4444)]"
             : ""
         }`}
         style={
@@ -525,14 +522,15 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           } as React.CSSProperties
         }
       >
-        <div className={styles.resourceIcon}>
+        <div className="resourceIcon mb-3 flex justify-center">
           <img
             src={resourceIcons[resourceType]}
             alt={resourceNames[resourceType]}
+            className="w-8 h-8 [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
           />
         </div>
         {renderAmounts()}
-        <div className={styles.resourceLabel}>
+        <div className="text-xs text-white/80 uppercase font-semibold tracking-[0.5px]">
           {resourceNames[resourceType]}
         </div>
       </div>
@@ -541,8 +539,8 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
   const renderProductionPhase = () => {
     return (
-      <div className={styles.productionPhase}>
-        <div className={styles.resourcesGrid}>
+      <div className="w-full">
+        <div className="grid grid-cols-3 gap-5 mb-5">
           {renderResourceAnimation(
             "credits" as ResourceType,
             currentPlayerData.beforeResources.credits,
@@ -579,23 +577,30 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   };
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalPopup} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2>Production</h2>
-          <div className={styles.generationInfo}>
+    <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[3000] p-5 animate-[modalFadeIn_0.3s_ease-out]">
+      <div
+        className="bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] max-w-[800px] min-w-[600px] w-full max-h-[90vh] overflow-y-auto backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] relative animate-[modalSlideIn_0.4s_ease-out]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-center py-[30px] px-[30px] pb-5 bg-black/40 border-b border-space-blue-600 relative">
+          <h2 className="text-[28px] font-orbitron text-white font-bold text-shadow-glow tracking-wider m-0 mb-2">
+            Production
+          </h2>
+          <div className="text-base text-space-blue-300 font-semibold text-shadow-dark">
             Generation {modalProductionData.generation}
           </div>
         </div>
 
         {/* Only show player tabs if more than 1 player */}
         {modalProductionData.playersData.length > 1 && (
-          <div className={styles.playerProgress}>
+          <div className="flex justify-center gap-3 p-5 border-b border-space-blue-600/30">
             {modalProductionData.playersData.map((player, index) => (
               <button
                 key={player.playerId}
-                className={`${styles.playerTab} ${
-                  index === currentPlayerIndex ? styles.current : ""
+                className={`bg-space-black-darker/60 border-2 border-space-blue-400/40 rounded-lg text-white/80 text-sm font-semibold py-2 px-4 cursor-pointer transition-all duration-300 text-shadow-dark hover:border-space-blue-400/60 hover:text-white/90 hover:-translate-y-px ${
+                  index === currentPlayerIndex
+                    ? "!bg-space-blue-400/20 !border-space-blue-400 !text-white shadow-[0_0_15px_rgba(30,60,150,0.4)]"
+                    : ""
                 }`}
                 onClick={() => handlePlayerSelect(index)}
               >
@@ -605,8 +610,8 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
           </div>
         )}
 
-        <div className={styles.currentPlayerSection}>
-          <div className={styles.animationContent}>
+        <div className="p-[30px]">
+          <div className="min-h-[300px] flex items-center justify-center">
             {renderProductionPhase()}
           </div>
         </div>
@@ -614,7 +619,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
       {!hasSubmittedCardSelection && !showCardSelection && (
         <button
-          className={styles.nextBtn}
+          className="absolute left-1/2 top-1/2 -translate-y-1/2 translate-x-[calc(400px+40px)] bg-[linear-gradient(135deg,rgba(30,60,150,0.8)_0%,rgba(20,40,120,0.9)_100%)] border-2 border-space-blue-400 rounded-full text-white text-[32px] font-bold w-[60px] h-[60px] cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex items-center justify-center z-[3001] p-0 hover:bg-[linear-gradient(135deg,rgba(40,70,160,0.9)_0%,rgba(30,50,130,1)_100%)] hover:border-space-blue-500 hover:translate-x-[calc(400px+45px)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.5)] active:translate-x-[calc(400px+40px)] active:scale-95 active:shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
           onClick={() => setShowCardSelection(true)}
         >
           →

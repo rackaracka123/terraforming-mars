@@ -1,5 +1,4 @@
 import React from "react";
-import styles from "./PlayerOverlay.module.css";
 import "./PlayerOverlay.global.css";
 // Z-index import removed - using natural DOM layering
 
@@ -73,8 +72,8 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
   const playersToShow = players.length > 0 ? players : mockPlayers;
 
   return (
-    <div className={styles.playerOverlay}>
-      <div className={styles.playerTabs}>
+    <div className="hidden absolute top-[70px] left-1/2 -translate-x-1/2 pointer-events-none">
+      <div className="flex gap-2 items-center justify-center">
         {playersToShow.map((player, index) => {
           const isCurrentPlayer = player.id === currentPlayer?.id;
           const playerColor = getPlayerColor(index);

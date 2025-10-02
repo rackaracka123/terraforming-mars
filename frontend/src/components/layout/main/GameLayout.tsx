@@ -13,7 +13,6 @@ import {
   PlayerActionDto,
   CardDto,
 } from "../../../types/generated/api-types.ts";
-import styles from "./GameLayout.module.css";
 
 interface GameLayoutProps {
   gameState: GameDto;
@@ -70,10 +69,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
   return (
     <MainContentProvider>
-      <div className={styles.gameLayout}>
+      <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
         <TopMenuBar gameState={gameState} />
 
-        <div className={styles.gameContent}>
+        <div className="grid grid-cols-1 min-h-0 gap-0 relative">
           <MainContentDisplay gameState={gameState} />
         </div>
 

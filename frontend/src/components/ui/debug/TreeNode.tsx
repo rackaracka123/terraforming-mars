@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import styles from "./TreeNode.module.css";
 
 interface TreeNodeProps {
   nodeKey: string;
@@ -109,7 +108,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
     return (
       <span
-        className={styles.treeExpandToggle}
+        className="cursor-pointer mr-1 text-[#abb2bf] text-xs select-none"
         onClick={(e) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
@@ -141,7 +140,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
     if (valueType === "array") {
       return (
-        <div className={styles.expandedContent}>
+        <div className="ml-5">
           {value.map((item: any, index: number) => (
             <TreeNode
               key={index}
@@ -160,7 +159,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
     if (valueType === "object") {
       return (
-        <div className={styles.expandedContent}>
+        <div className="ml-5">
           {Object.entries(value).map(([key, val]) => (
             <TreeNode
               key={key}
@@ -185,9 +184,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   };
 
   return (
-    <div className={`${styles.treeNode} ${isChanged ? styles.changed : ""}`}>
+    <div
+      className={`font-mono text-[13px] leading-[1.5] relative ${isChanged ? "[&>.treeNodeContent]:animate-[blink_1.5s_ease-out]" : ""}`}
+    >
       <div
-        className={styles.treeNodeContent}
+        className="treeNodeContent flex items-center py-0.5 px-1 rounded relative select-text"
         onDoubleClick={handleCopy}
         title="Double-click to copy value"
       >

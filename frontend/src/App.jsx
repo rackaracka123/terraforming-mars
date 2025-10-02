@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { useEffect, useState } from "react";
 import GameInterface from "./components/layout/main/GameInterface.tsx";
 import CreateGamePage from "./components/pages/CreateGamePage.tsx";
@@ -7,6 +12,8 @@ import CardsPage from "./components/pages/CardsPage.tsx";
 import GameLandingPage from "./components/pages/GameLandingPage.tsx";
 import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
+import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
+import SpaceBackground from "./components/3d/SpaceBackground.tsx";
 import "./App.css";
 
 function App() {
@@ -51,18 +58,39 @@ function App() {
   }
 
   return (
-    <div className="App" style={{ margin: 0, padding: 0 }}>
-      <Router>
-        <Routes>
-          <Route path="/" element={<GameLandingPage />} />
-          <Route path="/create" element={<CreateGamePage />} />
-          <Route path="/join" element={<JoinGamePage />} />
-          <Route path="/cards" element={<CardsPage />} />
-          <Route path="/reconnecting" element={<ReconnectingPage />} />
-          <Route path="/game" element={<GameInterface />} />
-        </Routes>
-      </Router>
-    </div>
+    <SpaceBackgroundProvider>
+      <div className="App" style={{ margin: 0, padding: 0 }}>
+        <Router>
+          <AppWithBackground />
+        </Router>
+      </div>
+    </SpaceBackgroundProvider>
+  );
+}
+
+// Component that handles background visibility based on route
+function AppWithBackground() {
+  const location = useLocation();
+
+  // Show space background for landing, create, and join pages
+  const showSpaceBackground = ["/", "/create", "/join"].includes(
+    location.pathname,
+  );
+
+  return (
+    <>
+      {showSpaceBackground && (
+        <SpaceBackground animationSpeed={0.5} overlayOpacity={0.3} />
+      )}
+      <Routes>
+        <Route path="/" element={<GameLandingPage />} />
+        <Route path="/create" element={<CreateGamePage />} />
+        <Route path="/join" element={<JoinGamePage />} />
+        <Route path="/cards" element={<CardsPage />} />
+        <Route path="/reconnecting" element={<ReconnectingPage />} />
+        <Route path="/game" element={<GameInterface />} />
+      </Routes>
+    </>
   );
 }
 

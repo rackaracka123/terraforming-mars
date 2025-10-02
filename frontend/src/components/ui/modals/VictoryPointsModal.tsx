@@ -71,7 +71,6 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   greeneryTiles = 0,
   cityTiles = 0,
 }) => {
-  const [selectedSource, setSelectedSource] = useState<VPSource | null>(null);
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("points");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -79,11 +78,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (selectedSource) {
-          setSelectedSource(null);
-        } else {
-          onClose();
-        }
+        onClose();
       }
     };
 
@@ -96,7 +91,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
     };
-  }, [isVisible, onClose, selectedSource]);
+  }, [isVisible, onClose]);
 
   if (!isVisible) return null;
 
@@ -274,98 +269,113 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
   };
 
   return (
-    <div className="victory-points-modal">
-      <div className="backdrop" onClick={onClose} />
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[3000] flex items-center justify-center p-5 animate-[modalFadeIn_0.3s_ease-out]">
+      <div
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+        onClick={onClose}
+      />
 
-      <div className="modal-container">
+      <div className="relative w-full max-w-[1200px] max-h-[90vh] bg-space-black-darker/95 border-2 border-[#ffd700] rounded-[20px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(255,215,0,0.4)] backdrop-blur-space animate-[modalSlideIn_0.4s_ease-out] flex flex-col">
         {/* Header */}
-        <div className="modal-header">
-          <div className="header-left">
-            <h1 className="modal-title">Victory Points</h1>
-            <div className="total-vp">
+        <div className="flex items-start justify-between py-[25px] px-[30px] bg-black/40 border-b border-[#ffd700]/60 flex-shrink-0 max-md:p-5">
+          <div className="flex flex-col gap-[15px]">
+            <h1 className="m-0 font-orbitron text-white text-[28px] font-bold text-shadow-glow tracking-wider">
+              Victory Points
+            </h1>
+            <div className="flex items-center">
               <VictoryPointsDisplay victoryPoints={totalVP} size="large" />
             </div>
           </div>
 
-          <div className="header-controls">
-            <div className="filter-controls">
-              <label>Filter:</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as FilterType)}
-              >
-                <option value="all">All Sources</option>
-                <option value="cards">Cards ({vpBreakdown.cards} VP)</option>
-                <option value="milestones">
-                  Milestones ({vpBreakdown.milestones} VP)
-                </option>
-                <option value="awards">Awards ({vpBreakdown.awards} VP)</option>
-                <option value="terraforming">
-                  Terraform Rating ({vpBreakdown.terraformRating} VP)
-                </option>
-                <option value="tiles">Tiles ({vpBreakdown.tiles} VP)</option>
-              </select>
+          <div className="flex gap-5 items-start max-md:flex-col max-md:gap-2.5">
+            <div className="flex gap-5 items-start">
+              <div className="flex gap-2 items-center text-white text-sm">
+                <label>Filter:</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as FilterType)}
+                  className="bg-black/50 border border-[#ffd700]/40 rounded-md text-white py-1.5 px-3 text-sm"
+                >
+                  <option value="all">All Sources</option>
+                  <option value="cards">Cards ({vpBreakdown.cards} VP)</option>
+                  <option value="milestones">
+                    Milestones ({vpBreakdown.milestones} VP)
+                  </option>
+                  <option value="awards">
+                    Awards ({vpBreakdown.awards} VP)
+                  </option>
+                  <option value="terraforming">
+                    Terraform Rating ({vpBreakdown.terraformRating} VP)
+                  </option>
+                  <option value="tiles">Tiles ({vpBreakdown.tiles} VP)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 items-center text-white text-sm">
+                <label>Sort:</label>
+                <select
+                  value={sortType}
+                  onChange={(e) => setSortType(e.target.value as SortType)}
+                  className="bg-black/50 border border-[#ffd700]/40 rounded-md text-white py-1.5 px-3 text-sm"
+                >
+                  <option value="points">Victory Points</option>
+                  <option value="name">Name</option>
+                  <option value="source">Source Type</option>
+                </select>
+                <button
+                  className="bg-[#ffd700]/20 border border-[#ffd700]/40 rounded text-white py-1.5 px-2 cursor-pointer text-base transition-all duration-200 hover:bg-[#ffd700]/30 hover:scale-110"
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
+                >
+                  {sortOrder === "asc" ? "↑" : "↓"}
+                </button>
+              </div>
             </div>
 
-            <div className="sort-controls">
-              <label>Sort by:</label>
-              <select
-                value={sortType}
-                onChange={(e) => setSortType(e.target.value as SortType)}
-              >
-                <option value="points">Victory Points</option>
-                <option value="name">Name</option>
-                <option value="source">Source Type</option>
-              </select>
-              <button
-                className="sort-order-btn"
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
-              >
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </button>
-            </div>
+            <button
+              className="bg-[linear-gradient(135deg,rgba(255,80,80,0.8)_0%,rgba(200,40,40,0.9)_100%)] border-2 border-[rgba(255,120,120,0.6)] rounded-full w-[45px] h-[45px] text-white text-2xl font-bold cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex-shrink-0 hover:scale-110 hover:shadow-[0_6px_25px_rgba(255,80,80,0.5)]"
+              onClick={onClose}
+            >
+              ×
+            </button>
           </div>
-
-          <button className="close-button" onClick={onClose}>
-            ×
-          </button>
         </div>
 
         {/* VP Breakdown Chart */}
-        <div className="vp-breakdown">
-          <h2 className="section-title">Victory Point Breakdown</h2>
-          <div className="breakdown-chart">
+        <div className="py-[25px] px-[30px] border-b border-[#ffd700]/20 flex-shrink-0">
+          <div className="flex flex-col gap-3">
             {Object.entries(vpBreakdown).map(([source, points]) => {
               if (points === 0) return null;
               const percentage = (points / totalVP) * 100;
               const color = getSourceColor(source as VPSource["source"]);
 
               return (
-                <div key={source} className="breakdown-item">
-                  <div className="breakdown-info">
-                    <div className="breakdown-label">
+                <div key={source} className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2.5 text-white font-medium">
                       <img
                         src={getSourceIcon(source as VPSource["source"])}
                         alt={source}
-                        className="breakdown-icon"
+                        className="w-5 h-5"
                       />
                       <span>
                         {getSourceLabel(source as VPSource["source"])}
                       </span>
                     </div>
-                    <div className="breakdown-values">
-                      <span className="breakdown-points">{points} VP</span>
-                      <span className="breakdown-percentage">
+                    <div className="flex gap-2.5 items-center">
+                      <span className="text-white font-bold font-['Courier_New',monospace]">
+                        {points} VP
+                      </span>
+                      <span className="text-white/70 text-sm">
                         ({percentage.toFixed(1)}%)
                       </span>
                     </div>
                   </div>
-                  <div className="breakdown-bar">
+                  <div className="h-2 bg-black/50 rounded overflow-hidden">
                     <div
-                      className="breakdown-fill"
+                      className="h-full transition-all duration-500 rounded"
                       style={{
                         width: `${percentage}%`,
                         backgroundColor: color,
@@ -379,59 +389,55 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         </div>
 
         {/* VP Sources List */}
-        <div className="vp-content">
-          <h2 className="section-title">
-            Victory Point Sources
-            <span className="sources-count">
-              ({filteredSources.length} sources)
-            </span>
-          </h2>
-
+        <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,215,0,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(255,215,0,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(255,215,0,0.7)]">
           {filteredSources.length === 0 ? (
-            <div className="empty-state">
+            <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[200px]">
               <img
                 src="/assets/resources/tr.png"
                 alt="No VP sources"
-                className="empty-icon"
+                className="w-16 h-16 mb-5 opacity-60"
               />
-              <h3>No Victory Point Sources</h3>
-              <p>
+              <h3 className="text-white text-2xl m-0 mb-2.5">
+                No Victory Point Sources
+              </h3>
+              <p className="text-white/70 text-base m-0">
                 {filterType === "all"
                   ? "No victory point sources found"
                   : `No ${filterType} victory point sources found`}
               </p>
             </div>
           ) : (
-            <div className="vp-sources-list">
+            <div className="flex flex-col gap-[15px]">
               {filteredSources.map((source, index) => {
                 const sourceColor = getSourceColor(source.source);
 
                 return (
                   <div
                     key={source.id}
-                    className="vp-source-item"
+                    className="bg-black/30 border-l-4 rounded-lg p-5 transition-all duration-300 animate-[sourceSlideIn_0.4s_ease-out_both]"
                     style={{
                       borderLeftColor: sourceColor,
                       animationDelay: `${index * 0.05}s`,
                     }}
-                    onClick={() => setSelectedSource(source)}
                   >
-                    <div className="source-header">
-                      <div className="source-info">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <div className="flex items-center gap-[15px]">
                         <img
                           src={getSourceIcon(source.source)}
                           alt={source.source}
-                          className="source-icon"
+                          className="w-8 h-8"
                         />
-                        <div className="source-details">
-                          <h3 className="source-name">{source.name}</h3>
-                          <span className="source-type">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-white text-lg font-bold m-0 text-shadow-dark">
+                            {source.name}
+                          </h3>
+                          <span className="text-white/70 text-xs uppercase tracking-[0.5px]">
                             {getSourceLabel(source.source)}
                           </span>
                         </div>
                       </div>
 
-                      <div className="source-points">
+                      <div className="flex items-center">
                         <VictoryPointsDisplay
                           victoryPoints={source.points}
                           size="small"
@@ -440,7 +446,9 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                     </div>
 
                     {source.description && (
-                      <p className="source-description">{source.description}</p>
+                      <p className="text-white/90 text-sm leading-[1.4] m-0 pl-[47px]">
+                        {source.description}
+                      </p>
                     )}
                   </div>
                 );
@@ -450,7 +458,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         </div>
 
         {/* Source Type Stats */}
-        <div className="source-stats-bar">
+        <div className="flex gap-2.5 py-5 px-[30px] bg-[linear-gradient(90deg,rgba(15,20,35,0.9)_0%,rgba(25,30,45,0.7)_100%)] border-t border-[#ffd700]/20 flex-shrink-0 flex-wrap">
           {Object.entries(vpBreakdown).map(([source, points]) => {
             if (points === 0) return null;
             const color = getSourceColor(source as VPSource["source"]);
@@ -459,18 +467,20 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
             return (
               <div
                 key={source}
-                className={`source-stat ${isActive ? "active" : ""}`}
+                className={`flex items-center gap-2 py-2.5 px-[15px] border rounded-lg cursor-pointer transition-all duration-300 min-w-[100px] ${isActive ? "scale-105 shadow-[0_0_15px_rgba(255,215,0,0.5)]" : "hover:scale-105"}`}
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
                 onClick={() => setFilterType(source as FilterType)}
               >
                 <img
                   src={getSourceIcon(source as VPSource["source"])}
                   alt={source}
-                  className="stat-icon"
+                  className="w-6 h-6"
                 />
-                <div className="stat-info">
-                  <span className="stat-points">{points}</span>
-                  <span className="stat-label">
+                <div className="flex flex-col items-start">
+                  <span className="text-white text-base font-bold font-['Courier_New',monospace]">
+                    {points}
+                  </span>
+                  <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
                     {getSourceLabel(source as VPSource["source"])}
                   </span>
                 </div>
@@ -479,701 +489,26 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
           })}
 
           <div
-            className={`source-stat ${filterType === "all" ? "active" : ""}`}
+            className={`flex items-center gap-2 py-2.5 px-[15px] border border-white rounded-lg cursor-pointer transition-all duration-300 min-w-[100px] ${filterType === "all" ? "scale-105 shadow-[0_0_15px_rgba(255,215,0,0.5)]" : "hover:scale-105"}`}
             onClick={() => setFilterType("all")}
-            style={{
-              borderColor: "#ffffff",
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
-            }}
+            style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
           >
             <img
               src="/assets/resources/tr.png"
               alt="Total"
-              className="stat-icon"
+              className="w-6 h-6"
             />
-            <div className="stat-info">
-              <span className="stat-points">{totalVP}</span>
-              <span className="stat-label">Total</span>
+            <div className="flex flex-col items-start">
+              <span className="text-white text-base font-bold font-['Courier_New',monospace]">
+                {totalVP}
+              </span>
+              <span className="text-white/80 text-[10px] uppercase tracking-[0.5px]">
+                Total
+              </span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Source Detail Modal */}
-      {selectedSource && (
-        <div
-          className="source-detail-overlay"
-          onClick={() => setSelectedSource(null)}
-        >
-          <div
-            className="source-detail-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="source-detail-header">
-              <div className="detail-title">
-                <img
-                  src={getSourceIcon(selectedSource.source)}
-                  alt={selectedSource.source}
-                  className="detail-icon"
-                />
-                <div>
-                  <h2>{selectedSource.name}</h2>
-                  <span className="detail-source-type">
-                    {getSourceLabel(selectedSource.source)}
-                  </span>
-                </div>
-              </div>
-              <button
-                className="close-detail-btn"
-                onClick={() => setSelectedSource(null)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="source-detail-content">
-              <div className="detail-vp">
-                <VictoryPointsDisplay
-                  victoryPoints={selectedSource.points}
-                  size="medium"
-                />
-                <span className="vp-label">Victory Points</span>
-              </div>
-
-              {selectedSource.description && (
-                <div className="detail-description">
-                  <h4>Description:</h4>
-                  <p>{selectedSource.description}</p>
-                </div>
-              )}
-
-              {selectedSource.source === "card" && selectedSource.cardType && (
-                <div className="detail-card-type">
-                  <h4>Card Type:</h4>
-                  <span className="card-type-badge">
-                    {selectedSource.cardType.charAt(0).toUpperCase() +
-                      selectedSource.cardType.slice(1)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        .victory-points-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 3000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          animation: modalFadeIn 0.3s ease-out;
-        }
-
-        .backdrop {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.85);
-          backdrop-filter: blur(10px);
-          cursor: pointer;
-        }
-
-        .modal-container {
-          position: relative;
-          width: 100%;
-          max-width: 1200px;
-          max-height: 90vh;
-          background: linear-gradient(
-            145deg,
-            rgba(20, 30, 45, 0.98) 0%,
-            rgba(30, 40, 60, 0.95) 100%
-          );
-          border: 3px solid rgba(255, 215, 0, 0.4);
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow:
-            0 25px 80px rgba(0, 0, 0, 0.8),
-            0 0 60px rgba(255, 215, 0, 0.4);
-          backdrop-filter: blur(20px);
-          animation: modalSlideIn 0.4s ease-out;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .modal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 25px 30px;
-          background: linear-gradient(
-            90deg,
-            rgba(40, 30, 20, 0.9) 0%,
-            rgba(50, 40, 30, 0.7) 100%
-          );
-          border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-          flex-shrink: 0;
-        }
-
-        .header-left {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .modal-title {
-          margin: 0;
-          color: #ffffff;
-          font-size: 28px;
-          font-weight: bold;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        }
-
-        .total-vp {
-          display: flex;
-          align-items: center;
-        }
-
-        .header-controls {
-          display: flex;
-          gap: 20px;
-          align-items: center;
-        }
-
-        .filter-controls,
-        .sort-controls {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          color: #ffffff;
-          font-size: 14px;
-        }
-
-        .filter-controls select,
-        .sort-controls select {
-          background: rgba(0, 0, 0, 0.5);
-          border: 1px solid rgba(255, 215, 0, 0.4);
-          border-radius: 6px;
-          color: #ffffff;
-          padding: 6px 12px;
-          font-size: 14px;
-        }
-
-        .sort-order-btn {
-          background: rgba(255, 215, 0, 0.2);
-          border: 1px solid rgba(255, 215, 0, 0.4);
-          border-radius: 4px;
-          color: #ffffff;
-          padding: 6px 8px;
-          cursor: pointer;
-          font-size: 16px;
-          transition: all 0.2s ease;
-        }
-
-        .sort-order-btn:hover {
-          background: rgba(255, 215, 0, 0.3);
-          transform: scale(1.1);
-        }
-
-        .close-button {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 80, 80, 0.8) 0%,
-            rgba(200, 40, 40, 0.9) 100%
-          );
-          border: 2px solid rgba(255, 120, 120, 0.6);
-          border-radius: 50%;
-          width: 45px;
-          height: 45px;
-          color: #ffffff;
-          font-size: 24px;
-          font-weight: bold;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        }
-
-        .close-button:hover {
-          transform: scale(1.1);
-          box-shadow: 0 6px 25px rgba(255, 80, 80, 0.5);
-        }
-
-        .vp-breakdown {
-          padding: 25px 30px;
-          border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-          flex-shrink: 0;
-        }
-
-        .section-title {
-          color: #ffffff;
-          font-size: 20px;
-          font-weight: bold;
-          margin: 0 0 20px 0;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .sources-count {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 16px;
-          font-weight: normal;
-        }
-
-        .breakdown-chart {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .breakdown-item {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .breakdown-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .breakdown-label {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          color: #ffffff;
-          font-weight: 500;
-        }
-
-        .breakdown-icon {
-          width: 20px;
-          height: 20px;
-        }
-
-        .breakdown-values {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .breakdown-points {
-          color: #ffffff;
-          font-weight: bold;
-          font-family: "Courier New", monospace;
-        }
-
-        .breakdown-percentage {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 14px;
-        }
-
-        .breakdown-bar {
-          height: 8px;
-          background: rgba(0, 0, 0, 0.5);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .breakdown-fill {
-          height: 100%;
-          transition: width 0.5s ease;
-          border-radius: 4px;
-        }
-
-        .vp-content {
-          flex: 1;
-          padding: 25px 30px;
-          overflow-y: auto;
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 215, 0, 0.5) rgba(50, 75, 125, 0.3);
-        }
-
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
-          text-align: center;
-          min-height: 200px;
-        }
-
-        .empty-icon {
-          width: 64px;
-          height: 64px;
-          margin-bottom: 20px;
-          opacity: 0.6;
-        }
-
-        .empty-state h3 {
-          color: #ffffff;
-          font-size: 24px;
-          margin: 0 0 10px 0;
-        }
-
-        .empty-state p {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 16px;
-          margin: 0;
-        }
-
-        .vp-sources-list {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
-
-        .vp-source-item {
-          background: rgba(0, 0, 0, 0.3);
-          border-left: 4px solid;
-          border-radius: 8px;
-          padding: 20px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          animation: sourceSlideIn 0.4s ease-out both;
-        }
-
-        .vp-source-item:hover {
-          background: rgba(0, 0, 0, 0.4);
-          transform: translateX(5px);
-        }
-
-        .source-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-
-        .source-info {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .source-icon {
-          width: 32px;
-          height: 32px;
-        }
-
-        .source-details {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .source-name {
-          color: #ffffff;
-          font-size: 18px;
-          font-weight: bold;
-          margin: 0;
-          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        .source-type {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .source-points {
-          display: flex;
-          align-items: center;
-        }
-
-        .source-description {
-          color: rgba(255, 255, 255, 0.9);
-          font-size: 14px;
-          line-height: 1.4;
-          margin: 0;
-          padding-left: 47px;
-        }
-
-        .source-stats-bar {
-          display: flex;
-          gap: 10px;
-          padding: 20px 30px;
-          background: linear-gradient(
-            90deg,
-            rgba(15, 20, 35, 0.9) 0%,
-            rgba(25, 30, 45, 0.7) 100%
-          );
-          border-top: 1px solid rgba(255, 215, 0, 0.2);
-          flex-shrink: 0;
-          flex-wrap: wrap;
-        }
-
-        .source-stat {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 15px;
-          border: 1px solid;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 100px;
-        }
-
-        .source-stat:hover,
-        .source-stat.active {
-          transform: scale(1.05);
-        }
-
-        .source-stat.active {
-          box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
-        .stat-icon {
-          width: 24px;
-          height: 24px;
-        }
-
-        .stat-info {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .stat-points {
-          color: #ffffff;
-          font-size: 16px;
-          font-weight: bold;
-          font-family: "Courier New", monospace;
-        }
-
-        .stat-label {
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        /* Source Detail Modal */
-        .source-detail-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 4000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.9);
-          backdrop-filter: blur(15px);
-        }
-
-        .source-detail-modal {
-          background: linear-gradient(
-            145deg,
-            rgba(25, 35, 50, 0.98) 0%,
-            rgba(35, 45, 65, 0.95) 100%
-          );
-          border: 3px solid rgba(255, 215, 0, 0.5);
-          border-radius: 15px;
-          max-width: 500px;
-          width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-        }
-
-        .source-detail-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 25px;
-          border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-          background: linear-gradient(
-            90deg,
-            rgba(40, 30, 20, 0.9) 0%,
-            rgba(50, 40, 30, 0.7) 100%
-          );
-        }
-
-        .detail-title {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .detail-icon {
-          width: 40px;
-          height: 40px;
-        }
-
-        .source-detail-header h2 {
-          color: #ffffff;
-          margin: 0;
-          font-size: 24px;
-          font-weight: bold;
-        }
-
-        .detail-source-type {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 14px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .close-detail-btn {
-          background: rgba(255, 80, 80, 0.8);
-          border: 1px solid rgba(255, 120, 120, 0.6);
-          border-radius: 50%;
-          width: 35px;
-          height: 35px;
-          color: #ffffff;
-          font-size: 20px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .source-detail-content {
-          padding: 25px;
-        }
-
-        .detail-vp {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 20px;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.3);
-          border-radius: 10px;
-        }
-
-        .vp-label {
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 14px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .detail-description,
-        .detail-card-type {
-          margin-bottom: 20px;
-        }
-
-        .detail-description h4,
-        .detail-card-type h4 {
-          color: #ffffff;
-          margin: 0 0 10px 0;
-          font-size: 16px;
-        }
-
-        .detail-description p {
-          color: rgba(255, 255, 255, 0.9);
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        .card-type-badge {
-          background: linear-gradient(
-            135deg,
-            rgba(100, 150, 255, 0.8) 0%,
-            rgba(50, 100, 200, 0.9) 100%
-          );
-          color: #ffffff;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: bold;
-        }
-
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-50px) scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes sourceSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-          .modal-container {
-            margin: 10px;
-            max-width: calc(100vw - 20px);
-            max-height: 95vh;
-          }
-
-          .modal-header {
-            padding: 20px;
-            flex-direction: column;
-            gap: 15px;
-            align-items: flex-start;
-          }
-
-          .header-controls {
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-          }
-
-          .source-stats-bar {
-            padding: 15px 20px;
-            justify-content: center;
-          }
-
-          .source-stat {
-            min-width: auto;
-            flex: 1;
-            max-width: 120px;
-          }
-
-          .breakdown-chart {
-            gap: 8px;
-          }
-
-          .vp-sources-list {
-            gap: 12px;
-          }
-
-          .source-description {
-            padding-left: 0;
-            margin-top: 10px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

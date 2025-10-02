@@ -1,7 +1,6 @@
 import React, { createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import useModalStack, { ModalLevel } from "../../../hooks/useModalStack.ts";
-import styles from "./ModalProvider.module.css";
 
 interface ModalContextValue {
   openModal: (
@@ -80,17 +79,17 @@ export const ModalProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!container || modals.length === 0) return null;
 
     return createPortal(
-      <div className={`${styles.modalLevelContainer} ${level}`}>
+      <div className={`relative ${level}`}>
         {modals.map((modal) => {
           const ModalComponent = modal.component;
           return (
-            <div key={modal.id} className={styles.modalOverlay}>
+            <div key={modal.id} className="fixed top-0 left-0 right-0 bottom-0">
               <div
-                className={styles.modalBackdrop}
+                className={`absolute top-0 left-0 right-0 bottom-0 bg-black/60 [backdrop-filter:blur(3px)] flex items-center justify-center p-5 ${level === "primary" ? "!bg-black/60" : ""} ${level === "secondary" ? "!bg-black/40" : ""} ${level === "system" ? "!bg-black/80" : ""}`}
                 onClick={() => modalStack.closeModal(modal.id)}
               >
                 <div
-                  className={styles.modalContent}
+                  className="isolate relative"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <ModalComponent

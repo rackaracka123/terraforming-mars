@@ -1,5 +1,4 @@
 import React from "react";
-import styles from "./RequirementsBox.module.css";
 
 interface RequirementsBoxProps {
   requirements?: any[];
@@ -255,26 +254,33 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
     }
 
     return (
-      <div key={index} className={styles.requirementItem}>
+      <div
+        key={index}
+        className="flex items-center gap-px px-0.5 py-px [&:has(span)]:px-1 [&:has(span)]:py-0.5"
+      >
         {/* Show amount before icon for tag requirements with multiple tags */}
         {isTagRequirement && displayText && !showMultipleIcons && (
-          <span className={styles.requirementAmount}>{displayText}</span>
+          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
+            {displayText}
+          </span>
         )}
 
         {/* Show amount before icon for production requirements with multiple units */}
         {isProductionRequirement && displayText && !showMultipleIcons && (
-          <span className={styles.requirementAmount}>{displayText}</span>
+          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none">
+            {displayText}
+          </span>
         )}
 
         {icon ? (
-          <div className={styles.iconContainer}>
+          <div className="flex items-center gap-px">
             {isProductionRequirement ? (
               // Production requirements with brown background
-              <div className={styles.productionWrapper}>
+              <div className="relative flex items-center justify-center">
                 <img
                   src="/assets/misc/production.png"
                   alt="production"
-                  className={styles.productionIcon}
+                  className="w-5 h-5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.6))] max-md:w-[18px] max-md:h-[18px]"
                 />
                 {showMultipleIcons ? (
                   Array.from({ length: Math.min(iconCount, 4) }, (_, i) => (
@@ -282,14 +288,14 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
                       key={i}
                       src={icon}
                       alt={resource}
-                      className={styles.productionResourceIcon}
+                      className="absolute w-3 h-3 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.6))] max-md:w-2.5 max-md:h-2.5"
                     />
                   ))
                 ) : (
                   <img
                     src={icon}
                     alt={resource}
-                    className={styles.productionResourceIcon}
+                    className="absolute w-3 h-3 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.6))] max-md:w-2.5 max-md:h-2.5"
                   />
                 )}
               </div>
@@ -300,21 +306,29 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
                   key={i}
                   src={icon}
                   alt={key}
-                  className={styles.requirementIcon}
+                  className="w-5 h-5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.6))] max-md:w-[18px] max-md:h-[18px]"
                 />
               ))
             ) : (
               // Show single icon
-              <img src={icon} alt={key} className={styles.requirementIcon} />
+              <img
+                src={icon}
+                alt={key}
+                className="w-5 h-5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.6))] max-md:w-[18px] max-md:h-[18px]"
+              />
             )}
           </div>
         ) : (
-          <span className={styles.requirementText}>{key}</span>
+          <span className="text-[10px] font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] capitalize max-md:text-[9px]">
+            {key}
+          </span>
         )}
 
         {/* Show amount after icon for non-tag, non-production requirements */}
         {!isTagRequirement && !isProductionRequirement && displayText && (
-          <span className={styles.requirementAmount}>{displayText}</span>
+          <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none max-md:text-[10px]">
+            {displayText}
+          </span>
         )}
       </div>
     );
@@ -323,8 +337,8 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
   const groupedRequirements = groupRequirements(requirements);
 
   return (
-    <div className={styles.requirementsBox}>
-      <div className={styles.requirementsContent}>
+    <div className="absolute bottom-full left-[10%] w-fit min-w-[60px] max-w-[80%] z-[-10] bg-[linear-gradient(135deg,rgba(255,87,34,0.15)_0%,rgba(255,69,0,0.12)_100%)] rounded-[2px] shadow-[0_3px_8px_rgba(0,0,0,0.4)] backdrop-blur-[2px] pt-1 pr-0.5 pb-1 pl-1.5 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:bottom-0 before:border-2 before:border-[rgba(255,87,34,0.9)] before:rounded-[2px] before:pointer-events-none max-md:min-w-[50px] max-md:pt-[3px] max-md:pr-0.5 max-md:pb-2.5 max-md:pl-1">
+      <div className="flex items-center justify-start gap-[3px] flex-wrap max-md:gap-1">
         {groupedRequirements.map((group, index) =>
           renderRequirementGroup(group, index),
         )}

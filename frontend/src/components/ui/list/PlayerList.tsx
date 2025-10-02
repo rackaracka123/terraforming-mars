@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { PlayerDto, GamePhase } from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import PlayerCard from "../cards/PlayerCard.tsx";
-import styles from "./PlayerList.module.css";
 
 interface PlayerListProps {
   players: PlayerDto[];
@@ -71,7 +70,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   };
 
   return (
-    <div className={styles.playerList}>
+    <div className="flex flex-col w-full gap-0 overflow-y-auto overflow-x-visible max-h-[calc(100vh-200px)] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       {players.map((player, index) => {
         const isCurrentPlayer = player.id === currentPlayer?.id;
         const isCurrentTurn = player.id === currentPlayerId;

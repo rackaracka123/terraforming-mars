@@ -1,8 +1,6 @@
 import React from "react";
 import { PlayerDto, GameDto, GamePhase } from "@/types/generated/api-types.ts";
 import PlayerList from "@/components/ui/list/PlayerList.tsx";
-import styles from "./LeftSidebar.module.css";
-import "./LeftSidebar.global.css";
 
 interface LeftSidebarProps {
   players: PlayerDto[];
@@ -21,7 +19,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   gameState: _gameState,
 }) => {
   return (
-    <div className={styles.leftSidebar}>
+    <div className="absolute top-[15%] left-0 z-10 w-[240px] h-[calc(85vh-120px)] bg-transparent py-[15px] flex flex-col overflow-visible pointer-events-none">
       <PlayerList
         players={players}
         currentPlayer={currentPlayer}

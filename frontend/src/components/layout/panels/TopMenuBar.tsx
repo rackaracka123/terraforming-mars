@@ -1,7 +1,6 @@
 import React from "react";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
-import styles from "./TopMenuBar.module.css";
 
 interface TopMenuBarProps {
   gameState?: GameDto | null;
@@ -142,30 +141,42 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({ gameState }) => {
   };
 
   return (
-    <div className={styles.topMenuBar}>
-      <div className={styles.menuContainer}>
-        <div className={styles.menuItems}>
+    <div className="bg-black/95 border-b border-[#333] relative z-[100]">
+      <div className="flex justify-between items-center px-5 h-[60px] max-lg:px-[15px] max-lg:h-[50px] max-md:px-2.5 max-md:flex-wrap max-sm:px-2.5 max-sm:flex-wrap">
+        <div className="flex gap-5 max-md:order-2 max-md:flex-[0_0_100%] max-md:mt-2.5">
           {menuItems.map((item) => (
             <button
               key={item.id}
-              className={styles.menuItem}
+              className="bg-none border-2 border-transparent text-white text-sm font-bold py-2.5 px-5 cursor-pointer rounded transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px]"
               onClick={() => handleTabClick(item.id)}
               style={{ "--item-color": item.color } as React.CSSProperties}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.borderColor = item.color)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.borderColor = "transparent")
+              }
             >
               {item.label}
             </button>
           ))}
         </div>
 
-        <div className={styles.menuActions}>
-          <button className={styles.actionBtn}>⚙️ Settings</button>
-          <button className={styles.actionBtn}>📊 Stats</button>
+        <div className="flex gap-2.5 max-md:gap-2 max-sm:flex-col max-sm:gap-1">
+          <button className="bg-white/10 border border-[#333] text-white py-2 px-3 rounded cursor-pointer text-xs hover:bg-white/20 max-lg:py-1.5 max-lg:px-2.5 max-lg:text-[11px] max-md:py-1.5 max-md:px-2.5 max-md:text-[11px] max-sm:py-1 max-sm:px-1.5 max-sm:text-[9px]">
+            ⚙️ Settings
+          </button>
+          <button className="bg-white/10 border border-[#333] text-white py-2 px-3 rounded cursor-pointer text-xs hover:bg-white/20 max-lg:py-1.5 max-lg:px-2.5 max-lg:text-[11px] max-md:py-1.5 max-md:px-2.5 max-md:text-[11px] max-sm:py-1 max-sm:px-1.5 max-sm:text-[9px]">
+            📊 Stats
+          </button>
         </div>
       </div>
 
       {/* Dev Mode Chip */}
       {gameState?.settings?.developmentMode && (
-        <div className={styles.devModeChip}>DEV MODE</div>
+        <div className="absolute top-full left-1/2 -translate-x-1/2 bg-[#ff6b35] text-white text-[10px] font-bold py-1 px-3 rounded-b-lg border border-[#e55a2e] border-t-0 z-[99] whitespace-nowrap shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+          DEV MODE
+        </div>
       )}
     </div>
   );

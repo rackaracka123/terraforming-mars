@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import SimpleGameCard from "../ui/cards/SimpleGameCard";
+import CopyLinkButton from "../ui/buttons/CopyLinkButton";
 import { CardDto } from "@/types/generated/api-types";
 
 const CardsPage: React.FC = () => {
@@ -22,7 +23,7 @@ const CardsPage: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [isFadedIn, setIsFadedIn] = useState(false);
 
   // Get tag icon mapping from tags folder
   const getTagIcon = (tag: string) => {
@@ -321,6 +322,10 @@ const CardsPage: React.FC = () => {
 
   useEffect(() => {
     void loadAllCards();
+    // Trigger fade-in animation
+    setTimeout(() => {
+      setIsFadedIn(true);
+    }, 10);
   }, []);
 
   // Initialize state from URL on mount
@@ -392,7 +397,7 @@ const CardsPage: React.FC = () => {
     setSelectedCards(new Set());
   };
 
-  const handleCopyPermalink = useCallback(() => {
+  const generatePermalinkUrl = useCallback(() => {
     const params = new URLSearchParams();
 
     // Add selected card IDs as multiple cId parameters
@@ -400,16 +405,7 @@ const CardsPage: React.FC = () => {
       params.append("cId", cardId);
     });
 
-    const permalink = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-
-    // Copy to clipboard
-    void navigator.clipboard.writeText(permalink);
-
-    // Show "Copied!" feedback
-    setLinkCopied(true);
-    setTimeout(() => {
-      setLinkCopied(false);
-    }, 1000);
+    return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   }, [selectedCards]);
 
   // Calculate total height for the container
@@ -443,7 +439,13 @@ const CardsPage: React.FC = () => {
   }, [cards, visibleRange, getCardsPerRow]);
 
   return (
-    <div className="cards-page">
+    <div
+      className="cards-page"
+      style={{
+        opacity: isFadedIn ? 1 : 0,
+        transition: "opacity 0.3s ease-in",
+      }}
+    >
       <div className={`sticky-header ${isScrolled ? "scrolled" : ""}`}>
         <div className="sticky-content">
           <button onClick={handleBackToHome} className="back-button">
@@ -473,13 +475,11 @@ const CardsPage: React.FC = () => {
               </button>
             )}
             {selectedCards.size > 0 && !isPermalinkView && (
-              <button
+              <CopyLinkButton
+                textToCopy={generatePermalinkUrl()}
+                defaultText={`Link (${selectedCards.size})`}
                 className="link-button"
-                onClick={handleCopyPermalink}
-                title={`Create permalink for ${selectedCards.size} selected cards`}
-              >
-                {linkCopied ? "Copied!" : `Link (${selectedCards.size})`}
-              </button>
+              />
             )}
             <button
               className="filter-toggle-button"
@@ -642,13 +642,15 @@ const CardsPage: React.FC = () => {
 
       <style>{`
         .cards-page {
-          background: #000011;
+          background: #000000;
           color: white;
           min-height: 100vh;
           font-family:
             -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
             "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
             sans-serif;
+          position: relative;
+          z-index: 10;
         }
 
         .sticky-header {
@@ -662,10 +664,10 @@ const CardsPage: React.FC = () => {
         }
 
         .sticky-header.scrolled {
-          background: rgba(0, 0, 17, 0.95);
+          background: rgba(5, 5, 10, 0.98);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
+          box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
         }
 
         .sticky-content {
@@ -700,13 +702,8 @@ const CardsPage: React.FC = () => {
         }
 
         .back-button {
-          background: linear-gradient(
-            135deg,
-            rgba(20, 30, 50, 0.95) 0%,
-            rgba(30, 40, 60, 0.93) 50%,
-            rgba(25, 35, 55, 0.95) 100%
-          );
-          border: 2px solid rgba(100, 150, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           padding: 12px 20px;
           color: white;
@@ -717,8 +714,9 @@ const CardsPage: React.FC = () => {
         }
 
         .back-button:hover {
-          border-color: rgba(100, 150, 255, 0.6);
-          box-shadow: 0 4px 15px rgba(100, 150, 255, 0.2);
+          background: rgba(10, 10, 15, 0.9);
+          border-color: rgba(30, 60, 150, 0.8);
+          box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
           transform: translateY(-2px);
         }
 
@@ -783,13 +781,15 @@ const CardsPage: React.FC = () => {
         }
 
         h1 {
-          font-size: 28px;
+          font-family: 'Orbitron', sans-serif;
+          font-size: 20px;
           color: #ffffff;
           margin: 0;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+          text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
           font-weight: bold;
           flex: 1;
           text-align: center;
+          letter-spacing: 2px;
         }
 
         .right-section {
@@ -810,14 +810,14 @@ const CardsPage: React.FC = () => {
         }
 
         .search-input {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           padding: 12px 16px;
           color: white;
           font-size: 14px;
           width: 300px;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(10px);
           transition: all 0.3s ease;
         }
 
@@ -827,29 +827,30 @@ const CardsPage: React.FC = () => {
 
         .search-input:focus {
           outline: none;
-          border-color: rgba(100, 150, 255, 0.6);
-          background: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 0 0 2px rgba(100, 150, 255, 0.2);
+          border-color: rgba(30, 60, 150, 0.8);
+          background: rgba(10, 10, 15, 0.9);
+          box-shadow: 0 0 25px rgba(30, 60, 150, 0.5);
         }
 
         .filter-toggle-button {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           padding: 12px 16px;
           color: white;
           font-size: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(10px);
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
         .filter-toggle-button:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(100, 150, 255, 0.6);
+          background: rgba(10, 10, 15, 0.9);
+          border-color: rgba(30, 60, 150, 0.8);
+          box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
         }
 
         .filter-arrow {
@@ -866,15 +867,15 @@ const CardsPage: React.FC = () => {
         }
 
         .sort-dropdown-button {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           padding: 12px 16px;
           color: white;
           font-size: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
-          backdrop-filter: blur(5px);
+          backdrop-filter: blur(10px);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -883,8 +884,9 @@ const CardsPage: React.FC = () => {
         }
 
         .sort-dropdown-button:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(100, 150, 255, 0.6);
+          background: rgba(10, 10, 15, 0.9);
+          border-color: rgba(30, 60, 150, 0.8);
+          box-shadow: 0 0 20px rgba(30, 60, 150, 0.6);
         }
 
         .sort-display-text {
@@ -905,13 +907,13 @@ const CardsPage: React.FC = () => {
           top: 100%;
           left: 0;
           right: 0;
-          background: rgba(0, 0, 17, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(5, 5, 10, 0.98);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           backdrop-filter: blur(10px);
           z-index: 1000;
           margin-top: 4px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 20px rgba(30, 60, 150, 0.3);
         }
 
         .sort-option {
@@ -934,19 +936,19 @@ const CardsPage: React.FC = () => {
         }
 
         .sort-option.active {
-          background: rgba(100, 150, 255, 0.2);
-          color: #64b5ff;
+          background: rgba(30, 60, 150, 0.2);
+          color: rgba(30, 60, 150, 1);
         }
 
         .check-icon {
-          color: #64b5ff;
+          color: rgba(30, 60, 150, 1);
           font-weight: bold;
         }
 
         .filters-panel {
-          background: rgba(0, 0, 17, 0.95);
+          background: rgba(5, 5, 10, 0.98);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
           padding: 20px;
           max-width: 1400px;
           margin: 0 auto;
@@ -988,8 +990,8 @@ const CardsPage: React.FC = () => {
         }
 
         .filter-chip {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          background: rgba(10, 10, 15, 0.8);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 20px;
           padding: 6px 12px;
           color: white;
@@ -1000,14 +1002,16 @@ const CardsPage: React.FC = () => {
         }
 
         .filter-chip:hover {
-          background: rgba(255, 255, 255, 0.15);
-          border-color: rgba(100, 150, 255, 0.6);
+          background: rgba(10, 10, 15, 0.9);
+          border-color: rgba(30, 60, 150, 0.8);
+          box-shadow: 0 0 15px rgba(30, 60, 150, 0.4);
         }
 
         .filter-chip.active {
-          background: rgba(100, 150, 255, 0.3);
-          border-color: rgba(100, 150, 255, 0.8);
+          background: rgba(30, 60, 150, 0.3);
+          border-color: rgba(30, 60, 150, 0.8);
           color: white;
+          box-shadow: 0 0 20px rgba(30, 60, 150, 0.5);
         }
 
         .clear-filters-button {
@@ -1092,12 +1096,13 @@ const CardsPage: React.FC = () => {
         .loading-message {
           text-align: center;
           padding: 20px;
-          color: #4a90e2;
+          color: rgba(30, 60, 150, 1);
           font-size: 16px;
-          background: rgba(74, 144, 226, 0.1);
-          border: 1px solid rgba(74, 144, 226, 0.3);
+          background: rgba(30, 60, 150, 0.15);
+          border: 2px solid rgba(30, 60, 150, 0.4);
           border-radius: 8px;
           animation: pulse 2s infinite;
+          box-shadow: 0 0 15px rgba(30, 60, 150, 0.3);
         }
 
 

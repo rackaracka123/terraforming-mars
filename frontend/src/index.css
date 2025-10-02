@@ -1,5 +1,106 @@
+/* Tailwind CSS directives */
+@import "tailwindcss";
+
+/* Tailwind v4 Theme Configuration */
+@theme {
+  /* Custom Colors */
+  --color-space-black: #0a0a0f;
+  --color-space-black-darker: #050509;
+  --color-space-black-light: #141420;
+
+  --color-space-blue-500: rgba(30, 60, 150, 0.5);
+  --color-space-blue-600: rgba(30, 60, 150, 0.6);
+  --color-space-blue-900: rgba(30, 60, 150, 0.9);
+
+  --color-error-red: #ff6b6b;
+
+  /* Custom Font Families */
+  --font-orbitron: Orbitron, sans-serif;
+
+  /* Custom Box Shadows */
+  --shadow-glow: 0 0 30px rgba(30, 60, 150, 0.6);
+  --shadow-glow-sm: 0 0 20px rgba(30, 60, 150, 0.4);
+  --shadow-glow-lg: 0 0 60px rgba(30, 60, 150, 0.3);
+
+  /* Custom Backdrop Blur */
+  --backdrop-blur-space: 10px;
+  --backdrop-blur-space-light: 5px;
+
+  /* Custom Text Shadows */
+  --text-shadow-glow-strong: 0 0 30px rgba(30, 60, 150, 0.8);
+
+  /* Custom Letter Spacing */
+  --letter-spacing-wider-2xl: 0.2em;
+}
+
+/* Orbitron Font Family */
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/fonts/Orbitron/Orbitron-Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Prototype Font Family (used for resource icons) */
+@font-face {
+  font-family: "Prototype";
+  src: url("/assets/Prototype.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
 body {
   margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
     "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
@@ -10,4 +111,365 @@ body {
 code {
   font-family:
     source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* Player Card Animations (from LeftSidebar.global.css) */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes expandCard {
+  from {
+    transform: scaleX(0.85);
+    opacity: 0.95;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shrinkCard {
+  from {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(0.85);
+    opacity: 0.95;
+  }
+}
+
+@keyframes chipFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes skipButtonPulse {
+  0% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+  }
+  100% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Animation utility classes */
+.player-card-entering {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.player-card-expanding {
+  animation: expandCard 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.player-card-shrinking {
+  animation: shrinkCard 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.player-card-hover {
+  transition: all 0.2s ease;
+}
+
+.player-card-hover:hover {
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chip-animate {
+  animation: chipFadeIn 0.2s ease-out;
+}
+
+.skip-button-pulse {
+  animation: skipButtonPulse 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+.player-list-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.player-list-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.player-list-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 200, 255, 0.3);
+  border-radius: 2px;
+}
+
+.player-list-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 200, 255, 0.5);
+}
+
+/* Player color glow effects */
+.player-glow-red {
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
+}
+
+.player-glow-blue {
+  box-shadow: 0 0 20px rgba(55, 66, 250, 0.3);
+}
+
+.player-glow-green {
+  box-shadow: 0 0 20px rgba(95, 184, 95, 0.3);
+}
+
+.player-glow-orange {
+  box-shadow: 0 0 20px rgba(255, 165, 2, 0.3);
+}
+
+.player-glow-purple {
+  box-shadow: 0 0 20px rgba(165, 94, 234, 0.3);
+}
+
+.player-glow-cyan {
+  box-shadow: 0 0 20px rgba(38, 208, 206, 0.3);
+}
+
+/* Card fade-in animation */
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Player card active glow animations */
+@keyframes activePlayerGlowBg {
+  from {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.6;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes activePlayerGlow {
+  from {
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      -6px 0 20px var(--player-color),
+      -3px 0 12px var(--player-color),
+      0 2px 20px rgba(0, 212, 255, 0.2),
+      inset 0 2px 0 rgba(255, 255, 255, 0.2);
+  }
+  to {
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.5),
+      -6px 0 20px var(--player-color),
+      -3px 0 12px var(--player-color),
+      0 2px 20px rgba(0, 212, 255, 0.3),
+      inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Attack pulse animations for behavior section */
+@keyframes attackPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
+      drop-shadow(0 0 2px rgba(244, 67, 54, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
+      drop-shadow(0 0 3px rgba(244, 67, 54, 0.8));
+  }
+}
+
+@keyframes attackPulseCredits {
+  0%,
+  100% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 1px rgba(244, 67, 54, 0.9))
+      drop-shadow(0 0 2px rgba(244, 67, 54, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))
+      drop-shadow(0 0 1.5px rgba(244, 67, 54, 1))
+      drop-shadow(0 0 3px rgba(244, 67, 54, 0.8));
+  }
+}
+
+/* Modal animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes actionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeOutAnimation {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes fadeInAnimation {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes energyShake {
+  0% {
+    transform: translateX(-0.5px) rotate(-0.2deg);
+  }
+  100% {
+    transform: translateX(0.5px) rotate(0.2deg);
+  }
+}
+
+@keyframes energyGlow {
+  0% {
+    filter: drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px #ef4444);
+  }
+  100% {
+    filter: drop-shadow(0 0 20px #ef4444) drop-shadow(0 0 40px #ef4444);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes popoverSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tagSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes storageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes effectSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes actionSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes blink {
+  0% {
+    background-color: rgba(255, 223, 0, 0.4);
+    box-shadow: 0 0 10px rgba(255, 223, 0, 0.6);
+  }
+  50% {
+    background-color: rgba(255, 223, 0, 0.2);
+    box-shadow: 0 0 5px rgba(255, 223, 0, 0.3);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

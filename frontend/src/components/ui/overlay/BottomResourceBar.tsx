@@ -151,7 +151,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.credits,
       production: currentPlayer.resourceProduction.credits,
       icon: "/assets/resources/megacredit.png",
-      color: "#f1c40f",
+      color: "#f1c40f", // Gold - OK already
     },
     {
       id: "steel",
@@ -159,7 +159,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.steel,
       production: currentPlayer.resourceProduction.steel,
       icon: "/assets/resources/steel.png",
-      color: "#95a5a6",
+      color: "#d2691e", // Brown/orangy
     },
     {
       id: "titanium",
@@ -167,7 +167,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.titanium,
       production: currentPlayer.resourceProduction.titanium,
       icon: "/assets/resources/titanium.png",
-      color: "#e74c3c",
+      color: "#95a5a6", // Grey
     },
     {
       id: "plants",
@@ -175,7 +175,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.plants,
       production: currentPlayer.resourceProduction.plants,
       icon: "/assets/resources/plant.png",
-      color: "#27ae60",
+      color: "#27ae60", // Green - OK already
     },
     {
       id: "energy",
@@ -183,7 +183,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.energy,
       production: currentPlayer.resourceProduction.energy,
       icon: "/assets/resources/power.png",
-      color: "#3498db",
+      color: "#9b59b6", // Purple
     },
     {
       id: "heat",
@@ -191,37 +191,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       current: currentPlayer.resources.heat,
       production: currentPlayer.resourceProduction.heat,
       icon: "/assets/resources/heat.png",
-      color: "#e67e22",
+      color: "#ff4500", // Red/orange
     },
   ];
-
-  // Resource click handlers
-  const handleResourceClick = (resource: ResourceData) => {
-    // Show resource information
-    alert(
-      `Clicked on ${resource.name}: ${resource.current} (${resource.production} production)`,
-    );
-
-    // Special handling for different resources
-    switch (resource.id) {
-      case "plants":
-        if (resource.current >= 8) {
-          alert("Can convert plants to greenery tile!");
-        }
-        break;
-      case "heat":
-        if (resource.current >= 8) {
-          alert("Can convert heat to raise temperature!");
-        }
-        break;
-      case "energy":
-        alert("Energy converts to heat at end of turn");
-        break;
-      default:
-        // Resource info displayed
-        break;
-    }
-  };
 
   // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
@@ -256,21 +228,33 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Modal escape handling is now managed in GameInterface
 
   return (
-    <div className="bottom-resource-bar">
+    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto">
+      {/* Background bar */}
+      <div className="absolute inset-0 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)] -z-10" />
+
       {/* Resource Grid */}
-      <div className="resources-section">
-        <div className="resources-grid">
+      <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
+        <div className="grid grid-cols-6 gap-[15px] max-w-[500px]">
           {playerResources.map((resource) => (
             <div
               key={resource.id}
-              className="resource-item"
+              className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 transition-all duration-200 cursor-pointer relative overflow-hidden hover:-translate-y-0.5"
               style={
-                { "--resource-color": resource.color } as React.CSSProperties
+                {
+                  "--resource-color": resource.color,
+                  borderColor: resource.color,
+                  boxShadow: `0 0 10px ${resource.color}40`,
+                } as React.CSSProperties
               }
-              onClick={() => handleResourceClick(resource)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${resource.color}`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
+              }}
               title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
-              <div className="resource-production">
+              <div className="flex items-center justify-center mb-1">
                 {createImageWithNumber(
                   "/assets/misc/production.png",
                   resource.production,
@@ -278,8 +262,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                 )}
               </div>
 
-              <div className="resource-main">
-                <div className="resource-icon">
+              <div className="flex items-center gap-1.5">
+                <div className="w-8 h-8 flex items-center justify-center [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.5))]">
                   {resource.id === "credits" ? (
                     createImageWithNumber(
                       resource.icon,
@@ -290,12 +274,14 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                     <img
                       src={resource.icon}
                       alt={resource.name}
-                      className="resource-icon-img"
+                      className="w-full h-full object-contain [image-rendering:crisp-edges]"
                     />
                   )}
                 </div>
                 {resource.id !== "credits" && (
-                  <div className="resource-current">{resource.current}</div>
+                  <div className="text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
+                    {resource.current}
+                  </div>
                 )}
               </div>
             </div>
@@ -304,233 +290,195 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       </div>
 
       {/* Action Buttons Section */}
-      <div className="action-buttons-section">
+      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
-          className={`action-button actions-button ${
+          className={`flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5 ${
             (currentPlayer?.actions?.length || 0) === 0
-              ? "actions-depleted"
+              ? "border-[#969696] opacity-70 hover:opacity-80"
               : (currentPlayer?.actions?.length || 0) <= 1
-                ? "actions-low"
-                : ""
+                ? "border-[#ffc800]"
+                : "border-[#ff6464]"
           }`}
+          style={{
+            boxShadow:
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "0 0 10px #96969640"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "0 0 10px #ffc80040"
+                  : "0 0 10px #ff646440",
+          }}
+          onMouseEnter={(e) => {
+            const color =
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "#969696"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "#ffc800"
+                  : "#ff6464";
+            e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${color}`;
+          }}
+          onMouseLeave={(e) => {
+            const color =
+              (currentPlayer?.actions?.length || 0) === 0
+                ? "#969696"
+                : (currentPlayer?.actions?.length || 0) <= 1
+                  ? "#ffc800"
+                  : "#ff6464";
+            e.currentTarget.style.boxShadow = `0 0 10px ${color}40`;
+          }}
           onClick={handleOpenActionsPopover}
           title={`Card Actions: ${currentPlayer?.actions?.length || 0}`}
         >
-          <div className="button-icon">⚡</div>
-          <div className="button-count">
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            ⚡
+          </div>
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${(currentPlayer?.actions?.length || 0) === 0 ? "text-white/60" : ""}`}
+          >
             {currentPlayer?.actions?.length || 0}
           </div>
-          <div className="button-label">Actions</div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            Actions
+          </div>
         </button>
 
         <button
           ref={effectsButtonRef}
-          className="action-button effects-button"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff96ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #ff96ff40" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff96ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
+          }}
           onClick={handleOpenEffectsPopover}
           title="View Card Effects"
         >
-          <div className="button-icon">✨</div>
-          <div className="button-count">
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            ✨
+          </div>
+          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {currentPlayer?.effects?.length || 0}
           </div>
-          <div className="button-label">Effects</div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            Effects
+          </div>
         </button>
 
         <button
           ref={tagsButtonRef}
-          className="action-button tags-button"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#64ff96] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #64ff9640" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #64ff96";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
+          }}
           onClick={handleOpenTagsPopover}
           title="View Tags"
         >
-          <div className="button-icon">🏷️</div>
-          <div className="button-count">
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            🏷️
+          </div>
+          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
           </div>
-          <div className="button-label">Tags</div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            Tags
+          </div>
         </button>
 
         <button
           ref={storagesButtonRef}
-          className="action-button storages-button"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#6496c8] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #6496c840" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #6496c8";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
+          }}
           onClick={handleOpenStoragesPopover}
           title="View Card Storages"
         >
-          <div className="button-icon">💾</div>
-          <div className="button-count">{storageCardsCount}</div>
-          <div className="button-label">Storages</div>
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            💾
+          </div>
+          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+            {storageCardsCount}
+          </div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            Storages
+          </div>
         </button>
 
         <button
-          className="action-button cards-button"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#9664ff] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #9664ff40" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #9664ff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
+          }}
           onClick={handleOpenCardsModal}
           title="View Played Cards"
         >
-          <div className="button-icon">🃏</div>
-          <div className="button-count">{playedCardsCount}</div>
-          <div className="button-label">Played</div>
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            🃏
+          </div>
+          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+            {playedCardsCount}
+          </div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            Played
+          </div>
         </button>
 
         <button
-          className="action-button vp-button"
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ffc864] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #ffc86440" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ffc864";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
+          }}
           onClick={handleOpenVictoryPointsModal}
           title="View Victory Points"
         >
-          <div className="button-icon">🏆</div>
-          <div className="button-count">
+          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
+            🏆
+          </div>
+          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {currentPlayer?.victoryPoints || 0}
           </div>
-          <div className="button-label">VP</div>
+          <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+            VP
+          </div>
         </button>
       </div>
 
       <style>{`
-        .bottom-resource-bar {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 48px;
-          background: linear-gradient(
-            180deg,
-            rgba(5, 15, 35, 0.95) 0%,
-            rgba(10, 25, 45, 0.98) 50%,
-            rgba(5, 20, 40, 0.99) 100%
-          );
-          backdrop-filter: blur(15px);
-          border-top: 2px solid rgba(100, 150, 255, 0.3);
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          padding: 0 30px 8px 30px;
-          z-index: 1000;
-          pointer-events: auto;
-          box-shadow:
-            0 -8px 32px rgba(0, 0, 0, 0.6),
-            0 0 20px rgba(100, 150, 255, 0.2);
-        }
-
-        .bottom-resource-bar::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(
-            45deg,
-            rgba(150, 200, 255, 0.05) 0%,
-            transparent 50%,
-            rgba(100, 150, 255, 0.03) 100%
-          );
-          pointer-events: none;
-        }
-
-        .resources-section {
-          flex: 2;
-          transform: translateY(-30px);
-          pointer-events: auto;
-          z-index: 1001;
-          position: relative;
-        }
-
-        .resources-grid {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 15px;
-          max-width: 500px;
-        }
-
-        .resource-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          background: linear-gradient(
-            135deg,
-            rgba(30, 60, 90, 0.4) 0%,
-            rgba(20, 40, 70, 0.3) 100%
-          );
-          border: 2px solid var(--resource-color);
-          border-radius: 12px;
-          padding: 8px 6px;
-          transition: all 0.15s ease;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .resource-item::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: var(--resource-color);
-          opacity: 0.1;
-          transition: opacity 0.15s ease;
-        }
-
-        .resource-item:hover::before {
-          opacity: 0.2;
-        }
-
-        .resource-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 
-            0 6px 20px rgba(0, 0, 0, 0.4),
-            0 0 15px var(--resource-color);
-        }
-
-        .resource-production {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 4px;
-        }
-        
-        .resource-main {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        
-        .resource-icon {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-        }
-        
-        .resource-icon-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          image-rendering: crisp-edges;
-        }
-
-        .resource-current {
-          font-size: 18px;
-          font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-        
         .image-with-number {
           position: relative;
           display: inline-block;
         }
-        
+
         .base-image {
           display: block;
           width: 100%;
           height: 100%;
           object-fit: contain;
         }
-        
+
         .embedded-number {
           position: absolute;
           top: 50%;
@@ -541,426 +489,28 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           pointer-events: none;
           line-height: 1;
         }
-        
+
         .production-display {
           width: 24px;
           height: 24px;
         }
-        
+
         .production-display .embedded-number {
           font-size: 12px;
           color: #ffffff;
         }
-        
+
         .credits-display {
           width: 32px;
           height: 32px;
         }
-        
+
         .credits-display .embedded-number {
           font-size: 14px;
           color: #000000;
           font-weight: 900;
         }
 
-
-        .action-buttons-section {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 12px;
-          transform: translateY(-30px);
-          pointer-events: auto;
-          z-index: 1001;
-          position: relative;
-        }
-
-        .action-button {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          background: linear-gradient(
-            135deg,
-            rgba(30, 60, 90, 0.6) 0%,
-            rgba(20, 40, 70, 0.5) 100%
-          );
-          border: 2px solid rgba(100, 150, 200, 0.4);
-          border-radius: 12px;
-          padding: 10px 8px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          min-width: 60px;
-          backdrop-filter: blur(5px);
-        }
-
-        .action-button:hover {
-          transform: translateY(-2px);
-          border-color: rgba(100, 150, 200, 0.8);
-          background: linear-gradient(
-            135deg,
-            rgba(30, 60, 90, 0.8) 0%,
-            rgba(20, 40, 70, 0.7) 100%
-          );
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(100, 150, 200, 0.3);
-        }
-
-        .button-icon {
-          font-size: 18px;
-          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-        }
-
-        .button-count {
-          font-size: 14px;
-          font-weight: bold;
-          color: #ffffff;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-          line-height: 1;
-        }
-
-        .button-label {
-          font-size: 10px;
-          font-weight: 500;
-          color: rgba(255, 255, 255, 0.9);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-        }
-
-        .cards-button {
-          border-color: rgba(150, 100, 255, 0.4);
-        }
-
-        .cards-button:hover {
-          border-color: rgba(150, 100, 255, 0.8);
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(150, 100, 255, 0.3);
-        }
-
-        .tags-button {
-          border-color: rgba(100, 255, 150, 0.4);
-        }
-
-        .tags-button:hover {
-          border-color: rgba(100, 255, 150, 0.8);
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(100, 255, 150, 0.3);
-        }
-
-        .vp-button {
-          border-color: rgba(255, 200, 100, 0.4);
-        }
-
-        .vp-button:hover {
-          border-color: rgba(255, 200, 100, 0.8);
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(255, 200, 100, 0.3);
-        }
-
-        .actions-button {
-          border-color: rgba(255, 100, 100, 0.4);
-        }
-
-        .actions-button:hover {
-          border-color: rgba(255, 100, 100, 0.8);
-          box-shadow:
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(255, 100, 100, 0.3);
-        }
-
-        .actions-button.actions-low {
-          border-color: rgba(255, 200, 0, 0.6);
-          background: linear-gradient(
-            135deg,
-            rgba(60, 50, 0, 0.6) 0%,
-            rgba(40, 30, 0, 0.5) 100%
-          );
-        }
-
-        .actions-button.actions-low:hover {
-          border-color: rgba(255, 200, 0, 0.9);
-          box-shadow:
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(255, 200, 0, 0.4);
-        }
-
-        .actions-button.actions-depleted {
-          border-color: rgba(150, 150, 150, 0.4);
-          background: linear-gradient(
-            135deg,
-            rgba(40, 40, 40, 0.6) 0%,
-            rgba(30, 30, 30, 0.5) 100%
-          );
-          opacity: 0.7;
-        }
-
-        .actions-button.actions-depleted:hover {
-          border-color: rgba(150, 150, 150, 0.6);
-          box-shadow:
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(150, 150, 150, 0.2);
-          opacity: 0.8;
-        }
-
-        .actions-button.actions-depleted .button-count {
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .effects-button {
-          border-color: rgba(255, 150, 255, 0.4);
-        }
-
-        .effects-button:hover {
-          border-color: rgba(255, 150, 255, 0.8);
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(255, 150, 255, 0.3);
-        }
-
-
-        .turn-phase {
-          background: linear-gradient(
-            135deg,
-            rgba(80, 60, 20, 0.6) 0%,
-            rgba(60, 40, 10, 0.5) 100%
-          );
-          border: 2px solid rgba(255, 200, 100, 0.6);
-          border-radius: 10px;
-          padding: 10px 15px;
-          text-align: center;
-          box-shadow: 
-            0 4px 15px rgba(0, 0, 0, 0.3),
-            0 0 15px rgba(255, 200, 100, 0.2);
-        }
-
-        .phase-label {
-          font-size: 12px;
-          font-weight: bold;
-          color: rgba(255, 200, 100, 1);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .actions-left {
-          font-size: 14px;
-          color: #ffffff;
-          margin-top: 4px;
-        }
-
-        @media (max-width: 1200px) {
-          .bottom-resource-bar {
-            height: 40px;
-            padding: 0 20px 6px 20px;
-          }
-
-          .resources-section {
-            transform: translateY(-25px);
-          }
-
-          .action-buttons-section {
-            transform: translateY(-25px);
-          }
-
-          .resources-grid {
-            gap: 10px;
-            max-width: 400px;
-          }
-
-          .resource-item {
-            padding: 8px 6px;
-          }
-
-          .resource-icon {
-            width: 18px;
-            height: 18px;
-          }
-
-          .resource-current {
-            font-size: 14px;
-          }
-        }
-
-        @media (max-width: 1024px) {
-          .bottom-resource-bar {
-            height: 40px;
-            padding: 0 25px 8px 25px;
-          }
-
-          .resources-section {
-            transform: translateY(-25px);
-          }
-
-          .action-buttons-section {
-            transform: translateY(-25px);
-          }
-
-          .resources-grid {
-            gap: 12px;
-            max-width: 450px;
-          }
-
-          .resource-item {
-            padding: 10px 7px;
-          }
-
-          .cards-indicator {
-            padding: 12px 18px;
-          }
-
-          .cards-icon {
-            font-size: 20px;
-          }
-
-          .cards-count {
-            font-size: 18px;
-          }
-
-          .action-buttons-section {
-            gap: 10px;
-            padding: 0 15px;
-          }
-
-          .action-button {
-            min-width: 55px;
-            padding: 8px 6px;
-          }
-
-          .button-icon {
-            font-size: 16px;
-          }
-
-          .button-count {
-            font-size: 13px;
-          }
-
-          .button-label {
-            font-size: 9px;
-          }
-        }
-
-        @media (max-width: 800px) {
-          .bottom-resource-bar {
-            flex-direction: column;
-            height: auto;
-            padding: 0 15px 10px 15px;
-            gap: 0;
-          }
-
-          .resources-section {
-            transform: translateY(-20px);
-          }
-
-          .action-buttons-section {
-            transform: translateY(-15px);
-          }
-
-          .resources-grid {
-            grid-template-columns: repeat(3, 1fr);
-            max-width: none;
-            width: 100%;
-          }
-
-          .action-buttons-section {
-            width: 100%;
-            align-items: center;
-          }
-
-          .action-buttons-section {
-            gap: 8px;
-            padding: 0 10px;
-          }
-
-          .action-button {
-            min-width: 50px;
-            padding: 6px 4px;
-          }
-
-          .button-icon {
-            font-size: 14px;
-          }
-
-          .button-count {
-            font-size: 12px;
-          }
-
-          .button-label {
-            font-size: 8px;
-          }
-
-        }
-
-        @media (max-width: 600px) {
-          .bottom-resource-bar {
-            padding: 0 12px 8px 12px;
-            gap: 0;
-          }
-
-          .resources-section {
-            transform: translateY(-18px);
-          }
-
-          .action-buttons-section {
-            transform: translateY(-12px);
-          }
-
-          .resources-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-          }
-
-          .resource-item {
-            padding: 8px 5px;
-          }
-
-          .resource-icon {
-            width: 18px;
-            height: 18px;
-          }
-
-          .resource-current {
-            font-size: 14px;
-          }
-
-          .resource-production {
-            font-size: 11px;
-          }
-
-
-          .phase-label {
-            font-size: 10px;
-          }
-
-          .actions-left {
-            font-size: 12px;
-          }
-
-          .action-buttons-section {
-            gap: 6px;
-          }
-
-          .action-button {
-            min-width: 45px;
-            padding: 5px 3px;
-          }
-
-          .button-icon {
-            font-size: 12px;
-          }
-
-          .button-count {
-            font-size: 11px;
-          }
-
-          .button-label {
-            font-size: 7px;
-          }
-        }
       `}</style>
 
       {/* Actions Popover */}
