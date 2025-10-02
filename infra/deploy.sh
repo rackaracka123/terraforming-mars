@@ -21,6 +21,10 @@ log "🚀 Starting automated deployment"
 cd "$REPO_DIR" || exit 1
 log "📂 Changed to repository directory: $REPO_DIR"
 
+# Fix Git ownership issue in Docker container
+git config --global --add safe.directory "$REPO_DIR"
+log "✅ Git safe directory configured"
+
 # Get current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 log "📍 Current branch: $CURRENT_BRANCH"
