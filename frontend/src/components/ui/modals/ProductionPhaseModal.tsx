@@ -539,7 +539,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
 
   const renderProductionPhase = () => {
     return (
-      <div className="w-full animate-[slideInFromRight_0.5s_ease-out]">
+      <div className="w-full">
         <div className="grid grid-cols-3 gap-5 mb-5">
           {renderResourceAnimation(
             "credits" as ResourceType,
