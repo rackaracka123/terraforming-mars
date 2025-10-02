@@ -58,6 +58,7 @@ services:
       - WEBHOOK_PORT=9000
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - DEPLOY_SCRIPT=/deploy/infra/deploy.sh
+      - DEPLOY_BRANCH=${DEPLOY_BRANCH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ..:/deploy
