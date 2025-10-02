@@ -296,8 +296,8 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("player has no pending tile selection")
 	}
 
-	// Convert coordinate to string for validation (temporary until we update the validation system)
-	coordinateKey := fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)
+	// Convert coordinate to string for validation
+	coordinateKey := coordinate.String()
 
 	// Basic validation that the clicked tile is in the available hexes
 	validTile := false
@@ -359,27 +359,17 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		zap.Int("r", coordinate.R),
 		zap.Int("s", coordinate.S))
 
-	// Create the tile occupant based on the tile type
-	var occupant *model.TileOccupant
-	switch tileType {
-	case "city":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceCityTile,
-			Tags: []string{},
-		}
-	case "greenery":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceGreeneryTile,
-			Tags: []string{},
-		}
-	case "ocean":
-		occupant = &model.TileOccupant{
-			Type: model.ResourceOceanTile,
-			Tags: []string{},
-		}
-	default:
+	// Convert tile type string to ResourceType
+	resourceType, err := model.TileTypeToResourceType(tileType)
+	if err != nil {
 		log.Error("Unknown tile type", zap.String("tile_type", tileType))
-		return fmt.Errorf("unknown tile type: %s", tileType)
+		return err
+	}
+
+	// Create the tile occupant
+	occupant := &model.TileOccupant{
+		Type: resourceType,
+		Tags: []string{},
 	}
 
 	// Update the tile occupancy in the game board
@@ -396,7 +386,7 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 
 	log.Info("✅ Tile placed successfully",
 		zap.String("tile_type", tileType),
-		zap.String("coordinate", fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)))
+		zap.String("coordinate", coordinate.String()))
 
 	return nil
 }
@@ -414,7 +404,7 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 	// Find the placed tile in the board
 	var placedTile *model.Tile
 	for i, tile := range game.Board.Tiles {
-		if tile.Coordinates.Q == coordinate.Q && tile.Coordinates.R == coordinate.R && tile.Coordinates.S == coordinate.S {
+		if tile.Coordinates.Equals(coordinate) {
 			placedTile = &game.Board.Tiles[i]
 			break
 		}
@@ -437,35 +427,8 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 
 	// Award tile bonuses (steel, titanium, plants, card draw)
 	for _, bonus := range placedTile.Bonuses {
-		switch bonus.Type {
-		case model.ResourceSteel:
-			newResources.Steel += bonus.Amount
-			bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d steel", bonus.Amount))
-			log.Info("🎁 Tile bonus awarded",
-				zap.String("type", "steel"),
-				zap.Int("amount", bonus.Amount))
-
-		case model.ResourceTitanium:
-			newResources.Titanium += bonus.Amount
-			bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d titanium", bonus.Amount))
-			log.Info("🎁 Tile bonus awarded",
-				zap.String("type", "titanium"),
-				zap.Int("amount", bonus.Amount))
-
-		case model.ResourcePlants:
-			newResources.Plants += bonus.Amount
-			bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d plants", bonus.Amount))
-			log.Info("🎁 Tile bonus awarded",
-				zap.String("type", "plants"),
-				zap.Int("amount", bonus.Amount))
-
-		case model.ResourceCardDraw:
-			// TODO: Implement card drawing bonus
-			// For now, just log it
-			bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d cards", bonus.Amount))
-			log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
-				zap.String("type", "card-draw"),
-				zap.Int("amount", bonus.Amount))
+		if description, applied := s.applyTileBonus(&newResources, bonus, log); applied {
+			bonusesAwarded = append(bonusesAwarded, description)
 		}
 	}
 
@@ -498,31 +461,13 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 
 // calculateOceanAdjacencyBonus calculates the bonus from adjacent ocean tiles
 func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, coordinate model.HexPosition) int {
-	// Define the 6 adjacent hex directions (cube coordinates)
-	directions := []model.HexPosition{
-		{Q: 1, R: -1, S: 0}, // East
-		{Q: 1, R: 0, S: -1}, // Southeast
-		{Q: 0, R: 1, S: -1}, // Southwest
-		{Q: -1, R: 1, S: 0}, // West
-		{Q: -1, R: 0, S: 1}, // Northwest
-		{Q: 0, R: -1, S: 1}, // Northeast
-	}
-
 	adjacentOceanCount := 0
 
 	// Check each adjacent position for ocean tiles
-	for _, dir := range directions {
-		adjacentCoord := model.HexPosition{
-			Q: coordinate.Q + dir.Q,
-			R: coordinate.R + dir.R,
-			S: coordinate.S + dir.S,
-		}
-
+	for _, adjacentCoord := range coordinate.GetNeighbors() {
 		// Find the adjacent tile in the board
 		for _, tile := range game.Board.Tiles {
-			if tile.Coordinates.Q == adjacentCoord.Q &&
-				tile.Coordinates.R == adjacentCoord.R &&
-				tile.Coordinates.S == adjacentCoord.S {
+			if tile.Coordinates.Equals(adjacentCoord) {
 				// Check if this tile has an ocean
 				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
 					adjacentOceanCount++
@@ -534,4 +479,41 @@ func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, coordi
 
 	// Each adjacent ocean provides +2 MC
 	return adjacentOceanCount * 2
+}
+
+// applyTileBonus applies a single tile bonus to player resources
+// Returns a description of the bonus and whether it was successfully applied
+func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool) {
+	var resourceName string
+
+	switch bonus.Type {
+	case model.ResourceSteel:
+		resources.Steel += bonus.Amount
+		resourceName = "steel"
+
+	case model.ResourceTitanium:
+		resources.Titanium += bonus.Amount
+		resourceName = "titanium"
+
+	case model.ResourcePlants:
+		resources.Plants += bonus.Amount
+		resourceName = "plants"
+
+	case model.ResourceCardDraw:
+		// TODO: Implement card drawing bonus
+		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
+			zap.String("type", "card-draw"),
+			zap.Int("amount", bonus.Amount))
+		return fmt.Sprintf("+%d cards", bonus.Amount), true
+
+	default:
+		// Unknown bonus type, skip it
+		return "", false
+	}
+
+	log.Info("🎁 Tile bonus awarded",
+		zap.String("type", resourceName),
+		zap.Int("amount", bonus.Amount))
+
+	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
 }

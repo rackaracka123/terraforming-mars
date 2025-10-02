@@ -1,5 +1,28 @@
 package model
 
+import "fmt"
+
+// Tile type string constants for placement operations
+const (
+	TileTypeCity     = "city"
+	TileTypeGreenery = "greenery"
+	TileTypeOcean    = "ocean"
+)
+
+// TileTypeToResourceType converts a tile type string to its corresponding ResourceType
+func TileTypeToResourceType(tileType string) (ResourceType, error) {
+	switch tileType {
+	case TileTypeCity:
+		return ResourceCityTile, nil
+	case TileTypeGreenery:
+		return ResourceGreeneryTile, nil
+	case TileTypeOcean:
+		return ResourceOceanTile, nil
+	default:
+		return "", fmt.Errorf("unknown tile type: %s", tileType)
+	}
+}
+
 // TileBonus represents a resource bonus provided by a tile when occupied
 type TileBonus struct {
 	// Type specifies the resource type granted by this bonus

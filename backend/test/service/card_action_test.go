@@ -23,7 +23,9 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	sessionManager := &MockSessionManager{}
 
 	// Create card service
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	// Setup test data
 	ctx := context.Background()
@@ -97,7 +99,9 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"
@@ -167,7 +171,9 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"
@@ -228,7 +234,9 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"
@@ -271,7 +279,9 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"
@@ -332,7 +342,9 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"
@@ -406,7 +418,9 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 	playerID := "player1"

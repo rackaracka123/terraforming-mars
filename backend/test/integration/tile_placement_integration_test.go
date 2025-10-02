@@ -74,6 +74,18 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	require.NoError(t, err, "Should receive game-updated after phase change")
 	t.Log("✅ Game phase set to action")
 
+	// STEP 3a: Set current turn to the player
+	t.Log("🔄 Setting current turn to player...")
+	err = client.SendAdminCommand(dto.AdminCommandTypeSetCurrentTurn, map[string]interface{}{
+		"playerId": playerID,
+	})
+	require.NoError(t, err, "Should be able to set current turn")
+
+	// Wait for turn change confirmation
+	_, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Should receive game-updated after turn change")
+	t.Log("✅ Current turn set to player")
+
 	// STEP 4: Give player resources via admin command (to afford the card)
 	t.Log("💰 Setting player resources...")
 	err = client.SendAdminCommand(dto.AdminCommandTypeSetResources, map[string]interface{}{

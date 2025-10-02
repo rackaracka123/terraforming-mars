@@ -1198,8 +1198,7 @@ func (s *GameServiceImpl) CalculateAvailableOceanHexes(ctx context.Context, game
 				oceansPlaced++
 			} else {
 				// This ocean space is available for placement
-				hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
-				availableHexes = append(availableHexes, hexKey)
+				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 		}
 	}
