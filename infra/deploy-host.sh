@@ -6,8 +6,11 @@
 
 set -e
 
-# Configuration - adjust these paths for your Pi
-REPO_DIR="${REPO_DIR:-/home/mhm/terraforming-mars}"
+# Configuration
+# When running in container, repo is mounted at /deploy
+# REPO_DIR is the path on the HOST for git operations
+CONTAINER_REPO_DIR="/deploy"
+HOST_REPO_DIR="${REPO_DIR:-/home/mhm/terraforming-mars}"
 LOG_FILE="${LOG_FILE:-/tmp/terraforming-mars-deploy.log}"
 BRANCH="${BRANCH}"
 
@@ -18,9 +21,9 @@ log() {
 
 log "🚀 Starting deployment on host"
 
-# Navigate to repository
-cd "$REPO_DIR" || exit 1
-log "📂 Repository: $REPO_DIR"
+# Navigate to repository (use container path)
+cd "$CONTAINER_REPO_DIR" || exit 1
+log "📂 Repository: $CONTAINER_REPO_DIR (host: $HOST_REPO_DIR)"
 
 # Pull latest code
 log "🔄 Pulling latest code from origin/$BRANCH..."
@@ -31,7 +34,7 @@ COMMIT_HASH=$(git rev-parse --short HEAD)
 log "✅ Updated to commit: $COMMIT_HASH"
 
 # Navigate to infra directory
-cd "$REPO_DIR/infra" || exit 1
+cd "$CONTAINER_REPO_DIR/infra" || exit 1
 
 # Stop existing containers
 log "🛑 Stopping existing containers"
