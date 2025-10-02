@@ -1,0 +1,22 @@
+# Webhook Server Dockerfile
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install Docker CLI for deployment script
+RUN apk add --no-cache docker-cli git bash
+
+# Copy webhook server
+COPY webhook-server.js .
+
+# Create log directory
+RUN mkdir -p /var/log && \
+    touch /var/log/webhook-server.log && \
+    touch /var/log/terraforming-mars-deploy.log
+
+# Expose webhook port
+EXPOSE 9000
+
+# Run webhook server
+CMD ["node", "webhook-server.js"]

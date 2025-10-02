@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Backend - Go server
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: tm-backend
+    restart: unless-stopped
+    environment:
+      - TM_LOG_LEVEL=${TM_LOG_LEVEL:-info}
+      - PORT=3001
+    networks:
+      - tm-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=false"
+
+  # Frontend - React + Nginx
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: tm-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tm-network
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=false"
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: tm-cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks:
+      - tm-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=false"
+
+  # GitHub Webhook Server for Auto-Deployment
+  webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile.webhook
+    container_name: tm-webhook
+    restart: unless-stopped
+    environment:
+      - WEBHOOK_PORT=9000
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - DEPLOY_SCRIPT=/deploy/infra/deploy.sh
+      - DEPLOY_BRANCH=main
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ..:/deploy
+      - ./deploy.sh:/app/deploy.sh
+    ports:
+      - "9000:9000"
+    networks:
+      - tm-network
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  tm-network:
+    driver: bridge
+    name: tm-network
