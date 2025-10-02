@@ -25,6 +25,9 @@ log "🚀 Starting deployment on host"
 cd "$CONTAINER_REPO_DIR" || exit 1
 log "📂 Repository: $CONTAINER_REPO_DIR (host: $HOST_REPO_DIR)"
 
+# Configure git to trust this directory
+git config --global --add safe.directory "$CONTAINER_REPO_DIR"
+
 # Pull latest code
 log "🔄 Pulling latest code from origin/$BRANCH..."
 git fetch origin
