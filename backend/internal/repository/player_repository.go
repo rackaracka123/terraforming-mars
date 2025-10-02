@@ -50,7 +50,7 @@ type PlayerRepository interface {
 
 	// Tile queue operations
 	CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error
-	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
+	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error)
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -751,7 +751,8 @@ func (r *PlayerRepositoryImpl) ClearPendingTileSelectionQueue(ctx context.Contex
 	return r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, nil)
 }
 
-// CreateTileQueue creates and stores a tile placement queue for a player, then processes the first item
+// CreateTileQueue creates and stores a tile placement queue for a player
+// Note: This is a pure data operation - processing and validation is handled by the service layer
 func (r *PlayerRepositoryImpl) CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
@@ -775,38 +776,36 @@ func (r *PlayerRepositoryImpl) CreateTileQueue(ctx context.Context, gameID, play
 		return fmt.Errorf("failed to create tile placement queue: %w", err)
 	}
 
-	// Process the first item in the queue immediately
-	_, err := r.ProcessNextTileInQueue(ctx, gameID, playerID)
-	return err
+	log.Debug("✅ Tile queue created (service layer will handle processing)")
+	return nil
 }
 
-// ProcessNextTileInQueue processes the next tile in the placement queue and returns the pending selection
-// It includes validation and will skip tiles that can no longer be placed (e.g., oceans when at max)
-func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error) {
+// ProcessNextTileInQueue pops the next tile type from the queue and returns it
+// Returns empty string if queue is empty or doesn't exist
+// This is a pure data operation - validation is handled by the service layer
+func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error) {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current queue
 	queue, err := r.GetPendingTileSelectionQueue(ctx, gameID, playerID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get tile placement queue: %w", err)
+		return "", fmt.Errorf("failed to get tile placement queue: %w", err)
 	}
 
 	// If no queue exists or queue is empty, nothing to process
 	if queue == nil || len(queue.Items) == 0 {
 		log.Debug("No tile placements in queue")
-		return nil, nil
+		return "", nil
 	}
 
 	// Pop the first item from the queue
 	nextTileType := queue.Items[0]
 	remainingItems := queue.Items[1:]
 
-	log.Info("🎯 Processing next tile in queue",
+	log.Info("🎯 Popping next tile from queue",
 		zap.String("tile_type", nextTileType),
 		zap.String("source", queue.Source),
 		zap.Int("remaining_in_queue", len(remainingItems)))
-
-	// Note: Tile placement validation is handled by the service layer to avoid circular dependencies
 
 	// Update queue with remaining items or clear if empty
 	if len(remainingItems) > 0 {
@@ -815,34 +814,15 @@ func (r *PlayerRepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameI
 			Source: queue.Source,
 		}
 		if err := r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, updatedQueue); err != nil {
-			return nil, fmt.Errorf("failed to update tile placement queue: %w", err)
+			return "", fmt.Errorf("failed to update tile placement queue: %w", err)
 		}
 	} else {
 		// This is the last item, clear the queue
 		if err := r.ClearPendingTileSelectionQueue(ctx, gameID, playerID); err != nil {
-			return nil, fmt.Errorf("failed to clear tile placement queue: %w", err)
+			return "", fmt.Errorf("failed to clear tile placement queue: %w", err)
 		}
 	}
 
-	// Available hexes should be calculated by the service layer and passed down
-	// For now, initialize with empty list - service layer will handle hex calculation
-	availableHexes := []string{}
-
-	log.Info("🎯 Repository processing tile type (service will calculate hexes)",
-		zap.String("tile_type", nextTileType))
-
-	// Create the pending tile selection with calculated available hexes
-	selection := &model.PendingTileSelection{
-		TileType:       nextTileType,
-		AvailableHexes: availableHexes,
-		Source:         queue.Source,
-	}
-
-	// Set the current pending tile selection
-	if err := r.UpdatePendingTileSelection(ctx, gameID, playerID, selection); err != nil {
-		return nil, fmt.Errorf("failed to update pending tile selection: %w", err)
-	}
-
-	return selection, nil
+	log.Debug("✅ Tile popped from queue", zap.String("tile_type", nextTileType))
+	return nextTileType, nil
 }
-

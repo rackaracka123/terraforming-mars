@@ -65,19 +65,13 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithCityPlacement)
 		require.NoError(t, err)
 
-		// Verify that a pending tile selection was created
-		pendingSelection, err := playerRepo.GetPendingTileSelection(ctx, game.ID, player.ID)
-		require.NoError(t, err)
-		require.NotNil(t, pendingSelection, "Should have a pending tile selection")
-		assert.Equal(t, "city", pendingSelection.TileType)
-		assert.Equal(t, cardWithCityPlacement.ID, pendingSelection.Source)
-
-		// Verify no queue remains (single item should be processed immediately)
+		// Verify that a tile queue was created
 		queue, err := playerRepo.GetPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
-		if queue != nil {
-			assert.Empty(t, queue.Items, "Queue should be empty for single item")
-		}
+		require.NotNil(t, queue, "Should have a tile queue")
+		assert.Equal(t, 1, len(queue.Items), "Queue should have 1 item")
+		assert.Equal(t, "city", queue.Items[0])
+		assert.Equal(t, cardWithCityPlacement.ID, queue.Source)
 
 		// Clean up for next test
 		err = playerRepo.ClearPendingTileSelection(ctx, game.ID, player.ID)
@@ -114,19 +108,12 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMultipleTiles)
 		require.NoError(t, err)
 
-		// Verify that a pending tile selection was created for the first tile
-		pendingSelection, err := playerRepo.GetPendingTileSelection(ctx, game.ID, player.ID)
-		require.NoError(t, err)
-		require.NotNil(t, pendingSelection, "Should have a pending tile selection")
-		assert.Equal(t, "ocean", pendingSelection.TileType)
-		assert.Equal(t, cardWithMultipleTiles.ID, pendingSelection.Source)
-
-		// Verify the queue has remaining tiles
+		// Verify the queue was created with all 3 tiles
 		queue, err := playerRepo.GetPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 		require.NotNil(t, queue, "Should have a tile queue")
-		// Should have 1 more ocean and 1 city remaining
-		assert.Equal(t, []string{"ocean", "city"}, queue.Items)
+		assert.Equal(t, 3, len(queue.Items), "Queue should have 3 items")
+		assert.Equal(t, []string{"ocean", "ocean", "city"}, queue.Items)
 		assert.Equal(t, cardWithMultipleTiles.ID, queue.Source)
 
 		// Clean up for next test
@@ -173,12 +160,13 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMixedTriggers)
 		require.NoError(t, err)
 
-		// Verify that only the auto-triggered tile placement was processed
-		pendingSelection, err := playerRepo.GetPendingTileSelection(ctx, game.ID, player.ID)
+		// Verify that only the auto-triggered tile placement created a queue
+		queue, err := playerRepo.GetPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
-		require.NotNil(t, pendingSelection, "Should have a pending tile selection from auto trigger")
-		assert.Equal(t, "greenery", pendingSelection.TileType)
-		assert.Equal(t, cardWithMixedTriggers.ID, pendingSelection.Source)
+		require.NotNil(t, queue, "Should have a tile queue from auto trigger")
+		assert.Equal(t, 1, len(queue.Items), "Queue should have 1 item")
+		assert.Equal(t, "greenery", queue.Items[0])
+		assert.Equal(t, cardWithMixedTriggers.ID, queue.Source)
 
 		// Verify the manual action was also added to the player
 		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
@@ -191,6 +179,8 @@ func TestCardTilePlacementEffects(t *testing.T) {
 
 		// Clean up for next test
 		err = playerRepo.ClearPendingTileSelection(ctx, game.ID, player.ID)
+		require.NoError(t, err)
+		err = playerRepo.ClearPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 		err = playerRepo.UpdatePlayerActions(ctx, game.ID, player.ID, []model.PlayerAction{})
 		require.NoError(t, err)
@@ -221,12 +211,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithNoTiles)
 		require.NoError(t, err)
 
-		// Verify no tile selection was created
-		pendingSelection, err := playerRepo.GetPendingTileSelection(ctx, game.ID, player.ID)
-		require.NoError(t, err)
-		assert.Nil(t, pendingSelection, "Should not have a pending tile selection")
-
-		// Verify no queue was created
+		// Verify no queue was created (no tile placement effects)
 		queue, err := playerRepo.GetPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 		assert.Nil(t, queue, "Should not have a tile queue")

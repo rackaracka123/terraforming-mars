@@ -82,6 +82,10 @@ func main() {
 
 	// Inject GameService into CardService to avoid circular dependency
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService)
+
+	// Inject PlayerService into CardService for tile queue processing
+	cardService.(*service.CardServiceImpl).SetPlayerService(playerService)
+
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 

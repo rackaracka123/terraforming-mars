@@ -11,6 +11,7 @@ import (
 type BoardService interface {
 	GenerateDefaultBoard() model.Board
 	CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error)
+	CalculateAvailableHexesForTileTypeWithPlayer(game model.Game, tileType, playerID string) ([]string, error)
 }
 
 // BoardServiceImpl handles board-related operations
@@ -193,14 +194,24 @@ func (srv *BoardServiceImpl) CalculateAvailableHexesForTileType(game model.Game,
 	case "ocean":
 		return srv.calculateAvailableOceanHexes(game)
 	case "city":
-		// TODO: Implement city placement logic (need to avoid ocean tiles and check adjacency rules)
 		return srv.calculateAvailableCityHexes(game)
 	case "greenery":
-		// TODO: Implement greenery placement logic (any empty land tile)
 		return srv.calculateAvailableGreeneryHexes(game)
 	default:
 		// Unknown tile types return empty list
 		return []string{}, nil
+	}
+}
+
+// CalculateAvailableHexesForTileTypeWithPlayer returns available hexes with player context
+// This is used for greenery placement which requires adjacency to player's tiles
+func (srv *BoardServiceImpl) CalculateAvailableHexesForTileTypeWithPlayer(game model.Game, tileType, playerID string) ([]string, error) {
+	switch tileType {
+	case "greenery":
+		return srv.calculateAvailableGreeneryHexesForPlayer(game, playerID)
+	default:
+		// For non-greenery tiles, use the standard method
+		return srv.CalculateAvailableHexesForTileType(game, tileType)
 	}
 }
 
@@ -239,10 +250,19 @@ func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]str
 
 	oceanCount := 0
 	occupiedCount := 0
+	adjacentToCityCount := 0
 	availableCount := 0
 
-	// For now, allow cities on any empty land tile (not ocean tiles)
-	// TODO: Add adjacency rules later (cities cannot be adjacent to each other)
+	// Build a map of city positions for adjacency checks
+	cityPositions := make(map[string]bool)
+	for _, tile := range game.Board.Tiles {
+		if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceCityTile {
+			hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+			cityPositions[hexKey] = true
+		}
+	}
+
+	// Check each tile for city placement eligibility
 	for _, tile := range game.Board.Tiles {
 		// Skip ocean tiles
 		if tile.Type == model.ResourceOceanTile {
@@ -257,26 +277,174 @@ func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]str
 			continue
 		}
 
+		// Check if any adjacent hex has a city (cities cannot be adjacent to each other)
+		if srv.isAdjacentToCity(tile.Coordinates, cityPositions) {
+			adjacentToCityCount++
+			fmt.Printf("🏙️ Tile %d,%d,%d is adjacent to a city, skipping\n", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+			continue
+		}
+
 		// This tile is available for city placement
 		availableCount++
 		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
 		availableHexes = append(availableHexes, hexKey)
 	}
 
-	fmt.Printf("🏙️ City placement summary - Ocean tiles: %d, Occupied tiles: %d, Available tiles: %d\n",
-		oceanCount, occupiedCount, availableCount)
+	fmt.Printf("🏙️ City placement summary - Ocean tiles: %d, Occupied tiles: %d, Adjacent to city: %d, Available tiles: %d\n",
+		oceanCount, occupiedCount, adjacentToCityCount, availableCount)
 
 	return availableHexes, nil
 }
 
 // calculateAvailableGreeneryHexes returns available hexes for greenery placement
 func (srv *BoardServiceImpl) calculateAvailableGreeneryHexes(game model.Game) ([]string, error) {
-	// TODO: Implement greenery placement logic
-	// Greenery can be placed on any empty land tile
-	return []string{}, nil
+	availableHexes := make([]string, 0)
+
+	fmt.Printf("🌿 Calculating greenery placement hexes - Total board tiles: %d\n", len(game.Board.Tiles))
+
+	oceanCount := 0
+	occupiedCount := 0
+	availableCount := 0
+
+	// Greenery can be placed on any empty land tile (not ocean tiles)
+	for _, tile := range game.Board.Tiles {
+		// Skip ocean tiles
+		if tile.Type == model.ResourceOceanTile {
+			oceanCount++
+			continue
+		}
+
+		// Skip occupied tiles
+		if tile.OccupiedBy != nil {
+			occupiedCount++
+			continue
+		}
+
+		// This tile is available for greenery placement
+		availableCount++
+		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+		availableHexes = append(availableHexes, hexKey)
+	}
+
+	fmt.Printf("🌿 Greenery placement summary - Ocean tiles: %d, Occupied tiles: %d, Available tiles: %d\n",
+		oceanCount, occupiedCount, availableCount)
+
+	return availableHexes, nil
 }
 
 // formatHexCoordinate converts hex coordinates to string format
 func (srv *BoardServiceImpl) formatHexCoordinate(coord model.HexPosition) string {
 	return fmt.Sprintf("%d,%d,%d", coord.Q, coord.R, coord.S)
+}
+
+// isAdjacentToCity checks if a hex coordinate is adjacent to any city
+func (srv *BoardServiceImpl) isAdjacentToCity(coord model.HexPosition, cityPositions map[string]bool) bool {
+	// Define the 6 adjacent hex directions (cube coordinates)
+	directions := []model.HexPosition{
+		{Q: 1, R: -1, S: 0}, // East
+		{Q: 1, R: 0, S: -1}, // Southeast
+		{Q: 0, R: 1, S: -1}, // Southwest
+		{Q: -1, R: 1, S: 0}, // West
+		{Q: -1, R: 0, S: 1}, // Northwest
+		{Q: 0, R: -1, S: 1}, // Northeast
+	}
+
+	// Check each adjacent position
+	for _, dir := range directions {
+		adjacentCoord := model.HexPosition{
+			Q: coord.Q + dir.Q,
+			R: coord.R + dir.R,
+			S: coord.S + dir.S,
+		}
+		adjacentKey := fmt.Sprintf("%d,%d,%d", adjacentCoord.Q, adjacentCoord.R, adjacentCoord.S)
+
+		if cityPositions[adjacentKey] {
+			return true
+		}
+	}
+
+	return false
+}
+
+// calculateAvailableGreeneryHexesForPlayer returns available hexes for greenery placement
+// with preference for tiles adjacent to the player's existing tiles
+func (srv *BoardServiceImpl) calculateAvailableGreeneryHexesForPlayer(game model.Game, playerID string) ([]string, error) {
+	adjacentHexes := make([]string, 0)
+	allAvailableHexes := make([]string, 0)
+
+	fmt.Printf("🌿 Calculating greenery placement hexes for player %s\n", playerID)
+
+	// Build a map of player's tile positions
+	playerTilePositions := make(map[string]bool)
+	for _, tile := range game.Board.Tiles {
+		if tile.OwnerID != nil && *tile.OwnerID == playerID {
+			hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+			playerTilePositions[hexKey] = true
+		}
+	}
+
+	fmt.Printf("🌿 Player has %d tiles on the board\n", len(playerTilePositions))
+
+	// Check each tile for greenery placement eligibility
+	for _, tile := range game.Board.Tiles {
+		// Skip ocean tiles
+		if tile.Type == model.ResourceOceanTile {
+			continue
+		}
+
+		// Skip occupied tiles
+		if tile.OccupiedBy != nil {
+			continue
+		}
+
+		hexKey := fmt.Sprintf("%d,%d,%d", tile.Coordinates.Q, tile.Coordinates.R, tile.Coordinates.S)
+
+		// Check if this tile is adjacent to any of the player's tiles
+		if srv.isAdjacentToPlayerTile(tile.Coordinates, playerTilePositions) {
+			adjacentHexes = append(adjacentHexes, hexKey)
+		}
+
+		// Collect all available hexes as fallback
+		allAvailableHexes = append(allAvailableHexes, hexKey)
+	}
+
+	// If player has tiles adjacent to empty spaces, return only those
+	// This enforces the "must place adjacent if possible" rule
+	if len(adjacentHexes) > 0 {
+		fmt.Printf("🌿 Found %d tiles adjacent to player's tiles (returning only these)\n", len(adjacentHexes))
+		return adjacentHexes, nil
+	}
+
+	// Otherwise, return all available hexes (player has no tiles or no adjacent spaces)
+	fmt.Printf("🌿 No adjacent tiles found, returning all %d available tiles\n", len(allAvailableHexes))
+	return allAvailableHexes, nil
+}
+
+// isAdjacentToPlayerTile checks if a hex coordinate is adjacent to any of the player's tiles
+func (srv *BoardServiceImpl) isAdjacentToPlayerTile(coord model.HexPosition, playerTilePositions map[string]bool) bool {
+	// Define the 6 adjacent hex directions (cube coordinates)
+	directions := []model.HexPosition{
+		{Q: 1, R: -1, S: 0}, // East
+		{Q: 1, R: 0, S: -1}, // Southeast
+		{Q: 0, R: 1, S: -1}, // Southwest
+		{Q: -1, R: 1, S: 0}, // West
+		{Q: -1, R: 0, S: 1}, // Northwest
+		{Q: 0, R: -1, S: 1}, // Northeast
+	}
+
+	// Check each adjacent position
+	for _, dir := range directions {
+		adjacentCoord := model.HexPosition{
+			Q: coord.Q + dir.Q,
+			R: coord.R + dir.R,
+			S: coord.S + dir.S,
+		}
+		adjacentKey := fmt.Sprintf("%d,%d,%d", adjacentCoord.Q, adjacentCoord.R, adjacentCoord.S)
+
+		if playerTilePositions[adjacentKey] {
+			return true
+		}
+	}
+
+	return false
 }
