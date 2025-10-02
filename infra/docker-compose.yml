@@ -63,6 +63,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/mhm/terraforming-mars:/deploy
+      - /home/mhm/.ssh:/root/.ssh:ro
     networks:
       - tm-network
     labels:
