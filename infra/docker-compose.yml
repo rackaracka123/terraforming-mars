@@ -59,9 +59,10 @@ services:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - DEPLOY_SCRIPT=/deploy/infra/deploy-host.sh
       - DEPLOY_BRANCH=${DEPLOY_BRANCH}
+      - REPO_DIR=/home/mhm/terraforming-mars
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ..:/deploy
+      - /home/mhm/terraforming-mars:/deploy
     networks:
       - tm-network
     labels:
