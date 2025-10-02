@@ -199,6 +199,8 @@ export const AdminCommandTypeSetGlobalParams: AdminCommandType =
   "set-global-params";
 export const AdminCommandTypeStartTileSelection: AdminCommandType =
   "start-tile-selection";
+export const AdminCommandTypeSetCurrentTurn: AdminCommandType =
+  "set-current-turn";
 /**
  * AdminCommandRequest contains the admin command data
  */

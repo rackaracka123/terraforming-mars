@@ -17,6 +17,7 @@ interface ChoiceSelectionPopoverProps {
   onChoiceSelect: (choiceIndex: number) => void;
   onCancel: () => void;
   isVisible: boolean;
+  isAction?: boolean; // True if this is for an action, false/undefined if for card play
 }
 
 const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
@@ -25,6 +26,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
   onChoiceSelect,
   onCancel,
   isVisible,
+  isAction = false,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -117,7 +119,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
         {/* Header */}
         <div className="py-[15px] px-5 bg-black/40 border-b border-b-space-blue-500/60">
           <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
-            Choose One Effect
+            {isAction ? "Choose Action Effect" : "Choose One Effect"}
           </h3>
           <div className="text-white/60 text-xs text-shadow-glow mt-1">
             {card.name}
