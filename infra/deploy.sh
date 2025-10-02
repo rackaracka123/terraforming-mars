@@ -8,7 +8,7 @@ set -e
 # Configuration
 REPO_DIR="/deploy"
 LOG_FILE="/var/log/terraforming-mars-deploy.log"
-BRANCH="main"
+BRANCH="infra"
 
 # Logging function
 log() {
