@@ -281,11 +281,16 @@ export class WebSocketService {
   }
 
   // Card actions
-  playCard(cardId: string, choiceIndex?: number): string {
+  playCard(
+    cardId: string,
+    choiceIndex?: number,
+    cardStorageTarget?: string,
+  ): string {
     return this.send(MessageTypeActionPlayCard, {
       type: "play-card",
       cardId,
       ...(choiceIndex !== undefined && { choiceIndex }),
+      ...(cardStorageTarget !== undefined && { cardStorageTarget }),
     });
   }
 

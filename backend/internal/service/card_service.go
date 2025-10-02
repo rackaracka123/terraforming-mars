@@ -29,7 +29,7 @@ type CardService interface {
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
 	// Player actions for playing cards
-	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
 
 	// Play a card action from player's action list
 	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int) error
@@ -157,7 +157,7 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
 
@@ -227,12 +227,12 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 2: Use CardManager for card-specific validation (including choice-based costs)
-	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
+	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("card cannot be played: %w", err)
 	}
 
-	// STEP 3: Use CardManager to play the card with choice index
-	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
+	// STEP 3: Use CardManager to play the card with choice index and card storage target
+	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 

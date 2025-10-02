@@ -16,6 +16,7 @@ import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
 import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
+import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
@@ -30,6 +31,7 @@ import {
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerActionDto,
+  ResourceType,
 } from "@/types/generated/api-types.ts";
 import {
   UnplayableReason,
@@ -129,6 +131,15 @@ export default function GameInterface() {
     useState(false);
   const [actionPendingChoice, setActionPendingChoice] =
     useState<PlayerActionDto | null>(null);
+
+  // Card storage selection state
+  const [showCardStorageSelection, setShowCardStorageSelection] =
+    useState(false);
+  const [pendingCardStorage, setPendingCardStorage] = useState<{
+    cardId: string;
+    choiceIndex?: number;
+    resourceType: ResourceType;
+  } | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -326,18 +337,69 @@ export default function GameInterface() {
     [currentPlayer?.cards],
   );
 
+  // Helper function to check if outputs need card storage selection
+  const needsCardStorageSelection = useCallback(
+    (outputs: any[] | undefined): ResourceType | null => {
+      if (!outputs) return null;
+
+      // Check for any-card targets with storage resource types
+      const storageResources = [
+        "animals",
+        "microbes",
+        "floaters",
+        "science",
+      ] as ResourceType[];
+
+      for (const output of outputs) {
+        if (
+          output.target === "any-card" &&
+          storageResources.includes(output.type as ResourceType)
+        ) {
+          return output.type as ResourceType;
+        }
+      }
+
+      return null;
+    },
+    [],
+  );
+
   const handleChoiceSelect = useCallback(
     async (choiceIndex: number) => {
       if (!cardPendingChoice) return;
 
       try {
         setShowChoiceSelection(false);
-        await globalWebSocketManager.playCard(
-          cardPendingChoice.id,
-          choiceIndex,
+
+        // Get the selected choice
+        const behavior =
+          cardPendingChoice.behaviors?.[pendingCardBehaviorIndex];
+        const selectedChoice = behavior?.choices?.[choiceIndex];
+
+        // Check if the selected choice outputs need card storage selection
+        const storageResourceType = needsCardStorageSelection(
+          selectedChoice?.outputs,
         );
-        setCardPendingChoice(null);
-        setPendingCardBehaviorIndex(0);
+
+        if (storageResourceType) {
+          // Show card storage selection popover
+          setPendingCardStorage({
+            cardId: cardPendingChoice.id,
+            choiceIndex: choiceIndex,
+            resourceType: storageResourceType,
+          });
+          setShowCardStorageSelection(true);
+          setCardPendingChoice(null);
+          setPendingCardBehaviorIndex(0);
+        } else {
+          // No card storage needed, play the card directly
+          await globalWebSocketManager.playCard(
+            cardPendingChoice.id,
+            choiceIndex,
+          );
+          setCardPendingChoice(null);
+          setPendingCardBehaviorIndex(0);
+        }
       } catch (error) {
         console.error(
           `❌ Failed to play card ${cardPendingChoice.id} with choice ${choiceIndex}:`,
@@ -347,7 +409,7 @@ export default function GameInterface() {
         setPendingCardBehaviorIndex(0);
       }
     },
-    [cardPendingChoice],
+    [cardPendingChoice, pendingCardBehaviorIndex, needsCardStorageSelection],
   );
 
   const handleChoiceCancel = useCallback(() => {
@@ -382,6 +444,34 @@ export default function GameInterface() {
   const handleActionChoiceCancel = useCallback(() => {
     setShowActionChoiceSelection(false);
     setActionPendingChoice(null);
+  }, []);
+
+  const handleCardStorageSelect = useCallback(
+    async (targetCardId: string) => {
+      if (!pendingCardStorage) return;
+
+      try {
+        setShowCardStorageSelection(false);
+        await globalWebSocketManager.playCard(
+          pendingCardStorage.cardId,
+          pendingCardStorage.choiceIndex,
+          targetCardId,
+        );
+        setPendingCardStorage(null);
+      } catch (error) {
+        console.error(
+          `❌ Failed to play card ${pendingCardStorage.cardId} with card storage target ${targetCardId}:`,
+          error,
+        );
+        setPendingCardStorage(null);
+      }
+    },
+    [pendingCardStorage],
+  );
+
+  const handleCardStorageCancel = useCallback(() => {
+    setShowCardStorageSelection(false);
+    setPendingCardStorage(null);
   }, []);
 
   const handleUnplayableCard = useCallback(
@@ -970,6 +1060,17 @@ export default function GameInterface() {
           onCancel={handleActionChoiceCancel}
           isVisible={showActionChoiceSelection}
           isAction={true}
+        />
+      )}
+
+      {/* Card storage selection popover */}
+      {pendingCardStorage && (
+        <CardStorageSelectionPopover
+          resourceType={pendingCardStorage.resourceType}
+          playedCards={playedCards}
+          onCardSelect={handleCardStorageSelect}
+          onCancel={handleCardStorageCancel}
+          isVisible={showCardStorageSelection}
         />
       )}
 
