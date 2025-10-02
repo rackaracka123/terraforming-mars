@@ -33,6 +33,9 @@ RUN apk --no-cache add ca-certificates tzdata
 # Copy binary from builder
 COPY --from=builder /build/server .
 
+# Copy card data and assets
+COPY --from=builder /build/assets ./assets
+
 # Create non-root user
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser && \
