@@ -14,10 +14,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const PORT = process.env.WEBHOOK_PORT || 9000;
-const SECRET = process.env.WEBHOOK_SECRET || '';
+const PORT = process.env.WEBHOOK_PORT;
+const SECRET = process.env.WEBHOOK_SECRET;
 const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/deploy/infra/deploy.sh';
-const BRANCH = process.env.DEPLOY_BRANCH || 'main';
+const BRANCH = process.env.DEPLOY_BRANCH;
 const LOG_FILE = '/var/log/webhook-server.log';
 
 // Logging function
