@@ -39,11 +39,6 @@ type PlayerService interface {
 
 	// Tile selection methods
 	OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error
-
-	// ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection
-	// This should be called after any operation that creates a tile queue (e.g., card play)
-	// Returns nil if queue is empty or doesn't exist
-	ProcessTileQueue(ctx context.Context, gameID, playerID string) error
 }
 
 // PlayerServiceImpl implements PlayerService interface
@@ -52,15 +47,17 @@ type PlayerServiceImpl struct {
 	playerRepo     repository.PlayerRepository
 	sessionManager session.SessionManager
 	boardService   BoardService
+	tileService    TileService
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService) PlayerService {
 	return &PlayerServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		sessionManager: sessionManager,
 		boardService:   boardService,
+		tileService:    tileService,
 	}
 }
 
@@ -279,46 +276,6 @@ func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string
 	return s.playerRepo.ListByGameID(ctx, gameID)
 }
 
-// validateTilePlacement checks if a tile type can still be placed in the game
-func (s *PlayerServiceImpl) validateTilePlacement(ctx context.Context, gameID, tileType string) (bool, error) {
-	log := logger.WithGameContext(gameID, "")
-
-	// Get game state to check global parameters
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		return false, fmt.Errorf("failed to get game state: %w", err)
-	}
-
-	switch tileType {
-	case "ocean":
-		// Check if we've reached the maximum of 9 ocean tiles
-		// Count existing ocean tiles on the board
-		oceanCount := 0
-		for _, tile := range game.Board.Tiles {
-			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
-				oceanCount++
-			}
-		}
-
-		canPlace := oceanCount < 9
-		log.Debug("Ocean tile validation",
-			zap.String("tile_type", tileType),
-			zap.Int("current_oceans", oceanCount),
-			zap.Bool("can_place", canPlace))
-		return canPlace, nil
-
-	case "city", "greenery":
-		// Cities and greenery can generally always be placed if there are available spaces
-		// More complex validation (adjacency rules, etc.) should be handled elsewhere
-		return true, nil
-
-	default:
-		// Unknown tile types are considered valid for now
-		log.Warn("Unknown tile type for validation", zap.String("tile_type", tileType))
-		return true, nil
-	}
-}
-
 // OnTileSelected handles player tile selection and placement
 func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
@@ -358,20 +315,6 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("selected coordinate %s is not in available positions", coordinateKey)
 	}
 
-	// Validate that this tile type can still be placed (business logic validation)
-	canPlace, err := s.validateTilePlacement(ctx, gameID, pendingSelection.TileType)
-	if err != nil {
-		log.Error("Failed to validate tile placement", zap.Error(err))
-		return fmt.Errorf("failed to validate tile placement: %w", err)
-	}
-
-	if !canPlace {
-		log.Error("Tile placement no longer valid",
-			zap.String("tile_type", pendingSelection.TileType),
-			zap.String("coordinate", coordinateKey))
-		return fmt.Errorf("cannot place %s tile - game constraints not met", pendingSelection.TileType)
-	}
-
 	// Place the tile using the private method
 	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
@@ -384,8 +327,8 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to clear pending tile selection: %w", err)
 	}
 
-	// Process the next tile in the queue with validation
-	if err := s.processNextTileInQueueWithValidation(ctx, gameID, playerID); err != nil {
+	// Process the next tile in the queue with validation using TileService
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process next tile in queue", zap.Error(err))
 		return fmt.Errorf("failed to process next tile in queue: %w", err)
 	}
@@ -456,154 +399,6 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		zap.String("coordinate", fmt.Sprintf("%d,%d,%d", coordinate.Q, coordinate.R, coordinate.S)))
 
 	return nil
-}
-
-// processNextTileInQueueWithValidation processes the next tile in queue with business logic validation
-func (s *PlayerServiceImpl) processNextTileInQueueWithValidation(ctx context.Context, gameID, playerID string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Get the queue to extract the source (card ID)
-	queue, err := s.playerRepo.GetPendingTileSelectionQueue(ctx, gameID, playerID)
-	if err != nil {
-		return fmt.Errorf("failed to get tile queue: %w", err)
-	}
-
-	// If no queue, we're done
-	if queue == nil {
-		log.Debug("No tile queue exists")
-		return nil
-	}
-
-	source := queue.Source // Store the source card ID
-
-	for {
-		// Pop the next tile type from repository (pure data operation)
-		nextTileType, err := s.playerRepo.ProcessNextTileInQueue(ctx, gameID, playerID)
-		if err != nil {
-			return fmt.Errorf("failed to pop next tile from queue: %w", err)
-		}
-
-		// If no tile type returned, we're done
-		if nextTileType == "" {
-			log.Debug("No more tiles in queue")
-			return nil
-		}
-
-		log.Info("🎯 Validating next tile from queue",
-			zap.String("tile_type", nextTileType),
-			zap.String("source", source))
-
-		// Validate this tile placement is still possible (especially important for oceans)
-		canPlace, err := s.validateTilePlacement(ctx, gameID, nextTileType)
-		if err != nil {
-			return fmt.Errorf("failed to validate tile placement: %w", err)
-		}
-
-		log.Info("🏙️ Tile placement validation result",
-			zap.String("tile_type", nextTileType),
-			zap.Bool("can_place", canPlace))
-
-		if canPlace {
-			// Tile is valid, now calculate available hexes for this tile type
-			// For greenery, use player-specific calculation to enforce adjacency rule
-			availableHexes, err := s.calculateAvailableHexesForTileTypeWithPlayer(ctx, gameID, playerID, nextTileType)
-			if err != nil {
-				return fmt.Errorf("failed to calculate available hexes: %w", err)
-			}
-
-			// Create and set the pending tile selection with available hexes
-			selection := &model.PendingTileSelection{
-				TileType:       nextTileType,
-				AvailableHexes: availableHexes,
-				Source:         source,
-			}
-
-			if err := s.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, selection); err != nil {
-				return fmt.Errorf("failed to set pending tile selection: %w", err)
-			}
-
-			log.Info("🎯 Tile validation successful and available hexes calculated",
-				zap.String("tile_type", nextTileType),
-				zap.Int("available_hexes", len(availableHexes)))
-			return nil
-		}
-
-		// Tile is no longer valid, skip it and try next
-		log.Info("⚠️ Tile placement no longer possible, skipping and checking next",
-			zap.String("tile_type", nextTileType))
-
-		// Continue loop to pop and process next tile
-	}
-}
-
-// ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection
-// This is the public API method that should be called after card effects that create tile queues
-func (s *PlayerServiceImpl) ProcessTileQueue(ctx context.Context, gameID, playerID string) error {
-	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("🎯 Processing tile queue")
-
-	// Process the queue through the private validation method
-	return s.processNextTileInQueueWithValidation(ctx, gameID, playerID)
-}
-
-// calculateAvailableHexesForTileType returns available hexes for a specific tile type
-func (s *PlayerServiceImpl) calculateAvailableHexesForTileType(ctx context.Context, gameID, tileType string) ([]string, error) {
-	log := logger.WithGameContext(gameID, "")
-
-	log.Info("🏙️ Starting available hexes calculation",
-		zap.String("tile_type", tileType))
-
-	// Get the current game state
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for hex calculation", zap.Error(err))
-		return nil, fmt.Errorf("failed to get game: %w", err)
-	}
-
-	log.Info("🏙️ Got game state, delegating to BoardService",
-		zap.String("tile_type", tileType))
-
-	// Delegate to BoardService for hex calculation
-	availableHexes, err := s.boardService.CalculateAvailableHexesForTileType(game, tileType)
-	if err != nil {
-		log.Error("🏙️ BoardService calculation failed", zap.Error(err))
-		return nil, err
-	}
-
-	log.Info("🏙️ BoardService calculation completed",
-		zap.String("tile_type", tileType),
-		zap.Int("available_count", len(availableHexes)))
-
-	return availableHexes, nil
-}
-
-// calculateAvailableHexesForTileTypeWithPlayer returns available hexes with player context
-// Used for greenery placement which requires adjacency to player's tiles
-func (s *PlayerServiceImpl) calculateAvailableHexesForTileTypeWithPlayer(ctx context.Context, gameID, playerID, tileType string) ([]string, error) {
-	log := logger.WithGameContext(gameID, playerID)
-
-	log.Info("🏙️ Starting available hexes calculation with player context",
-		zap.String("tile_type", tileType))
-
-	// Get the current game state
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game for hex calculation", zap.Error(err))
-		return nil, fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Delegate to BoardService with player context
-	availableHexes, err := s.boardService.CalculateAvailableHexesForTileTypeWithPlayer(game, tileType, playerID)
-	if err != nil {
-		log.Error("🏙️ BoardService calculation failed", zap.Error(err))
-		return nil, err
-	}
-
-	log.Info("🏙️ BoardService calculation completed",
-		zap.String("tile_type", tileType),
-		zap.Int("available_count", len(availableHexes)))
-
-	return availableHexes, nil
 }
 
 // awardTilePlacementBonuses awards bonuses to the player for placing a tile

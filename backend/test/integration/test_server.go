@@ -55,9 +55,10 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	// Create services with proper SessionManager dependency
 	boardService := service.NewBoardService()
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 

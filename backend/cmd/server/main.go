@@ -73,18 +73,18 @@ func main() {
 	// Initialize SessionManager for WebSocket broadcasting with Hub
 	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
 
-	// Initialize CardService with SessionManager
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager)
+	// Initialize services in dependency order
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+
+	// CardService needs TileService for tile queue processing
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
-	boardService := service.NewBoardService()
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	// PlayerService needs TileService for processing queues after tile placement
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 
-	// Inject GameService into CardService to avoid circular dependency
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService)
-
-	// Inject PlayerService into CardService for tile queue processing
-	cardService.(*service.CardServiceImpl).SetPlayerService(playerService)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)

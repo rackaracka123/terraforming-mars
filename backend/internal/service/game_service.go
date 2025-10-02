@@ -50,7 +50,7 @@ type GameServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	cardRepo       repository.CardRepository
-	cardService    *CardServiceImpl // Use concrete type to access StorePlayerCardOptions
+	cardService    CardService
 	cardDeckRepo   repository.CardDeckRepository
 	boardService   BoardService
 	sessionManager session.SessionManager
@@ -61,7 +61,7 @@ func NewGameService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
-	cardService *CardServiceImpl,
+	cardService CardService,
 	cardDeckRepo repository.CardDeckRepository,
 	boardService BoardService,
 	sessionManager session.SessionManager,

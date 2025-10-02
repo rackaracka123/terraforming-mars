@@ -45,8 +45,11 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	t.Log("✅ Received game-updated after join")
 
 	// Extract player ID from game state
-	gameState, ok := msg.Payload.(map[string]interface{})
+	payload, ok := msg.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
+
+	gameState, ok := payload["game"].(map[string]interface{})
+	require.True(t, ok, "game should be a map in payload")
 
 	currentPlayerMap, ok := gameState["currentPlayer"].(map[string]interface{})
 	require.True(t, ok, "currentPlayer should be a map")
@@ -115,8 +118,11 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	t.Log("✅ Card played successfully")
 
 	// STEP 7: Verify tile selection was triggered
-	gameState, ok = msg.Payload.(map[string]interface{})
+	payload, ok = msg.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
+
+	gameState, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok, "game should be a map in payload")
 
 	currentPlayerMap, ok = gameState["currentPlayer"].(map[string]interface{})
 	require.True(t, ok, "currentPlayer should be a map")
@@ -187,8 +193,11 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	t.Log("✅ Tile placement successful")
 
 	// STEP 11: Verify the tile was placed on the board
-	gameState, ok = msg.Payload.(map[string]interface{})
+	payload, ok = msg.Payload.(map[string]interface{})
 	require.True(t, ok, "Payload should be a map")
+
+	gameState, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok, "game should be a map in payload")
 
 	board, ok := gameState["board"].(map[string]interface{})
 	require.True(t, ok, "board should be a map")

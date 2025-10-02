@@ -53,12 +53,12 @@ type CardServiceImpl struct {
 	effectProcessor       *cards.CardProcessor
 	cardManager           cards.CardManager
 
-	// Service dependencies (injected after creation to avoid circular dependency)
-	playerService PlayerService
+	// Service dependencies
+	tileService TileService
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
@@ -69,12 +69,8 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
 		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo),
+		tileService:           tileService,
 	}
-}
-
-// SetPlayerService injects PlayerService after creation to avoid circular dependency
-func (s *CardServiceImpl) SetPlayerService(playerService PlayerService) {
-	s.playerService = playerService
 }
 
 // Delegation methods - all operations are handled by the specialized cards service
@@ -204,13 +200,11 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 4: Process any tile queue created by the card
-	if s.playerService != nil {
-		if err := s.playerService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-			log.Error("Failed to process tile queue", zap.Error(err))
-			return fmt.Errorf("card played but failed to process tile queue: %w", err)
-		}
-		log.Debug("🎯 Tile queue processed (if any existed)")
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process tile queue", zap.Error(err))
+		return fmt.Errorf("card played but failed to process tile queue: %w", err)
 	}
+	log.Debug("🎯 Tile queue processed (if any existed)")
 
 	// STEP 5: Service-level post-play actions (consume action, broadcast)
 	if player.AvailableActions != -1 {
@@ -618,7 +612,7 @@ func (s *CardServiceImpl) incrementActionPlayCount(ctx context.Context, gameID, 
 }
 
 // processPendingTileQueues checks for and processes any pending tile queues created by card effects
-// This function delegates to PlayerService.ProcessTileQueue which handles validation and hex calculation
+// This function delegates to TileService.ProcessTileQueue which handles validation and hex calculation
 func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
@@ -638,8 +632,8 @@ func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, 
 		zap.Int("queue_length", len(player.PendingTileSelectionQueue.Items)),
 		zap.String("source", player.PendingTileSelectionQueue.Source))
 
-	// Delegate to PlayerService which handles validation, board service integration, etc.
-	if err := s.playerService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// Delegate to TileService which handles validation, board service integration, etc.
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("failed to process tile queue: %w", err)
 	}
