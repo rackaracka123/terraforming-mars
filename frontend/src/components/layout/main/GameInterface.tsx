@@ -107,12 +107,18 @@ export default function GameInterface() {
   const [unplayableReason, setUnplayableReason] =
     useState<UnplayableReason | null>(null);
 
-  // Choice selection state
+  // Choice selection state (for card play)
   const [showChoiceSelection, setShowChoiceSelection] = useState(false);
   const [cardPendingChoice, setCardPendingChoice] = useState<CardDto | null>(
     null,
   );
   const [pendingCardBehaviorIndex, setPendingCardBehaviorIndex] = useState(0);
+
+  // Action choice selection state (for playing actions with choices)
+  const [showActionChoiceSelection, setShowActionChoiceSelection] =
+    useState(false);
+  const [actionPendingChoice, setActionPendingChoice] =
+    useState<PlayerActionDto | null>(null);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -267,9 +273,13 @@ export default function GameInterface() {
           return;
         }
 
-        // Check if any behavior has choices
+        // Check if any AUTO-triggered behavior has choices
+        // Manual-triggered behaviors (actions) will show choices when the action is played
         const behaviorWithChoices = card.behaviors?.findIndex(
-          (b) => b.choices && b.choices.length > 0,
+          (b) =>
+            b.choices &&
+            b.choices.length > 0 &&
+            b.triggers?.some((t) => t.type === "auto"),
         );
 
         if (
@@ -277,12 +287,12 @@ export default function GameInterface() {
           behaviorWithChoices >= 0 &&
           card.behaviors?.[behaviorWithChoices]?.choices
         ) {
-          // Card has choices, show the choice selection popover
+          // Card has auto-triggered choices, show the choice selection popover
           setCardPendingChoice(card);
           setPendingCardBehaviorIndex(behaviorWithChoices);
           setShowChoiceSelection(true);
         } else {
-          // No choices, play the card directly
+          // No auto-triggered choices, play the card directly
           await globalWebSocketManager.playCard(cardId);
         }
       } catch (error) {
@@ -321,6 +331,34 @@ export default function GameInterface() {
     setShowChoiceSelection(false);
     setCardPendingChoice(null);
     setPendingCardBehaviorIndex(0);
+  }, []);
+
+  const handleActionChoiceSelect = useCallback(
+    async (choiceIndex: number) => {
+      if (!actionPendingChoice) return;
+
+      try {
+        setShowActionChoiceSelection(false);
+        await globalWebSocketManager.playCardAction(
+          actionPendingChoice.cardId,
+          actionPendingChoice.behaviorIndex,
+          choiceIndex,
+        );
+        setActionPendingChoice(null);
+      } catch (error) {
+        console.error(
+          `❌ Failed to play action ${actionPendingChoice.cardId} with choice ${choiceIndex}:`,
+          error,
+        );
+        setActionPendingChoice(null);
+      }
+    },
+    [actionPendingChoice],
+  );
+
+  const handleActionChoiceCancel = useCallback(() => {
+    setShowActionChoiceSelection(false);
+    setActionPendingChoice(null);
   }, []);
 
   const handleUnplayableCard = useCallback(
@@ -422,10 +460,18 @@ export default function GameInterface() {
 
   // Handle action selection from card actions
   const handleActionSelect = useCallback((action: PlayerActionDto) => {
-    void globalWebSocketManager.playCardAction(
-      action.cardId,
-      action.behaviorIndex,
-    );
+    // Check if this action has choices
+    if (action.behavior.choices && action.behavior.choices.length > 0) {
+      // Action has choices, show the choice selection popover
+      setActionPendingChoice(action);
+      setShowActionChoiceSelection(true);
+    } else {
+      // No choices, execute action directly
+      void globalWebSocketManager.playCardAction(
+        action.cardId,
+        action.behaviorIndex,
+      );
+    }
   }, []);
 
   // Tab conflict handlers
@@ -802,7 +848,7 @@ export default function GameInterface() {
         isVisible={unplayableCard !== null}
       />
 
-      {/* Choice selection popover */}
+      {/* Choice selection popover for card play */}
       {cardPendingChoice && (
         <ChoiceSelectionPopover
           card={cardPendingChoice}
@@ -810,6 +856,28 @@ export default function GameInterface() {
           onChoiceSelect={handleChoiceSelect}
           onCancel={handleChoiceCancel}
           isVisible={showChoiceSelection}
+        />
+      )}
+
+      {/* Choice selection popover for actions */}
+      {actionPendingChoice && (
+        <ChoiceSelectionPopover
+          card={{
+            id: actionPendingChoice.cardId,
+            name: actionPendingChoice.cardName,
+            behaviors: [actionPendingChoice.behavior],
+            cost: 0,
+            tags: [],
+            type: "automated",
+            requirements: [],
+            vpConditions: [],
+            description: "",
+          }}
+          behaviorIndex={0}
+          onChoiceSelect={handleActionChoiceSelect}
+          onCancel={handleActionChoiceCancel}
+          isVisible={showActionChoiceSelection}
+          isAction={true}
         />
       )}
 

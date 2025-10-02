@@ -189,20 +189,31 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("player does not have card %s", cardID)
 	}
 
-	// STEP 1.5: Validate choice selection for cards with choices
+	// STEP 1.5: Validate choice selection for cards with AUTO-triggered choices
+	// Manual-triggered behaviors (actions) will have their choices resolved when the action is played
 	card, err := s.cardRepo.GetCardByID(ctx, cardID)
 	if err != nil {
 		return fmt.Errorf("failed to get card: %w", err)
 	}
 
-	// Check if any behavior has choices
-	hasChoices := false
+	// Check if any AUTO-triggered behavior has choices
+	hasAutoChoices := false
 	for _, behavior := range card.Behaviors {
-		if len(behavior.Choices) > 0 {
-			hasChoices = true
+		// Only check behaviors with auto triggers
+		hasAutoTrigger := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAuto {
+				hasAutoTrigger = true
+				break
+			}
+		}
+
+		// If this is an auto-triggered behavior with choices, validate choiceIndex
+		if hasAutoTrigger && len(behavior.Choices) > 0 {
+			hasAutoChoices = true
 			// Validate that choiceIndex is provided and within valid range
 			if choiceIndex == nil {
-				return fmt.Errorf("card has choices but no choiceIndex provided")
+				return fmt.Errorf("card has auto-triggered choices but no choiceIndex provided")
 			}
 			if *choiceIndex < 0 || *choiceIndex >= len(behavior.Choices) {
 				return fmt.Errorf("invalid choiceIndex %d: must be between 0 and %d", *choiceIndex, len(behavior.Choices)-1)
@@ -211,8 +222,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		}
 	}
 
-	if hasChoices {
-		log.Debug("🎯 Card has choices, using choiceIndex", zap.Int("choice_index", *choiceIndex))
+	if hasAutoChoices {
+		log.Debug("🎯 Card has auto-triggered choices, using choiceIndex", zap.Int("choice_index", *choiceIndex))
 	}
 
 	// STEP 2: Use CardManager for card-specific validation (including choice-based costs)
@@ -353,18 +364,18 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 		zap.String("card_name", targetAction.CardName),
 		zap.Int("play_count", targetAction.PlayCount))
 
-	// Validate that the player can afford the action inputs
-	if err := s.validateActionInputs(ctx, gameID, playerID, targetAction); err != nil {
+	// Validate that the player can afford the action inputs (including choice-specific inputs)
+	if err := s.validateActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
 		return fmt.Errorf("action input validation failed: %w", err)
 	}
 
-	// Apply the action inputs (deduct resources)
-	if err := s.applyActionInputs(ctx, gameID, playerID, targetAction); err != nil {
+	// Apply the action inputs (deduct resources, including choice-specific inputs)
+	if err := s.applyActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
 		return fmt.Errorf("failed to apply action inputs: %w", err)
 	}
 
-	// Apply the action outputs (give resources/production/etc.)
-	if err := s.applyActionOutputs(ctx, gameID, playerID, targetAction); err != nil {
+	// Apply the action outputs (give resources/production/etc., including choice-specific outputs)
+	if err := s.applyActionOutputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
 		return fmt.Errorf("failed to apply action outputs: %w", err)
 	}
 
@@ -402,7 +413,8 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 }
 
 // validateActionInputs validates that the player has sufficient resources for the action inputs
-func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction) error {
+// choiceIndex is optional and used when the action has choices between different effects
+func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to check resources
@@ -411,8 +423,20 @@ func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, play
 		return fmt.Errorf("failed to get player for input validation: %w", err)
 	}
 
+	// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
+	allInputs := action.Behavior.Inputs
+
+	// If choiceIndex is provided and this action has choices, add choice inputs
+	if choiceIndex != nil && len(action.Behavior.Choices) > 0 && *choiceIndex < len(action.Behavior.Choices) {
+		selectedChoice := action.Behavior.Choices[*choiceIndex]
+		allInputs = append(allInputs, selectedChoice.Inputs...)
+		log.Debug("🎯 Validating choice inputs",
+			zap.Int("choice_index", *choiceIndex),
+			zap.Int("choice_inputs_count", len(selectedChoice.Inputs)))
+	}
+
 	// Check each input requirement
-	for _, input := range action.Behavior.Inputs {
+	for _, input := range allInputs {
 		switch input.Type {
 		case model.ResourceCredits:
 			if player.Resources.Credits < input.Amount {
@@ -449,7 +473,8 @@ func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, play
 }
 
 // applyActionInputs applies the action inputs by deducting resources from the player
-func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction) error {
+// choiceIndex is optional and used when the action has choices between different effects
+func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player resources
@@ -461,8 +486,20 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 	// Calculate new resource values after applying inputs
 	newResources := player.Resources
 
+	// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
+	allInputs := action.Behavior.Inputs
+
+	// If choiceIndex is provided and this action has choices, add choice inputs
+	if choiceIndex != nil && len(action.Behavior.Choices) > 0 && *choiceIndex < len(action.Behavior.Choices) {
+		selectedChoice := action.Behavior.Choices[*choiceIndex]
+		allInputs = append(allInputs, selectedChoice.Inputs...)
+		log.Debug("🎯 Applying choice inputs",
+			zap.Int("choice_index", *choiceIndex),
+			zap.Int("choice_inputs_count", len(selectedChoice.Inputs)))
+	}
+
 	// Apply each input by deducting resources
-	for _, input := range action.Behavior.Inputs {
+	for _, input := range allInputs {
 		switch input.Type {
 		case model.ResourceCredits:
 			newResources.Credits -= input.Amount
@@ -496,7 +533,8 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 }
 
 // applyActionOutputs applies the action outputs by giving resources/production/etc. to the player
-func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction) error {
+// choiceIndex is optional and used when the action has choices between different effects
+func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources and production
@@ -512,8 +550,20 @@ func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, player
 	newResources := player.Resources
 	newProduction := player.Production
 
+	// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+	allOutputs := action.Behavior.Outputs
+
+	// If choiceIndex is provided and this action has choices, add choice outputs
+	if choiceIndex != nil && len(action.Behavior.Choices) > 0 && *choiceIndex < len(action.Behavior.Choices) {
+		selectedChoice := action.Behavior.Choices[*choiceIndex]
+		allOutputs = append(allOutputs, selectedChoice.Outputs...)
+		log.Debug("🎯 Applying choice outputs",
+			zap.Int("choice_index", *choiceIndex),
+			zap.Int("choice_outputs_count", len(selectedChoice.Outputs)))
+	}
+
 	// Apply each output
-	for _, output := range action.Behavior.Outputs {
+	for _, output := range allOutputs {
 		switch output.Type {
 		// Immediate resource gains
 		case model.ResourceCredits:
