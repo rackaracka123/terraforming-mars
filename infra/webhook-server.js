@@ -83,7 +83,27 @@ const server = http.createServer((req, res) => {
 
     req.on('end', () => {
         try {
-            // Verify signature
+            // Parse payload based on content type
+            const contentType = req.headers['content-type'] || '';
+            let payload;
+
+            if (contentType.includes('application/x-www-form-urlencoded')) {
+                // GitHub sends form-encoded data with payload= prefix
+                const params = new URLSearchParams(body);
+                const payloadStr = params.get('payload');
+                if (!payloadStr) {
+                    log('❌ No payload found in form data');
+                    res.writeHead(400);
+                    res.end('Bad Request');
+                    return;
+                }
+                payload = JSON.parse(payloadStr);
+            } else {
+                // Assume JSON
+                payload = JSON.parse(body);
+            }
+
+            // Verify signature (verify against the original body)
             const signature = req.headers['x-hub-signature-256'];
             if (!verifySignature(body, signature)) {
                 log('❌ Invalid signature - webhook rejected');
@@ -92,8 +112,6 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            // Parse payload
-            const payload = JSON.parse(body);
             const event = req.headers['x-github-event'];
 
             log(`📨 Received ${event} event from GitHub`);
