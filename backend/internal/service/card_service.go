@@ -29,10 +29,10 @@ type CardService interface {
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
 	// Player actions for playing cards
-	OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error
 
 	// Play a card action from player's action list
-	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error
+	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int) error
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
@@ -157,7 +157,7 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
 
@@ -189,13 +189,39 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("player does not have card %s", cardID)
 	}
 
-	// STEP 2: Use CardManager for card-specific validation
-	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID); err != nil {
+	// STEP 1.5: Validate choice selection for cards with choices
+	card, err := s.cardRepo.GetCardByID(ctx, cardID)
+	if err != nil {
+		return fmt.Errorf("failed to get card: %w", err)
+	}
+
+	// Check if any behavior has choices
+	hasChoices := false
+	for _, behavior := range card.Behaviors {
+		if len(behavior.Choices) > 0 {
+			hasChoices = true
+			// Validate that choiceIndex is provided and within valid range
+			if choiceIndex == nil {
+				return fmt.Errorf("card has choices but no choiceIndex provided")
+			}
+			if *choiceIndex < 0 || *choiceIndex >= len(behavior.Choices) {
+				return fmt.Errorf("invalid choiceIndex %d: must be between 0 and %d", *choiceIndex, len(behavior.Choices)-1)
+			}
+			break
+		}
+	}
+
+	if hasChoices {
+		log.Debug("🎯 Card has choices, using choiceIndex", zap.Int("choice_index", *choiceIndex))
+	}
+
+	// STEP 2: Use CardManager for card-specific validation (including choice-based costs)
+	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
 		return fmt.Errorf("card cannot be played: %w", err)
 	}
 
-	// STEP 3: Use CardManager to play the card
-	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID); err != nil {
+	// STEP 3: Use CardManager to play the card with choice index
+	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 
@@ -258,7 +284,7 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 }
 
 // OnPlayCardAction plays a card action from the player's action list
-func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
+func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Starting card action play",
 		zap.String("card_id", cardID),
@@ -310,6 +336,17 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 	// Validate that the action hasn't been played this generation (playCount must be 0)
 	if targetAction.PlayCount > 0 {
 		return fmt.Errorf("action has already been played this generation: current play count %d", targetAction.PlayCount)
+	}
+
+	// Validate choice selection for actions with choices
+	if len(targetAction.Behavior.Choices) > 0 {
+		if choiceIndex == nil {
+			return fmt.Errorf("action has choices but no choiceIndex provided")
+		}
+		if *choiceIndex < 0 || *choiceIndex >= len(targetAction.Behavior.Choices) {
+			return fmt.Errorf("invalid choiceIndex %d: must be between 0 and %d", *choiceIndex, len(targetAction.Behavior.Choices)-1)
+		}
+		log.Debug("🎯 Action has choices, using choiceIndex", zap.Int("choice_index", *choiceIndex))
 	}
 
 	log.Debug("🎯 Found target action",

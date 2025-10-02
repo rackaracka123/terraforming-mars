@@ -13,6 +13,7 @@ import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelection
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
+import ChoiceSelectionPopover from "../../ui/popover/ChoiceSelectionPopover.tsx";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
@@ -106,6 +107,13 @@ export default function GameInterface() {
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
   const [unplayableReason, setUnplayableReason] =
     useState<UnplayableReason | null>(null);
+
+  // Choice selection state
+  const [showChoiceSelection, setShowChoiceSelection] = useState(false);
+  const [cardPendingChoice, setCardPendingChoice] = useState<CardDto | null>(
+    null,
+  );
+  const [pendingCardBehaviorIndex, setPendingCardBehaviorIndex] = useState(0);
 
   // Tab management
   const [showTabConflict, setShowTabConflict] = useState(false);
@@ -250,13 +258,70 @@ export default function GameInterface() {
     }
   }, []);
 
-  const handlePlayCard = useCallback(async (cardId: string) => {
-    try {
-      await globalWebSocketManager.playCard(cardId);
-    } catch (error) {
-      console.error(`❌ Failed to play card ${cardId}:`, error);
-      throw error; // Re-throw to allow CardFanOverlay to handle the error
-    }
+  const handlePlayCard = useCallback(
+    async (cardId: string) => {
+      try {
+        // Find the card to check if it has choices
+        const card = currentPlayer?.cards.find((c) => c.id === cardId);
+        if (!card) {
+          console.error(`Card ${cardId} not found in player's hand`);
+          return;
+        }
+
+        // Check if any behavior has choices
+        const behaviorWithChoices = card.behaviors?.findIndex(
+          (b) => b.choices && b.choices.length > 0,
+        );
+
+        if (
+          behaviorWithChoices !== undefined &&
+          behaviorWithChoices >= 0 &&
+          card.behaviors?.[behaviorWithChoices]?.choices
+        ) {
+          // Card has choices, show the choice selection popover
+          setCardPendingChoice(card);
+          setPendingCardBehaviorIndex(behaviorWithChoices);
+          setShowChoiceSelection(true);
+        } else {
+          // No choices, play the card directly
+          await globalWebSocketManager.playCard(cardId);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to play card ${cardId}:`, error);
+        throw error; // Re-throw to allow CardFanOverlay to handle the error
+      }
+    },
+    [currentPlayer?.cards],
+  );
+
+  const handleChoiceSelect = useCallback(
+    async (choiceIndex: number) => {
+      if (!cardPendingChoice) return;
+
+      try {
+        setShowChoiceSelection(false);
+        await globalWebSocketManager.playCard(
+          cardPendingChoice.id,
+          choiceIndex,
+        );
+        setCardPendingChoice(null);
+        setPendingCardBehaviorIndex(0);
+      } catch (error) {
+        console.error(
+          `❌ Failed to play card ${cardPendingChoice.id} with choice ${choiceIndex}:`,
+          error,
+        );
+        setCardPendingChoice(null);
+        setPendingCardBehaviorIndex(0);
+      }
+    },
+    [cardPendingChoice],
+  );
+
+  const handleChoiceCancel = useCallback(() => {
+    setShowChoiceSelection(false);
+    setCardPendingChoice(null);
+    setPendingCardBehaviorIndex(0);
   }, []);
 
   const handleUnplayableCard = useCallback(
@@ -737,6 +802,17 @@ export default function GameInterface() {
         reason={unplayableReason}
         isVisible={unplayableCard !== null}
       />
+
+      {/* Choice selection popover */}
+      {cardPendingChoice && (
+        <ChoiceSelectionPopover
+          card={cardPendingChoice}
+          behaviorIndex={pendingCardBehaviorIndex}
+          onChoiceSelect={handleChoiceSelect}
+          onCancel={handleChoiceCancel}
+          isVisible={showChoiceSelection}
+        />
+      )}
 
       {/* Reconnection overlay */}
       {isReconnecting && (

@@ -303,11 +303,12 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 }
 
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *model.Card, player *model.Player) error {
+// choiceIndex is optional and used when the card has choices between different effects
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *model.Card, player *model.Player, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Calculate total costs including card cost and behavioral resource deductions
-	totalCosts := rv.calculateTotalCardCosts(ctx, card, player)
+	// Calculate total costs including card cost and behavioral resource deductions (including choice inputs)
+	totalCosts := rv.calculateTotalCardCosts(ctx, card, player, choiceIndex)
 
 	// Validate card cost
 	if card.Cost > 0 {
@@ -335,7 +336,7 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	}
 
 	// Validate production deductions (negative production effects)
-	if err := rv.validateProductionDeductions(ctx, card, player); err != nil {
+	if err := rv.validateProductionDeductions(ctx, card, player, choiceIndex); err != nil {
 		return fmt.Errorf("production requirement validation failed: %w", err)
 	}
 
@@ -353,15 +354,25 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 }
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs
-func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *model.Card, player *model.Player) model.Resources {
+// choiceIndex is optional and used when the card has choices between different effects
+func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *model.Card, player *model.Player, choiceIndex *int) model.Resources {
 	totalCosts := model.Resources{}
 
 	// Process all behaviors to find immediate resource costs (auto triggers)
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
-			// Check inputs (explicit costs)
-			for _, input := range behavior.Inputs {
+			// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
+			allInputs := behavior.Inputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice inputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allInputs = append(allInputs, selectedChoice.Inputs...)
+			}
+
+			// Check all aggregated inputs (explicit costs)
+			for _, input := range allInputs {
 				switch input.Type {
 				case model.ResourceCredits:
 					totalCosts.Credits += input.Amount
@@ -378,8 +389,17 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 				}
 			}
 
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+			}
+
 			// Check outputs with negative amounts (resource deductions)
-			for _, output := range behavior.Outputs {
+			for _, output := range allOutputs {
 				if output.Amount < 0 {
 					switch output.Type {
 					case model.ResourceCredits:
@@ -404,7 +424,7 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 }
 
 // validateProductionDeductions validates that the player can afford any negative production effects
-func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *model.Card, player *model.Player) error {
+func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *model.Card, player *model.Player, choiceIndex *int) error {
 	// Calculate total production changes from card behaviors
 	productionChanges := model.Production{}
 
@@ -412,7 +432,17 @@ func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Contex
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
-			for _, output := range behavior.Outputs {
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+			}
+
+			// Process all aggregated outputs
+			for _, output := range allOutputs {
 				switch output.Type {
 				case model.ResourceCreditsProduction:
 					productionChanges.Credits += output.Amount
