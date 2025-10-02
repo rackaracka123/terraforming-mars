@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Backend - Go server
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: tm-backend
+    restart: unless-stopped
+    environment:
+      - TM_LOG_LEVEL=${TM_LOG_LEVEL:-info}
+      - PORT=3001
+    networks:
+      - tm-network
+    labels:
+      - "traefik.enable=false"
+
+  # Frontend - React + Nginx
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: tm-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - tm-network
+    labels:
+      - "traefik.enable=false"
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: tm-cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+    networks:
+      - tm-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  tm-network:
+    driver: bridge
+    name: tm-network
