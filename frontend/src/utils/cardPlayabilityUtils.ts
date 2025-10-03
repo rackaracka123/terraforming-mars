@@ -193,10 +193,7 @@ function checkBehaviorCosts(
 
           if (!anyoneHasEnough && game.otherPlayers) {
             for (const other of game.otherPlayers) {
-              if (
-                getProduction(other.production, baseResource) >=
-                absAmount
-              ) {
+              if (getProduction(other.production, baseResource) >= absAmount) {
                 anyoneHasEnough = true;
                 break;
               }

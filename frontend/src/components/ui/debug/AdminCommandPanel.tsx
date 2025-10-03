@@ -168,9 +168,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
           ...prev,
           credits: (selectedPlayer.production.credits || 0).toString(),
           steel: (selectedPlayer.production.steel || 0).toString(),
-          titanium: (
-            selectedPlayer.production.titanium || 0
-          ).toString(),
+          titanium: (selectedPlayer.production.titanium || 0).toString(),
           plants: (selectedPlayer.production.plants || 0).toString(),
           energy: (selectedPlayer.production.energy || 0).toString(),
           heat: (selectedPlayer.production.heat || 0).toString(),
