@@ -5,6 +5,7 @@ import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
+import StandardProjectsDropdown from "../../ui/dropdown/StandardProjectsDropdown.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
@@ -34,6 +35,7 @@ import {
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
+import { StandardProject } from "@/types/cards.ts";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -53,7 +55,10 @@ export default function GameInterface() {
   const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
+  const [showStandardProjectsDropdown, setShowStandardProjectsDropdown] =
+    useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
+  const standardProjectsButtonRef = useRef<HTMLElement>(null);
 
   // Played cards state
   const [playedCards, setPlayedCards] = useState<CardDto[]>([]);
@@ -474,6 +479,40 @@ export default function GameInterface() {
     }
   }, []);
 
+  // Standard project selection handler
+  const handleStandardProjectSelect = useCallback(
+    (project: StandardProject) => {
+      // Close dropdown first
+      setShowStandardProjectsDropdown(false);
+
+      // All standard projects execute immediately
+      // Backend will create tile queue for projects requiring placement
+      switch (project) {
+        case StandardProject.SELL_PATENTS:
+          // TODO: Show card selection UI for Sell Patents
+          // For now, sell 1 card as default
+          void globalWebSocketManager.sellPatents(1);
+          break;
+        case StandardProject.POWER_PLANT:
+          void globalWebSocketManager.buildPowerPlant();
+          break;
+        case StandardProject.ASTEROID:
+          void globalWebSocketManager.launchAsteroid();
+          break;
+        case StandardProject.AQUIFER:
+          void globalWebSocketManager.buildAquifer();
+          break;
+        case StandardProject.GREENERY:
+          void globalWebSocketManager.plantGreenery();
+          break;
+        case StandardProject.CITY:
+          void globalWebSocketManager.buildCity();
+          break;
+      }
+    },
+    [],
+  );
+
   // Tab conflict handlers
   const handleTabTakeOver = () => {
     if (conflictingTabInfo) {
@@ -749,6 +788,10 @@ export default function GameInterface() {
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
+        showStandardProjectsDropdown={showStandardProjectsDropdown}
+        onToggleStandardProjectsDropdown={() =>
+          setShowStandardProjectsDropdown(!showStandardProjectsDropdown)
+        }
       />
 
       {/*<CorporationSelectionModal*/}
@@ -782,6 +825,14 @@ export default function GameInterface() {
         actions={currentPlayer?.actions || []}
         onActionSelect={handleActionSelect}
         gameState={game}
+      />
+
+      <StandardProjectsDropdown
+        isVisible={showStandardProjectsDropdown}
+        onClose={() => setShowStandardProjectsDropdown(false)}
+        onProjectSelect={handleStandardProjectSelect}
+        gameState={game}
+        anchorRef={standardProjectsButtonRef}
       />
 
       <ProductionPhaseModal

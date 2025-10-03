@@ -22,14 +22,14 @@ type StandardProjectService interface {
 	// LaunchAsteroid raises temperature for 14 M€ and grants TR
 	LaunchAsteroid(ctx context.Context, gameID, playerID string) error
 
-	// BuildAquifer places ocean tile for 18 M€ and grants TR
-	BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// BuildAquifer places ocean tile for 18 M€ and grants TR (creates tile queue)
+	BuildAquifer(ctx context.Context, gameID, playerID string) error
 
-	// PlantGreenery places greenery tile for 23 M€ and grants TR
-	PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// PlantGreenery places greenery tile for 23 M€ and grants TR (creates tile queue)
+	PlantGreenery(ctx context.Context, gameID, playerID string) error
 
-	// BuildCity places city tile for 25 M€
-	BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error
+	// BuildCity places city tile for 25 M€ (creates tile queue)
+	BuildCity(ctx context.Context, gameID, playerID string) error
 
 	// IsValidHexPosition validates hex coordinate positioning
 	IsValidHexPosition(h *model.HexPosition) bool
@@ -40,6 +40,7 @@ type StandardProjectServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
 	sessionManager session.SessionManager
+	tileService    TileService
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
@@ -47,11 +48,13 @@ func NewStandardProjectService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	sessionManager session.SessionManager,
+	tileService TileService,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		sessionManager: sessionManager,
+		tileService:    tileService,
 	}
 }
 
@@ -156,23 +159,15 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 }
 
 // BuildAquifer places ocean tile for 18 M€ and grants TR
-func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Validate hex position
-	if !s.IsValidHexPosition(&hexPosition) {
-		log.Warn("Invalid hex position for aquifer",
-			zap.Int("q", hexPosition.Q),
-			zap.Int("r", hexPosition.R),
-			zap.Int("s", hexPosition.S))
-		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
-	}
-
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAquifer, func(player *model.Player) error {
+	// Execute standard project (cost deduction, TR increase, global parameter update)
+	if err := s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAquifer, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
-		// Place ocean tile - increase ocean count by 1
+		// Increase ocean count by 1
 		game, err := s.gameRepo.GetByID(ctx, gameID)
 		if err != nil {
 			log.Error("Failed to get game", zap.Error(err))
@@ -190,28 +185,39 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
 
-		log.Info("Player built aquifer",
-			zap.Int("new_terraform_rating", player.TerraformRating),
-			zap.Any("hex_position", hexPosition))
-
+		log.Info("Player built aquifer (queuing tile placement)", zap.Int("new_terraform_rating", player.TerraformRating))
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Create tile queue with one ocean tile
+	if err := s.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-aquifer", []string{"ocean"}); err != nil {
+		log.Error("Failed to create tile queue", zap.Error(err))
+		return fmt.Errorf("failed to create tile queue: %w", err)
+	}
+
+	// Process tile queue to set pendingTileSelection with available hexes
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process tile queue", zap.Error(err))
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	// Broadcast game state (includes pendingTileSelection)
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+	}
+
+	log.Info("✅ Aquifer standard project executed, tile queued for placement")
+	return nil
 }
 
 // PlantGreenery places greenery tile for 23 M€ and grants TR
-func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Validate hex position
-	if !s.IsValidHexPosition(&hexPosition) {
-		log.Warn("Invalid hex position for greenery",
-			zap.Int("q", hexPosition.Q),
-			zap.Int("r", hexPosition.R),
-			zap.Int("s", hexPosition.S))
-		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
-	}
-
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectGreenery, func(player *model.Player) error {
+	// Execute standard project (cost deduction, TR increase, global parameter update)
+	if err := s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectGreenery, func(player *model.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -233,37 +239,66 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 			return fmt.Errorf("failed to increase oxygen: %w", err)
 		}
 
-		log.Info("Player planted greenery",
-			zap.Int("new_terraform_rating", player.TerraformRating),
-			zap.Any("hex_position", hexPosition))
-
+		log.Info("Player planted greenery (queuing tile placement)", zap.Int("new_terraform_rating", player.TerraformRating))
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Create tile queue with one greenery tile
+	if err := s.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-greenery", []string{"greenery"}); err != nil {
+		log.Error("Failed to create tile queue", zap.Error(err))
+		return fmt.Errorf("failed to create tile queue: %w", err)
+	}
+
+	// Process tile queue to set pendingTileSelection with available hexes
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process tile queue", zap.Error(err))
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	// Broadcast game state (includes pendingTileSelection)
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+	}
+
+	log.Info("✅ Greenery standard project executed, tile queued for placement")
+	return nil
 }
 
 // BuildCity places city tile for 25 M€
-func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, playerID string, hexPosition model.HexPosition) error {
+func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Validate hex position
-	if !s.IsValidHexPosition(&hexPosition) {
-		log.Warn("Invalid hex position for city",
-			zap.Int("q", hexPosition.Q),
-			zap.Int("r", hexPosition.R),
-			zap.Int("s", hexPosition.S))
-		return fmt.Errorf("invalid hex position: coordinates must sum to 0")
-	}
-
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectCity, func(player *model.Player) error {
+	// Execute standard project (cost deduction, production increase)
+	if err := s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectCity, func(player *model.Player) error {
 		// Increase megacredit production by 1 (cities provide income)
 		player.Production.Credits++
-
-		log.Info("Player built city",
-			zap.Int("new_credit_production", player.Production.Credits),
-			zap.Any("hex_position", hexPosition))
-
+		log.Info("Player built city (queuing tile placement)", zap.Int("new_credit_production", player.Production.Credits))
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Create tile queue with one city tile
+	if err := s.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-city", []string{"city"}); err != nil {
+		log.Error("Failed to create tile queue", zap.Error(err))
+		return fmt.Errorf("failed to create tile queue: %w", err)
+	}
+
+	// Process tile queue to set pendingTileSelection with available hexes
+	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to process tile queue", zap.Error(err))
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	// Broadcast game state (includes pendingTileSelection)
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+	}
+
+	log.Info("✅ City standard project executed, tile queued for placement")
+	return nil
 }
 
 // executeStandardProject executes a standard project with common validation and resource deduction

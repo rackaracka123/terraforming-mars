@@ -62,33 +62,39 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
     return unsubscribe;
   }, []);
 
-  const handleHexClick = (hexCoordinate: string) => {
-    // Check if current player has a pending tile selection
-    const currentPlayer = gameState.currentPlayer;
-    if (!currentPlayer?.pendingTileSelection) {
-      return;
-    }
+  const handleHexClick = useCallback(
+    (hexCoordinate: string) => {
+      console.log("🎯 Hex clicked:", hexCoordinate);
 
-    const { pendingTileSelection } = currentPlayer;
-
-    // Validate that the clicked hex is in the available positions provided by backend
-    if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
-      return;
-    }
-
-    // Send tile selection to backend
-    try {
       // Parse hexCoordinate string (format: "q,r,s") back to coordinate object
       const [q, r, s] = hexCoordinate.split(",").map(Number);
       const coordinate = { q, r, s };
 
-      // Send tile selection to backend
+      // Check if current player has a pending tile selection (from cards OR standard projects)
+      const currentPlayer = gameState.currentPlayer;
+      if (!currentPlayer?.pendingTileSelection) {
+        console.log("🔍 No pending tile selection");
+        return;
+      }
 
-      webSocketService.selectTile(coordinate);
-    } catch (error) {
-      console.error("❌ Failed to send tile selection:", error);
-    }
-  };
+      const { pendingTileSelection } = currentPlayer;
+
+      // Validate that the clicked hex is in the available positions provided by backend
+      if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
+        console.log("❌ Hex not in available positions");
+        return;
+      }
+
+      // Send tile selection to backend (works for both cards and standard projects)
+      try {
+        console.log("📍 Sending tile selection:", coordinate);
+        webSocketService.selectTile(coordinate);
+      } catch (error) {
+        console.error("❌ Failed to send tile selection:", error);
+      }
+    },
+    [gameState.currentPlayer],
+  );
 
   return (
     <div

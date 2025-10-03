@@ -4,7 +4,6 @@ import type {
   GameDto,
   PlayerDisconnectedPayload,
   FullStatePayload,
-  HexPositionDto,
 } from "../types/generated/api-types.ts";
 
 class GlobalWebSocketManager implements WebSocketConnection {
@@ -182,19 +181,19 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.buildPowerPlant();
   }
 
-  async buildAquifer(hexPosition: HexPositionDto): Promise<string> {
+  async buildAquifer(): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.buildAquifer(hexPosition);
+    return webSocketService.buildAquifer();
   }
 
-  async plantGreenery(hexPosition: HexPositionDto): Promise<string> {
+  async plantGreenery(): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.plantGreenery(hexPosition);
+    return webSocketService.plantGreenery();
   }
 
-  async buildCity(hexPosition: HexPositionDto): Promise<string> {
+  async buildCity(): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.buildCity(hexPosition);
+    return webSocketService.buildCity();
   }
 
   // Game management actions

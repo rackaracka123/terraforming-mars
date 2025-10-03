@@ -45,31 +45,18 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	// Parse the action payload
-	var request dto.ActionBuildAquiferRequest
-	if err := h.parser.ParsePayload(message.Payload, &request); err != nil {
-		h.logger.Error("Failed to parse build aquifer payload",
-			zap.Error(err),
-			zap.String("player_id", playerID))
-		h.errorHandler.SendError(connection, utils.ErrInvalidPayload)
-		return
-	}
-
-	// Execute the action
-	hexPosition := dto.ConvertHexPosition(request.HexPosition)
-	if err := h.standardProjectService.BuildAquifer(ctx, gameID, playerID, hexPosition); err != nil {
+	// Execute the action (no hex position needed, tile queue will be created)
+	if err := h.standardProjectService.BuildAquifer(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to build aquifer",
 			zap.Error(err),
 			zap.String("player_id", playerID),
-			zap.String("game_id", gameID),
-			zap.Any("hex_position", request.HexPosition))
+			zap.String("game_id", gameID))
 		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
 		return
 	}
 
-	h.logger.Info("✅ Build aquifer action completed successfully",
+	h.logger.Info("✅ Build aquifer action completed successfully, tile queued for placement",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.Any("hex_position", request.HexPosition))
+		zap.String("game_id", gameID))
 }

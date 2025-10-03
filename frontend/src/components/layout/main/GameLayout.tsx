@@ -25,6 +25,8 @@ interface GameLayoutProps {
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
+  showStandardProjectsDropdown?: boolean;
+  onToggleStandardProjectsDropdown?: () => void;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -38,6 +40,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
+  showStandardProjectsDropdown = false,
+  onToggleStandardProjectsDropdown,
 }) => {
   const convertOtherPlayerToPlayerDto = (
     otherPlayer: OtherPlayerDto,
@@ -70,7 +74,11 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   return (
     <MainContentProvider>
       <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
-        <TopMenuBar gameState={gameState} />
+        <TopMenuBar
+          gameState={gameState}
+          showStandardProjectsDropdown={showStandardProjectsDropdown}
+          onToggleStandardProjectsDropdown={onToggleStandardProjectsDropdown}
+        />
 
         <div className="grid grid-cols-1 min-h-0 gap-0 relative">
           <MainContentDisplay gameState={gameState} />

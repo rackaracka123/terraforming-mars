@@ -675,3 +675,4 @@ No need to be backwards compatible.
 - Create atomic operations and proper transaction boundaries
 - Use proper synchronization (channels, mutexes, etc.) when needed
 - No mocks outside of tests.
+- Do not close frontend after debugging
