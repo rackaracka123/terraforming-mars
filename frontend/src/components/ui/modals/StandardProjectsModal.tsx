@@ -9,7 +9,7 @@ import {
   STANDARD_PROJECTS,
   StandardProjectMetadata,
 } from "@/types/cards.ts";
-import CostDisplay from "../display/CostDisplay.tsx";
+import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 import ProductionDisplay from "../display/ProductionDisplay.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 import { GLOBAL_PARAM_ICONS } from "@/constants/resourceIcons.ts";
@@ -261,7 +261,7 @@ const StandardProjectsModal: React.FC<StandardProjectsModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-3 mb-2">
-                        <CostDisplay cost={project.cost} size="small" />
+                        <MegaCreditIcon value={project.cost} size="small" />
                         {effects.length > 0 && (
                           <div className="flex items-center gap-2">
                             <span className="text-white/60 text-xs">→</span>
