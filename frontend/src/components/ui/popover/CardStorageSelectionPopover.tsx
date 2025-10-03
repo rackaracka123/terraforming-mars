@@ -3,7 +3,9 @@ import { CardDto, ResourceType } from "../../../types/generated/api-types.ts";
 
 interface CardStorageSelectionPopoverProps {
   resourceType: ResourceType;
+  amount: number;
   playedCards: CardDto[];
+  resourceStorage?: { [cardId: string]: number }; // Map of cardId to current storage count
   onCardSelect: (cardId: string) => void;
   onCancel: () => void;
   isVisible: boolean;
@@ -16,7 +18,15 @@ interface CardStorageOption {
 
 const CardStorageSelectionPopover: React.FC<
   CardStorageSelectionPopoverProps
-> = ({ resourceType, playedCards, onCardSelect, onCancel, isVisible }) => {
+> = ({
+  resourceType,
+  amount,
+  playedCards,
+  resourceStorage,
+  onCardSelect,
+  onCancel,
+  isVisible,
+}) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -28,7 +38,7 @@ const CardStorageSelectionPopover: React.FC<
     )
     .map((card) => ({
       card,
-      currentStorage: 0, // TODO: Get actual storage count from player.resourceStorage
+      currentStorage: resourceStorage?.[card.id] || 0, // Get actual storage count from player.resourceStorage
     }));
 
   const handleCancelClick = () => {
@@ -105,6 +115,7 @@ const CardStorageSelectionPopover: React.FC<
       microbes: "/assets/resources/microbe.png",
       floaters: "/assets/resources/floater.png",
       science: "/assets/resources/science.png",
+      asteroid: "/assets/resources/asteroid.png",
     };
     return iconMap[type] || "/assets/resources/wild.png";
   };
@@ -130,10 +141,19 @@ const CardStorageSelectionPopover: React.FC<
           <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
             {hasNoStorage ? "No Storage Available" : "Select Card Storage"}
           </h3>
-          <div className="text-white/60 text-xs text-shadow-glow mt-1">
-            {hasNoStorage
-              ? `You have no cards that can store ${resourceType}`
-              : `Place ${resourceType} on a card`}
+          <div className="text-white/60 text-xs text-shadow-glow mt-1 flex items-center justify-center gap-1.5">
+            {hasNoStorage ? (
+              `You have no cards that can store ${resourceType}`
+            ) : (
+              <>
+                <span>Place {amount}</span>
+                <img
+                  src={getResourceIcon(resourceType)}
+                  alt={resourceType}
+                  className="w-4 h-4 object-contain inline-block"
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -178,15 +198,23 @@ const CardStorageSelectionPopover: React.FC<
                   hover:bg-black/50
                   hover:shadow-[0_4px_16px_rgba(30,60,150,0.5)]
                   animate-choiceSlideIn
+                  flex items-center justify-between gap-3
                 "
                   style={{ animationDelay: `${delay}s` }}
                   onClick={() => handleCardClick(card.id)}
                 >
-                  <div className="text-white font-semibold text-sm mb-2">
+                  <div className="text-white font-semibold text-sm">
                     {card.name}
                   </div>
-                  <div className="text-white/60 text-xs">
-                    Current storage: {currentStorage} {resourceType}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-white/60 text-xs font-medium">
+                      {currentStorage}
+                    </span>
+                    <img
+                      src={getResourceIcon(resourceType)}
+                      alt={resourceType}
+                      className="w-5 h-5 object-contain"
+                    />
                   </div>
                 </div>
               );

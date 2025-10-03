@@ -5,6 +5,8 @@ import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 interface BehaviorSectionProps {
   behaviors?: CardBehaviorDto[];
   playerResources?: ResourcesDto; // Optional: if provided, enables dynamic affordability highlighting
+  resourceStorage?: { [cardId: string]: number }; // Optional: card storage data for validation
+  cardId?: string; // Optional: ID of the card these behaviors belong to
   greyOutAll?: boolean; // Optional: if true, grey out all resources (e.g., for played actions)
 }
 
@@ -22,6 +24,8 @@ interface ClassifiedBehavior {
 const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   behaviors,
   playerResources,
+  resourceStorage,
+  cardId,
   greyOutAll = false,
 }) => {
   if (!behaviors || behaviors.length === 0) {
@@ -39,6 +43,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     const resourceType = resource.resourceType || resource.type;
     const amount = resource.amount || 1;
+    const target = resource.target;
 
     switch (resourceType) {
       case "credits":
@@ -53,9 +58,23 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         return playerResources.energy >= amount;
       case "heat":
         return playerResources.heat >= amount;
-      default:
-        return true; // For other resource types, show normally
     }
+
+    // Check card storage resources
+    const cardStorageTypes = [
+      "animals",
+      "microbes",
+      "floaters",
+      "science",
+      "asteroid",
+    ];
+    if (cardStorageTypes.includes(resourceType) && target === "self-card") {
+      if (!resourceStorage || !cardId) return true; // Can't validate, show normally
+      const currentStorage = resourceStorage[cardId] || 0;
+      return currentStorage >= amount;
+    }
+
+    return true; // For other resource types, show normally
   };
 
   const getResourceIcon = (resourceType: string): string | null => {

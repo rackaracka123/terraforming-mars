@@ -45,9 +45,10 @@ type PlayCardAction struct {
 
 // PlayCardActionAction represents playing a card action from player's action list
 type PlayCardActionAction struct {
-	CardID        string `json:"cardId" ts:"string"`
-	BehaviorIndex int    `json:"behaviorIndex" ts:"number"`
-	ChoiceIndex   *int   `json:"choiceIndex,omitempty" ts:"number | undefined"` // Optional: index of choice to play (for actions with choices)
+	CardID            string  `json:"cardId" ts:"string"`
+	BehaviorIndex     int     `json:"behaviorIndex" ts:"number"`
+	ChoiceIndex       *int    `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for actions with choices)
+	CardStorageTarget *string `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 
 // HexPositionDto represents a position on the Mars board
@@ -144,15 +145,16 @@ func (ap *ActionPlayCardRequest) GetAction() *PlayCardAction {
 
 // ActionPlayCardActionRequest contains the action data for play card action actions
 type ActionPlayCardActionRequest struct {
-	Type          ActionType `json:"type" ts:"ActionType"`
-	CardID        string     `json:"cardId" ts:"string"`
-	BehaviorIndex int        `json:"behaviorIndex" ts:"number"`
-	ChoiceIndex   *int       `json:"choiceIndex,omitempty" ts:"number | undefined"` // Optional: index of choice to play (for actions with choices)
+	Type              ActionType `json:"type" ts:"ActionType"`
+	CardID            string     `json:"cardId" ts:"string"`
+	BehaviorIndex     int        `json:"behaviorIndex" ts:"number"`
+	ChoiceIndex       *int       `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for actions with choices)
+	CardStorageTarget *string    `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 
 // GetAction returns the play card action action
 func (ap *ActionPlayCardActionRequest) GetAction() *PlayCardActionAction {
-	return &PlayCardActionAction{CardID: ap.CardID, BehaviorIndex: ap.BehaviorIndex, ChoiceIndex: ap.ChoiceIndex}
+	return &PlayCardActionAction{CardID: ap.CardID, BehaviorIndex: ap.BehaviorIndex, ChoiceIndex: ap.ChoiceIndex, CardStorageTarget: ap.CardStorageTarget}
 }
 
 // Standard Project Action Requests

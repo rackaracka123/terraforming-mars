@@ -298,12 +298,14 @@ export class WebSocketService {
     cardId: string,
     behaviorIndex: number,
     choiceIndex?: number,
+    cardStorageTarget?: string,
   ): string {
     return this.send(MessageTypeActionCardAction, {
       type: "card-action",
       cardId,
       behaviorIndex,
       ...(choiceIndex !== undefined && { choiceIndex }),
+      ...(cardStorageTarget !== undefined && { cardStorageTarget }),
     });
   }
 

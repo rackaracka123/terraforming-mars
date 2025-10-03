@@ -3,6 +3,7 @@ import {
   CardDto,
   ChoiceDto,
   CardBehaviorDto,
+  ResourcesDto,
 } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
 
@@ -18,6 +19,8 @@ interface ChoiceSelectionPopoverProps {
   onCancel: () => void;
   isVisible: boolean;
   isAction?: boolean; // True if this is for an action, false/undefined if for card play
+  playerResources?: ResourcesDto;
+  resourceStorage?: { [key: string]: number };
 }
 
 const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
@@ -27,6 +30,8 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
   onCancel,
   isVisible,
   isAction = false,
+  playerResources,
+  resourceStorage,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -38,6 +43,56 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
       index,
       choice,
     })) || [];
+
+  // Helper to check if a choice is affordable
+  const isChoiceAffordable = (choice: ChoiceDto): boolean => {
+    if (!playerResources) return true; // If no resources provided, show as affordable
+
+    const storage = resourceStorage || {};
+
+    // Check all inputs for this choice
+    const inputs = [
+      ...(behavior?.inputs || []), // Base behavior inputs
+      ...(choice.inputs || []), // Choice-specific inputs
+    ];
+
+    for (const input of inputs) {
+      switch (input.type) {
+        case "credits":
+          if (playerResources.credits < input.amount) return false;
+          break;
+        case "steel":
+          if (playerResources.steel < input.amount) return false;
+          break;
+        case "titanium":
+          if (playerResources.titanium < input.amount) return false;
+          break;
+        case "plants":
+          if (playerResources.plants < input.amount) return false;
+          break;
+        case "energy":
+          if (playerResources.energy < input.amount) return false;
+          break;
+        case "heat":
+          if (playerResources.heat < input.amount) return false;
+          break;
+
+        // Card storage resources
+        case "animals":
+        case "microbes":
+        case "floaters":
+        case "science":
+        case "asteroid":
+          if (input.target === "self-card") {
+            const cardStorage = storage[card.id] || 0;
+            if (cardStorage < input.amount) return false;
+          }
+          break;
+      }
+    }
+
+    return true;
+  };
 
   const handleCancelClick = () => {
     setIsClosing(true);
@@ -138,30 +193,43 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
             };
 
             const delay = index * 0.05;
+            const isAffordable = isChoiceAffordable(choice);
 
             return (
               <div
                 key={index}
-                className="
+                className={`
                   bg-black/30
                   border-2 border-space-blue-500/40
                   rounded-[10px] px-3.5 py-3
-                  mb-2 cursor-pointer
+                  mb-2
                   transition-all duration-[250ms] ease-out
-                  hover:translate-y-[-2px] hover:scale-[1.01]
-                  hover:border-space-blue-500/80
-                  hover:bg-black/50
-                  hover:shadow-[0_4px_16px_rgba(30,60,150,0.5)]
                   animate-choiceSlideIn
-                "
+                  ${
+                    isAffordable
+                      ? "cursor-pointer hover:translate-y-[-2px] hover:scale-[1.01] hover:border-space-blue-500/80 hover:bg-black/50 hover:shadow-[0_4px_16px_rgba(30,60,150,0.5)]"
+                      : "cursor-default"
+                  }
+                `}
                 style={{ animationDelay: `${delay}s` }}
-                onClick={() => handleChoiceClick(index)}
+                onClick={() => isAffordable && handleChoiceClick(index)}
+                title={
+                  isAffordable
+                    ? "Click to select this choice"
+                    : "Cannot afford this choice"
+                }
               >
                 <div className="text-white/60 text-[11px] font-semibold uppercase tracking-wider mb-3 text-shadow-glow">
                   Choice {index + 1}
                 </div>
                 <div className="flex items-center justify-center w-full [&>div]:!relative [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto [&>div]:w-auto [&>div]:max-w-full [&>div:hover]:!transform-none [&>div:hover]:!shadow-none [&>div:hover]:!filter-none">
-                  <BehaviorSection behaviors={[behaviorForChoice]} />
+                  <BehaviorSection
+                    behaviors={[behaviorForChoice]}
+                    playerResources={playerResources}
+                    resourceStorage={resourceStorage}
+                    cardId={card.id}
+                    greyOutAll={!isAffordable}
+                  />
                 </div>
               </div>
             );

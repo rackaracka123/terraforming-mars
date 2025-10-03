@@ -221,9 +221,15 @@ class GlobalWebSocketManager implements WebSocketConnection {
     cardId: string,
     behaviorIndex: number,
     choiceIndex?: number,
+    cardStorageTarget?: string,
   ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCardAction(cardId, behaviorIndex, choiceIndex);
+    return webSocketService.playCardAction(
+      cardId,
+      behaviorIndex,
+      choiceIndex,
+      cardStorageTarget,
+    );
   }
 
   async selectStartingCard(cardIds: string[]): Promise<string> {

@@ -344,10 +344,10 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 					newResources.Heat += output.Amount
 					heatChange += output.Amount
 
-				// Card storage resources (animals, microbes, floaters, science)
-				case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience:
+				// Card storage resources (animals, microbes, floaters, science, asteroid)
+				case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
 					// Handle card storage resources
-					if err := cp.applyCardStorageResource(ctx, gameID, playerID, card.ID, output, cardStorageTarget, log); err != nil {
+					if err := cp.ApplyCardStorageResource(ctx, gameID, playerID, card.ID, output, cardStorageTarget, log); err != nil {
 						return fmt.Errorf("failed to apply card storage resource: %w", err)
 					}
 				}
@@ -414,8 +414,9 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 	return cp.playerRepo.CreateTileQueue(ctx, gameID, playerID, card.ID, tilePlacementQueue)
 }
 
-// applyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)
-func (cp *CardProcessor) applyCardStorageResource(ctx context.Context, gameID, playerID, playedCardID string, output model.ResourceCondition, cardStorageTarget *string, log *zap.Logger) error {
+// ApplyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)
+// This is exported so it can be used by CardService for both card play and card actions
+func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, playerID, playedCardID string, output model.ResourceCondition, cardStorageTarget *string, log *zap.Logger) error {
 	// Get current player to access resource storage
 	player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
@@ -439,17 +440,12 @@ func (cp *CardProcessor) applyCardStorageResource(ctx context.Context, gameID, p
 			zap.Int("amount", output.Amount))
 
 	case model.TargetAnyCard:
-		// Target is any card - must be provided by player via cardStorageTarget
-		if cardStorageTarget == nil {
-			return fmt.Errorf("card storage target is required for outputs with target 'any-card'")
-		}
-
-		// Empty string means player chose to continue without storage (resources will be lost)
-		if *cardStorageTarget == "" {
-			log.Info("⚠️ Player chose to continue without card storage - resources will be lost",
+		// Target is any card - if not provided or empty, resources will be discarded
+		if cardStorageTarget == nil || *cardStorageTarget == "" {
+			log.Info("⚠️ No card storage target provided - resources will be lost",
 				zap.String("resource_type", string(output.Type)),
 				zap.Int("amount", output.Amount))
-			return nil // Successfully handled - resources are lost
+			return nil // Successfully handled - resources are discarded
 		}
 
 		targetCardID = *cardStorageTarget

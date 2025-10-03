@@ -56,6 +56,7 @@ export interface PlayCardActionAction {
   cardId: string;
   behaviorIndex: number /* int */;
   choiceIndex?: number /* int */; // Optional: index of choice to play (for actions with choices)
+  cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 /**
  * HexPositionDto represents a position on the Mars board
@@ -147,6 +148,7 @@ export interface ActionPlayCardActionRequest {
   cardId: string;
   behaviorIndex: number /* int */;
   choiceIndex?: number /* int */; // Optional: index of choice to play (for actions with choices)
+  cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 /**
  * ActionSellPatentsRequest contains the action data for sell patents actions (initiates card selection)
