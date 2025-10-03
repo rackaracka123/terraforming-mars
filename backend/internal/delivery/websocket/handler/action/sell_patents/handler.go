@@ -15,16 +15,14 @@ import (
 // Handler handles sell patents standard project action requests
 type Handler struct {
 	standardProjectService service.StandardProjectService
-	parser                 *utils.MessageParser
 	errorHandler           *utils.ErrorHandler
 	logger                 *zap.Logger
 }
 
 // NewHandler creates a new sell patents handler
-func NewHandler(standardProjectService service.StandardProjectService, parser *utils.MessageParser) *Handler {
+func NewHandler(standardProjectService service.StandardProjectService) *Handler {
 	return &Handler{
 		standardProjectService: standardProjectService,
-		parser:                 parser,
 		errorHandler:           utils.NewErrorHandler(),
 		logger:                 logger.Get(),
 	}
@@ -45,30 +43,18 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	// Parse the action payload
-	var request dto.ActionSellPatentsRequest
-	if err := h.parser.ParsePayload(message.Payload, &request); err != nil {
-		h.logger.Error("Failed to parse sell patents payload",
-			zap.Error(err),
-			zap.String("player_id", playerID))
-		h.errorHandler.SendError(connection, utils.ErrInvalidPayload)
-		return
-	}
-
-	// Execute the action
-	if err := h.standardProjectService.SellPatents(ctx, gameID, playerID, request.CardCount); err != nil {
-		h.logger.Error("Failed to sell patents",
+	// Execute the action (no payload needed - initiates card selection)
+	if err := h.standardProjectService.InitiateSellPatents(ctx, gameID, playerID); err != nil {
+		h.logger.Error("Failed to initiate sell patents",
 			zap.Error(err),
 			zap.String("player_id", playerID),
-			zap.String("game_id", gameID),
-			zap.Int("card_count", request.CardCount))
+			zap.String("game_id", gameID))
 		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
 		return
 	}
 
-	h.logger.Info("✅ Sell patents action completed successfully",
+	h.logger.Info("✅ Sell patents initiated, awaiting card selection",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
-		zap.Int("card_count", request.CardCount))
+		zap.String("game_id", gameID))
 }

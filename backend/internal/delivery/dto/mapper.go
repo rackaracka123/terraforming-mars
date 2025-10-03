@@ -103,6 +103,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		ProductionPhase:          ToProductionPhaseDto(player.ProductionPhase, resolvedCards),
 		StartingCards:            startingCards,
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
+		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection, resolvedCards),
 		ResourceStorage:          player.ResourceStorage,
 	}
 }
@@ -638,5 +639,24 @@ func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTi
 		TileType:       selection.TileType,
 		AvailableHexes: selection.AvailableHexes,
 		Source:         selection.Source,
+	}
+}
+
+// ToPendingCardSelectionDto converts a model PendingCardSelection to PendingCardSelectionDto
+func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCards map[string]model.Card) *PendingCardSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Resolve available cards from card IDs
+	availableCards := resolveCards(selection.AvailableCards, resolvedCards)
+
+	return &PendingCardSelectionDto{
+		AvailableCards: availableCards,
+		CardCosts:      selection.CardCosts,
+		CardRewards:    selection.CardRewards,
+		Source:         selection.Source,
+		MinCards:       selection.MinCards,
+		MaxCards:       selection.MaxCards,
 	}
 }

@@ -11,6 +11,7 @@ import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
+import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
@@ -106,6 +107,10 @@ export default function GameInterface() {
   // Card selection state
   const [showCardSelection, setShowCardSelection] = useState(false);
   const [cardDetails, setCardDetails] = useState<CardDto[]>([]);
+
+  // Pending card selection state (for sell patents, etc.)
+  const [showPendingCardSelection, setShowPendingCardSelection] =
+    useState(false);
 
   // Unplayable card feedback state
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
@@ -267,6 +272,19 @@ export default function GameInterface() {
       console.error("Failed to select cards:", error);
     }
   }, []);
+
+  // Handle pending card selection (sell patents, etc.)
+  const handlePendingCardSelection = useCallback(
+    async (selectedCardIds: string[]) => {
+      try {
+        await globalWebSocketManager.selectCards(selectedCardIds);
+        // Overlay closes automatically when backend clears pendingCardSelection
+      } catch (error) {
+        console.error("Failed to select cards:", error);
+      }
+    },
+    [],
+  );
 
   const handlePlayCard = useCallback(
     async (cardId: string) => {
@@ -489,9 +507,8 @@ export default function GameInterface() {
       // Backend will create tile queue for projects requiring placement
       switch (project) {
         case StandardProject.SELL_PATENTS:
-          // TODO: Show card selection UI for Sell Patents
-          // For now, sell 1 card as default
-          void globalWebSocketManager.sellPatents(1);
+          // Initiate sell patents - backend will create pendingCardSelection
+          void globalWebSocketManager.sellPatents();
           break;
         case StandardProject.POWER_PLANT:
           void globalWebSocketManager.buildPowerPlant();
@@ -701,6 +718,17 @@ export default function GameInterface() {
     extractCardDetails,
   ]);
 
+  // Show/hide pending card selection overlay (sell patents, etc.)
+  useEffect(() => {
+    const pendingSelection = game?.currentPlayer?.pendingCardSelection;
+
+    if (pendingSelection && !showPendingCardSelection) {
+      setShowPendingCardSelection(true);
+    } else if (!pendingSelection && showPendingCardSelection) {
+      setShowPendingCardSelection(false);
+    }
+  }, [game?.currentPlayer?.pendingCardSelection, showPendingCardSelection]);
+
   // Demo keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -877,13 +905,25 @@ export default function GameInterface() {
         onSelectCards={handleCardSelection}
       />
 
+      {/* Pending card selection overlay (sell patents, etc.) */}
+      {game?.currentPlayer?.pendingCardSelection && (
+        <PendingCardSelectionOverlay
+          isOpen={showPendingCardSelection}
+          selection={game.currentPlayer.pendingCardSelection}
+          playerCredits={currentPlayer?.resources?.credits || 0}
+          onSelectCards={handlePendingCardSelection}
+        />
+      )}
+
       {/* Card fan overlay for hand cards */}
       {game && currentPlayer && (
         <CardFanOverlay
           cards={currentPlayer.cards || []}
           game={game}
           player={currentPlayer}
-          hideWhenModalOpen={showCardSelection || isLobbyPhase}
+          hideWhenModalOpen={
+            showCardSelection || showPendingCardSelection || isLobbyPhase
+          }
           onCardSelect={(_cardId) => {
             // TODO: Implement card selection logic (view details, etc.)
           }}

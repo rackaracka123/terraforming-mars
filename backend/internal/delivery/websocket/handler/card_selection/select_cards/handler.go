@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
@@ -15,21 +16,25 @@ import (
 
 // Handler handles select production cards action requests
 type Handler struct {
-	cardService  service.CardService
-	gameService  service.GameService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	cardService            service.CardService
+	gameService            service.GameService
+	standardProjectService service.StandardProjectService
+	playerRepo             repository.PlayerRepository
+	parser                 *utils.MessageParser
+	errorHandler           *utils.ErrorHandler
+	logger                 *zap.Logger
 }
 
 // NewHandler creates a new select cards handler
-func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
+func NewHandler(cardService service.CardService, gameService service.GameService, standardProjectService service.StandardProjectService, playerRepo repository.PlayerRepository, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		gameService:  gameService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		cardService:            cardService,
+		gameService:            gameService,
+		standardProjectService: standardProjectService,
+		playerRepo:             playerRepo,
+		parser:                 parser,
+		errorHandler:           utils.NewErrorHandler(),
+		logger:                 logger.Get(),
 	}
 }
 
@@ -77,10 +82,34 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 // handle processes the select production cards action (internal method)
 func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Player selecting production cards",
+	log.Debug("Player selecting cards",
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
 
+	// Check if player has a pending card selection (e.g., sell patents)
+	pendingCardSelection, err := h.playerRepo.GetPendingCardSelection(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to check pending card selection", zap.Error(err))
+		return fmt.Errorf("failed to check pending card selection: %w", err)
+	}
+
+	// If there's a pending card selection, route to ProcessCardSelection
+	if pendingCardSelection != nil {
+		log.Info("Processing pending card selection",
+			zap.String("source", pendingCardSelection.Source),
+			zap.Int("cards_selected", len(cardIDs)))
+
+		if err := h.standardProjectService.ProcessCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
+			return err
+		}
+
+		log.Info("✅ Pending card selection completed",
+			zap.String("source", pendingCardSelection.Source))
+		return nil
+	}
+
+	// Otherwise, handle as production card selection
+	log.Debug("Processing production card selection")
 	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
 		return err
 	}
@@ -91,7 +120,7 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		return fmt.Errorf("failed to process production phase ready: %w", err)
 	}
 
-	log.Info("Player completed production card selection and marked as ready",
+	log.Info("✅ Production card selection completed",
 		zap.Strings("selected_cards", cardIDs),
 		zap.String("game_phase", string(updatedGame.CurrentPhase)))
 

@@ -137,7 +137,8 @@ const StandardProjectsModal: React.FC<StandardProjectsModalProps> = ({
     // Global parameter effects
     if (project.effects.globalParameters) {
       project.effects.globalParameters.forEach((param, idx) => {
-        const iconSrc = GLOBAL_PARAM_ICONS[param.type as keyof typeof GLOBAL_PARAM_ICONS];
+        const iconSrc =
+          GLOBAL_PARAM_ICONS[param.type as keyof typeof GLOBAL_PARAM_ICONS];
         effects.push(
           <div key={`param-${idx}`} className="flex items-center gap-1">
             <div className="relative w-6 h-6">

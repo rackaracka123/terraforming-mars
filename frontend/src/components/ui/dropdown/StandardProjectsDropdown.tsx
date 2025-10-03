@@ -18,7 +18,7 @@ interface StandardProjectsDropdownProps {
   onClose: () => void;
   onProjectSelect: (project: StandardProject) => void;
   gameState?: GameDto;
-  anchorRef: React.RefObject<HTMLElement>;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 // Check if player can afford a standard project

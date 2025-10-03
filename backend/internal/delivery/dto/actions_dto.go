@@ -58,10 +58,9 @@ type HexPositionDto struct {
 
 // Standard Project Actions
 
-// SellPatentsAction represents selling patent cards for megacredits
+// SellPatentsAction represents selling patent cards for megacredits (initiates card selection)
 type SellPatentsAction struct {
-	Type      ActionType `json:"type" ts:"ActionType"`
-	CardCount int        `json:"cardCount" ts:"number"`
+	Type ActionType `json:"type" ts:"ActionType"`
 }
 
 // BuildPowerPlantAction represents building a power plant
@@ -156,15 +155,14 @@ func (ap *ActionPlayCardActionRequest) GetAction() *PlayCardActionAction {
 
 // Standard Project Action Requests
 
-// ActionSellPatentsRequest contains the action data for sell patents actions
+// ActionSellPatentsRequest contains the action data for sell patents actions (initiates card selection)
 type ActionSellPatentsRequest struct {
-	Type      ActionType `json:"type" ts:"ActionType"`
-	CardCount int        `json:"cardCount" ts:"number"`
+	Type ActionType `json:"type" ts:"ActionType"`
 }
 
 // GetAction returns the sell patents action
 func (ap *ActionSellPatentsRequest) GetAction() *SellPatentsAction {
-	return &SellPatentsAction{Type: ap.Type, CardCount: ap.CardCount}
+	return &SellPatentsAction{Type: ap.Type}
 }
 
 // ActionBuildPowerPlantRequest contains the action data for build power plant actions

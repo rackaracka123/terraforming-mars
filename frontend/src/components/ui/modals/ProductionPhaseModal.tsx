@@ -114,7 +114,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         return {
           playerId: currentPlayer.id,
           playerName: currentPlayer.name,
-          production: currentPlayer.resourceProduction,
+          production: currentPlayer.production,
           terraformRating: currentPlayer.terraformRating,
           ...productionPhase,
         };
@@ -124,7 +124,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         return {
           playerId: otherPlayer.id,
           playerName: otherPlayer.name,
-          production: otherPlayer.resourceProduction,
+          production: otherPlayer.production,
           terraformRating: otherPlayer.terraformRating,
           ...productionPhase,
         };

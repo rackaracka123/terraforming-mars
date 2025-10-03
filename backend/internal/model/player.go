@@ -44,6 +44,16 @@ type PendingTileSelectionQueue struct {
 	Source string   `json:"source" ts:"string"`  // Card ID that triggered all placements
 }
 
+// PendingCardSelection represents a pending card selection action (e.g., sell patents, card effects)
+type PendingCardSelection struct {
+	AvailableCards []string       `json:"availableCards" ts:"string[]"`            // Card IDs player can select from
+	CardCosts      map[string]int `json:"cardCosts" ts:"Record<string, number>"`   // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
+	CardRewards    map[string]int `json:"cardRewards" ts:"Record<string, number>"` // Card ID -> reward for selecting (1 MC for sell patents)
+	Source         string         `json:"source" ts:"string"`                      // What triggered this selection ("sell-patents", card ID, etc.)
+	MinCards       int            `json:"minCards" ts:"number"`                    // Minimum cards to select (0 for sell patents)
+	MaxCards       int            `json:"maxCards" ts:"number"`                    // Maximum cards to select (hand size for sell patents)
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -65,6 +75,8 @@ type Player struct {
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection      *PendingTileSelection      `json:"pendingTileSelection" ts:"PendingTileSelection | null"`           // Current active tile placement, null when no tiles to place
 	PendingTileSelectionQueue *PendingTileSelectionQueue `json:"pendingTileSelectionQueue" ts:"PendingTileSelectionQueue | null"` // Queue of remaining tile placements from cards
+	// Card selection - nullable, exists only when player needs to select cards
+	PendingCardSelection *PendingCardSelection `json:"pendingCardSelection" ts:"PendingCardSelection | null"` // Current active card selection (sell patents, card effects, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
@@ -176,6 +188,35 @@ func (p *Player) DeepCopy() *Player {
 		resourceStorageCopy[cardID] = count
 	}
 
+	// Deep copy pending card selection if it exists
+	var pendingCardSelectionCopy *PendingCardSelection
+	if p.PendingCardSelection != nil {
+		// Copy available cards slice
+		availableCardsCopy := make([]string, len(p.PendingCardSelection.AvailableCards))
+		copy(availableCardsCopy, p.PendingCardSelection.AvailableCards)
+
+		// Copy card costs map
+		cardCostsCopy := make(map[string]int)
+		for cardID, cost := range p.PendingCardSelection.CardCosts {
+			cardCostsCopy[cardID] = cost
+		}
+
+		// Copy card rewards map
+		cardRewardsCopy := make(map[string]int)
+		for cardID, reward := range p.PendingCardSelection.CardRewards {
+			cardRewardsCopy[cardID] = reward
+		}
+
+		pendingCardSelectionCopy = &PendingCardSelection{
+			AvailableCards: availableCardsCopy,
+			CardCosts:      cardCostsCopy,
+			CardRewards:    cardRewardsCopy,
+			Source:         p.PendingCardSelection.Source,
+			MinCards:       p.PendingCardSelection.MinCards,
+			MaxCards:       p.PendingCardSelection.MaxCards,
+		}
+	}
+
 	return &Player{
 		ID:                        p.ID,
 		Name:                      p.Name,
@@ -195,6 +236,7 @@ func (p *Player) DeepCopy() *Player {
 		SelectStartingCardsPhase:  startingSelectionCopy,
 		PendingTileSelection:      pendingTileSelectionCopy,
 		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
+		PendingCardSelection:      pendingCardSelectionCopy,
 		ResourceStorage:           resourceStorageCopy,
 	}
 }

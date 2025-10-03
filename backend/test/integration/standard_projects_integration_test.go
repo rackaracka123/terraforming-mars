@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -77,23 +78,507 @@ func TestSellPatents_Integration(t *testing.T) {
 	client.ClearMessageQueue()
 
 	// Now the cards should be in the player's hand
-	// Execute sell patents action - sell 2 cards from hand
-	cardsToSell := 2
+	// Extract current state
+	payload, ok = message.Payload.(map[string]interface{})
+	require.True(t, ok)
+	gameData, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok)
+	currentPlayer, ok = gameData["currentPlayer"].(map[string]interface{})
+	require.True(t, ok)
 
+	// Get player's cards in hand
+	cardsInHand, ok := currentPlayer["cards"].([]interface{})
+	require.True(t, ok, "Cards should be present")
+	require.Greater(t, len(cardsInHand), 2, "Player should have at least 3 cards")
+
+	resources, ok := currentPlayer["resources"].(map[string]interface{})
+	require.True(t, ok)
+	creditsBeforeSell := int(resources["credits"].(float64))
+
+	t.Logf("📊 Player has %d cards in hand and %d credits before sell", len(cardsInHand), creditsBeforeSell)
+
+	// Step 1: Initiate sell patents (no cardCount parameter in new flow)
 	sellPatentsPayload := map[string]interface{}{
-		"type":      dto.ActionTypeSellPatents,
-		"cardCount": cardsToSell,
+		"type": dto.ActionTypeSellPatents,
 	}
 	err = client.SendAction(dto.MessageTypeActionSellPatents, sellPatentsPayload)
 	require.NoError(t, err, "Failed to send sell patents action")
-	t.Log("✅ Sent sell patents action")
+	t.Log("✅ Sent sell patents initiation")
 
-	// The sell patents action currently doesn't broadcast game-updated (backend issue)
-	// For now, we just verify the action was accepted without error
-	// TODO: Fix backend to broadcast game-updated after sell patents
+	// Step 2: Wait for game update with pending card selection
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Failed to receive game update after sell patents initiation")
+
+	// Extract pending card selection
+	payload, ok = message.Payload.(map[string]interface{})
+	require.True(t, ok)
+	gameData, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok)
+	currentPlayer, ok = gameData["currentPlayer"].(map[string]interface{})
+	require.True(t, ok)
+
+	pendingSelection, ok := currentPlayer["pendingCardSelection"].(map[string]interface{})
+	require.True(t, ok, "Pending card selection should be present")
+	require.Equal(t, "sell-patents", pendingSelection["source"].(string), "Source should be sell-patents")
+
+	availableCards, ok := pendingSelection["availableCards"].([]interface{})
+	require.True(t, ok)
+	require.Greater(t, len(availableCards), 0, "Should have available cards")
+
+	t.Logf("📊 Pending card selection created with %d available cards", len(availableCards))
+
+	// Step 3: Select 3 cards to sell
+	cardsToSell := 3
+	selectedCardIDs := make([]string, 0, cardsToSell)
+	for i := 0; i < cardsToSell && i < len(availableCards); i++ {
+		cardObj, ok := availableCards[i].(map[string]interface{})
+		require.True(t, ok, "Failed to assert card as map. Type: %T", availableCards[i])
+		cardID, ok := cardObj["id"].(string)
+		require.True(t, ok, "Failed to get card ID. Type: %T", cardObj["id"])
+		selectedCardIDs = append(selectedCardIDs, cardID)
+	}
+
+	selectCardsPayload := map[string]interface{}{
+		"cardIds": selectedCardIDs,
+	}
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, selectCardsPayload)
+	require.NoError(t, err, "Failed to send card selection")
+	t.Logf("✅ Sent card selection: %d cards", len(selectedCardIDs))
+
+	// Step 4: Wait for final game update
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err, "Failed to receive game update after card selection")
+
+	// Verify final state
+	payload, ok = message.Payload.(map[string]interface{})
+	require.True(t, ok)
+	gameData, ok = payload["game"].(map[string]interface{})
+	require.True(t, ok)
+	currentPlayer, ok = gameData["currentPlayer"].(map[string]interface{})
+	require.True(t, ok)
+
+	// Verify credits increased by number of cards sold (1 MC per card)
+	resources, ok = currentPlayer["resources"].(map[string]interface{})
+	require.True(t, ok)
+	creditsAfterSell := int(resources["credits"].(float64))
+	require.Equal(t, creditsBeforeSell+cardsToSell, creditsAfterSell, "Credits should increase by 1 per card sold")
+
+	// Verify cards removed from hand
+	cardsAfterSell, ok := currentPlayer["cards"].([]interface{})
+	require.True(t, ok)
+	require.Equal(t, len(cardsInHand)-cardsToSell, len(cardsAfterSell), "Cards should be removed from hand")
+
+	// Verify pending card selection cleared
+	pendingAfter, exists := currentPlayer["pendingCardSelection"]
+	require.True(t, !exists || pendingAfter == nil, "Pending card selection should be cleared")
 
 	t.Log("✅ Sell patents test passed!")
-	t.Log("   Action completed successfully (no game state verification due to missing broadcast)")
+	t.Logf("   Sold %d cards, gained %d MC (from %d to %d MC)", cardsToSell, cardsToSell, creditsBeforeSell, creditsAfterSell)
+	t.Logf("   Cards in hand: %d → %d", len(cardsInHand), len(cardsAfterSell))
+}
+
+// TestSellPatents_SelectZeroCards tests selling zero cards (allowed by min=0)
+func TestSellPatents_SelectZeroCards(t *testing.T) {
+	client, _ := SetupBasicGameFlow(t, "TestPlayer")
+	defer client.Close()
+
+	// Start the game
+	err := client.StartGame()
+	require.NoError(t, err)
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Select starting cards to have cards in hand
+	payload, _ := message.Payload.(map[string]interface{})
+	gameData, _ := payload["game"].(map[string]interface{})
+	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
+	startingCards, _ := currentPlayer["startingCards"].([]interface{})
+
+	cardIDs := make([]string, 0)
+	for _, cardInterface := range startingCards {
+		card, ok := cardInterface.(map[string]interface{})
+		if ok {
+			if cardID, ok := card["id"].(string); ok {
+				cardIDs = append(cardIDs, cardID)
+			}
+		}
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	require.NoError(t, err)
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Get initial state
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+
+	resources, _ := currentPlayer["resources"].(map[string]interface{})
+	initialCredits := int(resources["credits"].(float64))
+	cardsInHand, _ := currentPlayer["cards"].([]interface{})
+	initialCardCount := len(cardsInHand)
+
+	// Initiate sell patents
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+
+	// Wait for pending card selection
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Select ZERO cards
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, map[string]interface{}{"cardIds": []string{}})
+	require.NoError(t, err)
+	t.Log("✅ Sent selection with zero cards")
+
+	// Wait for final state
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Verify nothing changed
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+
+	resources, _ = currentPlayer["resources"].(map[string]interface{})
+	finalCredits := int(resources["credits"].(float64))
+	cardsAfter, _ := currentPlayer["cards"].([]interface{})
+
+	require.Equal(t, initialCredits, finalCredits, "Credits should not change when selling zero cards")
+	require.Equal(t, initialCardCount, len(cardsAfter), "Card count should not change")
+
+	// Verify pending selection cleared
+	pendingAfter, exists := currentPlayer["pendingCardSelection"]
+	require.True(t, !exists || pendingAfter == nil, "Pending card selection should be cleared")
+
+	t.Log("✅ Select zero cards test passed!")
+	t.Logf("   Credits unchanged: %d MC", finalCredits)
+}
+
+// TestSellPatents_SelectAllCards tests selling all cards in hand
+func TestSellPatents_SelectAllCards(t *testing.T) {
+	client, _ := SetupBasicGameFlow(t, "TestPlayer")
+	defer client.Close()
+
+	// Start the game
+	err := client.StartGame()
+	require.NoError(t, err)
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Select starting cards
+	payload, _ := message.Payload.(map[string]interface{})
+	gameData, _ := payload["game"].(map[string]interface{})
+	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
+	startingCards, _ := currentPlayer["startingCards"].([]interface{})
+
+	cardIDs := make([]string, 0)
+	for _, cardInterface := range startingCards {
+		card, ok := cardInterface.(map[string]interface{})
+		if ok {
+			if cardID, ok := card["id"].(string); ok {
+				cardIDs = append(cardIDs, cardID)
+			}
+		}
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	require.NoError(t, err)
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Get initial state
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+
+	resources, _ := currentPlayer["resources"].(map[string]interface{})
+	initialCredits := int(resources["credits"].(float64))
+	cardsInHand, _ := currentPlayer["cards"].([]interface{})
+	initialCardCount := len(cardsInHand)
+	require.Greater(t, initialCardCount, 0, "Player should have cards")
+
+	// Initiate sell patents
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+
+	// Wait for pending card selection
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Extract available cards
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingSelection, _ := currentPlayer["pendingCardSelection"].(map[string]interface{})
+	availableCards, _ := pendingSelection["availableCards"].([]interface{})
+
+	// Select ALL cards
+	allCardIDs := make([]string, 0, len(availableCards))
+	for _, card := range availableCards {
+		cardObj := card.(map[string]interface{})
+		cardID := cardObj["id"].(string)
+		allCardIDs = append(allCardIDs, cardID)
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, map[string]interface{}{"cardIds": allCardIDs})
+	require.NoError(t, err)
+	t.Logf("✅ Sent selection with all %d cards", len(allCardIDs))
+
+	// Wait for final state
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Verify all cards sold
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+
+	resources, _ = currentPlayer["resources"].(map[string]interface{})
+	finalCredits := int(resources["credits"].(float64))
+	cardsAfter, _ := currentPlayer["cards"].([]interface{})
+
+	require.Equal(t, initialCredits+initialCardCount, finalCredits, "Should gain 1 MC per card")
+	require.Equal(t, 0, len(cardsAfter), "Hand should be empty after selling all cards")
+
+	t.Log("✅ Select all cards test passed!")
+	t.Logf("   Sold all %d cards, gained %d MC (from %d to %d MC)", initialCardCount, initialCardCount, initialCredits, finalCredits)
+}
+
+// TestSellPatents_InvalidSelection tests error handling for invalid card selections
+func TestSellPatents_InvalidSelection(t *testing.T) {
+	client, _ := SetupBasicGameFlow(t, "TestPlayer")
+	defer client.Close()
+
+	// Start the game and select starting cards
+	err := client.StartGame()
+	require.NoError(t, err)
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	payload, _ := message.Payload.(map[string]interface{})
+	gameData, _ := payload["game"].(map[string]interface{})
+	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
+	startingCards, _ := currentPlayer["startingCards"].([]interface{})
+
+	cardIDs := make([]string, 0)
+	for _, cardInterface := range startingCards {
+		card, ok := cardInterface.(map[string]interface{})
+		if ok {
+			if cardID, ok := card["id"].(string); ok {
+				cardIDs = append(cardIDs, cardID)
+			}
+		}
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	require.NoError(t, err)
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Initiate sell patents
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+
+	// Wait for pending card selection
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Extract max cards allowed
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingSelection, _ := currentPlayer["pendingCardSelection"].(map[string]interface{})
+	maxCards := int(pendingSelection["maxCards"].(float64))
+
+	// Try to select MORE cards than allowed
+	invalidCardIDs := make([]string, maxCards+10)
+	for i := range invalidCardIDs {
+		invalidCardIDs[i] = fmt.Sprintf("invalid-card-%d", i)
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, map[string]interface{}{"cardIds": invalidCardIDs})
+	require.NoError(t, err)
+	t.Logf("✅ Sent invalid selection: %d cards (max: %d)", len(invalidCardIDs), maxCards)
+
+	// Wait for error message
+	errorMessage, err := client.WaitForMessageWithTimeout(dto.MessageTypeError, 2*time.Second)
+	require.NoError(t, err, "Should receive error message")
+	require.NotNil(t, errorMessage, "Error message should not be nil")
+
+	t.Log("✅ Invalid selection test passed!")
+	t.Log("   Backend correctly rejected invalid card selection")
+}
+
+// TestSellPatents_NoCardsInHand tests error when player has no cards to sell
+func TestSellPatents_NoCardsInHand(t *testing.T) {
+	client, _ := SetupBasicGameFlow(t, "TestPlayer")
+	defer client.Close()
+
+	// Start the game
+	err := client.StartGame()
+	require.NoError(t, err)
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Select starting cards FIRST (don't buy any, so we keep all starting cards)
+	payload, _ := message.Payload.(map[string]interface{})
+	gameData, _ := payload["game"].(map[string]interface{})
+	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
+
+	// Select ZERO starting cards (decline all)
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": []string{}})
+	require.NoError(t, err)
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Verify player has no cards in hand
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	cardsInHand, _ := currentPlayer["cards"].([]interface{})
+	require.Equal(t, 0, len(cardsInHand), "Player should have no cards")
+
+	// Try to initiate sell patents
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+	t.Log("✅ Sent sell patents with no cards in hand")
+
+	// Wait for error message
+	errorMessage, err := client.WaitForMessageWithTimeout(dto.MessageTypeError, 2*time.Second)
+	require.NoError(t, err, "Should receive error message")
+	require.NotNil(t, errorMessage, "Error message should not be nil")
+
+	// Verify error mentions no cards
+	errorPayload, ok := errorMessage.Payload.(map[string]interface{})
+	require.True(t, ok)
+
+	errorMsg := ""
+	if msg, ok := errorPayload["message"].(string); ok {
+		errorMsg = msg
+	}
+	require.Contains(t, errorMsg, "no cards", "Error should mention no cards")
+
+	t.Log("✅ No cards in hand test passed!")
+	t.Logf("   Error message: %s", errorMsg)
+}
+
+// TestSellPatents_MultipleSelectionPhases tests multiple sell patents in sequence
+func TestSellPatents_MultipleSelectionPhases(t *testing.T) {
+	client, _ := SetupBasicGameFlow(t, "TestPlayer")
+	defer client.Close()
+
+	// Start the game and select starting cards
+	err := client.StartGame()
+	require.NoError(t, err)
+	message, err := client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	payload, _ := message.Payload.(map[string]interface{})
+	gameData, _ := payload["game"].(map[string]interface{})
+	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
+	startingCards, _ := currentPlayer["startingCards"].([]interface{})
+
+	cardIDs := make([]string, 0)
+	for _, cardInterface := range startingCards {
+		card, ok := cardInterface.(map[string]interface{})
+		if ok {
+			if cardID, ok := card["id"].(string); ok {
+				cardIDs = append(cardIDs, cardID)
+			}
+		}
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	require.NoError(t, err)
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// FIRST sell patents - sell 2 cards
+	t.Log("📊 First sell patents session")
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingSelection, _ := currentPlayer["pendingCardSelection"].(map[string]interface{})
+	availableCards, _ := pendingSelection["availableCards"].([]interface{})
+
+	// Select 2 cards
+	selectedCards := make([]string, 0, 2)
+	for i := 0; i < 2 && i < len(availableCards); i++ {
+		cardObj := availableCards[i].(map[string]interface{})
+		cardID := cardObj["id"].(string)
+		selectedCards = append(selectedCards, cardID)
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, map[string]interface{}{"cardIds": selectedCards})
+	require.NoError(t, err)
+
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+	client.ClearMessageQueue()
+
+	// Verify first sell completed
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingAfterFirst, exists := currentPlayer["pendingCardSelection"]
+	require.True(t, !exists || pendingAfterFirst == nil, "Pending selection should be cleared after first sell")
+	t.Log("✅ First sell patents completed")
+
+	// SECOND sell patents - sell 3 more cards
+	t.Log("📊 Second sell patents session")
+	err = client.SendAction(dto.MessageTypeActionSellPatents, map[string]interface{}{"type": dto.ActionTypeSellPatents})
+	require.NoError(t, err)
+
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingSelection2, _ := currentPlayer["pendingCardSelection"].(map[string]interface{})
+	availableCards2, _ := pendingSelection2["availableCards"].([]interface{})
+
+	// Select 3 cards
+	selectedCards2 := make([]string, 0, 3)
+	for i := 0; i < 3 && i < len(availableCards2); i++ {
+		cardObj := availableCards2[i].(map[string]interface{})
+		cardID := cardObj["id"].(string)
+		selectedCards2 = append(selectedCards2, cardID)
+	}
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectCards, map[string]interface{}{"cardIds": selectedCards2})
+	require.NoError(t, err)
+
+	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
+	require.NoError(t, err)
+
+	// Verify second sell completed
+	payload, _ = message.Payload.(map[string]interface{})
+	gameData, _ = payload["game"].(map[string]interface{})
+	currentPlayer, _ = gameData["currentPlayer"].(map[string]interface{})
+	pendingAfterSecond, exists := currentPlayer["pendingCardSelection"]
+	require.True(t, !exists || pendingAfterSecond == nil, "Pending selection should be cleared after second sell")
+
+	t.Log("✅ Multiple selection phases test passed!")
+	t.Logf("   Successfully completed two separate sell patents sessions")
 }
 
 // TestBuildPowerPlant_Integration tests the complete build power plant flow via WebSocket

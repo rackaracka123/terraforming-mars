@@ -247,8 +247,8 @@ export class WebSocketService {
   }
 
   // Standard project actions
-  sellPatents(cardCount: number): string {
-    return this.send(MessageTypeActionSellPatents, { cardCount });
+  sellPatents(): string {
+    return this.send(MessageTypeActionSellPatents, {});
   }
 
   launchAsteroid(): string {

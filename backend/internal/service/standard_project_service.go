@@ -13,8 +13,11 @@ import (
 
 // StandardProjectService handles standard project operations
 type StandardProjectService interface {
-	// SellPatents exchanges hand cards for megacredits (1 M€ per card)
-	SellPatents(ctx context.Context, gameID, playerID string, cardCount int) error
+	// InitiateSellPatents initiates the sell patents flow by creating a pending card selection
+	InitiateSellPatents(ctx context.Context, gameID, playerID string) error
+
+	// ProcessCardSelection processes a card selection (sell patents, card effects, etc.)
+	ProcessCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
 	// BuildPowerPlant increases energy production for 11 M€
 	BuildPowerPlant(ctx context.Context, gameID, playerID string) error
@@ -55,8 +58,8 @@ func NewStandardProjectService(
 	}
 }
 
-// SellPatents exchanges hand cards for megacredits (1 M€ per card)
-func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, playerID string, cardCount int) error {
+// InitiateSellPatents initiates the sell patents flow by creating a pending card selection
+func (s *StandardProjectServiceImpl) InitiateSellPatents(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
@@ -66,43 +69,143 @@ func (s *StandardProjectServiceImpl) SellPatents(ctx context.Context, gameID, pl
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Validate player can sell cards
-	if len(player.Cards) < cardCount || cardCount <= 0 {
-		log.Warn("Player attempted to sell more cards than available",
-			zap.Int("requested", cardCount),
-			zap.Int("available", len(player.Cards)))
-		return fmt.Errorf("player only has %d cards, cannot sell %d", len(player.Cards), cardCount)
+	// Validate player has cards to sell
+	if len(player.Cards) == 0 {
+		log.Warn("Player attempted to sell patents with no cards in hand")
+		return fmt.Errorf("player has no cards to sell")
 	}
 
-	// Calculate credits gained (1 M€ per card)
-	creditsGained := cardCount
-
-	// Update player resources
-	updatedPlayer := player
-	updatedPlayer.Resources.Credits += creditsGained
-
-	// Update player resources first
-	if err := s.playerRepo.UpdateResources(ctx, gameID, updatedPlayer.ID, updatedPlayer.Resources); err != nil {
-		log.Error("Failed to update player resources after selling patents", zap.Error(err))
-		return fmt.Errorf("failed to update player resources: %w", err)
+	// Create pending card selection with all player's cards
+	// Each card costs 0 MC to "select" (sell) and rewards 1 MC
+	cardCosts := make(map[string]int)
+	cardRewards := make(map[string]int)
+	for _, cardID := range player.Cards {
+		cardCosts[cardID] = 0   // Free to select (selling)
+		cardRewards[cardID] = 1 // Gain 1 MC per card sold
 	}
 
-	// Remove cards from hand (remove first N cards)
-	for i := 0; i < cardCount && i < len(player.Cards); i++ {
-		cardToRemove := player.Cards[i]
-		if err := s.playerRepo.RemoveCard(ctx, gameID, playerID, cardToRemove); err != nil {
-			log.Error("Failed to remove card after selling patents",
-				zap.String("card_id", cardToRemove),
-				zap.Error(err))
-			return fmt.Errorf("failed to remove card %s: %w", cardToRemove, err)
+	selection := &model.PendingCardSelection{
+		AvailableCards: player.Cards, // All cards in hand available
+		CardCosts:      cardCosts,
+		CardRewards:    cardRewards,
+		Source:         "sell-patents",
+		MinCards:       0,                 // Can sell 0 cards (cancel action)
+		MaxCards:       len(player.Cards), // Can sell all cards
+	}
+
+	// Store the pending card selection
+	if err := s.playerRepo.UpdatePendingCardSelection(ctx, gameID, playerID, selection); err != nil {
+		log.Error("Failed to create pending card selection", zap.Error(err))
+		return fmt.Errorf("failed to create pending card selection: %w", err)
+	}
+
+	// Broadcast updated game state (includes pendingCardSelection)
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+	}
+
+	log.Info("🃏 Sell patents initiated, awaiting card selection",
+		zap.Int("available_cards", len(player.Cards)))
+
+	return nil
+}
+
+// ProcessCardSelection processes a card selection (sell patents, card effects, etc.)
+func (s *StandardProjectServiceImpl) ProcessCardSelection(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get pending card selection
+	selection, err := s.playerRepo.GetPendingCardSelection(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get pending card selection", zap.Error(err))
+		return fmt.Errorf("failed to get pending card selection: %w", err)
+	}
+
+	if selection == nil {
+		log.Warn("No pending card selection found")
+		return fmt.Errorf("no pending card selection")
+	}
+
+	// Validate card count is within bounds
+	if len(cardIDs) < selection.MinCards || len(cardIDs) > selection.MaxCards {
+		log.Warn("Invalid card selection count",
+			zap.Int("selected", len(cardIDs)),
+			zap.Int("min", selection.MinCards),
+			zap.Int("max", selection.MaxCards))
+		return fmt.Errorf("must select between %d and %d cards, got %d", selection.MinCards, selection.MaxCards, len(cardIDs))
+	}
+
+	// Validate all selected cards are in the available list
+	availableSet := make(map[string]bool)
+	for _, cardID := range selection.AvailableCards {
+		availableSet[cardID] = true
+	}
+	for _, cardID := range cardIDs {
+		if !availableSet[cardID] {
+			log.Warn("Player attempted to select unavailable card", zap.String("card_id", cardID))
+			return fmt.Errorf("card %s is not available for selection", cardID)
 		}
 	}
 
-	// Clean architecture: no manual game state sync needed
+	// Calculate total cost and reward
+	totalCost := 0
+	totalReward := 0
+	for _, cardID := range cardIDs {
+		totalCost += selection.CardCosts[cardID]
+		totalReward += selection.CardRewards[cardID]
+	}
 
-	log.Info("Player sold patents",
-		zap.Int("cards_sold", cardCount),
-		zap.Int("credits_gained", creditsGained))
+	// Get player
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Validate player can afford the cost
+	if player.Resources.Credits < totalCost {
+		log.Warn("Player cannot afford card selection",
+			zap.Int("cost", totalCost),
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", totalCost, player.Resources.Credits)
+	}
+
+	// Apply cost and reward
+	player.Resources.Credits -= totalCost
+	player.Resources.Credits += totalReward
+
+	// Update player resources
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, player.Resources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
+	}
+
+	// Remove selected cards from hand
+	for _, cardID := range cardIDs {
+		if err := s.playerRepo.RemoveCard(ctx, gameID, playerID, cardID); err != nil {
+			log.Error("Failed to remove card",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			return fmt.Errorf("failed to remove card %s: %w", cardID, err)
+		}
+	}
+
+	// Clear pending card selection
+	if err := s.playerRepo.ClearPendingCardSelection(ctx, gameID, playerID); err != nil {
+		log.Error("Failed to clear pending card selection", zap.Error(err))
+		return fmt.Errorf("failed to clear pending card selection: %w", err)
+	}
+
+	// Broadcast updated game state
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+	}
+
+	log.Info("✅ Card selection processed",
+		zap.String("source", selection.Source),
+		zap.Int("cards_selected", len(cardIDs)),
+		zap.Int("total_cost", totalCost),
+		zap.Int("total_reward", totalReward))
 
 	return nil
 }

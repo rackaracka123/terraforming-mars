@@ -166,9 +166,9 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   // Standard project actions
-  async sellPatents(cardCount: number): Promise<string> {
+  async sellPatents(): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.sellPatents(cardCount);
+    return webSocketService.sellPatents();
   }
 
   async launchAsteroid(): Promise<string> {

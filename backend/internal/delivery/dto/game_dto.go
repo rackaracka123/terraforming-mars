@@ -307,6 +307,16 @@ type PendingTileSelectionDto struct {
 	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
 }
 
+// PendingCardSelectionDto represents a pending card selection action (e.g., sell patents, card effects)
+type PendingCardSelectionDto struct {
+	AvailableCards []CardDto      `json:"availableCards" ts:"CardDto[]"`           // Card IDs player can select from
+	CardCosts      map[string]int `json:"cardCosts" ts:"Record<string, number>"`   // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
+	CardRewards    map[string]int `json:"cardRewards" ts:"Record<string, number>"` // Card ID -> reward for selecting (1 MC for sell patents)
+	Source         string         `json:"source" ts:"string"`                      // What triggered this selection ("sell-patents", card ID, etc.)
+	MinCards       int            `json:"minCards" ts:"number"`                    // Minimum cards to select (0 for sell patents)
+	MaxCards       int            `json:"maxCards" ts:"number"`                    // Maximum cards to select (hand size for sell patents)
+}
+
 // PlayerStatus represents the current status of a player in the game
 type PlayerStatus string
 
@@ -340,6 +350,8 @@ type PlayerDto struct {
 	StartingCards            []CardDto                    `json:"startingCards" ts:"CardDto[]"` // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
+	// Card selection - nullable, exists only when player needs to select cards
+	PendingCardSelection *PendingCardSelectionDto `json:"pendingCardSelection" ts:"PendingCardSelectionDto | null"` // Pending card selection (sell patents, card effects, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }

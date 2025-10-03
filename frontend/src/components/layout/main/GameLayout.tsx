@@ -50,6 +50,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     cards: [],
     selectStartingCardsPhase: undefined,
     productionPhase: undefined,
+    startingCards: [],
   });
 
   // Create a map of all players (current + others) for easy lookup
