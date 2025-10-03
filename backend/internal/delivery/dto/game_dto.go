@@ -325,7 +325,7 @@ type PlayerDto struct {
 	Corporation      *string           `json:"corporation" ts:"string | null"`
 	Cards            []CardDto         `json:"cards" ts:"CardDto[]"`
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
-	Production       ProductionDto     `json:"resourceProduction" ts:"ProductionDto"`
+	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
 	PlayedCards      []string          `json:"playedCards" ts:"string[]"`
 	Passed           bool              `json:"passed" ts:"boolean"`
@@ -337,6 +337,7 @@ type PlayerDto struct {
 
 	SelectStartingCardsPhase *SelectStartingCardsPhaseDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
 	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`
+	StartingCards            []CardDto                    `json:"startingCards" ts:"CardDto[]"` // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
 	// Tile selection - nullable, exists only when player needs to place tiles
 	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
 	// Resource storage - maps card IDs to resource counts stored on those cards
@@ -351,7 +352,7 @@ type OtherPlayerDto struct {
 	Corporation      string            `json:"corporation" ts:"string"`
 	HandCardCount    int               `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
-	Production       ProductionDto     `json:"resourceProduction" ts:"ProductionDto"`
+	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
 	PlayedCards      []string          `json:"playedCards" ts:"string[]"` // Played cards are public
 	Passed           bool              `json:"passed" ts:"boolean"`

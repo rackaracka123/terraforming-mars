@@ -23,7 +23,9 @@ func createTestStandardProjectService() service.StandardProjectService {
 	gameRepo := repository.NewGameRepository()
 	playerRepo := repository.NewPlayerRepository()
 	sessionManager := test.NewMockSessionManager()
-	return service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	return service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 }
 
 func createTestPlayerService() service.PlayerService {
@@ -67,7 +69,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	ctx := context.Background()
 
@@ -226,8 +228,6 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
-	validHexPosition := model.HexPosition{Q: 1, R: -1, S: 0}
-
 	t.Run("Successful build aquifer", func(t *testing.T) {
 		initialCredits := 100
 		initialTR := 20
@@ -238,8 +238,8 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		require.NoError(t, err)
 		initialOceans := initialParams.Oceans
 
-		// Execute build aquifer
-		err = standardProjectService.BuildAquifer(ctx, game.ID, playerID, validHexPosition)
+		// Execute build aquifer (no hex position needed - uses tile queue)
+		err = standardProjectService.BuildAquifer(ctx, game.ID, playerID)
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
@@ -257,20 +257,12 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 		assert.Equal(t, initialOceans+1, updatedParams.Oceans)
 	})
 
-	t.Run("Invalid hex position", func(t *testing.T) {
-		invalidHexPosition := model.HexPosition{Q: 1, R: 1, S: 1} // Sum != 0
-
-		err := standardProjectService.BuildAquifer(ctx, game.ID, playerID, invalidHexPosition)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid hex position")
-	})
+	// Invalid hex position test removed - hex positions now handled by tile queue system
 }
 
 func TestStandardProjectService_PlantGreenery(t *testing.T) {
 	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
-
-	validHexPosition := model.HexPosition{Q: 2, R: -1, S: -1}
 
 	t.Run("Successful plant greenery", func(t *testing.T) {
 		initialCredits := 100
@@ -282,8 +274,8 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		require.NoError(t, err)
 		initialOxygen := initialParams.Oxygen
 
-		// Execute plant greenery
-		err = standardProjectService.PlantGreenery(ctx, game.ID, playerID, validHexPosition)
+		// Execute plant greenery (no hex position needed - uses tile queue)
+		err = standardProjectService.PlantGreenery(ctx, game.ID, playerID)
 		assert.NoError(t, err)
 
 		// Verify player resources and TR
@@ -301,28 +293,20 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		assert.Equal(t, initialOxygen+1, updatedParams.Oxygen)
 	})
 
-	t.Run("Invalid hex position", func(t *testing.T) {
-		invalidHexPosition := model.HexPosition{Q: 1, R: 2, S: -2} // Sum != 0 (1+2-2=1)
-
-		err := standardProjectService.PlantGreenery(ctx, game.ID, playerID, invalidHexPosition)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid hex position")
-	})
+	// Invalid hex position test removed - hex positions now handled by tile queue system
 }
 
 func TestStandardProjectService_BuildCity(t *testing.T) {
 	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
-	validHexPosition := model.HexPosition{Q: -2, R: 1, S: 1}
-
 	t.Run("Successful build city", func(t *testing.T) {
 		initialCredits := 100
 		initialCreditProduction := 1
 		expectedCost := 25
 
-		// Execute build city
-		err := standardProjectService.BuildCity(ctx, game.ID, playerID, validHexPosition)
+		// Execute build city (no hex position needed - uses tile queue)
+		err := standardProjectService.BuildCity(ctx, game.ID, playerID)
 		assert.NoError(t, err)
 
 		// Verify player resources and production
@@ -335,35 +319,6 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 		assert.Equal(t, initialCreditProduction+1, player.Production.Credits)
 	})
 
-	t.Run("Invalid hex position", func(t *testing.T) {
-		invalidHexPosition := model.HexPosition{Q: 0, R: 0, S: 1} // Sum != 0 (0+0+1=1)
-
-		err := standardProjectService.BuildCity(ctx, game.ID, playerID, invalidHexPosition)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid hex position")
-	})
-}
-
-func TestHexPosition_IsValid(t *testing.T) {
-	tests := []struct {
-		name     string
-		position model.HexPosition
-		expected bool
-	}{
-		{"Valid position (0,0,0)", model.HexPosition{Q: 0, R: 0, S: 0}, true},
-		{"Valid position (1,-1,0)", model.HexPosition{Q: 1, R: -1, S: 0}, true},
-		{"Valid position (-2,1,1)", model.HexPosition{Q: -2, R: 1, S: 1}, true},
-		{"Invalid position (1,1,1)", model.HexPosition{Q: 1, R: 1, S: 1}, false},
-		{"Invalid position (1,0,0)", model.HexPosition{Q: 1, R: 0, S: 0}, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			svc := createTestStandardProjectService()
-			result := svc.IsValidHexPosition(&tt.position)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestPlayer_CanAffordStandardProject(t *testing.T) {

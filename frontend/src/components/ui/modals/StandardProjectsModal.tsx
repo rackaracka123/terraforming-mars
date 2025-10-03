@@ -12,6 +12,7 @@ import {
 import CostDisplay from "../display/CostDisplay.tsx";
 import ProductionDisplay from "../display/ProductionDisplay.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
+import { GLOBAL_PARAM_ICONS } from "@/constants/resourceIcons.ts";
 
 interface StandardProjectsModalProps {
   isVisible: boolean;
@@ -136,16 +137,12 @@ const StandardProjectsModal: React.FC<StandardProjectsModalProps> = ({
     // Global parameter effects
     if (project.effects.globalParameters) {
       project.effects.globalParameters.forEach((param, idx) => {
-        const paramIcons: { [key: string]: string } = {
-          temperature: "/assets/resources/heat.png",
-          oxygen: "/assets/resources/oxygen.png",
-          oceans: "/assets/resources/ocean.png",
-        };
+        const iconSrc = GLOBAL_PARAM_ICONS[param.type as keyof typeof GLOBAL_PARAM_ICONS];
         effects.push(
           <div key={`param-${idx}`} className="flex items-center gap-1">
             <div className="relative w-6 h-6">
               <img
-                src={paramIcons[param.type]}
+                src={iconSrc}
                 alt={param.type}
                 className="w-full h-full object-contain"
               />
