@@ -14,94 +14,7 @@ import (
 )
 
 func TestCardService_SelectStartingCards(t *testing.T) {
-	// Setup
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
-
 	ctx := context.Background()
-
-	// Create a test game
-	game := model.NewGame("test-game", model.GameSettings{MaxPlayers: 4})
-	game.Status = model.GameStatusActive
-	game.CurrentPhase = model.GamePhaseStartingCardSelection
-
-	// Create test player with starting credits
-	player := model.Player{
-		ID:   "player1",
-		Name: "Test Player",
-		Resources: model.Resources{
-			Credits: 40, // Starting credits
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	// Create game using clean architecture
-	createdGame, err := gameRepo.Create(ctx, game.Settings)
-	require.NoError(t, err)
-	gameID := createdGame.ID
-
-	// Set game status and phase using granular updates
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
-	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
-	require.NoError(t, err)
-
-	// Add player using clean architecture
-	err = playerRepo.Create(ctx, gameID, player)
-	require.NoError(t, err)
-	err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
-	require.NoError(t, err)
-
-	// Add a second dummy player to prevent automatic phase transition
-	// (phase transitions only when ALL players complete selection)
-	dummyPlayer := model.Player{
-		ID:              "player2",
-		Name:            "Dummy Player",
-		Resources:       model.Resources{Credits: 40},
-		Production:      model.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-	err = playerRepo.Create(ctx, gameID, dummyPlayer)
-	require.NoError(t, err)
-	err = gameRepo.AddPlayerID(ctx, gameID, dummyPlayer.ID)
-	require.NoError(t, err)
-
-	// Load cards and get real card IDs for testing
-	err = cardRepo.LoadCards(context.Background())
-	require.NoError(t, err, "Should load card data for testing")
-
-	startingCards, _ := cardRepo.GetStartingCardPool(context.Background())
-	require.GreaterOrEqual(t, len(startingCards), 4, "Should have at least 4 starting cards")
-
-	// Use real card IDs from loaded data
-	availableCardIDs := []string{
-		startingCards[0].ID,
-		startingCards[1].ID,
-		startingCards[2].ID,
-		startingCards[3].ID,
-	}
-	// Set up player's starting card selection (the cards they can choose from)
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &model.SelectStartingCardsPhase{
-		AvailableCards:    availableCardIDs,
-		SelectionComplete: false,
-	})
-	require.NoError(t, err)
 
 	tests := []struct {
 		name          string
@@ -118,25 +31,25 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		},
 		{
 			name:          "Select one card (3 MC)",
-			selectedCards: []string{availableCardIDs[0]},
+			selectedCards: []string{"card1"},
 			expectedCost:  3,
 			expectedError: false,
 		},
 		{
 			name:          "Select two cards (6 MC total)",
-			selectedCards: []string{availableCardIDs[0], availableCardIDs[1]},
+			selectedCards: []string{"card1", "card2"},
 			expectedCost:  6,
 			expectedError: false,
 		},
 		{
 			name:          "Select three cards (9 MC total)",
-			selectedCards: []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2]},
+			selectedCards: []string{"card1", "card2", "card3"},
 			expectedCost:  9,
 			expectedError: false,
 		},
 		{
 			name:          "Select four cards (12 MC total)",
-			selectedCards: []string{availableCardIDs[0], availableCardIDs[1], availableCardIDs[2], availableCardIDs[3]},
+			selectedCards: []string{"card1", "card2", "card3", "card4"},
 			expectedCost:  12,
 			expectedError: false,
 		},
@@ -148,60 +61,113 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 		},
 		{
 			name:          "Select too many cards",
-			selectedCards: append(availableCardIDs, "extra-card-id"),
+			selectedCards: []string{"card1", "card2", "card3", "card4", "extra-card"},
 			expectedError: true,
-			errorMessage:  "invalid card ID: extra-card-id",
+			errorMessage:  "invalid card ID: extra-card",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset player state for each test
-			resetPlayer := model.Player{
-				ID:   "player1",
-				Name: "Test Player",
-				Resources: model.Resources{
-					Credits: 40,
-				},
-				Production: model.Production{
-					Credits: 1,
-				},
+			// Create fresh repositories for each subtest to avoid state pollution
+			gameRepo := repository.NewGameRepository()
+			playerRepo := repository.NewPlayerRepository()
+			cardRepo := repository.NewCardRepository()
+			cardDeckRepo := repository.NewCardDeckRepository()
+			sessionManager := test.NewMockSessionManager()
+			boardService := service.NewBoardService()
+			tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+			cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+
+			// Load cards
+			err := cardRepo.LoadCards(ctx)
+			require.NoError(t, err)
+
+			// Get real card IDs
+			startingCards, _ := cardRepo.GetStartingCardPool(ctx)
+			require.GreaterOrEqual(t, len(startingCards), 4)
+
+			availableCardIDs := []string{
+				startingCards[0].ID,
+				startingCards[1].ID,
+				startingCards[2].ID,
+				startingCards[3].ID,
+			}
+
+			// Map test card names to real IDs
+			cardMap := map[string]string{
+				"card1": availableCardIDs[0],
+				"card2": availableCardIDs[1],
+				"card3": availableCardIDs[2],
+				"card4": availableCardIDs[3],
+			}
+			realSelectedCards := make([]string, 0, len(tt.selectedCards))
+			for _, cardName := range tt.selectedCards {
+				if realID, ok := cardMap[cardName]; ok {
+					realSelectedCards = append(realSelectedCards, realID)
+				} else {
+					realSelectedCards = append(realSelectedCards, cardName) // Keep invalid cards as-is for testing
+				}
+			}
+
+			// Create game
+			game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+			require.NoError(t, err)
+			gameID := game.ID
+
+			err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+			require.NoError(t, err)
+			err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
+			require.NoError(t, err)
+
+			// Create player
+			player := model.Player{
+				ID:              "player1",
+				Name:            "Test Player",
+				Resources:       model.Resources{Credits: 40},
+				Production:      model.Production{Credits: 1},
 				TerraformRating: 20,
 				IsConnected:     true,
 				Cards:           []string{},
 				PlayedCards:     []string{},
 			}
-
-			// Update player resources using granular update
-			err := playerRepo.UpdateResources(ctx, gameID, resetPlayer.ID, resetPlayer.Resources)
+			err = playerRepo.Create(ctx, gameID, player)
+			require.NoError(t, err)
+			err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
 			require.NoError(t, err)
 
-			// Clear any existing cards from previous test runs
-			currentPlayer, err := playerRepo.GetByID(ctx, gameID, resetPlayer.ID)
-			require.NoError(t, err)
-			for _, cardID := range currentPlayer.Cards {
-				err = playerRepo.RemoveCard(ctx, gameID, resetPlayer.ID, cardID)
-				require.NoError(t, err)
+			// Add dummy player to prevent auto-phase-transition
+			dummyPlayer := model.Player{
+				ID:              "player2",
+				Name:            "Dummy Player",
+				Resources:       model.Resources{Credits: 40},
+				Production:      model.Production{Credits: 1},
+				TerraformRating: 20,
+				IsConnected:     true,
 			}
+			err = playerRepo.Create(ctx, gameID, dummyPlayer)
+			require.NoError(t, err)
+			err = gameRepo.AddPlayerID(ctx, gameID, dummyPlayer.ID)
+			require.NoError(t, err)
 
-			// Reset player's starting selection (only for player1, not dummy)
-			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, resetPlayer.ID, &model.SelectStartingCardsPhase{
+			// Set up starting card selection phase
+			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &model.SelectStartingCardsPhase{
 				AvailableCards:        availableCardIDs,
 				AvailableCorporations: []string{"CC1", "PC5"},
 				SelectionComplete:     false,
 			})
 			require.NoError(t, err)
 
-			// Mark dummy player as already completed to prevent triggering phase transition
+			// Mark dummy player as completed
 			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, dummyPlayer.ID, &model.SelectStartingCardsPhase{
 				AvailableCards:        []string{},
 				AvailableCorporations: []string{},
-				SelectionComplete:     true, // Already complete, so won't block other players
+				SelectionComplete:     true,
 			})
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, tt.selectedCards, "CC1")
+			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, realSelectedCards, "CC1")
 
 			// Assert
 			if tt.expectedError {
@@ -212,19 +178,16 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				// Verify player state after selection
+				// Verify player state
 				updatedPlayer, err := playerRepo.GetByID(ctx, gameID, player.ID)
 				require.NoError(t, err)
 
-				// Check cards were added to player's hand
-				assert.Equal(t, len(tt.selectedCards), len(updatedPlayer.Cards))
-				for _, cardID := range tt.selectedCards {
+				assert.Equal(t, len(realSelectedCards), len(updatedPlayer.Cards))
+				for _, cardID := range realSelectedCards {
 					assert.Contains(t, updatedPlayer.Cards, cardID)
 				}
 
-				// Corporation CC1 (Aridor) gives 42 starting credits
-				// Cards cost 3 MC each
-				// Expected credits = 42 (corporation bonus) - cost
+				// CC1 (Aridor) gives 42 credits, cards cost 3 MC each
 				expectedCredits := 42 - tt.expectedCost
 				assert.Equal(t, expectedCredits, updatedPlayer.Resources.Credits)
 			}
