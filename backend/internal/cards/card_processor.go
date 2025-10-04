@@ -28,7 +28,8 @@ func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.
 // ApplyCardEffects applies all effects when a card is played to the game state
 // This function assumes all requirements and affordability checks have already been validated
 // choiceIndex is optional and used when the card has choices between different effects
-func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+// cardStorageTarget is optional and used when outputs target "any-card" storage
+func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎭 Applying card effects", zap.String("card_name", card.Name))
 
@@ -57,8 +58,8 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to apply victory point conditions: %w", err)
 	}
 
-	// Apply immediate resource effects
-	if err := cp.applyResourceEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
+	// Apply immediate resource effects including card storage
+	if err := cp.applyResourceEffects(ctx, gameID, playerID, card, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to apply resource effects: %w", err)
 	}
 
@@ -289,7 +290,8 @@ func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID
 
 // applyResourceEffects applies immediate resource gains/losses from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
-func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+// cardStorageTarget is optional and used when outputs target "any-card" storage
+func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources
@@ -341,6 +343,13 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 				case model.ResourceHeat:
 					newResources.Heat += output.Amount
 					heatChange += output.Amount
+
+				// Card storage resources (animals, microbes, floaters, science, asteroid)
+				case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+					// Handle card storage resources
+					if err := cp.ApplyCardStorageResource(ctx, gameID, playerID, card.ID, output, cardStorageTarget, log); err != nil {
+						return fmt.Errorf("failed to apply card storage resource: %w", err)
+					}
 				}
 			}
 		}
@@ -403,4 +412,82 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 
 	// Delegate to PlayerRepository to handle the queue creation and processing
 	return cp.playerRepo.CreateTileQueue(ctx, gameID, playerID, card.ID, tilePlacementQueue)
+}
+
+// ApplyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)
+// This is exported so it can be used by CardService for both card play and card actions
+func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, playerID, playedCardID string, output model.ResourceCondition, cardStorageTarget *string, log *zap.Logger) error {
+	// Get current player to access resource storage
+	player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player for card storage update: %w", err)
+	}
+
+	// Initialize resource storage map if nil
+	if player.ResourceStorage == nil {
+		player.ResourceStorage = make(map[string]int)
+	}
+
+	// Determine target card based on output.Target
+	var targetCardID string
+	switch output.Target {
+	case model.TargetSelfCard:
+		// Target is the card itself (the card being played)
+		targetCardID = playedCardID
+		log.Debug("💾 Applying card storage to self-card",
+			zap.String("target_card_id", targetCardID),
+			zap.String("resource_type", string(output.Type)),
+			zap.Int("amount", output.Amount))
+
+	case model.TargetAnyCard:
+		// Target is any card - if not provided or empty, resources will be discarded
+		if cardStorageTarget == nil || *cardStorageTarget == "" {
+			log.Info("⚠️ No card storage target provided - resources will be lost",
+				zap.String("resource_type", string(output.Type)),
+				zap.Int("amount", output.Amount))
+			return nil // Successfully handled - resources are discarded
+		}
+
+		targetCardID = *cardStorageTarget
+
+		// Validate that target card exists in player's played cards
+		targetCardExists := false
+		for _, playedCardID := range player.PlayedCards {
+			if playedCardID == targetCardID {
+				targetCardExists = true
+				break
+			}
+		}
+		if !targetCardExists {
+			return fmt.Errorf("target card %s not found in player's played cards", targetCardID)
+		}
+
+		// Note: We skip storage type validation here as we'd need cardRepo access
+		// The frontend filters cards to show only valid storage targets
+		log.Debug("💾 Applying card storage to any-card",
+			zap.String("target_card_id", targetCardID),
+			zap.String("resource_type", string(output.Type)),
+			zap.Int("amount", output.Amount))
+
+	default:
+		// Other targets are not valid for card storage
+		return fmt.Errorf("invalid target type for card storage: %s", output.Target)
+	}
+
+	// Update the resource storage for the target card
+	player.ResourceStorage[targetCardID] += output.Amount
+
+	// Persist the updated resource storage
+	if err := cp.playerRepo.UpdateResourceStorage(ctx, gameID, playerID, player.ResourceStorage); err != nil {
+		log.Error("Failed to update card resource storage", zap.Error(err))
+		return fmt.Errorf("failed to update card resource storage: %w", err)
+	}
+
+	log.Info("✅ Card storage resource applied",
+		zap.String("target_card_id", targetCardID),
+		zap.String("resource_type", string(output.Type)),
+		zap.Int("amount", output.Amount),
+		zap.Int("new_storage_amount", player.ResourceStorage[targetCardID]))
+
+	return nil
 }

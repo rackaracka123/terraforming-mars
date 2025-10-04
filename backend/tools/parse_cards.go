@@ -1082,11 +1082,11 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 
 		if behavior.CardResources != "" && behavior.ResourceType != "" {
 			resourceType := parseResourceType(behavior.ResourceType)
-			target := model.TargetAny
+			target := model.TargetAnyCard
 			if behavior.Where == "self" || behavior.Where == "here" {
 				target = model.TargetSelfCard
 			} else if behavior.Where == "any" {
-				target = model.TargetAny
+				target = model.TargetAnyCard
 			}
 
 			cardResourceAmount := parseResourceAmount(behavior.CardResources)
@@ -1245,7 +1245,7 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		// Check if it should target all players (ANY tags) or just self-player (own tags)
 		if strings.Contains(nEqualsLower, "any ") {
 			// "any science tags" = count all players' tags
-			targetVal := model.TargetAny
+			targetVal := model.TargetAnyPlayer
 			target = &targetVal
 		} else {
 			// "science tags" (without "any") = count only self-player's tags
@@ -1920,7 +1920,7 @@ func parseVictoryConditionsFromBehaviors(behaviors []BehaviorData, record []stri
 			// Determine what to count from based on "Where" column
 			target := model.TargetSelfCard // Default - count from this card
 			if strings.ToLower(behavior.Where) == "any" {
-				target = model.TargetAny // Count globally
+				target = model.TargetAnyCard // Count globally across all cards
 			}
 
 			// Check cards.csv "per" column for maxTrigger
@@ -1934,7 +1934,7 @@ func parseVictoryConditionsFromBehaviors(behaviors []BehaviorData, record []stri
 
 			// Convert target to location
 			var location model.CardApplyLocation
-			if target == model.TargetAny {
+			if target == model.TargetAnyCard {
 				location = model.CardApplyLocationAnywhere
 			} else {
 				location = model.CardApplyLocationAnywhere // Default for self-card resources
@@ -2378,18 +2378,18 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 	// Card resources (like floaters, microbes, animals)
 	if choice.CardResources != "" && choice.ResourceType != "" {
 		resourceType := parseResourceType(choice.ResourceType)
-		target := model.TargetAny // Default for card resources
+		target := model.TargetAnyCard // Default for card resources
 		if choice.Where == "self" || choice.Where == "here" {
 			target = model.TargetSelfCard
 		} else if choice.Where == "any" {
-			target = model.TargetAny // "any" means any card for card resources
+			target = model.TargetAnyCard // "any" means any card for card resources
 		}
 
 		// For attacks, update targeting and negate amounts
 		amount := parseResourceAmount(choice.CardResources)
 		if isAttack {
-			target = model.TargetAny // Keep "any" for card resources in attacks
-			amount = -amount         // Negate for attacks (removing resources)
+			target = model.TargetAnyCard // Keep "any-card" for card resources in attacks
+			amount = -amount             // Negate for attacks (removing resources)
 		}
 
 		affectedTags := parseWhereToAffectedTags(choice.Where)

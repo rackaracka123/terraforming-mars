@@ -3,6 +3,8 @@ import {
   GameDto,
   GamePhaseAction,
   PlayerDto,
+  ResourceTriggerAuto,
+  ResourceTriggerManual,
 } from "../types/generated/api-types.ts";
 
 // Cache for all cards fetched from the backend
@@ -116,6 +118,29 @@ function checkBehaviorCosts(
   for (const behavior of card.behaviors) {
     if (!behavior.outputs || behavior.outputs.length === 0) {
       continue;
+    }
+
+    // Skip behaviors that shouldn't be checked when playing the card
+    // Only check auto-triggered behaviors without conditions
+    if (behavior.triggers && behavior.triggers.length > 0) {
+      const shouldSkip = behavior.triggers.some((trigger) => {
+        // Skip manual triggers (actions checked separately when used)
+        if (trigger.type === ResourceTriggerManual) {
+          return true;
+        }
+        // Skip auto triggers with conditions (not yet supported)
+        if (
+          trigger.type === ResourceTriggerAuto &&
+          trigger.condition !== undefined
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (shouldSkip) {
+        continue;
+      }
     }
 
     for (const output of behavior.outputs) {

@@ -25,33 +25,65 @@ const isActionAvailable = (
   }
 
   const playerResources = gameState.currentPlayer.resources;
-  const actionInputs = action.behavior.inputs || [];
+  const resourceStorage = gameState.currentPlayer.resourceStorage || {};
 
-  for (const input of actionInputs) {
-    switch (input.type) {
-      case "credits":
-        if (playerResources.credits < input.amount) return false;
-        break;
-      case "steel":
-        if (playerResources.steel < input.amount) return false;
-        break;
-      case "titanium":
-        if (playerResources.titanium < input.amount) return false;
-        break;
-      case "plants":
-        if (playerResources.plants < input.amount) return false;
-        break;
-      case "energy":
-        if (playerResources.energy < input.amount) return false;
-        break;
-      case "heat":
-        if (playerResources.heat < input.amount) return false;
-        break;
-      // Add more resource types as needed
+  // Helper to check if a set of inputs is affordable
+  const areInputsAffordable = (inputs: any[]): boolean => {
+    for (const input of inputs) {
+      switch (input.type) {
+        case "credits":
+          if (playerResources.credits < input.amount) return false;
+          break;
+        case "steel":
+          if (playerResources.steel < input.amount) return false;
+          break;
+        case "titanium":
+          if (playerResources.titanium < input.amount) return false;
+          break;
+        case "plants":
+          if (playerResources.plants < input.amount) return false;
+          break;
+        case "energy":
+          if (playerResources.energy < input.amount) return false;
+          break;
+        case "heat":
+          if (playerResources.heat < input.amount) return false;
+          break;
+
+        // Card storage resources
+        case "animals":
+        case "microbes":
+        case "floaters":
+        case "science":
+        case "asteroid":
+          if (input.target === "self-card") {
+            const cardStorage = resourceStorage[action.cardId] || 0;
+            if (cardStorage < input.amount) return false;
+          }
+          break;
+      }
     }
-  }
+    return true;
+  };
 
-  return true;
+  // Check if action has choices
+  if (action.behavior.choices && action.behavior.choices.length > 0) {
+    // For choice-based actions, at least ONE choice must be affordable
+    for (const choice of action.behavior.choices) {
+      const choiceInputs = [
+        ...(action.behavior.inputs || []),
+        ...(choice.inputs || []),
+      ];
+      if (areInputsAffordable(choiceInputs)) {
+        return true; // At least one choice is affordable
+      }
+    }
+    return false; // No choice is affordable
+  } else {
+    // For non-choice actions, check behavior inputs
+    const actionInputs = action.behavior.inputs || [];
+    return areInputsAffordable(actionInputs);
+  }
 };
 
 interface ActionsPopoverProps {
@@ -232,6 +264,10 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                       <BehaviorSection
                         behaviors={[action.behavior]}
                         playerResources={gameState?.currentPlayer?.resources}
+                        resourceStorage={
+                          gameState?.currentPlayer?.resourceStorage
+                        }
+                        cardId={action.cardId}
                         greyOutAll={action.playCount > 0}
                       />
                     </div>

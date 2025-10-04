@@ -93,9 +93,9 @@ type TargetType string
 const (
 	TargetSelfPlayer TargetType = "self-player"
 	TargetSelfCard   TargetType = "self-card"
+	TargetAnyCard    TargetType = "any-card"
 	TargetAnyPlayer  TargetType = "any-player"
 	TargetOpponent   TargetType = "opponent"
-	TargetAny        TargetType = "any"
 	TargetNone       TargetType = "none"
 )
 

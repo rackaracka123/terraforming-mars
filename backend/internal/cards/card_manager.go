@@ -14,11 +14,13 @@ import (
 type CardManager interface {
 	// CanPlay checks if a player can play a specific card (card validation only)
 	// choiceIndex is optional and used when the card has choices between different effects
-	CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error
+	// cardStorageTarget is optional and used when outputs target "any-card" storage
+	CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
 
 	// PlayCard plays a card (assumes CanPlay validation has passed)
 	// choiceIndex is optional and used when the card has choices between different effects
-	PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error
+	// cardStorageTarget is optional and used when outputs target "any-card" storage
+	PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
 }
 
 // CardManagerImpl implements the simplified card management interface
@@ -43,7 +45,8 @@ func NewCardManager(gameRepo repository.GameRepository, playerRepo repository.Pl
 
 // CanPlay validates if a player can play a specific card (card-specific validation only)
 // choiceIndex is optional and used when the card has choices between different effects
-func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error {
+// cardStorageTarget is optional and used when outputs target "any-card" storage
+func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🔍 Validating card requirements and affordability", zap.String("card_id", cardID))
 
@@ -85,7 +88,9 @@ func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID
 }
 
 // PlayCard plays a card (assumes CanPlay validation has already passed)
-func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error {
+// choiceIndex is optional and used when the card has choices between different effects
+// cardStorageTarget is optional and used when outputs target "any-card" storage
+func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎮 Playing card", zap.String("card_id", cardID))
 
@@ -148,8 +153,8 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 			zap.Int("starting_amount", card.ResourceStorage.Starting))
 	}
 
-	// STEP 4: Apply card effects with choice index
-	if err := cm.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
+	// STEP 4: Apply card effects with choice index and card storage target
+	if err := cm.effectProcessor.ApplyCardEffects(ctx, gameID, playerID, card, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}
 	log.Debug("✨ Card effects applied")

@@ -230,9 +230,9 @@ type TargetType string
 const (
 	TargetSelfPlayer TargetType = "self-player" // Targets the player who played/owns the card
 	TargetSelfCard   TargetType = "self-card"   // Targets the specific card itself
+	TargetAnyCard    TargetType = "any-card"    // Targets any card with matching resource storage
 	TargetAnyPlayer  TargetType = "any-player"  // Can target any player
 	TargetOpponent   TargetType = "opponent"    // Targets opponent players
-	TargetAny        TargetType = "any"         // No specific target or global scope
 	TargetNone       TargetType = "none"        // No target (e.g., global parameter changes)
 )
 

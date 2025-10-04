@@ -62,7 +62,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		}
 
 		// Apply card effects
-		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithCityPlacement, nil)
+		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithCityPlacement, nil, nil)
 		require.NoError(t, err)
 
 		// Verify that a tile queue was created
@@ -105,7 +105,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		}
 
 		// Apply card effects
-		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMultipleTiles, nil)
+		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMultipleTiles, nil, nil)
 		require.NoError(t, err)
 
 		// Verify the queue was created with all 3 tiles
@@ -157,7 +157,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		}
 
 		// Apply card effects
-		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMixedTriggers, nil)
+		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithMixedTriggers, nil, nil)
 		require.NoError(t, err)
 
 		// Verify that only the auto-triggered tile placement created a queue
@@ -208,7 +208,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		}
 
 		// Apply card effects
-		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithNoTiles, nil)
+		err := cardProcessor.ApplyCardEffects(ctx, game.ID, player.ID, cardWithNoTiles, nil, nil)
 		require.NoError(t, err)
 
 		// Verify no queue was created (no tile placement effects)

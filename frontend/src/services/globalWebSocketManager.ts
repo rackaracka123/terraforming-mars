@@ -208,18 +208,28 @@ class GlobalWebSocketManager implements WebSocketConnection {
   }
 
   // Card actions
-  async playCard(cardId: string, choiceIndex?: number): Promise<string> {
+  async playCard(
+    cardId: string,
+    choiceIndex?: number,
+    cardStorageTarget?: string,
+  ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCard(cardId, choiceIndex);
+    return webSocketService.playCard(cardId, choiceIndex, cardStorageTarget);
   }
 
   async playCardAction(
     cardId: string,
     behaviorIndex: number,
     choiceIndex?: number,
+    cardStorageTarget?: string,
   ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCardAction(cardId, behaviorIndex, choiceIndex);
+    return webSocketService.playCardAction(
+      cardId,
+      behaviorIndex,
+      choiceIndex,
+      cardStorageTarget,
+    );
   }
 
   async selectStartingCard(cardIds: string[]): Promise<string> {
