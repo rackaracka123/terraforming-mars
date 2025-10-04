@@ -440,7 +440,6 @@ function TileModel({ tileType, position }: TileModelProps) {
     const targetSize = 0.2; // Increased from 0.15 to make models larger
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);
     const scaleFactor = targetSize / maxDimension;
 
@@ -454,16 +453,30 @@ function TileModel({ tileType, position }: TileModelProps) {
     // Position to center the model at origin
     clonedScene.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z);
 
-    // Enable shadows
+    // Enable shadows and apply material modifications
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+
+        // Apply water-specific material properties for ocean tiles
+        if (tileType === "ocean" && child.material) {
+          const material = child.material as THREE.MeshStandardMaterial;
+          if (material.isMeshStandardMaterial) {
+            // Make water more transparent and reflective
+            material.transparent = true;
+            material.opacity = 0.7;
+            material.metalness = 0.3;
+            material.roughness = 0.2;
+            // Tint with blue color
+            material.color = new THREE.Color(0.2, 0.5, 0.8);
+          }
+        }
       }
     });
 
     return clonedScene;
-  }, [scene]);
+  }, [scene, tileType]);
 
   // Rotation for specific tile types
   const rotation: [number, number, number] = useMemo(() => {
