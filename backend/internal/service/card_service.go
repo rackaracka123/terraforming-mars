@@ -29,10 +29,10 @@ type CardService interface {
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
 	// Player actions for playing cards
-	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
 
 	// Play a card action from player's action list
-	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int) error
+	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int, cardStorageTarget *string) error
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
@@ -157,7 +157,7 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
 
@@ -227,12 +227,12 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 2: Use CardManager for card-specific validation (including choice-based costs)
-	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
+	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("card cannot be played: %w", err)
 	}
 
-	// STEP 3: Use CardManager to play the card with choice index
-	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex); err != nil {
+	// STEP 3: Use CardManager to play the card with choice index and card storage target
+	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 
@@ -295,7 +295,7 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 }
 
 // OnPlayCardAction plays a card action from the player's action list
-func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int) error {
+func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Starting card action play",
 		zap.String("card_id", cardID),
@@ -375,7 +375,7 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 	}
 
 	// Apply the action outputs (give resources/production/etc., including choice-specific outputs)
-	if err := s.applyActionOutputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
+	if err := s.applyActionOutputs(ctx, gameID, playerID, targetAction, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to apply action outputs: %w", err)
 	}
 
@@ -498,7 +498,56 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 			zap.Int("choice_inputs_count", len(selectedChoice.Inputs)))
 	}
 
-	// Apply each input by deducting resources
+	// VALIDATION PHASE: Check if all inputs can be afforded before making any changes
+	for _, input := range allInputs {
+		switch input.Type {
+		case model.ResourceCredits:
+			if newResources.Credits < input.Amount {
+				return fmt.Errorf("insufficient credits: need %d, have %d", input.Amount, newResources.Credits)
+			}
+		case model.ResourceSteel:
+			if newResources.Steel < input.Amount {
+				return fmt.Errorf("insufficient steel: need %d, have %d", input.Amount, newResources.Steel)
+			}
+		case model.ResourceTitanium:
+			if newResources.Titanium < input.Amount {
+				return fmt.Errorf("insufficient titanium: need %d, have %d", input.Amount, newResources.Titanium)
+			}
+		case model.ResourcePlants:
+			if newResources.Plants < input.Amount {
+				return fmt.Errorf("insufficient plants: need %d, have %d", input.Amount, newResources.Plants)
+			}
+		case model.ResourceEnergy:
+			if newResources.Energy < input.Amount {
+				return fmt.Errorf("insufficient energy: need %d, have %d", input.Amount, newResources.Energy)
+			}
+		case model.ResourceHeat:
+			if newResources.Heat < input.Amount {
+				return fmt.Errorf("insufficient heat: need %d, have %d", input.Amount, newResources.Heat)
+			}
+
+		// Card storage resources (animals, microbes, floaters, science, asteroid)
+		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+			// Validate card storage resource inputs
+			if input.Target == model.TargetSelfCard {
+				// Initialize resource storage map if nil (for checking)
+				if player.ResourceStorage == nil {
+					player.ResourceStorage = make(map[string]int)
+				}
+
+				currentStorage := player.ResourceStorage[action.CardID]
+				if currentStorage < input.Amount {
+					return fmt.Errorf("insufficient %s storage on card %s: need %d, have %d",
+						input.Type, action.CardID, input.Amount, currentStorage)
+				}
+			}
+		}
+	}
+
+	// Track if resource storage was modified
+	resourceStorageModified := false
+
+	// APPLICATION PHASE: Apply each input by deducting resources
 	for _, input := range allInputs {
 		switch input.Type {
 		case model.ResourceCredits:
@@ -513,6 +562,33 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 			newResources.Energy -= input.Amount
 		case model.ResourceHeat:
 			newResources.Heat -= input.Amount
+
+		// Card storage resources (animals, microbes, floaters, science, asteroid)
+		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+			// Handle card storage resource inputs
+			if input.Target == model.TargetSelfCard {
+				// Initialize resource storage map if nil
+				if player.ResourceStorage == nil {
+					player.ResourceStorage = make(map[string]int)
+				}
+
+				// Deduct from card storage
+				currentStorage := player.ResourceStorage[action.CardID]
+				player.ResourceStorage[action.CardID] = currentStorage - input.Amount
+				resourceStorageModified = true
+
+				log.Debug("📉 Deducted card storage resource",
+					zap.String("card_id", action.CardID),
+					zap.String("resource_type", string(input.Type)),
+					zap.Int("amount", input.Amount),
+					zap.Int("previous_storage", currentStorage),
+					zap.Int("new_storage", player.ResourceStorage[action.CardID]))
+			} else {
+				log.Warn("Card storage input with non-self-card target not supported",
+					zap.String("type", string(input.Type)),
+					zap.String("target", string(input.Target)))
+			}
+
 		default:
 			log.Warn("Unknown input resource type during application", zap.String("type", string(input.Type)))
 		}
@@ -528,13 +604,21 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
+	// Update resource storage if modified
+	if resourceStorageModified {
+		if err := s.playerRepo.UpdateResourceStorage(ctx, gameID, playerID, player.ResourceStorage); err != nil {
+			log.Error("Failed to update resource storage for action inputs", zap.Error(err))
+			return fmt.Errorf("failed to update resource storage: %w", err)
+		}
+	}
+
 	log.Debug("✅ Action inputs applied successfully")
 	return nil
 }
 
 // applyActionOutputs applies the action outputs by giving resources/production/etc. to the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
+func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources and production
@@ -631,6 +715,14 @@ func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, player
 				return fmt.Errorf("failed to update terraform rating: %w", err)
 			}
 			trChanged = true
+
+		// Card storage resources (animals, microbes, floaters, science, asteroid)
+		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+			// Use the CardProcessor's applyCardStorageResource method
+			// For actions, the "played card" is the card that has this action
+			if err := s.effectProcessor.ApplyCardStorageResource(ctx, gameID, playerID, action.CardID, output, cardStorageTarget, log); err != nil {
+				return fmt.Errorf("failed to apply card storage resource for action: %w", err)
+			}
 
 		default:
 			log.Warn("Unknown output resource type", zap.String("type", string(output.Type)))

@@ -130,7 +130,7 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID, nil)
+			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID, nil, nil)
 
 			// Cleanup
 			cleanupErr := tt.cleanupFunc()
@@ -234,7 +234,7 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID, nil)
+	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID, nil, nil)
 
 	// Assert - should fail due to insufficient credits
 	assert.Error(t, err)

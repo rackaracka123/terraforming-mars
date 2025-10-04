@@ -804,7 +804,7 @@
               {
                 "type": "microbes",
                 "amount": 3,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -813,7 +813,7 @@
               {
                 "type": "animals",
                 "amount": 2,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -1100,7 +1100,7 @@
           {
             "type": "animals",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -2013,7 +2013,7 @@
               {
                 "type": "animals",
                 "amount": -2,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -2958,7 +2958,7 @@
               {
                 "type": "credits",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -5014,7 +5014,7 @@
           {
             "type": "microbes",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -5057,7 +5057,7 @@
               {
                 "type": "microbes",
                 "amount": 2,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -5354,7 +5354,7 @@
               {
                 "type": "animals",
                 "amount": 4,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -5608,7 +5608,7 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -6078,7 +6078,7 @@
           {
             "type": "microbes",
             "amount": 3,
-            "target": "any"
+            "target": "any-card"
           },
           {
             "type": "tr",
@@ -6088,7 +6088,7 @@
           {
             "type": "animals",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -6357,7 +6357,7 @@
           {
             "type": "microbes",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -7178,7 +7178,7 @@
               {
                 "type": "animals",
                 "amount": 2,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -7799,7 +7799,7 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       },
@@ -7815,7 +7815,7 @@
               {
                 "type": "credits",
                 "amount": 2,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -7824,7 +7824,7 @@
               {
                 "type": "credits",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -7940,7 +7940,7 @@
               {
                 "type": "floaters",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -8035,7 +8035,7 @@
           {
             "type": "floaters",
             "amount": 3,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "venus"
             ]
@@ -8112,7 +8112,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ],
         "choices": [
@@ -8195,7 +8195,7 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "venus"
             ]
@@ -8335,7 +8335,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -8437,7 +8437,7 @@
           {
             "type": "microbes",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -8494,7 +8494,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -8615,7 +8615,7 @@
               {
                 "type": "animals",
                 "amount": 2,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "venus"
                 ]
@@ -8627,7 +8627,7 @@
               {
                 "type": "microbes",
                 "amount": 2,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "venus"
                 ]
@@ -8746,7 +8746,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "venus"
             ]
@@ -9052,7 +9052,7 @@
           {
             "type": "credits",
             "amount": 1,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "venus"
             ]
@@ -9423,7 +9423,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "venus"
             ]
@@ -9476,7 +9476,7 @@
           {
             "type": "floaters",
             "amount": -1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       },
@@ -9639,7 +9639,7 @@
               {
                 "type": "microbes",
                 "amount": 1,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "venus"
                 ]
@@ -9772,7 +9772,7 @@
           {
             "type": "microbes",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -9951,7 +9951,7 @@
               {
                 "type": "animals",
                 "amount": 1,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "venus"
                 ]
@@ -9963,7 +9963,7 @@
               {
                 "type": "microbes",
                 "amount": 1,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "venus"
                 ]
@@ -10570,7 +10570,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -10613,7 +10613,7 @@
           {
             "type": "floaters",
             "amount": -1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -10636,7 +10636,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       },
@@ -10886,12 +10886,12 @@
           {
             "type": "animals",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           },
           {
             "type": "microbes",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -10930,7 +10930,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -10956,7 +10956,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -10987,7 +10987,7 @@
               "type": "tag",
               "amount": 1,
               "location": "anywhere",
-              "target": "any",
+              "target": "any-player",
               "tag": "jovian"
             }
           }
@@ -11150,7 +11150,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           },
           {
             "type": "tr",
@@ -11228,7 +11228,7 @@
               {
                 "type": "floaters",
                 "amount": 1,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "jovian"
                 ]
@@ -11529,7 +11529,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "jovian"
             ]
@@ -12099,7 +12099,7 @@
           {
             "type": "floaters",
             "amount": 2,
-            "target": "any",
+            "target": "any-card",
             "affectedTags": [
               "jovian"
             ]
@@ -12118,7 +12118,7 @@
               {
                 "type": "floaters",
                 "amount": 1,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "jovian"
                 ]
@@ -12171,7 +12171,7 @@
               {
                 "type": "floaters",
                 "amount": 2,
-                "target": "any",
+                "target": "any-card",
                 "affectedTags": [
                   "jovian"
                 ]
@@ -12243,7 +12243,7 @@
           {
             "type": "microbes",
             "amount": 2,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -12508,7 +12508,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -14223,7 +14223,7 @@
               "type": "tag",
               "amount": 1,
               "location": "anywhere",
-              "target": "any",
+              "target": "any-player",
               "tag": "jovian"
             }
           }
@@ -14919,7 +14919,7 @@
           {
             "type": "floaters",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -15635,7 +15635,7 @@
               {
                 "type": "asteroid",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -15766,7 +15766,7 @@
               {
                 "type": "asteroid",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -15886,7 +15886,7 @@
           {
             "type": "microbes",
             "amount": 4,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -16063,7 +16063,7 @@
               {
                 "type": "microbes",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -16072,7 +16072,7 @@
               {
                 "type": "animals",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -16357,7 +16357,7 @@
               {
                 "type": "asteroid",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
@@ -16427,7 +16427,7 @@
           {
             "type": "microbes",
             "amount": 1,
-            "target": "any"
+            "target": "any-card"
           }
         ]
       }
@@ -16471,7 +16471,7 @@
               {
                 "type": "animals",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           }
@@ -17172,7 +17172,7 @@
               {
                 "type": "asteroid",
                 "amount": 1,
-                "target": "any"
+                "target": "any-card"
               }
             ]
           },
