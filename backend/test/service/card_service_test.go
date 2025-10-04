@@ -65,6 +65,23 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
 	require.NoError(t, err)
 
+	// Add a second dummy player to prevent automatic phase transition
+	// (phase transitions only when ALL players complete selection)
+	dummyPlayer := model.Player{
+		ID:              "player2",
+		Name:            "Dummy Player",
+		Resources:       model.Resources{Credits: 40},
+		Production:      model.Production{Credits: 1},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+	err = playerRepo.Create(ctx, gameID, dummyPlayer)
+	require.NoError(t, err)
+	err = gameRepo.AddPlayerID(ctx, gameID, dummyPlayer.ID)
+	require.NoError(t, err)
+
 	// Load cards and get real card IDs for testing
 	err = cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
@@ -167,15 +184,24 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			// Reset player's starting selection
+			// Reset player's starting selection (only for player1, not dummy)
 			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, resetPlayer.ID, &model.SelectStartingCardsPhase{
-				AvailableCards:    availableCardIDs,
-				SelectionComplete: false,
+				AvailableCards:        availableCardIDs,
+				AvailableCorporations: []string{"CC1", "PC5"},
+				SelectionComplete:     false,
+			})
+			require.NoError(t, err)
+
+			// Mark dummy player as already completed to prevent triggering phase transition
+			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, dummyPlayer.ID, &model.SelectStartingCardsPhase{
+				AvailableCards:        []string{},
+				AvailableCorporations: []string{},
+				SelectionComplete:     true, // Already complete, so won't block other players
 			})
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, tt.selectedCards)
+			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, tt.selectedCards, "CC1")
 
 			// Assert
 			if tt.expectedError {
@@ -196,8 +222,10 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 					assert.Contains(t, updatedPlayer.Cards, cardID)
 				}
 
-				// Check credits were deducted correctly
-				expectedCredits := 40 - tt.expectedCost
+				// Corporation CC1 (Aridor) gives 42 starting credits
+				// Cards cost 3 MC each
+				// Expected credits = 42 (corporation bonus) - cost
+				expectedCredits := 42 - tt.expectedCost
 				assert.Equal(t, expectedCredits, updatedPlayer.Resources.Credits)
 			}
 		})
@@ -284,13 +312,15 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 
 	// Set starting cards for both players
 	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player1.ID, &model.SelectStartingCardsPhase{
-		AvailableCards:    availableCardIDs,
-		SelectionComplete: false,
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: []string{"CC1", "PC5"},
+		SelectionComplete:     false,
 	})
 	require.NoError(t, err)
 	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player2.ID, &model.SelectStartingCardsPhase{
-		AvailableCards:    availableCardIDs,
-		SelectionComplete: false,
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: []string{"PC5", "B07"},
+		SelectionComplete:     false,
 	})
 	require.NoError(t, err)
 
@@ -300,7 +330,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// First player selects starting cards (should NOT trigger phase transition)
-	err = cardService.OnSelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]})
+	err = cardService.OnSelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]}, "CC1")
 	require.NoError(t, err)
 
 	// Verify game is still in starting card selection phase
@@ -309,7 +339,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// Second player selects starting cards (should trigger automatic phase transition)
-	err = cardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]})
+	err = cardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]}, "PC5")
 	require.NoError(t, err)
 
 	// Verify game automatically transitioned to action phase
@@ -321,10 +351,10 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	updatedPlayer1, err := playerRepo.GetByID(ctx, gameID, player1.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer1.Cards, availableCardIDs[0])
-	assert.Equal(t, 37, updatedPlayer1.Resources.Credits) // 40 - 3 for 1 card
+	assert.Equal(t, 39, updatedPlayer1.Resources.Credits) // CC1 (Aridor) gives 42, minus 3 for 1 card
 
 	updatedPlayer2, err := playerRepo.GetByID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
-	assert.Equal(t, 37, updatedPlayer2.Resources.Credits) // 40 - 3 for 1 card
+	assert.Equal(t, 39, updatedPlayer2.Resources.Credits) // PC5 (Tharsis) gives 42, minus 3 for 1 card
 }

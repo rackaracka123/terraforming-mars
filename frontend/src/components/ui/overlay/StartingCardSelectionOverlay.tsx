@@ -179,10 +179,10 @@ const StartingCardSelectionOverlay: React.FC<
                       id: corp.id,
                       name: corp.name,
                       description: corp.description || "",
-                      startingMegaCredits: corp.startingResources?.credits || 0,
-                      startingProduction: corp.startingProduction,
-                      startingResources: corp.startingResources,
-                      logoPath: corp.imageUrl,
+                      startingMegaCredits: 0, // TODO: Extract from card data
+                      startingProduction: undefined,
+                      startingResources: undefined,
+                      logoPath: undefined,
                     }}
                     isSelected={selectedCorporationId === corp.id}
                     onSelect={handleCorporationSelect}

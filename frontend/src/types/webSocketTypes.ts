@@ -27,7 +27,7 @@ export interface WebSocketConnection {
 
   // Card actions
   playCard(cardId: string): Promise<string>;
-  selectStartingCard(cardIds: string[]): Promise<string>;
+  selectStartingCard(cardIds: string[], corporationId: string): Promise<string>;
   selectCards(cardIds: string[]): Promise<string>;
 
   // Tile selection actions
