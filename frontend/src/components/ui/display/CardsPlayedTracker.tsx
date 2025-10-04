@@ -1,5 +1,5 @@
 import React from "react";
-import { CardType } from "../../../types/cards.ts";
+import { CardType } from "../../../types/cards.tsx";
 
 interface CardsPlayedTrackerProps {
   playedCards: Array<{ type: CardType }>;

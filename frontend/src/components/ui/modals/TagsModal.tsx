@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CardTag } from "../../../types/cards.ts";
+import { CardTag } from "../../../types/cards.tsx";
 
 interface TagData {
   tag: CardTag;

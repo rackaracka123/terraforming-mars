@@ -1,7 +1,7 @@
 import React from "react";
 import Game3DView from "../../game/view/Game3DView.tsx";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
-import { CardType } from "../../../types/cards.ts";
+import { CardType } from "../../../types/cards.tsx";
 import CostDisplay from "./CostDisplay.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
 

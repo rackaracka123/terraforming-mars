@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { CardType } from "../../../types/cards.ts";
+import { CardType } from "../../../types/cards.tsx";
 import VictoryPointsDisplay from "../display/VictoryPointsDisplay.tsx";
 
 interface VPSource {

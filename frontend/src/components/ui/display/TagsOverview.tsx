@@ -1,5 +1,5 @@
 import React from "react";
-import { CardTag } from "../../../types/cards.ts";
+import { CardTag } from "../../../types/cards.tsx";
 
 interface TagsOverviewProps {
   tags: CardTag[];

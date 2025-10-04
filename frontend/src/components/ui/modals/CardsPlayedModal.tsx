@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CardDto } from "../../../types/generated/api-types.ts";
-import { CardType } from "../../../types/cards.ts";
+import { CardType } from "../../../types/cards.tsx";
 import CostDisplay from "../display/CostDisplay.tsx";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 
