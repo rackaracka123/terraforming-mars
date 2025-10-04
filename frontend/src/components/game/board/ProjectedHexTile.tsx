@@ -1,8 +1,14 @@
 import { useRef, useState, useMemo } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { HexTile2D } from "../../../utils/hex-grid-2d";
+import { SkeletonUtils } from "three-stdlib";
+
+// Preload 3D models for better performance
+useGLTF.preload("/assets/models/city.glb");
+useGLTF.preload("/assets/models/forrest.glb");
+useGLTF.preload("/assets/models/water.glb");
 
 interface ProjectedHexTileData extends HexTile2D {
   spherePosition: THREE.Vector3;
@@ -323,8 +329,15 @@ export default function ProjectedHexTile({
         />
       )}
 
-      {/* Tile type icon */}
-      {tileType !== "empty" && (
+      {/* Tile type 3D model (city, greenery, ocean) */}
+      {(tileType === "city" ||
+        tileType === "greenery" ||
+        tileType === "ocean") && (
+        <TileModel tileType={tileType} position={[0, 0, 0.03]} />
+      )}
+
+      {/* Special tile fallback emoji (no 3D model available) */}
+      {tileType === "special" && (
         <Text
           position={[0, 0, 0.01]}
           fontSize={0.08}
@@ -332,15 +345,7 @@ export default function ProjectedHexTile({
           anchorX="center"
           anchorY="middle"
         >
-          {tileType === "ocean"
-            ? "🌊"
-            : tileType === "greenery"
-              ? "🌲"
-              : tileType === "city"
-                ? "🏙️"
-                : tileType === "special"
-                  ? "⭐"
-                  : ""}
+          ⭐
         </Text>
       )}
 
@@ -405,6 +410,78 @@ export default function ProjectedHexTile({
           />
         </mesh>
       )}
+    </group>
+  );
+}
+
+// Component for rendering 3D tile models (city, greenery, ocean)
+interface TileModelProps {
+  tileType: "city" | "greenery" | "ocean";
+  position: [number, number, number];
+}
+
+function TileModel({ tileType, position }: TileModelProps) {
+  // Load appropriate model based on tile type
+  const modelPath =
+    tileType === "city"
+      ? "/assets/models/city.glb"
+      : tileType === "greenery"
+        ? "/assets/models/forrest.glb"
+        : "/assets/models/water.glb";
+
+  const { scene } = useGLTF(modelPath);
+
+  // Clone and configure the model with proper transformations
+  const configuredModel = useMemo(() => {
+    // Clone the scene properly
+    const clonedScene = SkeletonUtils.clone(scene);
+
+    // Calculate bounding box and scale
+    const targetSize = 0.2; // Increased from 0.15 to make models larger
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    const scaleFactor = targetSize / maxDimension;
+
+    // Apply scale to the scene
+    clonedScene.scale.setScalar(scaleFactor);
+
+    // Recalculate center after scaling
+    const scaledBox = new THREE.Box3().setFromObject(clonedScene);
+    const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+
+    // Position to center the model at origin
+    clonedScene.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z);
+
+    // Enable shadows
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    return clonedScene;
+  }, [scene]);
+
+  // Rotation for specific tile types
+  const rotation: [number, number, number] = useMemo(() => {
+    if (tileType === "city") {
+      return [-Math.PI / 2, 0, 0]; // -90° rotation on x-axis for city buildings
+    }
+    if (tileType === "greenery") {
+      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip trees right-side up
+    }
+    if (tileType === "ocean") {
+      return [-Math.PI / 2, 0, 0]; // -90° rotation to lay water flat on surface
+    }
+    return [0, 0, 0];
+  }, [tileType]);
+
+  return (
+    <group position={position} rotation={rotation}>
+      <primitive object={configuredModel} />
     </group>
   );
 }
