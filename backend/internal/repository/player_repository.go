@@ -539,11 +539,17 @@ func (r *PlayerRepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Contex
 		cardsCopy := make([]string, len(selectStartingCardPhase.AvailableCards))
 		copy(cardsCopy, selectStartingCardPhase.AvailableCards)
 
+		corpsCopy := make([]string, len(selectStartingCardPhase.AvailableCorporations))
+		copy(corpsCopy, selectStartingCardPhase.AvailableCorporations)
+
 		player.SelectStartingCardsPhase = &model.SelectStartingCardsPhase{
-			AvailableCards: cardsCopy,
+			AvailableCards:        cardsCopy,
+			AvailableCorporations: corpsCopy,
 		}
 
-		log.Info("Starting card selection phase updated for player", zap.Int("card_count", len(cardsCopy)))
+		log.Info("Starting card selection phase updated for player",
+			zap.Int("card_count", len(cardsCopy)),
+			zap.Int("corporation_count", len(corpsCopy)))
 	} else {
 		player.SelectStartingCardsPhase = nil
 		log.Info("Starting card selection phase cleared for player")

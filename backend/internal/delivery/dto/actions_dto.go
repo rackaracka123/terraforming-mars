@@ -5,7 +5,6 @@ type ActionType string
 
 const (
 	ActionTypeSelectStartingCard ActionType = "select-starting-card"
-	ActionTypeSelectCorporation  ActionType = "select-corporation"
 	ActionTypeSelectCards        ActionType = "select-cards"
 
 	ActionTypeStartGame  ActionType = "start-game"
@@ -21,15 +20,10 @@ const (
 	ActionTypeBuildCity       ActionType = "build-city"
 )
 
-// SelectStartingCardAction represents selecting starting cards
+// SelectStartingCardAction represents selecting starting cards and corporation
 type SelectStartingCardAction struct {
-	Type    ActionType `json:"type" ts:"ActionType"`
-	CardIDs []string   `json:"cardIds" ts:"string[]"`
-}
-
-// SelectCorporationAction represents selecting a corporation
-type SelectCorporationAction struct {
 	Type          ActionType `json:"type" ts:"ActionType"`
+	CardIDs       []string   `json:"cardIds" ts:"string[]"`
 	CorporationID string     `json:"corporationId" ts:"string"`
 }
 
@@ -102,8 +96,9 @@ type BuildCityAction struct {
 
 // ActionSelectStartingCardRequest contains the action data for select starting card actions
 type ActionSelectStartingCardRequest struct {
-	Type    ActionType `json:"type" ts:"ActionType"`
-	CardIDs []string   `json:"cardIds" ts:"string[]"`
+	Type          ActionType `json:"type" ts:"ActionType"`
+	CardIDs       []string   `json:"cardIds" ts:"string[]"`
+	CorporationID string     `json:"corporationId" ts:"string"` // Corporation selected alongside starting cards
 }
 
 // ActionSelectProductionCardsRequest contains the action data for select production card actions
@@ -112,20 +107,9 @@ type ActionSelectProductionCardsRequest struct {
 	CardIDs []string   `json:"cardIds" ts:"string[]"`
 }
 
-// ActionSelectCorporationRequest contains the action data for select corporation actions
-type ActionSelectCorporationRequest struct {
-	Type          ActionType `json:"type" ts:"ActionType"`
-	CorporationID string     `json:"corporationId" ts:"string"`
-}
-
 // GetAction returns the select starting card action
 func (ap *ActionSelectStartingCardRequest) GetAction() *SelectStartingCardAction {
-	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
-}
-
-// GetAction returns the select corporation action
-func (ap *ActionSelectCorporationRequest) GetAction() *SelectCorporationAction {
-	return &SelectCorporationAction{Type: ap.Type, CorporationID: ap.CorporationID}
+	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs, CorporationID: ap.CorporationID}
 }
 
 // ActionStartGameRequest contains the action data for start game actions

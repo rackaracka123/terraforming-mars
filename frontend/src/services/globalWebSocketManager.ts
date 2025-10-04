@@ -232,9 +232,12 @@ class GlobalWebSocketManager implements WebSocketConnection {
     );
   }
 
-  async selectStartingCard(cardIds: string[]): Promise<string> {
+  async selectStartingCard(
+    cardIds: string[],
+    corporationId: string,
+  ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.selectStartingCard(cardIds);
+    return webSocketService.selectStartingCard(cardIds, corporationId);
   }
 
   async selectCards(cardIds: string[]): Promise<string> {

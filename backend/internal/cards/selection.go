@@ -29,12 +29,14 @@ func NewSelectionManager(gameRepo repository.GameRepository, playerRepo reposito
 	}
 }
 
-// SelectStartingCards handles the starting card selection for a player (stores as pending, doesn't commit)
-func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+// SelectStartingCards handles the starting card and corporation selection for a player
+func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Processing starting card selection (storing as pending)", zap.Strings("card_ids", cardIDs))
+	log.Debug("Processing starting card and corporation selection",
+		zap.Strings("card_ids", cardIDs),
+		zap.String("corporation_id", corporationID))
 
-	// Validate the selection
+	// Validate the card selection
 	if err := s.ValidateStartingCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
 		log.Error("Starting card selection validation failed", zap.Error(err))
 		return fmt.Errorf("invalid card selection: %w", err)
@@ -45,6 +47,12 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Validate and apply corporation selection
+	if err := s.applyCorporationSelection(ctx, gameID, playerID, corporationID, &player); err != nil {
+		log.Error("Corporation selection failed", zap.Error(err))
+		return fmt.Errorf("corporation selection failed: %w", err)
 	}
 
 	// Calculate cost (3 MC per card)
@@ -388,4 +396,88 @@ func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 	}
 
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
+}
+
+// applyCorporationSelection validates and applies corporation selection during starting card phase
+func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID, playerID, corporationID string, player *model.Player) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Validate player is in starting card selection phase
+	if player.SelectStartingCardsPhase == nil {
+		return fmt.Errorf("player not in starting card selection phase")
+	}
+
+	// Validate player hasn't already selected a corporation
+	if player.Corporation != nil {
+		log.Warn("Player has already selected a corporation", zap.String("existing_corporation", *player.Corporation))
+		return fmt.Errorf("corporation already selected")
+	}
+
+	// Validate corporation is in player's available options
+	corporationFound := false
+	for _, availableCorp := range player.SelectStartingCardsPhase.AvailableCorporations {
+		if availableCorp == corporationID {
+			corporationFound = true
+			break
+		}
+	}
+
+	if !corporationFound {
+		log.Warn("Corporation not in player's available options", zap.String("corporation_id", corporationID))
+		return fmt.Errorf("corporation %s not in available options", corporationID)
+	}
+
+	// Get corporation details from card repository
+	corporationCard, err := s.cardRepo.GetCardByID(ctx, corporationID)
+	if err != nil {
+		log.Error("Failed to get corporation card", zap.Error(err))
+		return fmt.Errorf("failed to get corporation card: %w", err)
+	}
+
+	// Convert card to corporation and apply starting bonuses
+	corporation := model.ConvertCardToCorporation(*corporationCard)
+
+	// Update player's corporation
+	if err := s.playerRepo.UpdateCorporation(ctx, gameID, playerID, corporationID); err != nil {
+		log.Error("Failed to update player corporation", zap.Error(err))
+		return fmt.Errorf("failed to update player corporation: %w", err)
+	}
+
+	// Apply starting resources
+	updatedResources := player.Resources
+	updatedResources.Credits = corporation.StartingResources.Credits
+	updatedResources.Steel += corporation.StartingResources.Steel
+	updatedResources.Titanium += corporation.StartingResources.Steel
+	updatedResources.Plants += corporation.StartingResources.Plants
+	updatedResources.Energy += corporation.StartingResources.Energy
+	updatedResources.Heat += corporation.StartingResources.Heat
+
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
+	}
+
+	// Update player object for subsequent cost calculations
+	player.Resources = updatedResources
+
+	// Apply starting production
+	updatedProduction := player.Production
+	updatedProduction.Credits += corporation.StartingProduction.Credits
+	updatedProduction.Steel += corporation.StartingProduction.Steel
+	updatedProduction.Titanium += corporation.StartingProduction.Titanium
+	updatedProduction.Plants += corporation.StartingProduction.Plants
+	updatedProduction.Energy += corporation.StartingProduction.Energy
+	updatedProduction.Heat += corporation.StartingProduction.Heat
+
+	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, updatedProduction); err != nil {
+		log.Error("Failed to update player production", zap.Error(err))
+		return fmt.Errorf("failed to update player production: %w", err)
+	}
+
+	log.Info("✅ Corporation selected and bonuses applied",
+		zap.String("corporation_id", corporationID),
+		zap.String("corporation_name", corporation.Name),
+		zap.Int("starting_credits", corporation.StartingCredits))
+
+	return nil
 }

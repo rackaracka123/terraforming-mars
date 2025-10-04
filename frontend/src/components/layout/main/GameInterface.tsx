@@ -286,15 +286,21 @@ export default function GameInterface() {
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
-  const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
-    try {
-      // Send card selection to server - commits immediately
-      await globalWebSocketManager.selectStartingCard(selectedCardIds);
-      // Modal will close automatically when backend clears startingSelection
-    } catch (error) {
-      console.error("Failed to select cards:", error);
-    }
-  }, []);
+  const handleCardSelection = useCallback(
+    async (selectedCardIds: string[], corporationId: string) => {
+      try {
+        // Send card and corporation selection to server - commits immediately
+        await globalWebSocketManager.selectStartingCard(
+          selectedCardIds,
+          corporationId,
+        );
+        // Modal will close automatically when backend clears startingSelection
+      } catch (error) {
+        console.error("Failed to select cards:", error);
+      }
+    },
+    [],
+  );
 
   // Handle pending card selection (sell patents, etc.)
   const handlePendingCardSelection = useCallback(
@@ -1102,6 +1108,10 @@ export default function GameInterface() {
       <StartingCardSelectionOverlay
         isOpen={showCardSelection}
         cards={cardDetails}
+        availableCorporations={
+          game?.currentPlayer?.selectStartingCardsPhase
+            ?.availableCorporations || []
+        }
         playerCredits={currentPlayer?.resources?.credits || 40}
         onSelectCards={handleCardSelection}
       />

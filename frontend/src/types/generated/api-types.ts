@@ -8,7 +8,6 @@
  */
 export type ActionType = string;
 export const ActionTypeSelectStartingCard: ActionType = "select-starting-card";
-export const ActionTypeSelectCorporation: ActionType = "select-corporation";
 export const ActionTypeSelectCards: ActionType = "select-cards";
 export const ActionTypeStartGame: ActionType = "start-game";
 export const ActionTypeSkipAction: ActionType = "skip-action";
@@ -24,17 +23,11 @@ export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
 export const ActionTypePlantGreenery: ActionType = "plant-greenery";
 export const ActionTypeBuildCity: ActionType = "build-city";
 /**
- * SelectStartingCardAction represents selecting starting cards
+ * SelectStartingCardAction represents selecting starting cards and corporation
  */
 export interface SelectStartingCardAction {
   type: ActionType;
   cardIds: string[];
-}
-/**
- * SelectCorporationAction represents selecting a corporation
- */
-export interface SelectCorporationAction {
-  type: ActionType;
   corporationId: string;
 }
 /**
@@ -119,6 +112,7 @@ export interface BuildCityAction {
 export interface ActionSelectStartingCardRequest {
   type: ActionType;
   cardIds: string[];
+  corporationId: string; // Corporation selected alongside starting cards
 }
 /**
  * ActionSelectProductionCardsRequest contains the action data for select production card actions
@@ -126,13 +120,6 @@ export interface ActionSelectStartingCardRequest {
 export interface ActionSelectProductionCardsRequest {
   type: ActionType;
   cardIds: string[];
-}
-/**
- * ActionSelectCorporationRequest contains the action data for select corporation actions
- */
-export interface ActionSelectCorporationRequest {
-  type: ActionType;
-  corporationId: string;
 }
 /**
  * ActionStartGameRequest contains the action data for start game actions
@@ -212,9 +199,12 @@ export const AdminCommandTypeGiveCard: AdminCommandType = "give-card";
 export const AdminCommandTypeSetPhase: AdminCommandType = "set-phase";
 export const AdminCommandTypeSetResources: AdminCommandType = "set-resources";
 export const AdminCommandTypeSetProduction: AdminCommandType = "set-production";
-export const AdminCommandTypeSetGlobalParams: AdminCommandType = "set-global-params";
-export const AdminCommandTypeStartTileSelection: AdminCommandType = "start-tile-selection";
-export const AdminCommandTypeSetCurrentTurn: AdminCommandType = "set-current-turn";
+export const AdminCommandTypeSetGlobalParams: AdminCommandType =
+  "set-global-params";
+export const AdminCommandTypeStartTileSelection: AdminCommandType =
+  "start-tile-selection";
+export const AdminCommandTypeSetCurrentTurn: AdminCommandType =
+  "set-current-turn";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -271,10 +261,12 @@ export interface StartTileSelectionAdminCommand {
  */
 export type GamePhase = string;
 export const GamePhaseWaitingForGameStart: GamePhase = "waiting_for_game_start";
-export const GamePhaseStartingCardSelection: GamePhase = "starting_card_selection";
+export const GamePhaseStartingCardSelection: GamePhase =
+  "starting_card_selection";
 export const GamePhaseStartGameSelection: GamePhase = "start_game_selection";
 export const GamePhaseAction: GamePhase = "action";
-export const GamePhaseProductionAndCardDraw: GamePhase = "production_and_card_draw";
+export const GamePhaseProductionAndCardDraw: GamePhase =
+  "production_and_card_draw";
 export const GamePhaseComplete: GamePhase = "complete";
 /**
  * GameStatus represents the current status of the game
@@ -573,8 +565,8 @@ export interface PendingTileSelectionDto {
  */
 export interface PendingCardSelectionDto {
   availableCards: CardDto[]; // Card IDs player can select from
-  cardCosts: { [key: string]: number /* int */}; // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
-  cardRewards: { [key: string]: number /* int */}; // Card ID -> reward for selecting (1 MC for sell patents)
+  cardCosts: { [key: string]: number /* int */ }; // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
+  cardRewards: { [key: string]: number /* int */ }; // Card ID -> reward for selecting (1 MC for sell patents)
   source: string; // What triggered this selection ("sell-patents", card ID, etc.)
   minCards: number /* int */; // Minimum cards to select (0 for sell patents)
   maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
@@ -583,8 +575,10 @@ export interface PendingCardSelectionDto {
  * PlayerStatus represents the current status of a player in the game
  */
 export type PlayerStatus = string;
-export const PlayerStatusSelectingStartingCards: PlayerStatus = "selecting-starting-cards";
-export const PlayerStatusSelectingProductionCards: PlayerStatus = "selecting-production-cards";
+export const PlayerStatusSelectingStartingCards: PlayerStatus =
+  "selecting-starting-cards";
+export const PlayerStatusSelectingProductionCards: PlayerStatus =
+  "selecting-production-cards";
 export const PlayerStatusWaiting: PlayerStatus = "waiting";
 export const PlayerStatusActive: PlayerStatus = "active";
 /**
@@ -620,7 +614,7 @@ export interface PlayerDto {
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
-  resourceStorage: { [key: string]: number /* int */}; // Card ID -> resource count
+  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -646,7 +640,7 @@ export interface OtherPlayerDto {
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards (public information)
    */
-  resourceStorage: { [key: string]: number /* int */}; // Card ID -> resource count
+  resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)
@@ -824,34 +818,46 @@ export const MessageTypePlayerReconnected: MessageType = "player-reconnected";
 export const MessageTypePlayerDisconnected: MessageType = "player-disconnected";
 export const MessageTypeError: MessageType = "error";
 export const MessageTypeFullState: MessageType = "full-state";
-export const MessageTypeProductionPhaseStarted: MessageType = "production-phase-started";
+export const MessageTypeProductionPhaseStarted: MessageType =
+  "production-phase-started";
 /**
  * New action-specific message types using composed constants
  * Standard project message types
  */
-export const MessageTypeActionSellPatents: MessageType = "action.standard-project.sell-patents";
-export const MessageTypeActionLaunchAsteroid: MessageType = "action.standard-project.launch-asteroid";
-export const MessageTypeActionBuildPowerPlant: MessageType = "action.standard-project.build-power-plant";
-export const MessageTypeActionBuildAquifer: MessageType = "action.standard-project.build-aquifer";
-export const MessageTypeActionPlantGreenery: MessageType = "action.standard-project.plant-greenery";
-export const MessageTypeActionBuildCity: MessageType = "action.standard-project.build-city";
+export const MessageTypeActionSellPatents: MessageType =
+  "action.standard-project.sell-patents";
+export const MessageTypeActionLaunchAsteroid: MessageType =
+  "action.standard-project.launch-asteroid";
+export const MessageTypeActionBuildPowerPlant: MessageType =
+  "action.standard-project.build-power-plant";
+export const MessageTypeActionBuildAquifer: MessageType =
+  "action.standard-project.build-aquifer";
+export const MessageTypeActionPlantGreenery: MessageType =
+  "action.standard-project.plant-greenery";
+export const MessageTypeActionBuildCity: MessageType =
+  "action.standard-project.build-city";
 /**
  * Game management message types
  */
-export const MessageTypeActionStartGame: MessageType = "action.game-management.start-game";
-export const MessageTypeActionSkipAction: MessageType = "action.game-management.skip-action";
+export const MessageTypeActionStartGame: MessageType =
+  "action.game-management.start-game";
+export const MessageTypeActionSkipAction: MessageType =
+  "action.game-management.skip-action";
 /**
  * Tile selection message types
  */
-export const MessageTypeActionTileSelected: MessageType = "action.tile-selection.tile-selected";
+export const MessageTypeActionTileSelected: MessageType =
+  "action.tile-selection.tile-selected";
 /**
  * Card message types
  */
 export const MessageTypeActionPlayCard: MessageType = "action.card.play-card";
-export const MessageTypeActionCardAction: MessageType = "action.card.card-action";
-export const MessageTypeActionSelectStartingCard: MessageType = "action.card.select-starting-card";
-export const MessageTypeActionSelectCorporation: MessageType = "action.card.select-corporation";
-export const MessageTypeActionSelectCards: MessageType = "action.card.select-cards";
+export const MessageTypeActionCardAction: MessageType =
+  "action.card.card-action";
+export const MessageTypeActionSelectStartingCard: MessageType =
+  "action.card.select-starting-card";
+export const MessageTypeActionSelectCards: MessageType =
+  "action.card.select-cards";
 /**
  * Admin message types (development mode only)
  */

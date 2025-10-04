@@ -36,7 +36,6 @@ const (
 	MessageTypeActionPlayCard           MessageType = "action.card.play-card"
 	MessageTypeActionCardAction         MessageType = "action.card.card-action"
 	MessageTypeActionSelectStartingCard MessageType = "action.card.select-starting-card"
-	MessageTypeActionSelectCorporation  MessageType = "action.card.select-corporation"
 	MessageTypeActionSelectCards        MessageType = "action.card.select-cards"
 
 	// Admin message types (development mode only)
