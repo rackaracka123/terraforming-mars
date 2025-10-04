@@ -436,8 +436,8 @@ function TileModel({ tileType, position }: TileModelProps) {
     // Clone the scene properly
     const clonedScene = SkeletonUtils.clone(scene);
 
-    // Calculate bounding box and scale
-    const targetSize = 0.2; // Increased from 0.15 to make models larger
+    // Calculate bounding box and scale - larger size for greenery
+    const targetSize = tileType === "greenery" ? 0.3 : 0.2;
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);
