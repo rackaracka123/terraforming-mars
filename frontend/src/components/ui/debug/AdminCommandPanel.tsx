@@ -163,17 +163,15 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       const selectedPlayer = allPlayers.find(
         (p) => p.id === productionForm.playerId,
       );
-      if (selectedPlayer && selectedPlayer.resourceProduction) {
+      if (selectedPlayer && selectedPlayer.production) {
         setProductionForm((prev) => ({
           ...prev,
-          credits: (selectedPlayer.resourceProduction.credits || 0).toString(),
-          steel: (selectedPlayer.resourceProduction.steel || 0).toString(),
-          titanium: (
-            selectedPlayer.resourceProduction.titanium || 0
-          ).toString(),
-          plants: (selectedPlayer.resourceProduction.plants || 0).toString(),
-          energy: (selectedPlayer.resourceProduction.energy || 0).toString(),
-          heat: (selectedPlayer.resourceProduction.heat || 0).toString(),
+          credits: (selectedPlayer.production.credits || 0).toString(),
+          steel: (selectedPlayer.production.steel || 0).toString(),
+          titanium: (selectedPlayer.production.titanium || 0).toString(),
+          plants: (selectedPlayer.production.plants || 0).toString(),
+          energy: (selectedPlayer.production.energy || 0).toString(),
+          heat: (selectedPlayer.production.heat || 0).toString(),
         }));
       }
     } else {

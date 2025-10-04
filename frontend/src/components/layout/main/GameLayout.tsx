@@ -25,6 +25,9 @@ interface GameLayoutProps {
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
+  showStandardProjectsPopover?: boolean;
+  onToggleStandardProjectsPopover?: () => void;
+  standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -38,6 +41,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
+  showStandardProjectsPopover = false,
+  onToggleStandardProjectsPopover,
+  standardProjectsButtonRef,
 }) => {
   const convertOtherPlayerToPlayerDto = (
     otherPlayer: OtherPlayerDto,
@@ -46,6 +52,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
     cards: [],
     selectStartingCardsPhase: undefined,
     productionPhase: undefined,
+    startingCards: [],
   });
 
   // Create a map of all players (current + others) for easy lookup
@@ -70,7 +77,12 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   return (
     <MainContentProvider>
       <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
-        <TopMenuBar gameState={gameState} />
+        <TopMenuBar
+          gameState={gameState}
+          showStandardProjectsPopover={showStandardProjectsPopover}
+          onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
+          standardProjectsButtonRef={standardProjectsButtonRef}
+        />
 
         <div className="grid grid-cols-1 min-h-0 gap-0 relative">
           <MainContentDisplay gameState={gameState} />

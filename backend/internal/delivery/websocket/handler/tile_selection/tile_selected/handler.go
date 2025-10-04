@@ -61,6 +61,17 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
+	// Validate hex coordinates (must satisfy q + r + s = 0)
+	if request.Coordinate.Q+request.Coordinate.R+request.Coordinate.S != 0 {
+		h.logger.Error("Invalid hex coordinates",
+			zap.String("player_id", playerID),
+			zap.Int("q", request.Coordinate.Q),
+			zap.Int("r", request.Coordinate.R),
+			zap.Int("s", request.Coordinate.S))
+		h.errorHandler.SendError(connection, "invalid hex coordinates: q+r+s must equal 0")
+		return
+	}
+
 	// Execute the tile selection
 	if err := h.playerService.OnTileSelected(ctx, gameID, playerID, request.Coordinate); err != nil {
 		h.logger.Error("Failed to process tile selection",

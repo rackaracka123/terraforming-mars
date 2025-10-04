@@ -186,17 +186,14 @@ function checkBehaviorCosts(
         if (output.target === "any-player") {
           // Check if ANY player has enough
           const currentProduction = getProduction(
-            player.resourceProduction,
+            player.production,
             baseResource,
           );
           let anyoneHasEnough = currentProduction >= absAmount;
 
           if (!anyoneHasEnough && game.otherPlayers) {
             for (const other of game.otherPlayers) {
-              if (
-                getProduction(other.resourceProduction, baseResource) >=
-                absAmount
-              ) {
+              if (getProduction(other.production, baseResource) >= absAmount) {
                 anyoneHasEnough = true;
                 break;
               }
@@ -215,7 +212,7 @@ function checkBehaviorCosts(
         } else {
           // self-player only
           const currentProduction = getProduction(
-            player.resourceProduction,
+            player.production,
             baseResource,
           );
 
@@ -442,7 +439,7 @@ async function checkRequirement(
     case "production": {
       if (resource) {
         let currentProduction = 0;
-        const prod = player.resourceProduction;
+        const prod = player.production;
 
         switch (resource.toLowerCase()) {
           case "credits":

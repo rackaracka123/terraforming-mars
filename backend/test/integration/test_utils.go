@@ -721,3 +721,107 @@ func (c *TestClient) SendAdminCommand(commandType dto.AdminCommandType, payload 
 	}
 	return c.SendRawMessage(dto.MessageTypeAdminCommand, adminPayload)
 }
+
+// SetPlayerResources is a helper method to set player resources for testing
+func (c *TestClient) SetPlayerResources(credits int) error {
+	setResourcesPayload := map[string]interface{}{
+		"playerId": c.playerID,
+		"resources": map[string]interface{}{
+			"credits":  credits,
+			"steel":    0,
+			"titanium": 0,
+			"plants":   0,
+			"energy":   0,
+			"heat":     0,
+		},
+	}
+	return c.SendAdminCommand(dto.AdminCommandTypeSetResources, setResourcesPayload)
+}
+
+// PlayerData represents extracted player data from game update messages
+type PlayerData struct {
+	ID              string
+	Credits         int
+	TerraformRating int
+	Resources       map[string]int
+	Production      map[string]int
+}
+
+// ExtractPlayerFromGameUpdate extracts player data from a game update message
+func (c *TestClient) ExtractPlayerFromGameUpdate(msg *dto.WebSocketMessage) (*PlayerData, error) {
+	payload, ok := msg.Payload.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("game update payload should be a map")
+	}
+
+	gameData, ok := payload["game"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("game data should be present in payload")
+	}
+
+	currentPlayer, ok := gameData["currentPlayer"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("current player should be present")
+	}
+
+	resources, ok := currentPlayer["resources"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("resources should be present")
+	}
+
+	production, ok := currentPlayer["production"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("production should be present")
+	}
+
+	playerData := &PlayerData{
+		ID:              currentPlayer["id"].(string),
+		Credits:         int(resources["credits"].(float64)),
+		TerraformRating: int(currentPlayer["terraformRating"].(float64)),
+		Resources:       make(map[string]int),
+		Production:      make(map[string]int),
+	}
+
+	// Extract all resources
+	for key, value := range resources {
+		playerData.Resources[key] = int(value.(float64))
+	}
+
+	// Extract all production
+	for key, value := range production {
+		playerData.Production[key] = int(value.(float64))
+	}
+
+	return playerData, nil
+}
+
+// GlobalParamsData represents extracted global parameters from game update messages
+type GlobalParamsData struct {
+	Temperature int
+	Oxygen      int
+	Oceans      int
+}
+
+// ExtractGlobalParamsFromGameUpdate extracts global parameters from a game update message
+func (c *TestClient) ExtractGlobalParamsFromGameUpdate(msg *dto.WebSocketMessage) (*GlobalParamsData, error) {
+	payload, ok := msg.Payload.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("game update payload should be a map")
+	}
+
+	gameData, ok := payload["game"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("game data should be present in payload")
+	}
+
+	globalParams, ok := gameData["globalParameters"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("global parameters should be present")
+	}
+
+	return &GlobalParamsData{
+		Temperature: int(globalParams["temperature"].(float64)),
+		Oxygen:      int(globalParams["oxygen"].(float64)),
+		Oceans:      int(globalParams["oceans"].(float64)),
+	}, nil
+}

@@ -75,6 +75,14 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		}
 	}
 
+	// Extract starting cards from SelectStartingCardsPhase if present
+	var startingCards []CardDto
+	if player.SelectStartingCardsPhase != nil && len(player.SelectStartingCardsPhase.AvailableCards) > 0 {
+		startingCards = resolveCards(player.SelectStartingCardsPhase.AvailableCards, resolvedCards)
+	} else {
+		startingCards = []CardDto{}
+	}
+
 	return PlayerDto{
 		ID:                       player.ID,
 		Name:                     player.Name,
@@ -93,7 +101,9 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		Actions:                  ToPlayerActionDtoSlice(player.Actions),
 		SelectStartingCardsPhase: ToSelectStartingCardsPhaseDto(player.SelectStartingCardsPhase, resolvedCards),
 		ProductionPhase:          ToProductionPhaseDto(player.ProductionPhase, resolvedCards),
+		StartingCards:            startingCards,
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
+		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection, resolvedCards),
 		ResourceStorage:          player.ResourceStorage,
 	}
 }
@@ -629,5 +639,24 @@ func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTi
 		TileType:       selection.TileType,
 		AvailableHexes: selection.AvailableHexes,
 		Source:         selection.Source,
+	}
+}
+
+// ToPendingCardSelectionDto converts a model PendingCardSelection to PendingCardSelectionDto
+func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCards map[string]model.Card) *PendingCardSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Resolve available cards from card IDs
+	availableCards := resolveCards(selection.AvailableCards, resolvedCards)
+
+	return &PendingCardSelectionDto{
+		AvailableCards: availableCards,
+		CardCosts:      selection.CardCosts,
+		CardRewards:    selection.CardRewards,
+		Source:         selection.Source,
+		MinCards:       selection.MinCards,
+		MaxCards:       selection.MaxCards,
 	}
 }

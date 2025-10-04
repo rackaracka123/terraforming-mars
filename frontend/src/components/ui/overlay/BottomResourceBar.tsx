@@ -139,7 +139,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   }, [currentPlayer?.resourceStorage]);
 
   // Early return if no player data available
-  if (!currentPlayer?.resources || !currentPlayer?.resourceProduction) {
+  if (!currentPlayer?.resources || !currentPlayer?.production) {
     return null;
   }
 
@@ -149,7 +149,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "credits",
       name: "Credits",
       current: currentPlayer.resources.credits,
-      production: currentPlayer.resourceProduction.credits,
+      production: currentPlayer.production.credits,
       icon: "/assets/resources/megacredit.png",
       color: "#f1c40f", // Gold - OK already
     },
@@ -157,7 +157,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "steel",
       name: "Steel",
       current: currentPlayer.resources.steel,
-      production: currentPlayer.resourceProduction.steel,
+      production: currentPlayer.production.steel,
       icon: "/assets/resources/steel.png",
       color: "#d2691e", // Brown/orangy
     },
@@ -165,7 +165,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "titanium",
       name: "Titanium",
       current: currentPlayer.resources.titanium,
-      production: currentPlayer.resourceProduction.titanium,
+      production: currentPlayer.production.titanium,
       icon: "/assets/resources/titanium.png",
       color: "#95a5a6", // Grey
     },
@@ -173,7 +173,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "plants",
       name: "Plants",
       current: currentPlayer.resources.plants,
-      production: currentPlayer.resourceProduction.plants,
+      production: currentPlayer.production.plants,
       icon: "/assets/resources/plant.png",
       color: "#27ae60", // Green - OK already
     },
@@ -181,7 +181,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "energy",
       name: "Energy",
       current: currentPlayer.resources.energy,
-      production: currentPlayer.resourceProduction.energy,
+      production: currentPlayer.production.energy,
       icon: "/assets/resources/power.png",
       color: "#9b59b6", // Purple
     },
@@ -189,7 +189,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       id: "heat",
       name: "Heat",
       current: currentPlayer.resources.heat,
-      production: currentPlayer.resourceProduction.heat,
+      production: currentPlayer.production.heat,
       icon: "/assets/resources/heat.png",
       color: "#ff4500", // Red/orange
     },

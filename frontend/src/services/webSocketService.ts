@@ -26,7 +26,6 @@ import {
   // Payload types
   PlayerDisconnectedPayload,
   WebSocketMessage,
-  HexPositionDto,
 } from "../types/generated/api-types.ts";
 
 type EventCallback = (data: any) => void;
@@ -248,8 +247,8 @@ export class WebSocketService {
   }
 
   // Standard project actions
-  sellPatents(cardCount: number): string {
-    return this.send(MessageTypeActionSellPatents, { cardCount });
+  sellPatents(): string {
+    return this.send(MessageTypeActionSellPatents, {});
   }
 
   launchAsteroid(): string {
@@ -260,16 +259,16 @@ export class WebSocketService {
     return this.send(MessageTypeActionBuildPowerPlant, {});
   }
 
-  buildAquifer(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionBuildAquifer, { hexPosition });
+  buildAquifer(): string {
+    return this.send(MessageTypeActionBuildAquifer, {});
   }
 
-  plantGreenery(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionPlantGreenery, { hexPosition });
+  plantGreenery(): string {
+    return this.send(MessageTypeActionPlantGreenery, {});
   }
 
-  buildCity(hexPosition: HexPositionDto): string {
-    return this.send(MessageTypeActionBuildCity, { hexPosition });
+  buildCity(): string {
+    return this.send(MessageTypeActionBuildCity, {});
   }
 
   // Game management actions

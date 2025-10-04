@@ -65,11 +65,10 @@ export interface HexPositionDto {
   s: number /* int */;
 }
 /**
- * SellPatentsAction represents selling patent cards for megacredits
+ * SellPatentsAction represents selling patent cards for megacredits (initiates card selection)
  */
 export interface SellPatentsAction {
   type: ActionType;
-  cardCount: number /* int */;
 }
 /**
  * BuildPowerPlantAction represents building a power plant
@@ -148,11 +147,10 @@ export interface ActionPlayCardActionRequest {
   choiceIndex?: number /* int */; // Optional: index of choice to play (for actions with choices)
 }
 /**
- * ActionSellPatentsRequest contains the action data for sell patents actions
+ * ActionSellPatentsRequest contains the action data for sell patents actions (initiates card selection)
  */
 export interface ActionSellPatentsRequest {
   type: ActionType;
-  cardCount: number /* int */;
 }
 /**
  * ActionBuildPowerPlantRequest contains the action data for build power plant actions
@@ -556,6 +554,17 @@ export interface PendingTileSelectionDto {
   source: string; // What triggered this selection (card ID, standard project, etc.)
 }
 /**
+ * PendingCardSelectionDto represents a pending card selection action (e.g., sell patents, card effects)
+ */
+export interface PendingCardSelectionDto {
+  availableCards: CardDto[]; // Card IDs player can select from
+  cardCosts: { [key: string]: number /* int */ }; // Card ID -> cost to select (0 for sell patents, 3 for buying cards)
+  cardRewards: { [key: string]: number /* int */ }; // Card ID -> reward for selecting (1 MC for sell patents)
+  source: string; // What triggered this selection ("sell-patents", card ID, etc.)
+  minCards: number /* int */; // Minimum cards to select (0 for sell patents)
+  maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
+}
+/**
  * PlayerStatus represents the current status of a player in the game
  */
 export type PlayerStatus = string;
@@ -575,7 +584,7 @@ export interface PlayerDto {
   corporation?: string;
   cards: CardDto[];
   resources: ResourcesDto;
-  resourceProduction: ProductionDto;
+  production: ProductionDto;
   terraformRating: number /* int */;
   playedCards: string[];
   passed: boolean;
@@ -586,10 +595,15 @@ export interface PlayerDto {
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
+  startingCards: CardDto[]; // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
   /**
    * Tile selection - nullable, exists only when player needs to place tiles
    */
   pendingTileSelection?: PendingTileSelectionDto; // Pending tile placement, null when no tiles to place
+  /**
+   * Card selection - nullable, exists only when player needs to select cards
+   */
+  pendingCardSelection?: PendingCardSelectionDto; // Pending card selection (sell patents, card effects, etc.)
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
@@ -605,7 +619,7 @@ export interface OtherPlayerDto {
   corporation: string;
   handCardCount: number /* int */; // Number of cards in hand (private)
   resources: ResourcesDto;
-  resourceProduction: ProductionDto;
+  production: ProductionDto;
   terraformRating: number /* int */;
   playedCards: string[]; // Played cards are public
   passed: boolean;

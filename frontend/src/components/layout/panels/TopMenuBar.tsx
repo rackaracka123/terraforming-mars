@@ -1,13 +1,28 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useMainContent } from "../../../contexts/MainContentContext.tsx";
 import { GameDto } from "../../../types/generated/api-types.ts";
 
 interface TopMenuBarProps {
   gameState?: GameDto | null;
+  showStandardProjectsPopover?: boolean;
+  onToggleStandardProjectsPopover?: () => void;
+  standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-const TopMenuBar: React.FC<TopMenuBarProps> = ({ gameState }) => {
+const TopMenuBar: React.FC<TopMenuBarProps> = ({
+  gameState,
+  showStandardProjectsPopover,
+  onToggleStandardProjectsPopover,
+  standardProjectsButtonRef,
+}) => {
   const { setContentType, setContentData } = useMainContent();
+
+  // Reset button inline border style when popover closes
+  useEffect(() => {
+    if (!showStandardProjectsPopover && standardProjectsButtonRef?.current) {
+      standardProjectsButtonRef.current.style.borderColor = "transparent";
+    }
+  }, [showStandardProjectsPopover, standardProjectsButtonRef]);
 
   const menuItems = [
     { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
@@ -135,6 +150,11 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({ gameState }) => {
       window.dispatchEvent(new CustomEvent("toggle-debug-dropdown"));
       return;
     }
+    // For standard projects, toggle the popover
+    if (tabId === "projects") {
+      onToggleStandardProjectsPopover?.();
+      return;
+    }
     const data = getMockData(tabId);
     setContentData(data);
     setContentType(tabId);
@@ -147,15 +167,18 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({ gameState }) => {
           {menuItems.map((item) => (
             <button
               key={item.id}
-              className="bg-none border-2 border-transparent text-white text-sm font-bold py-2.5 px-5 cursor-pointer rounded transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px]"
+              ref={item.id === "projects" ? standardProjectsButtonRef : null}
+              className={`bg-none border-2 text-white text-sm font-bold py-2.5 px-5 cursor-pointer rounded transition-all duration-200 hover:bg-white/10 max-lg:text-xs max-lg:py-2 max-lg:px-[15px] max-md:py-2 max-md:px-[15px] max-md:text-xs max-sm:py-1.5 max-sm:px-3 max-sm:text-[11px] ${item.id === "projects" && showStandardProjectsPopover ? `border-[${item.color}]` : "border-transparent"}`}
               onClick={() => handleTabClick(item.id)}
               style={{ "--item-color": item.color } as React.CSSProperties}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.borderColor = item.color)
               }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.borderColor = "transparent")
-              }
+              onMouseLeave={(e) => {
+                if (item.id !== "projects" || !showStandardProjectsPopover) {
+                  e.currentTarget.style.borderColor = "transparent";
+                }
+              }}
             >
               {item.label}
             </button>

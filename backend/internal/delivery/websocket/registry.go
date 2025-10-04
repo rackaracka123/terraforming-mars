@@ -38,7 +38,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 
 	// Register standard project handlers
 	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(standardProjectService, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(standardProjectService, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(standardProjectService, parser))
@@ -52,7 +52,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, standardProjectService, playerRepo, parser))
 
 	// Register play card handler
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(cardService, parser))

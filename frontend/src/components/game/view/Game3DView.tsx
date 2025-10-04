@@ -62,33 +62,34 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
     return unsubscribe;
   }, []);
 
-  const handleHexClick = (hexCoordinate: string) => {
-    // Check if current player has a pending tile selection
-    const currentPlayer = gameState.currentPlayer;
-    if (!currentPlayer?.pendingTileSelection) {
-      return;
-    }
-
-    const { pendingTileSelection } = currentPlayer;
-
-    // Validate that the clicked hex is in the available positions provided by backend
-    if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
-      return;
-    }
-
-    // Send tile selection to backend
-    try {
+  const handleHexClick = useCallback(
+    (hexCoordinate: string) => {
       // Parse hexCoordinate string (format: "q,r,s") back to coordinate object
       const [q, r, s] = hexCoordinate.split(",").map(Number);
       const coordinate = { q, r, s };
 
-      // Send tile selection to backend
+      // Check if current player has a pending tile selection (from cards OR standard projects)
+      const currentPlayer = gameState.currentPlayer;
+      if (!currentPlayer?.pendingTileSelection) {
+        return;
+      }
 
-      webSocketService.selectTile(coordinate);
-    } catch (error) {
-      console.error("❌ Failed to send tile selection:", error);
-    }
-  };
+      const { pendingTileSelection } = currentPlayer;
+
+      // Validate that the clicked hex is in the available positions provided by backend
+      if (!pendingTileSelection.availableHexes.includes(hexCoordinate)) {
+        return;
+      }
+
+      // Send tile selection to backend (works for both cards and standard projects)
+      try {
+        webSocketService.selectTile(coordinate);
+      } catch (error) {
+        console.error("❌ Failed to send tile selection:", error);
+      }
+    },
+    [gameState.currentPlayer],
+  );
 
   return (
     <div

@@ -52,6 +52,11 @@ type PlayerRepository interface {
 	CreateTileQueue(ctx context.Context, gameID, playerID, cardID string, tilePlacements []string) error
 	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error)
 
+	// Card selection methods
+	UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardSelection) error
+	GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardSelection, error)
+	ClearPendingCardSelection(ctx context.Context, gameID, playerID string) error
+
 	// Resource storage methods
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 }
@@ -853,6 +858,112 @@ func (r *PlayerRepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID
 	}
 
 	log.Debug("Player resource storage updated", zap.Int("storage_entries", len(player.ResourceStorage)))
+
+	return nil
+}
+
+// UpdatePendingCardSelection updates a player's pending card selection
+func (r *PlayerRepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardSelection) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	if selection == nil {
+		player.PendingCardSelection = nil
+		log.Debug("Cleared pending card selection")
+		return nil
+	}
+
+	// Deep copy the selection to prevent external mutation
+	availableCardsCopy := make([]string, len(selection.AvailableCards))
+	copy(availableCardsCopy, selection.AvailableCards)
+
+	cardCostsCopy := make(map[string]int)
+	for cardID, cost := range selection.CardCosts {
+		cardCostsCopy[cardID] = cost
+	}
+
+	cardRewardsCopy := make(map[string]int)
+	for cardID, reward := range selection.CardRewards {
+		cardRewardsCopy[cardID] = reward
+	}
+
+	player.PendingCardSelection = &model.PendingCardSelection{
+		AvailableCards: availableCardsCopy,
+		CardCosts:      cardCostsCopy,
+		CardRewards:    cardRewardsCopy,
+		Source:         selection.Source,
+		MinCards:       selection.MinCards,
+		MaxCards:       selection.MaxCards,
+	}
+
+	log.Debug("🃏 Pending card selection updated",
+		zap.String("source", selection.Source),
+		zap.Int("available_cards", len(selection.AvailableCards)),
+		zap.Int("min_cards", selection.MinCards),
+		zap.Int("max_cards", selection.MaxCards))
+
+	return nil
+}
+
+// GetPendingCardSelection retrieves a player's pending card selection
+func (r *PlayerRepositoryImpl) GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardSelection, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.PendingCardSelection == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to maintain immutability
+	availableCardsCopy := make([]string, len(player.PendingCardSelection.AvailableCards))
+	copy(availableCardsCopy, player.PendingCardSelection.AvailableCards)
+
+	cardCostsCopy := make(map[string]int)
+	for cardID, cost := range player.PendingCardSelection.CardCosts {
+		cardCostsCopy[cardID] = cost
+	}
+
+	cardRewardsCopy := make(map[string]int)
+	for cardID, reward := range player.PendingCardSelection.CardRewards {
+		cardRewardsCopy[cardID] = reward
+	}
+
+	return &model.PendingCardSelection{
+		AvailableCards: availableCardsCopy,
+		CardCosts:      cardCostsCopy,
+		CardRewards:    cardRewardsCopy,
+		Source:         player.PendingCardSelection.Source,
+		MinCards:       player.PendingCardSelection.MinCards,
+		MaxCards:       player.PendingCardSelection.MaxCards,
+	}, nil
+}
+
+// ClearPendingCardSelection clears a player's pending card selection
+func (r *PlayerRepositoryImpl) ClearPendingCardSelection(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.PendingCardSelection = nil
+	log.Debug("🗑️ Pending card selection cleared")
 
 	return nil
 }
