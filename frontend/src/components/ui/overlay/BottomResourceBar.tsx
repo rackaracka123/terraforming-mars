@@ -9,6 +9,7 @@ import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
+import CorporationPopover from "../popover/CorporationPopover.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -24,6 +25,7 @@ interface BottomResourceBarProps {
   currentPlayer?: PlayerDto | null;
   gameState?: GameDto;
   playedCards?: CardDto[];
+  corporationCard?: CardDto | null;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -35,6 +37,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   gameState,
   playedCards = [],
+  corporationCard = null,
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -45,10 +48,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const [showTagsPopover, setShowTagsPopover] = useState(false);
   const [showStoragesPopover, setShowStoragesPopover] = useState(false);
+  const [showCorporationPopover, setShowCorporationPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
+  const corporationRef = useRef<HTMLDivElement>(null);
   // Helper function to create image with embedded number
   const createImageWithNumber = (
     imageSrc: string,
@@ -228,9 +233,37 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Modal escape handling is now managed in GameInterface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 gap-8 z-[1000] pointer-events-auto">
       {/* Background bar */}
       <div className="absolute inset-0 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)] -z-10" />
+
+      {/* Corporation Display (Left Side) */}
+      {corporationCard && (
+        <div className="flex items-center gap-3 -translate-y-[30px] pointer-events-auto">
+          <div
+            ref={corporationRef}
+            className="flex items-center gap-2 bg-space-black-darker/90 border-2 border-space-blue-400 rounded-xl p-2 shadow-glow backdrop-blur-space transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg cursor-pointer"
+            onClick={() => setShowCorporationPopover(!showCorporationPopover)}
+            title={`${corporationCard.name} - Click for details`}
+          >
+            {/* Corporation Card Image */}
+            <div className="w-12 h-16 rounded-lg overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
+              <img
+                src={`/assets/cards/${corporationCard.id}.webp`}
+                alt={corporationCard.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/assets/cards/001.webp";
+                }}
+              />
+            </div>
+            {/* Corporation Name */}
+            <div className="text-xs font-semibold text-white max-w-[100px] leading-tight text-shadow-glow-strong tracking-wider">
+              {corporationCard.name}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resource Grid */}
       <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
@@ -290,7 +323,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       </div>
 
       {/* Action Buttons Section */}
-      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
+      <div className="flex-1 flex items-center justify-end gap-4 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
           className={`flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5 ${
@@ -553,6 +586,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         player={currentPlayer}
         anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
+
+      {/* Corporation Popover */}
+      {corporationCard && (
+        <CorporationPopover
+          isVisible={showCorporationPopover}
+          onClose={() => setShowCorporationPopover(false)}
+          corporation={corporationCard}
+          anchorRef={corporationRef as React.RefObject<HTMLElement>}
+        />
+      )}
 
       {/* Modal components are now rendered in GameInterface */}
     </div>

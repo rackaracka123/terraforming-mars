@@ -52,6 +52,7 @@ export default function GameInterface() {
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
+  const [corporationData, setCorporationData] = useState<CardDto | null>(null);
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
@@ -97,6 +98,31 @@ export default function GameInterface() {
 
     void loadPlayedCards();
   }, [currentPlayer?.playedCards]);
+
+  // Fetch corporation data when player's corporation changes
+  useEffect(() => {
+    const loadCorporation = async () => {
+      if (!currentPlayer?.corporation) {
+        setCorporationData(null);
+        return;
+      }
+
+      try {
+        const allCards = await fetchAllCards();
+        const corp = allCards.get(currentPlayer.corporation);
+        if (corp && corp.type === "corporation") {
+          setCorporationData(corp);
+        } else {
+          setCorporationData(null);
+        }
+      } catch (error) {
+        console.error("Failed to load corporation:", error);
+        setCorporationData(null);
+      }
+    };
+
+    void loadCorporation();
+  }, [currentPlayer?.corporation]);
 
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
@@ -1015,6 +1041,7 @@ export default function GameInterface() {
         gameState={game}
         currentPlayer={currentPlayer}
         playedCards={playedCards}
+        corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}

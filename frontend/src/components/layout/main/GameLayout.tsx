@@ -18,6 +18,7 @@ interface GameLayoutProps {
   gameState: GameDto;
   currentPlayer: PlayerDto | null;
   playedCards?: CardDto[];
+  corporationCard?: CardDto | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
   onOpenCardEffectsModal?: () => void;
@@ -34,6 +35,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
   playedCards = [],
+  corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
@@ -111,6 +113,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               currentPlayer={currentPlayer}
               gameState={gameState}
               playedCards={playedCards}
+              corporationCard={corporationCard}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
