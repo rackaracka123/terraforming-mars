@@ -250,10 +250,10 @@ func (s *GameServiceImpl) StartGame(ctx context.Context, gameID string, playerID
 	return nil
 }
 
-// distributeStartingCards gives each player 10 random cards to choose from for starting selection
+// distributeStartingCards gives each player 10 random cards and 2 corporations to choose from for starting selection
 func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []model.Player) error {
 	log := logger.WithGameContext(gameID, "")
-	log.Debug("Distributing starting cards to players")
+	log.Debug("Distributing starting cards and corporations to players")
 
 	// Get the starting card pool from card service
 	startingCards, err := s.cardService.GetStartingCards(ctx)
@@ -263,6 +263,16 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 
 	if len(startingCards) < 10 {
 		return fmt.Errorf("insufficient cards in pool: need at least 10, got %d", len(startingCards))
+	}
+
+	// Get all corporation cards
+	allCorporations, err := s.cardRepo.GetCorporationCards(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get corporation cards: %w", err)
+	}
+
+	if len(allCorporations) < 2 {
+		return fmt.Errorf("insufficient corporations in pool: need at least 2, got %d", len(allCorporations))
 	}
 
 	// Separate cards into groups: cards with requirements and without requirements
@@ -335,9 +345,25 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 			playerStartingCardIDs[i] = card.ID
 		}
 
-		// Update the player with starting card IDs
+		// Select 2 random corporations for this player
+		corporationPool := make([]model.Card, len(allCorporations))
+		copy(corporationPool, allCorporations)
+
+		// Shuffle corporations
+		for i := len(corporationPool) - 1; i > 0; i-- {
+			j := rand.Intn(i + 1)
+			corporationPool[i], corporationPool[j] = corporationPool[j], corporationPool[i]
+		}
+
+		// Take first 2 corporations
+		playerCorporationIDs := make([]string, 2)
+		playerCorporationIDs[0] = corporationPool[0].ID
+		playerCorporationIDs[1] = corporationPool[1].ID
+
+		// Update the player with starting card IDs and corporation options
 		startingCardsPhase := model.SelectStartingCardsPhase{
-			AvailableCards: playerStartingCardIDs,
+			AvailableCards:        playerStartingCardIDs,
+			AvailableCorporations: playerCorporationIDs,
 		}
 
 		if err := s.playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &startingCardsPhase); err != nil {
@@ -347,9 +373,10 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 			return fmt.Errorf("failed to set starting selection for player %s: %w", player.ID, err)
 		}
 
-		log.Info("Distributed starting cards to player",
+		log.Info("Distributed starting cards and corporations to player",
 			zap.String("player_id", player.ID),
-			zap.Int("card_count", len(playerStartingCards)))
+			zap.Int("card_count", len(playerStartingCards)),
+			zap.Strings("corporations", playerCorporationIDs))
 	}
 
 	log.Info("Successfully distributed starting cards to all players",

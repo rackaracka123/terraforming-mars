@@ -220,8 +220,9 @@ type CorporationDto struct {
 }
 
 type SelectStartingCardsPhaseDto struct {
-	AvailableCards    []CardDto `json:"availableCards" ts:"CardDto[]"`  // Cards available for selection
-	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	AvailableCards        []CardDto `json:"availableCards" ts:"CardDto[]"`       // Cards available for selection
+	AvailableCorporations []string  `json:"availableCorporations" ts:"string[]"` // Corporation IDs available for selection (2 corporations)
+	SelectionComplete     bool      `json:"selectionComplete" ts:"boolean"`      // Whether player completed card selection
 }
 
 type SelectStartingCardsOtherPlayerDto struct {

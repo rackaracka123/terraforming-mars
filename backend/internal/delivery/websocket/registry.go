@@ -15,6 +15,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_cards"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_starting_card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connect"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/corporation_selection/select_corporation"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
@@ -52,6 +53,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCorporation, select_corporation.NewHandler(cardService, gameService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, standardProjectService, playerRepo, parser))
 
 	// Register play card handler

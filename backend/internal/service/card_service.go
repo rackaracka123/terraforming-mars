@@ -19,6 +19,9 @@ type CardService interface {
 	// Player actions for card selection and play
 	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
+	// Player action for corporation selection
+	OnSelectCorporation(ctx context.Context, gameID, playerID, corporationID string) error
+
 	// Player action for production card selection
 	OnSelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
 
@@ -126,6 +129,101 @@ func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, pla
 			zap.String("game_id", gameID),
 			zap.String("player_id", playerID))
 		// Don't fail the card selection operation, just log the error
+	}
+
+	return nil
+}
+
+func (s *CardServiceImpl) OnSelectCorporation(ctx context.Context, gameID, playerID, corporationID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+	log.Debug("🏢 Processing corporation selection", zap.String("corporation_id", corporationID))
+
+	// Get player to validate corporation is in their available options
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Validate player is in starting card selection phase
+	if player.SelectStartingCardsPhase == nil {
+		log.Warn("Player not in starting card selection phase")
+		return fmt.Errorf("not in starting card selection phase")
+	}
+
+	// Validate player hasn't already selected a corporation
+	if player.Corporation != nil {
+		log.Warn("Player has already selected a corporation", zap.String("existing_corporation", *player.Corporation))
+		return fmt.Errorf("corporation already selected")
+	}
+
+	// Validate corporation is in player's available options
+	corporationFound := false
+	for _, availableCorp := range player.SelectStartingCardsPhase.AvailableCorporations {
+		if availableCorp == corporationID {
+			corporationFound = true
+			break
+		}
+	}
+
+	if !corporationFound {
+		log.Warn("Corporation not in player's available options", zap.String("corporation_id", corporationID))
+		return fmt.Errorf("corporation %s not in available options", corporationID)
+	}
+
+	// Get corporation details from card repository
+	corporationCard, err := s.cardRepo.GetCardByID(ctx, corporationID)
+	if err != nil {
+		log.Error("Failed to get corporation card", zap.Error(err))
+		return fmt.Errorf("failed to get corporation card: %w", err)
+	}
+
+	// Convert card to corporation and apply starting bonuses
+	corporation := model.ConvertCardToCorporation(*corporationCard)
+
+	// Update player's corporation
+	if err := s.playerRepo.UpdateCorporation(ctx, gameID, playerID, corporationID); err != nil {
+		log.Error("Failed to update player corporation", zap.Error(err))
+		return fmt.Errorf("failed to update player corporation: %w", err)
+	}
+
+	// Apply starting resources
+	updatedResources := player.Resources
+	updatedResources.Credits = corporation.StartingResources.Credits
+	updatedResources.Steel += corporation.StartingResources.Steel
+	updatedResources.Titanium += corporation.StartingResources.Titanium
+	updatedResources.Plants += corporation.StartingResources.Plants
+	updatedResources.Energy += corporation.StartingResources.Energy
+	updatedResources.Heat += corporation.StartingResources.Heat
+
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
+		log.Error("Failed to update player resources", zap.Error(err))
+		return fmt.Errorf("failed to update player resources: %w", err)
+	}
+
+	// Apply starting production
+	updatedProduction := player.Production
+	updatedProduction.Credits += corporation.StartingProduction.Credits
+	updatedProduction.Steel += corporation.StartingProduction.Steel
+	updatedProduction.Titanium += corporation.StartingProduction.Titanium
+	updatedProduction.Plants += corporation.StartingProduction.Plants
+	updatedProduction.Energy += corporation.StartingProduction.Energy
+	updatedProduction.Heat += corporation.StartingProduction.Heat
+
+	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, updatedProduction); err != nil {
+		log.Error("Failed to update player production", zap.Error(err))
+		return fmt.Errorf("failed to update player production: %w", err)
+	}
+
+	log.Info("✅ Corporation selected and bonuses applied",
+		zap.String("corporation_id", corporationID),
+		zap.String("corporation_name", corporation.Name),
+		zap.Int("starting_credits", corporation.StartingCredits))
+
+	// Broadcast updated game state to all players
+	if err := s.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state after corporation selection", zap.Error(err))
+		// Don't fail the operation, just log the error
 	}
 
 	return nil

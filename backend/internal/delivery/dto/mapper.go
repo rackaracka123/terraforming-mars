@@ -297,8 +297,9 @@ func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolv
 	}
 
 	return &SelectStartingCardsPhaseDto{
-		AvailableCards:    resolveCards(phase.AvailableCards, resolvedCards),
-		SelectionComplete: phase.SelectionComplete,
+		AvailableCards:        resolveCards(phase.AvailableCards, resolvedCards),
+		AvailableCorporations: phase.AvailableCorporations,
+		SelectionComplete:     phase.SelectionComplete,
 	}
 }
 

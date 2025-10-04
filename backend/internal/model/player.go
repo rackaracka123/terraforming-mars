@@ -27,8 +27,9 @@ func (p *ProductionPhase) DeepCopy() *ProductionPhase {
 }
 
 type SelectStartingCardsPhase struct {
-	AvailableCards    []string `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
-	SelectionComplete bool     `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	AvailableCards        []string `json:"availableCards" ts:"CardDto[]"`       // Card IDs available for selection
+	AvailableCorporations []string `json:"availableCorporations" ts:"string[]"` // Corporation IDs available for selection (2 corporations)
+	SelectionComplete     bool     `json:"selectionComplete" ts:"boolean"`      // Whether player completed card selection
 }
 
 // PendingTileSelection represents a pending tile placement action
@@ -137,9 +138,13 @@ func (p *Player) DeepCopy() *Player {
 		availableCardsCopy := make([]string, len(p.SelectStartingCardsPhase.AvailableCards))
 		copy(availableCardsCopy, p.SelectStartingCardsPhase.AvailableCards)
 
+		availableCorporationsCopy := make([]string, len(p.SelectStartingCardsPhase.AvailableCorporations))
+		copy(availableCorporationsCopy, p.SelectStartingCardsPhase.AvailableCorporations)
+
 		startingSelectionCopy = &SelectStartingCardsPhase{
-			AvailableCards:    availableCardsCopy,
-			SelectionComplete: p.SelectStartingCardsPhase.SelectionComplete,
+			AvailableCards:        availableCardsCopy,
+			AvailableCorporations: availableCorporationsCopy,
+			SelectionComplete:     p.SelectStartingCardsPhase.SelectionComplete,
 		}
 	}
 
