@@ -5,7 +5,7 @@ import CardsPlayedModal from "../../ui/modals/CardsPlayedModal.tsx";
 import VictoryPointsModal from "../../ui/modals/VictoryPointsModal.tsx";
 import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
-import StandardProjectsDropdown from "../../ui/dropdown/StandardProjectsDropdown.tsx";
+import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
@@ -56,10 +56,10 @@ export default function GameInterface() {
   const [showVictoryPointsModal, setShowVictoryPointsModal] = useState(false);
   const [showCardEffectsModal, setShowCardEffectsModal] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
-  const [showStandardProjectsDropdown, setShowStandardProjectsDropdown] =
+  const [showStandardProjectsPopover, setShowStandardProjectsPopover] =
     useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
-  const standardProjectsButtonRef = useRef<HTMLElement>(null);
+  const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Played cards state
   const [playedCards, setPlayedCards] = useState<CardDto[]>([]);
@@ -501,7 +501,7 @@ export default function GameInterface() {
   const handleStandardProjectSelect = useCallback(
     (project: StandardProject) => {
       // Close dropdown first
-      setShowStandardProjectsDropdown(false);
+      setShowStandardProjectsPopover(false);
 
       // All standard projects execute immediately
       // Backend will create tile queue for projects requiring placement
@@ -816,10 +816,11 @@ export default function GameInterface() {
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
-        showStandardProjectsDropdown={showStandardProjectsDropdown}
-        onToggleStandardProjectsDropdown={() =>
-          setShowStandardProjectsDropdown(!showStandardProjectsDropdown)
+        showStandardProjectsPopover={showStandardProjectsPopover}
+        onToggleStandardProjectsPopover={() =>
+          setShowStandardProjectsPopover(!showStandardProjectsPopover)
         }
+        standardProjectsButtonRef={standardProjectsButtonRef}
       />
 
       {/*<CorporationSelectionModal*/}
@@ -855,9 +856,9 @@ export default function GameInterface() {
         gameState={game}
       />
 
-      <StandardProjectsDropdown
-        isVisible={showStandardProjectsDropdown}
-        onClose={() => setShowStandardProjectsDropdown(false)}
+      <StandardProjectPopover
+        isVisible={showStandardProjectsPopover}
+        onClose={() => setShowStandardProjectsPopover(false)}
         onProjectSelect={handleStandardProjectSelect}
         gameState={game}
         anchorRef={standardProjectsButtonRef}

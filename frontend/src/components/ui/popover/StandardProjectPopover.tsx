@@ -13,12 +13,12 @@ import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 import ProductionDisplay from "../display/ProductionDisplay.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 
-interface StandardProjectsDropdownProps {
+interface StandardProjectsPopoverProps {
   isVisible: boolean;
   onClose: () => void;
   onProjectSelect: (project: StandardProject) => void;
   gameState?: GameDto;
-  anchorRef: React.RefObject<HTMLElement | null>;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 // Check if player can afford a standard project
@@ -62,14 +62,14 @@ const isProjectAvailable = (
   }
 };
 
-const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
+const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
   isVisible,
   onClose,
   onProjectSelect,
   gameState,
   anchorRef,
 }) => {
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -80,8 +80,8 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node) &&
         anchorRef.current &&
         !anchorRef.current.contains(event.target as Node)
       ) {
@@ -133,6 +133,24 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
   const renderEffects = (project: StandardProjectMetadata) => {
     const effects: React.ReactElement[] = [];
 
+    // Tile placement icons only for projects that don't show it via global parameters
+    // (Aquifer and Greenery show their tiles via globalParameters section)
+    if (
+      project.requiresTilePlacement &&
+      !project.effects.globalParameters &&
+      project.id === StandardProject.CITY
+    ) {
+      effects.push(
+        <div key="tile" className="flex items-center gap-1">
+          <img
+            src="/assets/tiles/city.png"
+            alt="city tile"
+            className="w-6 h-6 object-contain"
+          />
+        </div>,
+      );
+    }
+
     // Production effects
     if (project.effects.production) {
       project.effects.production.forEach((prod, idx) => {
@@ -152,22 +170,17 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
     if (project.effects.globalParameters) {
       project.effects.globalParameters.forEach((param, idx) => {
         const paramIcons: { [key: string]: string } = {
-          temperature: "/assets/resources/heat.png",
-          oxygen: "/assets/resources/oxygen.png",
-          oceans: "/assets/resources/ocean.png",
+          temperature: "/assets/global-parameters/temperature.png",
+          oxygen: "/assets/global-parameters/oxygen.png",
+          oceans: "/assets/tiles/ocean.png",
         };
         effects.push(
           <div key={`param-${idx}`} className="flex items-center gap-1">
-            <div className="relative w-6 h-6">
-              <img
-                src={paramIcons[param.type]}
-                alt={param.type}
-                className="w-full h-full object-contain"
-              />
-              <span className="absolute -bottom-1 -right-1 bg-space-black-darker border border-space-blue-500 rounded-full text-white text-[10px] font-bold px-1 min-w-[16px] text-center">
-                +{param.amount === 2 ? "1" : param.amount}
-              </span>
-            </div>
+            <img
+              src={paramIcons[param.type]}
+              alt={param.type}
+              className="w-6 h-6 object-contain"
+            />
           </div>,
         );
       });
@@ -177,16 +190,11 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
     if (project.grantsTR) {
       effects.push(
         <div key="tr" className="flex items-center gap-1">
-          <div className="relative w-6 h-6">
-            <img
-              src="/assets/resources/tr.png"
-              alt="TR"
-              className="w-full h-full object-contain"
-            />
-            <span className="absolute -bottom-1 -right-1 bg-space-black-darker border border-space-blue-500 rounded-full text-white text-[10px] font-bold px-1 min-w-[16px] text-center">
-              +1
-            </span>
-          </div>
+          <img
+            src="/assets/resources/tr.png"
+            alt="TR"
+            className="w-6 h-6 object-contain"
+          />
         </div>,
       );
     }
@@ -196,8 +204,8 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
 
   return (
     <div
-      ref={dropdownRef}
-      className="fixed top-[60px] left-[20px] w-[500px] max-h-[calc(100vh-80px)] bg-space-black-darker/98 border-2 border-[#4a90e2] rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(74,144,226,0.5)] backdrop-blur-space z-[3000] animate-[dropdownSlideDown_0.3s_ease-out]"
+      ref={popoverRef}
+      className="fixed top-[60px] left-[20px] w-[500px] max-h-[calc(100vh-80px)] bg-space-black-darker/98 border-2 border-[#4a90e2] rounded-xl overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(74,144,226,0.5)] backdrop-blur-space z-[3000] animate-[popoverSlideDown_0.3s_ease-out]"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-[#4a90e2]">
@@ -308,13 +316,8 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
         })}
       </div>
 
-      {/* Footer */}
-      <div className="px-4 py-2 bg-black/30 border-t border-[#4a90e2]/30 text-center text-white/50 text-[10px]">
-        Press ESC or click outside to close
-      </div>
-
       <style>{`
-        @keyframes dropdownSlideDown {
+        @keyframes popoverSlideDown {
           from {
             opacity: 0;
             transform: translateY(-10px);
@@ -329,4 +332,4 @@ const StandardProjectsDropdown: React.FC<StandardProjectsDropdownProps> = ({
   );
 };
 
-export default StandardProjectsDropdown;
+export default StandardProjectPopover;

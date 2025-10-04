@@ -78,7 +78,7 @@ export const STANDARD_PROJECTS: Record<
     effects: {
       immediate: [{ type: "credits", amount: 1 }],
     },
-    icon: "/assets/misc/card.png",
+    icon: "/assets/resources/card.png",
   },
   [StandardProject.POWER_PLANT]: {
     id: StandardProject.POWER_PLANT,
@@ -103,7 +103,7 @@ export const STANDARD_PROJECTS: Record<
       globalParameters: [{ type: "temperature", amount: 2 }],
       immediate: [{ type: "tr", amount: 1 }],
     },
-    icon: "/assets/misc/asteroid.png",
+    icon: "/assets/resources/asteroid.png",
   },
   [StandardProject.AQUIFER]: {
     id: StandardProject.AQUIFER,
@@ -116,7 +116,7 @@ export const STANDARD_PROJECTS: Record<
       globalParameters: [{ type: "oceans", amount: 1 }],
       immediate: [{ type: "tr", amount: 1 }],
     },
-    icon: "/assets/resources/ocean.png",
+    icon: "/assets/tiles/ocean.png",
   },
   [StandardProject.GREENERY]: {
     id: StandardProject.GREENERY,
@@ -130,7 +130,7 @@ export const STANDARD_PROJECTS: Record<
       globalParameters: [{ type: "oxygen", amount: 1 }],
       immediate: [{ type: "tr", amount: 1 }],
     },
-    icon: "/assets/resources/plant.png",
+    icon: "/assets/tiles/greenery.png",
   },
   [StandardProject.CITY]: {
     id: StandardProject.CITY,
@@ -143,6 +143,6 @@ export const STANDARD_PROJECTS: Record<
     effects: {
       production: [{ type: "credits", amount: 1 }],
     },
-    icon: "/assets/misc/city.png",
+    icon: "/assets/tiles/city.png",
   },
 };

@@ -25,8 +25,9 @@ interface GameLayoutProps {
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
-  showStandardProjectsDropdown?: boolean;
-  onToggleStandardProjectsDropdown?: () => void;
+  showStandardProjectsPopover?: boolean;
+  onToggleStandardProjectsPopover?: () => void;
+  standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const GameLayout: React.FC<GameLayoutProps> = ({
@@ -40,8 +41,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
-  showStandardProjectsDropdown = false,
-  onToggleStandardProjectsDropdown,
+  showStandardProjectsPopover = false,
+  onToggleStandardProjectsPopover,
+  standardProjectsButtonRef,
 }) => {
   const convertOtherPlayerToPlayerDto = (
     otherPlayer: OtherPlayerDto,
@@ -77,8 +79,9 @@ const GameLayout: React.FC<GameLayoutProps> = ({
       <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
         <TopMenuBar
           gameState={gameState}
-          showStandardProjectsDropdown={showStandardProjectsDropdown}
-          onToggleStandardProjectsDropdown={onToggleStandardProjectsDropdown}
+          showStandardProjectsPopover={showStandardProjectsPopover}
+          onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
+          standardProjectsButtonRef={standardProjectsButtonRef}
         />
 
         <div className="grid grid-cols-1 min-h-0 gap-0 relative">
