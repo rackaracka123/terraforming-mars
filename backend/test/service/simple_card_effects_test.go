@@ -333,3 +333,72 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 
 	t.Log("✅ Rover Construction passive effect triggering integration test passed")
 }
+
+func TestLavaFlows_TemperatureIncrease(t *testing.T) {
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+
+	// Set initial temperature to -20°C
+	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+		Temperature: -20, Oxygen: 0, Oceans: 0,
+	})
+
+	// Give player enough credits to play Lava Flows (cost: 18)
+	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+
+	// Add Lava Flows to player's hand
+	cardID := "140"
+	playerRepo.AddCard(ctx, gameID, playerID, cardID)
+
+	// Get state before playing card
+	gameBefore, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, -20, gameBefore.GlobalParameters.Temperature, "Initial temperature should be -20°C")
+
+	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.Contains(t, playerBefore.Cards, cardID, "Card should be in hand")
+	assert.Equal(t, 20, playerBefore.Resources.Credits, "Should have 20 credits")
+
+	// Play Lava Flows
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Lava Flows")
+
+	// Verify effects
+	gameAfter, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, -18, gameAfter.GlobalParameters.Temperature, "Temperature should increase by 2 steps (-20 + 2 = -18)")
+
+	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.NotContains(t, playerAfter.Cards, cardID, "Card removed from hand")
+	assert.Contains(t, playerAfter.PlayedCards, cardID, "Card added to played cards")
+	assert.Equal(t, 2, playerAfter.Resources.Credits, "Should spend 18 MC (20 - 18 = 2)")
+
+	t.Log("✅ Lava Flows temperature increase test passed")
+}
+
+func TestLavaFlows_TemperatureClampedAtMax(t *testing.T) {
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+
+	// Set temperature to 7°C (1 step below max of 8°C)
+	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+		Temperature: 7, Oxygen: 0, Oceans: 0,
+	})
+
+	// Give player enough credits
+	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+
+	// Add Lava Flows to player's hand
+	cardID := "140"
+	playerRepo.AddCard(ctx, gameID, playerID, cardID)
+
+	// Get state before
+	gameBefore, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, 7, gameBefore.GlobalParameters.Temperature, "Initial temperature should be 7°C")
+
+	// Play Lava Flows (would increase by 2, but max is 8)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Lava Flows")
+
+	// Verify temperature is clamped at max
+	gameAfter, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, 8, gameAfter.GlobalParameters.Temperature, "Temperature should be clamped at max (8°C)")
+
+	t.Log("✅ Lava Flows temperature clamping test passed")
+}

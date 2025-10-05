@@ -201,6 +201,7 @@ func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
 		MaxPlayers:      settings.MaxPlayers,
 		DevelopmentMode: settings.DevelopmentMode,
+		CardPacks:       settings.CardPacks,
 	}
 }
 
@@ -278,6 +279,7 @@ func ToCardDto(card model.Card) CardDto {
 		Type:               CardType(card.Type),
 		Cost:               card.Cost,
 		Description:        card.Description,
+		Pack:               card.Pack,
 		Tags:               ToCardTagDtoSlice(card.Tags),
 		Requirements:       card.Requirements,
 		Behaviors:          behaviors,

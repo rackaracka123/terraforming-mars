@@ -73,10 +73,10 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to apply tile effects: %w", err)
 	}
 
-	// Future implementation: Apply global parameter effects
-	// if err := cp.applyGlobalParameterEffects(ctx, gameID, card); err != nil {
-	//     return fmt.Errorf("failed to apply global parameter effects: %w", err)
-	// }
+	// Apply global parameter effects (temperature, oxygen, oceans)
+	if err := cp.applyGlobalParameterEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
+		return fmt.Errorf("failed to apply global parameter effects: %w", err)
+	}
 
 	log.Debug("✅ Card effects applied successfully")
 	return nil
@@ -375,6 +375,7 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 
 	// Track changes for logging
 	var creditsChange, steelChange, titaniumChange, plantsChange, energyChange, heatChange int
+	var trChange int
 
 	// Process all behaviors to find resource effects
 	for _, behavior := range card.Behaviors {
@@ -414,6 +415,8 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 				case model.ResourceHeat:
 					newResources.Heat += output.Amount
 					heatChange += output.Amount
+				case model.ResourceTR:
+					trChange += output.Amount
 
 				// Card storage resources (animals, microbes, floaters, science, asteroid)
 				case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
@@ -445,6 +448,21 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 			zap.Int("plants_change", plantsChange),
 			zap.Int("energy_change", energyChange),
 			zap.Int("heat_change", heatChange))
+	}
+
+	// Apply TR changes separately (not part of resources)
+	if trChange != 0 {
+		newTR := player.TerraformRating + trChange
+		if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+			log.Error("Failed to update terraform rating", zap.Error(err))
+			return fmt.Errorf("failed to update terraform rating: %w", err)
+		}
+
+		log.Info("⭐ Terraform Rating changed",
+			zap.String("card_name", card.Name),
+			zap.Int("change", trChange),
+			zap.Int("old_tr", player.TerraformRating),
+			zap.Int("new_tr", newTR))
 	}
 
 	return nil
@@ -560,6 +578,119 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, p
 		zap.String("resource_type", string(output.Type)),
 		zap.Int("amount", output.Amount),
 		zap.Int("new_storage_amount", player.ResourceStorage[targetCardID]))
+
+	return nil
+}
+
+// applyGlobalParameterEffects applies global parameter changes (temperature, oxygen, oceans) from a card's behaviors
+// choiceIndex is optional and used when the card has choices between different effects
+func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current game to read current global parameters
+	game, err := cp.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game for global parameter update: %w", err)
+	}
+
+	// Track changes for logging
+	var temperatureChange, oxygenChange, oceansChange int
+
+	// Process all behaviors to find global parameter effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+			}
+
+			// Process all aggregated outputs
+			for _, output := range allOutputs {
+				switch output.Type {
+				case model.ResourceTemperature:
+					temperatureChange += output.Amount
+				case model.ResourceOxygen:
+					oxygenChange += output.Amount
+				case model.ResourceOceans:
+					oceansChange += output.Amount
+				}
+			}
+		}
+	}
+
+	// Apply temperature changes
+	if temperatureChange != 0 {
+		newTemperature := game.GlobalParameters.Temperature + temperatureChange
+		// Clamp to valid range
+		if newTemperature > model.MaxTemperature {
+			newTemperature = model.MaxTemperature
+		}
+		if newTemperature < model.MinTemperature {
+			newTemperature = model.MinTemperature
+		}
+
+		if err := cp.gameRepo.UpdateTemperature(ctx, gameID, newTemperature); err != nil {
+			log.Error("Failed to update temperature", zap.Error(err))
+			return fmt.Errorf("failed to update temperature: %w", err)
+		}
+
+		log.Info("🌡️ Temperature changed",
+			zap.String("card_name", card.Name),
+			zap.Int("change", temperatureChange),
+			zap.Int("old_temperature", game.GlobalParameters.Temperature),
+			zap.Int("new_temperature", newTemperature))
+	}
+
+	// Apply oxygen changes
+	if oxygenChange != 0 {
+		newOxygen := game.GlobalParameters.Oxygen + oxygenChange
+		// Clamp to valid range
+		if newOxygen > model.MaxOxygen {
+			newOxygen = model.MaxOxygen
+		}
+		if newOxygen < model.MinOxygen {
+			newOxygen = model.MinOxygen
+		}
+
+		if err := cp.gameRepo.UpdateOxygen(ctx, gameID, newOxygen); err != nil {
+			log.Error("Failed to update oxygen", zap.Error(err))
+			return fmt.Errorf("failed to update oxygen: %w", err)
+		}
+
+		log.Info("💨 Oxygen changed",
+			zap.String("card_name", card.Name),
+			zap.Int("change", oxygenChange),
+			zap.Int("old_oxygen", game.GlobalParameters.Oxygen),
+			zap.Int("new_oxygen", newOxygen))
+	}
+
+	// Apply oceans changes
+	if oceansChange != 0 {
+		newOceans := game.GlobalParameters.Oceans + oceansChange
+		// Clamp to valid range
+		if newOceans > model.MaxOceans {
+			newOceans = model.MaxOceans
+		}
+		if newOceans < model.MinOceans {
+			newOceans = model.MinOceans
+		}
+
+		if err := cp.gameRepo.UpdateOceans(ctx, gameID, newOceans); err != nil {
+			log.Error("Failed to update oceans", zap.Error(err))
+			return fmt.Errorf("failed to update oceans: %w", err)
+		}
+
+		log.Info("🌊 Oceans changed",
+			zap.String("card_name", card.Name),
+			zap.Int("change", oceansChange),
+			zap.Int("old_oceans", game.GlobalParameters.Oceans),
+			zap.Int("new_oceans", newOceans))
+	}
 
 	return nil
 }

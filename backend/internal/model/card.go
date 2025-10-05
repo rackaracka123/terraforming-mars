@@ -28,6 +28,7 @@ type Card struct {
 	Type            CardType                `json:"type" ts:"CardType"`
 	Cost            int                     `json:"cost" ts:"number"`
 	Description     string                  `json:"description" ts:"string"`
+	Pack            string                  `json:"pack" ts:"string"` // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
 	Tags            []CardTag               `json:"tags,omitempty" ts:"CardTag[] | undefined"`
 	Requirements    []Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
 	Behaviors       []CardBehavior          `json:"behaviors,omitempty" ts:"CardBehavior[] | undefined"`             // All card behaviors (immediate and repeatable)
@@ -82,6 +83,7 @@ func (c Card) DeepCopy() Card {
 		Type:               c.Type,
 		Cost:               c.Cost,
 		Description:        c.Description,
+		Pack:               c.Pack,
 		Tags:               tags,
 		Requirements:       requirements,
 		Behaviors:          behaviors,

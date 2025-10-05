@@ -68,6 +68,8 @@ const (
 	ResourceTemperature ResourceType = "temperature"
 	// ResourceOxygen represents oxygen change
 	ResourceOxygen ResourceType = "oxygen"
+	// ResourceOceans represents ocean tile placement (global parameter)
+	ResourceOceans ResourceType = "oceans"
 	// ResourceVenus represents venus change
 	ResourceVenus ResourceType = "venus"
 	// ResourceTR represents terraform Rating change
