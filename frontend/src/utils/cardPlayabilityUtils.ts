@@ -256,7 +256,7 @@ function checkBehaviorCosts(
           if (!anyoneHasEnough) {
             failedReasons.push({
               type: "production",
-              requirement: { resource: baseResource, amount: absAmount },
+              requirement: { resource: resourceType, amount: absAmount },
               message: `${absAmount}`,
               currentValue: currentProduction,
               requiredValue: absAmount,
@@ -272,7 +272,7 @@ function checkBehaviorCosts(
           if (currentProduction < absAmount) {
             failedReasons.push({
               type: "production",
-              requirement: { resource: baseResource, amount: absAmount },
+              requirement: { resource: resourceType, amount: absAmount },
               message: `${absAmount}`,
               currentValue: currentProduction,
               requiredValue: absAmount,
@@ -362,6 +362,42 @@ function checkBehaviorCosts(
   }
 
   return failedReasons;
+}
+
+/**
+ * Deduplicates requirements - keeps only the highest amount for each resource type
+ */
+function deduplicateRequirements(
+  requirements: UnplayableReason[],
+): UnplayableReason[] {
+  const deduplicatedRequirements: UnplayableReason[] = [];
+  const resourceMap = new Map<string, UnplayableReason>();
+
+  for (const reason of requirements) {
+    // Create a unique key for this requirement type + resource
+    const key = `${reason.type}:${reason.requirement?.resource || ""}`;
+    const existing = resourceMap.get(key);
+
+    if (!existing) {
+      // First time seeing this resource requirement
+      resourceMap.set(key, reason);
+    } else {
+      // Already have a requirement for this resource - keep the higher one
+      const existingAmount =
+        typeof existing.requiredValue === "number" ? existing.requiredValue : 0;
+      const currentAmount =
+        typeof reason.requiredValue === "number" ? reason.requiredValue : 0;
+
+      if (currentAmount > existingAmount) {
+        resourceMap.set(key, reason);
+      }
+    }
+  }
+
+  // Convert map back to array
+  resourceMap.forEach((reason) => deduplicatedRequirements.push(reason));
+
+  return deduplicatedRequirements;
 }
 
 /**
@@ -591,11 +627,14 @@ export async function checkCardPlayability(
     }
   }
 
+  // Deduplicate requirements - keep only the highest amount for each resource type
+  const deduplicatedRequirements = deduplicateRequirements(failedRequirements);
+
   // If there are failed requirements, return them
-  if (failedRequirements.length > 0) {
+  if (deduplicatedRequirements.length > 0) {
     // If only one failed requirement, return it directly
-    if (failedRequirements.length === 1) {
-      return { playable: false, reason: failedRequirements[0] };
+    if (deduplicatedRequirements.length === 1) {
+      return { playable: false, reason: deduplicatedRequirements[0] };
     }
 
     // Multiple failed requirements - create a combined reason
@@ -607,7 +646,7 @@ export async function checkCardPlayability(
         type: "multiple",
         requirement: { multiple: true },
         message: message,
-        failedRequirements: failedRequirements,
+        failedRequirements: deduplicatedRequirements,
       },
     };
   }

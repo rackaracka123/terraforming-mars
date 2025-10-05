@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PlayerEffectDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface EffectsPopoverProps {
   isVisible: boolean;
@@ -103,11 +104,9 @@ const EffectsPopover: React.FC<EffectsPopoverProps> = ({
       <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff96ff_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff96ff]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff96ff]">
         {effects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <img
-              src="/assets/misc/asterisc.png"
-              alt="No effects"
-              className="w-10 h-10 mb-[15px] opacity-60"
-            />
+            <div className="mb-[15px] opacity-60">
+              <GameIcon iconType="asterisk" size="medium" />
+            </div>
             <div className="text-white text-sm font-medium mb-2">
               No card effects active
             </div>

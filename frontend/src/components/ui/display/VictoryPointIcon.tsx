@@ -1,4 +1,5 @@
 import React from "react";
+import { getIconPath } from "@/utils/iconStore.ts";
 
 interface VictoryPointIconProps {
   value?: number | string; // Deprecated: for backward compatibility
@@ -11,25 +12,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
   vpConditions,
   size = "medium",
 }) => {
-  // Helper function to get tag icon for VP conditions
-  const getTagIcon = (tag: string) => {
-    const iconMap: { [key: string]: string } = {
-      jovian: "/assets/tags/jovian.png",
-      science: "/assets/tags/science.png",
-      space: "/assets/tags/space.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      earth: "/assets/tags/earth.png",
-      building: "/assets/tags/building.png",
-      power: "/assets/tags/power.png",
-      city: "/assets/tags/city.png",
-      venus: "/assets/tags/venus.png",
-      event: "/assets/tags/event.png",
-      wild: "/assets/tags/wild.png",
-    };
-    return iconMap[tag.toLowerCase()] || null;
-  };
+  const vpIconPath = getIconPath("mars");
 
   const sizeClasses = {
     small: "w-8 h-8 text-[calc(32px*0.7)]",
@@ -53,7 +36,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
           >
             <img
-              src="/assets/mars.png"
+              src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
@@ -69,7 +52,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         let displayText = "";
 
         if (perCondition.tag) {
-          tagIcon = getTagIcon(perCondition.tag);
+          tagIcon = getIconPath(perCondition.tag);
           displayText = `${condition.amount}/${perCondition.amount || 1}`;
         } else if (perCondition.type) {
           // Handle other per types (city-tile, ocean-tile, etc.)
@@ -81,7 +64,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
           >
             <img
-              src="/assets/mars.png"
+              src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
@@ -105,7 +88,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
           >
             <img
-              src="/assets/mars.png"
+              src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
@@ -135,7 +118,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         let displayText = "";
 
         if (perCondition.tag) {
-          tagIcon = getTagIcon(perCondition.tag);
+          tagIcon = getIconPath(perCondition.tag);
           displayText = `${firstPerCondition.amount}/${perCondition.amount || 1}`;
         }
 
@@ -144,7 +127,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
           >
             <img
-              src="/assets/mars.png"
+              src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
@@ -166,7 +149,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
             className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
           >
             <img
-              src="/assets/mars.png"
+              src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
@@ -213,7 +196,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
       className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
     >
       <img
-        src="/assets/mars.png"
+        src={vpIconPath || ""}
         alt="VP"
         className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
       />

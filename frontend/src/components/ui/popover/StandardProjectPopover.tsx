@@ -3,14 +3,14 @@ import {
   GameDto,
   GameStatusActive,
   GamePhaseAction,
+  ResourceTypeCredits,
 } from "@/types/generated/api-types.ts";
 import {
   StandardProject,
   STANDARD_PROJECTS,
-  StandardProjectMetadata,
-} from "@/types/cards.ts";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
-import ProductionDisplay from "../display/ProductionDisplay.tsx";
+  StandardProjectCard,
+} from "@/types/cards.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 
 interface StandardProjectsPopoverProps {
@@ -23,7 +23,7 @@ interface StandardProjectsPopoverProps {
 
 // Check if player can afford a standard project
 const canAffordProject = (
-  project: StandardProjectMetadata,
+  project: StandardProjectCard,
   credits: number,
 ): boolean => {
   return credits >= project.cost;
@@ -31,7 +31,7 @@ const canAffordProject = (
 
 // Check if a standard project is available (affordability + global parameter limits)
 const isProjectAvailable = (
-  project: StandardProjectMetadata,
+  project: StandardProjectCard,
   gameState?: GameDto,
 ): boolean => {
   if (!gameState?.currentPlayer) return false;
@@ -47,19 +47,50 @@ const isProjectAvailable = (
   const globalParams = gameState.globalParameters;
   if (!globalParams) return true;
 
-  switch (project.id) {
-    case StandardProject.ASTEROID:
-      // Temperature maxed out
-      return globalParams.temperature < 8;
-    case StandardProject.AQUIFER:
-      // Oceans maxed out
-      return globalParams.oceans < 9;
-    case StandardProject.GREENERY:
-      // Oxygen maxed out
-      return globalParams.oxygen < 14;
-    default:
-      return true;
+  // Extract outputs from behaviors to check for global parameter limits
+  const outputs =
+    project.behaviors?.[0]?.outputs?.map((o) => o.type as string) || [];
+
+  if (outputs.includes("temperature")) {
+    return globalParams.temperature < 8;
   }
+  if (outputs.includes("oceans") || outputs.includes("ocean-tile")) {
+    return globalParams.oceans < 9;
+  }
+  if (outputs.includes("oxygen") || outputs.includes("greenery-tile")) {
+    return globalParams.oxygen < 14;
+  }
+
+  return true;
+};
+
+// Get tooltip message for project based on state
+const getProjectTooltip = (
+  project: StandardProjectCard,
+  canExecuteProjects: boolean,
+  isCurrentPlayerTurn: boolean,
+  isAvailable: boolean,
+  gameState?: GameDto,
+): string => {
+  if (!canExecuteProjects) {
+    if (!isCurrentPlayerTurn) {
+      return "Wait for your turn";
+    }
+    return "Actions not available in this phase";
+  }
+
+  if (!isAvailable) {
+    if (
+      project.cost > 0 &&
+      gameState?.currentPlayer &&
+      gameState.currentPlayer.resources.credits < project.cost
+    ) {
+      return `Need ${project.cost - gameState.currentPlayer.resources.credits} more M€`;
+    }
+    return "Global parameter maxed out";
+  }
+
+  return "Click to execute";
 };
 
 const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
@@ -123,81 +154,33 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
     isProjectAvailable(p, gameState),
   ).length;
 
-  const handleProjectClick = (project: StandardProjectMetadata) => {
+  const handleProjectClick = (project: StandardProjectCard) => {
     if (!canExecuteProjects) return;
     if (!isProjectAvailable(project, gameState)) return;
-    onProjectSelect(project.id);
+    onProjectSelect(project.id as StandardProject);
   };
 
-  // Render effect icons with amounts
-  const renderEffects = (project: StandardProjectMetadata) => {
+  // Render effect icons from behaviors
+  const renderEffects = (project: StandardProjectCard) => {
     const effects: React.ReactElement[] = [];
 
-    // Tile placement icons only for projects that don't show it via global parameters
-    // (Aquifer and Greenery show their tiles via globalParameters section)
-    if (
-      project.requiresTilePlacement &&
-      !project.effects.globalParameters &&
-      project.id === StandardProject.CITY
-    ) {
+    if (!project.behaviors || project.behaviors.length === 0) {
+      return effects;
+    }
+
+    const outputs = project.behaviors[0].outputs || [];
+
+    outputs.forEach((output, idx) => {
+      const outputType = output.type as string;
       effects.push(
-        <div key="tile" className="flex items-center gap-1">
-          <img
-            src="/assets/tiles/city.png"
-            alt="city tile"
-            className="w-6 h-6 object-contain"
-          />
-        </div>,
+        <GameIcon
+          key={`output-${idx}`}
+          iconType={outputType}
+          amount={output.amount}
+          size="small"
+        />,
       );
-    }
-
-    // Production effects
-    if (project.effects.production) {
-      project.effects.production.forEach((prod, idx) => {
-        effects.push(
-          <div key={`prod-${idx}`} className="flex items-center gap-1">
-            <ProductionDisplay
-              amount={prod.amount}
-              resourceType={prod.type}
-              size="small"
-            />
-          </div>,
-        );
-      });
-    }
-
-    // Global parameter effects
-    if (project.effects.globalParameters) {
-      project.effects.globalParameters.forEach((param, idx) => {
-        const paramIcons: { [key: string]: string } = {
-          temperature: "/assets/global-parameters/temperature.png",
-          oxygen: "/assets/global-parameters/oxygen.png",
-          oceans: "/assets/tiles/ocean.png",
-        };
-        effects.push(
-          <div key={`param-${idx}`} className="flex items-center gap-1">
-            <img
-              src={paramIcons[param.type]}
-              alt={param.type}
-              className="w-6 h-6 object-contain"
-            />
-          </div>,
-        );
-      });
-    }
-
-    // TR bonus
-    if (project.grantsTR) {
-      effects.push(
-        <div key="tr" className="flex items-center gap-1">
-          <img
-            src="/assets/resources/tr.png"
-            alt="TR"
-            className="w-6 h-6 object-contain"
-          />
-        </div>,
-      );
-    }
+    });
 
     return effects;
   };
@@ -243,54 +226,46 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                   : "border-[#4a90e2]/30 bg-[#4a90e2]/10 opacity-60"
               } ${isExecutable ? "cursor-pointer" : "cursor-not-allowed"}`}
               onClick={() => isExecutable && handleProjectClick(project)}
-              title={
-                !canExecuteProjects
-                  ? !isCurrentPlayerTurn
-                    ? "Wait for your turn"
-                    : "Actions not available in this phase"
-                  : !isAvailable
-                    ? project.cost > 0 &&
-                      gameState?.currentPlayer &&
-                      gameState.currentPlayer.resources.credits < project.cost
-                      ? `Need ${project.cost - gameState.currentPlayer.resources.credits} more M€`
-                      : "Global parameter maxed out"
-                    : "Click to execute"
-              }
+              title={getProjectTooltip(
+                project,
+                canExecuteProjects,
+                isCurrentPlayerTurn,
+                isAvailable,
+                gameState,
+              )}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-3 mb-2">
                 {/* Left: Name, Cost, Effects */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     {project.icon && (
-                      <img
-                        src={project.icon}
-                        alt={project.name}
-                        className="w-5 h-5 object-contain opacity-70"
-                      />
+                      <div className="opacity-70">{project.icon}</div>
                     )}
                     <h3 className="text-white text-sm font-bold font-orbitron m-0">
                       {project.name}
                     </h3>
-                    {project.requiresTilePlacement && (
+                    {project.behaviors?.[0]?.outputs?.some((o) =>
+                      (o.type as string).includes("-tile"),
+                    ) && (
                       <span className="text-[10px] text-white/60 bg-[#4a90e2]/30 px-1.5 py-0.5 rounded">
                         Tile
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 mb-2">
-                    <MegaCreditIcon value={project.cost} size="small" />
+                  <div className="flex items-center gap-2">
+                    <GameIcon
+                      iconType={ResourceTypeCredits}
+                      amount={project.cost}
+                      size="small"
+                    />
                     {effects.length > 0 && (
-                      <div className="flex items-center gap-2">
+                      <>
                         <span className="text-white/60 text-xs">→</span>
-                        <div className="flex gap-2">{effects}</div>
-                      </div>
+                        {effects}
+                      </>
                     )}
                   </div>
-
-                  <p className="text-white/70 text-xs leading-relaxed m-0">
-                    {project.description}
-                  </p>
                 </div>
 
                 {/* Right: Execute Button */}
@@ -311,6 +286,10 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                   </button>
                 )}
               </div>
+
+              <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
+                {project.description}
+              </p>
             </div>
           );
         })}

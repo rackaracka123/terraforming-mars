@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
-import { CardDto } from "../../../types/generated/api-types.ts";
+import GameIcon from "../display/GameIcon.tsx";
+import {
+  CardDto,
+  ResourceTypeCredits,
+} from "../../../types/generated/api-types.ts";
 
 interface ProductionCardSelectionOverlayProps {
   isOpen: boolean;
@@ -117,14 +120,22 @@ const ProductionCardSelectionOverlay: React.FC<
               <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
                 Your Credits:
               </span>
-              <MegaCreditIcon value={playerCredits} size="large" />
+              <GameIcon
+                iconType={ResourceTypeCredits}
+                amount={playerCredits}
+                size="large"
+              />
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
                 Total Cost:
               </span>
               {totalCost > 0 ? (
-                <MegaCreditIcon value={totalCost} size="large" />
+                <GameIcon
+                  iconType={ResourceTypeCredits}
+                  amount={totalCost}
+                  size="large"
+                />
               ) : (
                 <span className="!text-[#4caf50] font-bold tracking-[1px]">
                   FREE

@@ -38,7 +38,7 @@ import {
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
-import { StandardProject } from "@/types/cards.ts";
+import { StandardProject } from "@/types/cards.tsx";
 
 export default function GameInterface() {
   const location = useLocation();

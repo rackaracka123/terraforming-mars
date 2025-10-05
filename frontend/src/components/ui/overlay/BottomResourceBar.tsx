@@ -4,12 +4,18 @@ import {
   PlayerActionDto,
   GameDto,
   CardDto,
+  ResourceTypeCredits,
+  ResourceTypeSteel,
+  ResourceTypeTitanium,
+  ResourceTypePlants,
+  ResourceTypeEnergy,
+  ResourceTypeHeat,
 } from "@/types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
-import CorporationPopover from "../popover/CorporationPopover.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -17,7 +23,6 @@ interface ResourceData {
   name: string;
   current: number;
   production: number;
-  icon: string;
   color: string;
 }
 
@@ -25,7 +30,6 @@ interface BottomResourceBarProps {
   currentPlayer?: PlayerDto | null;
   gameState?: GameDto;
   playedCards?: CardDto[];
-  corporationCard?: CardDto | null;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -37,7 +41,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   gameState,
   playedCards = [],
-  corporationCard = null,
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -48,49 +51,22 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
   const [showTagsPopover, setShowTagsPopover] = useState(false);
   const [showStoragesPopover, setShowStoragesPopover] = useState(false);
-  const [showCorporationPopover, setShowCorporationPopover] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement>(null);
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
-  const corporationRef = useRef<HTMLDivElement>(null);
-  // Helper function to create image with embedded number
-  const createImageWithNumber = (
-    imageSrc: string,
-    number: number,
-    className: string = "",
-  ) => {
-    return (
-      <div className={`image-with-number ${className}`}>
-        <img src={imageSrc} alt="" className="base-image" />
-        <span className="embedded-number">{number}</span>
-      </div>
-    );
-  };
 
-  // Get tag icon mapping
-  const getTagIcon = (tag: string): string => {
-    const iconMap: { [key: string]: string } = {
-      space: "/assets/tags/space.png",
-      earth: "/assets/tags/earth.png",
-      science: "/assets/tags/science.png",
-      power: "/assets/tags/power.png",
-      building: "/assets/tags/building.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      city: "/assets/tags/city.png",
-      venus: "/assets/tags/venus.png",
-      jovian: "/assets/tags/jovian.png",
-      wildlife: "/assets/tags/wildlife.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
+  // Map resource ID to ResourceType constant
+  const getResourceType = (resourceId: string): string => {
+    const resourceTypeMap: Record<string, string> = {
+      credits: ResourceTypeCredits,
+      steel: ResourceTypeSteel,
+      titanium: ResourceTypeTitanium,
+      plants: ResourceTypePlants,
+      energy: ResourceTypeEnergy,
+      heat: ResourceTypeHeat,
     };
-    return iconMap[tag.toLowerCase()] || "/assets/tags/empty.png";
+    return resourceTypeMap[resourceId] || resourceId;
   };
 
   // Count tags from played cards
@@ -133,7 +109,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     return allTags.map((tag) => ({
       tag,
       count: counts[tag] || 0,
-      icon: getTagIcon(tag),
     }));
   }, [playedCards]);
 
@@ -155,7 +130,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Credits",
       current: currentPlayer.resources.credits,
       production: currentPlayer.production.credits,
-      icon: "/assets/resources/megacredit.png",
       color: "#f1c40f", // Gold - OK already
     },
     {
@@ -163,7 +137,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Steel",
       current: currentPlayer.resources.steel,
       production: currentPlayer.production.steel,
-      icon: "/assets/resources/steel.png",
       color: "#d2691e", // Brown/orangy
     },
     {
@@ -171,7 +144,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Titanium",
       current: currentPlayer.resources.titanium,
       production: currentPlayer.production.titanium,
-      icon: "/assets/resources/titanium.png",
       color: "#95a5a6", // Grey
     },
     {
@@ -179,7 +151,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Plants",
       current: currentPlayer.resources.plants,
       production: currentPlayer.production.plants,
-      icon: "/assets/resources/plant.png",
       color: "#27ae60", // Green - OK already
     },
     {
@@ -187,7 +158,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Energy",
       current: currentPlayer.resources.energy,
       production: currentPlayer.production.energy,
-      icon: "/assets/resources/power.png",
       color: "#9b59b6", // Purple
     },
     {
@@ -195,7 +165,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Heat",
       current: currentPlayer.resources.heat,
       production: currentPlayer.production.heat,
-      icon: "/assets/resources/heat.png",
       color: "#ff4500", // Red/orange
     },
   ];
@@ -233,37 +202,9 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Modal escape handling is now managed in GameInterface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 gap-8 z-[1000] pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 h-12 flex items-end justify-between px-[30px] pb-2 z-[1000] pointer-events-auto">
       {/* Background bar */}
       <div className="absolute inset-0 bg-space-black-darker/95 backdrop-blur-space border-t-2 border-space-blue-400 shadow-[0_-8px_32px_rgba(0,0,0,0.6),0_0_20px_rgba(30,60,150,0.3)] -z-10" />
-
-      {/* Corporation Display (Left Side) */}
-      {corporationCard && (
-        <div className="flex items-center gap-3 -translate-y-[30px] pointer-events-auto">
-          <div
-            ref={corporationRef}
-            className="flex items-center gap-2 bg-space-black-darker/90 border-2 border-space-blue-400 rounded-xl p-2 shadow-glow backdrop-blur-space transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-lg cursor-pointer"
-            onClick={() => setShowCorporationPopover(!showCorporationPopover)}
-            title={`${corporationCard.name} - Click for details`}
-          >
-            {/* Corporation Card Image */}
-            <div className="w-12 h-16 rounded-lg overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.6)]">
-              <img
-                src={`/assets/cards/${corporationCard.id}.webp`}
-                alt={corporationCard.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/assets/cards/001.webp";
-                }}
-              />
-            </div>
-            {/* Corporation Name */}
-            <div className="text-xs font-semibold text-white max-w-[100px] leading-tight text-shadow-glow-strong tracking-wider">
-              {corporationCard.name}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Resource Grid */}
       <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
@@ -287,43 +228,36 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
               }}
               title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
-              <div className="flex items-center justify-center mb-1">
-                {createImageWithNumber(
-                  "/assets/misc/production.png",
-                  resource.production,
-                  "production-display",
-                )}
+              <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
+                <span className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+                  {resource.production}
+                </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-8 flex items-center justify-center [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.5))]">
-                  {resource.id === "credits" ? (
-                    createImageWithNumber(
-                      resource.icon,
-                      resource.current,
-                      "credits-display",
-                    )
-                  ) : (
-                    <img
-                      src={resource.icon}
-                      alt={resource.name}
-                      className="w-full h-full object-contain [image-rendering:crisp-edges]"
-                    />
-                  )}
-                </div>
-                {resource.id !== "credits" && (
+              {resource.id === "credits" ? (
+                <GameIcon
+                  iconType={ResourceTypeCredits}
+                  amount={resource.current}
+                  size="medium"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <GameIcon
+                    iconType={getResourceType(resource.id)}
+                    size="medium"
+                  />
                   <div className="text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
                     {resource.current}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* Action Buttons Section */}
-      <div className="flex-1 flex items-center justify-end gap-4 -translate-y-[30px] pointer-events-auto relative">
+      <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
           className={`flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5 ${
@@ -499,53 +433,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         </button>
       </div>
 
-      <style>{`
-        .image-with-number {
-          position: relative;
-          display: inline-block;
-        }
-
-        .base-image {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-
-        .embedded-number {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-weight: bold;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-          pointer-events: none;
-          line-height: 1;
-        }
-
-        .production-display {
-          width: 24px;
-          height: 24px;
-        }
-
-        .production-display .embedded-number {
-          font-size: 12px;
-          color: #ffffff;
-        }
-
-        .credits-display {
-          width: 32px;
-          height: 32px;
-        }
-
-        .credits-display .embedded-number {
-          font-size: 14px;
-          color: #000000;
-          font-weight: 900;
-        }
-
-      `}</style>
-
       {/* Actions Popover */}
       <ActionsPopover
         isVisible={showActionsPopover}
@@ -586,16 +473,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
         player={currentPlayer}
         anchorRef={storagesButtonRef as React.RefObject<HTMLElement>}
       />
-
-      {/* Corporation Popover */}
-      {corporationCard && (
-        <CorporationPopover
-          isVisible={showCorporationPopover}
-          onClose={() => setShowCorporationPopover(false)}
-          corporation={corporationCard}
-          anchorRef={corporationRef as React.RefObject<HTMLElement>}
-        />
-      )}
 
       {/* Modal components are now rendered in GameInterface */}
     </div>

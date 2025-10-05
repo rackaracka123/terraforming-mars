@@ -5,6 +5,7 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import GameIcon from "../ui/display/GameIcon.tsx";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -156,11 +157,9 @@ const CreateGamePage: React.FC = () => {
                   className="bg-transparent border-none py-4 px-5 cursor-pointer flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 group"
                   title="Connect"
                 >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Connect"
-                    className="w-5 h-5 brightness-0 invert transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:scale-110"
-                  />
+                  <div className="w-4 h-6 brightness-0 invert transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:scale-110">
+                    <GameIcon iconType="arrow" size="small" />
+                  </div>
                 </button>
               </div>
 

@@ -304,34 +304,86 @@ export const TagWildlife: CardTag = "wildlife";
 export const TagWild: CardTag = "wild";
 /**
  * ResourceType represents different types of resources for client consumption
+ * This is a 1:1 mapping from model.ResourceType
  */
 export type ResourceType = string;
+/**
+ * Basic resources
+ */
 export const ResourceTypeCredits: ResourceType = "credits";
 export const ResourceTypeSteel: ResourceType = "steel";
 export const ResourceTypeTitanium: ResourceType = "titanium";
 export const ResourceTypePlants: ResourceType = "plants";
 export const ResourceTypeEnergy: ResourceType = "energy";
 export const ResourceTypeHeat: ResourceType = "heat";
-export const ResourceTypeFloaters: ResourceType = "floaters";
 export const ResourceTypeMicrobes: ResourceType = "microbes";
 export const ResourceTypeAnimals: ResourceType = "animals";
+export const ResourceTypeFloaters: ResourceType = "floaters";
 export const ResourceTypeScience: ResourceType = "science";
+export const ResourceTypeAsteroid: ResourceType = "asteroid";
+export const ResourceTypeDisease: ResourceType = "disease";
+/**
+ * Card actions
+ */
+export const ResourceTypeCardDraw: ResourceType = "card-draw";
+export const ResourceTypeCardTake: ResourceType = "card-take";
+export const ResourceTypeCardPeek: ResourceType = "card-peek";
+/**
+ * Terraforming actions
+ */
+export const ResourceTypeCityPlacement: ResourceType = "city-placement";
+export const ResourceTypeOceanPlacement: ResourceType = "ocean-placement";
+export const ResourceTypeGreeneryPlacement: ResourceType = "greenery-placement";
+/**
+ * Tile counting
+ */
+export const ResourceTypeCityTile: ResourceType = "city-tile";
+export const ResourceTypeOceanTile: ResourceType = "ocean-tile";
+export const ResourceTypeGreeneryTile: ResourceType = "greenery-tile";
+export const ResourceTypeColonyTile: ResourceType = "colony-tile";
+/**
+ * Global parameters
+ */
+export const ResourceTypeTemperature: ResourceType = "temperature";
+export const ResourceTypeOxygen: ResourceType = "oxygen";
+export const ResourceTypeVenus: ResourceType = "venus";
+export const ResourceTypeTR: ResourceType = "tr";
+/**
+ * Production resources
+ */
+export const ResourceTypeCreditsProduction: ResourceType = "credits-production";
+export const ResourceTypeSteelProduction: ResourceType = "steel-production";
+export const ResourceTypeTitaniumProduction: ResourceType =
+  "titanium-production";
+export const ResourceTypePlantsProduction: ResourceType = "plants-production";
+export const ResourceTypeEnergyProduction: ResourceType = "energy-production";
+export const ResourceTypeHeatProduction: ResourceType = "heat-production";
+/**
+ * Special effects
+ */
+export const ResourceTypeEffect: ResourceType = "effect";
+export const ResourceTypeTag: ResourceType = "tag";
+/**
+ * Ongoing effects
+ */
+export const ResourceTypeGlobalParameterLenience: ResourceType =
+  "global-parameter-lenience";
+export const ResourceTypeVenusLenience: ResourceType = "venus-lenience";
+export const ResourceTypeDefense: ResourceType = "defense";
+export const ResourceTypeDiscount: ResourceType = "discount";
+export const ResourceTypeValueModifier: ResourceType = "value-modifier";
+/**
+ * Legacy/deprecated (kept for backwards compatibility)
+ */
 export const ResourceTypeFighters: ResourceType = "fighters";
 export const ResourceTypeCamps: ResourceType = "camps";
 export const ResourceTypePreservation: ResourceType = "preservation";
 export const ResourceTypeData: ResourceType = "data";
-export const ResourceTypeAsteroid: ResourceType = "asteroid";
-export const ResourceTypeDisease: ResourceType = "disease";
 export const ResourceTypeSpecialized: ResourceType = "specialized";
 export const ResourceTypeDelegate: ResourceType = "delegate";
 export const ResourceTypeInfluence: ResourceType = "influence";
-export const ResourceTypeGreeneryTile: ResourceType = "greenery-tile";
-export const ResourceTypeCityTile: ResourceType = "city-tile";
-export const ResourceTypeOceanTile: ResourceType = "ocean-tile";
 export const ResourceTypeSpecialTile: ResourceType = "special-tile";
-export const ResourceTypeTerraformRating: ResourceType = "terraform-rating";
-export const ResourceTypeTemperature: ResourceType = "temperature";
-export const ResourceTypeOxygen: ResourceType = "oxygen";
+export const ResourceTypeTerraformRating: ResourceType = "terraform-rating"; // Use ResourceTypeTR instead
 export const ResourceTypeOceans: ResourceType = "oceans";
 /**
  * TargetType represents different targeting scopes for resource conditions for client consumption

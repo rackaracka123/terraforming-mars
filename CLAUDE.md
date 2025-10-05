@@ -428,29 +428,57 @@ type Resource struct {
 
 ## UI Component Standards
 
-### Resource Display Components
-When displaying game resources, ALWAYS use existing components instead of creating new ones:
+### Icon Display - GameIcon Component (PRIMARY)
+**CRITICAL**: ALWAYS use the GameIcon component for displaying ANY game icon (resources, tags, tiles, global parameters, etc.). NEVER use direct `<img>` tags with asset imports.
 
-#### Megacredits (MC)
+#### GameIcon Usage
+```tsx
+import GameIcon from '../ui/display/GameIcon.tsx';
+
+// Basic resource icon
+<GameIcon iconType="steel" size="medium" />
+
+// Credits with amount (number inside icon)
+<GameIcon iconType="credits" amount={25} size="large" />
+
+// Production resource (automatic brown background)
+<GameIcon iconType="energy-production" amount={3} size="small" />
+
+// Card tags
+<GameIcon iconType="space" size="medium" />
+
+// Tiles and global parameters
+<GameIcon iconType="ocean-tile" size="small" />
+<GameIcon iconType="temperature" size="medium" />
+```
+
+**Component**: `src/components/ui/display/GameIcon.tsx`
+**Sizes**: 'small' (24px), 'medium' (32px), 'large' (40px)
+**Supported Types**: All ResourceType, CardTag, tiles, global parameters, and special icons
+
+**Key Features**:
+- Automatic production background for "-production" suffix
+- Special number overlay for megacredits (inside icon)
+- Centralized icon path management via `iconStore.ts`
+- Consistent sizing across all icon types
+- Attack indicator support with red glow animation
+
+### Legacy Display Components
+These components are kept for backward compatibility but GameIcon should be preferred for new code:
+
+#### CostDisplay (for megacredits only)
 ```tsx
 import CostDisplay from '../display/CostDisplay.tsx';
 <CostDisplay cost={amount} size="medium" />
 ```
-- **Component**: `src/components/ui/display/CostDisplay.tsx`
-- **Sizes**: 'small' (24px), 'medium' (32px), 'large' (40px)
-- **Asset**: Uses `/assets/resources/megacredit.png` with number overlay
-- **Usage**: Cards, resource panels, transaction displays, player boards
-
-#### Production
-When displaying production values, use the production asset:
-- **Asset**: `/assets/misc/production.png` 
-- **Pattern**: Icon background with number overlay (create ProductionDisplay component if needed)
+Use when you specifically need the CostDisplay wrapper styling.
 
 ### UI Development Patterns
+- **GameIcon First**: ALWAYS use GameIcon component for any icon display - never use `<img src="/assets/...">` directly
 - **Inspect existing design language**: When updating any UI element in the frontend, other components should ALWAYS be inspected for the design language in the codebase
 - **Reuse over creation**: Always check for existing components before creating new ones
 - **Consistent styling**: Use established components to maintain visual consistency
-- **Asset integration**: Prefer official game assets over text/CSS styling
+- **Centralized icons**: All icon paths are managed in `src/utils/iconStore.ts`
 - **Responsive sizing**: Components should support multiple sizes for different contexts
 
 ## Code Quality Requirements
@@ -588,23 +616,83 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 No need to be backwards compatible.
 
 ## UI Design Guidelines
-- Do not use emojis when building any design. Use assets instead. If you believe there are no assets matching what you need, ASK.
-- Always whenever possible use assets from `/frontend/public/assets/`
-- Always when working with MC (megacredits) display them using the `/frontend/public/assets/resources/megacredit.png` and add the number inside.
-- Always when working with Production display it using the `/frontend/public/assets/misc/production.png` and add the number inside.
+- **No Emojis**: Do not use emojis when building any design. Use GameIcon component or assets instead.
+- **GameIcon First**: ALWAYS use GameIcon component for displaying icons - NEVER use direct `<img src="/assets/...">` tags
+- **Centralized Icons**: All icon paths are managed in `src/utils/iconStore.ts`
+- **Asset Location**: Game assets are in `/frontend/public/assets/` but accessed via GameIcon component
 
-## Resource Display Instructions (UPDATED)
-- **Megacredits**: ALWAYS use the CostDisplay component instead of raw assets
-  ```tsx
-  import CostDisplay from '../display/CostDisplay.tsx';
-  <CostDisplay cost={amount} size="medium" />
-  ```
-- **Production**: When displaying production, use ProductionDisplay component
-  ```tsx
-  import ProductionDisplay from '../display/ProductionDisplay.tsx';
-  <ProductionDisplay amount={amount} resourceType="plants" size="medium" />
-  ```
-- When working with production of lets say plants. You need to add the plant icon inside the production icon, then the number next to it.
+## Icon Display Instructions (UPDATED)
+
+**CRITICAL RULE**: NEVER use `<img src="/assets/...">` for game icons. ALWAYS use the GameIcon component.
+
+### Basic Icons
+```tsx
+import GameIcon from '../ui/display/GameIcon.tsx';
+
+// Resources
+<GameIcon iconType="steel" size="medium" />
+<GameIcon iconType="plants" size="small" />
+<GameIcon iconType="heat" size="large" />
+
+// Card Tags
+<GameIcon iconType="space" size="medium" />
+<GameIcon iconType="science" size="small" />
+<GameIcon iconType="building" size="medium" />
+
+// Global Parameters & Tiles
+<GameIcon iconType="temperature" size="medium" />
+<GameIcon iconType="oxygen" size="small" />
+<GameIcon iconType="ocean-tile" size="medium" />
+```
+
+### Icons with Amounts
+```tsx
+// Megacredits (number displays INSIDE icon)
+<GameIcon iconType="credits" amount={25} size="medium" />
+
+// Other resources (number displays in corner if > 1)
+<GameIcon iconType="steel" amount={5} size="medium" />
+```
+
+### Production Resources
+```tsx
+// Automatic brown production background when using "-production" suffix
+<GameIcon iconType="energy-production" amount={3} size="small" />
+<GameIcon iconType="plants-production" amount={2} size="medium" />
+<GameIcon iconType="credits-production" amount={5} size="large" />
+```
+
+### Adding New Icons to iconStore
+If you need to use an icon that's not yet in the centralized system:
+
+1. Add the icon path to the appropriate category in `src/utils/iconStore.ts`:
+```tsx
+export const RESOURCE_ICONS: { [key: string]: string } = {
+  // ... existing icons
+  newResource: "/assets/resources/new-resource.png",
+};
+
+// Or for tags:
+export const TAG_ICONS: { [key: string]: string } = {
+  // ... existing icons
+  newTag: "/assets/tags/new-tag.png",
+};
+
+// Or for special icons:
+export const SPECIAL_ICONS: { [key: string]: string } = {
+  // ... existing icons
+  newIcon: "/assets/misc/new-icon.png",
+};
+```
+
+2. Use the icon via GameIcon:
+```tsx
+<GameIcon iconType="newResource" size="medium" />
+```
+
+### Legacy Components (Avoid in New Code)
+- **CostDisplay**: Use `<GameIcon iconType="credits" amount={X} />` instead
+- **Direct asset imports**: Use GameIcon instead of `<img src="/assets/resources/...">`
 
 ## UI Components
 - **CorporationCard**: Use for displaying corporation options in selection screens

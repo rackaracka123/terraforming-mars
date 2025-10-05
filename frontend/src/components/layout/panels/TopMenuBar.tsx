@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { useMainContent } from "../../../contexts/MainContentContext.tsx";
-import { GameDto } from "../../../types/generated/api-types.ts";
+import { useMainContent } from "@/contexts/MainContentContext.tsx";
+import { GameDto } from "@/types/generated/api-types.ts";
 
 interface TopMenuBarProps {
   gameState?: GameDto | null;
@@ -65,41 +65,6 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
             cost: 8,
             claimed: false,
             available: true,
-          },
-        ],
-      };
-    }
-
-    if (type === "projects") {
-      return {
-        projects: [
-          {
-            id: "sell-patents",
-            name: "Sell Patents",
-            cost: 0,
-            description:
-              "Discard any number of cards from hand and gain that many M€",
-            available: true,
-            effects: { immediate: [{ type: "credits", amount: 1 }] },
-            icon: "/assets/resources/megacredit.png",
-          },
-          {
-            id: "power-plant",
-            name: "Power Plant",
-            cost: 11,
-            description: "Increase your energy production 1 step",
-            available: true,
-            effects: { production: [{ type: "energy", amount: 1 }] },
-            icon: "/assets/resources/power.png",
-          },
-          {
-            id: "city",
-            name: "City",
-            cost: 25,
-            description: "Place a city tile",
-            available: true,
-            effects: { tiles: ["city"] },
-            icon: "/assets/tiles/city.png",
           },
         ],
       };

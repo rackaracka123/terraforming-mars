@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { CardDto } from "../../../types/generated/api-types.ts";
-import { CardType } from "../../../types/cards.ts";
-import CostDisplay from "../display/CostDisplay.tsx";
+import {
+  CardDto,
+  ResourceTypeCredits,
+} from "../../../types/generated/api-types.ts";
+import { CardType } from "../../../types/cards.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 
 interface CardsPlayedModalProps {
@@ -149,7 +152,11 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
                 </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <CostDisplay cost={cardStats.totalCost} size="small" />
+                <GameIcon
+                  iconType={ResourceTypeCredits}
+                  amount={cardStats.totalCost}
+                  size="large"
+                />
               </div>
             </div>
           </div>
@@ -208,11 +215,9 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
         <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,255,120,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(0,255,120,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,255,120,0.7)] max-md:p-5">
           {filteredAndSortedCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
-              <img
-                src="/assets/misc/corpCard.png"
-                alt="No cards"
-                className="w-16 h-16 mb-5 opacity-60"
-              />
+              <div className="mb-5 opacity-60">
+                <GameIcon iconType="card" size="large" />
+              </div>
               <h3 className="text-white text-2xl m-0 mb-2.5">No Cards Found</h3>
               <p className="text-white/70 text-base m-0">
                 {filterType === "all"

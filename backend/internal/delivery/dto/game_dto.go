@@ -55,35 +55,75 @@ const (
 )
 
 // ResourceType represents different types of resources for client consumption
+// This is a 1:1 mapping from model.ResourceType
 type ResourceType string
 
 const (
-	ResourceTypeCredits         ResourceType = "credits"
-	ResourceTypeSteel           ResourceType = "steel"
-	ResourceTypeTitanium        ResourceType = "titanium"
-	ResourceTypePlants          ResourceType = "plants"
-	ResourceTypeEnergy          ResourceType = "energy"
-	ResourceTypeHeat            ResourceType = "heat"
-	ResourceTypeFloaters        ResourceType = "floaters"
-	ResourceTypeMicrobes        ResourceType = "microbes"
-	ResourceTypeAnimals         ResourceType = "animals"
-	ResourceTypeScience         ResourceType = "science"
+	// Basic resources
+	ResourceTypeCredits  ResourceType = "credits"
+	ResourceTypeSteel    ResourceType = "steel"
+	ResourceTypeTitanium ResourceType = "titanium"
+	ResourceTypePlants   ResourceType = "plants"
+	ResourceTypeEnergy   ResourceType = "energy"
+	ResourceTypeHeat     ResourceType = "heat"
+	ResourceTypeMicrobes ResourceType = "microbes"
+	ResourceTypeAnimals  ResourceType = "animals"
+	ResourceTypeFloaters ResourceType = "floaters"
+	ResourceTypeScience  ResourceType = "science"
+	ResourceTypeAsteroid ResourceType = "asteroid"
+	ResourceTypeDisease  ResourceType = "disease"
+
+	// Card actions
+	ResourceTypeCardDraw ResourceType = "card-draw"
+	ResourceTypeCardTake ResourceType = "card-take"
+	ResourceTypeCardPeek ResourceType = "card-peek"
+
+	// Terraforming actions
+	ResourceTypeCityPlacement     ResourceType = "city-placement"
+	ResourceTypeOceanPlacement    ResourceType = "ocean-placement"
+	ResourceTypeGreeneryPlacement ResourceType = "greenery-placement"
+
+	// Tile counting
+	ResourceTypeCityTile     ResourceType = "city-tile"
+	ResourceTypeOceanTile    ResourceType = "ocean-tile"
+	ResourceTypeGreeneryTile ResourceType = "greenery-tile"
+	ResourceTypeColonyTile   ResourceType = "colony-tile"
+
+	// Global parameters
+	ResourceTypeTemperature ResourceType = "temperature"
+	ResourceTypeOxygen      ResourceType = "oxygen"
+	ResourceTypeVenus       ResourceType = "venus"
+	ResourceTypeTR          ResourceType = "tr"
+
+	// Production resources
+	ResourceTypeCreditsProduction  ResourceType = "credits-production"
+	ResourceTypeSteelProduction    ResourceType = "steel-production"
+	ResourceTypeTitaniumProduction ResourceType = "titanium-production"
+	ResourceTypePlantsProduction   ResourceType = "plants-production"
+	ResourceTypeEnergyProduction   ResourceType = "energy-production"
+	ResourceTypeHeatProduction     ResourceType = "heat-production"
+
+	// Special effects
+	ResourceTypeEffect ResourceType = "effect"
+	ResourceTypeTag    ResourceType = "tag"
+
+	// Ongoing effects
+	ResourceTypeGlobalParameterLenience ResourceType = "global-parameter-lenience"
+	ResourceTypeVenusLenience           ResourceType = "venus-lenience"
+	ResourceTypeDefense                 ResourceType = "defense"
+	ResourceTypeDiscount                ResourceType = "discount"
+	ResourceTypeValueModifier           ResourceType = "value-modifier"
+
+	// Legacy/deprecated (kept for backwards compatibility)
 	ResourceTypeFighters        ResourceType = "fighters"
 	ResourceTypeCamps           ResourceType = "camps"
 	ResourceTypePreservation    ResourceType = "preservation"
 	ResourceTypeData            ResourceType = "data"
-	ResourceTypeAsteroid        ResourceType = "asteroid"
-	ResourceTypeDisease         ResourceType = "disease"
 	ResourceTypeSpecialized     ResourceType = "specialized"
 	ResourceTypeDelegate        ResourceType = "delegate"
 	ResourceTypeInfluence       ResourceType = "influence"
-	ResourceTypeGreeneryTile    ResourceType = "greenery-tile"
-	ResourceTypeCityTile        ResourceType = "city-tile"
-	ResourceTypeOceanTile       ResourceType = "ocean-tile"
 	ResourceTypeSpecialTile     ResourceType = "special-tile"
-	ResourceTypeTerraformRating ResourceType = "terraform-rating"
-	ResourceTypeTemperature     ResourceType = "temperature"
-	ResourceTypeOxygen          ResourceType = "oxygen"
+	ResourceTypeTerraformRating ResourceType = "terraform-rating" // Use ResourceTypeTR instead
 	ResourceTypeOceans          ResourceType = "oceans"
 )
 

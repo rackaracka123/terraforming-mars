@@ -1,4 +1,5 @@
 import React from "react";
+import GameIcon from "./GameIcon.tsx";
 
 interface VictoryPointsDisplayProps {
   victoryPoints: number;
@@ -27,11 +28,9 @@ const VictoryPointsDisplay: React.FC<VictoryPointsDisplayProps> = ({
       }}
     >
       <div className="flex items-center gap-2">
-        <img
-          src="/assets/resources/tr.png"
-          alt="Victory Points"
-          className="w-5 h-5 brightness-[1.2]"
-        />
+        <div className="brightness-[1.2]">
+          <GameIcon iconType="tr" size="small" />
+        </div>
         <span
           className="text-white font-bold font-[Courier_New,monospace] [text-shadow:2px_2px_4px_rgba(0,0,0,0.8)] leading-none"
           style={{
