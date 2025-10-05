@@ -36,6 +36,9 @@ type CardService interface {
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
+
+	// Get all corporations
+	GetCorporations(ctx context.Context) ([]model.Corporation, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -292,6 +295,10 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 
 	paginatedCards := allCards[start:end]
 	return paginatedCards, totalCount, nil
+}
+
+func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Corporation, error) {
+	return s.cardRepo.GetCorporations(ctx)
 }
 
 // OnPlayCardAction plays a card action from the player's action list

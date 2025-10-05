@@ -661,3 +661,29 @@ func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCa
 		MaxCards:       selection.MaxCards,
 	}
 }
+
+// ToResourceSetDto converts a model ResourceSet to ResourceSet
+func ToResourceSetDto(rs model.ResourceSet) ResourceSet {
+	return ResourceSet{
+		Credits:  rs.Credits,
+		Steel:    rs.Steel,
+		Titanium: rs.Titanium,
+		Plants:   rs.Plants,
+		Energy:   rs.Energy,
+		Heat:     rs.Heat,
+	}
+}
+
+// ToCorporationDto converts a model Corporation to CorporationDto
+func ToCorporationDto(corp model.Corporation) CorporationDto {
+	return CorporationDto{
+		ID:                 corp.ID,
+		Name:               corp.Name,
+		Description:        corp.Description,
+		StartingCredits:    corp.StartingCredits,
+		StartingProduction: ToResourceSetDto(corp.StartingProduction),
+		StartingResources:  ToResourceSetDto(corp.StartingResources),
+		Tags:               ToCardTagDtoSlice(corp.Tags),
+		SpecialEffects:     corp.SpecialEffects,
+	}
+}

@@ -47,5 +47,8 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	cardRoutes := api.PathPrefix("/cards").Subrouter()
 	cardRoutes.HandleFunc("", cardHandler.ListCards).Methods(http.MethodGet)
 
+	// Corporation routes
+	api.HandleFunc("/corporations", cardHandler.GetCorporations).Methods(http.MethodGet)
+
 	return router
 }

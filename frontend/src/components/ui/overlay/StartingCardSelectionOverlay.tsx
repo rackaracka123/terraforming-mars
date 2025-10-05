@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
-import { CardDto } from "../../../types/generated/api-types.ts";
-import { fetchAllCards } from "../../../utils/cardPlayabilityUtils.ts";
+import { CardDto, CorporationDto } from "../../../types/generated/api-types.ts";
+import { fetchCorporations } from "../../../utils/cardPlayabilityUtils.ts";
 
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
@@ -26,7 +26,9 @@ const StartingCardSelectionOverlay: React.FC<
   const [selectedCorporationId, setSelectedCorporationId] = useState<
     string | null
   >(null);
-  const [corporationCards, setCorporationCards] = useState<CardDto[]>([]);
+  const [corporationCards, setCorporationCards] = useState<CorporationDto[]>(
+    [],
+  );
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [currentStep, setCurrentStep] = useState<"corporation" | "cards">(
@@ -42,15 +44,10 @@ const StartingCardSelectionOverlay: React.FC<
       }
 
       try {
-        const allCards = await fetchAllCards();
-        const corps: CardDto[] = [];
-
-        for (const corpId of availableCorporations) {
-          const card = allCards.get(corpId);
-          if (card) {
-            corps.push(card);
-          }
-        }
+        const allCorporations = await fetchCorporations();
+        const corps = allCorporations.filter((corp) =>
+          availableCorporations.includes(corp.id),
+        );
 
         setCorporationCards(corps);
       } catch (error) {
@@ -178,10 +175,24 @@ const StartingCardSelectionOverlay: React.FC<
                     corporation={{
                       id: corp.id,
                       name: corp.name,
-                      description: corp.description || "",
-                      startingMegaCredits: 0, // TODO: Extract from card data
-                      startingProduction: undefined,
-                      startingResources: undefined,
+                      description: corp.description,
+                      startingMegaCredits: corp.startingCredits,
+                      startingProduction: {
+                        credits: corp.startingProduction.credits,
+                        steel: corp.startingProduction.steel,
+                        titanium: corp.startingProduction.titanium,
+                        plants: corp.startingProduction.plants,
+                        energy: corp.startingProduction.energy,
+                        heat: corp.startingProduction.heat,
+                      },
+                      startingResources: {
+                        credits: corp.startingResources.credits,
+                        steel: corp.startingResources.steel,
+                        titanium: corp.startingResources.titanium,
+                        plants: corp.startingResources.plants,
+                        energy: corp.startingResources.energy,
+                        heat: corp.startingResources.heat,
+                      },
                       logoPath: undefined,
                     }}
                     isSelected={selectedCorporationId === corp.id}

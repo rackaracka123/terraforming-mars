@@ -465,47 +465,8 @@ func (r *CardRepositoryImpl) GetCorporationByID(ctx context.Context, id string) 
 
 // convertCardToCorporation converts a Corporation Card to a Corporation struct
 func (r *CardRepositoryImpl) convertCardToCorporation(card model.Card) model.Corporation {
-	corp := model.Corporation{
-		ID:                 card.ID,
-		Name:               card.Name,
-		Description:        card.Description,
-		StartingCredits:    42, // Default starting credits
-		StartingResources:  model.ResourceSet{Credits: 42},
-		StartingProduction: model.ResourceSet{},
-		Tags:               card.Tags,
-		SpecialEffects:     []string{card.Description},
-	}
-
-	// Corporation-specific starting conditions would be parsed from behaviors
-	// For now, using default values
-
-	// TODO: Parse starting resources and credits from JSON immediate effects
-	// For now, we'll use some hardcoded logic based on well-known corporations
-	// This should be replaced with proper JSON parsing once the JSON structure
-	// includes starting bonuses for corporations
-
-	switch corp.Name {
-	case "Credicor":
-		corp.StartingCredits = 57
-		corp.StartingResources.Credits = 57
-	case "Ecoline":
-		corp.StartingCredits = 36
-		corp.StartingResources.Credits = 36
-		corp.StartingResources.Plants = 3
-		corp.StartingProduction.Plants = 2
-	case "Helion":
-		corp.StartingCredits = 42
-		corp.StartingResources.Credits = 42
-		corp.StartingResources.Heat = 3
-		corp.StartingProduction.Heat = 3
-	case "Mining Guild":
-		corp.StartingCredits = 30
-		corp.StartingResources.Credits = 30
-		corp.StartingResources.Steel = 5
-		corp.StartingProduction.Steel = 1
-	}
-
-	return corp
+	// Use the centralized conversion function from model package
+	return model.ConvertCardToCorporation(card)
 }
 
 // copyCards creates a deep copy of a slice of cards to prevent external mutation
