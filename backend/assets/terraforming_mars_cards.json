@@ -8586,7 +8586,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 10
       }
     ],
@@ -8812,7 +8812,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 8
       }
     ],
@@ -9023,7 +9023,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 12
       }
     ],
@@ -9121,7 +9121,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 10
       }
     ]
@@ -9207,7 +9207,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "max": 14
       }
     ],
@@ -9343,7 +9343,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "max": 10
       }
     ]
@@ -9461,7 +9461,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 12
       }
     ],
@@ -9559,7 +9559,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 6
       }
     ],
@@ -9622,7 +9622,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 6
       }
     ],
@@ -9692,9 +9692,8 @@
     ],
     "requirements": [
       {
-        "type": "tags",
-        "min": 2,
-        "tag": "venus"
+        "type": "venus",
+        "min": 2
       }
     ],
     "behaviors": [
@@ -9725,7 +9724,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 10
       }
     ],
@@ -9827,7 +9826,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 18
       }
     ],
@@ -9877,7 +9876,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 12
       }
     ],
@@ -9927,7 +9926,7 @@
     ],
     "requirements": [
       {
-        "type": "oxygen",
+        "type": "venus",
         "min": 16
       }
     ],
