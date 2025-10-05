@@ -1,5 +1,8 @@
 import React from "react";
-import { PlayerDto, OtherPlayerDto } from "../../../types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+} from "../../../types/generated/api-types.ts";
 
 interface PlayerOverlayProps {
   players: (PlayerDto | OtherPlayerDto)[];
