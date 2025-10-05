@@ -1,11 +1,9 @@
 import React from "react";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
 import ProductionDisplay from "../display/ProductionDisplay.tsx";
+import BehaviorSection from "./BehaviorSection.tsx";
 
-import {
-  CardBehaviorDto,
-  ResourceTriggerManual,
-} from "../../../types/generated/api-types.ts";
+import { CardBehaviorDto } from "../../../types/generated/api-types.ts";
 
 interface Corporation {
   id: string;
@@ -77,93 +75,23 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     );
   };
 
-  const renderResourceIcon = (
-    resourceType: string,
-    amount: number,
-    isProduction: boolean,
-  ) => {
-    if (isProduction) {
-      return (
-        <ProductionDisplay
-          amount={amount}
-          resourceType={resourceType}
-          size="medium"
-        />
+  // Filter out the first auto behavior without conditions (starting bonuses shown above)
+  const filterBehaviors = (behaviors: CardBehaviorDto[] | undefined) => {
+    if (!behaviors || behaviors.length === 0) return [];
+
+    return behaviors.filter((behavior, index) => {
+      const hasCondition = behavior.triggers?.some(
+        (t) => t.condition !== undefined,
       );
-    } else if (resourceType === "credits") {
-      return <MegaCreditIcon value={amount} size="medium" />;
-    } else {
-      const iconMap: { [key: string]: string } = {
-        steel: "/assets/resources/steel.png",
-        titanium: "/assets/resources/titanium.png",
-        plants: "/assets/resources/plant.png",
-        energy: "/assets/resources/power.png",
-        heat: "/assets/resources/heat.png",
-      };
+      const isAuto = behavior.triggers?.some((t) => t.type === "auto");
 
-      const icon = iconMap[resourceType];
-      if (!icon) return null;
+      // Skip the first auto behavior without conditions (starting bonuses)
+      if (isAuto && !hasCondition && index === 0) {
+        return false;
+      }
 
-      return (
-        <div className="inline-flex items-center gap-1">
-          <img
-            src={icon}
-            alt={resourceType}
-            className="w-6 h-6 [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-          />
-          <span className="text-white font-bold text-sm [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
-            {amount}
-          </span>
-        </div>
-      );
-    }
-  };
-
-  const renderBehavior = (behavior: CardBehaviorDto) => {
-    const isManualAction = behavior.triggers?.some(
-      (t) => t.type === ResourceTriggerManual,
-    );
-    const hasInputs = behavior.inputs && behavior.inputs.length > 0;
-    const hasOutputs = behavior.outputs && behavior.outputs.length > 0;
-
-    if (!hasOutputs && !hasInputs) return null;
-
-    return (
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Render inputs */}
-        {hasInputs &&
-          behavior.inputs!.map((input, idx) => {
-            const resourceType = input.type.replace("-production", "");
-            const isProduction = input.type.includes("-production");
-            return (
-              <div key={`input-${idx}`}>
-                {renderResourceIcon(resourceType, input.amount, isProduction)}
-              </div>
-            );
-          })}
-
-        {/* Render arrow for action behaviors */}
-        {isManualAction && hasInputs && hasOutputs && (
-          <img
-            src="/assets/misc/arrow.png"
-            alt="converts to"
-            className="w-6 h-6 [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-          />
-        )}
-
-        {/* Render outputs */}
-        {hasOutputs &&
-          behavior.outputs!.map((output, idx) => {
-            const resourceType = output.type.replace("-production", "");
-            const isProduction = output.type.includes("-production");
-            return (
-              <div key={`output-${idx}`}>
-                {renderResourceIcon(resourceType, output.amount, isProduction)}
-              </div>
-            );
-          })}
-      </div>
-    );
+      return true;
+    });
   };
 
   return (
@@ -191,7 +119,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
       {/* Starting resources and production - compact, no headers */}
       {(corporation.startingProduction || corporation.startingResources) && (
-        <div className="flex flex-wrap gap-2 justify-center mb-3 pb-3 border-b border-white/20">
+        <div className="flex flex-wrap gap-2 justify-center items-center mb-3 pb-3 border-b border-white/20">
           {corporation.startingResources &&
             Object.entries(corporation.startingResources).map(
               ([type, amount]) =>
@@ -214,27 +142,13 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         </div>
       )}
 
-      {/* Behaviors - compact, no headers */}
-      {corporation.behaviors && corporation.behaviors.length > 0 && (
-        <div className="mb-3 pb-3 border-b border-white/20">
-          <div className="flex flex-col gap-2">
-            {corporation.behaviors.map((behavior, index) => {
-              // Skip the first auto behavior without conditions (starting bonuses shown above)
-              const hasCondition = behavior.triggers?.some(
-                (t) => t.condition !== undefined,
-              );
-              const isAuto = behavior.triggers?.some((t) => t.type === "auto");
-
-              if (isAuto && !hasCondition && index === 0) {
-                return null;
-              }
-
-              return (
-                <div key={index} className="flex justify-center">
-                  {renderBehavior(behavior)}
-                </div>
-              );
-            })}
+      {/* Behaviors - using BehaviorSection component */}
+      {filterBehaviors(corporation.behaviors).length > 0 && (
+        <div className="mb-3 border-b border-white/20 pb-3">
+          <div className="relative [&>div]:static [&>div]:!bottom-auto [&>div]:!left-auto [&>div]:!right-auto">
+            <BehaviorSection
+              behaviors={filterBehaviors(corporation.behaviors)}
+            />
           </div>
         </div>
       )}

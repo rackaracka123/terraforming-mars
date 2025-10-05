@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import CorporationCard from "../cards/CorporationCard.tsx";
+import { CardBehaviorDto } from "@/types/generated/api-types.ts";
 
 interface Corporation {
   id: string;
@@ -22,6 +23,7 @@ interface Corporation {
     energy?: number;
     heat?: number;
   };
+  behaviors?: CardBehaviorDto[];
   expansion?: string;
   logoPath?: string;
 }
