@@ -74,7 +74,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     description: "Discard any number of cards from hand for 1 M€ each",
     tags: [],
     behaviors: [],
-    icon: <GameIcon resourceType={ResourceTypeCardDraw} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeCardDraw} size="small" />,
   },
   [StandardProject.POWER_PLANT]: {
     id: StandardProject.POWER_PLANT,
@@ -103,7 +103,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         ],
       },
     ],
-    icon: <GameIcon resourceType={ResourceTypeEnergy} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeEnergy} size="small" />,
   },
   [StandardProject.ASTEROID]: {
     id: StandardProject.ASTEROID,
@@ -132,7 +132,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         ],
       },
     ],
-    icon: <GameIcon resourceType={ResourceTypeAsteroid} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeAsteroid} size="small" />,
   },
   [StandardProject.AQUIFER]: {
     id: StandardProject.AQUIFER,
@@ -160,7 +160,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         ],
       },
     ],
-    icon: <GameIcon resourceType={ResourceTypeOceanTile} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeOceanTile} size="small" />,
   },
   [StandardProject.GREENERY]: {
     id: StandardProject.GREENERY,
@@ -189,7 +189,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         ],
       },
     ],
-    icon: <GameIcon resourceType={ResourceTypeGreeneryTile} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeGreeneryTile} size="small" />,
   },
   [StandardProject.CITY]: {
     id: StandardProject.CITY,
@@ -223,6 +223,6 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         ],
       },
     ],
-    icon: <GameIcon resourceType={ResourceTypeCityTile} size="small" />,
+    icon: <GameIcon iconType={ResourceTypeCityTile} size="small" />,
   },
 };

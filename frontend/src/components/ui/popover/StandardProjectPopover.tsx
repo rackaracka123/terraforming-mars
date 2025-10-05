@@ -175,7 +175,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
       effects.push(
         <GameIcon
           key={`output-${idx}`}
-          resourceType={outputType}
+          iconType={outputType}
           amount={output.amount}
           size="small"
         />,
@@ -255,7 +255,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
 
                   <div className="flex items-center gap-2">
                     <GameIcon
-                      resourceType={ResourceTypeCredits}
+                      iconType={ResourceTypeCredits}
                       amount={project.cost}
                       size="small"
                     />

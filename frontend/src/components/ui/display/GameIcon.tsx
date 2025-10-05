@@ -2,119 +2,106 @@ import React from "react";
 import {
   ResourceType,
   ResourceTypeCredits,
-  ResourceTypeSteel,
-  ResourceTypeTitanium,
-  ResourceTypePlants,
-  ResourceTypeEnergy,
-  ResourceTypeHeat,
-  ResourceTypeFloaters,
-  ResourceTypeMicrobes,
-  ResourceTypeAnimals,
-  ResourceTypeScience,
-  ResourceTypeAsteroid,
-  ResourceTypeDisease,
-  ResourceTypeCardDraw,
-  ResourceTypeCardTake,
-  ResourceTypeCardPeek,
-  ResourceTypeCityPlacement,
-  ResourceTypeOceanPlacement,
-  ResourceTypeGreeneryPlacement,
-  ResourceTypeGreeneryTile,
-  ResourceTypeCityTile,
-  ResourceTypeOceanTile,
-  ResourceTypeColonyTile,
-  ResourceTypeTemperature,
-  ResourceTypeOxygen,
-  ResourceTypeVenus,
-  ResourceTypeTR,
-  ResourceTypeFighters,
-  ResourceTypeCamps,
-  ResourceTypePreservation,
-  ResourceTypeData,
-  ResourceTypeSpecialized,
-  ResourceTypeDelegate,
-  ResourceTypeInfluence,
-  ResourceTypeSpecialTile,
-  ResourceTypeOceans,
+  CardTag,
 } from "@/types/generated/api-types.ts";
+import { getIconPath } from "@/utils/iconStore.ts";
+
+/**
+ * Unified icon type supporting backend types and frontend-specific icons.
+ * - ResourceType: All game resources (credits, steel, titanium, plants, energy, heat, etc.)
+ * - CardTag: Card category tags (space, earth, science, power, building, etc.)
+ * - Frontend-specific: "milestone", "award", "card"
+ *
+ * Production resources are automatically detected via "-production" suffix (e.g., "energy-production")
+ */
+export type GameIconType =
+  | ResourceType
+  | CardTag
+  | "milestone"
+  | "award"
+  | "card";
 
 interface GameIconProps {
-  resourceType: ResourceType;
+  /** The type of icon to display. Supports ResourceType, CardTag, or frontend-specific icons */
+  iconType?: GameIconType;
+  /**
+   * Amount to display on the icon.
+   * - For credits: Shows number inside the icon
+   * - For other resources: Shows number in bottom-right corner (if > 1)
+   */
   amount?: number;
+  /**
+   * Whether to display attack/threat indicator with red glow animation.
+   * Only applicable for resource icons when showing enemy attacks or resource removal.
+   */
   isAttack?: boolean;
+  /** Size of the icon: small (24px), medium (32px), large (40px) */
   size?: "small" | "medium" | "large";
+  /** Additional CSS classes to apply to the icon container */
   className?: string;
 }
 
+/**
+ * Unified icon component for displaying all game icons (resources, tags, and frontend-specific icons).
+ *
+ * Features:
+ * - Automatic production background for resources ending in "-production"
+ * - Special number overlay for megacredits (inside icon)
+ * - Attack indicator with red glow animation
+ * - Consistent sizing across all icon types
+ * - Maps backend ResourceType and CardTag enums to asset paths
+ *
+ * @example
+ * // Basic resource icon
+ * <GameIcon iconType={ResourceTypeCredits} />
+ *
+ * @example
+ * // Credits with amount (number inside icon)
+ * <GameIcon iconType={ResourceTypeCredits} amount={25} size="large" />
+ *
+ * @example
+ * // Production resource (automatic brown background)
+ * <GameIcon iconType="energy-production" amount={3} />
+ *
+ * @example
+ * // Card tag icon
+ * <GameIcon iconType={TagSpace} size="small" />
+ *
+ * @example
+ * // Attack indicator (red glow)
+ * <GameIcon iconType={ResourceTypePlants} amount={2} isAttack={true} />
+ *
+ * @example
+ * // Frontend-specific icon
+ * <GameIcon iconType="milestone" size="medium" />
+ */
 const GameIcon: React.FC<GameIconProps> = ({
-  resourceType,
+  iconType,
   amount,
   isAttack = false,
   size = "medium",
   className = "",
 }) => {
-  const isProduction = resourceType.endsWith("-production");
-  const baseType = isProduction
-    ? resourceType.replace("-production", "")
-    : resourceType;
+  const isProduction = iconType?.endsWith("-production") || false;
+  const baseType =
+    isProduction && iconType ? iconType.replace("-production", "") : iconType;
   const isCredits = baseType === ResourceTypeCredits;
 
-  const getIconUrl = (type: string): string | null => {
-    const iconMap: Record<string, string> = {
-      [ResourceTypeCredits]: "/assets/resources/megacredit.png",
-      [ResourceTypeSteel]: "/assets/resources/steel.png",
-      [ResourceTypeTitanium]: "/assets/resources/titanium.png",
-      [ResourceTypePlants]: "/assets/resources/plant.png",
-      [ResourceTypeEnergy]: "/assets/resources/power.png",
-      [ResourceTypeHeat]: "/assets/resources/heat.png",
-      [ResourceTypeFloaters]: "/assets/resources/floater.png",
-      [ResourceTypeMicrobes]: "/assets/resources/microbe.png",
-      [ResourceTypeAnimals]: "/assets/resources/animal.png",
-      [ResourceTypeScience]: "/assets/resources/science.png",
-      [ResourceTypeAsteroid]: "/assets/resources/asteroid.png",
-      [ResourceTypeDisease]: "/assets/resources/disease.png",
-      [ResourceTypeCardDraw]: "/assets/resources/card.png",
-      [ResourceTypeCardTake]: "/assets/resources/card.png",
-      [ResourceTypeCardPeek]: "/assets/resources/card.png",
-      [ResourceTypeCityPlacement]: "/assets/tiles/city.png",
-      [ResourceTypeOceanPlacement]: "/assets/tiles/ocean.png",
-      [ResourceTypeGreeneryPlacement]: "/assets/tiles/greenery.png",
-      [ResourceTypeGreeneryTile]: "/assets/tiles/greenery.png",
-      [ResourceTypeCityTile]: "/assets/tiles/city.png",
-      [ResourceTypeOceanTile]: "/assets/tiles/ocean.png",
-      [ResourceTypeColonyTile]: "/assets/tiles/colony.png",
-      [ResourceTypeTemperature]: "/assets/global-parameters/temperature.png",
-      [ResourceTypeOxygen]: "/assets/global-parameters/oxygen.png",
-      [ResourceTypeVenus]: "/assets/global-parameters/venus.png",
-      [ResourceTypeTR]: "/assets/resources/tr.png",
-      [ResourceTypeFighters]: "/assets/resources/fighter.png",
-      [ResourceTypeCamps]: "/assets/resources/camp.png",
-      [ResourceTypePreservation]: "/assets/resources/preservation.png",
-      [ResourceTypeData]: "/assets/resources/data.png",
-      [ResourceTypeSpecialized]: "/assets/resources/specialized-robot.png",
-      [ResourceTypeDelegate]: "/assets/resources/director.png",
-      [ResourceTypeInfluence]: "/assets/misc/influence.png",
-      [ResourceTypeSpecialTile]: "/assets/tiles/special.png",
-      [ResourceTypeOceans]: "/assets/tiles/ocean.png",
-    };
-
-    return iconMap[type] || null;
-  };
-
-  const iconUrl = getIconUrl(baseType);
+  const iconUrl = baseType ? getIconPath(baseType) : null;
+  const displayType = baseType || "";
 
   if (!iconUrl) {
     return (
       <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
-        {resourceType}
+        {displayType}
       </span>
     );
   }
 
   const sizeMap = {
-    small: { icon: 24, fontSize: "10px" },
-    medium: { icon: 32, fontSize: "12px" },
-    large: { icon: 40, fontSize: "14px" },
+    small: { icon: 24, fontSize: "12px" },
+    medium: { icon: 32, fontSize: "16px" },
+    large: { icon: 40, fontSize: "20px" },
   };
 
   const dimensions = sizeMap[size];
@@ -135,7 +122,7 @@ const GameIcon: React.FC<GameIconProps> = ({
         >
           <img
             src={iconUrl}
-            alt={baseType}
+            alt={displayType}
             className="w-full h-full object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
           />
           <span
@@ -158,7 +145,7 @@ const GameIcon: React.FC<GameIconProps> = ({
       >
         <img
           src={iconUrl}
-          alt={baseType}
+          alt={displayType}
           className="w-full h-full object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
         />
         {amount !== undefined && amount > 1 && !isCredits && (

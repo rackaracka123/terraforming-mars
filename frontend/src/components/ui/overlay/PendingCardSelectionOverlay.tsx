@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import {
   CardDto,
   PendingCardSelectionDto,
+  ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
 
 interface PendingCardSelectionOverlayProps {
@@ -235,14 +236,22 @@ const PendingCardSelectionOverlay: React.FC<
               <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
                 Your Credits:
               </span>
-              <MegaCreditIcon value={playerCredits} size="large" />
+              <GameIcon
+                iconType={ResourceTypeCredits}
+                amount={playerCredits}
+                size="large"
+              />
             </div>
             {totalCost > 0 && (
               <div className="flex items-center gap-3">
                 <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
                   Total Cost:
                 </span>
-                <MegaCreditIcon value={totalCost} size="large" />
+                <GameIcon
+                  iconType={ResourceTypeCredits}
+                  amount={totalCost}
+                  size="large"
+                />
               </div>
             )}
             {totalReward > 0 && (
@@ -252,7 +261,11 @@ const PendingCardSelectionOverlay: React.FC<
                 </span>
                 <div className="flex items-center gap-1">
                   <span className="text-[#4caf50] font-bold text-lg">+</span>
-                  <MegaCreditIcon value={totalReward} size="large" />
+                  <GameIcon
+                    iconType={ResourceTypeCredits}
+                    amount={totalReward}
+                    size="large"
+                  />
                 </div>
               </div>
             )}

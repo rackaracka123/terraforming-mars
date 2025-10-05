@@ -8,6 +8,7 @@ import {
   canPerformActions,
   hasActionsAvailable,
 } from "../../../utils/actionUtils.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
 const isActionAvailable = (
@@ -209,11 +210,9 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
       <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff6464_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff6464]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff6464]">
         {actions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <img
-              src="/assets/misc/corpCard.png"
-              alt="No actions"
-              className="w-10 h-10 mb-[15px] opacity-60"
-            />
+            <div className="mb-[15px] opacity-60">
+              <GameIcon iconType="card" size="medium" />
+            </div>
             <div className="text-white text-sm font-medium mb-2">
               No card actions available
             </div>

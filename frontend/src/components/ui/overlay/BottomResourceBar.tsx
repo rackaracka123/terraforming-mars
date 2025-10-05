@@ -4,11 +4,18 @@ import {
   PlayerActionDto,
   GameDto,
   CardDto,
+  ResourceTypeCredits,
+  ResourceTypeSteel,
+  ResourceTypeTitanium,
+  ResourceTypePlants,
+  ResourceTypeEnergy,
+  ResourceTypeHeat,
 } from "@/types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -16,7 +23,6 @@ interface ResourceData {
   name: string;
   current: number;
   production: number;
-  icon: string;
   color: string;
 }
 
@@ -49,43 +55,18 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
-  // Helper function to create image with embedded number
-  const createImageWithNumber = (
-    imageSrc: string,
-    number: number,
-    className: string = "",
-  ) => {
-    return (
-      <div className={`image-with-number ${className}`}>
-        <img src={imageSrc} alt="" className="base-image" />
-        <span className="embedded-number">{number}</span>
-      </div>
-    );
-  };
 
-  // Get tag icon mapping
-  const getTagIcon = (tag: string): string => {
-    const iconMap: { [key: string]: string } = {
-      space: "/assets/tags/space.png",
-      earth: "/assets/tags/earth.png",
-      science: "/assets/tags/science.png",
-      power: "/assets/tags/power.png",
-      building: "/assets/tags/building.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      city: "/assets/tags/city.png",
-      venus: "/assets/tags/venus.png",
-      jovian: "/assets/tags/jovian.png",
-      wildlife: "/assets/tags/wildlife.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
+  // Map resource ID to ResourceType constant
+  const getResourceType = (resourceId: string): string => {
+    const resourceTypeMap: Record<string, string> = {
+      credits: ResourceTypeCredits,
+      steel: ResourceTypeSteel,
+      titanium: ResourceTypeTitanium,
+      plants: ResourceTypePlants,
+      energy: ResourceTypeEnergy,
+      heat: ResourceTypeHeat,
     };
-    return iconMap[tag.toLowerCase()] || "/assets/tags/empty.png";
+    return resourceTypeMap[resourceId] || resourceId;
   };
 
   // Count tags from played cards
@@ -128,7 +109,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     return allTags.map((tag) => ({
       tag,
       count: counts[tag] || 0,
-      icon: getTagIcon(tag),
     }));
   }, [playedCards]);
 
@@ -150,7 +130,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Credits",
       current: currentPlayer.resources.credits,
       production: currentPlayer.production.credits,
-      icon: "/assets/resources/megacredit.png",
       color: "#f1c40f", // Gold - OK already
     },
     {
@@ -158,7 +137,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Steel",
       current: currentPlayer.resources.steel,
       production: currentPlayer.production.steel,
-      icon: "/assets/resources/steel.png",
       color: "#d2691e", // Brown/orangy
     },
     {
@@ -166,7 +144,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Titanium",
       current: currentPlayer.resources.titanium,
       production: currentPlayer.production.titanium,
-      icon: "/assets/resources/titanium.png",
       color: "#95a5a6", // Grey
     },
     {
@@ -174,7 +151,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Plants",
       current: currentPlayer.resources.plants,
       production: currentPlayer.production.plants,
-      icon: "/assets/resources/plant.png",
       color: "#27ae60", // Green - OK already
     },
     {
@@ -182,7 +158,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Energy",
       current: currentPlayer.resources.energy,
       production: currentPlayer.production.energy,
-      icon: "/assets/resources/power.png",
       color: "#9b59b6", // Purple
     },
     {
@@ -190,7 +165,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Heat",
       current: currentPlayer.resources.heat,
       production: currentPlayer.production.heat,
-      icon: "/assets/resources/heat.png",
       color: "#ff4500", // Red/orange
     },
   ];
@@ -254,36 +228,29 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
               }}
               title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
-              <div className="flex items-center justify-center mb-1">
-                {createImageWithNumber(
-                  "/assets/misc/production.png",
-                  resource.production,
-                  "production-display",
-                )}
+              <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
+                <span className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+                  {resource.production}
+                </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-8 flex items-center justify-center [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.5))]">
-                  {resource.id === "credits" ? (
-                    createImageWithNumber(
-                      resource.icon,
-                      resource.current,
-                      "credits-display",
-                    )
-                  ) : (
-                    <img
-                      src={resource.icon}
-                      alt={resource.name}
-                      className="w-full h-full object-contain [image-rendering:crisp-edges]"
-                    />
-                  )}
-                </div>
-                {resource.id !== "credits" && (
+              {resource.id === "credits" ? (
+                <GameIcon
+                  iconType={ResourceTypeCredits}
+                  amount={resource.current}
+                  size="medium"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <GameIcon
+                    iconType={getResourceType(resource.id)}
+                    size="medium"
+                  />
                   <div className="text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
                     {resource.current}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -465,53 +432,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           </div>
         </button>
       </div>
-
-      <style>{`
-        .image-with-number {
-          position: relative;
-          display: inline-block;
-        }
-
-        .base-image {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-
-        .embedded-number {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-weight: bold;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-          pointer-events: none;
-          line-height: 1;
-        }
-
-        .production-display {
-          width: 24px;
-          height: 24px;
-        }
-
-        .production-display .embedded-number {
-          font-size: 12px;
-          color: #ffffff;
-        }
-
-        .credits-display {
-          width: 32px;
-          height: 32px;
-        }
-
-        .credits-display .embedded-number {
-          font-size: 14px;
-          color: #000000;
-          font-weight: 900;
-        }
-
-      `}</style>
 
       {/* Actions Popover */}
       <ActionsPopover

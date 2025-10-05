@@ -4,15 +4,12 @@ import {
   ProductionPhaseDto,
   OtherPlayerDto,
   PlayerDto,
-} from "@/types/generated/api-types.ts";
-import {
-  RESOURCE_COLORS,
-  RESOURCE_ICONS,
-  RESOURCE_NAMES,
   ResourceType,
-} from "@/utils/resourceColors.ts";
+} from "@/types/generated/api-types.ts";
+import { RESOURCE_COLORS, RESOURCE_NAMES } from "@/utils/resourceColors.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import ProductionCardSelectionOverlay from "@/components/ui/overlay/ProductionCardSelectionOverlay.tsx";
+import GameIcon from "@/components/ui/display/GameIcon.tsx";
 
 interface ProductionPhaseModalProps {
   isOpen: boolean;
@@ -138,7 +135,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   }, [gameState]);
 
   // Resource configuration from utility
-  const resourceIcons = RESOURCE_ICONS;
   const resourceNames = RESOURCE_NAMES;
 
   // Set initial animation step based on energy conversion
@@ -523,11 +519,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
         }
       >
         <div className="resourceIcon mb-3 flex justify-center">
-          <img
-            src={resourceIcons[resourceType]}
-            alt={resourceNames[resourceType]}
-            className="w-8 h-8 [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-          />
+          <GameIcon iconType={resourceType} size="medium" />
         </div>
         {renderAmounts()}
         <div className="text-xs text-white/80 uppercase font-semibold tracking-[0.5px]">

@@ -1,22 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { PlayerDto } from "../../../types/generated/api-types.ts";
 import { fetchAllCards } from "../../../utils/cardPlayabilityUtils.ts";
-
-// Utility function to get resource icon path
-const getResourceIcon = (resourceType: string): string | null => {
-  const iconMap: { [key: string]: string } = {
-    floaters: "/assets/resources/floater.png",
-    microbes: "/assets/resources/microbe.png",
-    animals: "/assets/resources/animal.png",
-    science: "/assets/resources/science.png",
-    asteroid: "/assets/resources/asteroid.png",
-    disease: "/assets/resources/disease.png",
-    fighters: "/assets/resources/fighter.png",
-    camps: "/assets/resources/camp.png",
-    data: "/assets/resources/data.png",
-  };
-  return iconMap[resourceType.toLowerCase()] || null;
-};
+import GameIcon from "../display/GameIcon.tsx";
 
 interface StorageItem {
   cardId: string;
@@ -144,11 +129,9 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
       <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#6496ff_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#6496ff]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#6496ff]">
         {storageItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <img
-              src="/assets/misc/corpCard.png"
-              alt="No storages"
-              className="w-10 h-10 mb-[15px] opacity-60"
-            />
+            <div className="mb-[15px] opacity-60">
+              <GameIcon iconType="card" size="medium" />
+            </div>
             <div className="text-white text-sm font-medium mb-2">
               No card storages
             </div>
@@ -158,38 +141,28 @@ const StoragesPopover: React.FC<StoragesPopoverProps> = ({
           </div>
         ) : (
           <div className="p-2 flex flex-col gap-2">
-            {storageItems.map((storage, index) => {
-              const resourceIcon = getResourceIcon(storage.resourceType);
+            {storageItems.map((storage, index) => (
+              <div
+                key={storage.cardId}
+                className="flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#6496ff]/30 rounded-lg transition-all duration-300 animate-[storageSlideIn_0.4s_ease-out_both] hover:translate-x-1 hover:border-[#6496ff] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#6496ff40] max-[768px]:py-2 max-[768px]:px-3"
+                style={{
+                  animationDelay: `${index * 0.05}s`,
+                }}
+              >
+                <div className="flex justify-between items-center flex-1">
+                  <div className="text-white/90 text-[13px] font-medium [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] flex-1 max-[768px]:text-xs">
+                    {storage.cardName}
+                  </div>
 
-              return (
-                <div
-                  key={storage.cardId}
-                  className="flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#6496ff]/30 rounded-lg transition-all duration-300 animate-[storageSlideIn_0.4s_ease-out_both] hover:translate-x-1 hover:border-[#6496ff] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#6496ff40] max-[768px]:py-2 max-[768px]:px-3"
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                  }}
-                >
-                  <div className="flex justify-between items-center flex-1">
-                    <div className="text-white/90 text-[13px] font-medium [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] flex-1 max-[768px]:text-xs">
-                      {storage.cardName}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 py-1 px-2 bg-[rgba(20,30,40,0.6)] border border-[rgba(100,150,200,0.4)] rounded-md">
-                      <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none min-w-[20px] text-right max-[768px]:text-sm">
-                        {storage.count}
-                      </span>
-                      {resourceIcon && (
-                        <img
-                          src={resourceIcon}
-                          alt={storage.resourceType}
-                          className="w-5 h-5 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-[768px]:w-[18px] max-[768px]:h-[18px]"
-                        />
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1.5 py-1 px-2 bg-[rgba(20,30,40,0.6)] border border-[rgba(100,150,200,0.4)] rounded-md">
+                    <span className="text-base font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-none min-w-[20px] text-right max-[768px]:text-sm">
+                      {storage.count}
+                    </span>
+                    <GameIcon iconType={storage.resourceType} size="small" />
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
