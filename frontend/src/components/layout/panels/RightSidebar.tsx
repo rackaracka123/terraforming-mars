@@ -1,5 +1,5 @@
 import React from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
 import GameIcon from "../../ui/display/GameIcon.tsx";
 
 interface GlobalParameters {
@@ -11,7 +11,7 @@ interface GlobalParameters {
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
-  currentPlayer?: PlayerDto | null;
+  currentPlayer?: PlayerDto | OtherPlayerDto | null;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({

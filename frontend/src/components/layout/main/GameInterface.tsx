@@ -297,13 +297,10 @@ export default function GameInterface() {
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
   const handleCardSelection = useCallback(
-    async (selectedCardIds: string[], corporationId: string) => {
+    async (selectedCardIds: string[]) => {
       try {
-        // Send card and corporation selection to server - commits immediately
-        await globalWebSocketManager.selectStartingCard(
-          selectedCardIds,
-          corporationId,
-        );
+        // Send card selection to server
+        await globalWebSocketManager.selectCards(selectedCardIds);
         // Modal will close automatically when backend clears startingSelection
       } catch (error) {
         console.error("Failed to select cards:", error);
@@ -1119,10 +1116,6 @@ export default function GameInterface() {
       <StartingCardSelectionOverlay
         isOpen={showCardSelection}
         cards={cardDetails}
-        availableCorporations={
-          game?.currentPlayer?.selectStartingCardsPhase
-            ?.availableCorporations || []
-        }
         playerCredits={currentPlayer?.resources?.credits || 40}
         onSelectCards={handleCardSelection}
       />

@@ -1,9 +1,16 @@
 import React from "react";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
-import ProductionDisplay from "../display/ProductionDisplay.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import BehaviorSection from "./BehaviorSection.tsx";
 
-import { CardBehaviorDto } from "../../../types/generated/api-types.ts";
+import {
+  CardBehaviorDto,
+  ResourceTypeCredits,
+  ResourceTypeSteel,
+  ResourceTypeTitanium,
+  ResourceTypePlants,
+  ResourceTypeEnergy,
+  ResourceTypeHeat,
+} from "../../../types/generated/api-types.ts";
 
 interface Corporation {
   id: string;
@@ -44,34 +51,54 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
   onSelect,
 }) => {
   const renderResource = (type: string, amount: number) => {
-    const iconMap: { [key: string]: string } = {
-      steel: "/assets/resources/steel.png",
-      titanium: "/assets/resources/titanium.png",
-      plants: "/assets/resources/plant.png",
-      energy: "/assets/resources/power.png",
-      heat: "/assets/resources/heat.png",
+    const resourceTypeMap: { [key: string]: string } = {
+      credits: ResourceTypeCredits,
+      steel: ResourceTypeSteel,
+      titanium: ResourceTypeTitanium,
+      plants: ResourceTypePlants,
+      energy: ResourceTypeEnergy,
+      heat: ResourceTypeHeat,
     };
 
-    // Use MegaCreditIcon for credits
+    const resourceType = resourceTypeMap[type];
+    if (!resourceType) return null;
+
+    // Use GameIcon for credits (shows amount inside icon)
     if (type === "credits") {
-      return <MegaCreditIcon value={amount} size="large" />;
+      return <GameIcon iconType={resourceType} amount={amount} size="large" />;
     }
 
-    const icon = iconMap[type];
-    if (!icon) return null;
-
-    // Regular resource display
+    // Regular resource display with icon and number
     return (
       <div className="inline-flex items-center gap-2">
-        <img
-          src={icon}
-          alt={type}
-          className="w-8 h-8 [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
-        />
+        <GameIcon iconType={resourceType} size="large" />
         <span className="text-white font-bold text-lg [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
           {amount}
         </span>
       </div>
+    );
+  };
+
+  const renderProduction = (type: string, amount: number) => {
+    const resourceTypeMap: { [key: string]: string } = {
+      credits: ResourceTypeCredits,
+      steel: ResourceTypeSteel,
+      titanium: ResourceTypeTitanium,
+      plants: ResourceTypePlants,
+      energy: ResourceTypeEnergy,
+      heat: ResourceTypeHeat,
+    };
+
+    const resourceType = resourceTypeMap[type];
+    if (!resourceType) return null;
+
+    // Use GameIcon with -production suffix for automatic brown background
+    return (
+      <GameIcon
+        iconType={`${resourceType}-production`}
+        amount={amount}
+        size="medium"
+      />
     );
   };
 
@@ -131,12 +158,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
             Object.entries(corporation.startingProduction).map(
               ([type, amount]) =>
                 amount > 0 ? (
-                  <ProductionDisplay
-                    key={type}
-                    amount={amount}
-                    resourceType={type}
-                    size="medium"
-                  />
+                  <div key={type}>{renderProduction(type, amount)}</div>
                 ) : null,
             )}
         </div>

@@ -35,7 +35,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
   playedCards = [],
-  corporationCard = null,
+  corporationCard: _corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
@@ -106,7 +106,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               currentPlayer={currentPlayer}
               gameState={gameState}
               playedCards={playedCards}
-              corporationCard={corporationCard}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
