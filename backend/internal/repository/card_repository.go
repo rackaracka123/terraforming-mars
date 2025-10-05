@@ -166,7 +166,6 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 
 // parseStartingBonuses parses starting bonuses from corporation card behaviors
 func (r *CardRepositoryImpl) parseStartingBonuses(card *model.Card) {
-	startingCredits := 0
 	startingResources := model.ResourceSet{}
 	startingProduction := model.ResourceSet{}
 
@@ -193,41 +192,36 @@ func (r *CardRepositoryImpl) parseStartingBonuses(card *model.Card) {
 			switch output.Type {
 			// Starting resources
 			case model.ResourceCredits:
-				startingCredits = output.Amount
-				startingResources.Credits = output.Amount
+				startingResources.Credits += output.Amount
 			case model.ResourceSteel:
-				startingResources.Steel = output.Amount
+				startingResources.Steel += output.Amount
 			case model.ResourceTitanium:
-				startingResources.Titanium = output.Amount
+				startingResources.Titanium += output.Amount
 			case model.ResourcePlants:
-				startingResources.Plants = output.Amount
+				startingResources.Plants += output.Amount
 			case model.ResourceEnergy:
-				startingResources.Energy = output.Amount
+				startingResources.Energy += output.Amount
 			case model.ResourceHeat:
-				startingResources.Heat = output.Amount
+				startingResources.Heat += output.Amount
 
 			// Starting production
 			case model.ResourceCreditsProduction:
-				startingProduction.Credits = output.Amount
+				startingProduction.Credits += output.Amount
 			case model.ResourceSteelProduction:
-				startingProduction.Steel = output.Amount
+				startingProduction.Steel += output.Amount
 			case model.ResourceTitaniumProduction:
-				startingProduction.Titanium = output.Amount
+				startingProduction.Titanium += output.Amount
 			case model.ResourcePlantsProduction:
-				startingProduction.Plants = output.Amount
+				startingProduction.Plants += output.Amount
 			case model.ResourceEnergyProduction:
-				startingProduction.Energy = output.Amount
+				startingProduction.Energy += output.Amount
 			case model.ResourceHeatProduction:
-				startingProduction.Heat = output.Amount
+				startingProduction.Heat += output.Amount
 			}
 		}
-
-		// Only process the first auto behavior (starting bonuses)
-		break
 	}
 
-	// Set the parsed values on the card
-	card.StartingCredits = &startingCredits
+	// Set the parsed values on the card (startingCredits is in startingResources.Credits)
 	card.StartingResources = &startingResources
 	card.StartingProduction = &startingProduction
 }
