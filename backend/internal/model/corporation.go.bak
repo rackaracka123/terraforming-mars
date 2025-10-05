@@ -1,15 +1,11 @@
 package model
 
-// Corporation represents a corporation card with special abilities
+// Corporation represents a corporation card with parsed starting bonuses
 type Corporation struct {
-	ID                 string      `json:"id" ts:"string"`
-	Name               string      `json:"name" ts:"string"`
-	Description        string      `json:"description" ts:"string"`
-	StartingCredits    int         `json:"startingCredits" ts:"number"`
-	StartingResources  ResourceSet `json:"startingResources" ts:"ResourceSet"`
-	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"`
-	Tags               []CardTag   `json:"tags" ts:"CardTag[]"`
-	SpecialEffects     []string    `json:"specialEffects" ts:"string[]"` // Descriptions of special abilities
+	Card               Card        `json:"card" ts:"Card"`                      // Full card data (includes behaviors for visual rendering)
+	StartingCredits    int         `json:"startingCredits" ts:"number"`         // Parsed from first auto behavior
+	StartingResources  ResourceSet `json:"startingResources" ts:"ResourceSet"`  // Parsed from first auto behavior
+	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"` // Parsed from first auto behavior
 }
 
 // ConvertCardToCorporation converts a corporation Card to a Corporation struct
@@ -23,6 +19,7 @@ func ConvertCardToCorporation(card Card) Corporation {
 		StartingProduction: ResourceSet{},
 		Tags:               card.Tags,
 		SpecialEffects:     []string{card.Description},
+		Behaviors:          card.Behaviors, // Include all behaviors for frontend visual representation
 	}
 
 	// Parse starting bonuses from the first auto-trigger behavior

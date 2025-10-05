@@ -204,19 +204,11 @@ type CardDto struct {
 	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
 	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
 	VPConditions    []model.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
-}
 
-// CorporationDto represents a corporation for client consumption
-type CorporationDto struct {
-	ID                 string      `json:"id" ts:"string"`
-	Name               string      `json:"name" ts:"string"`
-	Description        string      `json:"description" ts:"string"`
-	StartingCredits    int         `json:"startingCredits" ts:"number"`
-	StartingResources  ResourceSet `json:"startingResources" ts:"ResourceSet"`
-	StartingProduction ResourceSet `json:"startingProduction" ts:"ResourceSet"`
-	Tags               []CardTag   `json:"tags" ts:"CardTag[]"`
-	SpecialEffects     []string    `json:"specialEffects" ts:"string[]"`
-	Number             string      `json:"number" ts:"string"`
+	// Corporation-specific fields (nil for non-corporation cards)
+	StartingCredits    *int         `json:"startingCredits,omitempty" ts:"number | undefined"`         // Parsed from first auto behavior (corporations only)
+	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
+	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
 }
 
 type SelectStartingCardsPhaseDto struct {
@@ -333,7 +325,7 @@ type PlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
 	Name             string            `json:"name" ts:"string"`
 	Status           PlayerStatus      `json:"status" ts:"PlayerStatus"`
-	Corporation      *string           `json:"corporation" ts:"string | null"`
+	Corporation      *CardDto          `json:"corporation" ts:"CardDto | null"`
 	Cards            []CardDto         `json:"cards" ts:"CardDto[]"`
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
@@ -362,7 +354,7 @@ type OtherPlayerDto struct {
 	ID               string            `json:"id" ts:"string"`
 	Name             string            `json:"name" ts:"string"`
 	Status           PlayerStatus      `json:"status" ts:"PlayerStatus"`
-	Corporation      string            `json:"corporation" ts:"string"`
+	Corporation      *CardDto          `json:"corporation" ts:"CardDto | null"`
 	HandCardCount    int               `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`

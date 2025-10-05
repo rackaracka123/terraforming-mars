@@ -83,11 +83,18 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		startingCards = []CardDto{}
 	}
 
+	// Convert corporation to CardDto if present
+	var corporationDto *CardDto
+	if player.Corporation != nil {
+		dto := ToCardDto(*player.Corporation)
+		corporationDto = &dto
+	}
+
 	return PlayerDto{
 		ID:                       player.ID,
 		Name:                     player.Name,
 		Status:                   status,
-		Corporation:              player.Corporation,
+		Corporation:              corporationDto,
 		Cards:                    resolveCards(player.Cards, resolvedCards),
 		Resources:                ToResourcesDto(player.Resources),
 		Production:               ToProductionDto(player.Production),
@@ -110,9 +117,11 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
-	corporationName := ""
+	// Convert corporation to CardDto if present
+	var corporationDto *CardDto
 	if player.Corporation != nil {
-		corporationName = *player.Corporation
+		dto := ToCardDto(*player.Corporation)
+		corporationDto = &dto
 	}
 
 	status := PlayerStatusActive
@@ -136,7 +145,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		ID:                       player.ID,
 		Name:                     player.Name,
 		Status:                   status,
-		Corporation:              corporationName,
+		Corporation:              corporationDto,
 		HandCardCount:            len(player.Cards), // Hide actual cards, show count only
 		Resources:                ToResourcesDto(player.Resources),
 		Production:               ToProductionDto(player.Production),
@@ -250,17 +259,37 @@ func ToCardDto(card model.Card) CardDto {
 		}
 	}
 
+	// Convert starting bonuses to DTO format (for corporations)
+	var startingCredits *int
+	var startingResources *ResourceSet
+	var startingProduction *ResourceSet
+
+	if card.StartingCredits != nil {
+		startingCredits = card.StartingCredits
+	}
+	if card.StartingResources != nil {
+		rs := ToResourceSetDto(*card.StartingResources)
+		startingResources = &rs
+	}
+	if card.StartingProduction != nil {
+		rp := ToResourceSetDto(*card.StartingProduction)
+		startingProduction = &rp
+	}
+
 	return CardDto{
-		ID:              card.ID,
-		Name:            card.Name,
-		Type:            CardType(card.Type),
-		Cost:            card.Cost,
-		Description:     card.Description,
-		Tags:            ToCardTagDtoSlice(card.Tags),
-		Requirements:    card.Requirements,
-		Behaviors:       behaviors,
-		ResourceStorage: resourceStorage,
-		VPConditions:    card.VPConditions,
+		ID:                 card.ID,
+		Name:               card.Name,
+		Type:               CardType(card.Type),
+		Cost:               card.Cost,
+		Description:        card.Description,
+		Tags:               ToCardTagDtoSlice(card.Tags),
+		Requirements:       card.Requirements,
+		Behaviors:          behaviors,
+		ResourceStorage:    resourceStorage,
+		VPConditions:       card.VPConditions,
+		StartingCredits:    startingCredits,
+		StartingResources:  startingResources,
+		StartingProduction: startingProduction,
 	}
 }
 
@@ -671,19 +700,5 @@ func ToResourceSetDto(rs model.ResourceSet) ResourceSet {
 		Plants:   rs.Plants,
 		Energy:   rs.Energy,
 		Heat:     rs.Heat,
-	}
-}
-
-// ToCorporationDto converts a model Corporation to CorporationDto
-func ToCorporationDto(corp model.Corporation) CorporationDto {
-	return CorporationDto{
-		ID:                 corp.ID,
-		Name:               corp.Name,
-		Description:        corp.Description,
-		StartingCredits:    corp.StartingCredits,
-		StartingProduction: ToResourceSetDto(corp.StartingProduction),
-		StartingResources:  ToResourceSetDto(corp.StartingResources),
-		Tags:               ToCardTagDtoSlice(corp.Tags),
-		SpecialEffects:     corp.SpecialEffects,
 	}
 }

@@ -409,7 +409,7 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 
 	// Validate player hasn't already selected a corporation
 	if player.Corporation != nil {
-		log.Warn("Player has already selected a corporation", zap.String("existing_corporation", *player.Corporation))
+		log.Warn("Player has already selected a corporation", zap.String("existing_corporation", player.Corporation.Name))
 		return fmt.Errorf("corporation already selected")
 	}
 
@@ -434,23 +434,24 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 		return fmt.Errorf("failed to get corporation card: %w", err)
 	}
 
-	// Convert card to corporation and apply starting bonuses
-	corporation := model.ConvertCardToCorporation(*corporationCard)
-
-	// Update player's corporation
-	if err := s.playerRepo.UpdateCorporation(ctx, gameID, playerID, corporationID); err != nil {
+	// Update player's corporation with full card object
+	if err := s.playerRepo.UpdateCorporation(ctx, gameID, playerID, *corporationCard); err != nil {
 		log.Error("Failed to update player corporation", zap.Error(err))
 		return fmt.Errorf("failed to update player corporation: %w", err)
 	}
 
 	// Apply starting resources
 	updatedResources := player.Resources
-	updatedResources.Credits = corporation.StartingResources.Credits
-	updatedResources.Steel += corporation.StartingResources.Steel
-	updatedResources.Titanium += corporation.StartingResources.Steel
-	updatedResources.Plants += corporation.StartingResources.Plants
-	updatedResources.Energy += corporation.StartingResources.Energy
-	updatedResources.Heat += corporation.StartingResources.Heat
+	if corporationCard.StartingCredits != nil {
+		updatedResources.Credits = *corporationCard.StartingCredits
+	}
+	if corporationCard.StartingResources != nil {
+		updatedResources.Steel += corporationCard.StartingResources.Steel
+		updatedResources.Titanium += corporationCard.StartingResources.Titanium
+		updatedResources.Plants += corporationCard.StartingResources.Plants
+		updatedResources.Energy += corporationCard.StartingResources.Energy
+		updatedResources.Heat += corporationCard.StartingResources.Heat
+	}
 
 	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
 		log.Error("Failed to update player resources", zap.Error(err))
@@ -462,22 +463,29 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 
 	// Apply starting production
 	updatedProduction := player.Production
-	updatedProduction.Credits += corporation.StartingProduction.Credits
-	updatedProduction.Steel += corporation.StartingProduction.Steel
-	updatedProduction.Titanium += corporation.StartingProduction.Titanium
-	updatedProduction.Plants += corporation.StartingProduction.Plants
-	updatedProduction.Energy += corporation.StartingProduction.Energy
-	updatedProduction.Heat += corporation.StartingProduction.Heat
+	if corporationCard.StartingProduction != nil {
+		updatedProduction.Credits += corporationCard.StartingProduction.Credits
+		updatedProduction.Steel += corporationCard.StartingProduction.Steel
+		updatedProduction.Titanium += corporationCard.StartingProduction.Titanium
+		updatedProduction.Plants += corporationCard.StartingProduction.Plants
+		updatedProduction.Energy += corporationCard.StartingProduction.Energy
+		updatedProduction.Heat += corporationCard.StartingProduction.Heat
+	}
 
 	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, updatedProduction); err != nil {
 		log.Error("Failed to update player production", zap.Error(err))
 		return fmt.Errorf("failed to update player production: %w", err)
 	}
 
+	startingCredits := 0
+	if corporationCard.StartingCredits != nil {
+		startingCredits = *corporationCard.StartingCredits
+	}
+
 	log.Info("✅ Corporation selected and bonuses applied",
 		zap.String("corporation_id", corporationID),
-		zap.String("corporation_name", corporation.Name),
-		zap.Int("starting_credits", corporation.StartingCredits))
+		zap.String("corporation_name", corporationCard.Name),
+		zap.Int("starting_credits", startingCredits))
 
 	return nil
 }

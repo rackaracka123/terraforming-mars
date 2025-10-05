@@ -354,10 +354,6 @@ func (m *MockCardRepository) GetCardsByTags(ctx context.Context, tags []model.Ca
 	return []model.Card{}, nil
 }
 
-func (m *MockCardRepository) GetCorporations(ctx context.Context) ([]model.Corporation, error) {
-	return []model.Corporation{}, nil
-}
-
-func (m *MockCardRepository) GetCorporationByID(ctx context.Context, id string) (*model.Corporation, error) {
-	return nil, nil
+func (m *MockCardRepository) GetCorporations(ctx context.Context) ([]model.Card, error) {
+	return []model.Card{}, nil
 }

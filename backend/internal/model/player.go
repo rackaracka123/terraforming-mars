@@ -59,7 +59,7 @@ type PendingCardSelection struct {
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
 	Name                     string                    `json:"name" ts:"string"`
-	Corporation              *string                   `json:"corporation" ts:"string | null"`
+	Corporation              *Card                     `json:"corporation" ts:"CardDto | null"`
 	Cards                    []string                  `json:"cards" ts:"string[]"`
 	Resources                Resources                 `json:"resources" ts:"Resources"`
 	Production               Production                `json:"production" ts:"Production"`
@@ -222,10 +222,17 @@ func (p *Player) DeepCopy() *Player {
 		}
 	}
 
+	// Deep copy corporation if it exists
+	var corporationCopy *Card
+	if p.Corporation != nil {
+		corpCopy := p.Corporation.DeepCopy()
+		corporationCopy = &corpCopy
+	}
+
 	return &Player{
 		ID:                        p.ID,
 		Name:                      p.Name,
-		Corporation:               p.Corporation,
+		Corporation:               corporationCopy,
 		Cards:                     cardsCopy,
 		Resources:                 p.Resources,  // Resources is a struct, so this is copied by value
 		Production:                p.Production, // Production is a struct, so this is copied by value

@@ -55,6 +55,81 @@ type CardBehavior struct {
 	Choices  []Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`            // Player choices between different input/output combinations
 }
 
+// DeepCopy creates a deep copy of the CardBehavior
+func (cb CardBehavior) DeepCopy() CardBehavior {
+	var copy CardBehavior
+
+	// Copy triggers slice
+	if cb.Triggers != nil {
+		copy.Triggers = make([]Trigger, len(cb.Triggers))
+		for i, trigger := range cb.Triggers {
+			copy.Triggers[i] = trigger // Trigger is a struct, copied by value
+		}
+	}
+
+	// Copy inputs slice
+	if cb.Inputs != nil {
+		copy.Inputs = make([]ResourceCondition, len(cb.Inputs))
+		for i, input := range cb.Inputs {
+			copy.Inputs[i] = deepCopyResourceCondition(input)
+		}
+	}
+
+	// Copy outputs slice
+	if cb.Outputs != nil {
+		copy.Outputs = make([]ResourceCondition, len(cb.Outputs))
+		for i, output := range cb.Outputs {
+			copy.Outputs[i] = deepCopyResourceCondition(output)
+		}
+	}
+
+	// Copy choices slice
+	if cb.Choices != nil {
+		copy.Choices = make([]Choice, len(cb.Choices))
+		for i, choice := range cb.Choices {
+			choiceCopy := Choice{}
+
+			// Copy inputs for this choice
+			if choice.Inputs != nil {
+				choiceCopy.Inputs = make([]ResourceCondition, len(choice.Inputs))
+				for j, input := range choice.Inputs {
+					choiceCopy.Inputs[j] = deepCopyResourceCondition(input)
+				}
+			}
+
+			// Copy outputs for this choice
+			if choice.Outputs != nil {
+				choiceCopy.Outputs = make([]ResourceCondition, len(choice.Outputs))
+				for j, output := range choice.Outputs {
+					choiceCopy.Outputs[j] = deepCopyResourceCondition(output)
+				}
+			}
+
+			copy.Choices[i] = choiceCopy
+		}
+	}
+
+	return copy
+}
+
+// deepCopyResourceCondition creates a deep copy of a ResourceCondition
+func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
+	result := rc // Copy struct by value
+
+	// Copy slices within the struct
+	if rc.AffectedResources != nil {
+		result.AffectedResources = make([]string, len(rc.AffectedResources))
+		copy(result.AffectedResources, rc.AffectedResources)
+	}
+
+	if rc.AffectedTags != nil {
+		result.AffectedTags = make([]CardTag, len(rc.AffectedTags))
+		copy(result.AffectedTags, rc.AffectedTags)
+	}
+
+	return result
+}
+
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
 	Type     ResourceType `json:"type" ts:"ResourceType"`                     // Type of resource stored

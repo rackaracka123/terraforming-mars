@@ -1,6 +1,5 @@
 import {
   CardDto,
-  CorporationDto,
   GameDto,
   GamePhaseAction,
   PlayerDto,
@@ -12,7 +11,7 @@ import {
 let cardCache: Map<string, CardDto> | null = null;
 
 // Cache for all corporations fetched from the backend
-let corporationCache: CorporationDto[] | null = null;
+let corporationCache: CardDto[] | null = null;
 
 /**
  * Fetches all cards from the backend and caches them
@@ -55,7 +54,7 @@ export async function getCardById(cardId: string): Promise<CardDto | null> {
 /**
  * Fetches all corporations from the backend and caches them
  */
-export async function fetchCorporations(): Promise<CorporationDto[]> {
+export async function fetchCorporations(): Promise<CardDto[]> {
   if (corporationCache !== null) {
     return corporationCache;
   }
@@ -66,7 +65,7 @@ export async function fetchCorporations(): Promise<CorporationDto[]> {
       throw new Error(`Failed to fetch corporations: ${response.statusText}`);
     }
 
-    const corporations: CorporationDto[] = await response.json();
+    const corporations: CardDto[] = await response.json();
     corporationCache = corporations || [];
 
     return corporationCache;

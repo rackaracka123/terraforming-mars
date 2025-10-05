@@ -105,14 +105,14 @@ func (h *CardHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 // @Tags cards
 // @Accept json
 // @Produce json
-// @Success 200 {array} dto.CorporationDto
+// @Success 200 {array} dto.CardDto
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /corporations [get]
 func (h *CardHandler) GetCorporations(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	log.Debug("📡 Getting all corporations")
 
-	// Get corporations from service
+	// Get corporations from service (they're just cards with type=corporation)
 	corporations, err := h.cardService.GetCorporations(r.Context())
 	if err != nil {
 		log.Error("Failed to get corporations", zap.Error(err))
@@ -120,11 +120,8 @@ func (h *CardHandler) GetCorporations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTOs
-	corporationDtos := make([]dto.CorporationDto, len(corporations))
-	for i, corp := range corporations {
-		corporationDtos[i] = dto.ToCorporationDto(corp)
-	}
+	// Convert to DTOs (corporations have StartingCredits/Resources/Production populated)
+	corporationDtos := dto.ToCardDtoSlice(corporations)
 
 	log.Debug("📡 Corporations retrieved successfully",
 		zap.Int("count", len(corporationDtos)))

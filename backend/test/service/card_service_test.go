@@ -187,8 +187,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 					assert.Contains(t, updatedPlayer.Cards, cardID)
 				}
 
-				// CC1 (Aridor) gives 42 credits, cards cost 3 MC each
-				expectedCredits := 42 - tt.expectedCost
+				// CC1 (Aridor) gives 40 credits, cards cost 3 MC each
+				expectedCredits := 40 - tt.expectedCost
 				assert.Equal(t, expectedCredits, updatedPlayer.Resources.Credits)
 			}
 		})
@@ -314,10 +314,10 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	updatedPlayer1, err := playerRepo.GetByID(ctx, gameID, player1.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer1.Cards, availableCardIDs[0])
-	assert.Equal(t, 39, updatedPlayer1.Resources.Credits) // CC1 (Aridor) gives 42, minus 3 for 1 card
+	assert.Equal(t, 37, updatedPlayer1.Resources.Credits) // CC1 (Aridor) gives 40, minus 3 for 1 card
 
 	updatedPlayer2, err := playerRepo.GetByID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
-	assert.Equal(t, 39, updatedPlayer2.Resources.Credits) // PC5 (Tharsis) gives 42, minus 3 for 1 card
+	assert.Equal(t, 42, updatedPlayer2.Resources.Credits) // PC5 (Vitor) gives 45, minus 3 for 1 card
 }

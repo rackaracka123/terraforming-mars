@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import CorporationCard from "../cards/CorporationCard.tsx";
 import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
-import { CardDto, CorporationDto } from "../../../types/generated/api-types.ts";
+import { CardDto } from "../../../types/generated/api-types.ts";
 import { fetchCorporations } from "../../../utils/cardPlayabilityUtils.ts";
 
 interface StartingCardSelectionOverlayProps {
@@ -26,9 +26,7 @@ const StartingCardSelectionOverlay: React.FC<
   const [selectedCorporationId, setSelectedCorporationId] = useState<
     string | null
   >(null);
-  const [corporationCards, setCorporationCards] = useState<CorporationDto[]>(
-    [],
-  );
+  const [corporationCards, setCorporationCards] = useState<CardDto[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [currentStep, setCurrentStep] = useState<"corporation" | "cards">(
@@ -176,23 +174,28 @@ const StartingCardSelectionOverlay: React.FC<
                       id: corp.id,
                       name: corp.name,
                       description: corp.description,
-                      startingMegaCredits: corp.startingCredits,
-                      startingProduction: {
-                        credits: corp.startingProduction.credits,
-                        steel: corp.startingProduction.steel,
-                        titanium: corp.startingProduction.titanium,
-                        plants: corp.startingProduction.plants,
-                        energy: corp.startingProduction.energy,
-                        heat: corp.startingProduction.heat,
-                      },
-                      startingResources: {
-                        credits: corp.startingResources.credits,
-                        steel: corp.startingResources.steel,
-                        titanium: corp.startingResources.titanium,
-                        plants: corp.startingResources.plants,
-                        energy: corp.startingResources.energy,
-                        heat: corp.startingResources.heat,
-                      },
+                      startingMegaCredits: corp.startingCredits ?? 0,
+                      startingProduction: corp.startingProduction
+                        ? {
+                            credits: corp.startingProduction.credits,
+                            steel: corp.startingProduction.steel,
+                            titanium: corp.startingProduction.titanium,
+                            plants: corp.startingProduction.plants,
+                            energy: corp.startingProduction.energy,
+                            heat: corp.startingProduction.heat,
+                          }
+                        : undefined,
+                      startingResources: corp.startingResources
+                        ? {
+                            credits: corp.startingResources.credits,
+                            steel: corp.startingResources.steel,
+                            titanium: corp.startingResources.titanium,
+                            plants: corp.startingResources.plants,
+                            energy: corp.startingResources.energy,
+                            heat: corp.startingResources.heat,
+                          }
+                        : undefined,
+                      behaviors: corp.behaviors,
                       logoPath: undefined,
                     }}
                     isSelected={selectedCorporationId === corp.id}

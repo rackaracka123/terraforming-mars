@@ -38,7 +38,7 @@ type CardService interface {
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
 
 	// Get all corporations
-	GetCorporations(ctx context.Context) ([]model.Corporation, error)
+	GetCorporations(ctx context.Context) ([]model.Card, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -297,7 +297,7 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 	return paginatedCards, totalCount, nil
 }
 
-func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Corporation, error) {
+func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
 	return s.cardRepo.GetCorporations(ctx)
 }
 
