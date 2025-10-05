@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CardDto, ResourceType } from "../../../types/generated/api-types.ts";
+import { CardDto, ResourceType } from "@/types/generated/api-types.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface CardStorageSelectionPopoverProps {
   resourceType: ResourceType;
@@ -108,18 +109,6 @@ const CardStorageSelectionPopover: React.FC<
 
   const hasNoStorage = validCards.length === 0;
 
-  // Map resource types to icon paths
-  const getResourceIcon = (type: ResourceType): string => {
-    const iconMap: Record<string, string> = {
-      animals: "/assets/resources/animal.png",
-      microbes: "/assets/resources/microbe.png",
-      floaters: "/assets/resources/floater.png",
-      science: "/assets/resources/science.png",
-      asteroid: "/assets/resources/asteroid.png",
-    };
-    return iconMap[type] || "/assets/resources/wild.png";
-  };
-
   return (
     <div className="fixed top-0 left-0 right-0 bottom-0 z-[10002] flex items-center justify-center pointer-events-auto overflow-hidden">
       <div
@@ -147,11 +136,7 @@ const CardStorageSelectionPopover: React.FC<
             ) : (
               <>
                 <span>Place {amount}</span>
-                <img
-                  src={getResourceIcon(resourceType)}
-                  alt={resourceType}
-                  className="w-4 h-4 object-contain inline-block"
-                />
+                <GameIcon iconType={resourceType} size="small" />
               </>
             )}
           </div>
@@ -163,11 +148,7 @@ const CardStorageSelectionPopover: React.FC<
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="text-yellow-400 text-4xl">⚠️</div>
-                <img
-                  src={getResourceIcon(resourceType)}
-                  alt={resourceType}
-                  className="w-12 h-12 object-contain"
-                />
+                <GameIcon iconType={resourceType} size="large" />
               </div>
               <div className="text-white text-sm mb-3 font-semibold">
                 No {resourceType} storage available
@@ -210,11 +191,7 @@ const CardStorageSelectionPopover: React.FC<
                     <span className="text-white/60 text-xs font-medium">
                       {currentStorage}
                     </span>
-                    <img
-                      src={getResourceIcon(resourceType)}
-                      alt={resourceType}
-                      className="w-5 h-5 object-contain"
-                    />
+                    <GameIcon iconType={resourceType} size="small" />
                   </div>
                 </div>
               );

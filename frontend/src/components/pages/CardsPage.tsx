@@ -4,6 +4,7 @@ import { apiService } from "../../services/apiService";
 import SimpleGameCard from "../ui/cards/SimpleGameCard";
 import CopyLinkButton from "../ui/buttons/CopyLinkButton";
 import { CardDto } from "@/types/generated/api-types";
+import GameIcon from "../ui/display/GameIcon.tsx";
 
 const CardsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,30 +25,6 @@ const CardsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
-
-  // Get tag icon mapping from tags folder
-  const getTagIcon = (tag: string) => {
-    const iconMap: { [key: string]: string } = {
-      power: "/assets/tags/power.png",
-      science: "/assets/tags/science.png",
-      space: "/assets/tags/space.png",
-      building: "/assets/tags/building.png",
-      city: "/assets/tags/city.png",
-      jovian: "/assets/tags/jovian.png",
-      earth: "/assets/tags/earth.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      venus: "/assets/tags/venus.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
-    };
-    return iconMap[tag.toLowerCase()] || null;
-  };
 
   // Get card type colors matching the CSS
   const getCardTypeColor = (type: string) => {
@@ -544,23 +521,16 @@ const CardsPage: React.FC = () => {
             <div className="filter-section">
               <h3>Tags</h3>
               <div className="filter-chips">
-                {availableTags.map((tag) => {
-                  const iconSrc = getTagIcon(tag);
-                  return (
-                    <button
-                      key={tag}
-                      className={`filter-chip tag-chip ${selectedTags.has(tag) ? "active" : ""}`}
-                      onClick={() => toggleTag(tag)}
-                      title={tag}
-                    >
-                      {iconSrc ? (
-                        <img src={iconSrc} alt={tag} className="tag-icon" />
-                      ) : (
-                        tag
-                      )}
-                    </button>
-                  );
-                })}
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={`filter-chip tag-chip ${selectedTags.has(tag) ? "active" : ""}`}
+                    onClick={() => toggleTag(tag)}
+                    title={tag}
+                  >
+                    <GameIcon iconType={tag} size="small" />
+                  </button>
+                ))}
               </div>
             </div>
             <div className="filter-section">
@@ -1038,12 +1008,6 @@ const CardsPage: React.FC = () => {
           min-width: 40px;
           min-height: 32px;
           padding: 6px 8px;
-        }
-
-        .tag-icon {
-          width: 20px;
-          height: 20px;
-          object-fit: contain;
         }
 
         .type-chip {

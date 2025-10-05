@@ -7,6 +7,7 @@ import {
 } from "@/types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
 import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
 const isActionAvailable = (
@@ -187,11 +188,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,255,120,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(0,255,120,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,255,120,0.7)] max-md:p-5">
           {sortedActions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
-              <img
-                src="/assets/misc/corpCard.png"
-                alt="No actions"
-                className="w-16 h-16 mb-5 opacity-60"
-              />
+              <div className="mb-5 opacity-60">
+                <GameIcon iconType="card" size="large" />
+              </div>
               <h3 className="text-white text-2xl m-0 mb-2.5">
                 No Card Actions Available
               </h3>

@@ -1,6 +1,7 @@
 import React from "react";
 import { CardBehaviorDto, ResourcesDto } from "@/types/generated/api-types.ts";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
+import GameIcon from "../display/GameIcon.tsx";
+import { getIconPath, isTagIcon } from "@/utils/iconStore.ts";
 
 interface BehaviorSectionProps {
   behaviors?: CardBehaviorDto[];
@@ -77,71 +78,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     return true; // For other resource types, show normally
   };
 
-  const getResourceIcon = (resourceType: string): string | null => {
-    const iconMap: { [key: string]: string } = {
-      credits: "/assets/resources/megacredit.png",
-      steel: "/assets/resources/steel.png",
-      titanium: "/assets/resources/titanium.png",
-      plants: "/assets/resources/plant.png",
-      energy: "/assets/resources/power.png",
-      heat: "/assets/resources/heat.png",
-      microbes: "/assets/resources/microbe.png",
-      animals: "/assets/resources/animal.png",
-      floater: "/assets/resources/floater.png",
-      floaters: "/assets/resources/floater.png",
-      science: "/assets/resources/science.png",
-      asteroid: "/assets/resources/asteroid.png",
-      "card-draw": "/assets/resources/card.png",
-      "card-take": "/assets/resources/card.png",
-      "card-peek": "/assets/resources/card.png",
-      "city-placement": "/assets/tiles/city.png",
-      "ocean-placement": "/assets/tiles/ocean.png",
-      "greenery-placement": "/assets/tiles/greenery.png",
-      "city-tile": "/assets/tiles/city.png",
-      "ocean-tile": "/assets/tiles/ocean.png",
-      "greenery-tile": "/assets/tiles/greenery.png",
-      temperature: "/assets/global-parameters/temperature.png",
-      oxygen: "/assets/global-parameters/oxygen.png",
-      tr: "/assets/resources/tr.png",
-      "credits-production": "/assets/resources/megacredit.png",
-      "steel-production": "/assets/resources/steel.png",
-      "titanium-production": "/assets/resources/titanium.png",
-      "plants-production": "/assets/resources/plant.png",
-      "energy-production": "/assets/resources/power.png",
-      "heat-production": "/assets/resources/heat.png",
-      tag: "/assets/tags/wild.png",
-      discount: "/assets/resources/megacredit.png",
-    };
-
-    const cleanType = resourceType?.toLowerCase().replace(/[_\s]/g, "-");
-    return iconMap[cleanType] || iconMap[resourceType?.toLowerCase()] || null;
-  };
-
-  const getTagIcon = (tagName: string): string | null => {
-    const tagMap: { [key: string]: string } = {
-      earth: "/assets/tags/earth.png",
-      science: "/assets/tags/science.png",
-      plant: "/assets/tags/plant.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      power: "/assets/tags/power.png",
-      space: "/assets/tags/space.png",
-      building: "/assets/tags/building.png",
-      city: "/assets/tags/city.png",
-      jovian: "/assets/tags/jovian.png",
-      venus: "/assets/tags/venus.png",
-      event: "/assets/tags/event.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      wild: "/assets/tags/wild.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
-    };
-
-    const cleanTag = tagName?.toLowerCase().replace(/[_\s]/g, "-");
-    return tagMap[cleanTag] || tagMap[tagName?.toLowerCase()] || null;
-  };
-
   const classifyBehaviors = (
     behaviors: CardBehaviorDto[],
   ): ClassifiedBehavior[] => {
@@ -186,25 +122,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
   const classifiedBehaviors = classifyBehaviors(behaviors);
 
-  // Helper function to get just the icon URL (string) without React element
-  const getIconUrl = (resourceType: string): string | null => {
-    const cleanType = resourceType?.toLowerCase().replace(/[_\s]/g, "-");
-    const tagIcon = getTagIcon(cleanType);
-
-    if (tagIcon) {
-      return tagIcon;
-    } else {
-      let icon = getResourceIcon(cleanType);
-
-      if (!icon && cleanType.includes("production")) {
-        const baseResourceType = cleanType.replace("-production", "");
-        icon = getResourceIcon(baseResourceType);
-      }
-
-      return icon;
-    }
-  };
-
   const renderIcon = (
     resourceType: string,
     _isProduction: boolean = false,
@@ -213,13 +130,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     isAffordable: boolean = true,
   ): React.ReactNode => {
     const cleanType = resourceType?.toLowerCase().replace(/[_\s]/g, "-");
-    const icon = getIconUrl(resourceType);
+    const icon = getIconPath(resourceType);
 
     if (!icon) return null;
 
     let iconClass =
       "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
-    const isTag = getTagIcon(cleanType);
+    const isTag = isTagIcon(cleanType);
     const isPlacement =
       cleanType === "city-placement" ||
       cleanType === "greenery-placement" ||
@@ -620,13 +537,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       let perIcon = null;
       if (hasPer.tag) {
-        perIcon = getTagIcon(hasPer.tag);
+        perIcon = getIconPath(hasPer.tag);
       } else if (hasPer.type) {
-        perIcon = getIconUrl(hasPer.type);
+        perIcon = getIconPath(hasPer.type);
       }
 
       if (perIcon) {
-        // Special handling for credits-production - use MegaCreditIcon with value inside
+        // Special handling for credits-production - use GameIcon with amount inside
         if (baseResourceType === "credits") {
           const itemClasses = !isAffordable
             ? "flex items-center gap-px relative opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
@@ -635,7 +552,11 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
           return (
             <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
               <div className={itemClasses}>
-                <MegaCreditIcon value={Math.abs(amount)} size="small" />
+                <GameIcon
+                  iconType="credits"
+                  amount={Math.abs(amount)}
+                  size="small"
+                />
               </div>
               <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
                 /
@@ -702,8 +623,9 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
               -
             </span>
           )}
-          <MegaCreditIcon
-            value={showMinusInside ? amount : Math.abs(amount)}
+          <GameIcon
+            iconType="credits"
+            amount={showMinusInside ? amount : Math.abs(amount)}
             size="small"
           />
         </div>
@@ -717,7 +639,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       return (
         <div className={discountClasses}>
-          <MegaCreditIcon value={-amount} size="small" />
+          <GameIcon iconType="credits" amount={-amount} size="small" />
         </div>
       );
     }

@@ -4,6 +4,7 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import GameIcon from "../ui/display/GameIcon.tsx";
 
 // UUIDv4 validation regex
 const UUID_V4_REGEX =
@@ -302,14 +303,12 @@ const JoinGamePage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoadingGameValidation || !gameId.trim()}
-                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
+                    className="bg-transparent border-none py-4 px-5 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
                     title="Find Game"
                   >
-                    <img
-                      src="/assets/misc/arrow.png"
-                      alt="Find Game"
-                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
-                    />
+                    <div className="w-5 h-7 pr-1 brightness-0 invert disabled:opacity-60">
+                      <GameIcon iconType="arrow" size="small" />
+                    </div>
                   </button>
                 </div>
 
@@ -352,14 +351,12 @@ const JoinGamePage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoadingJoin || !playerName.trim()}
-                    className="bg-transparent border-none py-5 px-6 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
+                    className="bg-transparent border-none py-4 px-5 cursor-pointer rounded-r-xl flex items-center justify-center transition-all duration-200 min-w-[80px] hover:bg-space-blue-200 hover:shadow-glow hover:translate-x-0.5 disabled:bg-transparent disabled:cursor-not-allowed disabled:transform-none"
                     title="Join Game"
                   >
-                    <img
-                      src="/assets/misc/arrow.png"
-                      alt="Join Game"
-                      className="w-6 h-6 brightness-0 invert disabled:opacity-60"
-                    />
+                    <div className="w-5 h-7 pr-1 brightness-0 invert disabled:opacity-60">
+                      <GameIcon iconType="arrow" size="small" />
+                    </div>
                   </button>
                 </div>
 

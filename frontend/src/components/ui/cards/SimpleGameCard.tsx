@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
 import BehaviorSection from "./BehaviorSection.tsx";
 import RequirementsBox from "./RequirementsBox.tsx";
-import { CardDto } from "@/types/generated/api-types.ts";
+import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
 
 interface SimpleGameCardProps {
   card: CardDto;
@@ -61,30 +61,6 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   const cardType = card.type as keyof typeof borderColors;
 
-  // Get tag icon mapping from tags folder
-  const getTagIcon = (tag: string) => {
-    const iconMap: { [key: string]: string } = {
-      power: "/assets/tags/power.png",
-      science: "/assets/tags/science.png",
-      space: "/assets/tags/space.png",
-      building: "/assets/tags/building.png",
-      city: "/assets/tags/city.png",
-      jovian: "/assets/tags/jovian.png",
-      earth: "/assets/tags/earth.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      venus: "/assets/tags/venus.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
-    };
-    return iconMap[tag.toLowerCase()] || null;
-  };
-
   return (
     <div
       className={`relative w-[200px] min-h-[280px] bg-[linear-gradient(135deg,#1a2332_0%,#0f1419_100%)] border-none rounded-lg p-4 cursor-pointer transition-all duration-300 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(30,100,200,0.2)] ${isSelected ? "bg-[linear-gradient(135deg,#1a2332_0%,#203040_100%)] shadow-[0_0_20px_rgba(74,144,226,0.4)]" : ""} max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group`}
@@ -101,27 +77,24 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       {/* Tags at the very top, peeking out */}
       {card.tags && card.tags.length > 0 && (
         <div className="absolute -top-[15px] right-5 flex gap-0.5 z-[3] items-center justify-center max-md:-top-3 max-md:right-4">
-          {card.tags.slice(0, 3).map((tag, index) => {
-            const iconSrc = getTagIcon(tag);
-            return iconSrc ? (
-              <div
-                key={index}
-                className="flex items-center justify-center shrink-0"
-              >
-                <img
-                  src={iconSrc}
-                  alt={tag}
-                  className="w-[30px] h-[30px] object-contain [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-                />
-              </div>
-            ) : null;
-          })}
+          {card.tags.slice(0, 3).map((tag, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+            >
+              <GameIcon iconType={tag.toLowerCase()} size="medium" />
+            </div>
+          ))}
         </div>
       )}
 
       {/* Cost in top-left */}
       <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
-        <MegaCreditIcon value={card.cost} size="medium" />
+        <GameIcon
+          iconType={ResourceTypeCredits}
+          amount={card.cost}
+          size="medium"
+        />
       </div>
 
       {/* Image area */}

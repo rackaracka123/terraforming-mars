@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PlayerEffectDto } from "../../../types/generated/api-types.ts";
 import BehaviorSection from "../cards/BehaviorSection.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface EffectsModalProps {
   isVisible: boolean;
@@ -207,11 +208,9 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
         <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff96ff_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff96ff]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff96ff] max-md:p-5">
           {filteredEffects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
-              <img
-                src="/assets/misc/asterisc.png"
-                alt="No effects"
-                className="w-16 h-16 mb-5 opacity-60"
-              />
+              <div className="mb-5 opacity-60">
+                <GameIcon iconType="asterisk" size="large" />
+              </div>
               <h3 className="text-white text-2xl m-0 mb-2.5">
                 No Effects Found
               </h3>
@@ -245,12 +244,8 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
                         {effect.cardName}
                       </div>
 
-                      <div className="w-8 h-8 flex items-center justify-center bg-[#ff96ff]/10 rounded-full border border-[#ff96ff]/30">
-                        <img
-                          src="/assets/misc/asterisc.png"
-                          alt="Effect"
-                          className="w-5 h-5 opacity-80"
-                        />
+                      <div className="w-8 h-8 flex items-center justify-center bg-[#ff96ff]/10 rounded-full border border-[#ff96ff]/30 opacity-80">
+                        <GameIcon iconType="asterisk" size="small" />
                       </div>
                     </div>
 

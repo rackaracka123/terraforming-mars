@@ -1,5 +1,5 @@
 import React from "react";
-import { Z_INDEX } from "../../../constants/zIndex.ts";
+import { Z_INDEX } from "@/constants/zIndex.ts";
 
 interface CostDisplayProps {
   cost: number;
