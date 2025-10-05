@@ -260,13 +260,9 @@ func ToCardDto(card model.Card) CardDto {
 	}
 
 	// Convert starting bonuses to DTO format (for corporations)
-	var startingCredits *int
 	var startingResources *ResourceSet
 	var startingProduction *ResourceSet
 
-	if card.StartingCredits != nil {
-		startingCredits = card.StartingCredits
-	}
 	if card.StartingResources != nil {
 		rs := ToResourceSetDto(*card.StartingResources)
 		startingResources = &rs
@@ -287,7 +283,6 @@ func ToCardDto(card model.Card) CardDto {
 		Behaviors:          behaviors,
 		ResourceStorage:    resourceStorage,
 		VPConditions:       card.VPConditions,
-		StartingCredits:    startingCredits,
 		StartingResources:  startingResources,
 		StartingProduction: startingProduction,
 	}

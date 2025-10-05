@@ -507,7 +507,6 @@ export interface CardDto {
   /**
    * Corporation-specific fields (nil for non-corporation cards)
    */
-  startingCredits?: number /* int */; // Parsed from first auto behavior (corporations only)
   startingResources?: ResourceSet; // Parsed from first auto behavior (corporations only)
   startingProduction?: ResourceSet; // Parsed from first auto behavior (corporations only)
 }

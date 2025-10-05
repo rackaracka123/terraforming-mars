@@ -35,7 +35,6 @@ type Card struct {
 	VPConditions    []VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"` // VP per X conditions
 
 	// Corporation-specific fields (nil for non-corporation cards)
-	StartingCredits    *int         `json:"startingCredits,omitempty" ts:"number | undefined"`         // Parsed from first auto behavior (corporations only)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
 }
@@ -65,12 +64,6 @@ func (c Card) DeepCopy() Card {
 	}
 
 	// Copy corporation-specific fields
-	var startingCredits *int
-	if c.StartingCredits != nil {
-		sc := *c.StartingCredits
-		startingCredits = &sc
-	}
-
 	var startingResources *ResourceSet
 	if c.StartingResources != nil {
 		rs := *c.StartingResources
@@ -94,7 +87,6 @@ func (c Card) DeepCopy() Card {
 		Behaviors:          behaviors,
 		ResourceStorage:    resourceStorage,
 		VPConditions:       vpConditions,
-		StartingCredits:    startingCredits,
 		StartingResources:  startingResources,
 		StartingProduction: startingProduction,
 	}

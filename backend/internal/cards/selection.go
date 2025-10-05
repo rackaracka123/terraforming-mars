@@ -448,19 +448,13 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	// Apply starting bonuses from parsed fields
 	// Note: The card repository has already extracted immediate behaviors (auto trigger without condition)
 	// into StartingResources and StartingProduction fields, so we don't need to process behaviors again
-	if corporationCard.StartingCredits != nil {
-		updatedResources.Credits = *corporationCard.StartingCredits
-	}
 	if corporationCard.StartingResources != nil {
+		updatedResources.Credits += corporationCard.StartingResources.Credits
 		updatedResources.Steel += corporationCard.StartingResources.Steel
 		updatedResources.Titanium += corporationCard.StartingResources.Titanium
 		updatedResources.Plants += corporationCard.StartingResources.Plants
 		updatedResources.Energy += corporationCard.StartingResources.Energy
 		updatedResources.Heat += corporationCard.StartingResources.Heat
-		// Note: Credits from StartingResources are already handled by StartingCredits
-		if corporationCard.StartingCredits == nil && corporationCard.StartingResources.Credits > 0 {
-			updatedResources.Credits += corporationCard.StartingResources.Credits
-		}
 	}
 	if corporationCard.StartingProduction != nil {
 		updatedProduction.Credits += corporationCard.StartingProduction.Credits
@@ -587,8 +581,8 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	}
 
 	startingCredits := 0
-	if corporationCard.StartingCredits != nil {
-		startingCredits = *corporationCard.StartingCredits
+	if corporationCard.StartingResources != nil {
+		startingCredits = corporationCard.StartingResources.Credits
 	}
 
 	log.Info("✅ Corporation selected and bonuses applied",

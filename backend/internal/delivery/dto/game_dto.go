@@ -246,7 +246,6 @@ type CardDto struct {
 	VPConditions    []model.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
 
 	// Corporation-specific fields (nil for non-corporation cards)
-	StartingCredits    *int         `json:"startingCredits,omitempty" ts:"number | undefined"`         // Parsed from first auto behavior (corporations only)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
 }

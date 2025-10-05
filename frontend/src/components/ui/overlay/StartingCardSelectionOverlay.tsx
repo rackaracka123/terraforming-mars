@@ -177,7 +177,7 @@ const StartingCardSelectionOverlay: React.FC<
                       id: corp.id,
                       name: corp.name,
                       description: corp.description,
-                      startingMegaCredits: corp.startingCredits ?? 0,
+                      startingMegaCredits: corp.startingResources?.credits ?? 0,
                       startingProduction: corp.startingProduction
                         ? {
                             credits: corp.startingProduction.credits,
