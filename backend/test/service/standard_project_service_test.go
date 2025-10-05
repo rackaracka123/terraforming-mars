@@ -35,7 +35,8 @@ func createTestPlayerService() service.PlayerService {
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
+	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 }
 
 func setupStandardProjectServiceTest(t *testing.T) (
@@ -66,9 +67,10 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	ctx := context.Background()

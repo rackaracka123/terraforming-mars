@@ -321,3 +321,305 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
 	assert.Equal(t, 42, updatedPlayer2.Resources.Credits) // PC5 (Vitor) gives 45, minus 3 for 1 card
 }
+
+func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
+	ctx := context.Background()
+
+	// Setup repositories and services
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+
+	// Create test game
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	require.NoError(t, err)
+	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+
+	// Create test player
+	player := model.Player{
+		ID:   "player1",
+		Name: "Test Player",
+		Resources: model.Resources{
+			Credits: 40,
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	// Add player to game
+	err = playerRepo.Create(ctx, game.ID, player)
+	require.NoError(t, err)
+
+	// Load cards
+	err = cardRepo.LoadCards(ctx)
+	require.NoError(t, err, "Should load card data for testing")
+
+	// Get available starting cards
+	availableCards, err := cardService.GetStartingCards(ctx)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(availableCards), 1)
+
+	availableCardIDs := make([]string, len(availableCards))
+	for i, card := range availableCards {
+		availableCardIDs[i] = card.ID
+	}
+
+	// Set starting cards for player with B10 (United Nations Mars Initiative) corporation
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: []string{"B10"},
+		SelectionComplete:     false,
+	})
+	require.NoError(t, err)
+
+	// Player selects B10 (United Nations Mars Initiative) corporation
+	// This corporation has a manual action: "If your Terraform Rating was raised this generation, you may pay 3 M€ to raise it 1 step more"
+	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "B10")
+	require.NoError(t, err)
+
+	// Verify corporation was selected and manual action was extracted
+	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
+	assert.Equal(t, "United Nations Mars Initiative", updatedPlayer.Corporation.Name)
+	assert.Equal(t, 40, updatedPlayer.Resources.Credits) // B10 gives 40 MC, minus 0 for 0 cards
+
+	// Verify manual action was registered
+	assert.NotEmpty(t, updatedPlayer.Actions, "Should have manual actions from corporation")
+
+	// Find the United Nations Mars Initiative action
+	hasUNMIAction := false
+	for _, action := range updatedPlayer.Actions {
+		if action.CardID == "B10" && action.CardName == "United Nations Mars Initiative" {
+			hasUNMIAction = true
+			assert.Equal(t, 0, action.PlayCount, "Action should not be played yet")
+			// Verify action behavior
+			assert.Len(t, action.Behavior.Triggers, 1, "Should have 1 trigger")
+			assert.Equal(t, model.ResourceTriggerManual, action.Behavior.Triggers[0].Type, "Should be manual trigger")
+			// Verify inputs (costs 3 MC)
+			assert.Len(t, action.Behavior.Inputs, 1, "Should have 1 input")
+			assert.Equal(t, model.ResourceCredits, action.Behavior.Inputs[0].Type, "Should cost credits")
+			assert.Equal(t, 3, action.Behavior.Inputs[0].Amount, "Should cost 3 MC")
+			// Verify outputs (raises TR by 1)
+			assert.Len(t, action.Behavior.Outputs, 1, "Should have 1 output")
+			assert.Equal(t, "tr", string(action.Behavior.Outputs[0].Type), "Should raise TR")
+			assert.Equal(t, 1, action.Behavior.Outputs[0].Amount, "Should raise TR by 1 step")
+			break
+		}
+	}
+	assert.True(t, hasUNMIAction, "Should have United Nations Mars Initiative manual action")
+
+	t.Log("✅ Corporation manual action extraction test passed")
+}
+
+func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
+	ctx := context.Background()
+
+	// Setup repositories and services
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+
+	// Create test game
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	require.NoError(t, err)
+	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+
+	// Create test player
+	player := model.Player{
+		ID:   "player1",
+		Name: "Test Player",
+		Resources: model.Resources{
+			Credits: 40,
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	// Add player to game
+	err = playerRepo.Create(ctx, game.ID, player)
+	require.NoError(t, err)
+
+	// Load cards
+	err = cardRepo.LoadCards(ctx)
+	require.NoError(t, err, "Should load card data for testing")
+
+	// Get available starting cards
+	availableCards, err := cardService.GetStartingCards(ctx)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(availableCards), 1)
+
+	availableCardIDs := make([]string, len(availableCards))
+	for i, card := range availableCards {
+		availableCardIDs[i] = card.ID
+	}
+
+	// Set starting cards for player with V03 (Manutech) corporation
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: []string{"V03"},
+		SelectionComplete:     false,
+	})
+	require.NoError(t, err)
+
+	// Player selects V03 (Manutech) corporation
+	// This corporation has a passive effect: "For each step you increase the production of a resource, including this, you also gain that resource"
+	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "V03")
+	require.NoError(t, err)
+
+	// Verify corporation was selected and passive effect was extracted
+	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
+	assert.Equal(t, "Manutech", updatedPlayer.Corporation.Name)
+	assert.Equal(t, 35, updatedPlayer.Resources.Credits) // V03 gives 35 MC
+	assert.Equal(t, 1, updatedPlayer.Production.Steel)   // V03 gives 1 steel production
+
+	// Verify passive effect was registered
+	assert.NotEmpty(t, updatedPlayer.Effects, "Should have passive effects from corporation")
+
+	// Find the Manutech passive effect
+	hasManutechEffect := false
+	for _, effect := range updatedPlayer.Effects {
+		if effect.CardID == "V03" && effect.CardName == "Manutech" {
+			hasManutechEffect = true
+			// Verify effect trigger (production-increased condition)
+			assert.Len(t, effect.Behavior.Triggers, 1, "Should have 1 trigger")
+			assert.Equal(t, model.ResourceTriggerAuto, effect.Behavior.Triggers[0].Type, "Should be auto trigger")
+			require.NotNil(t, effect.Behavior.Triggers[0].Condition, "Should have condition")
+			assert.Equal(t, model.TriggerProductionIncreased, effect.Behavior.Triggers[0].Condition.Type, "Should trigger on production-increased")
+
+			// Verify effect output (any-production)
+			assert.Len(t, effect.Behavior.Outputs, 1, "Should have 1 output")
+			assert.Equal(t, model.ResourceAnyProduction, effect.Behavior.Outputs[0].Type, "Should output any-production")
+			assert.Equal(t, 1, effect.Behavior.Outputs[0].Amount, "Should output 1 resource")
+			break
+		}
+	}
+	assert.True(t, hasManutechEffect, "Should have Manutech passive effect")
+
+	t.Log("✅ Corporation passive effect extraction test passed")
+}
+
+func TestCardService_SelectCorporationWithValueModifier(t *testing.T) {
+	ctx := context.Background()
+
+	// Setup repositories and services
+	gameRepo := repository.NewGameRepository()
+	playerRepo := repository.NewPlayerRepository()
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+
+	// Create test game
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	require.NoError(t, err)
+	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+
+	// Create test player
+	player := model.Player{
+		ID:   "player1",
+		Name: "Test Player",
+		Resources: model.Resources{
+			Credits: 40,
+		},
+		Production: model.Production{
+			Credits: 1,
+		},
+		TerraformRating: 20,
+		IsConnected:     true,
+		Cards:           []string{},
+		PlayedCards:     []string{},
+	}
+
+	// Add player to game
+	err = playerRepo.Create(ctx, game.ID, player)
+	require.NoError(t, err)
+
+	// Load cards
+	err = cardRepo.LoadCards(ctx)
+	require.NoError(t, err, "Should load card data for testing")
+
+	// Get available starting cards
+	availableCards, err := cardService.GetStartingCards(ctx)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(availableCards), 1)
+
+	availableCardIDs := make([]string, len(availableCards))
+	for i, card := range availableCards {
+		availableCardIDs[i] = card.ID
+	}
+
+	// Set starting cards for player with B07 (PhoboLog) corporation
+	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: []string{"B07"},
+		SelectionComplete:     false,
+	})
+	require.NoError(t, err)
+
+	// Player selects B07 (PhoboLog) corporation
+	// This corporation has a value modifier effect: "Your titanium resources are each worth 1 M€ extra"
+	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "B07")
+	require.NoError(t, err)
+
+	// Verify corporation was selected and value modifier effect was extracted
+	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
+	assert.Equal(t, "PhoboLog", updatedPlayer.Corporation.Name)
+	assert.Equal(t, 23, updatedPlayer.Resources.Credits)  // B07 gives 23 MC
+	assert.Equal(t, 10, updatedPlayer.Resources.Titanium) // B07 gives 10 titanium
+
+	// Verify value modifier effect was registered
+	assert.NotEmpty(t, updatedPlayer.Effects, "Should have value modifier effect from corporation")
+
+	// Find the PhoboLog value modifier effect
+	hasPhoboLogEffect := false
+	for _, effect := range updatedPlayer.Effects {
+		if effect.CardID == "B07" && effect.CardName == "PhoboLog" {
+			hasPhoboLogEffect = true
+			// Verify effect trigger (always-active condition)
+			assert.Len(t, effect.Behavior.Triggers, 1, "Should have 1 trigger")
+			assert.Equal(t, model.ResourceTriggerAuto, effect.Behavior.Triggers[0].Type, "Should be auto trigger")
+			require.NotNil(t, effect.Behavior.Triggers[0].Condition, "Should have condition")
+			assert.Equal(t, model.TriggerAlwaysActive, effect.Behavior.Triggers[0].Condition.Type, "Should be always-active trigger")
+
+			// Verify effect output (value-modifier for titanium)
+			assert.Len(t, effect.Behavior.Outputs, 1, "Should have 1 output")
+			assert.Equal(t, model.ResourceValueModifier, effect.Behavior.Outputs[0].Type, "Should be value-modifier")
+			assert.Equal(t, 1, effect.Behavior.Outputs[0].Amount, "Should modify by +1 MC")
+			assert.Contains(t, effect.Behavior.Outputs[0].AffectedResources, "titanium", "Should affect titanium")
+			break
+		}
+	}
+	assert.True(t, hasPhoboLogEffect, "Should have PhoboLog value modifier effect")
+
+	t.Log("✅ Corporation value modifier effect extraction test passed")
+}

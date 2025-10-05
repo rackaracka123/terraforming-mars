@@ -87,6 +87,8 @@ const (
 	ResourceEnergyProduction ResourceType = "energy-production"
 	// ResourceHeatProduction represents heat production
 	ResourceHeatProduction ResourceType = "heat-production"
+	// ResourceAnyProduction represents any production type (for dynamic effects like Manutech)
+	ResourceAnyProduction ResourceType = "any-production"
 
 	// Effect type (for triggered effects like Rover Construction)
 
@@ -110,4 +112,6 @@ const (
 	ResourceDiscount ResourceType = "discount"
 	// ResourceValueModifier represents increases resource values (e.g., steel/titanium worth more)
 	ResourceValueModifier ResourceType = "value-modifier"
+	// ResourceOceanAdjacencyBonus represents additional bonus for placing tiles adjacent to oceans
+	ResourceOceanAdjacencyBonus ResourceType = "ocean-adjacency-bonus"
 )

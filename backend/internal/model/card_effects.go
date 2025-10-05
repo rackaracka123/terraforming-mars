@@ -4,13 +4,15 @@ package model
 type TriggerType string
 
 const (
-	TriggerOceanPlaced      TriggerType = "ocean-placed"
-	TriggerTemperatureRaise TriggerType = "temperature-raise"
-	TriggerOxygenRaise      TriggerType = "oxygen-raise"
-	TriggerCityPlaced       TriggerType = "city-placed"
-	TriggerCardPlayed       TriggerType = "card-played"
-	TriggerTagPlayed        TriggerType = "tag-played"
-	TriggerTilePlaced       TriggerType = "tile-placed"
+	TriggerOceanPlaced         TriggerType = "ocean-placed"
+	TriggerTemperatureRaise    TriggerType = "temperature-raise"
+	TriggerOxygenRaise         TriggerType = "oxygen-raise"
+	TriggerCityPlaced          TriggerType = "city-placed"
+	TriggerCardPlayed          TriggerType = "card-played"
+	TriggerTagPlayed           TriggerType = "tag-played"
+	TriggerTilePlaced          TriggerType = "tile-placed"
+	TriggerProductionIncreased TriggerType = "production-increased"
+	TriggerAlwaysActive        TriggerType = "always-active"
 )
 
 // TerraformingActions represents tile placement actions
@@ -354,8 +356,9 @@ type ResourceTriggerCondition struct {
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type      ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
-	Condition *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
+	Type            ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
+	Condition       *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
+	IsInitialAction bool                      `json:"isInitialAction,omitempty" ts:"boolean | undefined"`            // If true, action is only available as first action in the game
 }
 
 // ResourceExchange represents a directional resource trade (input → output)
@@ -363,4 +366,15 @@ type ResourceExchange struct {
 	Triggers []Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`          // When/how this exchange is activated
 	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
 	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
+}
+
+// EffectContext provides context about a game event that triggered passive effects
+// This allows effects to access information about what triggered them
+type EffectContext struct {
+	TriggeringPlayerID string        `json:"triggeringPlayerId" ts:"string"`         // Player who caused the event
+	TileCoordinate     *HexPosition  `json:"tileCoordinate" ts:"HexPosition | null"` // Coordinate for tile placement events
+	CardID             *string       `json:"cardId" ts:"string | null"`              // Card ID for card-played events
+	TagType            *CardTag      `json:"tagType" ts:"CardTag | null"`            // Tag type for tag-played events
+	TileType           *ResourceType `json:"tileType" ts:"ResourceType | null"`      // Type of tile placed (city, ocean, greenery)
+	ParameterChange    *int          `json:"parameterChange" ts:"number | null"`     // Amount of parameter change (temperature, oxygen)
 }

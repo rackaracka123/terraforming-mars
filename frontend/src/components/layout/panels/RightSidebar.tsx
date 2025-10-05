@@ -1,5 +1,5 @@
 import React from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
 
 interface GlobalParameters {
   temperature: number;
@@ -17,7 +17,7 @@ interface Milestone {
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
-  currentPlayer?: PlayerDto | null;
+  currentPlayer?: PlayerDto | OtherPlayerDto | null;
   temperatureMilestones?: Milestone[];
   oxygenMilestones?: Milestone[];
 }

@@ -1,27 +1,14 @@
 import React from "react";
 import "./PlayerOverlay.global.css";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+} from "../../../types/generated/api-types.ts";
 // Z-index import removed - using natural DOM layering
 
-interface Player {
-  id: string;
-  name: string;
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  resources?: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-}
-
 interface PlayerOverlayProps {
-  players: Player[];
-  currentPlayer: Player | null;
+  players: (PlayerDto | OtherPlayerDto)[];
+  currentPlayer: PlayerDto | OtherPlayerDto | null;
 }
 
 const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
@@ -54,22 +41,20 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     "mind-set-mars": "/assets/pathfinders/corp-logo-mind-set-mars.png",
   };
 
-  const getCorpLogo = (corporation?: string) => {
-    if (!corporation) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
-    return (
-      corporationLogos[corporation] ||
-      "/assets/pathfinders/corp-logo-polaris.png"
-    );
+  const getCorpLogo = (corporationId: string) => {
+    const logo = corporationLogos[corporationId];
+    if (!logo) {
+      console.warn(`No logo found for corporation: ${corporationId}`);
+      return null;
+    }
+    return logo;
   };
 
   const getPlayerColor = (index: number) => {
     return playerColors[index % playerColors.length];
   };
 
-  // Use mock data if no real players - removed all 4 mock players
-  const mockPlayers: Player[] = [];
-
-  const playersToShow = players.length > 0 ? players : mockPlayers;
+  const playersToShow = players.length > 0 ? players : [];
 
   return (
     <div className="hidden absolute top-[70px] left-1/2 -translate-x-1/2 pointer-events-none">
@@ -77,23 +62,31 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
         {playersToShow.map((player, index) => {
           const isCurrentPlayer = player.id === currentPlayer?.id;
           const playerColor = getPlayerColor(index);
-          const corpLogo = getCorpLogo(player.corporation);
+
+          // Skip players without corporation (shouldn't happen in active game)
+          if (!player.corporation) {
+            return null;
+          }
+
+          const corpLogo = getCorpLogo(player.corporation.id);
           const isPassed = player.passed || false;
 
           return (
             <div
-              key={player.id || index}
+              key={player.id}
               className={`player-tab ${isCurrentPlayer ? "current" : ""} ${isPassed ? "passed" : ""}`}
               style={{ "--player-color": playerColor } as React.CSSProperties}
             >
               <div className="tab-content">
-                <div className="corp-section">
-                  <img
-                    src={corpLogo}
-                    alt={`${player.corporation || "Unknown"} Corporation`}
-                    className="corp-logo"
-                  />
-                </div>
+                {corpLogo && (
+                  <div className="corp-section">
+                    <img
+                      src={corpLogo}
+                      alt={`${player.corporation.name} Corporation`}
+                      className="corp-logo"
+                    />
+                  </div>
+                )}
 
                 <div className="player-info">
                   <div className="player-name">{player.name}</div>

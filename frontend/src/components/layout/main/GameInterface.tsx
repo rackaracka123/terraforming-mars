@@ -99,29 +99,13 @@ export default function GameInterface() {
     void loadPlayedCards();
   }, [currentPlayer?.playedCards]);
 
-  // Fetch corporation data when player's corporation changes
+  // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
-    const loadCorporation = async () => {
-      if (!currentPlayer?.corporation) {
-        setCorporationData(null);
-        return;
-      }
-
-      try {
-        const allCards = await fetchAllCards();
-        const corp = allCards.get(currentPlayer.corporation);
-        if (corp && corp.type === "corporation") {
-          setCorporationData(corp);
-        } else {
-          setCorporationData(null);
-        }
-      } catch (error) {
-        console.error("Failed to load corporation:", error);
-        setCorporationData(null);
-      }
-    };
-
-    void loadCorporation();
+    if (currentPlayer?.corporation) {
+      setCorporationData(currentPlayer.corporation);
+    } else {
+      setCorporationData(null);
+    }
   }, [currentPlayer?.corporation]);
 
   // Production phase modal state

@@ -76,13 +76,14 @@ func main() {
 	// Initialize services in dependency order
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
 
 	// CardService needs TileService for tile queue processing
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 

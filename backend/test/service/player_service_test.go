@@ -25,7 +25,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	boardService := service.NewBoardService()
 	sessionManager := test.NewMockSessionManager()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
