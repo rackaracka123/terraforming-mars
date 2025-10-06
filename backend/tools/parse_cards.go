@@ -1707,6 +1707,16 @@ func parseRequirements(record []string) []model.Requirement {
 			requirement.Min = &requireNum
 		}
 		requirements = append(requirements, requirement)
+	case strings.Contains(requireWhat, "venus"):
+		requirement := model.Requirement{
+			Type: model.RequirementVenus,
+		}
+		if isMax {
+			requirement.Max = &requireNum
+		} else {
+			requirement.Min = &requireNum
+		}
+		requirements = append(requirements, requirement)
 	case strings.Contains(requireWhat, "oxygen") || strings.Contains(requireWhat, "%"):
 		requirement := model.Requirement{
 			Type: model.RequirementOxygen,

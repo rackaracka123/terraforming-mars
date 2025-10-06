@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import SimpleGameCard from "../ui/cards/SimpleGameCard";
+import CorporationCard from "../ui/cards/CorporationCard";
 import CopyLinkButton from "../ui/buttons/CopyLinkButton";
-import { CardDto } from "@/types/generated/api-types";
+import { CardDto, CardTypeCorporation } from "@/types/generated/api-types";
 import GameIcon from "../ui/display/GameIcon.tsx";
 
 const CardsPage: React.FC = () => {
@@ -249,7 +250,7 @@ const CardsPage: React.FC = () => {
   }, [sortBy]);
 
   // Constants for virtual scrolling
-  const CARD_HEIGHT = 420; // Approximate height of a card including gap
+  const CARD_HEIGHT = 420; // Approximate height of a row including gap (corp cards are 380px + padding)
   const ROW_BUFFER = 10; // Rows to render above and below viewport
 
   // Calculate grid dimensions based on screen size
@@ -385,35 +386,95 @@ const CardsPage: React.FC = () => {
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   }, [selectedCards]);
 
-  // Calculate total height for the container
+  // Calculate total height for the container based on smart layout
   const totalHeight = useMemo(() => {
-    const cardsPerRow = getCardsPerRow();
-    const totalRows = Math.ceil(cards.length / cardsPerRow);
+    const REGULAR_CARD_WIDTH = 220;
+    const CORP_CARD_WIDTH = 420;
+    const containerWidth = 1300;
+
+    let rows = 0;
+    let currentX = 0;
+
+    cards.forEach((card) => {
+      const cardWidth =
+        card.type === CardTypeCorporation
+          ? CORP_CARD_WIDTH
+          : REGULAR_CARD_WIDTH;
+
+      if (currentX + cardWidth > containerWidth && currentX > 0) {
+        rows++;
+        currentX = 0;
+      }
+
+      currentX += cardWidth;
+    });
+
+    // Add 1 for the last row
+    const totalRows = rows + 1;
     return totalRows * CARD_HEIGHT;
-  }, [cards.length, getCardsPerRow]);
+  }, [cards]);
 
-  // Get only visible cards
+  // Get only visible cards with smart layout for mixed card sizes
   const visibleCards = useMemo(() => {
-    return cards
-      .slice(visibleRange.start, visibleRange.end)
-      .map((card, index) => {
-        const actualIndex = visibleRange.start + index;
-        const cardsPerRow = getCardsPerRow();
-        const row = Math.floor(actualIndex / cardsPerRow);
-        const col = actualIndex % cardsPerRow;
+    const REGULAR_CARD_WIDTH = 220; // 200px + 20px padding
+    const CORP_CARD_WIDTH = 420; // 400px + 20px padding
+    const containerWidth = 1300; // max-width from .cards-virtual-container
 
-        return {
-          card,
-          position: {
-            row,
-            col,
-            top: row * CARD_HEIGHT,
-            left: `${(col * 100) / cardsPerRow}%`,
-            width: `${100 / cardsPerRow}%`,
-          },
-        };
+    const visibleSlice = cards.slice(visibleRange.start, visibleRange.end);
+    const result: Array<{
+      card: CardDto;
+      position: {
+        row: number;
+        col: number;
+        top: number;
+        left: number;
+        width: number;
+      };
+    }> = [];
+
+    let currentRow = 0;
+    let currentX = 0;
+
+    visibleSlice.forEach((card) => {
+      const cardWidth =
+        card.type === CardTypeCorporation
+          ? CORP_CARD_WIDTH
+          : REGULAR_CARD_WIDTH;
+
+      // Check if card fits in current row
+      if (currentX + cardWidth > containerWidth && currentX > 0) {
+        // Move to next row
+        currentRow++;
+        currentX = 0;
+      }
+
+      result.push({
+        card,
+        position: {
+          row: currentRow,
+          col: 0, // Not used anymore
+          top: currentRow * CARD_HEIGHT,
+          left: currentX,
+          width: cardWidth,
+        },
       });
-  }, [cards, visibleRange, getCardsPerRow]);
+
+      currentX += cardWidth;
+    });
+
+    return result;
+  }, [cards, visibleRange]);
+
+  // Convert CardDto to Corporation interface for corporation cards
+  const convertCardToCorporation = (card: CardDto) => ({
+    id: card.id,
+    name: card.name,
+    description: card.description,
+    startingMegaCredits: card.startingResources?.credits || 0,
+    startingProduction: card.startingProduction,
+    startingResources: card.startingResources,
+    behaviors: card.behaviors,
+  });
 
   return (
     <div
@@ -590,19 +651,28 @@ const CardsPage: React.FC = () => {
               style={{
                 position: "absolute",
                 top: `${position.top}px`,
-                left: position.left,
-                width: position.width,
+                left: `${position.left}px`,
+                width: `${position.width}px`,
                 padding: "0 10px",
                 height: `${CARD_HEIGHT}px`,
               }}
             >
-              <SimpleGameCard
-                card={card}
-                isSelected={selectedCards.has(card.id)}
-                onSelect={handleCardSelect}
-                animationDelay={0}
-                showCheckbox={!isPermalinkView}
-              />
+              {card.type === CardTypeCorporation ? (
+                <CorporationCard
+                  corporation={convertCardToCorporation(card)}
+                  isSelected={selectedCards.has(card.id)}
+                  onSelect={handleCardSelect}
+                  showCheckbox={!isPermalinkView}
+                />
+              ) : (
+                <SimpleGameCard
+                  card={card}
+                  isSelected={selectedCards.has(card.id)}
+                  onSelect={handleCardSelect}
+                  animationDelay={0}
+                  showCheckbox={!isPermalinkView}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -631,6 +701,8 @@ const CardsPage: React.FC = () => {
           z-index: 1000;
           transition: all 0.3s ease;
           padding: 0;
+          background: rgba(0, 0, 0, 0.95);
+          backdrop-filter: blur(10px);
         }
 
         .sticky-header.scrolled {
