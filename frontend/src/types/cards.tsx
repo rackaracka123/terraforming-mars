@@ -72,6 +72,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     type: "active",
     cost: 0,
     description: "Discard any number of cards from hand for 1 M€ each",
+    pack: "standard",
     tags: [],
     behaviors: [],
     icon: <GameIcon iconType={ResourceTypeCardDraw} size="small" />,
@@ -83,6 +84,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     cost: 11,
     description:
       "Action: Spend 11 M€ to increase your energy production 1 step.",
+    pack: "standard",
     tags: ["power"],
     behaviors: [
       {
@@ -112,6 +114,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     cost: 14,
     description:
       "Action: Spend 14 M€ to raise temperature 1 step and gain 1 TR.",
+    pack: "standard",
     tags: ["space"],
     behaviors: [
       {
@@ -140,6 +143,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     type: "active",
     cost: 18,
     description: "Action: Spend 18 M€ to place an ocean tile and gain 1 TR.",
+    pack: "standard",
     tags: [],
     behaviors: [
       {
@@ -169,6 +173,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     cost: 23,
     description:
       "Action: Spend 23 M€ to place a greenery tile, raise oxygen 1%, and gain 1 TR.",
+    pack: "standard",
     tags: [],
     behaviors: [
       {
@@ -198,6 +203,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
     cost: 25,
     description:
       "Action: Spend 25 M€ to place a city tile and increase M€ production by 1.",
+    pack: "standard",
     tags: ["building", "city"],
     behaviors: [
       {

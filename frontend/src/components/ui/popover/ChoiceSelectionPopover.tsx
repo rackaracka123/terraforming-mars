@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  CardDto,
   ChoiceDto,
   CardBehaviorDto,
   ResourcesDto,
@@ -13,7 +12,9 @@ interface ChoiceItem {
 }
 
 interface ChoiceSelectionPopoverProps {
-  card: CardDto;
+  cardId: string;
+  cardName: string;
+  behaviors: CardBehaviorDto[];
   behaviorIndex: number;
   onChoiceSelect: (choiceIndex: number) => void;
   onCancel: () => void;
@@ -24,7 +25,9 @@ interface ChoiceSelectionPopoverProps {
 }
 
 const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
-  card,
+  cardId,
+  cardName,
+  behaviors,
   behaviorIndex,
   onChoiceSelect,
   onCancel,
@@ -37,7 +40,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
   const [isClosing, setIsClosing] = useState(false);
 
   // Get the behavior with choices
-  const behavior = card.behaviors?.[behaviorIndex];
+  const behavior = behaviors?.[behaviorIndex];
   const choices: ChoiceItem[] =
     behavior?.choices?.map((choice, index) => ({
       index,
@@ -84,7 +87,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
         case "science":
         case "asteroid":
           if (input.target === "self-card") {
-            const cardStorage = storage[card.id] || 0;
+            const cardStorage = storage[cardId] || 0;
             if (cardStorage < input.amount) return false;
           }
           break;
@@ -177,7 +180,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
             {isAction ? "Choose Action Effect" : "Choose One Effect"}
           </h3>
           <div className="text-white/60 text-xs text-shadow-glow mt-1">
-            {card.name}
+            {cardName}
           </div>
         </div>
 
@@ -227,7 +230,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
                     behaviors={[behaviorForChoice]}
                     playerResources={playerResources}
                     resourceStorage={resourceStorage}
-                    cardId={card.id}
+                    cardId={cardId}
                     greyOutAll={!isAffordable}
                   />
                 </div>
