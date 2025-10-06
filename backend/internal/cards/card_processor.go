@@ -625,7 +625,8 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID
 
 	// Apply temperature changes
 	if temperatureChange != 0 {
-		newTemperature := game.GlobalParameters.Temperature + temperatureChange
+		oldTemperature := game.GlobalParameters.Temperature
+		newTemperature := oldTemperature + temperatureChange
 		// Clamp to valid range
 		if newTemperature > model.MaxTemperature {
 			newTemperature = model.MaxTemperature
@@ -634,21 +635,50 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID
 			newTemperature = model.MinTemperature
 		}
 
+		// Calculate actual change after clamping (each step is 2°C)
+		actualChange := newTemperature - oldTemperature
+		if actualChange == 0 {
+			return nil // No actual change after clamping
+		}
+
 		if err := cp.gameRepo.UpdateTemperature(ctx, gameID, newTemperature); err != nil {
 			log.Error("Failed to update temperature", zap.Error(err))
 			return fmt.Errorf("failed to update temperature: %w", err)
 		}
 
-		log.Info("🌡️ Temperature changed",
-			zap.String("card_name", card.Name),
-			zap.Int("change", temperatureChange),
-			zap.Int("old_temperature", game.GlobalParameters.Temperature),
-			zap.Int("new_temperature", newTemperature))
+		// Increase TR for each step of temperature increase (each step is 2°C)
+		stepsChanged := actualChange / 2
+		if stepsChanged > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after temperature change", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + stepsChanged
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after temperature change", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("🌡️ Temperature changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("temperature_change", actualChange),
+				zap.Int("new_temperature", newTemperature),
+				zap.Int("tr_change", stepsChanged),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("🌡️ Temperature changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", actualChange),
+				zap.Int("new_temperature", newTemperature))
+		}
 	}
 
 	// Apply oxygen changes
 	if oxygenChange != 0 {
-		newOxygen := game.GlobalParameters.Oxygen + oxygenChange
+		oldOxygen := game.GlobalParameters.Oxygen
+		newOxygen := oldOxygen + oxygenChange
 		// Clamp to valid range
 		if newOxygen > model.MaxOxygen {
 			newOxygen = model.MaxOxygen
@@ -657,21 +687,49 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID
 			newOxygen = model.MinOxygen
 		}
 
+		// Calculate actual change after clamping (each step is 1%)
+		oxygenChange = newOxygen - oldOxygen
+		if oxygenChange == 0 {
+			return nil // No actual change after clamping
+		}
+
 		if err := cp.gameRepo.UpdateOxygen(ctx, gameID, newOxygen); err != nil {
 			log.Error("Failed to update oxygen", zap.Error(err))
 			return fmt.Errorf("failed to update oxygen: %w", err)
 		}
 
-		log.Info("💨 Oxygen changed",
-			zap.String("card_name", card.Name),
-			zap.Int("change", oxygenChange),
-			zap.Int("old_oxygen", game.GlobalParameters.Oxygen),
-			zap.Int("new_oxygen", newOxygen))
+		// Increase TR for each step of oxygen increase (each step is 1%)
+		if oxygenChange > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after oxygen change", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + oxygenChange
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after oxygen change", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("💨 Oxygen changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("oxygen_change", oxygenChange),
+				zap.Int("new_oxygen", newOxygen),
+				zap.Int("tr_change", oxygenChange),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("💨 Oxygen changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", oxygenChange),
+				zap.Int("new_oxygen", newOxygen))
+		}
 	}
 
 	// Apply oceans changes
 	if oceansChange != 0 {
-		newOceans := game.GlobalParameters.Oceans + oceansChange
+		oldOceans := game.GlobalParameters.Oceans
+		newOceans := oldOceans + oceansChange
 		// Clamp to valid range
 		if newOceans > model.MaxOceans {
 			newOceans = model.MaxOceans
@@ -680,16 +738,43 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID
 			newOceans = model.MinOceans
 		}
 
+		// Calculate actual change after clamping
+		oceansChange = newOceans - oldOceans
+		if oceansChange == 0 {
+			return nil // No actual change after clamping
+		}
+
 		if err := cp.gameRepo.UpdateOceans(ctx, gameID, newOceans); err != nil {
 			log.Error("Failed to update oceans", zap.Error(err))
 			return fmt.Errorf("failed to update oceans: %w", err)
 		}
 
-		log.Info("🌊 Oceans changed",
-			zap.String("card_name", card.Name),
-			zap.Int("change", oceansChange),
-			zap.Int("old_oceans", game.GlobalParameters.Oceans),
-			zap.Int("new_oceans", newOceans))
+		// Increase TR for each ocean tile placed
+		if oceansChange > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after ocean placement", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + oceansChange
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after ocean placement", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("🌊 Oceans changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("oceans_change", oceansChange),
+				zap.Int("new_oceans", newOceans),
+				zap.Int("tr_change", oceansChange),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("🌊 Oceans changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", oceansChange),
+				zap.Int("new_oceans", newOceans))
+		}
 	}
 
 	return nil
