@@ -11,6 +11,7 @@ import {
   ResourceTypeEnergy,
   ResourceTypeHeat,
 } from "../../../types/generated/api-types.ts";
+import { getCorporationLogo } from "@/utils/corporationLogos.tsx";
 
 interface Corporation {
   id: string;
@@ -43,12 +44,14 @@ interface CorporationCardProps {
   corporation: Corporation;
   isSelected: boolean;
   onSelect: (corporationId: string) => void;
+  showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
 }
 
 const CorporationCard: React.FC<CorporationCardProps> = ({
   corporation,
   isSelected,
   onSelect,
+  showCheckbox = false,
 }) => {
   const renderResource = (type: string, amount: number) => {
     const resourceTypeMap: { [key: string]: string } = {
@@ -123,7 +126,11 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
   return (
     <div
-      className={`relative bg-[linear-gradient(135deg,rgba(30,50,80,0.6)_0%,rgba(20,40,70,0.5)_100%)] border-2 border-white/20 rounded-xl p-3 cursor-pointer transition-all duration-300 ease-[ease] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_20px_rgba(100,150,255,0.3)] hover:border-[rgba(100,150,255,0.5)] ${isSelected ? "border-[rgba(150,255,150,0.8)] shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_30px_rgba(150,255,150,0.4)] bg-[linear-gradient(135deg,rgba(30,60,30,0.6)_0%,rgba(20,50,20,0.5)_100%)]" : ""}`}
+      className={`w-[400px] h-[380px] relative bg-[linear-gradient(135deg,rgba(30,50,80,0.6)_0%,rgba(20,40,70,0.5)_100%)] border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 ease-[ease] ${
+        isSelected
+          ? "border-[rgba(74,144,226,0.8)] shadow-[0_0_18px_rgba(74,144,226,0.4)]"
+          : "border-white/20 hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_15px_rgba(100,150,255,0.2)] hover:border-[rgba(100,150,255,0.5)]"
+      }`}
       onClick={() => onSelect(corporation.id)}
     >
       {/* Logo centered at top */}
@@ -137,11 +144,8 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         </div>
       )}
 
-      {/* Corporation name */}
-      <div className="text-center mb-3">
-        <h3 className="text-lg font-bold text-white m-0 [text-shadow:0_2px_4px_rgba(0,0,0,0.8)]">
-          {corporation.name}
-        </h3>
+      <div className="mb-3 p-3 bg-black/30 rounded-lg flex justify-center [&>*]:box-content [&>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))] [&>*]:rounded-[4px] [&>*>*]:rounded-[4px] [&>*>*]:[filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))]">
+        {getCorporationLogo(corporation.name.toLowerCase())}
       </div>
 
       {/* Starting resources and production - compact, no headers */}
@@ -184,6 +188,19 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       {corporation.expansion && (
         <div className="absolute top-2 right-2 bg-[rgba(100,150,255,0.3)] text-white/80 py-0.5 px-1.5 rounded text-[9px] uppercase tracking-[0.5px]">
           {corporation.expansion}
+        </div>
+      )}
+
+      {/* Selection indicator at bottom center (only shown when showCheckbox is true) */}
+      {showCheckbox && (
+        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-[2]">
+          <div
+            className={`w-6 h-6 rounded-full bg-[#2a3142] border-2 border-[rgba(100,150,200,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#4a90e2] border-[#4a90e2]" : ""}`}
+          >
+            {isSelected && (
+              <span className="text-white text-sm font-bold">✓</span>
+            )}
+          </div>
         </div>
       )}
     </div>

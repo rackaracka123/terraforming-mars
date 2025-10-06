@@ -5,6 +5,7 @@ import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
+import CorporationDisplay from "../../ui/display/CorporationDisplay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
@@ -35,7 +36,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
   playedCards = [],
-  corporationCard: _corporationCard = null,
+  corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
   onOpenCardEffectsModal,
@@ -112,6 +113,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               onOpenActionsModal={onOpenActionsModal}
               onActionSelect={onActionSelect}
             />
+
+            {corporationCard && (
+              <CorporationDisplay corporation={corporationCard} />
+            )}
           </>
         )}
       </div>
