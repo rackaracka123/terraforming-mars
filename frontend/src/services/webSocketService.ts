@@ -309,8 +309,11 @@ export class WebSocketService {
     });
   }
 
-  selectStartingCard(cardIds: string[]): string {
-    return this.send(MessageTypeActionSelectStartingCard, { cardIds });
+  selectStartingCard(cardIds: string[], corporationId: string): string {
+    return this.send(MessageTypeActionSelectStartingCard, {
+      cardIds,
+      corporationId,
+    });
   }
 
   selectCards(cardIds: string[]): string {

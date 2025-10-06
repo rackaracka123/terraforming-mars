@@ -4,13 +4,15 @@ package model
 type TriggerType string
 
 const (
-	TriggerOceanPlaced      TriggerType = "ocean-placed"
-	TriggerTemperatureRaise TriggerType = "temperature-raise"
-	TriggerOxygenRaise      TriggerType = "oxygen-raise"
-	TriggerCityPlaced       TriggerType = "city-placed"
-	TriggerCardPlayed       TriggerType = "card-played"
-	TriggerTagPlayed        TriggerType = "tag-played"
-	TriggerTilePlaced       TriggerType = "tile-placed"
+	TriggerOceanPlaced         TriggerType = "ocean-placed"
+	TriggerTemperatureRaise    TriggerType = "temperature-raise"
+	TriggerOxygenRaise         TriggerType = "oxygen-raise"
+	TriggerCityPlaced          TriggerType = "city-placed"
+	TriggerCardPlayed          TriggerType = "card-played"
+	TriggerTagPlayed           TriggerType = "tag-played"
+	TriggerTilePlaced          TriggerType = "tile-placed"
+	TriggerProductionIncreased TriggerType = "production-increased"
+	TriggerAlwaysActive        TriggerType = "always-active"
 )
 
 // TerraformingActions represents tile placement actions
@@ -53,6 +55,81 @@ type CardBehavior struct {
 	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
 	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
 	Choices  []Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`            // Player choices between different input/output combinations
+}
+
+// DeepCopy creates a deep copy of the CardBehavior
+func (cb CardBehavior) DeepCopy() CardBehavior {
+	var copy CardBehavior
+
+	// Copy triggers slice
+	if cb.Triggers != nil {
+		copy.Triggers = make([]Trigger, len(cb.Triggers))
+		for i, trigger := range cb.Triggers {
+			copy.Triggers[i] = trigger // Trigger is a struct, copied by value
+		}
+	}
+
+	// Copy inputs slice
+	if cb.Inputs != nil {
+		copy.Inputs = make([]ResourceCondition, len(cb.Inputs))
+		for i, input := range cb.Inputs {
+			copy.Inputs[i] = deepCopyResourceCondition(input)
+		}
+	}
+
+	// Copy outputs slice
+	if cb.Outputs != nil {
+		copy.Outputs = make([]ResourceCondition, len(cb.Outputs))
+		for i, output := range cb.Outputs {
+			copy.Outputs[i] = deepCopyResourceCondition(output)
+		}
+	}
+
+	// Copy choices slice
+	if cb.Choices != nil {
+		copy.Choices = make([]Choice, len(cb.Choices))
+		for i, choice := range cb.Choices {
+			choiceCopy := Choice{}
+
+			// Copy inputs for this choice
+			if choice.Inputs != nil {
+				choiceCopy.Inputs = make([]ResourceCondition, len(choice.Inputs))
+				for j, input := range choice.Inputs {
+					choiceCopy.Inputs[j] = deepCopyResourceCondition(input)
+				}
+			}
+
+			// Copy outputs for this choice
+			if choice.Outputs != nil {
+				choiceCopy.Outputs = make([]ResourceCondition, len(choice.Outputs))
+				for j, output := range choice.Outputs {
+					choiceCopy.Outputs[j] = deepCopyResourceCondition(output)
+				}
+			}
+
+			copy.Choices[i] = choiceCopy
+		}
+	}
+
+	return copy
+}
+
+// deepCopyResourceCondition creates a deep copy of a ResourceCondition
+func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
+	result := rc // Copy struct by value
+
+	// Copy slices within the struct
+	if rc.AffectedResources != nil {
+		result.AffectedResources = make([]string, len(rc.AffectedResources))
+		copy(result.AffectedResources, rc.AffectedResources)
+	}
+
+	if rc.AffectedTags != nil {
+		result.AffectedTags = make([]CardTag, len(rc.AffectedTags))
+		copy(result.AffectedTags, rc.AffectedTags)
+	}
+
+	return result
 }
 
 // ResourceStorage represents a card's ability to hold resources
@@ -279,8 +356,9 @@ type ResourceTriggerCondition struct {
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type      ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
-	Condition *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
+	Type            ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
+	Condition       *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
+	IsInitialAction bool                      `json:"isInitialAction,omitempty" ts:"boolean | undefined"`            // If true, action is only available as first action in the game
 }
 
 // ResourceExchange represents a directional resource trade (input → output)
@@ -288,4 +366,15 @@ type ResourceExchange struct {
 	Triggers []Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`          // When/how this exchange is activated
 	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
 	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
+}
+
+// EffectContext provides context about a game event that triggered passive effects
+// This allows effects to access information about what triggered them
+type EffectContext struct {
+	TriggeringPlayerID string        `json:"triggeringPlayerId" ts:"string"`         // Player who caused the event
+	TileCoordinate     *HexPosition  `json:"tileCoordinate" ts:"HexPosition | null"` // Coordinate for tile placement events
+	CardID             *string       `json:"cardId" ts:"string | null"`              // Card ID for card-played events
+	TagType            *CardTag      `json:"tagType" ts:"CardTag | null"`            // Tag type for tag-played events
+	TileType           *ResourceType `json:"tileType" ts:"ResourceType | null"`      // Type of tile placed (city, ocean, greenery)
+	ParameterChange    *int          `json:"parameterChange" ts:"number | null"`     // Amount of parameter change (temperature, oxygen)
 }

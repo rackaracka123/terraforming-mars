@@ -83,11 +83,18 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		startingCards = []CardDto{}
 	}
 
+	// Convert corporation to CardDto if present
+	var corporationDto *CardDto
+	if player.Corporation != nil {
+		dto := ToCardDto(*player.Corporation)
+		corporationDto = &dto
+	}
+
 	return PlayerDto{
 		ID:                       player.ID,
 		Name:                     player.Name,
 		Status:                   status,
-		Corporation:              player.Corporation,
+		Corporation:              corporationDto,
 		Cards:                    resolveCards(player.Cards, resolvedCards),
 		Resources:                ToResourcesDto(player.Resources),
 		Production:               ToProductionDto(player.Production),
@@ -110,9 +117,11 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 
 // PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
 func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
-	corporationName := ""
+	// Convert corporation to CardDto if present
+	var corporationDto *CardDto
 	if player.Corporation != nil {
-		corporationName = *player.Corporation
+		dto := ToCardDto(*player.Corporation)
+		corporationDto = &dto
 	}
 
 	status := PlayerStatusActive
@@ -136,7 +145,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		ID:                       player.ID,
 		Name:                     player.Name,
 		Status:                   status,
-		Corporation:              corporationName,
+		Corporation:              corporationDto,
 		HandCardCount:            len(player.Cards), // Hide actual cards, show count only
 		Resources:                ToResourcesDto(player.Resources),
 		Production:               ToProductionDto(player.Production),
@@ -250,17 +259,32 @@ func ToCardDto(card model.Card) CardDto {
 		}
 	}
 
+	// Convert starting bonuses to DTO format (for corporations)
+	var startingResources *ResourceSet
+	var startingProduction *ResourceSet
+
+	if card.StartingResources != nil {
+		rs := ToResourceSetDto(*card.StartingResources)
+		startingResources = &rs
+	}
+	if card.StartingProduction != nil {
+		rp := ToResourceSetDto(*card.StartingProduction)
+		startingProduction = &rp
+	}
+
 	return CardDto{
-		ID:              card.ID,
-		Name:            card.Name,
-		Type:            CardType(card.Type),
-		Cost:            card.Cost,
-		Description:     card.Description,
-		Tags:            ToCardTagDtoSlice(card.Tags),
-		Requirements:    card.Requirements,
-		Behaviors:       behaviors,
-		ResourceStorage: resourceStorage,
-		VPConditions:    card.VPConditions,
+		ID:                 card.ID,
+		Name:               card.Name,
+		Type:               CardType(card.Type),
+		Cost:               card.Cost,
+		Description:        card.Description,
+		Tags:               ToCardTagDtoSlice(card.Tags),
+		Requirements:       card.Requirements,
+		Behaviors:          behaviors,
+		ResourceStorage:    resourceStorage,
+		VPConditions:       card.VPConditions,
+		StartingResources:  startingResources,
+		StartingProduction: startingProduction,
 	}
 }
 
@@ -297,8 +321,9 @@ func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolv
 	}
 
 	return &SelectStartingCardsPhaseDto{
-		AvailableCards:    resolveCards(phase.AvailableCards, resolvedCards),
-		SelectionComplete: phase.SelectionComplete,
+		AvailableCards:        resolveCards(phase.AvailableCards, resolvedCards),
+		AvailableCorporations: phase.AvailableCorporations,
+		SelectionComplete:     phase.SelectionComplete,
 	}
 }
 
@@ -545,13 +570,25 @@ func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
 }
 
 // ToPlayerActionDtoSlice converts a slice of model PlayerActions to PlayerActionDto slice
+// Filters out initial actions that have already been used (PlayCount > 0)
 func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 	if actions == nil {
 		return []PlayerActionDto{}
 	}
-	result := make([]PlayerActionDto, len(actions))
-	for i, action := range actions {
-		result[i] = ToPlayerActionDto(action)
+	result := make([]PlayerActionDto, 0, len(actions))
+	for _, action := range actions {
+		// Check if this is an initial action that has already been played
+		isInitialAction := false
+		if len(action.Behavior.Triggers) > 0 {
+			isInitialAction = action.Behavior.Triggers[0].IsInitialAction
+		}
+
+		// Skip initial actions that have been used
+		if isInitialAction && action.PlayCount > 0 {
+			continue
+		}
+
+		result = append(result, ToPlayerActionDto(action))
 	}
 	return result
 }
@@ -658,5 +695,17 @@ func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCa
 		Source:         selection.Source,
 		MinCards:       selection.MinCards,
 		MaxCards:       selection.MaxCards,
+	}
+}
+
+// ToResourceSetDto converts a model ResourceSet to ResourceSet
+func ToResourceSetDto(rs model.ResourceSet) ResourceSet {
+	return ResourceSet{
+		Credits:  rs.Credits,
+		Steel:    rs.Steel,
+		Titanium: rs.Titanium,
+		Plants:   rs.Plants,
+		Energy:   rs.Energy,
+		Heat:     rs.Heat,
 	}
 }

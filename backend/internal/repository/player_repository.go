@@ -21,7 +21,7 @@ type PlayerRepository interface {
 	UpdateResources(ctx context.Context, gameID, playerID string, resources model.Resources) error
 	UpdateProduction(ctx context.Context, gameID, playerID string, production model.Production) error
 	UpdateTerraformRating(ctx context.Context, gameID, playerID string, rating int) error
-	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation string) error
+	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation model.Card) error
 	UpdateConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error
 	UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
@@ -262,7 +262,7 @@ func (r *PlayerRepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID
 }
 
 // UpdateCorporation updates a player's corporation
-func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, playerID string, corporation string) error {
+func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, playerID string, corporation model.Card) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -273,13 +273,13 @@ func (r *PlayerRepositoryImpl) UpdateCorporation(ctx context.Context, gameID, pl
 		return err
 	}
 
-	var oldCorporation string
+	var oldCorporationName string
 	if player.Corporation != nil {
-		oldCorporation = *player.Corporation
+		oldCorporationName = player.Corporation.Name
 	}
 	player.Corporation = &corporation
 
-	log.Info("Player corporation updated", zap.String("old_corp", oldCorporation), zap.String("new_corp", corporation))
+	log.Info("Player corporation updated", zap.String("old_corp", oldCorporationName), zap.String("new_corp", corporation.Name))
 
 	return nil
 }
@@ -539,11 +539,17 @@ func (r *PlayerRepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Contex
 		cardsCopy := make([]string, len(selectStartingCardPhase.AvailableCards))
 		copy(cardsCopy, selectStartingCardPhase.AvailableCards)
 
+		corpsCopy := make([]string, len(selectStartingCardPhase.AvailableCorporations))
+		copy(corpsCopy, selectStartingCardPhase.AvailableCorporations)
+
 		player.SelectStartingCardsPhase = &model.SelectStartingCardsPhase{
-			AvailableCards: cardsCopy,
+			AvailableCards:        cardsCopy,
+			AvailableCorporations: corpsCopy,
 		}
 
-		log.Info("Starting card selection phase updated for player", zap.Int("card_count", len(cardsCopy)))
+		log.Info("Starting card selection phase updated for player",
+			zap.Int("card_count", len(cardsCopy)),
+			zap.Int("corporation_count", len(corpsCopy)))
 	} else {
 		player.SelectStartingCardsPhase = nil
 		log.Info("Starting card selection phase cleared for player")

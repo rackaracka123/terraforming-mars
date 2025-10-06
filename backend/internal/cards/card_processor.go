@@ -53,6 +53,11 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to extract manual actions: %w", err)
 	}
 
+	// Extract and add passive effects from card behaviors
+	if err := cp.extractAndAddEffects(ctx, gameID, playerID, card); err != nil {
+		return fmt.Errorf("failed to extract effects: %w", err)
+	}
+
 	// Apply victory point conditions
 	if err := cp.applyVictoryPointConditions(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply victory point conditions: %w", err)
@@ -96,8 +101,9 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 
 	// Process all behaviors to find production effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate production effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
 			allOutputs := behavior.Outputs
 
@@ -220,6 +226,70 @@ func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID,
 	return nil
 }
 
+// extractAndAddEffects extracts passive effects (auto-triggered with conditions) from card behaviors and adds them to the player
+// These are effects like "when a city is placed, gain 2 MC" that trigger automatically on game events
+func (cp *CardProcessor) extractAndAddEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Track passive effects found
+	var passiveEffects []model.PlayerEffect
+
+	// Process all behaviors to find auto triggers with conditions
+	for behaviorIndex, behavior := range card.Behaviors {
+		// Check if this behavior has auto triggers WITH a condition
+		// (auto triggers without conditions are immediate effects, not passive effects)
+		hasConditionalAutoTrigger := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAuto && trigger.Condition != nil {
+				hasConditionalAutoTrigger = true
+				break
+			}
+		}
+
+		// If behavior has conditional auto triggers, create a PlayerEffect
+		if hasConditionalAutoTrigger {
+			effect := model.PlayerEffect{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			}
+			passiveEffects = append(passiveEffects, effect)
+
+			log.Debug("✨ Found passive effect",
+				zap.String("card_name", card.Name),
+				zap.Int("behavior_index", behaviorIndex),
+				zap.String("trigger_type", string(behavior.Triggers[0].Condition.Type)))
+		}
+	}
+
+	// If passive effects were found, add them to the player
+	if len(passiveEffects) > 0 {
+		// Get current player to read current effects
+		player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for effects update: %w", err)
+		}
+
+		// Create new effects slice with existing effects plus new passive effects
+		newEffects := make([]model.PlayerEffect, len(player.Effects)+len(passiveEffects))
+		copy(newEffects, player.Effects)
+		copy(newEffects[len(player.Effects):], passiveEffects)
+
+		// Update player effects via repository
+		if err := cp.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
+			log.Error("Failed to update player passive effects", zap.Error(err))
+			return fmt.Errorf("failed to update player passive effects: %w", err)
+		}
+
+		log.Debug("🎆 Passive effects added",
+			zap.Int("effects_count", len(passiveEffects)),
+			zap.String("card_name", card.Name))
+	}
+
+	return nil
+}
+
 // applyVictoryPointConditions applies victory point conditions from a card
 func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID, playerID string, card *model.Card) error {
 	log := logger.WithGameContext(gameID, playerID)
@@ -308,8 +378,9 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 
 	// Process all behaviors to find resource effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate resource effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
 			allOutputs := behavior.Outputs
 
@@ -386,8 +457,9 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 
 	// Process all behaviors to find tile placement effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate tile placement effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			for _, output := range behavior.Outputs {
 				switch output.Type {
 				case model.ResourceCityPlacement:

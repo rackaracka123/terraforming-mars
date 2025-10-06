@@ -59,7 +59,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 	}
 
 	// Execute the action
-	if err := h.handle(ctx, gameID, playerID, request.CardIDs); err != nil {
+	if err := h.handle(ctx, gameID, playerID, request.CardIDs, request.CorporationID); err != nil {
 		h.logger.Error("Failed to select starting card",
 			zap.Error(err),
 			zap.String("player_id", playerID),
@@ -77,25 +77,26 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 }
 
 // handle processes the select starting card action (internal method)
-func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	h.logCardSelection(gameID, playerID, cardIDs)
+func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
+	h.logCardSelection(gameID, playerID, cardIDs, corporationID)
 
-	return h.selectCards(ctx, gameID, playerID, cardIDs)
+	return h.selectCards(ctx, gameID, playerID, cardIDs, corporationID)
 }
 
-// logCardSelection logs the card selection attempt
-func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string) {
+// logCardSelection logs the card and corporation selection attempt
+func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string, corporationID string) {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Player selecting starting cards",
+	log.Debug("Player selecting starting cards and corporation",
 		zap.Strings("card_ids", cardIDs),
-		zap.Int("count", len(cardIDs)))
+		zap.Int("count", len(cardIDs)),
+		zap.String("corporation_id", corporationID))
 }
 
-// selectCards processes the card selection through the service
-func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+// selectCards processes the card and corporation selection through the service
+func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	if err := h.cardService.OnSelectStartingCards(ctx, gameID, playerID, cardIDs); err != nil {
+	if err := h.cardService.OnSelectStartingCards(ctx, gameID, playerID, cardIDs, corporationID); err != nil {
 		log.Error("Failed to select starting cards", zap.Error(err))
 		return fmt.Errorf("card selection failed: %w", err)
 	}

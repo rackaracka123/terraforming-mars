@@ -27,7 +27,7 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 
 	corporationName := ""
 	if player.Corporation != nil {
-		corporationName = *player.Corporation
+		corporationName = player.Corporation.Name
 	}
 
 	// Deep copy effects slice

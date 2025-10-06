@@ -2828,6 +2828,29 @@
     "description": "Effect: Each titanium you have is worth 1 M€ extra. Each steel you have is worth 1 M€ extra.",
     "tags": [
       "science"
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "value-modifier",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "titanium",
+              "steel"
+            ]
+          }
+        ]
+      }
     ]
   },
   {
@@ -10172,7 +10195,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -10264,6 +10288,26 @@
             "target": "self-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "value-modifier",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "titanium"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -10330,7 +10374,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -14058,7 +14103,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -14103,7 +14149,10 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "card-played-with-vp"
+            }
           }
         ],
         "outputs": [
@@ -14583,6 +14632,23 @@
             "target": "self-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "ocean-adjacency-bonus",
+            "amount": 1,
+            "target": "self-player"
+          }
+        ]
       }
     ]
   },
@@ -14897,7 +14963,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -14911,7 +14978,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -14973,82 +15041,15 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "production-increased"
+            }
           }
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "energy",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "heat",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "steel",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "titanium",
+            "type": "any-production",
             "amount": 1,
             "target": "self-player"
           }
@@ -15097,7 +15098,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -15286,17 +15288,39 @@
   {
     "id": "X07",
     "name": "Mercurian Alloys",
-    "type": "active",
+    "type": "automated",
     "cost": 3,
     "description": "Effect: Your titanium resources are worth 1 M€ extra. Requires 2 science tags.",
     "tags": [
-      "space"
+      "science"
     ],
     "requirements": [
       {
         "type": "tags",
         "min": 2,
         "tag": "science"
+      }
+    ],
+    "behaviors": [
+      {
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "value-modifier",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "titanium"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -15380,16 +15404,32 @@
   {
     "id": "X10",
     "name": "Rego Plastics",
-    "type": "active",
+    "type": "automated",
     "cost": 10,
     "description": "Effect: Your steel resources are worth 1 M€ extra.",
     "tags": [
       "building"
     ],
-    "vpConditions": [
+    "behaviors": [
       {
-        "amount": 1,
-        "condition": "fixed"
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "value-modifier",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "steel"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -16894,7 +16934,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [
@@ -17117,7 +17158,8 @@
       {
         "triggers": [
           {
-            "type": "manual"
+            "type": "manual",
+            "isInitialAction": true
           }
         ],
         "outputs": [

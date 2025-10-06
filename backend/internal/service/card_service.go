@@ -16,8 +16,8 @@ import (
 
 // CardService handles card-related operations
 type CardService interface {
-	// Player actions for card selection and play
-	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
+	// Player actions for card selection and play (includes corporation selection)
+	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error
 
 	// Player action for production card selection
 	OnSelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
@@ -36,6 +36,9 @@ type CardService interface {
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
+
+	// Get all corporations
+	GetCorporations(ctx context.Context) ([]model.Card, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -75,10 +78,10 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 
 // Delegation methods - all operations are handled by the specialized cards service
 
-func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs, corporationID)
 	if err != nil {
 		return err
 	}
@@ -292,6 +295,10 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 
 	paginatedCards := allCards[start:end]
 	return paginatedCards, totalCount, nil
+}
+
+func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
+	return s.cardRepo.GetCorporations(ctx)
 }
 
 // OnPlayCardAction plays a card action from the player's action list

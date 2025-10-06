@@ -10,6 +10,9 @@ import {
 // Cache for all cards fetched from the backend
 let cardCache: Map<string, CardDto> | null = null;
 
+// Cache for all corporations fetched from the backend
+let corporationCache: CardDto[] | null = null;
+
 /**
  * Fetches all cards from the backend and caches them
  */
@@ -46,6 +49,31 @@ export async function fetchAllCards(): Promise<Map<string, CardDto>> {
 export async function getCardById(cardId: string): Promise<CardDto | null> {
   const cards = await fetchAllCards();
   return cards.get(cardId) || null;
+}
+
+/**
+ * Fetches all corporations from the backend and caches them
+ */
+export async function fetchCorporations(): Promise<CardDto[]> {
+  if (corporationCache !== null) {
+    return corporationCache;
+  }
+
+  try {
+    const response = await fetch("/api/v1/corporations");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch corporations: ${response.statusText}`);
+    }
+
+    const corporations: CardDto[] = await response.json();
+    corporationCache = corporations || [];
+
+    return corporationCache;
+  } catch (error) {
+    console.error("Failed to fetch corporations:", error);
+    // Return empty array on error to prevent crashes
+    return [];
+  }
 }
 
 /**

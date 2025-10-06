@@ -29,12 +29,14 @@ func NewSelectionManager(gameRepo repository.GameRepository, playerRepo reposito
 	}
 }
 
-// SelectStartingCards handles the starting card selection for a player (stores as pending, doesn't commit)
-func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+// SelectStartingCards handles the starting card and corporation selection for a player
+func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Processing starting card selection (storing as pending)", zap.Strings("card_ids", cardIDs))
+	log.Debug("Processing starting card and corporation selection",
+		zap.Strings("card_ids", cardIDs),
+		zap.String("corporation_id", corporationID))
 
-	// Validate the selection
+	// Validate the card selection
 	if err := s.ValidateStartingCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
 		log.Error("Starting card selection validation failed", zap.Error(err))
 		return fmt.Errorf("invalid card selection: %w", err)
@@ -45,6 +47,12 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Validate and apply corporation selection
+	if err := s.applyCorporationSelection(ctx, gameID, playerID, corporationID, &player); err != nil {
+		log.Error("Corporation selection failed", zap.Error(err))
+		return fmt.Errorf("corporation selection failed: %w", err)
 	}
 
 	// Calculate cost (3 MC per card)
@@ -388,4 +396,199 @@ func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 	}
 
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
+}
+
+// applyCorporationSelection validates and applies corporation selection during starting card phase
+func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID, playerID, corporationID string, player *model.Player) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Validate player is in starting card selection phase
+	if player.SelectStartingCardsPhase == nil {
+		return fmt.Errorf("player not in starting card selection phase")
+	}
+
+	// Validate player hasn't already selected a corporation
+	if player.Corporation != nil {
+		log.Warn("Player has already selected a corporation", zap.String("existing_corporation", player.Corporation.Name))
+		return fmt.Errorf("corporation already selected")
+	}
+
+	// Validate corporation is in player's available options
+	corporationFound := false
+	for _, availableCorp := range player.SelectStartingCardsPhase.AvailableCorporations {
+		if availableCorp == corporationID {
+			corporationFound = true
+			break
+		}
+	}
+
+	if !corporationFound {
+		log.Warn("Corporation not in player's available options", zap.String("corporation_id", corporationID))
+		return fmt.Errorf("corporation %s not in available options", corporationID)
+	}
+
+	// Get corporation details from card repository
+	corporationCard, err := s.cardRepo.GetCardByID(ctx, corporationID)
+	if err != nil {
+		log.Error("Failed to get corporation card", zap.Error(err))
+		return fmt.Errorf("failed to get corporation card: %w", err)
+	}
+
+	// Update player's corporation with full card object
+	if err := s.playerRepo.UpdateCorporation(ctx, gameID, playerID, *corporationCard); err != nil {
+		log.Error("Failed to update player corporation", zap.Error(err))
+		return fmt.Errorf("failed to update player corporation: %w", err)
+	}
+
+	// Accumulate starting bonuses from both dedicated fields and behaviors
+	// Start with empty structs - corporation bonuses REPLACE default starting values
+	updatedResources := model.Resources{}
+	updatedProduction := model.Production{}
+
+	// Apply starting bonuses from parsed fields
+	// Note: The card repository has already extracted immediate behaviors (auto trigger without condition)
+	// into StartingResources and StartingProduction fields, so we don't need to process behaviors again
+	if corporationCard.StartingResources != nil {
+		updatedResources.Credits += corporationCard.StartingResources.Credits
+		updatedResources.Steel += corporationCard.StartingResources.Steel
+		updatedResources.Titanium += corporationCard.StartingResources.Titanium
+		updatedResources.Plants += corporationCard.StartingResources.Plants
+		updatedResources.Energy += corporationCard.StartingResources.Energy
+		updatedResources.Heat += corporationCard.StartingResources.Heat
+	}
+	if corporationCard.StartingProduction != nil {
+		updatedProduction.Credits += corporationCard.StartingProduction.Credits
+		updatedProduction.Steel += corporationCard.StartingProduction.Steel
+		updatedProduction.Titanium += corporationCard.StartingProduction.Titanium
+		updatedProduction.Plants += corporationCard.StartingProduction.Plants
+		updatedProduction.Energy += corporationCard.StartingProduction.Energy
+		updatedProduction.Heat += corporationCard.StartingProduction.Heat
+	}
+
+	// Update player with accumulated resources and production from behaviors
+	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
+		log.Error("Failed to update player resources from behaviors", zap.Error(err))
+		return fmt.Errorf("failed to update player resources from behaviors: %w", err)
+	}
+
+	if err := s.playerRepo.UpdateProduction(ctx, gameID, playerID, updatedProduction); err != nil {
+		log.Error("Failed to update player production from behaviors", zap.Error(err))
+		return fmt.Errorf("failed to update player production from behaviors: %w", err)
+	}
+
+	// Update player object for subsequent operations
+	player.Resources = updatedResources
+	player.Production = updatedProduction
+
+	// Extract and register corporation passive effects (auto triggers with conditions)
+	var passiveEffects []model.PlayerEffect
+	for behaviorIndex, behavior := range corporationCard.Behaviors {
+		// Only extract behaviors that have auto triggers WITH conditions (passive effects)
+		// Auto triggers WITHOUT conditions are immediate effects handled by StartingCredits/Resources/Production fields
+		hasConditionalAutoTrigger := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAuto && trigger.Condition != nil {
+				hasConditionalAutoTrigger = true
+				break
+			}
+		}
+
+		if hasConditionalAutoTrigger {
+			effect := model.PlayerEffect{
+				CardID:        corporationCard.ID,
+				CardName:      corporationCard.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			}
+			passiveEffects = append(passiveEffects, effect)
+			log.Debug("🎆 Extracted passive effect from corporation",
+				zap.String("corporation_name", corporationCard.Name),
+				zap.Int("behavior_index", behaviorIndex))
+		}
+	}
+
+	// Add passive effects to player if any were found
+	if len(passiveEffects) > 0 {
+		// Get current player state to append to existing effects
+		currentPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for effects update: %w", err)
+		}
+
+		// Create new effects list with existing + new corporation effects
+		newEffects := make([]model.PlayerEffect, len(currentPlayer.Effects)+len(passiveEffects))
+		copy(newEffects, currentPlayer.Effects)
+		copy(newEffects[len(currentPlayer.Effects):], passiveEffects)
+
+		// Update player with new effects
+		if err := s.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
+			return fmt.Errorf("failed to update player passive effects: %w", err)
+		}
+
+		log.Info("🎆 Corporation passive effects registered",
+			zap.String("corporation_name", corporationCard.Name),
+			zap.Int("effects_count", len(passiveEffects)))
+	}
+
+	// Extract and register corporation manual actions (manual triggers)
+	var manualActions []model.PlayerAction
+	for behaviorIndex, behavior := range corporationCard.Behaviors {
+		// Check if this behavior has manual triggers
+		hasManualTrigger := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerManual {
+				hasManualTrigger = true
+				break
+			}
+		}
+
+		// If behavior has manual triggers, create a PlayerAction
+		if hasManualTrigger {
+			action := model.PlayerAction{
+				CardID:        corporationCard.ID,
+				CardName:      corporationCard.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			}
+			manualActions = append(manualActions, action)
+			log.Debug("🎯 Extracted manual action from corporation",
+				zap.String("corporation_name", corporationCard.Name),
+				zap.Int("behavior_index", behaviorIndex))
+		}
+	}
+
+	// Add manual actions to player if any were found
+	if len(manualActions) > 0 {
+		// Get current player state to append to existing actions
+		currentPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for actions update: %w", err)
+		}
+
+		// Create new actions list with existing + new corporation actions
+		newActions := make([]model.PlayerAction, len(currentPlayer.Actions)+len(manualActions))
+		copy(newActions, currentPlayer.Actions)
+		copy(newActions[len(currentPlayer.Actions):], manualActions)
+
+		// Update player with new actions
+		if err := s.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, newActions); err != nil {
+			return fmt.Errorf("failed to update player manual actions: %w", err)
+		}
+
+		log.Info("🎯 Corporation manual actions registered",
+			zap.String("corporation_name", corporationCard.Name),
+			zap.Int("actions_count", len(manualActions)))
+	}
+
+	startingCredits := 0
+	if corporationCard.StartingResources != nil {
+		startingCredits = corporationCard.StartingResources.Credits
+	}
+
+	log.Info("✅ Corporation selected and bonuses applied",
+		zap.String("corporation_id", corporationID),
+		zap.String("corporation_name", corporationCard.Name),
+		zap.Int("starting_credits", startingCredits))
+
+	return nil
 }

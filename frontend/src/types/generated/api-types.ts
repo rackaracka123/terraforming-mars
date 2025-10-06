@@ -23,11 +23,12 @@ export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
 export const ActionTypePlantGreenery: ActionType = "plant-greenery";
 export const ActionTypeBuildCity: ActionType = "build-city";
 /**
- * SelectStartingCardAction represents selecting starting cards
+ * SelectStartingCardAction represents selecting starting cards and corporation
  */
 export interface SelectStartingCardAction {
   type: ActionType;
   cardIds: string[];
+  corporationId: string;
 }
 /**
  * StartGameAction represents starting the game (host only)
@@ -111,6 +112,7 @@ export interface BuildCityAction {
 export interface ActionSelectStartingCardRequest {
   type: ActionType;
   cardIds: string[];
+  corporationId: string; // Corporation selected alongside starting cards
 }
 /**
  * ActionSelectProductionCardsRequest contains the action data for select production card actions
@@ -502,23 +504,15 @@ export interface CardDto {
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
   vpConditions?: any /* model.VictoryPointCondition */[];
-}
-/**
- * CorporationDto represents a corporation for client consumption
- */
-export interface CorporationDto {
-  id: string;
-  name: string;
-  description: string;
-  startingCredits: number /* int */;
-  startingResources: ResourceSet;
-  startingProduction: ResourceSet;
-  tags: CardTag[];
-  specialEffects: string[];
-  number: string;
+  /**
+   * Corporation-specific fields (nil for non-corporation cards)
+   */
+  startingResources?: ResourceSet; // Parsed from first auto behavior (corporations only)
+  startingProduction?: ResourceSet; // Parsed from first auto behavior (corporations only)
 }
 export interface SelectStartingCardsPhaseDto {
   availableCards: CardDto[]; // Cards available for selection
+  availableCorporations: string[]; // Corporation IDs available for selection (2 corporations)
   selectionComplete: boolean; // Whether player completed card selection
 }
 export interface SelectStartingCardsOtherPlayerDto {
@@ -637,7 +631,7 @@ export interface PlayerDto {
   id: string;
   name: string;
   status: PlayerStatus;
-  corporation?: string;
+  corporation?: CardDto;
   cards: CardDto[];
   resources: ResourcesDto;
   production: ProductionDto;
@@ -672,7 +666,7 @@ export interface OtherPlayerDto {
   id: string;
   name: string;
   status: PlayerStatus;
-  corporation: string;
+  corporation?: CardDto;
   handCardCount: number /* int */; // Number of cards in hand (private)
   resources: ResourcesDto;
   production: ProductionDto;

@@ -35,9 +35,10 @@ func TestGameplayLogic(t *testing.T) {
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 
 	ctx := context.Background()
 

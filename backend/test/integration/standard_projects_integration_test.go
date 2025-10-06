@@ -65,12 +65,23 @@ func TestSellPatents_Integration(t *testing.T) {
 		}
 	}
 
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, ok := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	require.True(t, ok, "SelectStartingCardsPhase should be present")
+
+	availableCorporations, ok := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	require.True(t, ok, "Available corporations should be present")
+	require.Greater(t, len(availableCorporations), 0, "Should have available corporations")
+
+	corporationID := availableCorporations[0].(string)
+
 	selectStartingCardsPayload := map[string]interface{}{
-		"cardIds": cardIDs, // Select all cards
+		"cardIds":       cardIDs, // Select all cards
+		"corporationId": corporationID,
 	}
 	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, selectStartingCardsPayload)
 	require.NoError(t, err, "Failed to send select starting cards")
-	t.Log("✅ Selected starting cards")
+	t.Logf("✅ Selected starting cards with corporation %s", corporationID)
 
 	// Wait for game update after card selection
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
@@ -205,7 +216,15 @@ func TestSellPatents_SelectZeroCards(t *testing.T) {
 		}
 	}
 
-	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	corporationID := availableCorporations[0].(string)
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
+		"cardIds":       cardIDs,
+		"corporationId": corporationID,
+	})
 	require.NoError(t, err)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
@@ -286,7 +305,15 @@ func TestSellPatents_SelectAllCards(t *testing.T) {
 		}
 	}
 
-	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	corporationID := availableCorporations[0].(string)
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
+		"cardIds":       cardIDs,
+		"corporationId": corporationID,
+	})
 	require.NoError(t, err)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
@@ -377,7 +404,15 @@ func TestSellPatents_InvalidSelection(t *testing.T) {
 		}
 	}
 
-	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	corporationID := availableCorporations[0].(string)
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
+		"cardIds":       cardIDs,
+		"corporationId": corporationID,
+	})
 	require.NoError(t, err)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
@@ -434,8 +469,16 @@ func TestSellPatents_NoCardsInHand(t *testing.T) {
 	gameData, _ := payload["game"].(map[string]interface{})
 	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
 
-	// Select ZERO starting cards (decline all)
-	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": []string{}})
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	corporationID := availableCorporations[0].(string)
+
+	// Select ZERO starting cards (decline all) but still need corporation
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
+		"cardIds":       []string{},
+		"corporationId": corporationID,
+	})
 	require.NoError(t, err)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)
@@ -499,7 +542,15 @@ func TestSellPatents_MultipleSelectionPhases(t *testing.T) {
 		}
 	}
 
-	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{"cardIds": cardIDs})
+	// Get available corporations from selectStartingCardsPhase
+	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
+	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
+	corporationID := availableCorporations[0].(string)
+
+	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
+		"cardIds":       cardIDs,
+		"corporationId": corporationID,
+	})
 	require.NoError(t, err)
 	message, err = client.WaitForMessage(dto.MessageTypeGameUpdated)
 	require.NoError(t, err)

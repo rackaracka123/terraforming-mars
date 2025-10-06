@@ -52,6 +52,7 @@ export default function GameInterface() {
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
+  const [corporationData, setCorporationData] = useState<CardDto | null>(null);
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
@@ -97,6 +98,15 @@ export default function GameInterface() {
 
     void loadPlayedCards();
   }, [currentPlayer?.playedCards]);
+
+  // Set corporation data directly from player (backend now sends full CardDto)
+  useEffect(() => {
+    if (currentPlayer?.corporation) {
+      setCorporationData(currentPlayer.corporation);
+    } else {
+      setCorporationData(null);
+    }
+  }, [currentPlayer?.corporation]);
 
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
@@ -286,15 +296,21 @@ export default function GameInterface() {
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
-  const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
-    try {
-      // Send card selection to server - commits immediately
-      await globalWebSocketManager.selectStartingCard(selectedCardIds);
-      // Modal will close automatically when backend clears startingSelection
-    } catch (error) {
-      console.error("Failed to select cards:", error);
-    }
-  }, []);
+  const handleCardSelection = useCallback(
+    async (selectedCardIds: string[], corporationId: string) => {
+      try {
+        // Send card and corporation selection to server - commits immediately
+        await globalWebSocketManager.selectStartingCard(
+          selectedCardIds,
+          corporationId,
+        );
+        // Modal will close automatically when backend clears startingSelection
+      } catch (error) {
+        console.error("Failed to select cards:", error);
+      }
+    },
+    [],
+  );
 
   // Handle pending card selection (sell patents, etc.)
   const handlePendingCardSelection = useCallback(
@@ -1009,6 +1025,7 @@ export default function GameInterface() {
         gameState={game}
         currentPlayer={currentPlayer}
         playedCards={playedCards}
+        corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
@@ -1102,6 +1119,10 @@ export default function GameInterface() {
       <StartingCardSelectionOverlay
         isOpen={showCardSelection}
         cards={cardDetails}
+        availableCorporations={
+          game?.currentPlayer?.selectStartingCardsPhase
+            ?.availableCorporations || []
+        }
         playerCredits={currentPlayer?.resources?.credits || 40}
         onSelectCards={handleCardSelection}
       />

@@ -120,9 +120,20 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 			}
 		}
 		if player.SelectStartingCardsPhase != nil {
+			// Collect available starting cards
 			for _, cardID := range player.SelectStartingCardsPhase.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
+			log.Debug("Added starting cards to resolution",
+				zap.Int("card_count", len(player.SelectStartingCardsPhase.AvailableCards)))
+
+			// CRITICAL: Add corporation cards to resolved cards for frontend display
+			for _, corpID := range player.SelectStartingCardsPhase.AvailableCorporations {
+				allCardIds[corpID] = struct{}{}
+			}
+			log.Debug("Added corporations to resolution",
+				zap.Int("corporation_count", len(player.SelectStartingCardsPhase.AvailableCorporations)),
+				zap.Strings("corporation_ids", player.SelectStartingCardsPhase.AvailableCorporations))
 		}
 	}
 
@@ -131,6 +142,10 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		log.Error("Failed to resolve card data for broadcast", zap.Error(err))
 		return err
 	}
+
+	log.Debug("Resolved cards for broadcast",
+		zap.Int("total_card_ids", len(allCardIds)),
+		zap.Int("resolved_cards", len(resolvedCards)))
 
 	// Filter players based on target
 	playersToSend := players

@@ -1,8 +1,8 @@
 import React from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
 
 interface PlayerCardProps {
-  player: PlayerDto;
+  player: PlayerDto | OtherPlayerDto;
   playerColor: string;
   isCurrentPlayer: boolean;
   isActivePlayer: boolean;

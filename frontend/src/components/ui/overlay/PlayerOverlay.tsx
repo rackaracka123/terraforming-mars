@@ -1,25 +1,12 @@
 import React from "react";
-
-interface Player {
-  id: string;
-  name: string;
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  resources?: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-}
+import {
+  PlayerDto,
+  OtherPlayerDto,
+} from "../../../types/generated/api-types.ts";
 
 interface PlayerOverlayProps {
-  players: Player[];
-  currentPlayer: Player | null;
+  players: (PlayerDto | OtherPlayerDto)[];
+  currentPlayer: PlayerDto | OtherPlayerDto | null;
 }
 
 const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
@@ -52,10 +39,10 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     "mind-set-mars": "/assets/pathfinders/corp-logo-mind-set-mars.png",
   };
 
-  const getCorpLogo = (corporation?: string) => {
-    if (!corporation) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
+  const getCorpLogo = (corporationId?: string) => {
+    if (!corporationId) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
     return (
-      corporationLogos[corporation] ||
+      corporationLogos[corporationId] ||
       "/assets/pathfinders/corp-logo-polaris.png"
     );
   };
@@ -64,10 +51,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     return playerColors[index % playerColors.length];
   };
 
-  // Use mock data if no real players - removed all 4 mock players
-  const mockPlayers: Player[] = [];
-
-  const playersToShow = players.length > 0 ? players : mockPlayers;
+  const playersToShow = players.length > 0 ? players : [];
 
   return (
     <div className="hidden absolute top-[70px] left-1/2 -translate-x-1/2 pointer-events-none">
@@ -75,7 +59,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
         {playersToShow.map((player, index) => {
           const isCurrentPlayer = player.id === currentPlayer?.id;
           const playerColor = getPlayerColor(index);
-          const corpLogo = getCorpLogo(player.corporation);
+          const corpLogo = getCorpLogo(player.corporation?.id);
           const isPassed = player.passed || false;
 
           return (
@@ -105,7 +89,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
                 <div className="flex-shrink-0">
                   <img
                     src={corpLogo}
-                    alt={`${player.corporation || "Unknown"} Corporation`}
+                    alt={`${player.corporation?.name || "Unknown"} Corporation`}
                     className="w-8 h-8 rounded-md object-cover border border-white/20 transition-all duration-200 hover:border-white/40 hover:scale-105"
                   />
                 </div>

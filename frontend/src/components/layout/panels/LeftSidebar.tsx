@@ -1,9 +1,14 @@
 import React from "react";
-import { PlayerDto, GameDto, GamePhase } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GameDto,
+  GamePhase,
+} from "@/types/generated/api-types.ts";
 import PlayerList from "@/components/ui/list/PlayerList.tsx";
 
 interface LeftSidebarProps {
-  players: PlayerDto[];
+  players: (PlayerDto | OtherPlayerDto)[];
   currentPlayer: PlayerDto | null;
   currentPlayerId: string;
   currentPhase?: GamePhase;
