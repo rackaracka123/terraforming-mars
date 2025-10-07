@@ -789,14 +789,24 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 				}
 
 			case "6 Effect/Resource":
-				// Check if this has a trigger condition - if so, treat as triggered effect
-				if behavior.BehaviorData.Trigger != "" {
+				// Check if this is a value modifier (payment enhancement) or a triggered effect
+				triggerLower := strings.ToLower(behavior.BehaviorData.Trigger)
+				isPaymentModifier := strings.Contains(triggerLower, "payment that accepts")
+
+				if isPaymentModifier {
+					// Convert resource value modifiers to unified behaviors
+					cardBehavior := createValueModifierBehavior(behavior.BehaviorData)
+					if cardBehavior != nil {
+						cardBehaviors = append(cardBehaviors, *cardBehavior)
+					}
+				} else if behavior.BehaviorData.Trigger != "" {
+					// Has a non-payment trigger - treat as triggered effect
 					cardBehavior := createTriggeredEffectBehavior(behavior.BehaviorData)
 					if cardBehavior != nil {
 						cardBehaviors = append(cardBehaviors, *cardBehavior)
 					}
 				} else {
-					// Convert resource value modifiers to unified behaviors
+					// No trigger - try value modifier
 					cardBehavior := createValueModifierBehavior(behavior.BehaviorData)
 					if cardBehavior != nil {
 						cardBehaviors = append(cardBehaviors, *cardBehavior)
@@ -865,7 +875,7 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 
 // DEPRECATED: enhanceAttackActions - replaced by createAttackAction
 
-// parseTriggerCondition parses trigger conditions from behaviors.csv "Where" column
+// parseTriggerCondition parses trigger conditions from behaviors.csv "Trigger" column
 func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 	if whereText == "" {
 		return nil
@@ -873,7 +883,39 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 
 	whereText = strings.ToLower(strings.TrimSpace(whereText))
 
+	// Determine target based on "ANY" prefix
+	// "ANY" = any player can trigger it (TargetAnyPlayer)
+	// Otherwise = only the card owner triggers it (TargetSelfPlayer)
+	var target model.TargetType
+	if strings.HasPrefix(whereText, "any ") {
+		target = model.TargetAnyPlayer
+	} else {
+		target = model.TargetSelfPlayer
+	}
+
 	switch {
+	// Tag-based triggers (when cards with specific tags are played)
+	case strings.Contains(whereText, "p/m/a tag"):
+		// Plant/Microbe/Animal tag trigger
+		return &model.ResourceTriggerCondition{
+			Type:         model.TriggerCardPlayed,
+			AffectedTags: []model.CardTag{model.TagPlant, model.TagMicrobe, model.TagAnimal},
+			Target:       &target,
+		}
+	case strings.Contains(whereText, "plant/animal tag"):
+		// Plant/Animal tag trigger
+		return &model.ResourceTriggerCondition{
+			Type:         model.TriggerCardPlayed,
+			AffectedTags: []model.CardTag{model.TagPlant, model.TagAnimal},
+			Target:       &target,
+		}
+	// Tile placement triggers
+	case strings.Contains(whereText, "greenery tile"):
+		// Greenery tile placement trigger
+		return &model.ResourceTriggerCondition{
+			Type:   model.TriggerGreeneryPlaced,
+			Target: &target,
+		}
 	case strings.Contains(whereText, "city"):
 		triggerType := model.TriggerCityPlaced
 		location := model.CardApplyLocationAnywhere
@@ -883,6 +925,7 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "ocean"):
 		triggerType := model.TriggerOceanPlaced
@@ -893,9 +936,10 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "greenery"):
-		triggerType := model.TriggerTilePlaced
+		triggerType := model.TriggerGreeneryPlaced
 		location := model.CardApplyLocationAnywhere
 		if strings.Contains(whereText, "mars") {
 			location = model.CardApplyLocationMars
@@ -903,14 +947,17 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "temperature"):
 		return &model.ResourceTriggerCondition{
-			Type: model.TriggerTemperatureRaise,
+			Type:   model.TriggerTemperatureRaise,
+			Target: &target,
 		}
 	case strings.Contains(whereText, "oxygen"):
 		return &model.ResourceTriggerCondition{
-			Type: model.TriggerOxygenRaise,
+			Type:   model.TriggerOxygenRaise,
+			Target: &target,
 		}
 	}
 
@@ -929,8 +976,10 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		// Determine target based on resource type
 		switch resourceType {
 		case model.ResourceCityPlacement, model.ResourceOceanPlacement, model.ResourceGreeneryPlacement,
-			model.ResourceTemperature, model.ResourceOxygen, model.ResourceVenus, model.ResourceTR:
-			return model.TargetNone // Board actions don't target players
+			model.ResourceTemperature, model.ResourceOxygen, model.ResourceVenus:
+			return model.TargetNone // Global parameters and tile placements don't target players
+		case model.ResourceTR:
+			return model.TargetSelfPlayer // TR changes target the player
 		case model.ResourceCreditsProduction, model.ResourceSteelProduction, model.ResourceTitaniumProduction,
 			model.ResourcePlantsProduction, model.ResourceEnergyProduction, model.ResourceHeatProduction:
 			return model.TargetSelfPlayer // Production changes target the player
@@ -1025,13 +1074,13 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		}
 
 		for _, prod := range productionInputs {
-			if prod.value != 0 {
-				// Production changes (both positive and negative) are outputs
+			if prod.value > 0 {
+				// Positive production changes are outputs
 				amount := prod.value
 				target := getTarget(prod.resourceType, false)
 
 				// For attacks: positive values should be negative since attacks decrease opponent's production
-				if isAttack && prod.value > 0 {
+				if isAttack {
 					amount = -prod.value
 				}
 
@@ -1040,6 +1089,24 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 					Amount: amount,
 					Target: target,
 				})
+			} else if prod.value < 0 {
+				// Handle negative production: for immediate effects, treat as negative outputs
+				// For non-immediate effects (actions), treat as positive inputs (cost)
+				if isImmediateEffect {
+					// Immediate effects: negative values are negative outputs (like "lose 1 energy production")
+					outputs = append(outputs, model.ResourceCondition{
+						Type:   prod.resourceType,
+						Amount: prod.value, // Keep negative amount
+						Target: getTarget(prod.resourceType, false),
+					})
+				} else {
+					// Non-immediate effects (actions): negative values are positive inputs (cost)
+					inputs = append(inputs, model.ResourceCondition{
+						Type:   prod.resourceType,
+						Amount: -prod.value, // Convert to positive
+						Target: getTarget(prod.resourceType, true),
+					})
+				}
 			}
 		}
 

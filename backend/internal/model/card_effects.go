@@ -10,7 +10,7 @@ const (
 	TriggerCityPlaced          TriggerType = "city-placed"
 	TriggerCardPlayed          TriggerType = "card-played"
 	TriggerTagPlayed           TriggerType = "tag-played"
-	TriggerTilePlaced          TriggerType = "tile-placed"
+	TriggerGreeneryPlaced      TriggerType = "greenery-placed"
 	TriggerProductionIncreased TriggerType = "production-increased"
 	TriggerAlwaysActive        TriggerType = "always-active"
 )
@@ -352,6 +352,7 @@ type ResourceTriggerCondition struct {
 	Type         TriggerType        `json:"type" ts:"TriggerType"`                                 // What triggers this (onCityPlaced, etc.)
 	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Where the trigger applies (mars, anywhere)
 	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // Tags that trigger this effect
+	Target       *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`          // Whose actions trigger this (self-player, any-player, etc.)
 }
 
 // Trigger represents when and how an action or effect is activated
