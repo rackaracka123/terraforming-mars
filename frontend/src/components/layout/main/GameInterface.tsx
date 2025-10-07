@@ -361,6 +361,20 @@ export default function GameInterface() {
   const handlePlayCard = useCallback(
     async (cardId: string) => {
       try {
+        // Block card plays when tile selection is pending
+        if (currentPlayer?.pendingTileSelection) {
+          const card = currentPlayer?.cards.find((c) => c.id === cardId);
+          if (card) {
+            setUnplayableCard(card);
+            setUnplayableReason({
+              type: "phase",
+              requirement: null,
+              message: "Complete tile placement first",
+            });
+          }
+          return;
+        }
+
         // Find the card to check if it has choices
         const card = currentPlayer?.cards.find((c) => c.id === cardId);
         if (!card) {
@@ -683,6 +697,11 @@ export default function GameInterface() {
   // Handle action selection from card actions
   const handleActionSelect = useCallback(
     (action: PlayerActionDto) => {
+      // Block actions when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Check if this action has choices
       if (action.behavior.choices && action.behavior.choices.length > 0) {
         // Action has choices, show the choice selection popover
@@ -710,12 +729,17 @@ export default function GameInterface() {
         }
       }
     },
-    [needsCardStorageSelection],
+    [currentPlayer?.pendingTileSelection, needsCardStorageSelection],
   );
 
   // Standard project selection handler
   const handleStandardProjectSelect = useCallback(
     (project: StandardProject) => {
+      // Block standard projects when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Close dropdown first
       setShowStandardProjectsPopover(false);
 
@@ -743,7 +767,7 @@ export default function GameInterface() {
           break;
       }
     },
-    [],
+    [currentPlayer?.pendingTileSelection],
   );
 
   // Tab conflict handlers

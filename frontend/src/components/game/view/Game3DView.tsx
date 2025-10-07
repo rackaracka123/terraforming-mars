@@ -4,6 +4,7 @@ import { PanControls } from "../controls/PanControls.tsx";
 import MarsSphere from "../board/MarsSphere.tsx";
 import SkyboxLoader from "./SkyboxLoader.tsx";
 import LoadingSpinner from "./LoadingSpinner.tsx";
+import GameIcon from "../../ui/display/GameIcon.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
 import { MarsRotationProvider } from "../../../contexts/MarsRotationContext.tsx";
 import {
@@ -91,6 +92,22 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
     [gameState.currentPlayer],
   );
 
+  // Determine tile icon type from tileType string
+  const getTileIconType = (tileType: string): string => {
+    switch (tileType) {
+      case "city":
+        return "city-tile";
+      case "greenery":
+        return "greenery-tile";
+      case "ocean":
+        return "ocean-tile";
+      default:
+        return "city-tile"; // fallback
+    }
+  };
+
+  const pendingTileSelection = gameState.currentPlayer?.pendingTileSelection;
+
   return (
     <div
       ref={containerRef}
@@ -102,6 +119,25 @@ export default function Game3DView({ gameState }: Game3DViewProps) {
         position: "relative",
       }}
     >
+      {/* Tile Selection Banner */}
+      {pendingTileSelection && (
+        <div
+          className="absolute top-[66px] left-1/2 transform -translate-x-1/2 z-50
+                     bg-space-black/90 backdrop-blur-space border border-space-blue-500
+                     rounded-lg px-6 py-3 shadow-glow-lg"
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-orbitron text-lg text-white tracking-wider-2xl">
+              Place
+            </span>
+            <GameIcon
+              iconType={getTileIconType(pendingTileSelection.tileType)}
+              size="medium"
+            />
+          </div>
+        </div>
+      )}
+
       <Canvas
         camera={{
           position: cameraConfig.position,

@@ -424,7 +424,14 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             currentPlayabilityInfo?.reason
           ) {
             // Don't show shield for phase restrictions (only visual dimming)
-            if (currentPlayabilityInfo.reason.type === "phase") {
+            // EXCEPT for pending tile selection which should always show the shield
+            const isPendingTileSelection =
+              currentPlayabilityInfo.reason.message ===
+              "Pending tile selection";
+            if (
+              currentPlayabilityInfo.reason.type === "phase" &&
+              !isPendingTileSelection
+            ) {
               onUnplayableCard(null, null);
             } else {
               onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
