@@ -17,6 +17,8 @@ import (
 
 func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 	// Setup
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
@@ -26,9 +28,6 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-
-	ctx := context.Background()
-	eventBus := events.NewEventBus()
 
 	// Load real cards
 	err := cardRepo.LoadCards(ctx)
@@ -164,6 +163,8 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 
 func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	// Setup
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
@@ -173,9 +174,6 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-
-	ctx := context.Background()
-	eventBus := events.NewEventBus()
 
 	// Load real cards
 	err := cardRepo.LoadCards(ctx)
