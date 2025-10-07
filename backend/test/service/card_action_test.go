@@ -111,7 +111,6 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -187,7 +186,6 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -254,7 +252,6 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -303,7 +300,6 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -370,7 +366,6 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -450,7 +445,6 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game

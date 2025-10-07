@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"

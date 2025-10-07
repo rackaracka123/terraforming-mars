@@ -205,6 +205,8 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 
 func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) {
 	// Setup
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
@@ -214,9 +216,6 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-
-	ctx := context.Background()
-	eventBus := events.NewEventBus()
 
 	// Create a test game in starting card selection phase
 	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})

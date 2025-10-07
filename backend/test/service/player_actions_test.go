@@ -15,6 +15,10 @@ import (
 )
 
 func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
+	// Setup test data
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
 	// Setup repositories
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
@@ -29,10 +33,6 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-
-	// Setup test data
-	ctx := context.Background()
-	eventBus := events.NewEventBus()
 	playerID := "player1"
 
 	// Create a test game
@@ -120,6 +120,10 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 }
 
 func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
+	// Setup test data
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
 	// Setup repositories
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
@@ -135,9 +139,6 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	// Setup test data
-	ctx := context.Background()
-	eventBus := events.NewEventBus()
 	playerID := "player1"
 
 	// Create a test game
@@ -210,9 +211,9 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 
 func TestPlayerRepository_UpdatePlayerActions(t *testing.T) {
 	// Setup
-	playerRepo := repository.NewPlayerRepository(eventBus)
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameID := "test-game"
 	playerID := "player1"
 

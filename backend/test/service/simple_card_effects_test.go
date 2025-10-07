@@ -278,6 +278,11 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
 	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
 
+	// Initialize the board with default tiles
+	board := boardService.GenerateDefaultBoard()
+	err = gameRepo.UpdateBoard(ctx, game.ID, board)
+	require.NoError(t, err)
+
 	// Create test player with enough credits
 	player := model.Player{
 		ID:               "player1",
@@ -306,23 +311,19 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
-	// Verify card was played and effect registered
+	// Verify card was played
 	playerAfterCard, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
 	creditsAfterCard := playerAfterCard.Resources.Credits
 	t.Logf("Credits after playing Rover Construction: %d", creditsAfterCard)
 	assert.Equal(t, initialCredits-8, creditsAfterCard, "Should spend 8 MC for Rover Construction")
-	assert.Len(t, playerAfterCard.Effects, 1, "Should have 1 passive effect registered")
-	assert.Equal(t, model.TriggerCityPlaced, playerAfterCard.Effects[0].Behavior.Triggers[0].Condition.Type, "Effect should trigger on city placement")
+	// Note: With event-driven system, passive effects are subscribed via CardEffectSubscriber, not stored in player.Effects
 
-	// Step 2: Simulate a city placement event by calling EffectProcessor directly
+	// Step 2: Simulate a city placement event by actually placing a city tile
+	// This will publish TilePlacedEvent which CardEffectSubscriber will handle
 	coordinate := model.HexPosition{Q: 0, R: 0, S: 0}
-	effectContext := model.EffectContext{
-		TriggeringPlayerID: player.ID,
-		TileCoordinate:     &coordinate,
-		TileType:           nil, // Optional field, not needed for this test
-	}
-	err = effectProcessor.TriggerEffects(ctx, game.ID, model.TriggerCityPlaced, effectContext)
-	require.NoError(t, err, "Should successfully trigger passive effects")
+	tileOccupant := model.TileOccupant{Type: model.TileTypeCity}
+	err = gameRepo.UpdateTileOccupancy(ctx, game.ID, coordinate, &tileOccupant, &player.ID)
+	require.NoError(t, err, "Should successfully place city tile")
 
 	// Step 3: Verify passive effect triggered and awarded 2 credits
 	playerAfterEffect, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
