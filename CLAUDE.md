@@ -157,10 +157,12 @@ The backend follows Clean Architecture principles with strict separation of conc
 - **Modular Design**: Each card type has dedicated handler with consistent interface
 
 **Event System** (`internal/events/`)
-- **Event Bus**: Centralized event publishing and subscription system
-- **Domain Events**: Consolidated event types (EventTypeGameUpdated, etc.)
-- **Event Flow**: Repository operations trigger events → EventBus → WebSocket broadcasting
-- **Decoupled Architecture**: Services publish events without knowing about subscribers
+- **Event Bus**: Type-safe event publishing and subscription system
+- **Domain Events**: Game and player events (TemperatureChanged, TilePlaced, ResourcesChanged, etc.)
+- **CardEffectSubscriber**: Manages passive card effect subscriptions to domain events
+- **Event-Driven Effects**: Card passive effects trigger automatically via events, not manual polling
+- **Decoupled Architecture**: Services execute actions, repositories publish events, effects subscribe
+- **See**: `backend/docs/EVENT_SYSTEM.md` for comprehensive documentation
 
 **Session Management Layer** (`internal/delivery/websocket/session/`)
 - **SessionManager Interface**: Simplified to exactly 2 methods: `Broadcast(gameID)` and `Send(gameID, playerID)`
@@ -237,6 +239,40 @@ Services compose data from multiple repositories as needed, maintaining clean se
 - Integrate card actions with existing service layer
 - Follow modular design patterns for new card types
 
+**Event-Driven Effect System** (📖 See `backend/docs/EVENT_SYSTEM.md`)
+- **Core Principle**: Services do ONLY what the action says. Passive effects trigger via events.
+- **Repositories Publish Events**: When state changes (tile placed, temperature raised, etc.)
+- **CardEffectSubscriber Listens**: Subscribes card passive effects to relevant domain events
+- **Automatic Triggering**: Effects fire when events match trigger conditions (no manual polling)
+- **Target Filtering**: Effects respect TargetSelfPlayer vs TargetAnyPlayer constraints
+- **Example Flow**: Player places tile → GameRepository publishes TilePlacedEvent → CardEffectSubscriber triggers ocean adjacency bonus → Player gains credits
+
+**When Implementing Game Actions:**
+```go
+// ✅ CORRECT: Service does only the action
+func (s *PlayerService) PlaceTile(...) {
+    // 1. Update game state
+    gameRepo.UpdateTileOccupancy(...)
+
+    // 2. Award immediate bonuses (from board, not cards)
+    s.awardTilePlacementBonuses(...)
+
+    // 3. Done! CardEffectSubscriber handles passive card effects via events
+}
+
+// ❌ WRONG: Service manually checks for card effects
+func (s *PlayerService) PlaceTile(...) {
+    gameRepo.UpdateTileOccupancy(...)
+
+    // ❌ Don't do this - let events handle it
+    for _, card := range player.Cards {
+        if card.TriggersOnTilePlacement {
+            applyEffect(...)
+        }
+    }
+}
+```
+
 ## Game State Flow
 
 ### WebSocket Event Architecture
@@ -308,6 +344,43 @@ type Player struct {
 The `TERRAFORMING_MARS_RULES.md` file contains the complete, authoritative rulebook reference structured for AI consumption.
 
 ## Key Development Patterns
+
+### Adding New Card Effects (Event-Driven)
+
+**For cards with passive effects** (e.g., "Gain 2 MC when any city is placed"):
+
+1. **Define behavior in card JSON:**
+   ```json
+   {
+     "behaviors": [{
+       "triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
+       "outputs": [{"type": "credits", "amount": 2, "target": "any-player"}]
+     }]
+   }
+   ```
+
+2. **Ensure repository publishes event:**
+   - Check that the relevant repository (e.g., `GameRepository.UpdateTileOccupancy`) publishes the domain event
+   - Usually already implemented for common events (TilePlaced, TemperatureChanged, etc.)
+
+3. **CardEffectSubscriber handles subscription automatically:**
+   - When card is played, `CardService.OnPlayCard()` calls `effectSubscriber.SubscribeCardEffects()`
+   - No additional service code needed!
+
+4. **Test the effect:**
+   ```go
+   // Play card with passive effect
+   cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+
+   // Trigger the event (e.g., place a city)
+   gameRepo.UpdateTileOccupancy(ctx, gameID, coord, cityTile, &playerID)
+
+   // Verify effect applied
+   player, _ := playerRepo.GetByID(ctx, gameID, playerID)
+   assert.Equal(t, expectedCredits, player.Resources.Credits)
+   ```
+
+**See `backend/docs/EVENT_SYSTEM.md` for complete documentation.**
 
 ### Adding New Game Features
 1. **Consult game rules**: Check `TERRAFORMING_MARS_RULES.md` for any game rule implications
