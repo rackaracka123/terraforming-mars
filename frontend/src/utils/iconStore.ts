@@ -56,7 +56,7 @@ export const TAG_ICONS: { [key: string]: string } = {
   jovian: "/assets/tags/jovian.png",
   venus: "/assets/tags/venus.png",
   event: "/assets/tags/event.png",
-  mars: "/assets/tags/mars.png",
+  "mars-tag": "/assets/tags/mars.png",
   moon: "/assets/tags/moon.png",
   wild: "/assets/tags/wild.png",
   wildlife: "/assets/tags/wild.png", // Use wild.png as fallback
@@ -67,10 +67,10 @@ export const TAG_ICONS: { [key: string]: string } = {
 export const TILE_ICONS: { [key: string]: string } = {
   "city-placement": "/assets/tiles/city.png",
   "ocean-placement": "/assets/tiles/ocean.png",
-  "greenery-placement": "/assets/tiles/greenery.png",
+  "greenery-placement": "/assets/tiles/greenery_no_O2.png",
   "city-tile": "/assets/tiles/city.png",
   "ocean-tile": "/assets/tiles/ocean.png",
-  "greenery-tile": "/assets/tiles/greenery.png",
+  "greenery-tile": "/assets/tiles/greenery_no_O2.png",
 };
 
 export const GLOBAL_PARAMETER_ICONS: { [key: string]: string } = {
