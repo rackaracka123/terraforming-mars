@@ -145,9 +145,10 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerCityPlaced:
 		// Subscribe to TilePlacedEvent for city tiles
+		// Note: TilePlacedEvent.TileType uses ResourceType constants like "city-tile", not "city"
 		subID := events.Subscribe(ces.eventBus, func(event repository.TilePlacedEvent) {
 			// Only trigger if it's a city tile and it's this player's game
-			if event.GameID == gameID && event.TileType == "city" {
+			if event.GameID == gameID && (event.TileType == string(model.ResourceCityTile) || event.TileType == model.TileTypeCity) {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
 			}
 		})
@@ -155,9 +156,10 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerGreeneryPlaced:
 		// Subscribe to TilePlacedEvent for greenery tiles
+		// Note: TilePlacedEvent.TileType uses ResourceType constants like "greenery-tile", not "greenery"
 		subID := events.Subscribe(ces.eventBus, func(event repository.TilePlacedEvent) {
 			// Only trigger if it's a greenery tile and it's this player's game
-			if event.GameID == gameID && event.TileType == "greenery" {
+			if event.GameID == gameID && (event.TileType == string(model.ResourceGreeneryTile) || event.TileType == model.TileTypeGreenery) {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
 			}
 		})
@@ -194,14 +196,42 @@ func (ces *CardEffectSubscriberImpl) executePassiveEffect(
 		zap.String("card_name", cardName),
 		zap.Any("event", event))
 
+	// Extract the player who triggered the event (if applicable)
+	var eventPlayerID string
+	switch e := event.(type) {
+	case repository.TilePlacedEvent:
+		eventPlayerID = e.PlayerID
+	default:
+		// For global events (temperature, oxygen, etc.) the event has no specific player
+		eventPlayerID = ""
+	}
+
 	ctx := context.Background()
 
-	// Execute behavior outputs
+	// Execute behavior outputs, filtering by target
 	for _, output := range behavior.Outputs {
-		if err := ces.applyEffectOutput(ctx, gameID, playerID, cardName, output); err != nil {
-			log.Error("Failed to apply passive effect output",
-				zap.String("card_name", cardName),
-				zap.Error(err))
+		// Check if output target matches the event context
+		// TargetSelfPlayer: only trigger if the card owner triggered the event
+		// Empty target or TargetAnyPlayer: trigger regardless of who triggered the event
+		shouldApply := true
+		if output.Target == model.TargetSelfPlayer {
+			// Self-targeted output: only apply if card owner triggered the event
+			if eventPlayerID != "" && eventPlayerID != playerID {
+				log.Debug("Skipping output - target is self-player but event triggered by different player",
+					zap.String("card_owner", playerID),
+					zap.String("event_player", eventPlayerID),
+					zap.String("output_type", string(output.Type)))
+				shouldApply = false
+			}
+		}
+		// For empty target or TargetAnyPlayer, always apply (shouldApply stays true)
+
+		if shouldApply {
+			if err := ces.applyEffectOutput(ctx, gameID, playerID, cardName, output); err != nil {
+				log.Error("Failed to apply passive effect output",
+					zap.String("card_name", cardName),
+					zap.Error(err))
+			}
 		}
 	}
 }
@@ -214,37 +244,94 @@ func (ces *CardEffectSubscriberImpl) applyEffectOutput(
 ) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Get current player resources
+	// Get current player state
 	player, err := ces.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	resources := player.Resources
-
-	// Apply resource change based on output type
+	// Apply resource or production change based on output type
 	switch output.Type {
+	// Regular resources
 	case model.ResourceCredits:
+		resources := player.Resources
 		resources.Credits += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
 	case model.ResourceSteel:
+		resources := player.Resources
 		resources.Steel += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
 	case model.ResourceTitanium:
+		resources := player.Resources
 		resources.Titanium += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
 	case model.ResourcePlants:
+		resources := player.Resources
 		resources.Plants += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
 	case model.ResourceEnergy:
+		resources := player.Resources
 		resources.Energy += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
 	case model.ResourceHeat:
+		resources := player.Resources
 		resources.Heat += output.Amount
+		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
+			return fmt.Errorf("failed to update resources: %w", err)
+		}
+
+	// Production resources
+	case model.ResourceCreditsProduction:
+		production := player.Production
+		production.Credits += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+	case model.ResourceSteelProduction:
+		production := player.Production
+		production.Steel += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+	case model.ResourceTitaniumProduction:
+		production := player.Production
+		production.Titanium += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+	case model.ResourcePlantsProduction:
+		production := player.Production
+		production.Plants += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+	case model.ResourceEnergyProduction:
+		production := player.Production
+		production.Energy += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+	case model.ResourceHeatProduction:
+		production := player.Production
+		production.Heat += output.Amount
+		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
+			return fmt.Errorf("failed to update production: %w", err)
+		}
+
 	default:
 		log.Warn("Unsupported resource type in passive effect",
 			zap.String("resource_type", string(output.Type)))
 		return nil
-	}
-
-	// Update player resources
-	if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-		return fmt.Errorf("failed to update resources: %w", err)
 	}
 
 	log.Info("✨ Passive effect applied",

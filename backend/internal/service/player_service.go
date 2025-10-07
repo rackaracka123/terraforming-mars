@@ -484,18 +484,11 @@ func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player
 	// Base ocean adjacency bonus is 2 MC per ocean
 	baseBonus := 2
 
-	// Check player effects for ocean adjacency bonus modifiers (e.g., Lakefront Resorts)
-	bonusModifier := 0
-	for _, effect := range player.Effects {
-		for _, output := range effect.Behavior.Outputs {
-			if output.Type == model.ResourceOceanAdjacencyBonus {
-				bonusModifier += output.Amount
-			}
-		}
-	}
+	// TODO: Support ocean adjacency bonus modifiers from cards (e.g., Lakefront Resorts)
+	// This will require checking card effects via CardEffectSubscriber or similar mechanism
 
-	// Calculate total bonus: adjacent oceans * (base bonus + modifier)
-	return adjacentOceanCount * (baseBonus + bonusModifier)
+	// Calculate total bonus: adjacent oceans * base bonus
+	return adjacentOceanCount * baseBonus
 }
 
 // applyTileBonus applies a single tile bonus to player resources
@@ -534,5 +527,3 @@ func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus mod
 
 	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
 }
-
-// triggerTilePlacementEffects triggers passive effects based on tile placement

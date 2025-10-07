@@ -68,7 +68,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		cardRepo:              cardRepo,
 		cardDeckRepo:          cardDeckRepo,
 		sessionManager:        sessionManager,
-		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
+		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
 		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, effectSubscriber),

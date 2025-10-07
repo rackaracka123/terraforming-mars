@@ -121,44 +121,22 @@ func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
 
 	// Get initial state
 	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
-	assert.Empty(t, playerBefore.Effects, "Should start with no passive effects")
 	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
 
 	// Play Rover Construction
 	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
-	// Verify passive effect was extracted and added to player
+	// Verify card was played and cost was deducted
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
 	assert.Equal(t, 42, playerAfter.Resources.Credits, "Should have 50-8=42 credits after cost")
 	assert.Contains(t, playerAfter.PlayedCards, cardID, "Card should be played")
-	assert.NotEmpty(t, playerAfter.Effects, "Should have passive effects from the card")
 
-	// Verify the effect was added to player's effect list
-	hasRoverConstructionEffect := false
-	for _, effect := range playerAfter.Effects {
-		if effect.CardID == cardID {
-			hasRoverConstructionEffect = true
-			assert.Equal(t, "Rover Construction", effect.CardName)
-			assert.Equal(t, 0, effect.BehaviorIndex, "Should be the first behavior")
+	// NOTE: In the new event-driven system, passive effects are subscribed via CardEffectSubscriber
+	// and are NOT stored in player.Effects. The effect will trigger automatically when
+	// TilePlacedEvent is published (tested in TestRoverConstruction_PassiveEffectTriggering)
 
-			// Verify effect trigger condition
-			assert.Len(t, effect.Behavior.Triggers, 1, "Should have 1 trigger")
-			assert.Equal(t, model.ResourceTriggerAuto, effect.Behavior.Triggers[0].Type, "Should be auto trigger")
-			assert.NotNil(t, effect.Behavior.Triggers[0].Condition, "Should have a condition")
-			assert.Equal(t, model.TriggerCityPlaced, effect.Behavior.Triggers[0].Condition.Type, "Should trigger on city placement")
-
-			// Verify effect outputs
-			assert.Len(t, effect.Behavior.Outputs, 1, "Should have 1 output")
-			assert.Equal(t, model.ResourceCredits, effect.Behavior.Outputs[0].Type, "Should give credits")
-			assert.Equal(t, 2, effect.Behavior.Outputs[0].Amount, "Should give 2 credits")
-			assert.Equal(t, model.TargetSelfPlayer, effect.Behavior.Outputs[0].Target, "Should target self")
-			break
-		}
-	}
-	assert.True(t, hasRoverConstructionEffect, "Should have Rover Construction passive effect")
-
-	t.Log("✅ Rover Construction passive effect extraction test passed")
+	t.Log("✅ Rover Construction card play test passed (passive effects use event-driven system)")
 }
 
 func TestSpaceElevator_ImmediateEffect(t *testing.T) {

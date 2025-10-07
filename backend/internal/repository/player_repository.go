@@ -28,7 +28,6 @@ type PlayerRepository interface {
 	UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
-	UpdateEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error
 	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
@@ -449,34 +448,6 @@ func (r *PlayerRepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID, 
 	player.VictoryPoints = points
 
 	log.Info("Player victory points updated", zap.Int("points", points))
-
-	return nil
-}
-
-// UpdateEffects updates a player's active effects list
-func (r *PlayerRepositoryImpl) UpdateEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	log := logger.WithGameContext(gameID, playerID)
-
-	player, err := r.getPlayerUnsafe(gameID, playerID)
-	if err != nil {
-		return err
-	}
-
-	// Deep copy the effects to prevent external mutation
-	effectsCopy := make([]model.PlayerEffect, len(effects))
-	for i, effect := range effects {
-		effectsCopy[i] = *effect.DeepCopy()
-	}
-
-	oldEffectsCount := len(player.Effects)
-	player.Effects = effectsCopy
-
-	log.Info("Player effects updated",
-		zap.Int("old_effects_count", oldEffectsCount),
-		zap.Int("new_effects_count", len(effects)))
 
 	return nil
 }
