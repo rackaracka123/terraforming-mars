@@ -499,6 +499,7 @@ export interface CardDto {
   type: CardType;
   cost: number /* int */;
   description: string;
+  pack: string;
   tags: CardTag[];
   requirements?: any /* model.Requirement */[];
   behaviors?: CardBehaviorDto[];
@@ -544,6 +545,7 @@ export interface ProductionPhaseOtherPlayerDto {
 export interface GameSettingsDto {
   maxPlayers: number /* int */;
   developmentMode: boolean;
+  cardPacks?: string[];
 }
 /**
  * GlobalParametersDto represents the terraforming progress

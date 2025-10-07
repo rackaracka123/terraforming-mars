@@ -239,6 +239,7 @@ type CardDto struct {
 	Type            CardType                      `json:"type" ts:"CardType"`
 	Cost            int                           `json:"cost" ts:"number"`
 	Description     string                        `json:"description" ts:"string"`
+	Pack            string                        `json:"pack" ts:"string"`
 	Tags            []CardTag                     `json:"tags" ts:"CardTag[]"`
 	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
 	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
@@ -282,8 +283,9 @@ type ProductionPhaseOtherPlayerDto struct {
 
 // GameSettingsDto contains configurable game parameters
 type GameSettingsDto struct {
-	MaxPlayers      int  `json:"maxPlayers" ts:"number"`
-	DevelopmentMode bool `json:"developmentMode" ts:"boolean"`
+	MaxPlayers      int      `json:"maxPlayers" ts:"number"`
+	DevelopmentMode bool     `json:"developmentMode" ts:"boolean"`
+	CardPacks       []string `json:"cardPacks,omitempty" ts:"string[] | undefined"`
 }
 
 // GlobalParametersDto represents the terraforming progress

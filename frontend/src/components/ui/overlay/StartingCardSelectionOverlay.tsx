@@ -203,7 +203,6 @@ const StartingCardSelectionOverlay: React.FC<
                     }}
                     isSelected={selectedCorporationId === corp.id}
                     onSelect={handleCorporationSelect}
-                    showCheckbox={true}
                   />
                 </div>
               ))}

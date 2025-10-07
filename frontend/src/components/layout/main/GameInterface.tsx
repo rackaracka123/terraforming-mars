@@ -1164,7 +1164,9 @@ export default function GameInterface() {
       {/* Choice selection popover for card play */}
       {cardPendingChoice && (
         <ChoiceSelectionPopover
-          card={cardPendingChoice}
+          cardId={cardPendingChoice.id}
+          cardName={cardPendingChoice.name}
+          behaviors={cardPendingChoice.behaviors || []}
           behaviorIndex={pendingCardBehaviorIndex}
           onChoiceSelect={handleChoiceSelect}
           onCancel={handleChoiceCancel}
@@ -1177,17 +1179,9 @@ export default function GameInterface() {
       {/* Choice selection popover for actions */}
       {actionPendingChoice && (
         <ChoiceSelectionPopover
-          card={{
-            id: actionPendingChoice.cardId,
-            name: actionPendingChoice.cardName,
-            behaviors: [actionPendingChoice.behavior],
-            cost: 0,
-            tags: [],
-            type: "automated",
-            requirements: [],
-            vpConditions: [],
-            description: "",
-          }}
+          cardId={actionPendingChoice.cardId}
+          cardName={actionPendingChoice.cardName}
+          behaviors={[actionPendingChoice.behavior]}
           behaviorIndex={0}
           onChoiceSelect={handleActionChoiceSelect}
           onCancel={handleActionChoiceCancel}

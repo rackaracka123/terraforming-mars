@@ -39,6 +39,7 @@ type GameRepository interface {
 	UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error
 	UpdateTemperature(ctx context.Context, gameID string, temperature int) error
 	UpdateOxygen(ctx context.Context, gameID string, oxygen int) error
+	UpdateOceans(ctx context.Context, gameID string, oceans int) error
 }
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
@@ -538,6 +539,34 @@ func (r *GameRepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, ox
 	log.Info("Oxygen updated",
 		zap.Int("old_oxygen", oldOxygen),
 		zap.Int("new_oxygen", oxygen))
+
+	return nil
+}
+
+// UpdateOceans updates the global oceans parameter
+func (r *GameRepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Validate oceans range
+	if oceans < 0 || oceans > 9 {
+		return fmt.Errorf("oceans must be between 0 and 9, got %d", oceans)
+	}
+
+	oldOceans := game.GlobalParameters.Oceans
+	game.GlobalParameters.Oceans = oceans
+	game.UpdatedAt = time.Now()
+
+	log.Info("Oceans updated",
+		zap.Int("old_oceans", oldOceans),
+		zap.Int("new_oceans", oceans))
 
 	return nil
 }

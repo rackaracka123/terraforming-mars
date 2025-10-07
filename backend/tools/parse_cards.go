@@ -501,6 +501,32 @@ func parseCardsCSV(behaviorsMap map[string][]BehaviorData) ([]model.Card, error)
 	return cards, nil
 }
 
+// parsePackFromExpansion maps CSV expansion values to pack identifiers
+func parsePackFromExpansion(expansion string) string {
+	expansion = strings.TrimSpace(expansion)
+	expansion = strings.ToLower(expansion)
+
+	switch {
+	case strings.Contains(expansion, "0 base"), strings.Contains(expansion, "base"):
+		return model.PackBaseGame
+	case strings.Contains(expansion, "1 corpera"), strings.Contains(expansion, "corporate"):
+		return "corporate-era"
+	case strings.Contains(expansion, "5 prelude"), strings.Contains(expansion, "prelude"):
+		return "prelude"
+	case strings.Contains(expansion, "4 venusnext"), strings.Contains(expansion, "venus"):
+		return "venus-next"
+	case strings.Contains(expansion, "6 colonies"), strings.Contains(expansion, "colonies"):
+		return "colonies"
+	case strings.Contains(expansion, "7 turmoil"), strings.Contains(expansion, "turmoil"):
+		return "turmoil"
+	case strings.Contains(expansion, "pro/"), strings.Contains(expansion, "promo"):
+		return "promo"
+	default:
+		// Default to base-game for empty or unknown expansions
+		return model.PackBaseGame
+	}
+}
+
 func parseCardFromRecord(record []string, behaviorsMap map[string][]BehaviorData, lineNum int) (*model.Card, error) {
 	if len(record) < 20 {
 		return nil, fmt.Errorf("insufficient columns")
@@ -521,6 +547,13 @@ func parseCardFromRecord(record []string, behaviorsMap map[string][]BehaviorData
 
 	// Parse card type
 	card.Type = parseCardType(record[colType])
+
+	// Parse pack from expansion column
+	if len(record) > colExpansion {
+		card.Pack = parsePackFromExpansion(record[colExpansion])
+	} else {
+		card.Pack = model.PackBaseGame // Default if column doesn't exist
+	}
 
 	// Parse tags and sort them for consistent output
 	tags := parseTags(record)
@@ -1717,7 +1750,7 @@ func parseRequirements(record []string) []model.Requirement {
 			requirement.Min = &requireNum
 		}
 		requirements = append(requirements, requirement)
-	case strings.Contains(requireWhat, "oxygen") || strings.Contains(requireWhat, "%"):
+	case strings.Contains(requireWhat, "oxygen") || (strings.Contains(requireWhat, "%") && !strings.Contains(requireWhat, "venus")):
 		requirement := model.Requirement{
 			Type: model.RequirementOxygen,
 		}

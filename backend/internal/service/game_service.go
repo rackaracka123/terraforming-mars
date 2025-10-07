@@ -105,12 +105,37 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
 	}
 
-	// Initialize the card deck with all project cards
-	projectCards, err := s.cardRepo.GetProjectCards(ctx)
+	// Initialize the card deck with project cards filtered by selected packs
+	allProjectCards, err := s.cardRepo.GetProjectCards(ctx)
 	if err != nil {
 		log.Error("Failed to get project cards for deck initialization", zap.Error(err))
 		return model.Game{}, fmt.Errorf("failed to get project cards: %w", err)
 	}
+
+	// Filter cards by selected packs
+	selectedPacks := settings.CardPacks
+	if len(selectedPacks) == 0 {
+		selectedPacks = model.DefaultCardPacks()
+	}
+
+	// Create a set of selected packs for fast lookup
+	packSet := make(map[string]bool)
+	for _, pack := range selectedPacks {
+		packSet[pack] = true
+	}
+
+	// Filter project cards by pack
+	projectCards := make([]model.Card, 0)
+	for _, card := range allProjectCards {
+		if packSet[card.Pack] {
+			projectCards = append(projectCards, card)
+		}
+	}
+
+	log.Info("Filtered project cards by packs",
+		zap.Strings("selected_packs", selectedPacks),
+		zap.Int("total_available", len(allProjectCards)),
+		zap.Int("filtered_count", len(projectCards)))
 
 	if err := s.cardDeckRepo.InitializeDeck(ctx, game.ID, projectCards); err != nil {
 		log.Error("Failed to initialize card deck", zap.Error(err))
@@ -255,6 +280,12 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Distributing starting cards and corporations to players")
 
+	// Get game to access settings
+	game, err := s.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
 	// Get the starting card pool from card service
 	startingCards, err := s.cardService.GetStartingCards(ctx)
 	if err != nil {
@@ -265,14 +296,39 @@ func (s *GameServiceImpl) distributeStartingCards(ctx context.Context, gameID st
 		return fmt.Errorf("insufficient cards in pool: need at least 10, got %d", len(startingCards))
 	}
 
-	// Get all corporation cards
-	allCorporations, err := s.cardRepo.GetCorporationCards(ctx)
+	// Get all corporation cards and filter by selected packs
+	allCorporationCards, err := s.cardRepo.GetCorporationCards(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get corporation cards: %w", err)
 	}
 
+	// Filter corporations by selected packs
+	selectedPacks := game.Settings.CardPacks
+	if len(selectedPacks) == 0 {
+		selectedPacks = model.DefaultCardPacks()
+	}
+
+	// Create a set of selected packs for fast lookup
+	packSet := make(map[string]bool)
+	for _, pack := range selectedPacks {
+		packSet[pack] = true
+	}
+
+	// Filter corporations by pack
+	allCorporations := make([]model.Card, 0)
+	for _, corp := range allCorporationCards {
+		if packSet[corp.Pack] {
+			allCorporations = append(allCorporations, corp)
+		}
+	}
+
+	log.Info("Filtered corporations by packs",
+		zap.Strings("selected_packs", selectedPacks),
+		zap.Int("total_available", len(allCorporationCards)),
+		zap.Int("filtered_count", len(allCorporations)))
+
 	if len(allCorporations) < 2 {
-		return fmt.Errorf("insufficient corporations in pool: need at least 2, got %d", len(allCorporations))
+		return fmt.Errorf("insufficient corporations in selected packs: need at least 2, got %d", len(allCorporations))
 	}
 
 	// Separate cards into groups: cards with requirements and without requirements
