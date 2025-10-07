@@ -166,17 +166,21 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     // Count other behaviors (production, actions, effects)
     const hasProductionBox = classifiedBehaviors.some(
       (cb) =>
-        cb.behavior.productionOutputs &&
-        cb.behavior.productionOutputs.length > 0,
+        (cb.behavior as any).productionOutputs &&
+        (cb.behavior as any).productionOutputs.length > 0,
     );
     const hasActionBox = classifiedBehaviors.some(
-      (cb) => cb.behavior.trigger === "manual" || cb.behavior.choices,
+      (cb) =>
+        (cb.behavior.triggers &&
+          cb.behavior.triggers[0]?.type === "manual") ||
+        cb.behavior.choices,
     );
     const hasTriggeredEffect = classifiedBehaviors.some(
       (cb) =>
-        cb.behavior.trigger === "auto" &&
-        cb.behavior.condition !== undefined &&
-        cb.behavior.condition !== null,
+        cb.behavior.triggers &&
+        cb.behavior.triggers[0]?.type === "auto" &&
+        (cb.behavior as any).condition !== undefined &&
+        (cb.behavior as any).condition !== null,
     );
 
     // Completely alone: only tile placement, nothing else
@@ -1318,7 +1322,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     // and there are at least 3 outputs total, use special layouts
     const globalParamOutputs = nonProductionOutputs.filter(isGlobalParamOrTile);
     const regularResourceOutputs = nonProductionOutputs.filter(
-      (output) => !isGlobalParamOrTile(output),
+      (output: any) => !isGlobalParamOrTile(output),
     );
 
     const hasGlobalParamsOrTiles = globalParamOutputs.length > 0;
