@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -64,14 +66,16 @@ type PlayerRepository interface {
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
 type PlayerRepositoryImpl struct {
 	// Map of gameID -> map of playerID -> Player
-	players map[string]map[string]*model.Player
-	mutex   sync.RWMutex
+	players  map[string]map[string]*model.Player
+	mutex    sync.RWMutex
+	eventBus *events.EventBusImpl
 }
 
 // NewPlayerRepository creates a new player repository
-func NewPlayerRepository() PlayerRepository {
+func NewPlayerRepository(eventBus *events.EventBusImpl) PlayerRepository {
 	return &PlayerRepositoryImpl{
-		players: make(map[string]map[string]*model.Player),
+		players:  make(map[string]map[string]*model.Player),
+		eventBus: eventBus,
 	}
 }
 
@@ -215,11 +219,88 @@ func (r *PlayerRepositoryImpl) UpdateResources(ctx context.Context, gameID, play
 		return err
 	}
 
+	oldResources := player.Resources
 	player.Resources = resources
 
 	log.Info("Player resources updated")
 
+	// Publish resource changed events for each resource type that changed
+	if r.eventBus != nil {
+		r.publishResourceChangedEvents(gameID, playerID, oldResources, resources)
+	}
+
 	return nil
+}
+
+// publishResourceChangedEvents publishes events for each resource type that changed
+func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID string, oldRes, newRes model.Resources) {
+	timestamp := time.Now()
+
+	if oldRes.Credits != newRes.Credits {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "credits",
+			OldAmount:    oldRes.Credits,
+			NewAmount:    newRes.Credits,
+			Timestamp:    timestamp,
+		})
+	}
+
+	if oldRes.Steel != newRes.Steel {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "steel",
+			OldAmount:    oldRes.Steel,
+			NewAmount:    newRes.Steel,
+			Timestamp:    timestamp,
+		})
+	}
+
+	if oldRes.Titanium != newRes.Titanium {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "titanium",
+			OldAmount:    oldRes.Titanium,
+			NewAmount:    newRes.Titanium,
+			Timestamp:    timestamp,
+		})
+	}
+
+	if oldRes.Plants != newRes.Plants {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "plants",
+			OldAmount:    oldRes.Plants,
+			NewAmount:    newRes.Plants,
+			Timestamp:    timestamp,
+		})
+	}
+
+	if oldRes.Energy != newRes.Energy {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "energy",
+			OldAmount:    oldRes.Energy,
+			NewAmount:    newRes.Energy,
+			Timestamp:    timestamp,
+		})
+	}
+
+	if oldRes.Heat != newRes.Heat {
+		events.Publish(r.eventBus, ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "heat",
+			OldAmount:    oldRes.Heat,
+			NewAmount:    newRes.Heat,
+			Timestamp:    timestamp,
+		})
+	}
 }
 
 // UpdateProduction updates a player's production
@@ -257,6 +338,17 @@ func (r *PlayerRepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID
 	player.TerraformRating = rating
 
 	log.Info("Player terraform rating updated", zap.Int("old_tr", oldTR), zap.Int("new_tr", rating))
+
+	// Publish terraform rating changed event
+	if r.eventBus != nil && oldTR != rating {
+		events.Publish(r.eventBus, TerraformRatingChangedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			OldRating: oldTR,
+			NewRating: rating,
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }

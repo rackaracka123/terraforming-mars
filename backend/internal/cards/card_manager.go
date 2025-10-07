@@ -30,16 +30,23 @@ type CardManagerImpl struct {
 	cardRepo              repository.CardRepository
 	requirementsValidator *RequirementsValidator
 	effectProcessor       *CardProcessor
+	effectSubscriber      CardEffectSubscriber
 }
 
 // NewCardManager creates a new simplified card manager
-func NewCardManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) CardManager {
+func NewCardManager(
+	gameRepo repository.GameRepository,
+	playerRepo repository.PlayerRepository,
+	cardRepo repository.CardRepository,
+	effectSubscriber CardEffectSubscriber,
+) CardManager {
 	return &CardManagerImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		requirementsValidator: NewRequirementsValidator(cardRepo),
 		effectProcessor:       NewCardProcessor(gameRepo, playerRepo),
+		effectSubscriber:      effectSubscriber,
 	}
 }
 
@@ -158,6 +165,14 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 		return fmt.Errorf("failed to apply card effects: %w", err)
 	}
 	log.Debug("✨ Card effects applied")
+
+	// STEP 5: Subscribe passive effects to event bus
+	if cm.effectSubscriber != nil {
+		if err := cm.effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, cardID, card); err != nil {
+			return fmt.Errorf("failed to subscribe card effects: %w", err)
+		}
+		log.Debug("🎆 Passive effects subscribed to event bus")
+	}
 
 	log.Info("✅ Card played successfully", zap.String("card_name", card.Name))
 	return nil

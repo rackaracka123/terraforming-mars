@@ -61,7 +61,7 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
@@ -71,7 +71,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
-		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo),
+		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, effectSubscriber),
 		tileService:           tileService,
 	}
 }
