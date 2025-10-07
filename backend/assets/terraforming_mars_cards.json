@@ -10532,6 +10532,26 @@
             "target": "self-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto",
+            "condition": {
+              "type": "always-active"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "type": "value-modifier",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "titanium"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -14473,20 +14493,6 @@
             "target": "self-player"
           }
         ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 3,
-            "target": "self-player"
-          }
-        ]
       }
     ]
   },
@@ -15371,82 +15377,15 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "production-increased"
+            }
           }
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "energy",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "heat",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "plants",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "steel",
-            "amount": 1,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "titanium",
+            "type": "any-production",
             "amount": 1,
             "target": "self-player"
           }
