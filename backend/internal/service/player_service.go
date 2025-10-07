@@ -43,23 +43,21 @@ type PlayerService interface {
 
 // PlayerServiceImpl implements PlayerService interface
 type PlayerServiceImpl struct {
-	gameRepo        repository.GameRepository
-	playerRepo      repository.PlayerRepository
-	sessionManager  session.SessionManager
-	boardService    BoardService
-	tileService     TileService
-	effectProcessor EffectProcessor
+	gameRepo       repository.GameRepository
+	playerRepo     repository.PlayerRepository
+	sessionManager session.SessionManager
+	boardService   BoardService
+	tileService    TileService
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, effectProcessor EffectProcessor) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService) PlayerService {
 	return &PlayerServiceImpl{
-		gameRepo:        gameRepo,
-		playerRepo:      playerRepo,
-		sessionManager:  sessionManager,
-		boardService:    boardService,
-		tileService:     tileService,
-		effectProcessor: effectProcessor,
+		gameRepo:       gameRepo,
+		playerRepo:     playerRepo,
+		sessionManager: sessionManager,
+		boardService:   boardService,
+		tileService:    tileService,
 	}
 }
 
@@ -386,11 +384,8 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		return fmt.Errorf("failed to award tile placement bonuses: %w", err)
 	}
 
-	// Trigger passive effects based on tile type
-	if err := s.triggerTilePlacementEffects(ctx, gameID, playerID, tileType, resourceType, coordinate); err != nil {
-		log.Error("Failed to trigger tile placement effects", zap.Error(err))
-		return fmt.Errorf("failed to trigger tile placement effects: %w", err)
-	}
+	// Passive effects are now triggered automatically via TilePlacedEvent from the repository
+	// No manual triggering needed here - event system handles it
 
 	log.Info("✅ Tile placed successfully",
 		zap.String("tile_type", tileType),
@@ -541,39 +536,3 @@ func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus mod
 }
 
 // triggerTilePlacementEffects triggers passive effects based on tile placement
-func (s *PlayerServiceImpl) triggerTilePlacementEffects(ctx context.Context, gameID, playerID, tileType string, resourceType model.ResourceType, coordinate model.HexPosition) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Determine which trigger type to use based on tile type
-	var triggerType model.TriggerType
-	switch tileType {
-	case "city":
-		triggerType = model.TriggerCityPlaced
-	case "ocean":
-		triggerType = model.TriggerOceanPlaced
-	case "greenery":
-		// For now, greenery doesn't have a specific trigger, could use TriggerTilePlaced
-		log.Debug("🌿 Greenery placement (no specific passive effects yet)")
-		return nil
-	default:
-		log.Debug("Unknown tile type for effect triggering", zap.String("tile_type", tileType))
-		return nil
-	}
-
-	// Create effect context
-	effectContext := model.EffectContext{
-		TriggeringPlayerID: playerID,
-		TileCoordinate:     &coordinate,
-		TileType:           &resourceType,
-	}
-
-	// Trigger all matching passive effects
-	log.Debug("🎆 Triggering passive effects for tile placement",
-		zap.String("trigger_type", string(triggerType)))
-
-	if err := s.effectProcessor.TriggerEffects(ctx, gameID, triggerType, effectContext); err != nil {
-		return fmt.Errorf("failed to trigger passive effects: %w", err)
-	}
-
-	return nil
-}

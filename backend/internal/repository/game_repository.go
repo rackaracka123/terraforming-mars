@@ -487,6 +487,22 @@ func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID str
 		zap.String("occupant", occupantType),
 		zap.String("owner", ownerName))
 
+	// Publish tile placed event when a tile occupant is added
+	if r.eventBus != nil && occupant != nil && ownerID != nil {
+		events.Publish(r.eventBus, TilePlacedEvent{
+			GameID:    gameID,
+			PlayerID:  *ownerID,
+			TileType:  string(occupant.Type),
+			Q:         coord.Q,
+			R:         coord.R,
+			S:         coord.S,
+			Timestamp: time.Now(),
+		})
+		log.Debug("🎆 TilePlacedEvent published",
+			zap.String("tile_type", string(occupant.Type)),
+			zap.String("player_id", *ownerID))
+	}
+
 	return nil
 }
 
