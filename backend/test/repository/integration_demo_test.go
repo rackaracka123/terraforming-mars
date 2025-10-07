@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -98,8 +100,9 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 	defer logger.Shutdown()
 
 	// Initialize clean architecture components
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	demoService := NewDemoGameService(gameRepo, playerRepo)
 
 	ctx := context.Background()

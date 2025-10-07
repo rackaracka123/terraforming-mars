@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -14,8 +16,8 @@ import (
 
 func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 
@@ -25,10 +27,12 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	// Create card service
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Setup test data
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	playerID := "player1"
 
 	// Create a test game
@@ -117,8 +121,8 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 
 func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 
@@ -128,10 +132,12 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	// Create card service
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Setup test data
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	playerID := "player1"
 
 	// Create a test game
@@ -204,8 +210,9 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 
 func TestPlayerRepository_UpdatePlayerActions(t *testing.T) {
 	// Setup
-	playerRepo := repository.NewPlayerRepository()
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 	gameID := "test-game"
 	playerID := "player1"
 

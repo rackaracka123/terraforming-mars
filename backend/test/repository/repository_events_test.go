@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -18,7 +19,7 @@ func TestGameRepositoryPublishesTemperatureChangedEvent(t *testing.T) {
 	var eventReceived bool
 	var receivedEvent repository.TemperatureChangedEvent
 
-	_ = eventBus.Subscribe(func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.TemperatureChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -61,7 +62,7 @@ func TestGameRepositoryPublishesOxygenChangedEvent(t *testing.T) {
 	var eventReceived bool
 	var receivedEvent repository.OxygenChangedEvent
 
-	_ = eventBus.Subscribe(func(event repository.OxygenChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.OxygenChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -104,7 +105,7 @@ func TestGameRepositoryPublishesOceansChangedEvent(t *testing.T) {
 	var eventReceived bool
 	var receivedEvent repository.OceansChangedEvent
 
-	_ = eventBus.Subscribe(func(event repository.OceansChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.OceansChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -146,7 +147,7 @@ func TestPlayerRepositoryPublishesResourcesChangedEvent(t *testing.T) {
 	// Track events
 	var eventsReceived []repository.ResourcesChangedEvent
 
-	_ = eventBus.Subscribe(func(event repository.ResourcesChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.ResourcesChangedEvent) {
 		eventsReceived = append(eventsReceived, event)
 	})
 
@@ -213,7 +214,7 @@ func TestPlayerRepositoryPublishesTerraformRatingChangedEvent(t *testing.T) {
 	var eventReceived bool
 	var receivedEvent repository.TerraformRatingChangedEvent
 
-	_ = eventBus.Subscribe(func(event repository.TerraformRatingChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.TerraformRatingChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -264,7 +265,7 @@ func TestRepositoryDoesNotPublishWhenNoChange(t *testing.T) {
 	// Track events
 	var tempEventCount int
 
-	_ = eventBus.Subscribe(func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event repository.TemperatureChangedEvent) {
 		tempEventCount++
 	})
 

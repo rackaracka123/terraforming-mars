@@ -46,24 +46,19 @@ func TestCardEffectSubscriberTemperatureIncrease(t *testing.T) {
 	card := &model.Card{
 		ID:   "arctic-algae",
 		Name: "Arctic Algae",
-		Behavior: &model.CardBehavior{
-			PassiveEffects: []model.PassiveEffect{
-				{
-					Triggers: []model.ResourceTrigger{
-						{
-							Type: model.ResourceTriggerAuto,
-							Condition: &model.TriggerCondition{
-								Type: model.TriggerTypeTemperatureIncrease,
-							},
-						},
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{
+					Type: model.ResourceTriggerAuto,
+					Condition: &model.ResourceTriggerCondition{
+						Type: model.TriggerTemperatureRaise,
 					},
-					Outputs: []model.ResourceOutput{
-						{
-							Type:   model.ResourceTypePlants,
-							Amount: 2,
-						},
-					},
-				},
+				}},
+				Outputs: []model.ResourceCondition{{
+					Type:   model.ResourcePlants,
+					Amount: 2,
+					Target: model.TargetSelfPlayer,
+				}},
 			},
 		},
 	}
@@ -143,24 +138,19 @@ func TestCardEffectSubscriberOxygenIncrease(t *testing.T) {
 	card := &model.Card{
 		ID:   "oxygen-card",
 		Name: "Oxygen Card",
-		Behavior: &model.CardBehavior{
-			PassiveEffects: []model.PassiveEffect{
-				{
-					Triggers: []model.ResourceTrigger{
-						{
-							Type: model.ResourceTriggerAuto,
-							Condition: &model.TriggerCondition{
-								Type: model.TriggerTypeOxygenIncrease,
-							},
-						},
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{
+					Type: model.ResourceTriggerAuto,
+					Condition: &model.ResourceTriggerCondition{
+						Type: model.TriggerOxygenRaise,
 					},
-					Outputs: []model.ResourceOutput{
-						{
-							Type:   model.ResourceTypeHeat,
-							Amount: 3,
-						},
-					},
-				},
+				}},
+				Outputs: []model.ResourceCondition{{
+					Type:   model.ResourceHeat,
+					Amount: 3,
+					Target: model.TargetSelfPlayer,
+				}},
 			},
 		},
 	}
@@ -222,24 +212,19 @@ func TestCardEffectSubscriberUnsubscribe(t *testing.T) {
 	card := &model.Card{
 		ID:   "test-card",
 		Name: "Test Card",
-		Behavior: &model.CardBehavior{
-			PassiveEffects: []model.PassiveEffect{
-				{
-					Triggers: []model.ResourceTrigger{
-						{
-							Type: model.ResourceTriggerAuto,
-							Condition: &model.TriggerCondition{
-								Type: model.TriggerTypeTemperatureIncrease,
-							},
-						},
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{
+					Type: model.ResourceTriggerAuto,
+					Condition: &model.ResourceTriggerCondition{
+						Type: model.TriggerTemperatureRaise,
 					},
-					Outputs: []model.ResourceOutput{
-						{
-							Type:   model.ResourceTypePlants,
-							Amount: 2,
-						},
-					},
-				},
+				}},
+				Outputs: []model.ResourceCondition{{
+					Type:   model.ResourcePlants,
+					Amount: 2,
+					Target: model.TargetSelfPlayer,
+				}},
 			},
 		},
 	}
@@ -316,13 +301,11 @@ func TestCardEffectSubscriberNoPassiveEffects(t *testing.T) {
 		t.Fatalf("Failed to create player: %v", err)
 	}
 
-	// Create card with no passive effects
+	// Create card with no behaviors
 	card := &model.Card{
-		ID:       "simple-card",
-		Name:     "Simple Card",
-		Behavior: &model.CardBehavior{
-			// No passive effects
-		},
+		ID:   "simple-card",
+		Name: "Simple Card",
+		// No behaviors array
 	}
 
 	// Subscribe effects (should handle gracefully)
@@ -367,24 +350,19 @@ func TestCardEffectSubscriberMultipleCards(t *testing.T) {
 	card1 := &model.Card{
 		ID:   "temp-card",
 		Name: "Temperature Card",
-		Behavior: &model.CardBehavior{
-			PassiveEffects: []model.PassiveEffect{
-				{
-					Triggers: []model.ResourceTrigger{
-						{
-							Type: model.ResourceTriggerAuto,
-							Condition: &model.TriggerCondition{
-								Type: model.TriggerTypeTemperatureIncrease,
-							},
-						},
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{
+					Type: model.ResourceTriggerAuto,
+					Condition: &model.ResourceTriggerCondition{
+						Type: model.TriggerTemperatureRaise,
 					},
-					Outputs: []model.ResourceOutput{
-						{
-							Type:   model.ResourceTypePlants,
-							Amount: 1,
-						},
-					},
-				},
+				}},
+				Outputs: []model.ResourceCondition{{
+					Type:   model.ResourcePlants,
+					Amount: 1,
+					Target: model.TargetSelfPlayer,
+				}},
 			},
 		},
 	}
@@ -393,24 +371,19 @@ func TestCardEffectSubscriberMultipleCards(t *testing.T) {
 	card2 := &model.Card{
 		ID:   "oxygen-card",
 		Name: "Oxygen Card",
-		Behavior: &model.CardBehavior{
-			PassiveEffects: []model.PassiveEffect{
-				{
-					Triggers: []model.ResourceTrigger{
-						{
-							Type: model.ResourceTriggerAuto,
-							Condition: &model.TriggerCondition{
-								Type: model.TriggerTypeOxygenIncrease,
-							},
-						},
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{
+					Type: model.ResourceTriggerAuto,
+					Condition: &model.ResourceTriggerCondition{
+						Type: model.TriggerOxygenRaise,
 					},
-					Outputs: []model.ResourceOutput{
-						{
-							Type:   model.ResourceTypeHeat,
-							Amount: 2,
-						},
-					},
-				},
+				}},
+				Outputs: []model.ResourceCondition{{
+					Type:   model.ResourceHeat,
+					Amount: 2,
+					Target: model.TargetSelfPlayer,
+				}},
 			},
 		},
 	}

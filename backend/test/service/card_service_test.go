@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -15,6 +17,7 @@ import (
 
 func TestCardService_SelectStartingCards(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	tests := []struct {
 		name          string
@@ -70,14 +73,15 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fresh repositories for each subtest to avoid state pollution
-			gameRepo := repository.NewGameRepository()
-			playerRepo := repository.NewPlayerRepository()
+			gameRepo := repository.NewGameRepository(eventBus)
+			playerRepo := repository.NewPlayerRepository(eventBus)
 			cardRepo := repository.NewCardRepository()
 			cardDeckRepo := repository.NewCardDeckRepository()
 			sessionManager := test.NewMockSessionManager()
 			boardService := service.NewBoardService()
 			tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-			cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+			cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 			// Load cards
 			err := cardRepo.LoadCards(ctx)
@@ -201,16 +205,18 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 
 func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) {
 	// Setup
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Create a test game in starting card selection phase
 	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -324,16 +330,18 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 
 func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Create test game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -425,16 +433,18 @@ func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 
 func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Create test game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -525,16 +535,18 @@ func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 
 func TestCardService_SelectCorporationWithValueModifier(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Create test game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})

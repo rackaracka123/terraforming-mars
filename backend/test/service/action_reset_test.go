@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 
@@ -16,9 +18,10 @@ func TestActionResetFunctionality(t *testing.T) {
 	// This is a simpler test that doesn't require the full game service constructor
 
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	// Create a test game
 	gameSettings := model.GameSettings{
