@@ -59,6 +59,7 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 
 	// Subscribe each auto-triggered behavior
 	var subIDs []events.SubscriptionID
+	var playerEffects []model.PlayerEffect
 
 	for i, behavior := range card.Behaviors {
 		if len(behavior.Triggers) == 0 {
@@ -86,6 +87,13 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 
 		if subID != "" {
 			subIDs = append(subIDs, subID)
+			// Add effect to player's effects list for frontend display
+			playerEffects = append(playerEffects, model.PlayerEffect{
+				CardID:        cardID,
+				CardName:      card.Name,
+				BehaviorIndex: i,
+				Behavior:      behavior,
+			})
 			log.Debug("✅ Effect subscribed",
 				zap.String("card_name", card.Name),
 				zap.String("trigger_type", string(trigger.Condition.Type)),
@@ -99,6 +107,26 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 		log.Info("🎉 Card effects subscribed successfully",
 			zap.String("card_name", card.Name),
 			zap.Int("subscription_count", len(subIDs)))
+	}
+
+	// Update player's effects list for frontend display
+	if len(playerEffects) > 0 {
+		// Get current player to append new effects
+		player, err := ces.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			return fmt.Errorf("failed to get player for effects update: %w", err)
+		}
+
+		// Append new effects to existing effects
+		updatedEffects := append(player.Effects, playerEffects...)
+		err = ces.playerRepo.UpdatePlayerEffects(ctx, gameID, playerID, updatedEffects)
+		if err != nil {
+			return fmt.Errorf("failed to update player effects: %w", err)
+		}
+
+		log.Info("✨ Player effects list updated",
+			zap.Int("new_effects_added", len(playerEffects)),
+			zap.Int("total_effects", len(updatedEffects)))
 	}
 
 	return nil
