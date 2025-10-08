@@ -115,7 +115,7 @@
     "name": "Cloud Seeding",
     "type": "automated",
     "cost": 11,
-    "description": "Requires 3 ocean tiles. Decrease your M€ production 1 step and any heat production 1 step.  Increase your plant production 2 steps.",
+    "description": "Requires 3 ocean tiles. Decrease your M€ production 1 step and any heat production 1 step. Increase your plant production 2 steps.",
     "pack": "base-game",
     "requirements": [
       {
@@ -220,7 +220,7 @@
     "name": "Inventors' Guild",
     "type": "active",
     "cost": 9,
-    "description": "Action: LOOK AT THE TOP CARD AND EITHER BUY IT OR DISCARD IT",
+    "description": "Action: look at the top card and either buy it or discard it",
     "pack": "corporate-era",
     "tags": [
       "science"
@@ -286,7 +286,7 @@
     "name": "Capital",
     "type": "automated",
     "cost": 26,
-    "description": "Requires 4 ocean tiles. Place this tile. Decrease your energy production 2 steps and increase your M€ production 5 steps. 1 ADDITIONAL VP FOR EACH OCEAN TILE ADJACENT TO THIS CITY TILE.",
+    "description": "Requires 4 ocean tiles. Place this tile. Decrease your energy production 2 steps and increase your M€ production 5 steps. 1 Additional VP for each ocean tile adjacent to this city tile.",
     "pack": "base-game",
     "tags": [
       "building",
@@ -2718,7 +2718,7 @@
     "name": "Land Claim",
     "type": "event",
     "cost": 1,
-    "description": "PLACE YOUR MARKER ON A NON-RESERVED AREA. ONLY YOU MAY PLACE A TILE HERE",
+    "description": "Place your marker on a non-reserved area. Only you may place a tile here",
     "pack": "corporate-era"
   },
   {
@@ -3431,7 +3431,7 @@
     "name": "Commercial District",
     "type": "automated",
     "cost": 16,
-    "description": "Decrease your energy production 1 step and increase your M€ production 4 steps. Place this tile. 1 VP PER ADJACENT CITY TILE.",
+    "description": "Decrease your energy production 1 step and increase your M€ production 4 steps. Place this tile. 1 VP per adjacent city tile.",
     "pack": "corporate-era",
     "tags": [
       "building"
@@ -4364,7 +4364,7 @@
     "name": "Business Contacts",
     "type": "event",
     "cost": 7,
-    "description": "LOOK AT THE TOP 4 CARDS FROM THE DECK. TAKE 2 OF THEM INTO HAND AND DISCARD THE OTHER 2",
+    "description": "Look at the top 4 cards from the deck. Take 2 of them into hand and discard the other 2",
     "pack": "corporate-era",
     "tags": [
       "earth"
@@ -5810,7 +5810,7 @@
     "name": "CEO's Favorite Project",
     "type": "event",
     "cost": 1,
-    "description": "ADD 1 RESOURCE TO A CARD WITH AT LEAST 1 RESOURCE ON IT",
+    "description": "Add 1 resource to a card with at least 1 resource on it",
     "pack": "corporate-era",
     "behaviors": [
       {
@@ -7334,7 +7334,7 @@
     "name": "Flooding",
     "type": "event",
     "cost": 7,
-    "description": "Place an ocean tile. IF THERE ARE TILES ADJACENT TO THIS OCEAN TILE, YOU MAY REMOVE 4 M€ FROM THE OWNER OF ONE OF THOSE TILES.",
+    "description": "Place an ocean tile. If there are tiles adjacent to this ocean tile, you may remove 4 M€ from the owner of one of those tiles.",
     "pack": "base-game",
     "behaviors": [
       {
@@ -7478,7 +7478,7 @@
     "name": "Invention Contest",
     "type": "event",
     "cost": 2,
-    "description": "LOOK AT THE TOP 3 CARDS FROM THE DECK. TAKE 1 OF THEM INTO HAND AND DISCARD THE OTHER 2",
+    "description": "Look at the top 3 cards from the deck. Take 1 of them into hand and discard the other 2",
     "pack": "corporate-era",
     "tags": [
       "science"
@@ -11758,7 +11758,7 @@
     "name": "Market Manipulation",
     "type": "event",
     "cost": 1,
-    "description": "INCREASE ONE COLONY TILE TRACK 1 STEP. DECREASE ANOTHER COLONY TILE TRACK 1 STEP",
+    "description": "Increase one colony tile track 1 step. Decrease another colony tile track 1 step",
     "pack": "colonies",
     "tags": [
       "earth"
@@ -11974,7 +11974,7 @@
     "name": "Productive Outpost",
     "type": "automated",
     "cost": 0,
-    "description": "GAIN ALL YOUR COLONY BONUSES",
+    "description": "Gain all your colony bonuses",
     "pack": "colonies"
   },
   {
@@ -12116,7 +12116,7 @@
     "name": "Research Colony",
     "type": "automated",
     "cost": 20,
-    "description": "Place a colony. MAY BE PLACED WHERE YOU ALREADY HAVE A COLONY. Draw 2 cards.",
+    "description": "Place a colony. May be placed where you already have a colony. Draw 2 cards.",
     "pack": "colonies",
     "tags": [
       "science",
@@ -12317,7 +12317,7 @@
     "name": "Space Port Colony",
     "type": "automated",
     "cost": 27,
-    "description": "Requires a colony. Place a colony. MAY BE PLACED ON A COLONY TILE WHERE YOU ALREADY HAVE A COLONY. Gain 1 Trade Fleet. 1 VP per 2 colonies in play.",
+    "description": "Requires a colony. Place a colony. May be placed on a colony tile where you already have a colony. Gain 1 Trade Fleet. 1 VP per 2 colonies in play.",
     "pack": "colonies",
     "tags": [
       "space"
@@ -13238,7 +13238,7 @@
     "name": "Ecology Experts",
     "type": "prelude",
     "cost": 0,
-    "description": "Increase your plant production 1 step. PLAY A CARD FROM HAND, IGNORING GLOBAL REQUIREMENTS",
+    "description": "Increase your plant production 1 step. Play a card from hand, ignoring global requirements",
     "pack": "prelude",
     "tags": [
       "microbe",
@@ -13266,7 +13266,7 @@
     "name": "Excentric Sponsor",
     "type": "prelude",
     "cost": 0,
-    "description": "PLAY A CARD FROM HAND, REDUCING ITS COST BY 25 M€",
+    "description": "Play a card from hand, reducing its cost by 25 M€",
     "pack": "prelude",
     "behaviors": [
       {
@@ -15692,7 +15692,7 @@
     "name": "Project Inspection",
     "type": "event",
     "cost": 0,
-    "description": "USE A CARD ACTION THAT HAS ALREADY BEEN USED THIS GENERATION",
+    "description": "Use a card action that has already been used this generation",
     "pack": "turmoil"
   },
   {
@@ -15739,7 +15739,7 @@
     "name": "Hi-Tech Lab",
     "type": "active",
     "cost": 17,
-    "description": "Action: Spend any amount of energy to draw the same number of cards. TAKE 1 INTO HAND AND DISCARD THE REST.",
+    "description": "Action: Spend any amount of energy to draw the same number of cards. Take 1 into hand and discard the rest.",
     "pack": "turmoil",
     "tags": [
       "building",
@@ -16228,7 +16228,7 @@
     "name": "Crash Site Cleanup",
     "type": "event",
     "cost": 4,
-    "description": "REQUIRES THAT A PLAYER REMOVED ANOTHER PLAYER'S PLANTS THIS GENERATION. Gain 1 titanium or 2 steel.",
+    "description": "Requires that a player removed another player's plants this generation. Gain 1 titanium or 2 steel.",
     "pack": "promo",
     "behaviors": [
       {
@@ -17064,7 +17064,7 @@
     "name": "Harvest",
     "type": "event",
     "cost": 4,
-    "description": "Requires that you have 3 greenery tiles in play.  Gain 12 M€.",
+    "description": "Requires that you have 3 greenery tiles in play. Gain 12 M€.",
     "pack": "promo",
     "tags": [
       "plant"
@@ -17121,7 +17121,7 @@
     "name": "Corporate Archives",
     "type": "prelude",
     "cost": 0,
-    "description": "Gain 13 M€. LOOK AT THE TOP 7 CARDS FROM THE DECK. TAKE 2 OF THEM INTO HAND AND DISCARD THE OTHER 5",
+    "description": "Gain 13 M€. Look at the top 7 cards from the deck. Take 2 of them into hand and discard the other 5",
     "pack": "promo",
     "tags": [
       "science"
@@ -17158,7 +17158,7 @@
     "name": "Double Down",
     "type": "prelude",
     "cost": 0,
-    "description": "COPY YOUR OTHER PRELUDE'S DIRECT EFFECT",
+    "description": "Copy your other prelude's direct effect",
     "pack": "promo"
   },
   {
@@ -17234,7 +17234,7 @@
     "name": "Head Start",
     "type": "prelude",
     "cost": 0,
-    "description": "GAIN 2 STEEL. GAIN 2 M€ PER PROJECT CARD YOU HAVE IN HAND. IMMEDIATELY TAKE 2 ACTIONS",
+    "description": "Gain 2 steel. Gain 2 M€ per project card you have in hand. Immediately take 2 actions",
     "pack": "promo",
     "behaviors": [
       {
@@ -17338,7 +17338,7 @@
     "name": "Arcadian Communities",
     "type": "corporation",
     "cost": 0,
-    "description": "Action: PLACE A COMMUNITY (PLAYER MARKER) ON A NON-RESERVED AREA ADJACENT TO ONE OF YOUR TILES OR MARKED AREAS. / Effect: MARKED AREAS ARE RESERVED FOR YOU. WHEN YOU PLACE A TILE THERE, GAIN 3 M€. You start with 40 M€ and 10 steel. AS YOUR FIRST ACTION, PLACE A COMMUNITY (PLAYER MARKER) ON A NON-RESERVED AREA.",
+    "description": "Action: place a community (player marker) on a non-reserved area adjacent to one of your tiles or marked areas. / Effect: marked areas are reserved for you. When you place a tile there, gain 3 M€. You start with 40 M€ and 10 steel. As your first action, place a community (player marker) on a non-reserved area.",
     "pack": "promo",
     "behaviors": [
       {
@@ -17570,7 +17570,7 @@
     "name": "Mons Insurance",
     "type": "corporation",
     "cost": 0,
-    "description": "Effect: When a player causes another player to decrease production or lose resources, pay 3 M€ to the victim, or as much as possible. You start with 48 M€. Increase your M€ production 4 steps. ALL OPPONENTS DECREASE THEIR M€ PRODUCTION 2 STEPS. THIS DOES NOT TRIGGER THE EFFECT BELOW.",
+    "description": "Effect: When a player causes another player to decrease production or lose resources, pay 3 M€ to the victim, or as much as possible. You start with 48 M€. Increase your M€ production 4 steps. All opponents decrease their M€ production 2 steps. This does not trigger the effect below.",
     "pack": "turmoil",
     "behaviors": [
       {

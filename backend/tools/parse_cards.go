@@ -1987,20 +1987,153 @@ func parseEffectsFromDescription(card *model.Card) {
 
 func parseDescription(record []string) string {
 	// Try full text first (assuming it's around column 42)
+	var description string
 	if len(record) > 42 && record[42] != "" {
-		return strings.TrimSpace(record[42])
+		description = strings.TrimSpace(record[42])
+	} else {
+		// Fallback to earlier columns
+		var parts []string
+		if len(record) > 40 && record[40] != "" {
+			parts = append(parts, strings.TrimSpace(record[40]))
+		}
+		if len(record) > 39 && record[39] != "" {
+			parts = append(parts, strings.TrimSpace(record[39]))
+		}
+		description = strings.Join(parts, " ")
 	}
 
-	// Fallback to earlier columns
-	var parts []string
-	if len(record) > 40 && record[40] != "" {
-		parts = append(parts, strings.TrimSpace(record[40]))
-	}
-	if len(record) > 39 && record[39] != "" {
-		parts = append(parts, strings.TrimSpace(record[39]))
+	// Convert ALL CAPS segments to sentence case
+	return toSentenceCase(description)
+}
+
+// toSentenceCase converts ALL CAPS text segments to proper sentence case
+// Handles both fully ALL CAPS text and mixed text with ALL CAPS segments
+func toSentenceCase(text string) string {
+	if text == "" {
+		return text
 	}
 
-	return strings.Join(parts, " ")
+	// Split by sentence delimiters but keep the delimiters
+	sentences := splitPreservingDelimiters(text, []string{". ", "! ", "? "})
+
+	var result strings.Builder
+	for i, sentence := range sentences {
+		sentence = strings.TrimSpace(sentence)
+		if sentence == "" {
+			continue
+		}
+
+		// Check if this sentence is ALL CAPS
+		if isAllCaps(sentence) {
+			// Convert to sentence case: first letter uppercase, rest lowercase
+			converted := convertToSentenceCase(sentence)
+			result.WriteString(converted)
+		} else {
+			result.WriteString(sentence)
+		}
+
+		// Add space after sentence if it ends with punctuation and it's not the last sentence
+		if i < len(sentences)-1 {
+			if strings.HasSuffix(sentence, ".") || strings.HasSuffix(sentence, "!") || strings.HasSuffix(sentence, "?") {
+				result.WriteString(" ")
+			}
+		}
+	}
+
+	return strings.TrimSpace(result.String())
+}
+
+// isAllCaps checks if a text segment is predominantly in ALL CAPS
+func isAllCaps(text string) bool {
+	upperCount := 0
+	lowerCount := 0
+
+	for _, r := range text {
+		if r >= 'A' && r <= 'Z' {
+			upperCount++
+		} else if r >= 'a' && r <= 'z' {
+			lowerCount++
+		}
+	}
+
+	// Consider it ALL CAPS if there are letters and 80%+ are uppercase
+	totalLetters := upperCount + lowerCount
+	if totalLetters < 3 {
+		return false // Too short to determine
+	}
+
+	return float64(upperCount)/float64(totalLetters) >= 0.8
+}
+
+// convertToSentenceCase converts an ALL CAPS string to sentence case
+// First letter uppercase, rest lowercase, preserving proper nouns
+func convertToSentenceCase(text string) string {
+	if text == "" {
+		return text
+	}
+
+	// Convert to lowercase first
+	lower := strings.ToLower(text)
+
+	// Capitalize first letter
+	runes := []rune(lower)
+	for i, r := range runes {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			runes[i] = []rune(strings.ToUpper(string(r)))[0]
+			break
+		}
+	}
+	result := string(runes)
+
+	// Preserve proper nouns (M€, TR, VP, etc.)
+	result = preserveProperNouns(result)
+
+	return result
+}
+
+// preserveProperNouns restores proper capitalization for game-specific terms
+func preserveProperNouns(text string) string {
+	result := text
+
+	// Handle M€ specially - match with explicit boundaries since € is not a word char
+	// Match patterns like "4 m€", "m€ production", start/end of string, etc.
+	result = regexp.MustCompile(`(?i)(^|[\s])m€([\s\.,!?]|$)`).ReplaceAllString(result, "${1}M€${2}")
+
+	// Handle other game terms with standard word boundaries (case-insensitive)
+	result = regexp.MustCompile(`(?i)\btr\b`).ReplaceAllString(result, "TR")
+	result = regexp.MustCompile(`(?i)\bvp\b`).ReplaceAllString(result, "VP")
+
+	return result
+}
+
+// splitPreservingDelimiters splits text by delimiters but keeps the delimiters attached
+func splitPreservingDelimiters(text string, delimiters []string) []string {
+	if text == "" {
+		return []string{}
+	}
+
+	result := []string{text}
+
+	for _, delim := range delimiters {
+		var newResult []string
+		for _, part := range result {
+			if strings.Contains(part, delim) {
+				splits := strings.Split(part, delim)
+				for i, split := range splits {
+					if i < len(splits)-1 {
+						newResult = append(newResult, split+delim)
+					} else if split != "" {
+						newResult = append(newResult, split)
+					}
+				}
+			} else {
+				newResult = append(newResult, part)
+			}
+		}
+		result = newResult
+	}
+
+	return result
 }
 
 func parseVictoryConditionsFromBehaviors(behaviors []BehaviorData, record []string) []model.VictoryPointCondition {
