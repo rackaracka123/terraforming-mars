@@ -171,8 +171,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     );
     const hasActionBox = classifiedBehaviors.some(
       (cb) =>
-        (cb.behavior.triggers &&
-          cb.behavior.triggers[0]?.type === "manual") ||
+        (cb.behavior.triggers && cb.behavior.triggers[0]?.type === "manual") ||
         cb.behavior.choices,
     );
     const hasTriggeredEffect = classifiedBehaviors.some(

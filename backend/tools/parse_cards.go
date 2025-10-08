@@ -301,6 +301,21 @@ func main() {
 	})
 	fmt.Printf("Cards sorted by ID\n")
 
+	// Load pack mapping and apply to cards
+	packMapping, err := loadPackMapping()
+	if err != nil {
+		fmt.Printf("Warning: Could not load pack mapping (%v), cards will not have pack information\n", err)
+	} else {
+		packAppliedCount := 0
+		for i := range cards {
+			if pack, exists := packMapping[cards[i].ID]; exists {
+				cards[i].Pack = pack
+				packAppliedCount++
+			}
+		}
+		fmt.Printf("Pack information applied to %d cards\n", packAppliedCount)
+	}
+
 	output, err := json.MarshalIndent(cards, "", "  ")
 	if err != nil {
 		fmt.Printf("Error marshaling JSON: %v\n", err)
@@ -2879,4 +2894,18 @@ func createGlobalParameterLenienceBehavior(behavior BehaviorData) *model.CardBeh
 	}
 }
 
-// DEPRECATED: enhanceGlobalParameterLenienceActions - replaced by createGlobalParameterLenienceAction
+// loadPackMapping loads the pack mapping from JSON file
+func loadPackMapping() (map[string]string, error) {
+	packFilePath := filepath.Join("assets", "terraforming_mars_card_pack.json")
+	data, err := os.ReadFile(packFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read pack mapping file: %w", err)
+	}
+
+	var packMapping map[string]string
+	if err := json.Unmarshal(data, &packMapping); err != nil {
+		return nil, fmt.Errorf("failed to parse pack mapping: %w", err)
+	}
+
+	return packMapping, nil
+}
