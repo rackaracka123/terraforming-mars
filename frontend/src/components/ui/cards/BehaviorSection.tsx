@@ -85,7 +85,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       const hasTrigger = behavior.triggers && behavior.triggers.length > 0;
       const triggerType = hasTrigger ? behavior.triggers?.[0]?.type : null;
       const hasInputs = behavior.inputs && behavior.inputs.length > 0;
-      const hasChoices = behavior.choices && behavior.choices.length > 0;
       const hasProduction =
         behavior.outputs &&
         behavior.outputs.some((output: any) =>
@@ -100,7 +99,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         return { behavior, type: "discount" };
       }
 
-      if (triggerType === "manual" || hasChoices) {
+      if (triggerType === "manual") {
         return { behavior, type: "manual-action" };
       }
 
@@ -122,6 +121,87 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
   const classifiedBehaviors = classifyBehaviors(behaviors);
 
+  // Helper to detect if there's a tile placement and its "loneliness" level
+  const detectTilePlacementScale = (): {
+    scale: 1 | 1.5 | 2;
+    tileType: string | null;
+  } => {
+    // Find if there's a tile placement in any behavior
+    let tilePlacementType: string | null = null;
+    let tileBehaviorIndex = -1;
+
+    for (let i = 0; i < classifiedBehaviors.length; i++) {
+      const behavior = classifiedBehaviors[i].behavior;
+      if (behavior.outputs && behavior.outputs.length > 0) {
+        for (const output of behavior.outputs) {
+          const cleanType = output.type?.toLowerCase().replace(/[_\s]/g, "-");
+          if (
+            cleanType === "city-placement" ||
+            cleanType === "greenery-placement" ||
+            cleanType === "ocean-placement"
+          ) {
+            tilePlacementType = cleanType;
+            tileBehaviorIndex = i;
+            break;
+          }
+        }
+      }
+      if (tilePlacementType) break;
+    }
+
+    // No tile placement found
+    if (!tilePlacementType || tileBehaviorIndex === -1) {
+      return { scale: 1, tileType: null };
+    }
+
+    const tileBehavior = classifiedBehaviors[tileBehaviorIndex].behavior;
+
+    // Check if tile is in a behavior with other outputs
+    const hasOtherOutputs =
+      tileBehavior.outputs && tileBehavior.outputs.length > 1;
+    if (hasOtherOutputs) {
+      return { scale: 1, tileType: null }; // Not alone at all
+    }
+
+    // Count other behaviors (production, actions, effects)
+    const hasProductionBox = classifiedBehaviors.some(
+      (cb) =>
+        (cb.behavior as any).productionOutputs &&
+        (cb.behavior as any).productionOutputs.length > 0,
+    );
+    const hasActionBox = classifiedBehaviors.some(
+      (cb) =>
+        (cb.behavior.triggers && cb.behavior.triggers[0]?.type === "manual") ||
+        cb.behavior.choices,
+    );
+    const hasTriggeredEffect = classifiedBehaviors.some(
+      (cb) =>
+        cb.behavior.triggers &&
+        cb.behavior.triggers[0]?.type === "auto" &&
+        (cb.behavior as any).condition !== undefined &&
+        (cb.behavior as any).condition !== null,
+    );
+
+    // Completely alone: only tile placement, nothing else
+    if (
+      classifiedBehaviors.length === 1 &&
+      !hasProductionBox &&
+      !hasActionBox &&
+      !hasTriggeredEffect
+    ) {
+      return { scale: 2, tileType: tilePlacementType };
+    }
+
+    // Half alone: tile placement + production/action/effect
+    if (hasProductionBox || hasActionBox || hasTriggeredEffect) {
+      return { scale: 1.5, tileType: tilePlacementType };
+    }
+
+    return { scale: 1, tileType: null };
+  };
+
+  const tileScaleInfo = detectTilePlacementScale();
+
   const renderIcon = (
     resourceType: string,
     _isProduction: boolean = false,
@@ -134,8 +214,27 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     if (!icon) return null;
 
-    let iconClass =
-      "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
+    // Check if this is a tile placement that should be scaled up
+    const isScaledTile =
+      tileScaleInfo.scale > 1 && cleanType === tileScaleInfo.tileType;
+
+    let iconClass: string;
+    if (isScaledTile) {
+      if (tileScaleInfo.scale === 2) {
+        // Completely alone: 2x size
+        iconClass =
+          "w-[52px] h-[52px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[44px] max-md:h-[44px]";
+      } else {
+        // Half alone: 1.5x size
+        iconClass =
+          "w-[39px] h-[39px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[33px] max-md:h-[33px]";
+      }
+    } else {
+      // Normal size
+      iconClass =
+        "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";
+    }
+
     const isTag = isTagIcon(cleanType);
     const isPlacement =
       cleanType === "city-placement" ||
@@ -608,9 +707,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       // Show minus inside icon if not grouped with other negative resources
       const showMinusInside = amount < 0 && !isGroupedWithOtherNegatives;
-      // Show minus outside icon if grouped with other negative resources
-      const showMinusOutside =
-        (isInput || amount < 0) && isGroupedWithOtherNegatives;
+      // Never show minus outside - the group minus is handled at the row level
 
       const finalCreditsClasses = !isAffordable
         ? `${creditsClasses} opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]`
@@ -618,11 +715,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       return (
         <div className={finalCreditsClasses}>
-          {showMinusOutside && (
-            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
-              -
-            </span>
-          )}
           <GameIcon
             iconType="credits"
             amount={showMinusInside ? amount : Math.abs(amount)}
@@ -670,11 +762,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       const absoluteAmount = Math.abs(amount);
       return (
         <div className="flex items-center gap-px relative">
-          {(isInput || amount < 0) && (
-            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
-              -
-            </span>
-          )}
+          {(isInput || amount < 0) &&
+            !isGroupedWithOtherNegatives &&
+            context !== "action" && (
+              <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                -
+              </span>
+            )}
           {Array.from({ length: absoluteAmount }, (_, i) => (
             <React.Fragment key={i}>{iconElement}</React.Fragment>
           ))}
@@ -683,8 +777,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     } else {
       return (
         <div className="flex items-center gap-0.5 relative">
-          {isInput && (
-            <span className="text-lg font-bold text-[#ffcdd2] mr-0.5 [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] flex items-center">
+          {isInput && !isGroupedWithOtherNegatives && context !== "action" && (
+            <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
               -
             </span>
           )}
@@ -898,6 +992,81 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     behavior: any,
     _layoutPlan: LayoutPlan,
   ): React.ReactNode => {
+    // Special case: if there are choices AND outputs, render them on separate rows
+    if (
+      behavior.choices &&
+      behavior.choices.length > 0 &&
+      behavior.outputs &&
+      behavior.outputs.length > 0
+    ) {
+      return (
+        <div className="flex flex-col gap-[6px] items-center justify-start w-full py-1">
+          {/* Render choices in compact format: amount <icon> / amount <icon> / ... */}
+          <div className="flex flex-wrap gap-1 items-center justify-center">
+            {behavior.choices.map((choice: any, choiceIndex: number) => (
+              <React.Fragment key={`choice-compact-${choiceIndex}`}>
+                {choiceIndex > 0 && (
+                  <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                    /
+                  </span>
+                )}
+                {choice.outputs &&
+                  choice.outputs.map((output: any, outputIndex: number) => {
+                    const amount = output.amount || 1;
+                    const resourceType = output.resourceType || output.type;
+                    const isAffordable = isResourceAffordable(output, false);
+
+                    return (
+                      <React.Fragment
+                        key={`choice-${choiceIndex}-output-${outputIndex}`}
+                      >
+                        <div className="flex gap-[3px] items-center">
+                          {amount > 0 && (
+                            <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                              {amount}
+                            </span>
+                          )}
+                          {renderIcon(
+                            resourceType,
+                            false,
+                            false,
+                            "standalone",
+                            isAffordable,
+                          )}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Render regular outputs on a new row */}
+          <div className="flex flex-wrap gap-[3px] items-center justify-center">
+            {behavior.outputs.map((output: any, index: number) => {
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
+              return (
+                <React.Fragment key={`output-${index}`}>
+                  {renderResourceFromDisplayInfo(
+                    displayInfo,
+                    false,
+                    output,
+                    false,
+                    "standalone",
+                    isResourceAffordable(output, false),
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
     if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
     // Separate production and non-production outputs
@@ -940,41 +1109,92 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       (output: any) => (output.amount ?? 1) >= 0,
     );
 
-    return (
-      <div className="flex flex-wrap gap-[3px] items-center justify-center max-w-full">
-        {/* Regular production outputs in wrapper with row-based grouping */}
-        {regularProduction.length > 0 && (
-          <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
-            <div className="flex flex-col gap-[3px] items-center justify-center">
-              {/* Negative production on first row */}
-              {negativeProduction.length > 0 && (
-                <div className="flex gap-[3px] items-center justify-center">
-                  {negativeProduction.map((output: any, index: number) => {
-                    const displayInfo = analyzeResourceDisplayWithConstraints(
-                      output,
-                      7,
-                      false,
-                    );
-                    const isGrouped = negativeProduction.length > 1;
-                    return (
-                      <React.Fragment key={`neg-prod-${index}`}>
-                        {renderResourceFromDisplayInfo(
-                          displayInfo,
-                          false,
-                          output,
-                          isGrouped,
-                          "standalone",
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
-              )}
+    // Helper function to check if an output is a global parameter or tile placement
+    const isGlobalParamOrTile = (output: any): boolean => {
+      const type = output.resourceType || output.type || "";
+      return (
+        type === "temperature" ||
+        type === "oxygen" ||
+        type === "oceans" ||
+        type === "venus" ||
+        type === "city-tile" ||
+        type === "city-placement" ||
+        type === "ocean-tile" ||
+        type === "ocean-placement" ||
+        type === "greenery-tile" ||
+        type === "greenery-placement"
+      );
+    };
 
-              {/* Positive production on second row */}
-              {positiveProduction.length > 0 && (
-                <div className="flex gap-[3px] items-center justify-center">
-                  {positiveProduction.map((output: any, index: number) => {
+    // Helper function to render production group content
+    const renderProductionGroup = (
+      negative: any[],
+      positive: any[],
+    ): React.ReactNode => {
+      return (
+        <div
+          className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 ? "items-start" : "items-center"}`}
+        >
+          {/* Negative production on first row */}
+          {negative.length > 0 && (
+            <div className="flex gap-[3px] items-center justify-start">
+              <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                -
+              </span>
+              {negative.map((output: any, index: number) => {
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
+                return (
+                  <React.Fragment key={`neg-prod-${index}`}>
+                    {renderResourceFromDisplayInfo(
+                      displayInfo,
+                      false,
+                      output,
+                      true,
+                      "standalone",
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Positive production on second row */}
+          {positive.length > 0 && (
+            <>
+              {negative.length === 0 && positive.length === 2 ? (
+                positive.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <div
+                      key={`pos-prod-row-${index}`}
+                      className="flex gap-[3px] items-center justify-center"
+                    >
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex gap-[3px] items-center justify-start">
+                  {negative.length > 0 && (
+                    <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                      +
+                    </span>
+                  )}
+                  {positive.map((output: any, index: number) => {
                     const displayInfo = analyzeResourceDisplayWithConstraints(
                       output,
                       7,
@@ -993,6 +1213,572 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                     );
                   })}
                 </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // Helper function to render non-production group content
+    const renderNonProductionGroup = (
+      negative: any[],
+      positive: any[],
+    ): React.ReactNode => {
+      return (
+        <div
+          className={`flex flex-col gap-[3px] justify-center ${negative.length > 0 && positive.length > 0 ? "items-start" : "items-center"}`}
+        >
+          {/* Negative resources on first row */}
+          {negative.length > 0 && (
+            <div className="flex gap-[3px] items-center justify-start">
+              {negative.length > 1 && (
+                <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                  -
+                </span>
+              )}
+              {negative.map((output: any, index: number) => {
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
+                const isGrouped = negative.length > 1;
+                return (
+                  <React.Fragment key={`neg-${index}`}>
+                    {renderResourceFromDisplayInfo(
+                      displayInfo,
+                      false,
+                      output,
+                      isGrouped,
+                      "standalone",
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Positive resources on second row */}
+          {positive.length > 0 && (
+            <>
+              {negative.length === 0 && positive.length === 2 ? (
+                positive.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <div
+                      key={`pos-row-${index}`}
+                      className="flex gap-[3px] items-center justify-center"
+                    >
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex gap-[3px] items-center justify-start">
+                  {negative.length > 0 && (
+                    <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                      +
+                    </span>
+                  )}
+                  {positive.map((output: any, index: number) => {
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
+                    return (
+                      <React.Fragment key={`pos-${index}`}>
+                        {renderResourceFromDisplayInfo(
+                          displayInfo,
+                          false,
+                          output,
+                          false,
+                          "standalone",
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // Special handling: if nonProductionOutputs has both regular resources AND global params/tiles,
+    // and there are at least 3 outputs total, use special layouts
+    const globalParamOutputs = nonProductionOutputs.filter(isGlobalParamOrTile);
+    const regularResourceOutputs = nonProductionOutputs.filter(
+      (output: any) => !isGlobalParamOrTile(output),
+    );
+
+    const hasGlobalParamsOrTiles = globalParamOutputs.length > 0;
+    const hasRegularResources = regularResourceOutputs.length > 0;
+    const shouldUseTwoColumnLayout =
+      nonProductionOutputs.length >= 3 &&
+      hasGlobalParamsOrTiles &&
+      hasRegularResources &&
+      regularProduction.length === 0 &&
+      perConditionProduction.length === 0;
+
+    // Special case: if there are 2+ global params/tiles and 1+ regular resources,
+    // stack them vertically (resources on top, global params/tiles on bottom)
+    const shouldUseTwoRowLayout =
+      shouldUseTwoColumnLayout &&
+      globalParamOutputs.length >= 2 &&
+      regularResourceOutputs.length >= 1;
+
+    if (shouldUseTwoRowLayout) {
+      // Split regular resources into attacks and non-attacks
+      const attackResources = regularResourceOutputs.filter(
+        (output: any) => output.target === "any-player",
+      );
+      const positiveRegular = regularResourceOutputs.filter(
+        (output: any) =>
+          output.target !== "any-player" && (output.amount ?? 1) >= 0,
+      );
+      const negativeRegular = regularResourceOutputs.filter(
+        (output: any) =>
+          output.target !== "any-player" && (output.amount ?? 1) < 0,
+      );
+
+      return (
+        <div className="flex flex-col gap-[9px] items-center justify-center max-w-full">
+          {/* Top row: regular resources */}
+          <div className="flex gap-[3px] items-center justify-center">
+            {attackResources.map((output: any, index: number) => {
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
+              return (
+                <React.Fragment key={`attack-${index}`}>
+                  {renderResourceFromDisplayInfo(
+                    displayInfo,
+                    false,
+                    output,
+                    false,
+                    "standalone",
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {negativeRegular.length > 0 && (
+              <>
+                {negativeRegular.length > 1 && (
+                  <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    -
+                  </span>
+                )}
+                {negativeRegular.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  const isGrouped = negativeRegular.length > 1;
+                  return (
+                    <React.Fragment key={`neg-reg-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        isGrouped,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            )}
+            {positiveRegular.map((output: any, index: number) => {
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
+              return (
+                <React.Fragment key={`pos-reg-${index}`}>
+                  {renderResourceFromDisplayInfo(
+                    displayInfo,
+                    false,
+                    output,
+                    false,
+                    "standalone",
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* Bottom row: global parameters and tiles */}
+          <div className="flex gap-[3px] items-center justify-center">
+            {globalParamOutputs.map((output: any, index: number) => {
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
+              return (
+                <React.Fragment key={`global-${index}`}>
+                  {renderResourceFromDisplayInfo(
+                    displayInfo,
+                    false,
+                    output,
+                    false,
+                    "standalone",
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (shouldUseTwoColumnLayout) {
+      // Further split regular resources into attacks and non-attacks
+      // Attacks (any-player target) are displayed first, then regular positive resources
+      const attackResources = regularResourceOutputs.filter(
+        (output: any) => output.target === "any-player",
+      );
+      const positiveRegular = regularResourceOutputs.filter(
+        (output: any) =>
+          output.target !== "any-player" && (output.amount ?? 1) >= 0,
+      );
+      const negativeRegular = regularResourceOutputs.filter(
+        (output: any) =>
+          output.target !== "any-player" && (output.amount ?? 1) < 0,
+      );
+
+      return (
+        <div className="flex gap-2 items-center justify-center max-w-full">
+          {/* Left side: regular resources in rows */}
+          <div className="flex flex-col gap-[6px] items-center justify-center">
+            {/* Attack resources (any-player) on first row */}
+            {attackResources.length > 0 && (
+              <div className="flex gap-[3px] items-center justify-center">
+                {attackResources.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`attack-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+            {/* Negative resources */}
+            {negativeRegular.length > 0 && (
+              <div className="flex gap-[3px] items-center justify-center">
+                {negativeRegular.length > 1 && (
+                  <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    -
+                  </span>
+                )}
+                {negativeRegular.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  const isGrouped = negativeRegular.length > 1;
+                  return (
+                    <React.Fragment key={`neg-reg-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        isGrouped,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+            {/* Positive resources */}
+            {positiveRegular.length > 0 && (
+              <div className="flex gap-[3px] items-center justify-center">
+                {positiveRegular.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`pos-reg-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right side: global parameters and tiles in a single row */}
+          <div className="flex gap-[3px] items-center justify-center">
+            {globalParamOutputs.map((output: any, index: number) => {
+              const displayInfo = analyzeResourceDisplayWithConstraints(
+                output,
+                7,
+                false,
+              );
+              return (
+                <React.Fragment key={`global-${index}`}>
+                  {renderResourceFromDisplayInfo(
+                    displayInfo,
+                    false,
+                    output,
+                    false,
+                    "standalone",
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Count groups that have content
+    const groups = [
+      { content: regularProduction, hasGlobalParamOrTile: false },
+      {
+        content: perConditionProduction,
+        hasGlobalParamOrTile: perConditionProduction.some(isGlobalParamOrTile),
+      },
+      {
+        content: nonProductionOutputs,
+        hasGlobalParamOrTile: nonProductionOutputs.some(isGlobalParamOrTile),
+      },
+    ].filter((group) => group.content.length > 0);
+
+    // Special layout for 3 groups: 2 left (vertical), 1 right (prioritize global params/tiles on right)
+    if (groups.length === 3) {
+      // Determine which group goes on the right (prioritize global parameters and tiles)
+      let rightGroupIndex = groups.findIndex((g) => g.hasGlobalParamOrTile);
+      if (rightGroupIndex === -1) rightGroupIndex = 2; // Default to last group
+
+      const leftGroups = groups.filter((_, i) => i !== rightGroupIndex);
+      const rightGroup = groups[rightGroupIndex];
+
+      return (
+        <div className="flex gap-2 items-center justify-center max-w-full">
+          {/* Left side: 2 groups vertically stacked */}
+          <div className="flex flex-col gap-[3px] items-center justify-center">
+            {leftGroups.map((group, index) => {
+              if (group.content === regularProduction) {
+                return (
+                  <div
+                    key={`left-prod-${index}`}
+                    className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+                  >
+                    {renderProductionGroup(
+                      negativeProduction,
+                      positiveProduction,
+                    )}
+                  </div>
+                );
+              } else if (group.content === perConditionProduction) {
+                return (
+                  <div
+                    key={`left-per-${index}`}
+                    className="flex flex-wrap gap-[3px] items-center justify-center"
+                  >
+                    {perConditionProduction.map((output: any, idx: number) => {
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
+                        output,
+                        7,
+                        false,
+                      );
+                      return (
+                        <React.Fragment key={`per-prod-left-${idx}`}>
+                          {renderResourceFromDisplayInfo(
+                            displayInfo,
+                            false,
+                            output,
+                            false,
+                            "standalone",
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                );
+              } else {
+                return (
+                  <div
+                    key={`left-nonprod-${index}`}
+                    className="flex flex-wrap gap-[3px] items-center justify-center"
+                  >
+                    {renderNonProductionGroup(negativeOutputs, positiveOutputs)}
+                  </div>
+                );
+              }
+            })}
+          </div>
+
+          {/* Right side: 1 group */}
+          <div className="flex items-center justify-center">
+            {rightGroup.content === regularProduction ? (
+              <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+                {renderProductionGroup(negativeProduction, positiveProduction)}
+              </div>
+            ) : rightGroup.content === perConditionProduction ? (
+              <div className="flex flex-wrap gap-[3px] items-center justify-center">
+                {perConditionProduction.map((output: any, idx: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`per-prod-right-${idx}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-[3px] items-center justify-center">
+                {renderNonProductionGroup(negativeOutputs, positiveOutputs)}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-[3px] items-center justify-center max-w-full">
+        {/* Regular production outputs in wrapper with row-based grouping */}
+        {regularProduction.length > 0 && (
+          <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+            <div
+              className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
+            >
+              {/* Negative production on first row */}
+              {negativeProduction.length > 0 && (
+                <div className="flex gap-[3px] items-center justify-start">
+                  <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    -
+                  </span>
+                  {negativeProduction.map((output: any, index: number) => {
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
+                    // In production box, always treat as grouped to show minus outside
+                    const isGrouped = true;
+                    return (
+                      <React.Fragment key={`neg-prod-${index}`}>
+                        {renderResourceFromDisplayInfo(
+                          displayInfo,
+                          false,
+                          output,
+                          isGrouped,
+                          "standalone",
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Positive production on second row */}
+              {positiveProduction.length > 0 && (
+                <>
+                  {negativeProduction.length === 0 &&
+                  positiveProduction.length === 2 ? (
+                    // When there are exactly 2 positive productions and no negatives, show them on separate rows
+                    positiveProduction.map((output: any, index: number) => {
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
+                        output,
+                        7,
+                        false,
+                      );
+                      return (
+                        <div
+                          key={`pos-prod-row-${index}`}
+                          className="flex gap-[3px] items-center justify-center"
+                        >
+                          {renderResourceFromDisplayInfo(
+                            displayInfo,
+                            false,
+                            output,
+                            false,
+                            "standalone",
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    // Default: all positive production in one row
+                    <div className="flex gap-[3px] items-center justify-start">
+                      {negativeProduction.length > 0 && (
+                        <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                          +
+                        </span>
+                      )}
+                      {positiveProduction.map((output: any, index: number) => {
+                        const displayInfo =
+                          analyzeResourceDisplayWithConstraints(
+                            output,
+                            7,
+                            false,
+                          );
+                        return (
+                          <React.Fragment key={`pos-prod-${index}`}>
+                            {renderResourceFromDisplayInfo(
+                              displayInfo,
+                              false,
+                              output,
+                              false,
+                              "standalone",
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1024,10 +1810,17 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
         {/* Non-production outputs */}
         {nonProductionOutputs.length > 0 && (
-          <div className="flex flex-col gap-[3px] items-center justify-center">
+          <div
+            className={`flex flex-col gap-[3px] justify-center ${negativeOutputs.length > 0 && positiveOutputs.length > 0 ? "items-start" : "items-center"}`}
+          >
             {/* Negative resources on first row */}
             {negativeOutputs.length > 0 && (
-              <div className="flex gap-[3px] items-center justify-center">
+              <div className="flex gap-[3px] items-center justify-start">
+                {negativeOutputs.length > 1 && (
+                  <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                    -
+                  </span>
+                )}
                 {negativeOutputs.map((output: any, index: number) => {
                   const displayInfo = analyzeResourceDisplayWithConstraints(
                     output,
@@ -1052,26 +1845,60 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
             {/* Positive resources on second row */}
             {positiveOutputs.length > 0 && (
-              <div className="flex gap-[3px] items-center justify-center">
-                {positiveOutputs.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(
-                    output,
-                    7,
-                    false,
-                  );
-                  return (
-                    <React.Fragment key={`pos-${index}`}>
-                      {renderResourceFromDisplayInfo(
-                        displayInfo,
-                        false,
+              <>
+                {negativeOutputs.length === 0 &&
+                positiveOutputs.length === 2 ? (
+                  // When there are exactly 2 positive outputs and no negatives, show them on separate rows
+                  positiveOutputs.map((output: any, index: number) => {
+                    const displayInfo = analyzeResourceDisplayWithConstraints(
+                      output,
+                      7,
+                      false,
+                    );
+                    return (
+                      <div
+                        key={`pos-row-${index}`}
+                        className="flex gap-[3px] items-center justify-center"
+                      >
+                        {renderResourceFromDisplayInfo(
+                          displayInfo,
+                          false,
+                          output,
+                          false,
+                          "standalone",
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Default: all positive outputs in one row
+                  <div className="flex gap-[3px] items-center justify-start">
+                    {negativeOutputs.length > 0 && (
+                      <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                        +
+                      </span>
+                    )}
+                    {positiveOutputs.map((output: any, index: number) => {
+                      const displayInfo = analyzeResourceDisplayWithConstraints(
                         output,
+                        7,
                         false,
-                        "standalone",
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+                      );
+                      return (
+                        <React.Fragment key={`pos-${index}`}>
+                          {renderResourceFromDisplayInfo(
+                            displayInfo,
+                            false,
+                            output,
+                            false,
+                            "standalone",
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1304,9 +2131,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     classifiedBehaviors: ClassifiedBehavior[],
   ): ClassifiedBehavior[] => {
     const autoProductionBehaviors: ClassifiedBehavior[] = [];
+    const autoNoBackgroundBehaviors: ClassifiedBehavior[] = [];
     const otherBehaviors: ClassifiedBehavior[] = [];
 
-    // Separate auto production behaviors from others
+    // Separate behaviors into categories
     classifiedBehaviors.forEach((classifiedBehavior) => {
       const { behavior, type } = classifiedBehavior;
       const isAutoProduction =
@@ -1321,33 +2149,62 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
       if (isAutoProduction) {
         autoProductionBehaviors.push(classifiedBehavior);
+      } else if (type === "auto-no-background") {
+        autoNoBackgroundBehaviors.push(classifiedBehavior);
       } else {
         otherBehaviors.push(classifiedBehavior);
       }
     });
 
-    // If we have multiple auto production behaviors, merge them
+    // Merge multiple auto production behaviors
+    let mergedAutoProduction: ClassifiedBehavior | null = null;
     if (autoProductionBehaviors.length > 1) {
       const mergedOutputs: any[] = [];
-
       autoProductionBehaviors.forEach((classifiedBehavior) => {
         if (classifiedBehavior.behavior.outputs) {
           mergedOutputs.push(...classifiedBehavior.behavior.outputs);
         }
       });
 
-      const mergedBehavior: ClassifiedBehavior = {
+      mergedAutoProduction = {
         behavior: {
           triggers: [{ type: "auto" }],
           outputs: mergedOutputs,
         },
         type: "auto-no-background",
       };
-
-      return [mergedBehavior, ...otherBehaviors];
+    } else if (autoProductionBehaviors.length === 1) {
+      mergedAutoProduction = autoProductionBehaviors[0];
     }
 
-    return classifiedBehaviors;
+    // Merge multiple auto-no-background behaviors (like Big Asteroid)
+    let mergedAutoNoBackground: ClassifiedBehavior | null = null;
+    if (autoNoBackgroundBehaviors.length > 1) {
+      const mergedOutputs: any[] = [];
+      autoNoBackgroundBehaviors.forEach((classifiedBehavior) => {
+        if (classifiedBehavior.behavior.outputs) {
+          mergedOutputs.push(...classifiedBehavior.behavior.outputs);
+        }
+      });
+
+      mergedAutoNoBackground = {
+        behavior: {
+          triggers: [{ type: "auto" }],
+          outputs: mergedOutputs,
+        },
+        type: "auto-no-background",
+      };
+    } else if (autoNoBackgroundBehaviors.length === 1) {
+      mergedAutoNoBackground = autoNoBackgroundBehaviors[0];
+    }
+
+    // Combine results
+    const result: ClassifiedBehavior[] = [];
+    if (mergedAutoProduction) result.push(mergedAutoProduction);
+    if (mergedAutoNoBackground) result.push(mergedAutoNoBackground);
+    result.push(...otherBehaviors);
+
+    return result;
   };
 
   // Render behaviors with card-level coordination

@@ -472,6 +472,7 @@ export interface ResourceTriggerConditionDto {
   type: TriggerType;
   location?: CardApplyLocation;
   affectedTags?: CardTag[];
+  target?: TargetType;
 }
 /**
  * CardBehaviorDto represents a card behavior for client consumption

@@ -215,6 +215,7 @@ type ResourceTriggerConditionDto struct {
 	Type         TriggerType        `json:"type" ts:"TriggerType"`
 	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
 	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	Target       *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`
 }
 
 // CardBehaviorDto represents a card behavior for client consumption
