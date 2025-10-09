@@ -4,12 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
-	"terraforming-mars-backend/test"
+	"terraforming-mars-backend/test/fixtures"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +13,6 @@ import (
 
 func TestCardService_SelectStartingCards(t *testing.T) {
 	ctx := context.Background()
-	eventBus := events.NewEventBus()
 
 	tests := []struct {
 		name          string
@@ -72,23 +67,15 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create fresh repositories for each subtest to avoid state pollution
-			gameRepo := repository.NewGameRepository(eventBus)
-			playerRepo := repository.NewPlayerRepository(eventBus)
-			cardRepo := repository.NewCardRepository()
-			cardDeckRepo := repository.NewCardDeckRepository()
-			sessionManager := test.NewMockSessionManager()
-			boardService := service.NewBoardService()
-			tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-			effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-			cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+			// Create fresh service container for each subtest to avoid state pollution
+			container := fixtures.NewServiceContainer()
 
 			// Load cards
-			err := cardRepo.LoadCards(ctx)
+			err := container.CardRepo.LoadCards(ctx)
 			require.NoError(t, err)
 
 			// Get real card IDs
-			startingCards, _ := cardRepo.GetStartingCardPool(ctx)
+			startingCards, _ := container.CardRepo.GetStartingCardPool(ctx)
 			require.GreaterOrEqual(t, len(startingCards), 4)
 
 			availableCardIDs := []string{
@@ -114,56 +101,30 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				}
 			}
 
-			// Create game
-			game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
-			require.NoError(t, err)
-			gameID := game.ID
-
-			err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
-			require.NoError(t, err)
-			err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
-			require.NoError(t, err)
-
-			// Create player
-			player := model.Player{
-				ID:              "player1",
-				Name:            "Test Player",
-				Resources:       model.Resources{Credits: 40},
-				Production:      model.Production{Credits: 1},
-				TerraformRating: 20,
-				IsConnected:     true,
-				Cards:           []string{},
-				PlayedCards:     []string{},
-			}
-			err = playerRepo.Create(ctx, gameID, player)
-			require.NoError(t, err)
-			err = gameRepo.AddPlayerID(ctx, gameID, player.ID)
-			require.NoError(t, err)
-
-			// Add dummy player to prevent auto-phase-transition
-			dummyPlayer := model.Player{
-				ID:              "player2",
-				Name:            "Dummy Player",
-				Resources:       model.Resources{Credits: 40},
-				Production:      model.Production{Credits: 1},
-				TerraformRating: 20,
-				IsConnected:     true,
-			}
-			err = playerRepo.Create(ctx, gameID, dummyPlayer)
-			require.NoError(t, err)
-			err = gameRepo.AddPlayerID(ctx, gameID, dummyPlayer.ID)
-			require.NoError(t, err)
+			// Create game in starting card selection phase
+			fixture := fixtures.NewGameInStartingCardSelection(t, container)
+			gameID := fixture.GameID
+			playerID := fixture.PlayerID
 
 			// Set up starting card selection phase
-			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player.ID, &model.SelectStartingCardsPhase{
+			err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, playerID, &model.SelectStartingCardsPhase{
 				AvailableCards:        availableCardIDs,
 				AvailableCorporations: []string{"CC1", "PC5"},
 				SelectionComplete:     false,
 			})
 			require.NoError(t, err)
 
+			// Add dummy player to prevent auto-phase-transition
+			dummyPlayer := fixtures.NewDefaultPlayer()
+			dummyPlayer.ID = "player2"
+			dummyPlayer.Name = "Dummy Player"
+			err = container.PlayerRepo.Create(ctx, gameID, dummyPlayer)
+			require.NoError(t, err)
+			err = container.GameRepo.AddPlayerID(ctx, gameID, dummyPlayer.ID)
+			require.NoError(t, err)
+
 			// Mark dummy player as completed
-			err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, dummyPlayer.ID, &model.SelectStartingCardsPhase{
+			err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, dummyPlayer.ID, &model.SelectStartingCardsPhase{
 				AvailableCards:        []string{},
 				AvailableCorporations: []string{},
 				SelectionComplete:     true,
@@ -171,7 +132,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnSelectStartingCards(ctx, gameID, player.ID, realSelectedCards, "CC1")
+			err = container.CardService.OnSelectStartingCards(ctx, gameID, playerID, realSelectedCards, "CC1")
 
 			// Assert
 			if tt.expectedError {
@@ -183,7 +144,7 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify player state
-				updatedPlayer, err := playerRepo.GetByID(ctx, gameID, player.ID)
+				updatedPlayer, err := container.PlayerRepo.GetByID(ctx, gameID, playerID)
 				require.NoError(t, err)
 
 				assert.Equal(t, len(realSelectedCards), len(updatedPlayer.Cards))
@@ -206,70 +167,20 @@ func TestCardService_SelectStartingCards(t *testing.T) {
 func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	eventBus := events.NewEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	container := fixtures.NewServiceContainer()
 
 	// Create a test game in starting card selection phase
-	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
-	require.NoError(t, err)
-	gameID := createdGame.ID
+	fixture := fixtures.NewGameInStartingCardSelection(t, container)
+	gameID := fixture.GameID
 
-	// Set game to active status and starting card selection phase
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
-	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
-	require.NoError(t, err)
-
-	// Create two test players
-	player1 := model.Player{
-		ID:   "player1",
-		Name: "Test Player 1",
-		Resources: model.Resources{
-			Credits: 40,
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	player2 := model.Player{
-		ID:   "player2",
-		Name: "Test Player 2",
-		Resources: model.Resources{
-			Credits: 40,
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	// Add players to game
-	err = playerRepo.Create(ctx, gameID, player1)
-	require.NoError(t, err)
-	err = playerRepo.Create(ctx, gameID, player2)
-	require.NoError(t, err)
+	// Add second player to game (first player created by fixture)
+	player2 := fixtures.NewPlayerInGame(t, container, gameID, "player2")
 
 	// Load cards and get available starting cards
-	err = cardRepo.LoadCards(ctx)
+	err := container.CardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Should load card data for testing")
 
-	availableCards, err := cardService.GetStartingCards(ctx)
+	availableCards, err := container.CardService.GetStartingCards(ctx)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(availableCards), 2)
 
@@ -279,13 +190,13 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	}
 
 	// Set starting cards for both players
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player1.ID, &model.SelectStartingCardsPhase{
+	err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, fixture.PlayerID, &model.SelectStartingCardsPhase{
 		AvailableCards:        availableCardIDs,
 		AvailableCorporations: []string{"CC1", "PC5"},
 		SelectionComplete:     false,
 	})
 	require.NoError(t, err)
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player2.ID, &model.SelectStartingCardsPhase{
+	err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, gameID, player2.ID, &model.SelectStartingCardsPhase{
 		AvailableCards:        availableCardIDs,
 		AvailableCorporations: []string{"PC5", "B07"},
 		SelectionComplete:     false,
@@ -293,35 +204,35 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	require.NoError(t, err)
 
 	// Verify game is in starting card selection phase
-	game, err := gameRepo.GetByID(ctx, gameID)
+	game, err := container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// First player selects starting cards (should NOT trigger phase transition)
-	err = cardService.OnSelectStartingCards(ctx, gameID, player1.ID, []string{availableCardIDs[0]}, "CC1")
+	err = container.CardService.OnSelectStartingCards(ctx, gameID, fixture.PlayerID, []string{availableCardIDs[0]}, "CC1")
 	require.NoError(t, err)
 
 	// Verify game is still in starting card selection phase
-	game, err = gameRepo.GetByID(ctx, gameID)
+	game, err = container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
 	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// Second player selects starting cards (should trigger automatic phase transition)
-	err = cardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]}, "PC5")
+	err = container.CardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]}, "PC5")
 	require.NoError(t, err)
 
 	// Verify game automatically transitioned to action phase
-	game, err = gameRepo.GetByID(ctx, gameID)
+	game, err = container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
 	assert.Equal(t, model.GamePhaseAction, game.CurrentPhase, "Game should automatically transition to action phase when all players complete starting card selection")
 
 	// Verify both players have their selected cards
-	updatedPlayer1, err := playerRepo.GetByID(ctx, gameID, player1.ID)
+	updatedPlayer1, err := container.PlayerRepo.GetByID(ctx, gameID, fixture.PlayerID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer1.Cards, availableCardIDs[0])
 	assert.Equal(t, 37, updatedPlayer1.Resources.Credits) // CC1 (Aridor) gives 40, minus 3 for 1 card
 
-	updatedPlayer2, err := playerRepo.GetByID(ctx, gameID, player2.ID)
+	updatedPlayer2, err := container.PlayerRepo.GetByID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
 	assert.Equal(t, 42, updatedPlayer2.Resources.Credits) // PC5 (Vitor) gives 45, minus 3 for 1 card
@@ -329,51 +240,17 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 
 func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 	ctx := context.Background()
-	eventBus := events.NewEventBus()
-
-	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	container := fixtures.NewServiceContainer()
 
 	// Create test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
-	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
-
-	// Create test player
-	player := model.Player{
-		ID:   "player1",
-		Name: "Test Player",
-		Resources: model.Resources{
-			Credits: 40,
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	// Add player to game
-	err = playerRepo.Create(ctx, game.ID, player)
-	require.NoError(t, err)
+	fixture := fixtures.NewGameInStartingCardSelection(t, container)
 
 	// Load cards
-	err = cardRepo.LoadCards(ctx)
+	err := container.CardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Should load card data for testing")
 
 	// Get available starting cards
-	availableCards, err := cardService.GetStartingCards(ctx)
+	availableCards, err := container.CardService.GetStartingCards(ctx)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(availableCards), 1)
 
@@ -383,7 +260,7 @@ func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 	}
 
 	// Set starting cards for player with B10 (United Nations Mars Initiative) corporation
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+	err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, fixture.GameID, fixture.PlayerID, &model.SelectStartingCardsPhase{
 		AvailableCards:        availableCardIDs,
 		AvailableCorporations: []string{"B10"},
 		SelectionComplete:     false,
@@ -392,11 +269,11 @@ func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 
 	// Player selects B10 (United Nations Mars Initiative) corporation
 	// This corporation has a manual action: "If your Terraform Rating was raised this generation, you may pay 3 M€ to raise it 1 step more"
-	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "B10")
+	err = container.CardService.OnSelectStartingCards(ctx, fixture.GameID, fixture.PlayerID, []string{}, "B10")
 	require.NoError(t, err)
 
 	// Verify corporation was selected and manual action was extracted
-	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	updatedPlayer, err := container.PlayerRepo.GetByID(ctx, fixture.GameID, fixture.PlayerID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
 	assert.Equal(t, "United Nations Mars Initiative", updatedPlayer.Corporation.Name)
@@ -432,51 +309,17 @@ func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
 
 func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 	ctx := context.Background()
-	eventBus := events.NewEventBus()
-
-	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	container := fixtures.NewServiceContainer()
 
 	// Create test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
-	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
-
-	// Create test player
-	player := model.Player{
-		ID:   "player1",
-		Name: "Test Player",
-		Resources: model.Resources{
-			Credits: 40,
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	// Add player to game
-	err = playerRepo.Create(ctx, game.ID, player)
-	require.NoError(t, err)
+	fixture := fixtures.NewGameInStartingCardSelection(t, container)
 
 	// Load cards
-	err = cardRepo.LoadCards(ctx)
+	err := container.CardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Should load card data for testing")
 
 	// Get available starting cards
-	availableCards, err := cardService.GetStartingCards(ctx)
+	availableCards, err := container.CardService.GetStartingCards(ctx)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(availableCards), 1)
 
@@ -486,7 +329,7 @@ func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 	}
 
 	// Set starting cards for player with V03 (Manutech) corporation
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+	err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, fixture.GameID, fixture.PlayerID, &model.SelectStartingCardsPhase{
 		AvailableCards:        availableCardIDs,
 		AvailableCorporations: []string{"V03"},
 		SelectionComplete:     false,
@@ -495,11 +338,11 @@ func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 
 	// Player selects V03 (Manutech) corporation
 	// This corporation has a passive effect: "For each step you increase the production of a resource, including this, you also gain that resource"
-	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "V03")
+	err = container.CardService.OnSelectStartingCards(ctx, fixture.GameID, fixture.PlayerID, []string{}, "V03")
 	require.NoError(t, err)
 
 	// Verify corporation was selected and passive effect was extracted
-	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	updatedPlayer, err := container.PlayerRepo.GetByID(ctx, fixture.GameID, fixture.PlayerID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
 	assert.Equal(t, "Manutech", updatedPlayer.Corporation.Name)
@@ -515,51 +358,17 @@ func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 
 func TestCardService_SelectCorporationWithValueModifier(t *testing.T) {
 	ctx := context.Background()
-	eventBus := events.NewEventBus()
-
-	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
-	sessionManager := test.NewMockSessionManager()
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	container := fixtures.NewServiceContainer()
 
 	// Create test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
-	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
-
-	// Create test player
-	player := model.Player{
-		ID:   "player1",
-		Name: "Test Player",
-		Resources: model.Resources{
-			Credits: 40,
-		},
-		Production: model.Production{
-			Credits: 1,
-		},
-		TerraformRating: 20,
-		IsConnected:     true,
-		Cards:           []string{},
-		PlayedCards:     []string{},
-	}
-
-	// Add player to game
-	err = playerRepo.Create(ctx, game.ID, player)
-	require.NoError(t, err)
+	fixture := fixtures.NewGameInStartingCardSelection(t, container)
 
 	// Load cards
-	err = cardRepo.LoadCards(ctx)
+	err := container.CardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Should load card data for testing")
 
 	// Get available starting cards
-	availableCards, err := cardService.GetStartingCards(ctx)
+	availableCards, err := container.CardService.GetStartingCards(ctx)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(availableCards), 1)
 
@@ -569,7 +378,7 @@ func TestCardService_SelectCorporationWithValueModifier(t *testing.T) {
 	}
 
 	// Set starting cards for player with B07 (PhoboLog) corporation
-	err = playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+	err = container.PlayerRepo.UpdateSelectStartingCardsPhase(ctx, fixture.GameID, fixture.PlayerID, &model.SelectStartingCardsPhase{
 		AvailableCards:        availableCardIDs,
 		AvailableCorporations: []string{"B07"},
 		SelectionComplete:     false,
@@ -578,11 +387,11 @@ func TestCardService_SelectCorporationWithValueModifier(t *testing.T) {
 
 	// Player selects B07 (PhoboLog) corporation
 	// This corporation has a value modifier effect: "Your titanium resources are each worth 1 M€ extra"
-	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, []string{}, "B07")
+	err = container.CardService.OnSelectStartingCards(ctx, fixture.GameID, fixture.PlayerID, []string{}, "B07")
 	require.NoError(t, err)
 
 	// Verify corporation was selected and value modifier effect was extracted
-	updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	updatedPlayer, err := container.PlayerRepo.GetByID(ctx, fixture.GameID, fixture.PlayerID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
 	assert.Equal(t, "PhoboLog", updatedPlayer.Corporation.Name)
