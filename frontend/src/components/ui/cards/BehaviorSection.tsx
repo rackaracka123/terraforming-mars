@@ -1104,6 +1104,11 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                         <React.Fragment
                           key={`trigger-tag-${triggerIndex}-${tagIndex}`}
                         >
+                          {tagIndex > 0 && (
+                            <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                              /
+                            </span>
+                          )}
                           {renderIcon(tag, false, false, "standalone", true)}
                         </React.Fragment>
                       ),
