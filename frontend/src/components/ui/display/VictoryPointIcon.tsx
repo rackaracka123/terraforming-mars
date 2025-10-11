@@ -16,7 +16,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
 
   const sizeClasses = {
     small: "w-8 h-8 text-[calc(32px*0.7)]",
-    medium: "w-10 h-10 text-[calc(40px*0.7)]",
+    medium: "w-10 h-10 text-[calc(40px*0.5)]",
     large: "w-12 h-12 text-[calc(48px*0.7)]",
   };
 

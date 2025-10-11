@@ -162,11 +162,20 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
       {/* Card title at 40% from top */}
       <div className="absolute top-[40%] left-2 right-2 z-[3] max-md:px-0.5">
+        {/* Victory Points icon overlapping the left side of title bar */}
+        <div className="absolute -left-5 top-1/2 -translate-y-[calc(50%-5px)] z-[4] pointer-events-none scale-[1.25] max-md:-left-4">
+          <VictoryPointIcon vpConditions={card.vpConditions} size="medium" />
+        </div>
         <h3
-          className={`text-base font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-[90%] h-10 rounded-none p-1 px-2 shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] max-md:text-sm max-md:h-8 ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
+          className={`${card.name.length > 27 ? "text-[12px]" : card.name.length > 20 ? "text-sm" : "text-base"} font-orbitron font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-full h-[44px] rounded-none p-1 ${card.vpConditions ? "pl-[30px] pr-5" : "px-5"} shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] ${card.name.length > 28 ? "max-md:text-[9px]" : card.name.length > 20 ? "max-md:text-xs" : "max-md:text-sm"} max-md:h-[36px] ${card.vpConditions ? "max-md:pl-[25px] max-md:pr-3" : "max-md:px-3"} ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
         >
           {card.name}
         </h3>
+      </div>
+
+      {/* Content section - takes up roughly half the card height and vertically centers content */}
+      <div className="absolute top-[calc(50%+20px)] left-2 right-2 bottom-4 flex items-center justify-center z-[2] max-md:top-[calc(50%+25px)] max-md:left-1.5 max-md:right-1.5 max-md:bottom-3">
+        <BehaviorSection behaviors={card.behaviors} />
       </div>
 
       {/* Selection indicator at bottom center, peeking out (only shown when showCheckbox is true) */}
@@ -181,14 +190,6 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           </div>
         </div>
       )}
-
-      {/* Behavior section */}
-      <BehaviorSection behaviors={card.behaviors} />
-
-      {/* Victory Points icon in bottom right */}
-      <div className="absolute bottom-2 right-2 z-[3] pointer-events-none">
-        <VictoryPointIcon vpConditions={card.vpConditions} size="large" />
-      </div>
 
       {/* Hover effect border */}
       <div className="absolute -inset-px rounded-lg bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.1),transparent)] opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100" />

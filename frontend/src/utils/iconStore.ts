@@ -71,6 +71,9 @@ export const TILE_ICONS: { [key: string]: string } = {
   "city-tile": "/assets/tiles/city.png",
   "ocean-tile": "/assets/tiles/ocean.png",
   "greenery-tile": "/assets/tiles/greenery_no_O2.png",
+  "greenery-placed": "/assets/tiles/greenery_no_O2.png", // For triggered effects
+  "ocean-placed": "/assets/tiles/ocean.png", // For triggered effects
+  "city-placed": "/assets/tiles/city.png", // For triggered effects
 };
 
 export const GLOBAL_PARAMETER_ICONS: { [key: string]: string } = {

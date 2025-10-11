@@ -797,6 +797,90 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
   ): React.ReactNode => {
     // Handle choice-based behaviors
     if (behavior.choices && behavior.choices.length > 0) {
+      // Check if choices only have inputs (no outputs) and behavior has outputs
+      const choicesOnlyHaveInputs = behavior.choices.every(
+        (choice: any) => !choice.outputs || choice.outputs.length === 0,
+      );
+      const behaviorHasOutputs =
+        behavior.outputs && behavior.outputs.length > 0;
+
+      // Special case: choices with only inputs + behavior-level outputs
+      // Format: <input1> / <input2> -> <outputs>
+      if (choicesOnlyHaveInputs && behaviorHasOutputs) {
+        return (
+          <div className="flex items-center justify-center gap-2 w-full">
+            {/* All choice inputs with "/" separator */}
+            <div className="flex items-center gap-[6px]">
+              {behavior.choices.map((choice: any, choiceIndex: number) => (
+                <React.Fragment key={`choice-input-${choiceIndex}`}>
+                  {choiceIndex > 0 && (
+                    <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                      /
+                    </span>
+                  )}
+                  <div className="flex gap-[3px] items-center">
+                    {choice.inputs &&
+                      choice.inputs.map((input: any, inputIndex: number) => {
+                        const displayInfo =
+                          analyzeResourceDisplayWithConstraints(
+                            input,
+                            3,
+                            false,
+                          );
+                        return (
+                          <React.Fragment
+                            key={`choice-${choiceIndex}-input-${inputIndex}`}
+                          >
+                            {renderResourceFromDisplayInfo(
+                              displayInfo,
+                              true,
+                              input,
+                              false,
+                              "action",
+                              isResourceAffordable(input, true),
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+
+            {/* Arrow separator */}
+            <div className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+              →
+            </div>
+
+            {/* Behavior-level outputs */}
+            <div className="flex flex-col gap-0.5 items-center min-w-0">
+              {behavior.outputs &&
+                behavior.outputs.map((output: any, outputIndex: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    3,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`output-${outputIndex}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "action",
+                        isResourceAffordable(output, false),
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+          </div>
+        );
+      }
+
+      // Default case: each choice has its own outputs
+      // Format: <input1> -> <output1> OR <input2> -> <output2>
       return (
         <div className="flex flex-col gap-1.5 items-center w-full">
           {behavior.choices.map((choice: any, choiceIndex: number) => (
@@ -992,6 +1076,88 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     behavior: any,
     _layoutPlan: LayoutPlan,
   ): React.ReactNode => {
+    // Special case: if there are trigger conditions (e.g., Herbivores card), render condition icon : output icons
+    if (
+      behavior.triggers &&
+      behavior.triggers.length > 0 &&
+      behavior.triggers.some((trigger: any) => trigger.condition) &&
+      behavior.outputs &&
+      behavior.outputs.length > 0
+    ) {
+      return (
+        <div className="flex gap-[3px] items-center justify-center">
+          {/* Render trigger condition icon(s) */}
+          {behavior.triggers
+            .filter((trigger: any) => trigger.condition)
+            .map((trigger: any, triggerIndex: number) => {
+              // For card-played triggers with affectedTags, render the tags instead of the condition type
+              const condition = trigger.condition;
+              if (
+                condition.type === "card-played" &&
+                condition.affectedTags &&
+                condition.affectedTags.length > 0
+              ) {
+                return (
+                  <React.Fragment key={`trigger-condition-${triggerIndex}`}>
+                    {condition.affectedTags.map(
+                      (tag: string, tagIndex: number) => (
+                        <React.Fragment
+                          key={`trigger-tag-${triggerIndex}-${tagIndex}`}
+                        >
+                          {tagIndex > 0 && (
+                            <span className="text-white font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                              /
+                            </span>
+                          )}
+                          {renderIcon(tag, false, false, "standalone", true)}
+                        </React.Fragment>
+                      ),
+                    )}
+                  </React.Fragment>
+                );
+              } else {
+                // Default: render the condition type as icon
+                return (
+                  <React.Fragment key={`trigger-condition-${triggerIndex}`}>
+                    {renderIcon(
+                      condition.type,
+                      false,
+                      false,
+                      "standalone",
+                      true,
+                    )}
+                  </React.Fragment>
+                );
+              }
+            })}
+          {/* Colon separator */}
+          <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
+            :
+          </span>
+          {/* Render output icons */}
+          {behavior.outputs.map((output: any, outputIndex: number) => {
+            const displayInfo = analyzeResourceDisplayWithConstraints(
+              output,
+              6,
+              false,
+            );
+            return (
+              <React.Fragment key={`trigger-output-${outputIndex}`}>
+                {renderResourceFromDisplayInfo(
+                  displayInfo,
+                  false,
+                  output,
+                  false,
+                  "standalone",
+                  isResourceAffordable(output, false),
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      );
+    }
+
     // Special case: if there are choices AND outputs, render them on separate rows
     if (
       behavior.choices &&
@@ -1042,27 +1208,135 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
           </div>
 
           {/* Render regular outputs on a new row */}
-          <div className="flex flex-wrap gap-[3px] items-center justify-center">
-            {behavior.outputs.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
+          {(() => {
+            // Check if outputs are production outputs
+            const productionOutputs = behavior.outputs.filter(
+              (output: any) =>
+                output.resourceType?.includes("production") ||
+                output.type?.includes("production") ||
+                output.isProduction === true,
+            );
+            const nonProductionOutputs = behavior.outputs.filter(
+              (output: any) =>
+                !(
+                  output.resourceType?.includes("production") ||
+                  output.type?.includes("production") ||
+                  output.isProduction === true
+                ),
+            );
+
+            // If all outputs are production, wrap them in brown box with row separation
+            if (
+              productionOutputs.length > 0 &&
+              nonProductionOutputs.length === 0
+            ) {
+              const negativeProduction = productionOutputs.filter(
+                (output: any) => (output.amount || 0) < 0,
               );
+              const positiveProduction = productionOutputs.filter(
+                (output: any) => (output.amount || 0) > 0,
+              );
+
               return (
-                <React.Fragment key={`output-${index}`}>
-                  {renderResourceFromDisplayInfo(
-                    displayInfo,
-                    false,
-                    output,
-                    false,
-                    "standalone",
-                    isResourceAffordable(output, false),
-                  )}
-                </React.Fragment>
+                <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+                  <div
+                    className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
+                  >
+                    {/* Negative production on first row */}
+                    {negativeProduction.length > 0 && (
+                      <div className="flex gap-[3px] items-center">
+                        <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                          -
+                        </span>
+                        {negativeProduction.map(
+                          (output: any, index: number) => {
+                            const displayInfo =
+                              analyzeResourceDisplayWithConstraints(
+                                { ...output, amount: Math.abs(output.amount) },
+                                7,
+                                false,
+                              );
+                            return (
+                              <React.Fragment key={`neg-prod-${index}`}>
+                                {renderResourceFromDisplayInfo(
+                                  displayInfo,
+                                  false,
+                                  {
+                                    ...output,
+                                    amount: Math.abs(output.amount),
+                                  },
+                                  false,
+                                  "standalone",
+                                  isResourceAffordable(output, false),
+                                )}
+                              </React.Fragment>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                    {/* Positive production on second row */}
+                    {positiveProduction.length > 0 && (
+                      <div className="flex gap-[3px] items-center">
+                        {negativeProduction.length > 0 && (
+                          <span className="text-white font-bold text-base [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
+                            +
+                          </span>
+                        )}
+                        {positiveProduction.map(
+                          (output: any, index: number) => {
+                            const displayInfo =
+                              analyzeResourceDisplayWithConstraints(
+                                output,
+                                7,
+                                false,
+                              );
+                            return (
+                              <React.Fragment key={`pos-prod-${index}`}>
+                                {renderResourceFromDisplayInfo(
+                                  displayInfo,
+                                  false,
+                                  output,
+                                  false,
+                                  "standalone",
+                                  isResourceAffordable(output, false),
+                                )}
+                              </React.Fragment>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
-            })}
-          </div>
+            }
+
+            // Otherwise render outputs normally
+            return (
+              <div className="flex flex-wrap gap-[3px] items-center justify-center">
+                {behavior.outputs.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`output-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                        isResourceAffordable(output, false),
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       );
     }
@@ -1117,12 +1391,54 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
         type === "oxygen" ||
         type === "oceans" ||
         type === "venus" ||
+        type === "tr" ||
         type === "city-tile" ||
         type === "city-placement" ||
         type === "ocean-tile" ||
         type === "ocean-placement" ||
         type === "greenery-tile" ||
         type === "greenery-placement"
+      );
+    };
+
+    // Helper function to coordinate display modes across resources for consistency
+    // If ANY resource uses "number + icon" format, ALL should use it (except amount=1)
+    const coordinateDisplayModes = (
+      resources: any[],
+    ): Map<any, IconDisplayInfo> => {
+      // First pass: analyze each resource independently
+      const displayInfos = resources.map((r) => ({
+        resource: r,
+        info: analyzeResourceDisplayWithConstraints(r, 7, false),
+      }));
+
+      // Check if ANY resource uses "number" mode
+      const hasNumberMode = displayInfos.some(
+        (d) => d.info.displayMode === "number",
+      );
+
+      // Second pass: if any uses number mode, force all to use it (except amount=1)
+      if (hasNumberMode) {
+        return new Map(
+          displayInfos.map(({ resource, info }) => {
+            const amount = Math.abs(resource.amount ?? 1);
+            if (amount === 1) {
+              // Keep individual mode for amount=1 (redundant to show "1")
+              return [resource, info];
+            } else {
+              // Force number mode for consistency
+              return [
+                resource,
+                { ...info, displayMode: "number", iconCount: 1 },
+              ];
+            }
+          }),
+        );
+      }
+
+      // Otherwise, keep original display modes
+      return new Map(
+        displayInfos.map(({ resource, info }) => [resource, info]),
       );
     };
 
@@ -1354,16 +1670,19 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
           output.target !== "any-player" && (output.amount ?? 1) < 0,
       );
 
+      // Coordinate display modes for consistency across all regular resources
+      const regularDisplayModes = coordinateDisplayModes([
+        ...attackResources,
+        ...negativeRegular,
+        ...positiveRegular,
+      ]);
+
       return (
         <div className="flex flex-col gap-[9px] items-center justify-center max-w-full">
           {/* Top row: regular resources */}
           <div className="flex gap-[3px] items-center justify-center">
             {attackResources.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
-              );
+              const displayInfo = regularDisplayModes.get(output)!;
               return (
                 <React.Fragment key={`attack-${index}`}>
                   {renderResourceFromDisplayInfo(
@@ -1384,11 +1703,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                   </span>
                 )}
                 {negativeRegular.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(
-                    output,
-                    7,
-                    false,
-                  );
+                  const displayInfo = regularDisplayModes.get(output)!;
                   const isGrouped = negativeRegular.length > 1;
                   return (
                     <React.Fragment key={`neg-reg-${index}`}>
@@ -1405,11 +1720,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
               </>
             )}
             {positiveRegular.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
-              );
+              const displayInfo = regularDisplayModes.get(output)!;
               return (
                 <React.Fragment key={`pos-reg-${index}`}>
                   {renderResourceFromDisplayInfo(
@@ -1426,24 +1737,33 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
           {/* Bottom row: global parameters and tiles */}
           <div className="flex gap-[3px] items-center justify-center">
-            {globalParamOutputs.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
-              );
-              return (
-                <React.Fragment key={`global-${index}`}>
-                  {renderResourceFromDisplayInfo(
-                    displayInfo,
-                    false,
-                    output,
-                    false,
-                    "standalone",
-                  )}
-                </React.Fragment>
-              );
-            })}
+            {[...globalParamOutputs]
+              .sort((a, b) => {
+                // TR should appear last in global param group
+                const typeA = a.resourceType || a.type || "";
+                const typeB = b.resourceType || b.type || "";
+                if (typeA === "tr") return 1;
+                if (typeB === "tr") return -1;
+                return 0;
+              })
+              .map((output: any, index: number) => {
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
+                return (
+                  <React.Fragment key={`global-${index}`}>
+                    {renderResourceFromDisplayInfo(
+                      displayInfo,
+                      false,
+                      output,
+                      false,
+                      "standalone",
+                    )}
+                  </React.Fragment>
+                );
+              })}
           </div>
         </div>
       );
@@ -1464,6 +1784,13 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
           output.target !== "any-player" && (output.amount ?? 1) < 0,
       );
 
+      // Coordinate display modes for consistency across all regular resources
+      const regularDisplayModes = coordinateDisplayModes([
+        ...attackResources,
+        ...negativeRegular,
+        ...positiveRegular,
+      ]);
+
       return (
         <div className="flex gap-2 items-center justify-center max-w-full">
           {/* Left side: regular resources in rows */}
@@ -1472,11 +1799,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             {attackResources.length > 0 && (
               <div className="flex gap-[3px] items-center justify-center">
                 {attackResources.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(
-                    output,
-                    7,
-                    false,
-                  );
+                  const displayInfo = regularDisplayModes.get(output)!;
                   return (
                     <React.Fragment key={`attack-${index}`}>
                       {renderResourceFromDisplayInfo(
@@ -1500,11 +1823,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                   </span>
                 )}
                 {negativeRegular.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(
-                    output,
-                    7,
-                    false,
-                  );
+                  const displayInfo = regularDisplayModes.get(output)!;
                   const isGrouped = negativeRegular.length > 1;
                   return (
                     <React.Fragment key={`neg-reg-${index}`}>
@@ -1524,11 +1843,7 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             {positiveRegular.length > 0 && (
               <div className="flex gap-[3px] items-center justify-center">
                 {positiveRegular.map((output: any, index: number) => {
-                  const displayInfo = analyzeResourceDisplayWithConstraints(
-                    output,
-                    7,
-                    false,
-                  );
+                  const displayInfo = regularDisplayModes.get(output)!;
                   return (
                     <React.Fragment key={`pos-reg-${index}`}>
                       {renderResourceFromDisplayInfo(
@@ -1547,24 +1862,33 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
           {/* Right side: global parameters and tiles in a single row */}
           <div className="flex gap-[3px] items-center justify-center">
-            {globalParamOutputs.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
-              );
-              return (
-                <React.Fragment key={`global-${index}`}>
-                  {renderResourceFromDisplayInfo(
-                    displayInfo,
-                    false,
-                    output,
-                    false,
-                    "standalone",
-                  )}
-                </React.Fragment>
-              );
-            })}
+            {[...globalParamOutputs]
+              .sort((a, b) => {
+                // TR should appear last in global param group
+                const typeA = a.resourceType || a.type || "";
+                const typeB = b.resourceType || b.type || "";
+                if (typeA === "tr") return 1;
+                if (typeB === "tr") return -1;
+                return 0;
+              })
+              .map((output: any, index: number) => {
+                const displayInfo = analyzeResourceDisplayWithConstraints(
+                  output,
+                  7,
+                  false,
+                );
+                return (
+                  <React.Fragment key={`global-${index}`}>
+                    {renderResourceFromDisplayInfo(
+                      displayInfo,
+                      false,
+                      output,
+                      false,
+                      "standalone",
+                    )}
+                  </React.Fragment>
+                );
+              })}
           </div>
         </div>
       );
@@ -1685,10 +2009,14 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       );
     }
 
+    // Check if we have both regular and per-condition production - if so, combine them in ONE brown box
+    const hasAllProductionTypes =
+      regularProduction.length > 0 && perConditionProduction.length > 0;
+
     return (
-      <div className="flex flex-wrap gap-[3px] items-center justify-center max-w-full">
-        {/* Regular production outputs in wrapper with row-based grouping */}
-        {regularProduction.length > 0 && (
+      <div className="flex flex-wrap gap-2 items-center justify-center max-w-full">
+        {/* If we have both types, wrap them together in ONE brown box */}
+        {hasAllProductionTypes ? (
           <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
             <div
               className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
@@ -1705,7 +2033,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                       7,
                       false,
                     );
-                    // In production box, always treat as grouped to show minus outside
                     const isGrouped = true;
                     return (
                       <React.Fragment key={`neg-prod-${index}`}>
@@ -1722,55 +2049,131 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                 </div>
               )}
 
-              {/* Positive production on second row */}
-              {positiveProduction.length > 0 && (
-                <>
-                  {negativeProduction.length === 0 &&
-                  positiveProduction.length === 2 ? (
-                    // When there are exactly 2 positive productions and no negatives, show them on separate rows
-                    positiveProduction.map((output: any, index: number) => {
-                      const displayInfo = analyzeResourceDisplayWithConstraints(
-                        output,
-                        7,
-                        false,
-                      );
-                      return (
-                        <div
-                          key={`pos-prod-row-${index}`}
-                          className="flex gap-[3px] items-center justify-center"
-                        >
-                          {renderResourceFromDisplayInfo(
-                            displayInfo,
-                            false,
-                            output,
-                            false,
-                            "standalone",
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    // Default: all positive production in one row
-                    <div className="flex gap-[3px] items-center justify-start">
-                      {negativeProduction.length > 0 && (
+              {/* Positive regular production */}
+              {positiveProduction.length > 0 &&
+                positiveProduction.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <div
+                      key={`pos-prod-row-${index}`}
+                      className="flex gap-[3px] items-center justify-start"
+                    >
+                      {index === 0 && negativeProduction.length > 0 && (
                         <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
                           +
                         </span>
                       )}
-                      {positiveProduction.map((output: any, index: number) => {
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </div>
+                  );
+                })}
+
+              {/* Per-condition production (render without wrapper since we're already in the brown box) */}
+              {perConditionProduction.map((output: any, index: number) => {
+                const baseResourceType = output.type.replace("-production", "");
+                const hasPer = output.per;
+
+                let perIcon = null;
+                if (hasPer.tag) {
+                  perIcon = getIconPath(hasPer.tag);
+                } else if (hasPer.type) {
+                  perIcon = getIconPath(hasPer.type);
+                }
+
+                if (baseResourceType === "credits") {
+                  return (
+                    <div
+                      key={`per-prod-${index}`}
+                      className="flex gap-[3px] items-center justify-center"
+                    >
+                      <GameIcon
+                        iconType="credits"
+                        amount={Math.abs(output.amount ?? 1)}
+                        size="small"
+                      />
+                      <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+                        /
+                      </span>
+                      <img
+                        src={perIcon!}
+                        alt={hasPer.tag || hasPer.type}
+                        className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+                      />
+                    </div>
+                  );
+                } else {
+                  const productionIcon = renderIcon(
+                    baseResourceType,
+                    false,
+                    false,
+                    "production",
+                    true,
+                  );
+                  return (
+                    <div
+                      key={`per-prod-${index}`}
+                      className="flex gap-[3px] items-center justify-center"
+                    >
+                      <div className="flex items-center gap-px relative">
+                        {(output.amount ?? 1) > 1 && (
+                          <span className="text-lg font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)] leading-none flex items-center ml-0.5 max-md:text-xs">
+                            {output.amount}
+                          </span>
+                        )}
+                        {productionIcon}
+                      </div>
+                      <span className="text-base font-bold text-white mx-[3px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)]">
+                        /
+                      </span>
+                      <img
+                        src={perIcon!}
+                        alt={hasPer.tag || hasPer.type}
+                        className="w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]"
+                      />
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Regular production only (original logic) */}
+            {regularProduction.length > 0 && (
+              <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
+                <div
+                  className={`flex flex-col gap-[3px] justify-center ${negativeProduction.length > 0 ? "items-start" : "items-center"}`}
+                >
+                  {negativeProduction.length > 0 && (
+                    <div className="flex gap-[3px] items-center justify-start">
+                      <span className="text-xl font-bold text-[#ffcdd2] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                        -
+                      </span>
+                      {negativeProduction.map((output: any, index: number) => {
                         const displayInfo =
                           analyzeResourceDisplayWithConstraints(
                             output,
                             7,
                             false,
                           );
+                        const isGrouped = true;
                         return (
-                          <React.Fragment key={`pos-prod-${index}`}>
+                          <React.Fragment key={`neg-prod-${index}`}>
                             {renderResourceFromDisplayInfo(
                               displayInfo,
                               false,
                               output,
-                              false,
+                              isGrouped,
                               "standalone",
                             )}
                           </React.Fragment>
@@ -1778,34 +2181,93 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
                       })}
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Per-condition production outputs (already have their own wrapper) */}
-        {perConditionProduction.length > 0 && (
-          <div className="flex flex-col gap-[3px] items-center justify-center">
-            {perConditionProduction.map((output: any, index: number) => {
-              const displayInfo = analyzeResourceDisplayWithConstraints(
-                output,
-                7,
-                false,
-              );
-              return (
-                <React.Fragment key={`per-prod-${index}`}>
-                  {renderResourceFromDisplayInfo(
-                    displayInfo,
-                    false,
-                    output,
-                    false,
-                    "standalone",
+                  {positiveProduction.length > 0 && (
+                    <>
+                      {negativeProduction.length === 0 &&
+                      positiveProduction.length === 2 ? (
+                        positiveProduction.map((output: any, index: number) => {
+                          const displayInfo =
+                            analyzeResourceDisplayWithConstraints(
+                              output,
+                              7,
+                              false,
+                            );
+                          return (
+                            <div
+                              key={`pos-prod-row-${index}`}
+                              className="flex gap-[3px] items-center justify-center"
+                            >
+                              {renderResourceFromDisplayInfo(
+                                displayInfo,
+                                false,
+                                output,
+                                false,
+                                "standalone",
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="flex gap-[3px] items-center justify-start flex-wrap">
+                          {negativeProduction.length > 0 && (
+                            <span className="text-xl font-bold text-[#c8e6c9] w-[20px] h-[26px] flex items-center justify-center [text-shadow:1px_1px_2px_rgba(0,0,0,0.7)]">
+                              +
+                            </span>
+                          )}
+                          {positiveProduction.map(
+                            (output: any, index: number) => {
+                              const displayInfo =
+                                analyzeResourceDisplayWithConstraints(
+                                  output,
+                                  7,
+                                  false,
+                                );
+                              return (
+                                <React.Fragment key={`pos-prod-${index}`}>
+                                  {renderResourceFromDisplayInfo(
+                                    displayInfo,
+                                    false,
+                                    output,
+                                    false,
+                                    "standalone",
+                                  )}
+                                </React.Fragment>
+                              );
+                            },
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
-                </React.Fragment>
-              );
-            })}
-          </div>
+                </div>
+              </div>
+            )}
+
+            {/* Per-condition production only (with wrapper from renderResourceFromDisplayInfo) */}
+            {perConditionProduction.length > 0 && (
+              <div className="flex flex-col gap-[3px] items-center justify-center">
+                {perConditionProduction.map((output: any, index: number) => {
+                  const displayInfo = analyzeResourceDisplayWithConstraints(
+                    output,
+                    7,
+                    false,
+                  );
+                  return (
+                    <React.Fragment key={`per-prod-${index}`}>
+                      {renderResourceFromDisplayInfo(
+                        displayInfo,
+                        false,
+                        output,
+                        false,
+                        "standalone",
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Non-production outputs */}
@@ -1906,18 +2368,31 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     );
   };
 
-  // Render discount layout (: discount amount)
+  // Render discount layout (tag icons : discount amount)
   const renderDiscountLayout = (
     behavior: any,
     _layoutPlan: LayoutPlan,
   ): React.ReactNode => {
     if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
+    // Check if any output has affectedTags
+    const discountOutput = behavior.outputs[0];
+    const affectedTags = discountOutput?.affectedTags || [];
+
     return (
       <div className="flex gap-[3px] items-center justify-center">
+        {/* Render affected tag icons */}
+        {affectedTags.length > 0 &&
+          affectedTags.map((tag: string, tagIndex: number) => (
+            <React.Fragment key={`discount-tag-${tagIndex}`}>
+              {renderIcon(tag, false, false, "standalone", true)}
+            </React.Fragment>
+          ))}
+        {/* Colon separator */}
         <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
           :
         </span>
+        {/* Discount amount */}
         {behavior.outputs.map((output: any, index: number) => {
           const displayInfo = analyzeResourceDisplayWithConstraints(
             output,
@@ -2137,6 +2612,12 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
     // Separate behaviors into categories
     classifiedBehaviors.forEach((classifiedBehavior) => {
       const { behavior, type } = classifiedBehavior;
+
+      // Check if behavior has a trigger condition (e.g., greenery-placed for Herbivores)
+      const hasCondition =
+        behavior.triggers &&
+        behavior.triggers.some((trigger: any) => trigger.condition);
+
       const isAutoProduction =
         type === "auto-no-background" &&
         behavior.outputs &&
@@ -2147,7 +2628,10 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             output.isProduction,
         );
 
-      if (isAutoProduction) {
+      // Don't merge behaviors that have trigger conditions
+      if (hasCondition) {
+        otherBehaviors.push(classifiedBehavior);
+      } else if (isAutoProduction) {
         autoProductionBehaviors.push(classifiedBehavior);
       } else if (type === "auto-no-background") {
         autoNoBackgroundBehaviors.push(classifiedBehavior);
@@ -2200,8 +2684,25 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     // Combine results
     const result: ClassifiedBehavior[] = [];
-    if (mergedAutoProduction) result.push(mergedAutoProduction);
-    if (mergedAutoNoBackground) result.push(mergedAutoNoBackground);
+
+    // If both production and immediate resources exist, merge them into a single behavior
+    if (mergedAutoProduction && mergedAutoNoBackground) {
+      const combinedBehavior: ClassifiedBehavior = {
+        behavior: {
+          triggers: [{ type: "auto" }],
+          outputs: [
+            ...(mergedAutoProduction.behavior.outputs || []),
+            ...(mergedAutoNoBackground.behavior.outputs || []),
+          ],
+        },
+        type: "auto-no-background",
+      };
+      result.push(combinedBehavior);
+    } else {
+      if (mergedAutoProduction) result.push(mergedAutoProduction);
+      if (mergedAutoNoBackground) result.push(mergedAutoNoBackground);
+    }
+
     result.push(...otherBehaviors);
 
     return result;
@@ -2222,8 +2723,8 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
 
     // If overflow is needed, prepare for future rolling effect
     const containerClass = cardLayoutPlan.needsOverflowHandling
-      ? "absolute bottom-[45px] left-2 right-2 flex flex-col gap-[3px] items-center z-0 max-h-[120px] overflow-y-auto scroll-smooth [scrollbar-width:thin] [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-white/10 [&::-webkit-scrollbar-track]:rounded-px [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-px max-md:bottom-[35px] max-md:left-1.5 max-md:right-1.5 max-md:gap-px"
-      : "absolute bottom-[45px] left-2 right-2 flex flex-col gap-[3px] items-center z-0 max-md:bottom-[35px] max-md:left-1.5 max-md:right-1.5 max-md:gap-px";
+      ? "flex flex-col gap-[3px] items-center w-full max-h-[120px] overflow-y-auto scroll-smooth [scrollbar-width:thin] [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-white/10 [&::-webkit-scrollbar-track]:rounded-px [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-px max-md:gap-px"
+      : "flex flex-col gap-[3px] items-center w-full max-md:gap-px";
 
     return (
       <div className={containerClass}>
