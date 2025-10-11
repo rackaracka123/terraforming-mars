@@ -8,6 +8,7 @@ const (
 	TriggerTemperatureRaise    TriggerType = "temperature-raise"
 	TriggerOxygenRaise         TriggerType = "oxygen-raise"
 	TriggerCityPlaced          TriggerType = "city-placed"
+	TriggerGreeneryPlaced      TriggerType = "greenery-placed"
 	TriggerCardPlayed          TriggerType = "card-played"
 	TriggerTagPlayed           TriggerType = "tag-played"
 	TriggerGreeneryPlaced      TriggerType = "greenery-placed"

@@ -13,19 +13,21 @@ import (
 
 // SelectionManager handles all card selection operations
 type SelectionManager struct {
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardRepo     repository.CardRepository
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo         repository.GameRepository
+	playerRepo       repository.PlayerRepository
+	cardRepo         repository.CardRepository
+	cardDeckRepo     repository.CardDeckRepository
+	effectSubscriber CardEffectSubscriber
 }
 
 // NewSelectionManager creates a new card selection manager
-func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository) *SelectionManager {
+func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, effectSubscriber CardEffectSubscriber) *SelectionManager {
 	return &SelectionManager{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
-		cardRepo:     cardRepo,
-		cardDeckRepo: cardDeckRepo,
+		gameRepo:         gameRepo,
+		playerRepo:       playerRepo,
+		cardRepo:         cardRepo,
+		cardDeckRepo:     cardDeckRepo,
+		effectSubscriber: effectSubscriber,
 	}
 }
 
@@ -480,54 +482,13 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	player.Resources = updatedResources
 	player.Production = updatedProduction
 
-	// Extract and register corporation passive effects (auto triggers with conditions)
-	var passiveEffects []model.PlayerEffect
-	for behaviorIndex, behavior := range corporationCard.Behaviors {
-		// Only extract behaviors that have auto triggers WITH conditions (passive effects)
-		// Auto triggers WITHOUT conditions are immediate effects handled by StartingCredits/Resources/Production fields
-		hasConditionalAutoTrigger := false
-		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto && trigger.Condition != nil {
-				hasConditionalAutoTrigger = true
-				break
-			}
+	// Subscribe corporation passive effects using CardEffectSubscriber (event-driven system)
+	if s.effectSubscriber != nil {
+		if err := s.effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, corporationCard.ID, corporationCard); err != nil {
+			return fmt.Errorf("failed to subscribe corporation effects: %w", err)
 		}
-
-		if hasConditionalAutoTrigger {
-			effect := model.PlayerEffect{
-				CardID:        corporationCard.ID,
-				CardName:      corporationCard.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-			}
-			passiveEffects = append(passiveEffects, effect)
-			log.Debug("🎆 Extracted passive effect from corporation",
-				zap.String("corporation_name", corporationCard.Name),
-				zap.Int("behavior_index", behaviorIndex))
-		}
-	}
-
-	// Add passive effects to player if any were found
-	if len(passiveEffects) > 0 {
-		// Get current player state to append to existing effects
-		currentPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
-		if err != nil {
-			return fmt.Errorf("failed to get player for effects update: %w", err)
-		}
-
-		// Create new effects list with existing + new corporation effects
-		newEffects := make([]model.PlayerEffect, len(currentPlayer.Effects)+len(passiveEffects))
-		copy(newEffects, currentPlayer.Effects)
-		copy(newEffects[len(currentPlayer.Effects):], passiveEffects)
-
-		// Update player with new effects
-		if err := s.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
-			return fmt.Errorf("failed to update player passive effects: %w", err)
-		}
-
-		log.Info("🎆 Corporation passive effects registered",
-			zap.String("corporation_name", corporationCard.Name),
-			zap.Int("effects_count", len(passiveEffects)))
+		log.Info("🎆 Corporation passive effects subscribed",
+			zap.String("corporation_name", corporationCard.Name))
 	}
 
 	// Extract and register corporation manual actions (manual triggers)

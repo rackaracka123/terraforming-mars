@@ -8,10 +8,12 @@ import (
 	"syscall"
 	"time"
 
+	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -41,11 +43,15 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize individual repositories
-	playerRepo := repository.NewPlayerRepository()
+	// Initialize event bus for domain events
+	eventBus := events.NewEventBus()
+	log.Info("🎆 Event bus initialized")
+
+	// Initialize individual repositories with event bus
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	log.Info("Player repository initialized")
 
-	gameRepo := repository.NewGameRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
 	log.Info("Game repository initialized")
 
 	// Initialize card repository and load cards
@@ -76,14 +82,17 @@ func main() {
 	// Initialize services in dependency order
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
 
-	// CardService needs TileService for tile queue processing
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	// Initialize card effect subscriber for passive effects
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	log.Info("🎆 Card effect subscriber initialized")
+
+	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 

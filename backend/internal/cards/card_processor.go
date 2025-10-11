@@ -53,11 +53,6 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to extract manual actions: %w", err)
 	}
 
-	// Extract and add passive effects from card behaviors
-	if err := cp.extractAndAddEffects(ctx, gameID, playerID, card); err != nil {
-		return fmt.Errorf("failed to extract effects: %w", err)
-	}
-
 	// Apply victory point conditions
 	if err := cp.applyVictoryPointConditions(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply victory point conditions: %w", err)
@@ -220,70 +215,6 @@ func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID,
 
 		log.Debug("⚡ Manual actions added",
 			zap.Int("actions_count", len(manualActions)),
-			zap.String("card_name", card.Name))
-	}
-
-	return nil
-}
-
-// extractAndAddEffects extracts passive effects (auto-triggered with conditions) from card behaviors and adds them to the player
-// These are effects like "when a city is placed, gain 2 MC" that trigger automatically on game events
-func (cp *CardProcessor) extractAndAddEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Track passive effects found
-	var passiveEffects []model.PlayerEffect
-
-	// Process all behaviors to find auto triggers with conditions
-	for behaviorIndex, behavior := range card.Behaviors {
-		// Check if this behavior has auto triggers WITH a condition
-		// (auto triggers without conditions are immediate effects, not passive effects)
-		hasConditionalAutoTrigger := false
-		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto && trigger.Condition != nil {
-				hasConditionalAutoTrigger = true
-				break
-			}
-		}
-
-		// If behavior has conditional auto triggers, create a PlayerEffect
-		if hasConditionalAutoTrigger {
-			effect := model.PlayerEffect{
-				CardID:        card.ID,
-				CardName:      card.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-			}
-			passiveEffects = append(passiveEffects, effect)
-
-			log.Debug("✨ Found passive effect",
-				zap.String("card_name", card.Name),
-				zap.Int("behavior_index", behaviorIndex),
-				zap.String("trigger_type", string(behavior.Triggers[0].Condition.Type)))
-		}
-	}
-
-	// If passive effects were found, add them to the player
-	if len(passiveEffects) > 0 {
-		// Get current player to read current effects
-		player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
-		if err != nil {
-			return fmt.Errorf("failed to get player for effects update: %w", err)
-		}
-
-		// Create new effects slice with existing effects plus new passive effects
-		newEffects := make([]model.PlayerEffect, len(player.Effects)+len(passiveEffects))
-		copy(newEffects, player.Effects)
-		copy(newEffects[len(player.Effects):], passiveEffects)
-
-		// Update player effects via repository
-		if err := cp.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
-			log.Error("Failed to update player passive effects", zap.Error(err))
-			return fmt.Errorf("failed to update player passive effects: %w", err)
-		}
-
-		log.Debug("🎆 Passive effects added",
-			zap.Int("effects_count", len(passiveEffects)),
 			zap.String("card_name", card.Name))
 	}
 

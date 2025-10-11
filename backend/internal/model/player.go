@@ -69,7 +69,7 @@ type Player struct {
 	AvailableActions         int                       `json:"availableActions" ts:"number"`
 	VictoryPoints            int                       `json:"victoryPoints" ts:"number"`
 	IsConnected              bool                      `json:"isConnected" ts:"boolean"`
-	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
+	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
 	Actions                  []PlayerAction            `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
 	ProductionPhase          *ProductionPhase          `json:"productionPhase" ts:"ProductionPhase | null"`
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`

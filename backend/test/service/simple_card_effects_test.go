@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -16,16 +18,18 @@ import (
 // setupCardTest creates a basic game setup for card testing
 func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.GameRepository) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))
@@ -117,44 +121,22 @@ func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
 
 	// Get initial state
 	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
-	assert.Empty(t, playerBefore.Effects, "Should start with no passive effects")
 	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
 
 	// Play Rover Construction
 	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
-	// Verify passive effect was extracted and added to player
+	// Verify card was played and cost was deducted
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
 	assert.Equal(t, 42, playerAfter.Resources.Credits, "Should have 50-8=42 credits after cost")
 	assert.Contains(t, playerAfter.PlayedCards, cardID, "Card should be played")
-	assert.NotEmpty(t, playerAfter.Effects, "Should have passive effects from the card")
 
-	// Verify the effect was added to player's effect list
-	hasRoverConstructionEffect := false
-	for _, effect := range playerAfter.Effects {
-		if effect.CardID == cardID {
-			hasRoverConstructionEffect = true
-			assert.Equal(t, "Rover Construction", effect.CardName)
-			assert.Equal(t, 0, effect.BehaviorIndex, "Should be the first behavior")
+	// NOTE: In the new event-driven system, passive effects are subscribed via CardEffectSubscriber
+	// and are NOT stored in player.Effects. The effect will trigger automatically when
+	// TilePlacedEvent is published (tested in TestRoverConstruction_PassiveEffectTriggering)
 
-			// Verify effect trigger condition
-			assert.Len(t, effect.Behavior.Triggers, 1, "Should have 1 trigger")
-			assert.Equal(t, model.ResourceTriggerAuto, effect.Behavior.Triggers[0].Type, "Should be auto trigger")
-			assert.NotNil(t, effect.Behavior.Triggers[0].Condition, "Should have a condition")
-			assert.Equal(t, model.TriggerCityPlaced, effect.Behavior.Triggers[0].Condition.Type, "Should trigger on city placement")
-
-			// Verify effect outputs
-			assert.Len(t, effect.Behavior.Outputs, 1, "Should have 1 output")
-			assert.Equal(t, model.ResourceCredits, effect.Behavior.Outputs[0].Type, "Should give credits")
-			assert.Equal(t, 2, effect.Behavior.Outputs[0].Amount, "Should give 2 credits")
-			assert.Equal(t, model.TargetSelfPlayer, effect.Behavior.Outputs[0].Target, "Should target self")
-			break
-		}
-	}
-	assert.True(t, hasRoverConstructionEffect, "Should have Rover Construction passive effect")
-
-	t.Log("✅ Rover Construction passive effect extraction test passed")
+	t.Log("✅ Rover Construction card play test passed (passive effects use event-driven system)")
 }
 
 func TestSpaceElevator_ImmediateEffect(t *testing.T) {
@@ -252,17 +234,18 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 // 3. Verify passive effect triggers and awards 2 credits
 func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))
@@ -272,6 +255,11 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	require.NoError(t, err)
 	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
 	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+
+	// Initialize the board with default tiles
+	board := boardService.GenerateDefaultBoard()
+	err = gameRepo.UpdateBoard(ctx, game.ID, board)
+	require.NoError(t, err)
 
 	// Create test player with enough credits
 	player := model.Player{
@@ -301,23 +289,19 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
-	// Verify card was played and effect registered
+	// Verify card was played
 	playerAfterCard, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
 	creditsAfterCard := playerAfterCard.Resources.Credits
 	t.Logf("Credits after playing Rover Construction: %d", creditsAfterCard)
 	assert.Equal(t, initialCredits-8, creditsAfterCard, "Should spend 8 MC for Rover Construction")
-	assert.Len(t, playerAfterCard.Effects, 1, "Should have 1 passive effect registered")
-	assert.Equal(t, model.TriggerCityPlaced, playerAfterCard.Effects[0].Behavior.Triggers[0].Condition.Type, "Effect should trigger on city placement")
+	// Note: With event-driven system, passive effects are subscribed via CardEffectSubscriber, not stored in player.Effects
 
-	// Step 2: Simulate a city placement event by calling EffectProcessor directly
+	// Step 2: Simulate a city placement event by actually placing a city tile
+	// This will publish TilePlacedEvent which CardEffectSubscriber will handle
 	coordinate := model.HexPosition{Q: 0, R: 0, S: 0}
-	effectContext := model.EffectContext{
-		TriggeringPlayerID: player.ID,
-		TileCoordinate:     &coordinate,
-		TileType:           nil, // Optional field, not needed for this test
-	}
-	err = effectProcessor.TriggerEffects(ctx, game.ID, model.TriggerCityPlaced, effectContext)
-	require.NoError(t, err, "Should successfully trigger passive effects")
+	tileOccupant := model.TileOccupant{Type: model.TileTypeCity}
+	err = gameRepo.UpdateTileOccupancy(ctx, game.ID, coordinate, &tileOccupant, &player.ID)
+	require.NoError(t, err, "Should successfully place city tile")
 
 	// Step 3: Verify passive effect triggered and awarded 2 credits
 	playerAfterEffect, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
