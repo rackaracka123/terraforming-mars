@@ -226,7 +226,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
               }}
-              title={`${resource.name}: ${resource.current} (${resource.production} production)`}
             >
               <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
                 <span className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
@@ -294,10 +293,21 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = `0 0 10px ${color}40`;
           }}
           onClick={handleOpenActionsPopover}
-          title={`Card Actions: ${currentPlayer?.actions?.length || 0}`}
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            ⚡
+          <div
+            className="text-base font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center gap-[2px] h-[32px] w-[32px] justify-center"
+            style={{
+              color:
+                (currentPlayer?.actions?.length || 0) === 0
+                  ? "#969696"
+                  : (currentPlayer?.actions?.length || 0) <= 1
+                    ? "#ffc800"
+                    : "#ff6464",
+            }}
+          >
+            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
+            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
+            <span className="text-[23px] leading-none">→</span>
           </div>
           <div
             className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${(currentPlayer?.actions?.length || 0) === 0 ? "text-white/60" : ""}`}
@@ -321,10 +331,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
           }}
           onClick={handleOpenEffectsPopover}
-          title="View Card Effects"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            ✨
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#ff96ff" }}
+          >
+            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
+            <div className="flex flex-col items-center justify-center relative">
+              <span className="text-[10px] leading-none">●</span>
+              <span className="text-[10px] leading-none">●</span>
+            </div>
           </div>
           <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {currentPlayer?.effects?.length || 0}
@@ -346,10 +362,17 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
           }}
           onClick={handleOpenTagsPopover}
-          title="View Tags"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🏷️
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#64ff96" }}
+          >
+            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
+            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
+              <span>●</span>
+              <span>●</span>
+              <span>●</span>
+            </div>
           </div>
           <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
@@ -371,10 +394,17 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
           }}
           onClick={handleOpenStoragesPopover}
-          title="View Card Storages"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            💾
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#6496c8" }}
+          >
+            <div className="absolute w-[26px] h-[26px] border-2 border-current" />
+            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
+              <span>●</span>
+              <span>●</span>
+              <span>●</span>
+            </div>
           </div>
           <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {storageCardsCount}
@@ -395,10 +425,12 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
           }}
           onClick={handleOpenCardsModal}
-          title="View Played Cards"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🃏
+          <div
+            className="text-2xl font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px]"
+            style={{ color: "#9664ff" }}
+          >
+            ↓
           </div>
           <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {playedCardsCount}
@@ -419,10 +451,13 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
           }}
           onClick={handleOpenVictoryPointsModal}
-          title="View Victory Points"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🏆
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#ffc864" }}
+          >
+            <span className="text-3xl absolute">○</span>
+            <span className="text-lg absolute">●</span>
           </div>
           <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
             {currentPlayer?.victoryPoints || 0}
