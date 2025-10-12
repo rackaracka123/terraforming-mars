@@ -193,16 +193,6 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 		})
 		return subID, nil
 
-	case model.TriggerTilePlaced:
-		// Subscribe to TilePlacedEvent for any tile type
-		subID := events.Subscribe(ces.eventBus, func(event repository.TilePlacedEvent) {
-			// Trigger for any tile placement in this player's game
-			if event.GameID == gameID {
-				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
-			}
-		})
-		return subID, nil
-
 	default:
 		log.Debug("Trigger type not yet supported for event subscription",
 			zap.String("trigger_type", string(triggerType)),

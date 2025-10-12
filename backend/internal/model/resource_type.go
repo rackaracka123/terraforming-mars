@@ -41,6 +41,8 @@ const (
 	ResourceCardTake ResourceType = "card-take"
 	// ResourceCardPeek represents looking at cards (peek without taking all)
 	ResourceCardPeek ResourceType = "card-peek"
+	// ResourceCardBuy represents buying cards from peeked cards (buy for standard price)
+	ResourceCardBuy ResourceType = "card-buy"
 
 	// Terraforming actions
 

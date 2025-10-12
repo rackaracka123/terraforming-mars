@@ -111,6 +111,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		StartingCards:            startingCards,
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
 		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection, resolvedCards),
+		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection, resolvedCards),
 		ResourceStorage:          player.ResourceStorage,
 	}
 }
@@ -698,6 +699,24 @@ func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCa
 		Source:         selection.Source,
 		MinCards:       selection.MinCards,
 		MaxCards:       selection.MaxCards,
+	}
+}
+
+// ToPendingCardDrawSelectionDto converts a model PendingCardDrawSelection to PendingCardDrawSelectionDto
+func ToPendingCardDrawSelectionDto(selection *model.PendingCardDrawSelection, resolvedCards map[string]model.Card) *PendingCardDrawSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Resolve available cards from card IDs
+	availableCards := resolveCards(selection.AvailableCards, resolvedCards)
+
+	return &PendingCardDrawSelectionDto{
+		AvailableCards: availableCards,
+		FreeTakeCount:  selection.FreeTakeCount,
+		MaxBuyCount:    selection.MaxBuyCount,
+		CardBuyCost:    selection.CardBuyCost,
+		Source:         selection.Source,
 	}
 }
 

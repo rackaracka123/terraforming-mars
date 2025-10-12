@@ -135,6 +135,22 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 				zap.Int("corporation_count", len(player.SelectStartingCardsPhase.AvailableCorporations)),
 				zap.Strings("corporation_ids", player.SelectStartingCardsPhase.AvailableCorporations))
 		}
+		// Add cards from PendingCardSelection (card selection effects)
+		if player.PendingCardSelection != nil {
+			for _, cardID := range player.PendingCardSelection.AvailableCards {
+				allCardIds[cardID] = struct{}{}
+			}
+			log.Debug("Added pending card selection cards to resolution",
+				zap.Int("card_count", len(player.PendingCardSelection.AvailableCards)))
+		}
+		// Add cards from PendingCardDrawSelection (card draw/peek/take/buy effects)
+		if player.PendingCardDrawSelection != nil {
+			for _, cardID := range player.PendingCardDrawSelection.AvailableCards {
+				allCardIds[cardID] = struct{}{}
+			}
+			log.Debug("Added pending card draw selection cards to resolution",
+				zap.Int("card_count", len(player.PendingCardDrawSelection.AvailableCards)))
+		}
 	}
 
 	resolvedCards, err := sm.cardRepo.ListCardsByIdMap(ctx, allCardIds)

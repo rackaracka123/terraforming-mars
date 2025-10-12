@@ -618,6 +618,16 @@ export interface PendingCardSelectionDto {
   maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
 }
 /**
+ * PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
+ */
+export interface PendingCardDrawSelectionDto {
+  availableCards: CardDto[]; // Cards shown to player (drawn or peeked)
+  freeTakeCount: number /* int */; // Number of cards to take for free (mandatory for card-draw, 0 = optional)
+  maxBuyCount: number /* int */; // Maximum cards to buy (optional, 0 = no buying allowed)
+  cardBuyCost: number /* int */; // Cost per card when buying (typically 3 MC, 0 if no buying)
+  source: string; // Card ID or action that triggered this
+}
+/**
  * PlayerStatus represents the current status of a player in the game
  */
 export type PlayerStatus = string;
@@ -657,6 +667,10 @@ export interface PlayerDto {
    * Card selection - nullable, exists only when player needs to select cards
    */
   pendingCardSelection?: PendingCardSelectionDto; // Pending card selection (sell patents, card effects, etc.)
+  /**
+   * Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
+   */
+  pendingCardDrawSelection?: PendingCardDrawSelectionDto; // Pending card draw/peek/take/buy selection from card effects
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
@@ -904,6 +918,8 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+export const MessageTypeActionCardDrawConfirmed: MessageType =
+  "action.card.card-draw-confirmed";
 /**
  * Admin message types (development mode only)
  */
