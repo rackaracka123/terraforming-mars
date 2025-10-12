@@ -489,7 +489,7 @@ function TileModel({ tileType, position }: TileModelProps) {
   // Rotation for specific tile types
   const rotation: [number, number, number] = useMemo(() => {
     if (tileType === "city") {
-      return [-Math.PI / 2, 0, 0]; // -90° rotation on x-axis for city buildings
+      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip city buildings right-side up
     }
     if (tileType === "greenery") {
       return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip trees right-side up
