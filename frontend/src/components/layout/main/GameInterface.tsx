@@ -433,7 +433,10 @@ export default function GameInterface() {
           setShowChoiceSelection(true);
         } else {
           // No auto-triggered choices, check if we need payment modal
-          if (currentPlayer && shouldShowPaymentModal(card, currentPlayer.resources)) {
+          if (
+            currentPlayer &&
+            shouldShowPaymentModal(card, currentPlayer.resources)
+          ) {
             // Show payment selection modal
             setPendingCardPayment({
               card: card,
