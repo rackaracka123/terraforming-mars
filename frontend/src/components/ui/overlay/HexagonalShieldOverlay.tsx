@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
+import {
+  CardDto,
+  ResourceTypeCredits,
+  ResourceTypeCreditsProduction,
+} from "@/types/generated/api-types.ts";
 import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
@@ -94,6 +98,13 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     if (reason.type === "cost" && typeof reason.requiredValue === "number") {
       return reason.requiredValue;
     }
+    if (
+      reason.requirement?.resource === ResourceTypeCreditsProduction &&
+      typeof reason.requiredValue === "number"
+    ) {
+      return reason.requiredValue;
+    }
+
     return undefined;
   };
 
@@ -252,7 +263,9 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
                 {displayReason.failedRequirements.map((req, index) => {
                   const reqIconType = getRequirementIconType(req);
                   const reqIconAmount = getRequirementAmount(req);
-                  const showMessage = req.type !== "cost";
+                  const showMessage =
+                    req.type !== "cost" &&
+                    req.requirement?.resource !== ResourceTypeCreditsProduction;
                   return (
                     <div
                       key={index}

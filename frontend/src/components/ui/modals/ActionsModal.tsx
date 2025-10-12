@@ -5,7 +5,7 @@ import {
   GameStatusActive,
   GamePhaseAction,
 } from "@/types/generated/api-types.ts";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 

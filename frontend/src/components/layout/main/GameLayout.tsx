@@ -22,6 +22,7 @@ interface GameLayoutProps {
   corporationCard?: CardDto | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
+  changedPaths?: Set<string>;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -39,6 +40,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
+  changedPaths = new Set(),
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -107,6 +109,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               currentPlayer={currentPlayer}
               gameState={gameState}
               playedCards={playedCards}
+              changedPaths={changedPaths}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}

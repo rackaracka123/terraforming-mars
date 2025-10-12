@@ -1,0 +1,170 @@
+import React from "react";
+import { BehaviorSectionProps, ClassifiedBehavior } from "./types.ts";
+import { classifyBehaviors } from "./utils/behaviorClassifier.ts";
+import { detectTilePlacementScale } from "./utils/tileScaling.ts";
+import { isResourceAffordable } from "./utils/resourceValidation.ts";
+import { analyzeResourceDisplayWithConstraints } from "./utils/displayAnalysis.ts";
+import { mergeAutoProductionBehaviors } from "./utils/behaviorMerger.ts";
+import {
+  analyzeCardLayout,
+  optimizeBehaviorsForSpace,
+} from "./utils/spaceOptimizer.ts";
+import BehaviorContainer from "./components/BehaviorContainer.tsx";
+import ManualActionLayout from "./components/ManualActionLayout.tsx";
+import TriggeredEffectLayout from "./components/TriggeredEffectLayout.tsx";
+import ImmediateResourceLayout from "./components/ImmediateResourceLayout.tsx";
+import BehaviorIcon from "./components/BehaviorIcon.tsx";
+
+const BehaviorSection: React.FC<BehaviorSectionProps> = ({
+  behaviors,
+  playerResources,
+  resourceStorage,
+  cardId,
+  greyOutAll = false,
+}) => {
+  if (!behaviors || behaviors.length === 0) {
+    return null;
+  }
+
+  // Classify behaviors
+  const classifiedBehaviors = classifyBehaviors(behaviors);
+
+  // Merge auto production behaviors if needed
+  const mergedBehaviors = mergeAutoProductionBehaviors(classifiedBehaviors);
+
+  // Detect tile placement scaling
+  const tileScaleInfo = detectTilePlacementScale(mergedBehaviors);
+
+  // Analyze card layout and optimize for space if needed
+  const cardLayoutPlan = analyzeCardLayout(mergedBehaviors);
+  const optimizedBehaviors = optimizeBehaviorsForSpace(
+    mergedBehaviors,
+    cardLayoutPlan,
+  );
+
+  // Helper function to check if a resource is affordable (bound to current context)
+  const checkResourceAffordable = (
+    resource: any,
+    isInput: boolean = true,
+  ): boolean => {
+    return isResourceAffordable(
+      resource,
+      isInput,
+      playerResources,
+      resourceStorage,
+      cardId,
+      greyOutAll,
+    );
+  };
+
+  // Helper function to render icons (for ImmediateResourceLayout)
+  const renderIcon = (
+    resourceType: string,
+    isProduction: boolean,
+    isAttack: boolean,
+    context: "standalone" | "action" | "production" | "default",
+    isAffordable: boolean,
+  ): React.ReactNode => {
+    return (
+      <BehaviorIcon
+        resourceType={resourceType}
+        isProduction={isProduction}
+        isAttack={isAttack}
+        context={context}
+        isAffordable={isAffordable}
+        tileScaleInfo={tileScaleInfo}
+      />
+    );
+  };
+
+  // Render individual behavior based on its type
+  const renderBehavior = (
+    classifiedBehavior: ClassifiedBehavior,
+    index: number,
+  ): React.ReactNode => {
+    const { behavior, type } = classifiedBehavior;
+    const layoutPlan = cardLayoutPlan.behaviors[index]?.layoutPlan;
+
+    let content: React.ReactNode = null;
+
+    switch (type) {
+      case "manual-action":
+        content = (
+          <ManualActionLayout
+            behavior={behavior}
+            layoutPlan={layoutPlan}
+            isResourceAffordable={checkResourceAffordable}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
+            tileScaleInfo={tileScaleInfo}
+          />
+        );
+        break;
+
+      case "triggered-effect":
+        content = (
+          <TriggeredEffectLayout
+            behavior={behavior}
+            layoutPlan={layoutPlan}
+            isResourceAffordable={checkResourceAffordable}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
+            tileScaleInfo={tileScaleInfo}
+          />
+        );
+        break;
+
+      case "immediate-production":
+      case "immediate-effect":
+      case "auto-no-background":
+      case "discount":
+        content = (
+          <ImmediateResourceLayout
+            behavior={behavior}
+            layoutPlan={layoutPlan}
+            isResourceAffordable={checkResourceAffordable}
+            analyzeResourceDisplayWithConstraints={
+              analyzeResourceDisplayWithConstraints
+            }
+            tileScaleInfo={tileScaleInfo}
+            renderIcon={renderIcon}
+          />
+        );
+        break;
+    }
+
+    return (
+      <BehaviorContainer
+        key={`behavior-${index}`}
+        classifiedBehavior={classifiedBehavior}
+        index={index}
+      >
+        {content}
+      </BehaviorContainer>
+    );
+  };
+
+  // Render behaviors with overflow handling if needed
+  const containerClass = cardLayoutPlan.needsOverflowHandling
+    ? "flex flex-col gap-[3px] items-center w-full max-h-[120px] overflow-y-auto scroll-smooth [scrollbar-width:thin] [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-white/10 [&::-webkit-scrollbar-track]:rounded-px [&::-webkit-scrollbar-thumb]:bg-white/30 [&::-webkit-scrollbar-thumb]:rounded-px max-md:gap-px"
+    : "flex flex-col gap-[3px] items-center w-full max-md:gap-px";
+
+  return (
+    <div className={containerClass}>
+      {optimizedBehaviors.map((classifiedBehavior, index) =>
+        renderBehavior(classifiedBehavior, index),
+      )}
+
+      {/* Future: Add rolling effect indicators here when needed */}
+      {cardLayoutPlan.needsOverflowHandling && (
+        <div className="flex items-center justify-center h-4 text-[10px] text-white/60 italic">
+          {/* This could be a visual indicator that there are more behaviors */}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BehaviorSection;

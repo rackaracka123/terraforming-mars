@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { CardDto } from "@/types/generated/api-types.ts";
 import { getCorporationLogo } from "@/utils/corporationLogos.tsx";
 import GameIcon from "./GameIcon.tsx";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 import {
   ResourceTypeCredits,
   ResourceTypeSteel,
@@ -122,10 +122,10 @@ const CorporationDisplay: React.FC<CorporationDisplayProps> = ({
       }
     >
       <div
-        className={`bg-[linear-gradient(135deg,rgba(15,30,55,0.95)_0%,rgba(10,20,45,0.95)_100%)] border-2 border-[#050a10] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-space transition-all duration-300 cursor-pointer ${
+        className={`bg-black/95 rounded-lg backdrop-blur-space transition-all duration-300 cursor-pointer ${
           isExpanded
-            ? "w-[350px] p-4 hover:shadow-[0_4px_16px_rgba(0,0,0,0.5)]"
-            : "p-1.5 hover:-translate-y-1 hover:shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
+            ? "w-[350px] p-4 shadow-[0_0_20px_rgba(30,60,150,0.52)] hover:shadow-[0_0_30px_rgba(30,60,150,0.78)]"
+            : "p-1.5 shadow-[0_0_15px_rgba(30,60,150,0.39)] hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(30,60,150,0.65)]"
         }`}
         onClick={toggleExpanded}
       >

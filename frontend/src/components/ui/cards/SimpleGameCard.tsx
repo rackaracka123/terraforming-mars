@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import GameIcon from "../display/GameIcon.tsx";
 import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
-import BehaviorSection from "./BehaviorSection.tsx";
+import BehaviorSection from "./BehaviorSection";
 import RequirementsBox from "./RequirementsBox.tsx";
 import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
 
@@ -167,7 +167,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           <VictoryPointIcon vpConditions={card.vpConditions} size="medium" />
         </div>
         <h3
-          className={`${card.name.length > 27 ? "text-[12px]" : card.name.length > 20 ? "text-sm" : "text-base"} font-orbitron font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-full h-[44px] rounded-none p-1 ${card.vpConditions ? "pl-[30px] pr-5" : "px-5"} shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] ${card.name.length > 28 ? "max-md:text-[9px]" : card.name.length > 20 ? "max-md:text-xs" : "max-md:text-sm"} max-md:h-[36px] ${card.vpConditions ? "max-md:pl-[25px] max-md:pr-3" : "max-md:px-3"} ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
+          className={`${card.name.length > 18 ? "text-[12px]" : card.name.length > 20 ? "text-sm" : "text-base"} font-orbitron font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-full h-[44px] rounded-none p-1 ${card.vpConditions ? "pl-[30px] pr-5" : "px-5"} shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] ${card.name.length > 28 ? "max-md:text-[9px]" : card.name.length > 20 ? "max-md:text-xs" : "max-md:text-sm"} max-md:h-[36px] ${card.vpConditions ? "max-md:pl-[25px] max-md:pr-3" : "max-md:px-3"} ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
         >
           {card.name}
         </h3>
