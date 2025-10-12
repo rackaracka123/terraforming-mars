@@ -39,7 +39,6 @@ import {
 import {
   UnplayableReason,
   fetchAllCards,
-  getCardById,
 } from "@/utils/cardPlayabilityUtils.ts";
 import {
   shouldShowPaymentModal,
@@ -434,7 +433,7 @@ export default function GameInterface() {
           setShowChoiceSelection(true);
         } else {
           // No auto-triggered choices, check if we need payment modal
-          if (shouldShowPaymentModal(card, currentPlayer.resources)) {
+          if (currentPlayer && shouldShowPaymentModal(card, currentPlayer.resources)) {
             // Show payment selection modal
             setPendingCardPayment({
               card: card,
