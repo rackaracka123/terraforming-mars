@@ -32,7 +32,7 @@ type CardService interface {
 	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
 
 	// Player actions for playing cards
-	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 
 	// Play a card action from player's action list
 	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int, cardStorageTarget *string) error
@@ -280,9 +280,14 @@ func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*mode
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
+
+	// Validate payment is provided
+	if payment == nil {
+		return fmt.Errorf("payment is required")
+	}
 
 	// STEP 1: Service-level validations (turn, actions, ownership)
 	game, err := s.gameRepo.GetByID(ctx, gameID)
@@ -349,13 +354,13 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		log.Debug("🎯 Card has auto-triggered choices, using choiceIndex", zap.Int("choice_index", *choiceIndex))
 	}
 
-	// STEP 2: Use CardManager for card-specific validation (including choice-based costs)
-	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
+	// STEP 2: Use CardManager for card-specific validation (including payment and choice-based costs)
+	if err := s.cardManager.CanPlay(ctx, gameID, playerID, cardID, payment, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("card cannot be played: %w", err)
 	}
 
-	// STEP 3: Use CardManager to play the card with choice index and card storage target
-	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, choiceIndex, cardStorageTarget); err != nil {
+	// STEP 3: Use CardManager to play the card with payment, choice index, and card storage target
+	if err := s.cardManager.PlayCard(ctx, gameID, playerID, cardID, payment, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 

@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  CardPaymentDto,
   ErrorPayload,
   FullStatePayload,
   GameUpdatedPayload,
@@ -284,12 +285,14 @@ export class WebSocketService {
   // Card actions
   playCard(
     cardId: string,
+    payment: CardPaymentDto,
     choiceIndex?: number,
     cardStorageTarget?: string,
   ): string {
     return this.send(MessageTypeActionPlayCard, {
       type: "play-card",
       cardId,
+      payment,
       ...(choiceIndex !== undefined && { choiceIndex }),
       ...(cardStorageTarget !== undefined && { cardStorageTarget }),
     });

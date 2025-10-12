@@ -241,7 +241,7 @@ type CardDto struct {
 	Cost            int                           `json:"cost" ts:"number"`
 	Description     string                        `json:"description" ts:"string"`
 	Pack            string                        `json:"pack" ts:"string"`
-	Tags            []CardTag                     `json:"tags" ts:"CardTag[]"`
+	Tags            []CardTag                     `json:"tags,omitempty" ts:"CardTag[] | undefined"`
 	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
 	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
 	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
@@ -439,8 +439,9 @@ type GameDto struct {
 	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
 	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
-	TurnOrder        []string            `json:"turnOrder" ts:"string[]"` // Turn order of all players in game
-	Board            BoardDto            `json:"board" ts:"BoardDto"`     // Game board with tiles and occupancy state
+	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`                   // Turn order of all players in game
+	Board            BoardDto            `json:"board" ts:"BoardDto"`                       // Game board with tiles and occupancy state
+	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"` // Conversion rates for alternative payments
 }
 
 // Board-related DTOs for tygo generation

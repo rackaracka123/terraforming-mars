@@ -47,7 +47,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
@@ -73,7 +73,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
 	response := dto.GetGameResponse{
 		Game: gameDto,
 	}
@@ -91,7 +91,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(games)
+	gameDtos := dto.ToGameDtoSlice(games, dto.GetPaymentConstants())
 	response := dto.ListGamesResponse{
 		Games: gameDtos,
 	}

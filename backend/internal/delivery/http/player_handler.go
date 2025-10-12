@@ -61,7 +61,7 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to DTO and respond
 	response := dto.JoinGameResponse{
-		Game:     dto.ToGameDtoBasic(game),
+		Game:     dto.ToGameDtoBasic(game, dto.GetPaymentConstants()),
 		PlayerID: playerID,
 	}
 

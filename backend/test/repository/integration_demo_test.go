@@ -84,7 +84,7 @@ func (s *DemoGameService) GetGameWithPlayers(ctx context.Context, gameID string)
 	}
 
 	// Convert to DTOs - use basic conversion for demo test
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
 	playerDtos := dto.ToPlayerDtoSlice(players)
 
 	return gameDto, playerDtos, nil

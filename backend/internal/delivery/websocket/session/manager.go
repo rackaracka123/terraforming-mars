@@ -179,9 +179,12 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		}
 	}
 
+	// Get payment constants once for all players
+	paymentConstants := dto.GetPaymentConstants()
+
 	// Send personalized game state to target player(s)
 	for _, player := range playersToSend {
-		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, resolvedCards)
+		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, resolvedCards, paymentConstants)
 
 		// Send game state via direct session call
 		err = sm.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
