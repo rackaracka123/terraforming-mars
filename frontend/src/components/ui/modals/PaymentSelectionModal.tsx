@@ -67,9 +67,9 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
       { credits, steel, titanium },
       paymentConstants,
     );
-    const paymentMatchesCost = paymentValue === card.cost;
+    const paymentCoversCardCost = paymentValue >= card.cost;
 
-    if (!hasResources || !paymentMatchesCost) return;
+    if (!hasResources || !paymentCoversCardCost) return;
 
     onConfirm({
       credits,
@@ -95,14 +95,14 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
     paymentConstants,
   );
 
-  // Check if user can afford to use selected resources and payment matches cost
+  // Check if user can afford to use selected resources and payment covers cost
   const hasResources =
     credits <= playerResources.credits &&
     steel <= playerResources.steel &&
     titanium <= playerResources.titanium;
 
-  const paymentMatchesCost = paymentValue === card.cost;
-  const canConfirm = hasResources && paymentMatchesCost;
+  const paymentCoversCardCost = paymentValue >= card.cost;
+  const canConfirm = hasResources && paymentCoversCardCost;
 
   // Increment/decrement handlers
   const incrementCredits = () => {
@@ -118,7 +118,9 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
   };
 
   const incrementSteel = () => {
-    if (steel < playerResources.steel) {
+    // Limit steel to available resources and maximum sensible payment
+    const maxAllowed = Math.min(playerResources.steel, maxSteelUnits);
+    if (steel < maxAllowed) {
       setSteel(steel + 1);
       // Automatically reduce credits by steel value
       const newCredits = Math.max(0, credits - paymentConstants.steelValue);
@@ -144,7 +146,9 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
   };
 
   const incrementTitanium = () => {
-    if (titanium < playerResources.titanium) {
+    // Limit titanium to available resources and maximum sensible payment
+    const maxAllowed = Math.min(playerResources.titanium, maxTitaniumUnits);
+    if (titanium < maxAllowed) {
       setTitanium(titanium + 1);
       // Automatically reduce credits by titanium value
       const newCredits = Math.max(0, credits - paymentConstants.titaniumValue);
@@ -168,6 +172,13 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
       setCredits(newCredits);
     }
   };
+
+  // Calculate maximum allowed units to prevent excessive overpayment
+  // Max units = ceil(card cost / resource value)
+  const maxSteelUnits = Math.ceil(card.cost / paymentConstants.steelValue);
+  const maxTitaniumUnits = Math.ceil(
+    card.cost / paymentConstants.titaniumValue,
+  );
 
   // Check which resources to show (only if player has resources AND card has appropriate tag)
   const showSteel =
@@ -257,7 +268,9 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
                 </span>
                 <button
                   onClick={incrementSteel}
-                  disabled={steel >= playerResources.steel}
+                  disabled={
+                    steel >= Math.min(playerResources.steel, maxSteelUnits)
+                  }
                   className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black"
                 >
                   +
@@ -292,7 +305,10 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
                 </span>
                 <button
                   onClick={incrementTitanium}
-                  disabled={titanium >= playerResources.titanium}
+                  disabled={
+                    titanium >=
+                    Math.min(playerResources.titanium, maxTitaniumUnits)
+                  }
                   className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black"
                 >
                   +
@@ -324,9 +340,12 @@ const PaymentSelectionModal: React.FC<PaymentSelectionModalProps> = ({
             <div className="mt-2 text-sm text-error-red">
               {!hasResources
                 ? "Insufficient resources for this payment"
-                : paymentValue < card.cost
-                  ? `Payment insufficient: need ${card.cost - paymentValue} more MC`
-                  : `Payment exceeds card cost by ${paymentValue - card.cost} MC`}
+                : `Payment insufficient: need ${card.cost - paymentValue} more MC`}
+            </div>
+          )}
+          {canConfirm && paymentValue > card.cost && (
+            <div className="mt-2 text-sm text-yellow-500">
+              Overpaying by {paymentValue - card.cost} MC (excess will be lost)
             </div>
           )}
         </div>
