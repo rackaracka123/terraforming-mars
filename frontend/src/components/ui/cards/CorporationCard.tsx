@@ -1,6 +1,6 @@
 import React from "react";
 import GameIcon from "../display/GameIcon.tsx";
-import BehaviorSection from "./BehaviorSection.tsx";
+import BehaviorSection from "./BehaviorSection";
 
 import {
   CardBehaviorDto,

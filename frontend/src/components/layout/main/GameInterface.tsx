@@ -1052,6 +1052,7 @@ export default function GameInterface() {
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
+        changedPaths={changedPaths}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
@@ -1063,12 +1064,6 @@ export default function GameInterface() {
         }
         standardProjectsButtonRef={standardProjectsButtonRef}
       />
-
-      {/*<CorporationSelectionModal*/}
-      {/*  corporations={availableCorporations}*/}
-      {/*  onSelectCorporation={handleCorporationSelection}*/}
-      {/*  isVisible={showCorporationModal}*/}
-      {/*/>*/}
 
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}

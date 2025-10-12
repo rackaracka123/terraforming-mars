@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { PlayerEffectDto } from "../../../types/generated/api-types.ts";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 import GameIcon from "../display/GameIcon.tsx";
 
 interface EffectsModalProps {

@@ -4,7 +4,7 @@ import {
   CardBehaviorDto,
   ResourcesDto,
 } from "../../../types/generated/api-types.ts";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 
 interface ChoiceItem {
   index: number;

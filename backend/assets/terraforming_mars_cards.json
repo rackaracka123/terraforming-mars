@@ -1571,6 +1571,11 @@
             "type": "temperature",
             "amount": 1,
             "target": "none"
+          },
+          {
+            "type": "tr",
+            "amount": 2,
+            "target": "none"
           }
         ],
         "choices": [
@@ -6091,6 +6096,13 @@
                 "amount": 3,
                 "target": "self-card"
               }
+            ],
+            "outputs": [
+              {
+                "type": "tr",
+                "amount": 1,
+                "target": "none"
+              }
             ]
           }
         ]
@@ -8097,15 +8109,7 @@
               }
             ]
           },
-          {
-            "outputs": [
-              {
-                "type": "credits",
-                "amount": 1,
-                "target": "any-card"
-              }
-            ]
-          }
+          {}
         ]
       }
     ]
@@ -9048,7 +9052,14 @@
             "target": "any-card",
             "affectedTags": [
               "venus"
-            ]
+            ],
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "self-player",
+              "tag": "jovian"
+            }
           }
         ]
       }
@@ -12466,6 +12477,13 @@
                 "type": "floaters",
                 "amount": 2,
                 "target": "self-card"
+              }
+            ],
+            "outputs": [
+              {
+                "type": "tr",
+                "amount": 1,
+                "target": "none"
               }
             ]
           }
@@ -16999,14 +17017,21 @@
         ],
         "outputs": [
           {
+            "type": "microbes",
+            "amount": 1,
+            "target": "any-card",
+            "per": {
+              "type": "tag",
+              "amount": 1,
+              "location": "anywhere",
+              "target": "self-player",
+              "tag": "science"
+            }
+          },
+          {
             "type": "card-draw",
             "amount": 1,
             "target": "self-player"
-          },
-          {
-            "type": "microbes",
-            "amount": 1,
-            "target": "any-card"
           }
         ]
       }
