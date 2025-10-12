@@ -5,6 +5,7 @@ import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
+import CorporationDisplay from "../../ui/display/CorporationDisplay.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
@@ -18,8 +19,10 @@ interface GameLayoutProps {
   gameState: GameDto;
   currentPlayer: PlayerDto | null;
   playedCards?: CardDto[];
+  corporationCard?: CardDto | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
+  changedPaths?: Set<string>;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -34,8 +37,10 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   gameState,
   currentPlayer,
   playedCards = [],
+  corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
+  changedPaths = new Set(),
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -45,30 +50,23 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
 }) => {
-  const convertOtherPlayerToPlayerDto = (
-    otherPlayer: OtherPlayerDto,
-  ): PlayerDto => ({
-    ...otherPlayer,
-    cards: [],
-    selectStartingCardsPhase: undefined,
-    productionPhase: undefined,
-    startingCards: [],
-  });
-
   // Create a map of all players (current + others) for easy lookup
-  const playerMap = new Map<string, PlayerDto>();
+  const playerMap = new Map<string, PlayerDto | OtherPlayerDto>();
   if (gameState?.currentPlayer) {
     playerMap.set(gameState.currentPlayer.id, gameState.currentPlayer);
   }
   gameState?.otherPlayers?.forEach((otherPlayer) => {
-    playerMap.set(otherPlayer.id, convertOtherPlayerToPlayerDto(otherPlayer));
+    playerMap.set(otherPlayer.id, otherPlayer);
   });
 
   // Construct allPlayers using the turn order from the backend
-  const allPlayers: PlayerDto[] =
+  const allPlayers: (PlayerDto | OtherPlayerDto)[] =
     (gameState?.turnOrder
       ?.map((playerId) => playerMap.get(playerId))
-      .filter((player) => player !== undefined) as PlayerDto[]) || [];
+      .filter((player) => player !== undefined) as (
+      | PlayerDto
+      | OtherPlayerDto
+    )[]) || [];
 
   // Find the current turn player for the right sidebar
   const currentTurnPlayer =
@@ -111,12 +109,17 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               currentPlayer={currentPlayer}
               gameState={gameState}
               playedCards={playedCards}
+              changedPaths={changedPaths}
               onOpenCardEffectsModal={onOpenCardEffectsModal}
               onOpenCardsPlayedModal={onOpenCardsPlayedModal}
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
               onOpenActionsModal={onOpenActionsModal}
               onActionSelect={onActionSelect}
             />
+
+            {corporationCard && (
+              <CorporationDisplay corporation={corporationCard} />
+            )}
           </>
         )}
       </div>

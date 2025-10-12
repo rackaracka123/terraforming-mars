@@ -20,10 +20,11 @@ const (
 	ActionTypeBuildCity       ActionType = "build-city"
 )
 
-// SelectStartingCardAction represents selecting starting cards
+// SelectStartingCardAction represents selecting starting cards and corporation
 type SelectStartingCardAction struct {
-	Type    ActionType `json:"type" ts:"ActionType"`
-	CardIDs []string   `json:"cardIds" ts:"string[]"`
+	Type          ActionType `json:"type" ts:"ActionType"`
+	CardIDs       []string   `json:"cardIds" ts:"string[]"`
+	CorporationID string     `json:"corporationId" ts:"string"`
 }
 
 // StartGameAction represents starting the game (host only)
@@ -95,8 +96,9 @@ type BuildCityAction struct {
 
 // ActionSelectStartingCardRequest contains the action data for select starting card actions
 type ActionSelectStartingCardRequest struct {
-	Type    ActionType `json:"type" ts:"ActionType"`
-	CardIDs []string   `json:"cardIds" ts:"string[]"`
+	Type          ActionType `json:"type" ts:"ActionType"`
+	CardIDs       []string   `json:"cardIds" ts:"string[]"`
+	CorporationID string     `json:"corporationId" ts:"string"` // Corporation selected alongside starting cards
 }
 
 // ActionSelectProductionCardsRequest contains the action data for select production card actions
@@ -107,7 +109,7 @@ type ActionSelectProductionCardsRequest struct {
 
 // GetAction returns the select starting card action
 func (ap *ActionSelectStartingCardRequest) GetAction() *SelectStartingCardAction {
-	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs}
+	return &SelectStartingCardAction{Type: ap.Type, CardIDs: ap.CardIDs, CorporationID: ap.CorporationID}
 }
 
 // ActionStartGameRequest contains the action data for start game actions

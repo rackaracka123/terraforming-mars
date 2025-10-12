@@ -10,6 +10,9 @@ import {
 // Cache for all cards fetched from the backend
 let cardCache: Map<string, CardDto> | null = null;
 
+// Cache for all corporations fetched from the backend
+let corporationCache: CardDto[] | null = null;
+
 /**
  * Fetches all cards from the backend and caches them
  */
@@ -46,6 +49,31 @@ export async function fetchAllCards(): Promise<Map<string, CardDto>> {
 export async function getCardById(cardId: string): Promise<CardDto | null> {
   const cards = await fetchAllCards();
   return cards.get(cardId) || null;
+}
+
+/**
+ * Fetches all corporations from the backend and caches them
+ */
+export async function fetchCorporations(): Promise<CardDto[]> {
+  if (corporationCache !== null) {
+    return corporationCache;
+  }
+
+  try {
+    const response = await fetch("/api/v1/corporations");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch corporations: ${response.statusText}`);
+    }
+
+    const corporations: CardDto[] = await response.json();
+    corporationCache = corporations || [];
+
+    return corporationCache;
+  } catch (error) {
+    console.error("Failed to fetch corporations:", error);
+    // Return empty array on error to prevent crashes
+    return [];
+  }
 }
 
 /**
@@ -228,7 +256,7 @@ function checkBehaviorCosts(
           if (!anyoneHasEnough) {
             failedReasons.push({
               type: "production",
-              requirement: { resource: baseResource, amount: absAmount },
+              requirement: { resource: resourceType, amount: absAmount },
               message: `${absAmount}`,
               currentValue: currentProduction,
               requiredValue: absAmount,
@@ -244,7 +272,7 @@ function checkBehaviorCosts(
           if (currentProduction < absAmount) {
             failedReasons.push({
               type: "production",
-              requirement: { resource: baseResource, amount: absAmount },
+              requirement: { resource: resourceType, amount: absAmount },
               message: `${absAmount}`,
               currentValue: currentProduction,
               requiredValue: absAmount,
@@ -334,6 +362,42 @@ function checkBehaviorCosts(
   }
 
   return failedReasons;
+}
+
+/**
+ * Deduplicates requirements - keeps only the highest amount for each resource type
+ */
+function deduplicateRequirements(
+  requirements: UnplayableReason[],
+): UnplayableReason[] {
+  const deduplicatedRequirements: UnplayableReason[] = [];
+  const resourceMap = new Map<string, UnplayableReason>();
+
+  for (const reason of requirements) {
+    // Create a unique key for this requirement type + resource
+    const key = `${reason.type}:${reason.requirement?.resource || ""}`;
+    const existing = resourceMap.get(key);
+
+    if (!existing) {
+      // First time seeing this resource requirement
+      resourceMap.set(key, reason);
+    } else {
+      // Already have a requirement for this resource - keep the higher one
+      const existingAmount =
+        typeof existing.requiredValue === "number" ? existing.requiredValue : 0;
+      const currentAmount =
+        typeof reason.requiredValue === "number" ? reason.requiredValue : 0;
+
+      if (currentAmount > existingAmount) {
+        resourceMap.set(key, reason);
+      }
+    }
+  }
+
+  // Convert map back to array
+  resourceMap.forEach((reason) => deduplicatedRequirements.push(reason));
+
+  return deduplicatedRequirements;
 }
 
 /**
@@ -524,7 +588,21 @@ export async function checkCardPlayability(
 ): Promise<{ playable: boolean; reason?: UnplayableReason }> {
   const failedRequirements: UnplayableReason[] = [];
 
-  // First check: Game phase (must be action phase to play cards)
+  // First check: Pending tile selection (highest priority - blocks everything)
+  if (player.pendingTileSelection) {
+    return {
+      playable: false,
+      reason: {
+        type: "phase",
+        requirement: { pendingTileSelection: true },
+        message: "Pending tile selection",
+        currentValue: "tile_selection_pending",
+        requiredValue: "no_pending_tiles",
+      },
+    };
+  }
+
+  // Second check: Game phase (must be action phase to play cards)
   if (game.currentPhase !== GamePhaseAction) {
     return {
       playable: false,
@@ -538,7 +616,7 @@ export async function checkCardPlayability(
     };
   }
 
-  // Second check: Cost (highest priority after phase)
+  // Third check: Cost (highest priority after phase)
   if (player.resources.credits < card.cost) {
     failedRequirements.push({
       type: "cost",
@@ -549,7 +627,7 @@ export async function checkCardPlayability(
     });
   }
 
-  // Third check: Behavior costs (negative resource/production costs)
+  // Fourth check: Behavior costs (negative resource/production costs)
   const behaviorCostFailures = checkBehaviorCosts(card, player, game);
   failedRequirements.push(...behaviorCostFailures);
 
@@ -563,11 +641,14 @@ export async function checkCardPlayability(
     }
   }
 
+  // Deduplicate requirements - keep only the highest amount for each resource type
+  const deduplicatedRequirements = deduplicateRequirements(failedRequirements);
+
   // If there are failed requirements, return them
-  if (failedRequirements.length > 0) {
+  if (deduplicatedRequirements.length > 0) {
     // If only one failed requirement, return it directly
-    if (failedRequirements.length === 1) {
-      return { playable: false, reason: failedRequirements[0] };
+    if (deduplicatedRequirements.length === 1) {
+      return { playable: false, reason: deduplicatedRequirements[0] };
     }
 
     // Multiple failed requirements - create a combined reason
@@ -579,7 +660,7 @@ export async function checkCardPlayability(
         type: "multiple",
         requirement: { multiple: true },
         message: message,
-        failedRequirements: failedRequirements,
+        failedRequirements: deduplicatedRequirements,
       },
     };
   }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -16,16 +18,18 @@ import (
 // setupCardTest creates a basic game setup for card testing
 func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.GameRepository) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))
@@ -103,6 +107,36 @@ func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
 	assert.Equal(t, 50, playerAfter.Resources.Credits, "Credits unchanged")
 
 	t.Log("✅ Colonizer Training Camp requirement test passed")
+}
+
+func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
+	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+
+	// Set player resources to afford Rover Construction (8 MC)
+	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50})
+
+	// Add Rover Construction to player's hand (card 038)
+	cardID := "038"
+	playerRepo.AddCard(ctx, gameID, playerID, cardID)
+
+	// Get initial state
+	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
+
+	// Play Rover Construction
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Rover Construction")
+
+	// Verify card was played and cost was deducted
+	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.Equal(t, 42, playerAfter.Resources.Credits, "Should have 50-8=42 credits after cost")
+	assert.Contains(t, playerAfter.PlayedCards, cardID, "Card should be played")
+
+	// NOTE: In the new event-driven system, passive effects are subscribed via CardEffectSubscriber
+	// and are NOT stored in player.Effects. The effect will trigger automatically when
+	// TilePlacedEvent is published (tested in TestRoverConstruction_PassiveEffectTriggering)
+
+	t.Log("✅ Rover Construction card play test passed (passive effects use event-driven system)")
 }
 
 func TestSpaceElevator_ImmediateEffect(t *testing.T) {
@@ -192,4 +226,163 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 	assert.True(t, actionUsed, "Should find used action with play count")
 
 	t.Log("✅ Space Elevator action use test passed")
+}
+
+// TestRoverConstruction_PassiveEffectTriggering tests the full event system integration:
+// 1. Play Rover Construction card (registers passive effect)
+// 2. Simulate a city tile placement event
+// 3. Verify passive effect triggers and awards 2 credits
+func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	// Setup repositories and services
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+
+	// Load cards
+	require.NoError(t, cardRepo.LoadCards(ctx))
+
+	// Create test game in action phase
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	require.NoError(t, err)
+	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+
+	// Initialize the board with default tiles
+	board := boardService.GenerateDefaultBoard()
+	err = gameRepo.UpdateBoard(ctx, game.ID, board)
+	require.NoError(t, err)
+
+	// Create test player with enough credits
+	player := model.Player{
+		ID:               "player1",
+		Name:             "Test Player",
+		Resources:        model.Resources{Credits: 50},
+		Production:       model.Production{Credits: 1},
+		TerraformRating:  20,
+		IsConnected:      true,
+		AvailableActions: 2,
+	}
+
+	playerRepo.Create(ctx, game.ID, player)
+	gameRepo.AddPlayerID(ctx, game.ID, player.ID)
+	gameRepo.UpdateCurrentTurn(ctx, game.ID, &player.ID)
+
+	// Step 1: Play Rover Construction to register passive effect
+	roverConstructionCardID := "038"
+	playerRepo.AddCard(ctx, game.ID, player.ID, roverConstructionCardID)
+
+	// Get initial credits (should be 50)
+	playerBefore, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
+	initialCredits := playerBefore.Resources.Credits
+	t.Logf("Initial credits: %d", initialCredits)
+
+	// Play Rover Construction
+	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Rover Construction")
+
+	// Verify card was played
+	playerAfterCard, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
+	creditsAfterCard := playerAfterCard.Resources.Credits
+	t.Logf("Credits after playing Rover Construction: %d", creditsAfterCard)
+	assert.Equal(t, initialCredits-8, creditsAfterCard, "Should spend 8 MC for Rover Construction")
+	// Note: With event-driven system, passive effects are subscribed via CardEffectSubscriber, not stored in player.Effects
+
+	// Step 2: Simulate a city placement event by actually placing a city tile
+	// This will publish TilePlacedEvent which CardEffectSubscriber will handle
+	coordinate := model.HexPosition{Q: 0, R: 0, S: 0}
+	tileOccupant := model.TileOccupant{Type: model.TileTypeCity}
+	err = gameRepo.UpdateTileOccupancy(ctx, game.ID, coordinate, &tileOccupant, &player.ID)
+	require.NoError(t, err, "Should successfully place city tile")
+
+	// Step 3: Verify passive effect triggered and awarded 2 credits
+	playerAfterEffect, _ := playerRepo.GetByID(ctx, game.ID, player.ID)
+	creditsAfterEffect := playerAfterEffect.Resources.Credits
+	t.Logf("Credits after triggering city-placed event: %d", creditsAfterEffect)
+
+	// Calculate expected credits:
+	// - Start: 50 MC
+	// - Play Rover Construction: -8 MC = 42 MC
+	// - Rover Construction passive effect: +2 MC = 44 MC
+	expectedCredits := 44
+	assert.Equal(t, expectedCredits, creditsAfterEffect, "Should gain 2 credits from Rover Construction passive effect")
+
+	t.Log("✅ Rover Construction passive effect triggering integration test passed")
+}
+
+func TestLavaFlows_TemperatureIncrease(t *testing.T) {
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+
+	// Set initial temperature to -20°C
+	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+		Temperature: -20, Oxygen: 0, Oceans: 0,
+	})
+
+	// Give player enough credits to play Lava Flows (cost: 18)
+	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+
+	// Add Lava Flows to player's hand
+	cardID := "140"
+	playerRepo.AddCard(ctx, gameID, playerID, cardID)
+
+	// Get state before playing card
+	gameBefore, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, -20, gameBefore.GlobalParameters.Temperature, "Initial temperature should be -20°C")
+
+	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.Contains(t, playerBefore.Cards, cardID, "Card should be in hand")
+	assert.Equal(t, 20, playerBefore.Resources.Credits, "Should have 20 credits")
+
+	// Play Lava Flows
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Lava Flows")
+
+	// Verify effects
+	gameAfter, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, -18, gameAfter.GlobalParameters.Temperature, "Temperature should increase by 2 steps (-20 + 2 = -18)")
+
+	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
+	assert.NotContains(t, playerAfter.Cards, cardID, "Card removed from hand")
+	assert.Contains(t, playerAfter.PlayedCards, cardID, "Card added to played cards")
+	assert.Equal(t, 2, playerAfter.Resources.Credits, "Should spend 18 MC (20 - 18 = 2)")
+
+	t.Log("✅ Lava Flows temperature increase test passed")
+}
+
+func TestLavaFlows_TemperatureClampedAtMax(t *testing.T) {
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+
+	// Set temperature to 7°C (1 step below max of 8°C)
+	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+		Temperature: 7, Oxygen: 0, Oceans: 0,
+	})
+
+	// Give player enough credits
+	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+
+	// Add Lava Flows to player's hand
+	cardID := "140"
+	playerRepo.AddCard(ctx, gameID, playerID, cardID)
+
+	// Get state before
+	gameBefore, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, 7, gameBefore.GlobalParameters.Temperature, "Initial temperature should be 7°C")
+
+	// Play Lava Flows (would increase by 2, but max is 8)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	require.NoError(t, err, "Should successfully play Lava Flows")
+
+	// Verify temperature is clamped at max
+	gameAfter, _ := gameRepo.GetByID(ctx, gameID)
+	assert.Equal(t, 8, gameAfter.GlobalParameters.Temperature, "Temperature should be clamped at max (8°C)")
+
+	t.Log("✅ Lava Flows temperature clamping test passed")
 }

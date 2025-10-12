@@ -301,6 +301,21 @@ func main() {
 	})
 	fmt.Printf("Cards sorted by ID\n")
 
+	// Load pack mapping and apply to cards
+	packMapping, err := loadPackMapping()
+	if err != nil {
+		fmt.Printf("Warning: Could not load pack mapping (%v), cards will not have pack information\n", err)
+	} else {
+		packAppliedCount := 0
+		for i := range cards {
+			if pack, exists := packMapping[cards[i].ID]; exists {
+				cards[i].Pack = pack
+				packAppliedCount++
+			}
+		}
+		fmt.Printf("Pack information applied to %d cards\n", packAppliedCount)
+	}
+
 	output, err := json.MarshalIndent(cards, "", "  ")
 	if err != nil {
 		fmt.Printf("Error marshaling JSON: %v\n", err)
@@ -501,6 +516,32 @@ func parseCardsCSV(behaviorsMap map[string][]BehaviorData) ([]model.Card, error)
 	return cards, nil
 }
 
+// parsePackFromExpansion maps CSV expansion values to pack identifiers
+func parsePackFromExpansion(expansion string) string {
+	expansion = strings.TrimSpace(expansion)
+	expansion = strings.ToLower(expansion)
+
+	switch {
+	case strings.Contains(expansion, "0 base"), strings.Contains(expansion, "base"):
+		return model.PackBaseGame
+	case strings.Contains(expansion, "1 corpera"), strings.Contains(expansion, "corporate"):
+		return "corporate-era"
+	case strings.Contains(expansion, "5 prelude"), strings.Contains(expansion, "prelude"):
+		return "prelude"
+	case strings.Contains(expansion, "4 venusnext"), strings.Contains(expansion, "venus"):
+		return "venus-next"
+	case strings.Contains(expansion, "6 colonies"), strings.Contains(expansion, "colonies"):
+		return "colonies"
+	case strings.Contains(expansion, "7 turmoil"), strings.Contains(expansion, "turmoil"):
+		return "turmoil"
+	case strings.Contains(expansion, "pro/"), strings.Contains(expansion, "promo"):
+		return "promo"
+	default:
+		// Default to base-game for empty or unknown expansions
+		return model.PackBaseGame
+	}
+}
+
 func parseCardFromRecord(record []string, behaviorsMap map[string][]BehaviorData, lineNum int) (*model.Card, error) {
 	if len(record) < 20 {
 		return nil, fmt.Errorf("insufficient columns")
@@ -521,6 +562,13 @@ func parseCardFromRecord(record []string, behaviorsMap map[string][]BehaviorData
 
 	// Parse card type
 	card.Type = parseCardType(record[colType])
+
+	// Parse pack from expansion column
+	if len(record) > colExpansion {
+		card.Pack = parsePackFromExpansion(record[colExpansion])
+	} else {
+		card.Pack = model.PackBaseGame // Default if column doesn't exist
+	}
 
 	// Parse tags and sort them for consistent output
 	tags := parseTags(record)
@@ -756,14 +804,24 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 				}
 
 			case "6 Effect/Resource":
-				// Check if this has a trigger condition - if so, treat as triggered effect
-				if behavior.BehaviorData.Trigger != "" {
+				// Check if this is a value modifier (payment enhancement) or a triggered effect
+				triggerLower := strings.ToLower(behavior.BehaviorData.Trigger)
+				isPaymentModifier := strings.Contains(triggerLower, "payment that accepts")
+
+				if isPaymentModifier {
+					// Convert resource value modifiers to unified behaviors
+					cardBehavior := createValueModifierBehavior(behavior.BehaviorData)
+					if cardBehavior != nil {
+						cardBehaviors = append(cardBehaviors, *cardBehavior)
+					}
+				} else if behavior.BehaviorData.Trigger != "" {
+					// Has a non-payment trigger - treat as triggered effect
 					cardBehavior := createTriggeredEffectBehavior(behavior.BehaviorData)
 					if cardBehavior != nil {
 						cardBehaviors = append(cardBehaviors, *cardBehavior)
 					}
 				} else {
-					// Convert resource value modifiers to unified behaviors
+					// No trigger - try value modifier
 					cardBehavior := createValueModifierBehavior(behavior.BehaviorData)
 					if cardBehavior != nil {
 						cardBehaviors = append(cardBehaviors, *cardBehavior)
@@ -832,7 +890,7 @@ func enhanceCardWithBehaviors(card *model.Card, behaviors []BehaviorData, record
 
 // DEPRECATED: enhanceAttackActions - replaced by createAttackAction
 
-// parseTriggerCondition parses trigger conditions from behaviors.csv "Where" column
+// parseTriggerCondition parses trigger conditions from behaviors.csv "Trigger" column
 func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 	if whereText == "" {
 		return nil
@@ -840,7 +898,39 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 
 	whereText = strings.ToLower(strings.TrimSpace(whereText))
 
+	// Determine target based on "ANY" prefix
+	// "ANY" = any player can trigger it (TargetAnyPlayer)
+	// Otherwise = only the card owner triggers it (TargetSelfPlayer)
+	var target model.TargetType
+	if strings.HasPrefix(whereText, "any ") {
+		target = model.TargetAnyPlayer
+	} else {
+		target = model.TargetSelfPlayer
+	}
+
 	switch {
+	// Tag-based triggers (when cards with specific tags are played)
+	case strings.Contains(whereText, "p/m/a tag"):
+		// Plant/Microbe/Animal tag trigger
+		return &model.ResourceTriggerCondition{
+			Type:         model.TriggerCardPlayed,
+			AffectedTags: []model.CardTag{model.TagPlant, model.TagMicrobe, model.TagAnimal},
+			Target:       &target,
+		}
+	case strings.Contains(whereText, "plant/animal tag"):
+		// Plant/Animal tag trigger
+		return &model.ResourceTriggerCondition{
+			Type:         model.TriggerCardPlayed,
+			AffectedTags: []model.CardTag{model.TagPlant, model.TagAnimal},
+			Target:       &target,
+		}
+	// Tile placement triggers
+	case strings.Contains(whereText, "greenery tile"):
+		// Greenery tile placement trigger
+		return &model.ResourceTriggerCondition{
+			Type:   model.TriggerGreeneryPlaced,
+			Target: &target,
+		}
 	case strings.Contains(whereText, "city"):
 		triggerType := model.TriggerCityPlaced
 		location := model.CardApplyLocationAnywhere
@@ -850,6 +940,7 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "ocean"):
 		triggerType := model.TriggerOceanPlaced
@@ -860,9 +951,10 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "greenery"):
-		triggerType := model.TriggerTilePlaced
+		triggerType := model.TriggerGreeneryPlaced
 		location := model.CardApplyLocationAnywhere
 		if strings.Contains(whereText, "mars") {
 			location = model.CardApplyLocationMars
@@ -870,14 +962,17 @@ func parseTriggerCondition(whereText string) *model.ResourceTriggerCondition {
 		return &model.ResourceTriggerCondition{
 			Type:     triggerType,
 			Location: &location,
+			Target:   &target,
 		}
 	case strings.Contains(whereText, "temperature"):
 		return &model.ResourceTriggerCondition{
-			Type: model.TriggerTemperatureRaise,
+			Type:   model.TriggerTemperatureRaise,
+			Target: &target,
 		}
 	case strings.Contains(whereText, "oxygen"):
 		return &model.ResourceTriggerCondition{
-			Type: model.TriggerOxygenRaise,
+			Type:   model.TriggerOxygenRaise,
+			Target: &target,
 		}
 	}
 
@@ -896,8 +991,10 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		// Determine target based on resource type
 		switch resourceType {
 		case model.ResourceCityPlacement, model.ResourceOceanPlacement, model.ResourceGreeneryPlacement,
-			model.ResourceTemperature, model.ResourceOxygen, model.ResourceVenus, model.ResourceTR:
-			return model.TargetNone // Board actions don't target players
+			model.ResourceTemperature, model.ResourceOxygen, model.ResourceVenus:
+			return model.TargetNone // Global parameters and tile placements don't target players
+		case model.ResourceTR:
+			return model.TargetSelfPlayer // TR changes target the player
 		case model.ResourceCreditsProduction, model.ResourceSteelProduction, model.ResourceTitaniumProduction,
 			model.ResourcePlantsProduction, model.ResourceEnergyProduction, model.ResourceHeatProduction:
 			return model.TargetSelfPlayer // Production changes target the player
@@ -992,13 +1089,13 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 		}
 
 		for _, prod := range productionInputs {
-			if prod.value != 0 {
-				// Production changes (both positive and negative) are outputs
+			if prod.value > 0 {
+				// Positive production changes are outputs
 				amount := prod.value
 				target := getTarget(prod.resourceType, false)
 
 				// For attacks: positive values should be negative since attacks decrease opponent's production
-				if isAttack && prod.value > 0 {
+				if isAttack {
 					amount = -prod.value
 				}
 
@@ -1007,6 +1104,24 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 					Amount: amount,
 					Target: target,
 				})
+			} else if prod.value < 0 {
+				// Handle negative production: for immediate effects, treat as negative outputs
+				// For non-immediate effects (actions), treat as positive inputs (cost)
+				if isImmediateEffect {
+					// Immediate effects: negative values are negative outputs (like "lose 1 energy production")
+					outputs = append(outputs, model.ResourceCondition{
+						Type:   prod.resourceType,
+						Amount: prod.value, // Keep negative amount
+						Target: getTarget(prod.resourceType, false),
+					})
+				} else {
+					// Non-immediate effects (actions): negative values are positive inputs (cost)
+					inputs = append(inputs, model.ResourceCondition{
+						Type:   prod.resourceType,
+						Amount: -prod.value, // Convert to positive
+						Target: getTarget(prod.resourceType, true),
+					})
+				}
 			}
 		}
 
@@ -1080,7 +1195,8 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 			})
 		}
 
-		if behavior.CardResources != "" && behavior.ResourceType != "" {
+		if behavior.CardResources != "" && behavior.ResourceType != "" && behavior.CardResources != "N" {
+			// Skip if CardResources is "N" - it will be handled by parseNBasedConditionalOutput
 			resourceType := parseResourceType(behavior.ResourceType)
 			target := model.TargetAnyCard
 			if behavior.Where == "self" || behavior.Where == "here" {
@@ -1197,6 +1313,9 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		resourceType = model.ResourceEnergyProduction
 	} else if behavior.HeatProdRaw == "N" {
 		resourceType = model.ResourceHeatProduction
+	} else if behavior.CardResources == "N" && behavior.ResourceType != "" {
+		// Handle card resources like floaters, microbes, animals
+		resourceType = parseResourceType(behavior.ResourceType)
 	} else {
 		// No "N" found in resource or production columns
 		return nil
@@ -1318,12 +1437,27 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		}
 	}
 
+	// Determine target and affectedTags for card resources
+	outputTarget := model.TargetSelfPlayer
+	var affectedTags []model.CardTag
+
+	// If this is a card resource (floaters, microbes, etc.), use card-specific targeting
+	if behavior.CardResources == "N" {
+		if behavior.Where == "self" || behavior.Where == "here" {
+			outputTarget = model.TargetSelfCard
+		} else {
+			outputTarget = model.TargetAnyCard
+		}
+		affectedTags = parseWhereToAffectedTags(behavior.Where)
+	}
+
 	// Create the conditional output
 	return &model.ResourceCondition{
-		Type:       resourceType,
-		Amount:     1, // Amount gained per condition (N means 1 per)
-		Target:     model.TargetSelfPlayer,
-		MaxTrigger: maxTrigger,
+		Type:         resourceType,
+		Amount:       1, // Amount gained per condition (N means 1 per)
+		Target:       outputTarget,
+		AffectedTags: affectedTags,
+		MaxTrigger:   maxTrigger,
 		Per: &model.PerCondition{
 			Type:     perType,
 			Amount:   perAmount,
@@ -1707,7 +1841,17 @@ func parseRequirements(record []string) []model.Requirement {
 			requirement.Min = &requireNum
 		}
 		requirements = append(requirements, requirement)
-	case strings.Contains(requireWhat, "oxygen") || strings.Contains(requireWhat, "%"):
+	case strings.Contains(requireWhat, "venus"):
+		requirement := model.Requirement{
+			Type: model.RequirementVenus,
+		}
+		if isMax {
+			requirement.Max = &requireNum
+		} else {
+			requirement.Min = &requireNum
+		}
+		requirements = append(requirements, requirement)
+	case strings.Contains(requireWhat, "oxygen") || (strings.Contains(requireWhat, "%") && !strings.Contains(requireWhat, "venus")):
 		requirement := model.Requirement{
 			Type: model.RequirementOxygen,
 		}
@@ -1862,20 +2006,153 @@ func parseEffectsFromDescription(card *model.Card) {
 
 func parseDescription(record []string) string {
 	// Try full text first (assuming it's around column 42)
+	var description string
 	if len(record) > 42 && record[42] != "" {
-		return strings.TrimSpace(record[42])
+		description = strings.TrimSpace(record[42])
+	} else {
+		// Fallback to earlier columns
+		var parts []string
+		if len(record) > 40 && record[40] != "" {
+			parts = append(parts, strings.TrimSpace(record[40]))
+		}
+		if len(record) > 39 && record[39] != "" {
+			parts = append(parts, strings.TrimSpace(record[39]))
+		}
+		description = strings.Join(parts, " ")
 	}
 
-	// Fallback to earlier columns
-	var parts []string
-	if len(record) > 40 && record[40] != "" {
-		parts = append(parts, strings.TrimSpace(record[40]))
-	}
-	if len(record) > 39 && record[39] != "" {
-		parts = append(parts, strings.TrimSpace(record[39]))
+	// Convert ALL CAPS segments to sentence case
+	return toSentenceCase(description)
+}
+
+// toSentenceCase converts ALL CAPS text segments to proper sentence case
+// Handles both fully ALL CAPS text and mixed text with ALL CAPS segments
+func toSentenceCase(text string) string {
+	if text == "" {
+		return text
 	}
 
-	return strings.Join(parts, " ")
+	// Split by sentence delimiters but keep the delimiters
+	sentences := splitPreservingDelimiters(text, []string{". ", "! ", "? "})
+
+	var result strings.Builder
+	for i, sentence := range sentences {
+		sentence = strings.TrimSpace(sentence)
+		if sentence == "" {
+			continue
+		}
+
+		// Check if this sentence is ALL CAPS
+		if isAllCaps(sentence) {
+			// Convert to sentence case: first letter uppercase, rest lowercase
+			converted := convertToSentenceCase(sentence)
+			result.WriteString(converted)
+		} else {
+			result.WriteString(sentence)
+		}
+
+		// Add space after sentence if it ends with punctuation and it's not the last sentence
+		if i < len(sentences)-1 {
+			if strings.HasSuffix(sentence, ".") || strings.HasSuffix(sentence, "!") || strings.HasSuffix(sentence, "?") {
+				result.WriteString(" ")
+			}
+		}
+	}
+
+	return strings.TrimSpace(result.String())
+}
+
+// isAllCaps checks if a text segment is predominantly in ALL CAPS
+func isAllCaps(text string) bool {
+	upperCount := 0
+	lowerCount := 0
+
+	for _, r := range text {
+		if r >= 'A' && r <= 'Z' {
+			upperCount++
+		} else if r >= 'a' && r <= 'z' {
+			lowerCount++
+		}
+	}
+
+	// Consider it ALL CAPS if there are letters and 80%+ are uppercase
+	totalLetters := upperCount + lowerCount
+	if totalLetters < 3 {
+		return false // Too short to determine
+	}
+
+	return float64(upperCount)/float64(totalLetters) >= 0.8
+}
+
+// convertToSentenceCase converts an ALL CAPS string to sentence case
+// First letter uppercase, rest lowercase, preserving proper nouns
+func convertToSentenceCase(text string) string {
+	if text == "" {
+		return text
+	}
+
+	// Convert to lowercase first
+	lower := strings.ToLower(text)
+
+	// Capitalize first letter
+	runes := []rune(lower)
+	for i, r := range runes {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			runes[i] = []rune(strings.ToUpper(string(r)))[0]
+			break
+		}
+	}
+	result := string(runes)
+
+	// Preserve proper nouns (M€, TR, VP, etc.)
+	result = preserveProperNouns(result)
+
+	return result
+}
+
+// preserveProperNouns restores proper capitalization for game-specific terms
+func preserveProperNouns(text string) string {
+	result := text
+
+	// Handle M€ specially - match with explicit boundaries since € is not a word char
+	// Match patterns like "4 m€", "m€ production", start/end of string, etc.
+	result = regexp.MustCompile(`(?i)(^|[\s])m€([\s\.,!?]|$)`).ReplaceAllString(result, "${1}M€${2}")
+
+	// Handle other game terms with standard word boundaries (case-insensitive)
+	result = regexp.MustCompile(`(?i)\btr\b`).ReplaceAllString(result, "TR")
+	result = regexp.MustCompile(`(?i)\bvp\b`).ReplaceAllString(result, "VP")
+
+	return result
+}
+
+// splitPreservingDelimiters splits text by delimiters but keeps the delimiters attached
+func splitPreservingDelimiters(text string, delimiters []string) []string {
+	if text == "" {
+		return []string{}
+	}
+
+	result := []string{text}
+
+	for _, delim := range delimiters {
+		var newResult []string
+		for _, part := range result {
+			if strings.Contains(part, delim) {
+				splits := strings.Split(part, delim)
+				for i, split := range splits {
+					if i < len(splits)-1 {
+						newResult = append(newResult, split+delim)
+					} else if split != "" {
+						newResult = append(newResult, split)
+					}
+				}
+			} else {
+				newResult = append(newResult, part)
+			}
+		}
+		result = newResult
+	}
+
+	return result
 }
 
 func parseVictoryConditionsFromBehaviors(behaviors []BehaviorData, record []string) []model.VictoryPointCondition {
@@ -2376,7 +2653,8 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 	}
 
 	// Card resources (like floaters, microbes, animals)
-	if choice.CardResources != "" && choice.ResourceType != "" {
+	if choice.CardResources != "" && choice.ResourceType != "" && choice.CardResources != "N" {
+		// Skip if CardResources is "N" - it will be handled by parseNBasedConditionalOutput
 		resourceType := parseResourceType(choice.ResourceType)
 		target := model.TargetAnyCard // Default for card resources
 		if choice.Where == "self" || choice.Where == "here" {
@@ -2420,6 +2698,13 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 		effects = append(effects, model.ResourceCondition{
 			Type:   model.ResourceVenus,
 			Amount: choice.RaiseVenus,
+			Target: model.TargetNone,
+		})
+	}
+	if choice.RaiseTR > 0 {
+		effects = append(effects, model.ResourceCondition{
+			Type:   model.ResourceTR,
+			Amount: choice.RaiseTR,
 			Target: model.TargetNone,
 		})
 	}
@@ -2769,4 +3054,18 @@ func createGlobalParameterLenienceBehavior(behavior BehaviorData) *model.CardBeh
 	}
 }
 
-// DEPRECATED: enhanceGlobalParameterLenienceActions - replaced by createGlobalParameterLenienceAction
+// loadPackMapping loads the pack mapping from JSON file
+func loadPackMapping() (map[string]string, error) {
+	packFilePath := filepath.Join("assets", "terraforming_mars_card_pack.json")
+	data, err := os.ReadFile(packFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read pack mapping file: %w", err)
+	}
+
+	var packMapping map[string]string
+	if err := json.Unmarshal(data, &packMapping); err != nil {
+		return nil, fmt.Errorf("failed to parse pack mapping: %w", err)
+	}
+
+	return packMapping, nil
+}

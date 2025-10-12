@@ -3,6 +3,8 @@ package service_test
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -15,10 +17,10 @@ import (
 func TestCardSelectionFlow(t *testing.T) {
 	// Setup
 	ctx := context.Background()
-	// EventBus no longer needed
+	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 
 	// Load card data for testing
@@ -29,7 +31,8 @@ func TestCardSelectionFlow(t *testing.T) {
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// EventBus tracking removed - using SessionManager for state updates
@@ -64,9 +67,10 @@ func TestCardSelectionFlow(t *testing.T) {
 
 	t.Logf("✅ Starting cards available to player: %v", player.SelectStartingCardsPhase.AvailableCards)
 
-	// Test card selection - select first 2 cards
+	// Test card selection - select first 2 cards and first corporation
 	selectedCardIDs := player.SelectStartingCardsPhase.AvailableCards[:2]
-	err = cardService.OnSelectStartingCards(ctx, game.ID, playerID, selectedCardIDs)
+	selectedCorporationID := player.SelectStartingCardsPhase.AvailableCorporations[0]
+	err = cardService.OnSelectStartingCards(ctx, game.ID, playerID, selectedCardIDs, selectedCorporationID)
 	require.NoError(t, err)
 	t.Logf("✅ Cards selected successfully: %v", selectedCardIDs)
 

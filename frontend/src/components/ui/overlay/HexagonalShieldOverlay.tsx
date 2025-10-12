@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { CardDto } from "../../../types/generated/api-types.ts";
-import { UnplayableReason } from "../../../utils/cardPlayabilityUtils.ts";
-import ProductionIcon from "../display/ProductionIcon.tsx";
+import {
+  CardDto,
+  ResourceTypeCredits,
+  ResourceTypeCreditsProduction,
+} from "@/types/generated/api-types.ts";
+import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface HexagonalShieldOverlayProps {
   card: CardDto | null;
@@ -20,13 +24,18 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   const [lastValidCard, setLastValidCard] = useState<CardDto | null>(null);
   const [lastValidReason, setLastValidReason] =
     useState<UnplayableReason | null>(null);
+  const [isPendingTileSelection, setIsPendingTileSelection] = useState(false);
 
   useEffect(() => {
     if (isVisible && card && reason) {
+      // Check if this is a pending tile selection message
+      const isTileSelection = reason.message === "Pending tile selection";
+
       // Mount first
       setShouldRender(true);
       setLastValidCard(card);
       setLastValidReason(reason);
+      setIsPendingTileSelection(isTileSelection);
 
       // Next tick → trigger fade-in
       requestAnimationFrame(() => {
@@ -44,6 +53,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         setIsAnimatingOut(false);
         setLastValidCard(null);
         setLastValidReason(null);
+        setIsPendingTileSelection(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -69,109 +79,37 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     return null;
   }
 
-  // Get the appropriate icon for the requirement type
-  const getRequirementIcon = (reason: UnplayableReason): string | null => {
-    const iconMap: { [key: string]: string } = {
-      // Cost
-      cost: "/assets/resources/megacredit.png",
-      credits: "/assets/resources/megacredit.png",
-      megacredits: "/assets/resources/megacredit.png",
-
-      // Global parameters
-      temperature: "/assets/global-parameters/temperature.png",
-      oxygen: "/assets/global-parameters/oxygen.png",
-      oceans: "/assets/tiles/ocean.png",
-
-      // Resources
-      steel: "/assets/resources/steel.png",
-      titanium: "/assets/resources/titanium.png",
-      plants: "/assets/resources/plant.png",
-      energy: "/assets/resources/power.png",
-      heat: "/assets/resources/heat.png",
-
-      // Tags
-      science: "/assets/tags/science.png",
-      "power-tag": "/assets/tags/power.png",
-      space: "/assets/tags/space.png",
-      building: "/assets/tags/building.png",
-      city: "/assets/tags/city.png",
-      earth: "/assets/tags/earth.png",
-      jovian: "/assets/tags/jovian.png",
-      venus: "/assets/tags/venus.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-    };
-
-    // For cost type, return megacredit icon
-    if (reason.type === "cost") {
-      return iconMap.cost;
+  // Extract the icon type from requirement data - GameIcon handles all the mapping
+  const getRequirementIconType = (reason: UnplayableReason): string | null => {
+    if (reason.type === "cost") return ResourceTypeCredits;
+    if (reason.type === "global-param") return reason.requirement?.type || null;
+    if (reason.type === "tag")
+      return reason.requirement?.tag?.toLowerCase() || null;
+    if (reason.type === "production" || reason.type === "resource") {
+      return reason.requirement?.resource || null;
     }
-
-    // For global-param type, use the specific parameter type
-    if (reason.type === "global-param" && reason.requirement?.type) {
-      return iconMap[reason.requirement.type];
-    }
-
-    // For tag type, use the tag name
-    if (reason.type === "tag" && reason.requirement?.tag) {
-      const tagName = reason.requirement.tag.toLowerCase();
-      // Handle special case for power tag to avoid duplicate key conflict
-      if (tagName === "power") {
-        return iconMap["power-tag"];
-      }
-      return iconMap[tagName];
-    }
-
-    // For production type, use the resource icon
-    if (reason.type === "production" && reason.requirement?.resource) {
-      const resourceName = reason.requirement.resource.toLowerCase();
-      // For production, power refers to energy resource, not power tag
-      if (resourceName === "power") {
-        return iconMap["energy"];
-      }
-      // For production, plant refers to plants resource
-      if (resourceName === "plant") {
-        return iconMap["plants"];
-      }
-      return iconMap[resourceName];
-    }
-
-    // For resource type, use the resource icon
-    if (reason.type === "resource" && reason.requirement?.resource) {
-      const resourceName = reason.requirement.resource.toLowerCase();
-      // Handle special naming conventions
-      if (resourceName === "power") {
-        return iconMap["energy"];
-      }
-      if (resourceName === "plant") {
-        return iconMap["plants"];
-      }
-      return iconMap[resourceName];
-    }
-
     return null;
   };
 
-  const icon = getRequirementIcon(displayReason);
+  // Get the amount to display inside the icon (for credits)
+  const getRequirementAmount = (
+    reason: UnplayableReason,
+  ): number | undefined => {
+    if (reason.type === "cost" && typeof reason.requiredValue === "number") {
+      return reason.requiredValue;
+    }
+    if (
+      reason.requirement?.resource === ResourceTypeCreditsProduction &&
+      typeof reason.requiredValue === "number"
+    ) {
+      return reason.requiredValue;
+    }
 
-  // Helper to get resource icon path for production display
-  const getResourceIconPath = (resourceType: string): string => {
-    const resourceIconMap: { [key: string]: string } = {
-      credits: "/assets/resources/megacredit.png",
-      steel: "/assets/resources/steel.png",
-      titanium: "/assets/resources/titanium.png",
-      plants: "/assets/resources/plant.png",
-      plant: "/assets/resources/plant.png",
-      energy: "/assets/resources/power.png",
-      power: "/assets/resources/power.png",
-      heat: "/assets/resources/heat.png",
-    };
-    return resourceIconMap[resourceType.toLowerCase()] || "";
+    return undefined;
   };
+
+  const iconType = getRequirementIconType(displayReason);
+  const iconAmount = getRequirementAmount(displayReason);
 
   // Determine which global parameters are affected
   const getAffectedParameters = (reason: UnplayableReason): string[] => {
@@ -270,7 +208,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
             stroke="rgba(255, 152, 0, 0.8)"
             strokeWidth="2"
             opacity={opacity}
-            className="hex-tile"
+            className="transition-opacity duration-500 [filter:drop-shadow(0_0_8px_rgba(255,152,0,0.9))]"
           />,
         );
       }
@@ -296,463 +234,82 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
 
   return (
     <div
-      className={`hexagonal-shield-overlay ${createHighlightClasses()} ${overlayClass}`}
+      className={`hexagonal-shield-overlay fixed top-[calc(50%+10px)] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[108vw] h-[96vh] z-[1500] pointer-events-none flex justify-center items-center transition-opacity duration-300 ${overlayClass === "visible" ? "opacity-100" : "opacity-0"} ${createHighlightClasses()}`}
     >
       {/* Hexagonal shield background */}
-      <div className="shield-container">
+      <div className="relative w-full h-full flex justify-center items-center max-w-[800px] max-h-[600px]">
         <svg
-          className="hexagon-pattern"
+          className="absolute top-0 left-0 w-full h-full opacity-90 [filter:blur(0.5px)_drop-shadow(0_0_12px_rgba(255,152,0,0.8))]"
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         >
           {generateHexagonPattern()}
         </svg>
 
         {/* Shield text overlay - directly on hexagons */}
-        <div className="shield-text-overlay">
-          <div className="shield-text-content">
-            {displayReason.type === "multiple" &&
-            displayReason.failedRequirements ? (
-              <div className="requirements-list">
+        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-[3] pointer-events-none">
+          <div
+            className={`text-center max-w-[80%] transition-all duration-300 ${overlayClass === "visible" ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}
+          >
+            {/* If pending tile selection, ONLY show that message - ignore all other requirements */}
+            {isPendingTileSelection ? (
+              <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
+                <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                  {displayReason.message}
+                </span>
+              </div>
+            ) : displayReason.type === "multiple" &&
+              displayReason.failedRequirements ? (
+              <div className="flex flex-col gap-4 items-center">
                 {displayReason.failedRequirements.map((req, index) => {
-                  const reqIcon = getRequirementIcon(req);
-                  const isProduction = req.type === "production";
+                  const reqIconType = getRequirementIconType(req);
+                  const reqIconAmount = getRequirementAmount(req);
+                  const showMessage =
+                    req.type !== "cost" &&
+                    req.requirement?.resource !== ResourceTypeCreditsProduction;
                   return (
-                    <div key={index} className="requirement-item">
-                      <span className="requirement-text">{req.message}</span>
-                      {isProduction && req.requirement?.resource ? (
-                        <ProductionIcon
-                          resourceIcon={getResourceIconPath(
-                            req.requirement.resource,
-                          )}
-                          size="medium"
-                        />
-                      ) : (
-                        reqIcon && (
-                          <img
-                            src={reqIcon}
-                            alt="requirement"
-                            className="requirement-icon"
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]"
+                    >
+                      {showMessage && (
+                        <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                          {req.message}
+                        </span>
+                      )}
+                      {reqIconType && (
+                        <div className="flex-shrink-0">
+                          <GameIcon
+                            iconType={reqIconType}
+                            size="medium"
+                            amount={reqIconAmount}
                           />
-                        )
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="single-requirement">
-                <span className="requirement-text">
-                  {displayReason.message}
-                </span>
-                {displayReason.type === "production" &&
-                displayReason.requirement?.resource ? (
-                  <ProductionIcon
-                    resourceIcon={getResourceIconPath(
-                      displayReason.requirement.resource,
-                    )}
-                    size="medium"
-                  />
-                ) : (
-                  icon && (
-                    <img
-                      src={icon}
-                      alt="requirement"
-                      className="requirement-icon"
+              <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
+                {displayReason.type !== "cost" && (
+                  <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                    {displayReason.message}
+                  </span>
+                )}
+                {iconType && (
+                  <div className="flex-shrink-0">
+                    <GameIcon
+                      iconType={iconType}
+                      size="medium"
+                      amount={iconAmount}
                     />
-                  )
+                  </div>
                 )}
               </div>
             )}
           </div>
         </div>
       </div>
-
-      <style>{`
-        .hexagonal-shield-overlay {
-          position: fixed;
-          top: calc(50% + 10px);
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 108vw;
-          height: 96vh;
-          z-index: 1500; /* Above Mars but below card hand */
-          pointer-events: none;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          opacity: 0;
-          transition: opacity 0.3s ease-in-out;
-        }
-
-        .hexagonal-shield-overlay.visible {
-          opacity: 1;
-        }
-
-        .hexagonal-shield-overlay.hidden {
-          opacity: 0;
-        }
-
-        .shield-container {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          max-width: 800px;
-          max-height: 600px;
-        }
-
-        .hexagon-pattern {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          opacity: 0.9;
-          filter: blur(0.5px) drop-shadow(0 0 12px rgba(255, 152, 0, 0.8));
-        }
-
-        .hex-tile {
-          transition: opacity 0.5s ease-in-out;
-          filter: drop-shadow(0 0 8px rgba(255, 152, 0, 0.9));
-        }
-
-        .visible .hex-tile {
-          opacity: 1;
-        }
-
-        .hidden .hex-tile {
-          opacity: 0;
-        }
-
-        .shield-text-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 3;
-          pointer-events: none;
-        }
-
-        .shield-text-content {
-          text-align: center;
-          max-width: 80%;
-          transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-        }
-
-        .visible .shield-text-content {
-          opacity: 1;
-          transform: scale(1);
-        }
-
-        .hidden .shield-text-content {
-          opacity: 0;
-          transform: scale(0.9);
-        }
-
-        .requirements-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          align-items: center;
-        }
-
-        .requirement-item,
-        .single-requirement {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: rgba(0, 0, 0, 0.7);
-          padding: 12px 20px;
-          border-radius: 12px;
-          border: 2px solid rgba(255, 152, 0, 0.6);
-          backdrop-filter: blur(8px);
-          box-shadow: 0 0 24px rgba(255, 152, 0, 0.6);
-        }
-
-        .requirement-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 6px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-          object-fit: contain;
-          flex-shrink: 0;
-        }
-
-        .requirement-text {
-          color: #ffffff;
-          font-size: 18px;
-          font-weight: 500;
-          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
-          line-height: 1.3;
-        }
-
-        /* Responsive design */
-        @media (max-width: 1200px) {
-          .hexagonal-shield-overlay {
-            left: 5%;
-            right: 5%;
-          }
-
-          .shield-content {
-            max-width: 450px;
-            padding: 20px 28px;
-          }
-
-          .card-name {
-            font-size: 18px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .hexagonal-shield-overlay {
-            top: 80px;
-            left: 5%;
-            right: 5%;
-            bottom: 250px;
-          }
-
-          .shield-content {
-            max-width: 90vw;
-            padding: 18px 24px;
-          }
-
-          .card-name {
-            font-size: 16px;
-          }
-
-          .cannot-play {
-            font-size: 12px;
-          }
-
-          .requirement-message {
-            font-size: 14px;
-          }
-
-          .requirement-icon-container {
-            width: 32px;
-            height: 32px;
-          }
-
-          .requirement-icon {
-            max-width: 32px;
-            max-height: 32px;
-          }
-
-          .production-background {
-            width: 32px;
-            height: 32px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .hexagonal-shield-overlay {
-            top: 60px;
-            bottom: 200px;
-          }
-
-          .shield-content {
-            padding: 16px 20px;
-          }
-
-          .requirement-info {
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .requirement-icon-container {
-            width: 28px;
-            height: 28px;
-          }
-
-          .requirement-icon {
-            max-width: 28px;
-            max-height: 28px;
-          }
-
-          .production-background {
-            width: 28px;
-            height: 28px;
-          }
-        }
-
-        /* Temperature requirement not met - highlight temperature meter, dim others */
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .currentOxygen,
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .currentOceans {
-          filter: brightness(0.5) saturate(0.4) grayscale(0.3) !important;
-          transition: all 0.3s ease !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature) .currentTemp {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          box-shadow: 0 0 20px rgba(255, 100, 50, 0.8) !important;
-          border: 3px solid rgba(255, 100, 50, 0.9) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        /* Oxygen requirement not met - highlight oxygen meter, dim others */
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .currentTemp,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .currentOceans {
-          filter: brightness(0.5) saturate(0.4) grayscale(0.3) !important;
-          transition: all 0.3s ease !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen) .currentOxygen {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          box-shadow: 0 0 20px rgba(100, 200, 255, 0.8) !important;
-          border: 3px solid rgba(100, 200, 255, 0.9) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        /* Oceans requirement not met - highlight oceans meter, dim others */
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .currentTemp,
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .currentOxygen {
-          filter: brightness(0.5) saturate(0.4) grayscale(0.3) !important;
-          transition: all 0.3s ease !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-oceans) .currentOceans {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          box-shadow: 0 0 20px rgba(100, 180, 255, 0.8) !important;
-          border: 3px solid rgba(100, 180, 255, 0.9) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        /* Multiple parameter highlighting support */
-        /* When multiple parameters are affected, highlight all of them without dimming others */
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .currentTemp,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .currentOxygen {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .currentTemp {
-          box-shadow: 0 0 20px rgba(255, 100, 50, 0.8) !important;
-          border: 3px solid rgba(255, 100, 50, 0.9) !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen) .currentOxygen {
-          box-shadow: 0 0 20px rgba(100, 200, 255, 0.8) !important;
-          border: 3px solid rgba(100, 200, 255, 0.9) !important;
-        }
-
-        /* Temperature + Oceans combination */
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .currentTemp,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .currentOceans {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .currentTemp {
-          box-shadow: 0 0 20px rgba(255, 100, 50, 0.8) !important;
-          border: 3px solid rgba(255, 100, 50, 0.9) !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oceans) .currentOceans {
-          box-shadow: 0 0 20px rgba(100, 180, 255, 0.8) !important;
-          border: 3px solid rgba(100, 180, 255, 0.9) !important;
-        }
-
-        /* Oxygen + Oceans combination */
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .currentOxygen,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .currentOceans {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .currentOxygen {
-          box-shadow: 0 0 20px rgba(100, 200, 255, 0.8) !important;
-          border: 3px solid rgba(100, 200, 255, 0.9) !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-oxygen.highlight-oceans) .currentOceans {
-          box-shadow: 0 0 20px rgba(100, 180, 255, 0.8) !important;
-          border: 3px solid rgba(100, 180, 255, 0.9) !important;
-        }
-
-        /* All three parameters combination */
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentTemp,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentOxygen,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentOceans {
-          filter: brightness(1.4) saturate(1.5) contrast(1.2) !important;
-          border-radius: 8px !important;
-          transform: scale(1.05) !important;
-          transition: all 0.3s ease !important;
-          position: relative;
-          z-index: 10;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .temperatureMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentTemp {
-          box-shadow: 0 0 20px rgba(255, 100, 50, 0.8) !important;
-          border: 3px solid rgba(255, 100, 50, 0.9) !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .oxygenMeter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentOxygen {
-          box-shadow: 0 0 20px rgba(100, 200, 255, 0.8) !important;
-          border: 3px solid rgba(100, 200, 255, 0.9) !important;
-        }
-
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .oceanCounter,
-        body:has(.hexagonal-shield-overlay.highlight-temperature.highlight-oxygen.highlight-oceans) .currentOceans {
-          box-shadow: 0 0 20px rgba(100, 180, 255, 0.8) !important;
-          border: 3px solid rgba(100, 180, 255, 0.9) !important;
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
+import GameIcon from "../../ui/display/GameIcon.tsx";
 
 interface GlobalParameters {
   temperature: number;
@@ -7,46 +8,17 @@ interface GlobalParameters {
   oceans: number;
 }
 
-interface Milestone {
-  value: number;
-  icon: string;
-  tooltip: string;
-  reward?: string;
-}
-
 interface RightSidebarProps {
   globalParameters?: GlobalParameters;
   generation?: number;
-  currentPlayer?: PlayerDto | null;
-  temperatureMilestones?: Milestone[];
-  oxygenMilestones?: Milestone[];
+  currentPlayer?: PlayerDto | OtherPlayerDto | null;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({
   globalParameters,
   generation,
   currentPlayer: _currentPlayer,
-  temperatureMilestones,
-  oxygenMilestones,
 }) => {
-  // Set default values
-  const defaultTemperatureMilestones = temperatureMilestones || [
-    {
-      value: -8,
-      icon: "/assets/global-parameters/temperature.png",
-      tooltip: "-8°C: +1 TR",
-      reward: "+1 TR",
-    },
-  ];
-  const defaultOxygenMilestones = oxygenMilestones || [
-    {
-      value: 8,
-      icon: "/assets/global-parameters/oxygen.png",
-      tooltip: "8%: +1 TR",
-      reward: "+1 TR",
-    },
-  ];
-
   // Get temperature scale markings (every 2 degrees)
   const getTemperatureMarkings = () => {
     const markings = [];
@@ -100,29 +72,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                     ></div>
                   ),
                 )}
-              </div>
-
-              {/* Oxygen Milestone Indicators */}
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {defaultOxygenMilestones.map((milestone, index) => (
-                  <div
-                    key={index}
-                    className="absolute w-5 h-4 bg-[linear-gradient(135deg,rgba(40,40,40,0.95)_0%,rgba(20,20,20,0.9)_100%)] border-2 border-[#666] rounded flex items-center justify-center shadow-[0_0_8px_rgba(0,0,0,0.8),0_2px_4px_rgba(0,0,0,0.6)] -translate-y-1/2 left-[-25px] group max-lg:w-4 max-lg:h-[14px]"
-                    style={{ bottom: `${(milestone.value / 14) * 90}%` }}
-                    title={`Oxygen Milestone: ${milestone.tooltip}`}
-                  >
-                    <div className="text-[10px] [filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.5))] flex items-center justify-center max-lg:text-[8px]">
-                      <img
-                        src={milestone.icon}
-                        alt="Oxygen"
-                        className="w-3 h-3 object-contain"
-                      />
-                    </div>
-                    <div className="absolute bg-black/90 text-white px-1.5 py-1 rounded-[3px] text-[9px] font-bold whitespace-nowrap opacity-0 pointer-events-none transition-opacity duration-200 z-[1000] border border-[#666] right-[25px] top-1/2 -translate-y-1/2 group-hover:opacity-100">
-                      {milestone.tooltip}
-                    </div>
-                  </div>
-                ))}
               </div>
 
               {/* Internal oxygen numbers */}
@@ -179,29 +128,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                   ))}
               </div>
 
-              {/* Temperature Milestone Indicators */}
-              <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
-                {defaultTemperatureMilestones.map((milestone, index) => (
-                  <div
-                    key={index}
-                    className="absolute w-5 h-4 bg-[linear-gradient(135deg,rgba(40,40,40,0.95)_0%,rgba(20,20,20,0.9)_100%)] border-2 border-[#666] rounded flex items-center justify-center shadow-[0_0_8px_rgba(0,0,0,0.8),0_2px_4px_rgba(0,0,0,0.6)] -translate-y-1/2 right-[-25px] group max-lg:w-4 max-lg:h-[14px]"
-                    style={{ bottom: `${((milestone.value + 30) / 38) * 90}%` }}
-                    title={`Temperature Milestone: ${milestone.tooltip}`}
-                  >
-                    <div className="text-[10px] [filter:drop-shadow(0_1px_1px_rgba(0,0,0,0.5))] flex items-center justify-center max-lg:text-[8px]">
-                      <img
-                        src={milestone.icon}
-                        alt="Temperature"
-                        className="w-3 h-3 object-contain"
-                      />
-                    </div>
-                    <div className="absolute bg-black/90 text-white px-1.5 py-1 rounded-[3px] text-[9px] font-bold whitespace-nowrap opacity-0 pointer-events-none transition-opacity duration-200 z-[1000] border border-[#666] left-[25px] top-1/2 -translate-y-1/2 group-hover:opacity-100">
-                      {milestone.tooltip}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
               {/* Internal temperature numbers */}
               <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
                 {getTemperatureMarkings().map((temp) => (
@@ -228,12 +154,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
 
         {/* Ocean Counter */}
         <div className="flex flex-col items-center gap-1 bg-[linear-gradient(135deg,rgba(0,100,200,0.15)_0%,rgba(0,50,150,0.2)_100%)] border border-[rgba(0,150,255,0.3)] rounded-md p-2 w-4/5 mt-0">
-          <div className="text-xs text-[#4da6ff] flex items-center justify-center">
-            <img
-              src="/assets/hex_blue.png"
-              alt="Ocean"
-              className="w-4 h-4 object-contain brightness-[1.2]"
-            />
+          <div className="flex items-center justify-center w-4 h-4 brightness-[1.2]">
+            <GameIcon iconType="oceans" size="small" />
           </div>
           <div className="text-[6px] font-bold text-[#4da6ff] uppercase tracking-[0.5px]">
             OCEANS

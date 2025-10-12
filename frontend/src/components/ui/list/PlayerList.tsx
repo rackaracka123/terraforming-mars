@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { PlayerDto, GamePhase } from "@/types/generated/api-types.ts";
+import {
+  PlayerDto,
+  OtherPlayerDto,
+  GamePhase,
+} from "@/types/generated/api-types.ts";
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import PlayerCard from "../cards/PlayerCard.tsx";
 
 interface PlayerListProps {
-  players: PlayerDto[];
+  players: (PlayerDto | OtherPlayerDto)[];
   currentPlayer: PlayerDto | null;
   currentPlayerId: string;
   currentPhase?: GamePhase;

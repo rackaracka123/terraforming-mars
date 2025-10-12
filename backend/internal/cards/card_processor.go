@@ -68,10 +68,10 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to apply tile effects: %w", err)
 	}
 
-	// Future implementation: Apply global parameter effects
-	// if err := cp.applyGlobalParameterEffects(ctx, gameID, card); err != nil {
-	//     return fmt.Errorf("failed to apply global parameter effects: %w", err)
-	// }
+	// Apply global parameter effects (temperature, oxygen, oceans)
+	if err := cp.applyGlobalParameterEffects(ctx, gameID, playerID, card, choiceIndex); err != nil {
+		return fmt.Errorf("failed to apply global parameter effects: %w", err)
+	}
 
 	log.Debug("✅ Card effects applied successfully")
 	return nil
@@ -96,8 +96,9 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 
 	// Process all behaviors to find production effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate production effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
 			allOutputs := behavior.Outputs
 
@@ -305,11 +306,13 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 
 	// Track changes for logging
 	var creditsChange, steelChange, titaniumChange, plantsChange, energyChange, heatChange int
+	var trChange int
 
 	// Process all behaviors to find resource effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate resource effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
 			allOutputs := behavior.Outputs
 
@@ -343,6 +346,8 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 				case model.ResourceHeat:
 					newResources.Heat += output.Amount
 					heatChange += output.Amount
+				case model.ResourceTR:
+					trChange += output.Amount
 
 				// Card storage resources (animals, microbes, floaters, science, asteroid)
 				case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
@@ -376,6 +381,21 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 			zap.Int("heat_change", heatChange))
 	}
 
+	// Apply TR changes separately (not part of resources)
+	if trChange != 0 {
+		newTR := player.TerraformRating + trChange
+		if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+			log.Error("Failed to update terraform rating", zap.Error(err))
+			return fmt.Errorf("failed to update terraform rating: %w", err)
+		}
+
+		log.Info("⭐ Terraform Rating changed",
+			zap.String("card_name", card.Name),
+			zap.Int("change", trChange),
+			zap.Int("old_tr", player.TerraformRating),
+			zap.Int("new_tr", newTR))
+	}
+
 	return nil
 }
 
@@ -386,8 +406,9 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 
 	// Process all behaviors to find tile placement effects
 	for _, behavior := range card.Behaviors {
-		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		// Auto triggers WITH conditions are passive effects, not immediate tile placement effects
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			for _, output := range behavior.Outputs {
 				switch output.Type {
 				case model.ResourceCityPlacement:
@@ -488,6 +509,204 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, p
 		zap.String("resource_type", string(output.Type)),
 		zap.Int("amount", output.Amount),
 		zap.Int("new_storage_amount", player.ResourceStorage[targetCardID]))
+
+	return nil
+}
+
+// applyGlobalParameterEffects applies global parameter changes (temperature, oxygen, oceans) from a card's behaviors
+// choiceIndex is optional and used when the card has choices between different effects
+func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get current game to read current global parameters
+	game, err := cp.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get game for global parameter update: %w", err)
+	}
+
+	// Track changes for logging
+	var temperatureChange, oxygenChange, oceansChange int
+
+	// Process all behaviors to find global parameter effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
+			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
+			allOutputs := behavior.Outputs
+
+			// If choiceIndex is provided and this behavior has choices, add choice outputs
+			if choiceIndex != nil && len(behavior.Choices) > 0 && *choiceIndex < len(behavior.Choices) {
+				selectedChoice := behavior.Choices[*choiceIndex]
+				allOutputs = append(allOutputs, selectedChoice.Outputs...)
+			}
+
+			// Process all aggregated outputs
+			for _, output := range allOutputs {
+				switch output.Type {
+				case model.ResourceTemperature:
+					temperatureChange += output.Amount
+				case model.ResourceOxygen:
+					oxygenChange += output.Amount
+				case model.ResourceOceans:
+					oceansChange += output.Amount
+				}
+			}
+		}
+	}
+
+	// Apply temperature changes
+	if temperatureChange != 0 {
+		oldTemperature := game.GlobalParameters.Temperature
+		newTemperature := oldTemperature + temperatureChange
+		// Clamp to valid range
+		if newTemperature > model.MaxTemperature {
+			newTemperature = model.MaxTemperature
+		}
+		if newTemperature < model.MinTemperature {
+			newTemperature = model.MinTemperature
+		}
+
+		// Calculate actual change after clamping (each step is 2°C)
+		actualChange := newTemperature - oldTemperature
+		if actualChange == 0 {
+			return nil // No actual change after clamping
+		}
+
+		if err := cp.gameRepo.UpdateTemperature(ctx, gameID, newTemperature); err != nil {
+			log.Error("Failed to update temperature", zap.Error(err))
+			return fmt.Errorf("failed to update temperature: %w", err)
+		}
+
+		// Increase TR for each step of temperature increase (each step is 2°C)
+		stepsChanged := actualChange / 2
+		if stepsChanged > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after temperature change", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + stepsChanged
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after temperature change", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("🌡️ Temperature changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("temperature_change", actualChange),
+				zap.Int("new_temperature", newTemperature),
+				zap.Int("tr_change", stepsChanged),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("🌡️ Temperature changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", actualChange),
+				zap.Int("new_temperature", newTemperature))
+		}
+	}
+
+	// Apply oxygen changes
+	if oxygenChange != 0 {
+		oldOxygen := game.GlobalParameters.Oxygen
+		newOxygen := oldOxygen + oxygenChange
+		// Clamp to valid range
+		if newOxygen > model.MaxOxygen {
+			newOxygen = model.MaxOxygen
+		}
+		if newOxygen < model.MinOxygen {
+			newOxygen = model.MinOxygen
+		}
+
+		// Calculate actual change after clamping (each step is 1%)
+		oxygenChange = newOxygen - oldOxygen
+		if oxygenChange == 0 {
+			return nil // No actual change after clamping
+		}
+
+		if err := cp.gameRepo.UpdateOxygen(ctx, gameID, newOxygen); err != nil {
+			log.Error("Failed to update oxygen", zap.Error(err))
+			return fmt.Errorf("failed to update oxygen: %w", err)
+		}
+
+		// Increase TR for each step of oxygen increase (each step is 1%)
+		if oxygenChange > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after oxygen change", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + oxygenChange
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after oxygen change", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("💨 Oxygen changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("oxygen_change", oxygenChange),
+				zap.Int("new_oxygen", newOxygen),
+				zap.Int("tr_change", oxygenChange),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("💨 Oxygen changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", oxygenChange),
+				zap.Int("new_oxygen", newOxygen))
+		}
+	}
+
+	// Apply oceans changes
+	if oceansChange != 0 {
+		oldOceans := game.GlobalParameters.Oceans
+		newOceans := oldOceans + oceansChange
+		// Clamp to valid range
+		if newOceans > model.MaxOceans {
+			newOceans = model.MaxOceans
+		}
+		if newOceans < model.MinOceans {
+			newOceans = model.MinOceans
+		}
+
+		// Calculate actual change after clamping
+		oceansChange = newOceans - oldOceans
+		if oceansChange == 0 {
+			return nil // No actual change after clamping
+		}
+
+		if err := cp.gameRepo.UpdateOceans(ctx, gameID, newOceans); err != nil {
+			log.Error("Failed to update oceans", zap.Error(err))
+			return fmt.Errorf("failed to update oceans: %w", err)
+		}
+
+		// Increase TR for each ocean tile placed
+		if oceansChange > 0 {
+			player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update after ocean placement", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + oceansChange
+			if err := cp.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update TR after ocean placement", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("🌊 Oceans changed (TR granted)",
+				zap.String("card_name", card.Name),
+				zap.Int("oceans_change", oceansChange),
+				zap.Int("new_oceans", newOceans),
+				zap.Int("tr_change", oceansChange),
+				zap.Int("new_tr", newTR))
+		} else {
+			log.Info("🌊 Oceans changed",
+				zap.String("card_name", card.Name),
+				zap.Int("change", oceansChange),
+				zap.Int("new_oceans", newOceans))
+		}
+	}
 
 	return nil
 }

@@ -384,6 +384,9 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		return fmt.Errorf("failed to award tile placement bonuses: %w", err)
 	}
 
+	// Passive effects are now triggered automatically via TilePlacedEvent from the repository
+	// No manual triggering needed here - event system handles it
+
 	log.Info("✅ Tile placed successfully",
 		zap.String("tile_type", tileType),
 		zap.String("coordinate", coordinate.String()))
@@ -432,8 +435,8 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 		}
 	}
 
-	// Award ocean adjacency bonus (+2 MC per adjacent ocean)
-	oceanAdjacencyBonus := s.calculateOceanAdjacencyBonus(game, coordinate)
+	// Award ocean adjacency bonus (+2 MC per adjacent ocean, or +3 with Lakefront Resorts)
+	oceanAdjacencyBonus := s.calculateOceanAdjacencyBonus(game, player, coordinate)
 	if oceanAdjacencyBonus > 0 {
 		totalCreditsBonus += oceanAdjacencyBonus
 		bonusesAwarded = append(bonusesAwarded, fmt.Sprintf("+%d MC (ocean adjacency)", oceanAdjacencyBonus))
@@ -460,7 +463,8 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 }
 
 // calculateOceanAdjacencyBonus calculates the bonus from adjacent ocean tiles
-func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, coordinate model.HexPosition) int {
+// Base bonus is 2 MC per ocean, but can be modified by effects (e.g., Lakefront Resorts adds +1)
+func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player model.Player, coordinate model.HexPosition) int {
 	adjacentOceanCount := 0
 
 	// Check each adjacent position for ocean tiles
@@ -477,8 +481,14 @@ func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, coordi
 		}
 	}
 
-	// Each adjacent ocean provides +2 MC
-	return adjacentOceanCount * 2
+	// Base ocean adjacency bonus is 2 MC per ocean
+	baseBonus := 2
+
+	// TODO: Support ocean adjacency bonus modifiers from cards (e.g., Lakefront Resorts)
+	// This will require checking card effects via CardEffectSubscriber or similar mechanism
+
+	// Calculate total bonus: adjacent oceans * base bonus
+	return adjacentOceanCount * baseBonus
 }
 
 // applyTileBonus applies a single tile bonus to player resources

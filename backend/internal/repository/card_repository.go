@@ -58,11 +58,8 @@ type CardRepository interface {
 	// FilterCardsByRequirements filters cards based on current game state requirements
 	FilterCardsByRequirements(ctx context.Context, cards []model.Card, gameState interface{}) ([]model.Card, error)
 
-	// GetCorporations converts corporation cards to Corporation structs
-	GetCorporations(ctx context.Context) ([]model.Corporation, error)
-
-	// GetCorporationByID returns a specific corporation by ID
-	GetCorporationByID(ctx context.Context, id string) (*model.Corporation, error)
+	// GetCorporations returns all corporation cards
+	GetCorporations(ctx context.Context) ([]model.Card, error)
 }
 
 // CardRepositoryImpl implements CardRepository
@@ -136,6 +133,11 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 
 	// Process all loaded cards
 	for _, card := range allLoadedCards {
+		// Parse starting bonuses for corporation cards
+		if card.Type == model.CardTypeCorporation {
+			r.parseStartingBonuses(&card)
+		}
+
 		// Categorize by card type
 		switch card.Type {
 		case model.CardTypeCorporation:
@@ -162,9 +164,67 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	return nil
 }
 
-// No conversion needed - JSON matches model.Card exactly
+// parseStartingBonuses parses starting bonuses from corporation card behaviors
+func (r *CardRepositoryImpl) parseStartingBonuses(card *model.Card) {
+	startingResources := model.ResourceSet{}
+	startingProduction := model.ResourceSet{}
 
-// All parsing functions removed - JSON matches model.Card exactly
+	for _, behavior := range card.Behaviors {
+		// Look for auto-trigger behaviors without conditions (starting bonuses)
+		hasAutoTrigger := false
+		hasCondition := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAuto {
+				hasAutoTrigger = true
+				if trigger.Condition != nil {
+					hasCondition = true
+				}
+			}
+		}
+
+		// Only process auto behaviors without conditions (starting bonuses)
+		if !hasAutoTrigger || hasCondition {
+			continue
+		}
+
+		// Parse outputs to extract starting resources and production
+		for _, output := range behavior.Outputs {
+			switch output.Type {
+			// Starting resources
+			case model.ResourceCredits:
+				startingResources.Credits += output.Amount
+			case model.ResourceSteel:
+				startingResources.Steel += output.Amount
+			case model.ResourceTitanium:
+				startingResources.Titanium += output.Amount
+			case model.ResourcePlants:
+				startingResources.Plants += output.Amount
+			case model.ResourceEnergy:
+				startingResources.Energy += output.Amount
+			case model.ResourceHeat:
+				startingResources.Heat += output.Amount
+
+			// Starting production
+			case model.ResourceCreditsProduction:
+				startingProduction.Credits += output.Amount
+			case model.ResourceSteelProduction:
+				startingProduction.Steel += output.Amount
+			case model.ResourceTitaniumProduction:
+				startingProduction.Titanium += output.Amount
+			case model.ResourcePlantsProduction:
+				startingProduction.Plants += output.Amount
+			case model.ResourceEnergyProduction:
+				startingProduction.Energy += output.Amount
+			case model.ResourceHeatProduction:
+				startingProduction.Heat += output.Amount
+			}
+		}
+	}
+
+	// Set the parsed values on the card (startingCredits is in startingResources.Credits)
+	card.StartingResources = &startingResources
+	card.StartingProduction = &startingProduction
+}
 
 // GetCardByID finds a card by its ID
 func (r *CardRepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
@@ -425,8 +485,8 @@ func (r *CardRepositoryImpl) FilterCardsByRequirements(ctx context.Context, card
 	return playableCards, nil
 }
 
-// GetCorporations converts corporation cards to Corporation structs
-func (r *CardRepositoryImpl) GetCorporations(ctx context.Context) ([]model.Corporation, error) {
+// GetCorporations returns all corporation cards
+func (r *CardRepositoryImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -434,78 +494,11 @@ func (r *CardRepositoryImpl) GetCorporations(ctx context.Context) ([]model.Corpo
 		return nil, fmt.Errorf("cards not loaded")
 	}
 
-	var corporations []model.Corporation
-
-	for _, card := range r.corporationCards {
-		corp := r.convertCardToCorporation(card)
-		corporations = append(corporations, corp)
-	}
+	// Return corporation cards directly - they already have all the data
+	corporations := make([]model.Card, len(r.corporationCards))
+	copy(corporations, r.corporationCards)
 
 	return corporations, nil
-}
-
-// GetCorporationByID returns a specific corporation by ID
-func (r *CardRepositoryImpl) GetCorporationByID(ctx context.Context, id string) (*model.Corporation, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	if !r.loaded {
-		return nil, fmt.Errorf("cards not loaded")
-	}
-
-	for _, card := range r.corporationCards {
-		if card.ID == id {
-			corp := r.convertCardToCorporation(card)
-			return &corp, nil
-		}
-	}
-
-	return nil, fmt.Errorf("corporation not found: %s", id)
-}
-
-// convertCardToCorporation converts a Corporation Card to a Corporation struct
-func (r *CardRepositoryImpl) convertCardToCorporation(card model.Card) model.Corporation {
-	corp := model.Corporation{
-		ID:                 card.ID,
-		Name:               card.Name,
-		Description:        card.Description,
-		StartingCredits:    42, // Default starting credits
-		StartingResources:  model.ResourceSet{Credits: 42},
-		StartingProduction: model.ResourceSet{},
-		Tags:               card.Tags,
-		SpecialEffects:     []string{card.Description},
-	}
-
-	// Corporation-specific starting conditions would be parsed from behaviors
-	// For now, using default values
-
-	// TODO: Parse starting resources and credits from JSON immediate effects
-	// For now, we'll use some hardcoded logic based on well-known corporations
-	// This should be replaced with proper JSON parsing once the JSON structure
-	// includes starting bonuses for corporations
-
-	switch corp.Name {
-	case "Credicor":
-		corp.StartingCredits = 57
-		corp.StartingResources.Credits = 57
-	case "Ecoline":
-		corp.StartingCredits = 36
-		corp.StartingResources.Credits = 36
-		corp.StartingResources.Plants = 3
-		corp.StartingProduction.Plants = 2
-	case "Helion":
-		corp.StartingCredits = 42
-		corp.StartingResources.Credits = 42
-		corp.StartingResources.Heat = 3
-		corp.StartingProduction.Heat = 3
-	case "Mining Guild":
-		corp.StartingCredits = 30
-		corp.StartingResources.Credits = 30
-		corp.StartingResources.Steel = 5
-		corp.StartingProduction.Steel = 1
-	}
-
-	return corp
 }
 
 // copyCards creates a deep copy of a slice of cards to prevent external mutation

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import MegaCreditIcon from "../display/MegaCreditIcon.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
-import BehaviorSection from "./BehaviorSection.tsx";
+import BehaviorSection from "./BehaviorSection";
 import RequirementsBox from "./RequirementsBox.tsx";
-import { CardDto } from "@/types/generated/api-types.ts";
+import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
 
 interface SimpleGameCardProps {
   card: CardDto;
@@ -48,46 +48,66 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   const titleStyles = {
     automated:
-      "bg-[linear-gradient(135deg,#2d4a2f_0%,#1f3322_100%)] border border-[rgba(76,175,80,0.6)]",
+      "bg-[linear-gradient(135deg,#0a1a0d_0%,#050f08_100%)] border border-[rgba(76,175,80,0.4)]",
     active:
-      "bg-[linear-gradient(135deg,#1e3a5f_0%,#152d4a_100%)] border border-[rgba(33,150,243,0.6)]",
+      "bg-[linear-gradient(135deg,#0a1520_0%,#050a15_100%)] border border-[rgba(33,150,243,0.4)]",
     event:
-      "bg-[linear-gradient(135deg,#4a2b2b_0%,#3a1f1f_100%)] border border-[rgba(244,67,54,0.6)]",
+      "bg-[linear-gradient(135deg,#1a0a0a_0%,#0f0505_100%)] border border-[rgba(244,67,54,0.4)]",
     corporation:
-      "bg-[linear-gradient(135deg,#4a3d1a_0%,#3a2f0d_100%)] border border-[rgba(255,193,7,0.6)]",
+      "bg-[linear-gradient(135deg,#1a1508_0%,#0f0a04_100%)] border border-[rgba(255,193,7,0.4)]",
     prelude:
-      "bg-[linear-gradient(135deg,#4a1e3a_0%,#3a152c_100%)] border border-[rgba(233,30,99,0.6)]",
+      "bg-[linear-gradient(135deg,#1a0a15_0%,#0f050a_100%)] border border-[rgba(233,30,99,0.4)]",
+  };
+
+  // Card type specific background colors (near-black with barely visible accent tint)
+  const cardBackgrounds = {
+    automated: "bg-[rgba(2,5,2,0.98)]", // Near-black green tint
+    active: "bg-[rgba(2,4,6,0.98)]", // Near-black blue tint
+    event: "bg-[rgba(5,2,2,0.98)]", // Near-black red tint
+    corporation: "bg-[rgba(5,4,2,0.98)]", // Near-black yellow tint
+    prelude: "bg-[rgba(5,2,4,0.98)]", // Near-black pink tint
+  };
+
+  // Card type specific glow colors for selected state (halo effect behind card)
+  const cardGlows = {
+    automated:
+      "shadow-[0_4px_20px_rgba(76,175,80,0.3),0_0_40px_rgba(76,175,80,0.2)]", // Green halo
+    active:
+      "shadow-[0_4px_20px_rgba(33,150,243,0.3),0_0_40px_rgba(33,150,243,0.2)]", // Blue halo
+    event:
+      "shadow-[0_4px_20px_rgba(244,67,54,0.3),0_0_40px_rgba(244,67,54,0.2)]", // Red halo
+    corporation:
+      "shadow-[0_4px_20px_rgba(255,193,7,0.3),0_0_40px_rgba(255,193,7,0.2)]", // Yellow halo
+    prelude:
+      "shadow-[0_4px_20px_rgba(233,30,99,0.3),0_0_40px_rgba(233,30,99,0.2)]", // Pink halo
+  };
+
+  // Card type specific checkbox colors (darker background, matching card border)
+  const checkboxColors = {
+    automated: { bg: "bg-[#1f3322]", border: borderColors.automated },
+    active: { bg: "bg-[#152d4a]", border: borderColors.active },
+    event: { bg: "bg-[#3a1f1f]", border: borderColors.event },
+    corporation: { bg: "bg-[#3a2f0d]", border: borderColors.corporation },
+    prelude: { bg: "bg-[#3a152c]", border: borderColors.prelude },
   };
 
   const cardType = card.type as keyof typeof borderColors;
-
-  // Get tag icon mapping from tags folder
-  const getTagIcon = (tag: string) => {
-    const iconMap: { [key: string]: string } = {
-      power: "/assets/tags/power.png",
-      science: "/assets/tags/science.png",
-      space: "/assets/tags/space.png",
-      building: "/assets/tags/building.png",
-      city: "/assets/tags/city.png",
-      jovian: "/assets/tags/jovian.png",
-      earth: "/assets/tags/earth.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      venus: "/assets/tags/venus.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
-    };
-    return iconMap[tag.toLowerCase()] || null;
-  };
+  const cardBg =
+    cardType && cardBackgrounds[cardType]
+      ? cardBackgrounds[cardType]
+      : "bg-[rgba(0,0,0,0.9)]";
+  const cardGlow =
+    cardType && cardGlows[cardType]
+      ? cardGlows[cardType]
+      : "shadow-[0_0_20px_rgba(74,144,226,0.25)]";
+  const checkboxColor =
+    cardType && checkboxColors[cardType]
+      ? checkboxColors[cardType]
+      : { bg: "bg-[#4a90e2]", border: "border-[#4a90e2]" };
 
   return (
     <div
-      className={`relative w-[200px] min-h-[280px] bg-[linear-gradient(135deg,#1a2332_0%,#0f1419_100%)] border-none rounded-lg p-4 cursor-pointer transition-all duration-300 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_8px_32px_rgba(30,100,200,0.2)] ${isSelected ? "bg-[linear-gradient(135deg,#1a2332_0%,#203040_100%)] shadow-[0_0_20px_rgba(74,144,226,0.4)]" : ""} max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group`}
+      className={`relative w-[200px] min-h-[280px] ${cardBg} border-none rounded-lg p-4 cursor-pointer transition-all duration-200 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] ${isSelected ? `brightness-110 ${cardGlow} hover:${cardGlow}` : "hover:shadow-[0_6px_20px_rgba(30,100,200,0.15)]"} max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group`}
       style={{ animationDelay: `${animationDelay}ms` }}
       onClick={handleClick}
     >
@@ -101,27 +121,24 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       {/* Tags at the very top, peeking out */}
       {card.tags && card.tags.length > 0 && (
         <div className="absolute -top-[15px] right-5 flex gap-0.5 z-[3] items-center justify-center max-md:-top-3 max-md:right-4">
-          {card.tags.slice(0, 3).map((tag, index) => {
-            const iconSrc = getTagIcon(tag);
-            return iconSrc ? (
-              <div
-                key={index}
-                className="flex items-center justify-center shrink-0"
-              >
-                <img
-                  src={iconSrc}
-                  alt={tag}
-                  className="w-[30px] h-[30px] object-contain [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-                />
-              </div>
-            ) : null;
-          })}
+          {card.tags.slice(0, 3).map((tag, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+            >
+              <GameIcon iconType={tag.toLowerCase()} size="medium" />
+            </div>
+          ))}
         </div>
       )}
 
       {/* Cost in top-left */}
       <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
-        <MegaCreditIcon value={card.cost} size="medium" />
+        <GameIcon
+          iconType={ResourceTypeCredits}
+          amount={card.cost}
+          size="medium"
+        />
       </div>
 
       {/* Image area */}
@@ -145,18 +162,27 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
       {/* Card title at 40% from top */}
       <div className="absolute top-[40%] left-2 right-2 z-[3] max-md:px-0.5">
+        {/* Victory Points icon overlapping the left side of title bar */}
+        <div className="absolute -left-5 top-1/2 -translate-y-[calc(50%-5px)] z-[4] pointer-events-none scale-[1.25] max-md:-left-4">
+          <VictoryPointIcon vpConditions={card.vpConditions} size="medium" />
+        </div>
         <h3
-          className={`text-base font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-[90%] h-10 rounded-none p-1 px-2 shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] max-md:text-sm max-md:h-8 ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
+          className={`${card.name.length > 18 ? "text-[12px]" : card.name.length > 20 ? "text-sm" : "text-base"} font-orbitron font-semibold text-white leading-[1.2] text-center flex items-center justify-center w-full h-[44px] rounded-none p-1 ${card.vpConditions ? "pl-[30px] pr-5" : "px-5"} shadow-[0_3px_6px_rgba(0,0,0,0.4)] my-0 mx-auto bg-[#1a2332] ${card.name.length > 28 ? "max-md:text-[9px]" : card.name.length > 20 ? "max-md:text-xs" : "max-md:text-sm"} max-md:h-[36px] ${card.vpConditions ? "max-md:pl-[25px] max-md:pr-3" : "max-md:px-3"} ${cardType && titleStyles[cardType] ? titleStyles[cardType] : ""}`}
         >
           {card.name}
         </h3>
+      </div>
+
+      {/* Content section - takes up roughly half the card height and vertically centers content */}
+      <div className="absolute top-[calc(50%+20px)] left-2 right-2 bottom-4 flex items-center justify-center z-[2] max-md:top-[calc(50%+25px)] max-md:left-1.5 max-md:right-1.5 max-md:bottom-3">
+        <BehaviorSection behaviors={card.behaviors} />
       </div>
 
       {/* Selection indicator at bottom center, peeking out (only shown when showCheckbox is true) */}
       {showCheckbox && (
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-[2] max-md:-bottom-2.5">
           <div
-            className={`w-6 h-6 rounded-full bg-[#2a3142] border-2 border-[rgba(100,150,200,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#4a90e2] border-[#4a90e2]" : ""}`}
+            className={`w-6 h-6 rounded-full bg-[#2a3142] border-2 border-[rgba(100,150,200,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? `${checkboxColor.bg} ${checkboxColor.border}` : ""}`}
           >
             {isSelected && (
               <span className="text-white text-sm font-bold">✓</span>
@@ -164,14 +190,6 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           </div>
         </div>
       )}
-
-      {/* Behavior section */}
-      <BehaviorSection behaviors={card.behaviors} />
-
-      {/* Victory Points icon in bottom right */}
-      <div className="absolute bottom-2 right-2 z-[3] pointer-events-none">
-        <VictoryPointIcon vpConditions={card.vpConditions} size="large" />
-      </div>
 
       {/* Hover effect border */}
       <div className="absolute -inset-px rounded-lg bg-[linear-gradient(45deg,transparent,rgba(255,255,255,0.1),transparent)] opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100" />

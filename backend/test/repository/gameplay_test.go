@@ -2,6 +2,8 @@ package repository_test
 
 import (
 	"context"
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -21,8 +23,9 @@ func TestGameplayLogic(t *testing.T) {
 	defer logger.Shutdown()
 
 	// Initialize repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -35,7 +38,8 @@ func TestGameplayLogic(t *testing.T) {
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 

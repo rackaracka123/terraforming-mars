@@ -38,7 +38,7 @@ import {
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
-import { StandardProject } from "@/types/cards.ts";
+import { StandardProject } from "@/types/cards.tsx";
 
 export default function GameInterface() {
   const location = useLocation();
@@ -52,6 +52,7 @@ export default function GameInterface() {
   const [currentPlayer, setCurrentPlayer] = useState<PlayerDto | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null); // Track player ID separately
   const [showCorporationModal, setShowCorporationModal] = useState(false);
+  const [corporationData, setCorporationData] = useState<CardDto | null>(null);
 
   // New modal states
   const [showCardsPlayedModal, setShowCardsPlayedModal] = useState(false);
@@ -97,6 +98,15 @@ export default function GameInterface() {
 
     void loadPlayedCards();
   }, [currentPlayer?.playedCards]);
+
+  // Set corporation data directly from player (backend now sends full CardDto)
+  useEffect(() => {
+    if (currentPlayer?.corporation) {
+      setCorporationData(currentPlayer.corporation);
+    } else {
+      setCorporationData(null);
+    }
+  }, [currentPlayer?.corporation]);
 
   // Production phase modal state
   const [showProductionPhaseModal, setShowProductionPhaseModal] =
@@ -286,15 +296,21 @@ export default function GameInterface() {
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
-  const handleCardSelection = useCallback(async (selectedCardIds: string[]) => {
-    try {
-      // Send card selection to server - commits immediately
-      await globalWebSocketManager.selectStartingCard(selectedCardIds);
-      // Modal will close automatically when backend clears startingSelection
-    } catch (error) {
-      console.error("Failed to select cards:", error);
-    }
-  }, []);
+  const handleCardSelection = useCallback(
+    async (selectedCardIds: string[], corporationId: string) => {
+      try {
+        // Send card and corporation selection to server - commits immediately
+        await globalWebSocketManager.selectStartingCard(
+          selectedCardIds,
+          corporationId,
+        );
+        // Modal will close automatically when backend clears startingSelection
+      } catch (error) {
+        console.error("Failed to select cards:", error);
+      }
+    },
+    [],
+  );
 
   // Handle pending card selection (sell patents, etc.)
   const handlePendingCardSelection = useCallback(
@@ -345,6 +361,20 @@ export default function GameInterface() {
   const handlePlayCard = useCallback(
     async (cardId: string) => {
       try {
+        // Block card plays when tile selection is pending
+        if (currentPlayer?.pendingTileSelection) {
+          const card = currentPlayer?.cards.find((c) => c.id === cardId);
+          if (card) {
+            setUnplayableCard(card);
+            setUnplayableReason({
+              type: "phase",
+              requirement: null,
+              message: "Complete tile placement first",
+            });
+          }
+          return;
+        }
+
         // Find the card to check if it has choices
         const card = currentPlayer?.cards.find((c) => c.id === cardId);
         if (!card) {
@@ -667,6 +697,11 @@ export default function GameInterface() {
   // Handle action selection from card actions
   const handleActionSelect = useCallback(
     (action: PlayerActionDto) => {
+      // Block actions when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Check if this action has choices
       if (action.behavior.choices && action.behavior.choices.length > 0) {
         // Action has choices, show the choice selection popover
@@ -694,12 +729,17 @@ export default function GameInterface() {
         }
       }
     },
-    [needsCardStorageSelection],
+    [currentPlayer?.pendingTileSelection, needsCardStorageSelection],
   );
 
   // Standard project selection handler
   const handleStandardProjectSelect = useCallback(
     (project: StandardProject) => {
+      // Block standard projects when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Close dropdown first
       setShowStandardProjectsPopover(false);
 
@@ -727,7 +767,7 @@ export default function GameInterface() {
           break;
       }
     },
-    [],
+    [currentPlayer?.pendingTileSelection],
   );
 
   // Tab conflict handlers
@@ -1009,8 +1049,10 @@ export default function GameInterface() {
         gameState={game}
         currentPlayer={currentPlayer}
         playedCards={playedCards}
+        corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
+        changedPaths={changedPaths}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
@@ -1022,12 +1064,6 @@ export default function GameInterface() {
         }
         standardProjectsButtonRef={standardProjectsButtonRef}
       />
-
-      {/*<CorporationSelectionModal*/}
-      {/*  corporations={availableCorporations}*/}
-      {/*  onSelectCorporation={handleCorporationSelection}*/}
-      {/*  isVisible={showCorporationModal}*/}
-      {/*/>*/}
 
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
@@ -1102,6 +1138,10 @@ export default function GameInterface() {
       <StartingCardSelectionOverlay
         isOpen={showCardSelection}
         cards={cardDetails}
+        availableCorporations={
+          game?.currentPlayer?.selectStartingCardsPhase
+            ?.availableCorporations || []
+        }
         playerCredits={currentPlayer?.resources?.credits || 40}
         onSelectCards={handleCardSelection}
       />
@@ -1143,7 +1183,9 @@ export default function GameInterface() {
       {/* Choice selection popover for card play */}
       {cardPendingChoice && (
         <ChoiceSelectionPopover
-          card={cardPendingChoice}
+          cardId={cardPendingChoice.id}
+          cardName={cardPendingChoice.name}
+          behaviors={cardPendingChoice.behaviors || []}
           behaviorIndex={pendingCardBehaviorIndex}
           onChoiceSelect={handleChoiceSelect}
           onCancel={handleChoiceCancel}
@@ -1156,17 +1198,9 @@ export default function GameInterface() {
       {/* Choice selection popover for actions */}
       {actionPendingChoice && (
         <ChoiceSelectionPopover
-          card={{
-            id: actionPendingChoice.cardId,
-            name: actionPendingChoice.cardName,
-            behaviors: [actionPendingChoice.behavior],
-            cost: 0,
-            tags: [],
-            type: "automated",
-            requirements: [],
-            vpConditions: [],
-            description: "",
-          }}
+          cardId={actionPendingChoice.cardId}
+          cardName={actionPendingChoice.cardName}
+          behaviors={[actionPendingChoice.behavior]}
           behaviorIndex={0}
           onChoiceSelect={handleActionChoiceSelect}
           onCancel={handleActionChoiceCancel}

@@ -68,6 +68,8 @@ const (
 	ResourceTemperature ResourceType = "temperature"
 	// ResourceOxygen represents oxygen change
 	ResourceOxygen ResourceType = "oxygen"
+	// ResourceOceans represents ocean tile placement (global parameter)
+	ResourceOceans ResourceType = "oceans"
 	// ResourceVenus represents venus change
 	ResourceVenus ResourceType = "venus"
 	// ResourceTR represents terraform Rating change
@@ -87,6 +89,8 @@ const (
 	ResourceEnergyProduction ResourceType = "energy-production"
 	// ResourceHeatProduction represents heat production
 	ResourceHeatProduction ResourceType = "heat-production"
+	// ResourceAnyProduction represents any production type (for dynamic effects like Manutech)
+	ResourceAnyProduction ResourceType = "any-production"
 
 	// Effect type (for triggered effects like Rover Construction)
 
@@ -110,4 +114,6 @@ const (
 	ResourceDiscount ResourceType = "discount"
 	// ResourceValueModifier represents increases resource values (e.g., steel/titanium worth more)
 	ResourceValueModifier ResourceType = "value-modifier"
+	// ResourceOceanAdjacencyBonus represents additional bonus for placing tiles adjacent to oceans
+	ResourceOceanAdjacencyBonus ResourceType = "ocean-adjacency-bonus"
 )

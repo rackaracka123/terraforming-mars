@@ -16,8 +16,8 @@ import (
 
 // CardService handles card-related operations
 type CardService interface {
-	// Player actions for card selection and play
-	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
+	// Player actions for card selection and play (includes corporation selection)
+	OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error
 
 	// Player action for production card selection
 	OnSelectProductionCards(ctx context.Context, gameID, playerID string, cardIDs []string) error
@@ -36,6 +36,9 @@ type CardService interface {
 
 	// List cards with pagination
 	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
+
+	// Get all corporations
+	GetCorporations(ctx context.Context) ([]model.Card, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -58,27 +61,27 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		cardDeckRepo:          cardDeckRepo,
 		sessionManager:        sessionManager,
-		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo),
+		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo),
-		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo),
+		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, effectSubscriber),
 		tileService:           tileService,
 	}
 }
 
 // Delegation methods - all operations are handled by the specialized cards service
 
-func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
+func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs)
+	err := s.selectionManager.SelectStartingCards(ctx, gameID, playerID, cardIDs, corporationID)
 	if err != nil {
 		return err
 	}
@@ -292,6 +295,10 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 
 	paginatedCards := allCards[start:end]
 	return paginatedCards, totalCount, nil
+}
+
+func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
+	return s.cardRepo.GetCorporations(ctx)
 }
 
 // OnPlayCardAction plays a card action from the player's action list

@@ -5,11 +5,13 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import GameIcon from "../ui/display/GameIcon.tsx";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState("");
   const [developmentMode, setDevelopmentMode] = useState(true);
+  const [selectedPacks, setSelectedPacks] = useState<string[]>(["base-game"]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<"game" | "environment" | null>(
     null,
@@ -51,6 +53,7 @@ const CreateGamePage: React.FC = () => {
       const gameSettings: GameSettingsDto = {
         maxPlayers: 4, // Default max players
         developmentMode: developmentMode,
+        cardPacks: selectedPacks,
       };
 
       const game = await apiService.createGame(gameSettings);
@@ -113,6 +116,20 @@ const CreateGamePage: React.FC = () => {
     navigate("/");
   };
 
+  const handlePackToggle = (pack: string) => {
+    setSelectedPacks((prev) => {
+      if (prev.includes(pack)) {
+        // Don't allow deselecting if it's the only pack selected
+        if (prev.length === 1) {
+          return prev;
+        }
+        return prev.filter((p) => p !== pack);
+      } else {
+        return [...prev, pack];
+      }
+    });
+  };
+
   const getLoadingMessage = () => {
     if (loadingStep === "game") return "Creating game...";
     if (loadingStep === "environment") return "Loading 3D environment...";
@@ -156,11 +173,9 @@ const CreateGamePage: React.FC = () => {
                   className="bg-transparent border-none py-4 px-5 cursor-pointer flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 group"
                   title="Connect"
                 >
-                  <img
-                    src="/assets/misc/arrow.png"
-                    alt="Connect"
-                    className="w-5 h-5 brightness-0 invert transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:scale-110"
-                  />
+                  <div className="w-4 h-6 brightness-0 invert transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] group-hover:scale-110">
+                    <GameIcon iconType="arrow" size="small" />
+                  </div>
                 </button>
               </div>
 
@@ -188,6 +203,68 @@ const CreateGamePage: React.FC = () => {
                     </div>
                   </span>
                 </label>
+              </div>
+
+              {/* Card Pack Selection */}
+              <div className="mt-6 bg-space-black-darker/60 border border-space-blue-400/40 rounded-lg p-4 backdrop-blur-space">
+                <h3 className="text-white text-sm font-semibold mb-3 text-center">
+                  Card Packs
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedPacks.includes("base-game")}
+                      onChange={() => handlePackToggle("base-game")}
+                      disabled={
+                        isLoading ||
+                        (selectedPacks.includes("base-game") &&
+                          selectedPacks.length === 1)
+                      }
+                      className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
+                      Base Game
+                      <span className="text-white/50 text-xs">(22 cards)</span>
+                      <div className="relative inline-block group">
+                        <span className="text-space-blue-solid text-sm cursor-help w-[16px] h-[16px] flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:bg-space-blue-200 group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]">
+                          ⓘ
+                        </span>
+                        <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
+                          Includes tested cards with comprehensive test
+                          coverage. All cards have verified implementations.
+                        </div>
+                      </div>
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer py-2 px-2 rounded hover:bg-space-blue-400/10 transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedPacks.includes("future")}
+                      onChange={() => handlePackToggle("future")}
+                      disabled={
+                        isLoading ||
+                        (selectedPacks.includes("future") &&
+                          selectedPacks.length === 1)
+                      }
+                      className="w-[18px] h-[18px] accent-space-blue-solid cursor-pointer m-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <span className="text-white text-sm font-medium leading-none m-0 flex items-center gap-2 flex-1">
+                      Future Content
+                      <span className="text-white/50 text-xs">(431 cards)</span>
+                      <div className="relative inline-block group">
+                        <span className="text-space-blue-solid text-sm cursor-help w-[16px] h-[16px] flex items-center justify-center rounded-full bg-space-blue-100 border border-space-blue-400 transition-all duration-200 shadow-[0_0_8px_rgba(30,60,150,0.2)] group-hover:bg-space-blue-200 group-hover:shadow-[0_0_12px_rgba(30,60,150,0.4)]">
+                          ⓘ
+                        </span>
+                        <div className="invisible opacity-0 w-[260px] bg-space-black/[0.98] text-white text-left rounded-lg p-3 absolute z-[1000] bottom-[125%] right-0 text-[12px] leading-normal border border-space-blue-400 shadow-glow transition-all duration-300 group-hover:visible group-hover:opacity-100 after:content-[''] after:absolute after:top-full after:right-3 after:border-8 after:border-solid after:border-t-space-black/[0.98] after:border-r-transparent after:border-b-transparent after:border-l-transparent">
+                          Includes complex and untested cards for future
+                          implementation. May have incomplete effects or bugs.
+                        </div>
+                      </div>
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {error && (

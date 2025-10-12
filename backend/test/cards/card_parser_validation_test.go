@@ -522,3 +522,56 @@ func requiresResourceStorage(output model.ResourceCondition) bool {
 
 	return false
 }
+
+// TestGlobalParameterRequirementLimits validates that card requirements respect global parameter limits
+func TestGlobalParameterRequirementLimits(t *testing.T) {
+	cards := loadCards(t)
+
+	// Define global parameter limits (inclusive ranges)
+	limits := map[model.RequirementType]struct {
+		min int
+		max int
+	}{
+		model.RequirementOxygen:      {min: 0, max: 14},
+		model.RequirementTemperature: {min: -30, max: 8},
+		model.RequirementOceans:      {min: 0, max: 9},
+		model.RequirementVenus:       {min: 0, max: 30},
+	}
+
+	var violations []string
+
+	for _, card := range cards {
+		for reqIdx, requirement := range card.Requirements {
+			// Only check requirements that have defined limits
+			if limit, exists := limits[requirement.Type]; exists {
+				// Check minimum requirement
+				if requirement.Min != nil {
+					minVal := *requirement.Min
+					if minVal < limit.min || minVal > limit.max {
+						violations = append(violations,
+							fmt.Sprintf("Card %s (%s) requirement[%d]: %s min value %d is outside valid range [%d, %d]",
+								card.ID, card.Name, reqIdx, requirement.Type, minVal, limit.min, limit.max))
+					}
+				}
+
+				// Check maximum requirement
+				if requirement.Max != nil {
+					maxVal := *requirement.Max
+					if maxVal < limit.min || maxVal > limit.max {
+						violations = append(violations,
+							fmt.Sprintf("Card %s (%s) requirement[%d]: %s max value %d is outside valid range [%d, %d]",
+								card.ID, card.Name, reqIdx, requirement.Type, maxVal, limit.min, limit.max))
+					}
+				}
+			}
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d global parameter requirement limit violations:", len(violations))
+		t.Errorf("Valid ranges: Oxygen [0-14], Temperature [-30 to 8], Oceans [0-9], Venus [0-30]")
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}

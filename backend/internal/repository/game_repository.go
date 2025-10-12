@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 
@@ -39,18 +40,21 @@ type GameRepository interface {
 	UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error
 	UpdateTemperature(ctx context.Context, gameID string, temperature int) error
 	UpdateOxygen(ctx context.Context, gameID string, oxygen int) error
+	UpdateOceans(ctx context.Context, gameID string, oceans int) error
 }
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
 type GameRepositoryImpl struct {
-	games map[string]*model.Game
-	mutex sync.RWMutex
+	games    map[string]*model.Game
+	mutex    sync.RWMutex
+	eventBus *events.EventBusImpl
 }
 
 // NewGameRepository creates a new game repository
-func NewGameRepository() GameRepository {
+func NewGameRepository(eventBus *events.EventBusImpl) GameRepository {
 	return &GameRepositoryImpl{
-		games: make(map[string]*model.Game),
+		games:    make(map[string]*model.Game),
+		eventBus: eventBus,
 	}
 }
 
@@ -483,6 +487,22 @@ func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID str
 		zap.String("occupant", occupantType),
 		zap.String("owner", ownerName))
 
+	// Publish tile placed event when a tile occupant is added
+	if r.eventBus != nil && occupant != nil && ownerID != nil {
+		events.Publish(r.eventBus, TilePlacedEvent{
+			GameID:    gameID,
+			PlayerID:  *ownerID,
+			TileType:  string(occupant.Type),
+			Q:         coord.Q,
+			R:         coord.R,
+			S:         coord.S,
+			Timestamp: time.Now(),
+		})
+		log.Debug("🎆 TilePlacedEvent published",
+			zap.String("tile_type", string(occupant.Type)),
+			zap.String("player_id", *ownerID))
+	}
+
 	return nil
 }
 
@@ -511,6 +531,17 @@ func (r *GameRepositoryImpl) UpdateTemperature(ctx context.Context, gameID strin
 		zap.Int("old_temperature", oldTemp),
 		zap.Int("new_temperature", temperature))
 
+	// Publish temperature changed event
+	if r.eventBus != nil && oldTemp != temperature {
+		events.Publish(r.eventBus, TemperatureChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldTemp,
+			NewValue:  temperature,
+			ChangedBy: "", // Will be populated by service layer in future enhancement
+			Timestamp: time.Now(),
+		})
+	}
+
 	return nil
 }
 
@@ -538,6 +569,56 @@ func (r *GameRepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, ox
 	log.Info("Oxygen updated",
 		zap.Int("old_oxygen", oldOxygen),
 		zap.Int("new_oxygen", oxygen))
+
+	// Publish oxygen changed event
+	if r.eventBus != nil && oldOxygen != oxygen {
+		events.Publish(r.eventBus, OxygenChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldOxygen,
+			NewValue:  oxygen,
+			ChangedBy: "", // Will be populated by service layer in future enhancement
+			Timestamp: time.Now(),
+		})
+	}
+
+	return nil
+}
+
+// UpdateOceans updates the global oceans parameter
+func (r *GameRepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, "")
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return fmt.Errorf("game with ID %s not found", gameID)
+	}
+
+	// Validate oceans range
+	if oceans < 0 || oceans > 9 {
+		return fmt.Errorf("oceans must be between 0 and 9, got %d", oceans)
+	}
+
+	oldOceans := game.GlobalParameters.Oceans
+	game.GlobalParameters.Oceans = oceans
+	game.UpdatedAt = time.Now()
+
+	log.Info("Oceans updated",
+		zap.Int("old_oceans", oldOceans),
+		zap.Int("new_oceans", oceans))
+
+	// Publish oceans changed event
+	if r.eventBus != nil && oldOceans != oceans {
+		events.Publish(r.eventBus, OceansChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldOceans,
+			NewValue:  oceans,
+			ChangedBy: "", // Will be populated by service layer in future enhancement
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }

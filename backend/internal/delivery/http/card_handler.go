@@ -98,3 +98,33 @@ func (h *CardHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 
 	h.WriteJSONResponse(w, http.StatusOK, response)
 }
+
+// GetCorporations handles GET /api/v1/corporations
+// @Summary List all corporations
+// @Description List all available corporations with their starting bonuses
+// @Tags cards
+// @Accept json
+// @Produce json
+// @Success 200 {array} dto.CardDto
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /corporations [get]
+func (h *CardHandler) GetCorporations(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	log.Debug("📡 Getting all corporations")
+
+	// Get corporations from service (they're just cards with type=corporation)
+	corporations, err := h.cardService.GetCorporations(r.Context())
+	if err != nil {
+		log.Error("Failed to get corporations", zap.Error(err))
+		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get corporations")
+		return
+	}
+
+	// Convert to DTOs (corporations have StartingCredits/Resources/Production populated)
+	corporationDtos := dto.ToCardDtoSlice(corporations)
+
+	log.Debug("📡 Corporations retrieved successfully",
+		zap.Int("count", len(corporationDtos)))
+
+	h.WriteJSONResponse(w, http.StatusOK, corporationDtos)
+}

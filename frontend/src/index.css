@@ -97,7 +97,7 @@ body {
   padding: 0;
   overflow-x: hidden;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
@@ -465,11 +465,144 @@ code {
   }
 }
 
+/* Value update shine animation for text/numbers */
+@keyframes valueUpdateShine {
+  0% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 8px rgba(255, 235, 59, 0.8),
+      0 0 12px rgba(255, 235, 59, 0.6),
+      0 0 16px rgba(255, 235, 59, 0.4);
+    filter: brightness(1.3);
+  }
+  100% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+}
+
+/* Icon update shine animation for icons (like credits) */
+@keyframes iconUpdateShine {
+  0% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1);
+  }
+  50% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 8px rgba(255, 235, 59, 0.8))
+      drop-shadow(0 0 12px rgba(255, 235, 59, 0.6)) brightness(1.3);
+  }
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1);
+  }
+}
+
+/* Production number glow animation */
+@keyframes productionShine {
+  0% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 8px rgba(255, 235, 59, 0.8),
+      0 0 12px rgba(255, 235, 59, 0.6),
+      0 0 16px rgba(255, 235, 59, 0.4);
+    filter: brightness(1.3);
+  }
+  100% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+}
+
+/* Button glow enhancement for value changes */
+@keyframes buttonGlowEnhance {
+  0% {
+    box-shadow: inherit;
+  }
+  50% {
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      0 0 20px currentColor,
+      0 0 25px currentColor;
+  }
+  100% {
+    box-shadow: inherit;
+  }
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* CorporationSelectionModal animations */
+@keyframes flashBorder {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0px rgba(255, 0, 0, 0);
+  }
+  25% {
+    box-shadow: inset 0 0 0 8px rgba(255, 0, 0, 0.8);
+  }
+  50% {
+    box-shadow: inset 0 0 0 4px rgba(255, 0, 0, 0.6);
+  }
+  75% {
+    box-shadow: inset 0 0 0 6px rgba(255, 0, 0, 0.4);
+  }
+}
+
+@keyframes modalPulse {
+  0%,
+  100% {
+    border-color: rgba(100, 150, 255, 0.5);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      0 0 40px rgba(100, 150, 255, 0.3);
+  }
+  50% {
+    border-color: rgba(255, 200, 100, 0.8);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.8),
+      0 0 60px rgba(255, 200, 100, 0.5),
+      0 0 100px rgba(255, 200, 100, 0.2);
+  }
+}
+
+@keyframes headerPulse {
+  0%,
+  100% {
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  }
+  50% {
+    color: #ffcc66;
+    text-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.8),
+      0 0 20px rgba(255, 204, 102, 0.6);
+  }
+}
+
+@keyframes buttonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow:
+      0 6px 20px rgba(74, 144, 226, 0.5),
+      0 0 30px rgba(91, 160, 242, 0.4);
   }
 }

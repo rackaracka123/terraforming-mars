@@ -3,11 +3,12 @@ import {
   PlayerActionDto,
   GameDto,
 } from "../../../types/generated/api-types.ts";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 import {
   canPerformActions,
   hasActionsAvailable,
 } from "../../../utils/actionUtils.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
 const isActionAvailable = (
@@ -162,9 +163,12 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
   const hasActionsLeft = hasActionsAvailable(
     gameState?.currentPlayer?.availableActions,
   );
+  const hasPendingTileSelection =
+    gameState?.currentPlayer?.pendingTileSelection;
 
   // Actions should be clickable only if all conditions are met
-  const canPlayActions = canPerformActions(gameState);
+  const canPlayActions =
+    canPerformActions(gameState) && !hasPendingTileSelection;
 
   const handleActionClick = (action: PlayerActionDto) => {
     if (onActionSelect) {
@@ -209,11 +213,9 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
       <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#ff6464_rgba(30,60,150,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(30,60,150,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[#ff6464]/70 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[#ff6464]">
         {actions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-5 text-center">
-            <img
-              src="/assets/misc/corpCard.png"
-              alt="No actions"
-              className="w-10 h-10 mb-[15px] opacity-60"
-            />
+            <div className="mb-[15px] opacity-60">
+              <GameIcon iconType="card" size="medium" />
+            </div>
             <div className="text-white text-sm font-medium mb-2">
               No card actions available
             </div>
@@ -230,26 +232,32 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
               return (
                 <div
                   key={`${action.cardId}-${action.behaviorIndex}`}
-                  className={`flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#ff6464]/30 rounded-lg cursor-pointer transition-all duration-300 animate-[actionSlideIn_0.4s_ease-out_both] max-[768px]:py-2 max-[768px]:px-3 ${!isActionPlayable ? "opacity-50 !bg-space-black-darker/30 !border-[#ff6464]/15 !transform-none !shadow-none" : "hover:translate-x-1 hover:border-[#ff6464] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#ff646440]"}`}
+                  className={`flex items-center gap-3 py-2.5 px-[15px] bg-space-black-darker/60 border border-[#ff6464]/30 rounded-lg cursor-pointer transition-all duration-300 animate-[actionSlideIn_0.4s_ease-out_both] max-[768px]:py-2 max-[768px]:px-3 ${!isActionPlayable ? "opacity-50 !bg-space-black-darker/30 !border-[#ff6464]/15 !transform-none !shadow-none relative" : "hover:translate-x-1 hover:border-[#ff6464] hover:bg-space-black-darker/80 hover:shadow-[0_4px_15px_#ff646440]"}`}
                   onClick={() => isActionPlayable && handleActionClick(action)}
                   style={{
                     animationDelay: `${index * 0.05}s`,
                     cursor: isActionPlayable ? "pointer" : "default",
                   }}
                   title={
-                    !canPlayActions
-                      ? !isCurrentPlayerTurn
-                        ? "Wait for your turn"
-                        : !hasActionsLeft
-                          ? "No actions remaining"
-                          : "Actions not available in this phase"
-                      : !isAvailable
-                        ? action.playCount > 0
-                          ? "Already played this generation"
-                          : "Cannot afford this action"
-                        : "Click to play this action"
+                    hasPendingTileSelection
+                      ? "Complete tile placement first"
+                      : !canPlayActions
+                        ? !isCurrentPlayerTurn
+                          ? "Wait for your turn"
+                          : !hasActionsLeft
+                            ? "No actions remaining"
+                            : "Actions not available in this phase"
+                        : !isAvailable
+                          ? action.playCount > 0
+                            ? "Already played this generation"
+                            : "Cannot afford this action"
+                          : "Click to play this action"
                   }
                 >
+                  {/* Grey fade overlay for disabled actions */}
+                  {!isActionPlayable && (
+                    <div className="absolute inset-0 bg-gray-600/40 rounded-lg pointer-events-none" />
+                  )}
                   <div className="flex flex-col gap-2 flex-1">
                     <div className="text-white/70 text-[11px] font-medium uppercase tracking-[0.5px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.2] opacity-80 flex items-center gap-2 max-[768px]:text-[10px]">
                       {action.cardName}

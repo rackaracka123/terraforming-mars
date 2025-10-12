@@ -1,27 +1,12 @@
 import React from "react";
-import "./PlayerOverlay.global.css";
-// Z-index import removed - using natural DOM layering
-
-interface Player {
-  id: string;
-  name: string;
-  terraformRating: number;
-  victoryPoints: number;
-  corporation?: string;
-  passed?: boolean;
-  resources?: {
-    credits: number;
-    steel: number;
-    titanium: number;
-    plants: number;
-    energy: number;
-    heat: number;
-  };
-}
+import {
+  PlayerDto,
+  OtherPlayerDto,
+} from "../../../types/generated/api-types.ts";
 
 interface PlayerOverlayProps {
-  players: Player[];
-  currentPlayer: Player | null;
+  players: (PlayerDto | OtherPlayerDto)[];
+  currentPlayer: PlayerDto | OtherPlayerDto | null;
 }
 
 const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
@@ -54,10 +39,10 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     "mind-set-mars": "/assets/pathfinders/corp-logo-mind-set-mars.png",
   };
 
-  const getCorpLogo = (corporation?: string) => {
-    if (!corporation) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
+  const getCorpLogo = (corporationId?: string) => {
+    if (!corporationId) return "/assets/pathfinders/corp-logo-polaris.png"; // Default
     return (
-      corporationLogos[corporation] ||
+      corporationLogos[corporationId] ||
       "/assets/pathfinders/corp-logo-polaris.png"
     );
   };
@@ -66,10 +51,7 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
     return playerColors[index % playerColors.length];
   };
 
-  // Use mock data if no real players - removed all 4 mock players
-  const mockPlayers: Player[] = [];
-
-  const playersToShow = players.length > 0 ? players : mockPlayers;
+  const playersToShow = players.length > 0 ? players : [];
 
   return (
     <div className="hidden absolute top-[70px] left-1/2 -translate-x-1/2 pointer-events-none">
@@ -77,33 +59,60 @@ const PlayerOverlay: React.FC<PlayerOverlayProps> = ({
         {playersToShow.map((player, index) => {
           const isCurrentPlayer = player.id === currentPlayer?.id;
           const playerColor = getPlayerColor(index);
-          const corpLogo = getCorpLogo(player.corporation);
+          const corpLogo = getCorpLogo(player.corporation?.id);
           const isPassed = player.passed || false;
 
           return (
             <div
               key={player.id || index}
-              className={`player-tab ${isCurrentPlayer ? "current" : ""} ${isPassed ? "passed" : ""}`}
-              style={{ "--player-color": playerColor } as React.CSSProperties}
+              className={`
+                relative border-2 rounded-xl py-2 px-4 min-w-[140px] backdrop-blur-space transition-all duration-300 pointer-events-auto cursor-pointer
+                before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none
+                ${
+                  isCurrentPlayer
+                    ? "bg-[linear-gradient(135deg,rgba(100,200,255,0.2)_0%,rgba(80,160,220,0.15)_50%,rgba(60,140,200,0.2)_100%)] border-[#64c8ff] shadow-[0_6px_25px_rgba(100,200,255,0.3),0_0_30px_#64c8ff,inset_0_1px_0_rgba(255,255,255,0.2)] before:bg-[linear-gradient(45deg,rgba(100,200,255,0.15)_0%,transparent_50%,rgba(100,200,255,0.08)_100%)]"
+                    : isPassed
+                      ? "opacity-60 [filter:grayscale(40%)] bg-[linear-gradient(135deg,rgba(80,80,80,0.9)_0%,rgba(60,60,60,0.85)_50%,rgba(40,40,40,0.9)_100%)] border-[rgba(150,150,150,0.5)] hover:opacity-80 hover:-translate-y-px"
+                      : "bg-[linear-gradient(135deg,rgba(30,60,90,0.95)_0%,rgba(20,40,70,0.9)_50%,rgba(10,30,60,0.95)_100%)] before:bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0.05)_100%)] hover:-translate-y-0.5"
+                }
+              `}
+              style={{
+                borderColor: isCurrentPlayer ? "#64c8ff" : playerColor,
+                boxShadow: isCurrentPlayer
+                  ? "0 6px 25px rgba(100, 200, 255, 0.3), 0 0 30px #64c8ff, inset 0 1px 0 rgba(255, 255, 255, 0.2)"
+                  : isPassed
+                    ? undefined
+                    : `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 20px ${playerColor}`,
+              }}
             >
-              <div className="tab-content">
-                <div className="corp-section">
+              <div className="flex items-center gap-3 relative">
+                <div className="flex-shrink-0">
                   <img
                     src={corpLogo}
-                    alt={`${player.corporation || "Unknown"} Corporation`}
-                    className="corp-logo"
+                    alt={`${player.corporation?.name || "Unknown"} Corporation`}
+                    className="w-8 h-8 rounded-md object-cover border border-white/20 transition-all duration-200 hover:border-white/40 hover:scale-105"
                   />
                 </div>
 
-                <div className="player-info">
-                  <div className="player-name">{player.name}</div>
-                  <div className="tr-section">
-                    <span className="tr-label">TR</span>
-                    <span className="tr-value">{player.terraformRating}</span>
+                <div className="flex flex-col items-start flex-1">
+                  <div className="text-xs font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">
+                    {player.name}
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[9px] font-medium text-[rgba(255,215,0,0.9)] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+                      TR
+                    </span>
+                    <span className="text-sm font-bold text-[#ffd700] [text-shadow:0_1px_2px_rgba(0,0,0,0.9),0_0_8px_rgba(255,215,0,0.4)] font-[Courier_New,monospace]">
+                      {player.terraformRating}
+                    </span>
                   </div>
                 </div>
 
-                {isPassed && <div className="pass-indicator">PASSED</div>}
+                {isPassed && (
+                  <div className="absolute -top-1 -right-1.5 bg-[rgba(100,255,100,0.9)] text-black text-[8px] font-bold py-px px-1 rounded-sm tracking-wide border border-[rgba(50,200,50,1)]">
+                    PASSED
+                  </div>
+                )}
               </div>
             </div>
           );

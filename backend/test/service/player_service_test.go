@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -19,12 +21,13 @@ func setupPlayerServiceTest(t *testing.T) (
 	repository.PlayerRepository,
 	model.Game,
 ) {
-	// EventBus no longer needed
-	playerRepo := repository.NewPlayerRepository()
-	gameRepo := repository.NewGameRepository()
+	eventBus := events.NewEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus)
 	boardService := service.NewBoardService()
 	sessionManager := test.NewMockSessionManager()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 
 	cardRepo := repository.NewCardRepository()
@@ -35,7 +38,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()

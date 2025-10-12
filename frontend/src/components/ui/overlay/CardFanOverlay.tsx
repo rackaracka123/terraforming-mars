@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import {
-  CardDto,
-  GameDto,
-  PlayerDto,
-} from "../../../types/generated/api-types.ts";
+import { CardDto, GameDto, PlayerDto } from "@/types/generated/api-types.ts";
 import {
   checkCardPlayability,
   UnplayableReason,
-} from "../../../utils/cardPlayabilityUtils.ts";
+} from "@/utils/cardPlayabilityUtils.ts";
 
 interface CardFanOverlayProps {
   cards: CardDto[];
@@ -428,7 +424,14 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             currentPlayabilityInfo?.reason
           ) {
             // Don't show shield for phase restrictions (only visual dimming)
-            if (currentPlayabilityInfo.reason.type === "phase") {
+            // EXCEPT for pending tile selection which should always show the shield
+            const isPendingTileSelection =
+              currentPlayabilityInfo.reason.message ===
+              "Pending tile selection";
+            if (
+              currentPlayabilityInfo.reason.type === "phase" &&
+              !isPendingTileSelection
+            ) {
               onUnplayableCard(null, null);
             } else {
               onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
@@ -468,7 +471,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
 
   const handleDocumentMouseUp = useCallback(() => {
     if (isDragging && draggedCard) {
-      handleDragEnd();
+      void handleDragEnd();
     }
   }, [isDragging, draggedCard, handleDragEnd]);
 
@@ -540,12 +543,6 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
               targetScreenX - (containerRect.left + containerRect.width / 2);
             finalY = targetScreenY - containerRect.bottom;
           }
-        }
-
-        // If card is returning, use normal hand position (no drag offset)
-        if (isReturning) {
-          // Card will smoothly animate back to its normal hand position
-          // finalX and finalY are already set to the correct hand position
         }
 
         return (

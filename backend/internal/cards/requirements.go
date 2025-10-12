@@ -178,12 +178,9 @@ func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *mo
 	}
 
 	// Add corporation tags if player has a corporation
-	if player.Corporation != nil && *player.Corporation != "" {
-		corporationCard, err := rv.cardRepo.GetCardByID(ctx, *player.Corporation)
-		if err == nil && corporationCard != nil {
-			for _, tag := range corporationCard.Tags {
-				tagCounts[tag]++
-			}
+	if player.Corporation != nil {
+		for _, tag := range player.Corporation.Tags {
+			tagCounts[tag]++
 		}
 	}
 

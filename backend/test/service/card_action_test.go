@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -13,9 +15,13 @@ import (
 )
 
 func TestCardService_OnPlayCardAction_Success(t *testing.T) {
+	// Setup test data
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 
@@ -25,10 +31,8 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	// Create card service
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
-
-	// Setup test data
-	ctx := context.Background()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 	playerID := "player1"
 
 	// Create a test game
@@ -93,17 +97,20 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -165,17 +172,20 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -228,17 +238,20 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -273,17 +286,20 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -336,17 +352,20 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game
@@ -412,17 +431,20 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 
 func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := NewMockCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
 
-	ctx := context.Background()
 	playerID := "player1"
 
 	// Create a test game

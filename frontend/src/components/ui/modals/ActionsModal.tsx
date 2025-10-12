@@ -5,8 +5,9 @@ import {
   GameStatusActive,
   GamePhaseAction,
 } from "@/types/generated/api-types.ts";
-import BehaviorSection from "../cards/BehaviorSection.tsx";
+import BehaviorSection from "../cards/BehaviorSection";
 import { canPerformActions, hasActionsAvailable } from "@/utils/actionUtils.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 // Utility function to check if an action is affordable and available
 const isActionAvailable = (
@@ -101,12 +102,15 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
   const hasActionsLeft = hasActionsAvailable(
     gameState?.currentPlayer?.availableActions,
   );
+  const hasPendingTileSelection =
+    gameState?.currentPlayer?.pendingTileSelection;
 
   // Button should be visible only if game is active and in action phase
   const showPlayButton = isGameActive && isActionPhase;
 
   // Button should be enabled only if player can perform actions (handles unlimited actions)
-  const isPlayButtonEnabled = showPlayButton && canPerformActions(gameState);
+  const isPlayButtonEnabled =
+    showPlayButton && canPerformActions(gameState) && !hasPendingTileSelection;
 
   // Sort actions
   const sortedActions = [...actions].sort((a, b) => {
@@ -187,11 +191,9 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
         <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(0,255,120,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(0,255,120,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,255,120,0.7)] max-md:p-5">
           {sortedActions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[300px]">
-              <img
-                src="/assets/misc/corpCard.png"
-                alt="No actions"
-                className="w-16 h-16 mb-5 opacity-60"
-              />
+              <div className="mb-5 opacity-60">
+                <GameIcon iconType="card" size="large" />
+              </div>
               <h3 className="text-white text-2xl m-0 mb-2.5">
                 No Card Actions Available
               </h3>
@@ -211,6 +213,10 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     className={`border-2 border-[rgba(255,100,100,0.4)] rounded-xl p-[15px] transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] backdrop-blur-[10px] animate-[actionSlideIn_0.6s_ease-out_both] w-full max-w-[320px] min-h-[200px] flex flex-col bg-[linear-gradient(135deg,rgba(30,60,90,0.4)_0%,rgba(20,40,70,0.3)_100%)] shadow-[0_4px_15px_rgba(0,0,0,0.3)] relative ${!isAvailable ? "opacity-60 !border-[rgba(255,100,100,0.2)] !bg-[linear-gradient(135deg,rgba(30,60,90,0.2)_0%,rgba(20,40,70,0.15)_100%)]" : ""} max-[1200px]:w-[260px] max-[1200px]:h-[180px] max-md:w-[240px] max-md:h-[160px] max-md:p-3`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
+                    {/* Grey fade overlay for disabled actions */}
+                    {!isActionPlayable && (
+                      <div className="absolute inset-0 bg-gray-600/40 rounded-xl pointer-events-none z-10" />
+                    )}
                     <div className="flex flex-col gap-2.5 flex-1 overflow-hidden">
                       <div className="text-white/90 text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.3] text-center m-0 flex-shrink-0 flex items-center justify-center gap-2 flex-wrap max-md:text-xs">
                         {action.cardName}
@@ -238,15 +244,17 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         }
                         disabled={!isActionPlayable}
                         title={
-                          !isCurrentPlayerTurn
-                            ? "Wait for your turn"
-                            : !hasActionsLeft
-                              ? "No actions remaining"
-                              : !isAvailable
-                                ? action.playCount > 0
-                                  ? "Already played this generation"
-                                  : "Cannot afford this action"
-                                : "Play this action"
+                          hasPendingTileSelection
+                            ? "Complete tile placement first"
+                            : !isCurrentPlayerTurn
+                              ? "Wait for your turn"
+                              : !hasActionsLeft
+                                ? "No actions remaining"
+                                : !isAvailable
+                                  ? action.playCount > 0
+                                    ? "Already played this generation"
+                                    : "Cannot afford this action"
+                                  : "Play this action"
                         }
                       >
                         Play

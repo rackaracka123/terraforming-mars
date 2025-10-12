@@ -23,12 +23,19 @@ const (
 
 // GameSettings contains configurable game parameters (all optional)
 type GameSettings struct {
-	MaxPlayers      int  `json:"maxPlayers,omitempty" ts:"number"`              // Default: 5
-	Temperature     *int `json:"temperature,omitempty" ts:"number | undefined"` // Default: -30°C
-	Oxygen          *int `json:"oxygen,omitempty" ts:"number | undefined"`      // Default: 0%
-	Oceans          *int `json:"oceans,omitempty" ts:"number | undefined"`      // Default: 0
-	DevelopmentMode bool `json:"developmentMode,omitempty" ts:"boolean"`        // Default: false
+	MaxPlayers      int      `json:"maxPlayers,omitempty" ts:"number"`              // Default: 5
+	Temperature     *int     `json:"temperature,omitempty" ts:"number | undefined"` // Default: -30°C
+	Oxygen          *int     `json:"oxygen,omitempty" ts:"number | undefined"`      // Default: 0%
+	Oceans          *int     `json:"oceans,omitempty" ts:"number | undefined"`      // Default: 0
+	DevelopmentMode bool     `json:"developmentMode,omitempty" ts:"boolean"`        // Default: false
+	CardPacks       []string `json:"cardPacks,omitempty" ts:"string[] | undefined"` // Default: ["base-game"]
 }
+
+// Card pack constants
+const (
+	PackBaseGame = "base-game" // Tested simple cards only
+	PackFuture   = "future"    // Untested/complex cards for future implementation
+)
 
 // Default values for game settings
 const (
@@ -37,6 +44,11 @@ const (
 	DefaultOxygen      = MinOxygen      // 0%
 	DefaultOceans      = MinOceans      // 0
 )
+
+// DefaultCardPacks returns the default card packs
+func DefaultCardPacks() []string {
+	return []string{PackBaseGame}
+}
 
 // GlobalParameters represents the terraforming progress
 type GlobalParameters struct {

@@ -1,8 +1,9 @@
 import React from "react";
-import { PlayerDto } from "@/types/generated/api-types.ts";
+import { PlayerDto, OtherPlayerDto } from "@/types/generated/api-types.ts";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface PlayerCardProps {
-  player: PlayerDto;
+  player: PlayerDto | OtherPlayerDto;
   playerColor: string;
   isCurrentPlayer: boolean;
   isActivePlayer: boolean;
@@ -80,6 +81,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
           </div>
           <span className="text-sm font-semibold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.8),0_0_8px_rgba(100,200,255,0.3)] tracking-[0.4px] shrink-0">
             {player.name}
+          </span>
+        </div>
+        {/* TR Display - always visible */}
+        <div className="absolute right-16 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-[linear-gradient(135deg,rgba(20,45,70,0.6),rgba(15,35,55,0.6))] border border-[rgba(100,200,255,0.3)] rounded px-1.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
+          <GameIcon iconType="tr" size="small" />
+          <span className="text-xs font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] min-w-[16px] text-center">
+            {player.terraformRating}
           </span>
         </div>
         {isActivePlayer && isCurrentTurn && isActionPhase && (

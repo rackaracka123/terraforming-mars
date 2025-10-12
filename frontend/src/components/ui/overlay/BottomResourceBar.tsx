@@ -4,11 +4,18 @@ import {
   PlayerActionDto,
   GameDto,
   CardDto,
+  ResourceTypeCredits,
+  ResourceTypeSteel,
+  ResourceTypeTitanium,
+  ResourceTypePlants,
+  ResourceTypeEnergy,
+  ResourceTypeHeat,
 } from "@/types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
+import GameIcon from "../display/GameIcon.tsx";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -16,7 +23,6 @@ interface ResourceData {
   name: string;
   current: number;
   production: number;
-  icon: string;
   color: string;
 }
 
@@ -24,6 +30,7 @@ interface BottomResourceBarProps {
   currentPlayer?: PlayerDto | null;
   gameState?: GameDto;
   playedCards?: CardDto[];
+  changedPaths?: Set<string>;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
   onOpenVictoryPointsModal?: () => void;
@@ -35,6 +42,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   currentPlayer,
   gameState,
   playedCards = [],
+  changedPaths = new Set(),
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
   onOpenVictoryPointsModal,
@@ -49,43 +57,23 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   const effectsButtonRef = useRef<HTMLButtonElement>(null);
   const tagsButtonRef = useRef<HTMLButtonElement>(null);
   const storagesButtonRef = useRef<HTMLButtonElement>(null);
-  // Helper function to create image with embedded number
-  const createImageWithNumber = (
-    imageSrc: string,
-    number: number,
-    className: string = "",
-  ) => {
-    return (
-      <div className={`image-with-number ${className}`}>
-        <img src={imageSrc} alt="" className="base-image" />
-        <span className="embedded-number">{number}</span>
-      </div>
-    );
+
+  // Helper function to check if a path has changed
+  const hasPathChanged = (path: string): boolean => {
+    return changedPaths.has(path);
   };
 
-  // Get tag icon mapping
-  const getTagIcon = (tag: string): string => {
-    const iconMap: { [key: string]: string } = {
-      space: "/assets/tags/space.png",
-      earth: "/assets/tags/earth.png",
-      science: "/assets/tags/science.png",
-      power: "/assets/tags/power.png",
-      building: "/assets/tags/building.png",
-      microbe: "/assets/tags/microbe.png",
-      animal: "/assets/tags/animal.png",
-      plant: "/assets/tags/plant.png",
-      event: "/assets/tags/event.png",
-      city: "/assets/tags/city.png",
-      venus: "/assets/tags/venus.png",
-      jovian: "/assets/tags/jovian.png",
-      wildlife: "/assets/tags/wildlife.png",
-      wild: "/assets/tags/wild.png",
-      mars: "/assets/tags/mars.png",
-      moon: "/assets/tags/moon.png",
-      clone: "/assets/tags/clone.png",
-      crime: "/assets/tags/crime.png",
+  // Map resource ID to ResourceType constant
+  const getResourceType = (resourceId: string): string => {
+    const resourceTypeMap: Record<string, string> = {
+      credits: ResourceTypeCredits,
+      steel: ResourceTypeSteel,
+      titanium: ResourceTypeTitanium,
+      plants: ResourceTypePlants,
+      energy: ResourceTypeEnergy,
+      heat: ResourceTypeHeat,
     };
-    return iconMap[tag.toLowerCase()] || "/assets/tags/empty.png";
+    return resourceTypeMap[resourceId] || resourceId;
   };
 
   // Count tags from played cards
@@ -128,7 +116,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
     return allTags.map((tag) => ({
       tag,
       count: counts[tag] || 0,
-      icon: getTagIcon(tag),
     }));
   }, [playedCards]);
 
@@ -150,7 +137,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Credits",
       current: currentPlayer.resources.credits,
       production: currentPlayer.production.credits,
-      icon: "/assets/resources/megacredit.png",
       color: "#f1c40f", // Gold - OK already
     },
     {
@@ -158,7 +144,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Steel",
       current: currentPlayer.resources.steel,
       production: currentPlayer.production.steel,
-      icon: "/assets/resources/steel.png",
       color: "#d2691e", // Brown/orangy
     },
     {
@@ -166,7 +151,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Titanium",
       current: currentPlayer.resources.titanium,
       production: currentPlayer.production.titanium,
-      icon: "/assets/resources/titanium.png",
       color: "#95a5a6", // Grey
     },
     {
@@ -174,7 +158,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Plants",
       current: currentPlayer.resources.plants,
       production: currentPlayer.production.plants,
-      icon: "/assets/resources/plant.png",
       color: "#27ae60", // Green - OK already
     },
     {
@@ -182,7 +165,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Energy",
       current: currentPlayer.resources.energy,
       production: currentPlayer.production.energy,
-      icon: "/assets/resources/power.png",
       color: "#9b59b6", // Purple
     },
     {
@@ -190,7 +172,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       name: "Heat",
       current: currentPlayer.resources.heat,
       production: currentPlayer.production.heat,
-      icon: "/assets/resources/heat.png",
       color: "#ff4500", // Red/orange
     },
   ];
@@ -235,57 +216,62 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       {/* Resource Grid */}
       <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
         <div className="grid grid-cols-6 gap-[15px] max-w-[500px]">
-          {playerResources.map((resource) => (
-            <div
-              key={resource.id}
-              className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 transition-all duration-200 cursor-pointer relative overflow-hidden hover:-translate-y-0.5"
-              style={
-                {
-                  "--resource-color": resource.color,
-                  borderColor: resource.color,
-                  boxShadow: `0 0 10px ${resource.color}40`,
-                } as React.CSSProperties
-              }
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${resource.color}`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
-              }}
-              title={`${resource.name}: ${resource.current} (${resource.production} production)`}
-            >
-              <div className="flex items-center justify-center mb-1">
-                {createImageWithNumber(
-                  "/assets/misc/production.png",
-                  resource.production,
-                  "production-display",
-                )}
-              </div>
+          {playerResources.map((resource) => {
+            const resourceChanged = hasPathChanged(
+              `currentPlayer.resources.${resource.id}`,
+            );
+            const productionChanged = hasPathChanged(
+              `currentPlayer.production.${resource.id}`,
+            );
 
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-8 flex items-center justify-center [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.5))]">
-                  {resource.id === "credits" ? (
-                    createImageWithNumber(
-                      resource.icon,
-                      resource.current,
-                      "credits-display",
-                    )
-                  ) : (
-                    <img
-                      src={resource.icon}
-                      alt={resource.name}
-                      className="w-full h-full object-contain [image-rendering:crisp-edges]"
-                    />
-                  )}
+            return (
+              <div
+                key={resource.id}
+                className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 transition-all duration-200 cursor-pointer relative overflow-hidden hover:-translate-y-0.5"
+                style={
+                  {
+                    "--resource-color": resource.color,
+                    borderColor: resource.color,
+                    boxShadow: `0 0 10px ${resource.color}40`,
+                  } as React.CSSProperties
+                }
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${resource.color}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
+                }}
+              >
+                <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
+                  <span
+                    className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${productionChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+                  >
+                    {resource.production}
+                  </span>
                 </div>
-                {resource.id !== "credits" && (
-                  <div className="text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
-                    {resource.current}
+
+                {resource.id === "credits" ? (
+                  <GameIcon
+                    iconType={ResourceTypeCredits}
+                    amount={resource.current}
+                    size="medium"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <GameIcon
+                      iconType={getResourceType(resource.id)}
+                      size="medium"
+                    />
+                    <div
+                      className={`text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+                    >
+                      {resource.current}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -293,47 +279,27 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       <div className="flex-1 flex items-center justify-end gap-3 -translate-y-[30px] pointer-events-auto relative">
         <button
           ref={actionsButtonRef}
-          className={`flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5 ${
-            (currentPlayer?.actions?.length || 0) === 0
-              ? "border-[#969696] opacity-70 hover:opacity-80"
-              : (currentPlayer?.actions?.length || 0) <= 1
-                ? "border-[#ffc800]"
-                : "border-[#ff6464]"
-          }`}
-          style={{
-            boxShadow:
-              (currentPlayer?.actions?.length || 0) === 0
-                ? "0 0 10px #96969640"
-                : (currentPlayer?.actions?.length || 0) <= 1
-                  ? "0 0 10px #ffc80040"
-                  : "0 0 10px #ff646440",
-          }}
+          className="flex flex-col items-center gap-1 bg-space-black-darker/90 border-2 border-[#ff6464] rounded-xl py-2.5 px-2 cursor-pointer transition-all duration-200 min-w-[60px] hover:-translate-y-0.5"
+          style={{ boxShadow: "0 0 10px #ff646440" }}
           onMouseEnter={(e) => {
-            const color =
-              (currentPlayer?.actions?.length || 0) === 0
-                ? "#969696"
-                : (currentPlayer?.actions?.length || 0) <= 1
-                  ? "#ffc800"
-                  : "#ff6464";
-            e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${color}`;
+            e.currentTarget.style.boxShadow =
+              "0 6px 20px rgba(0,0,0,0.4), 0 0 20px #ff6464";
           }}
           onMouseLeave={(e) => {
-            const color =
-              (currentPlayer?.actions?.length || 0) === 0
-                ? "#969696"
-                : (currentPlayer?.actions?.length || 0) <= 1
-                  ? "#ffc800"
-                  : "#ff6464";
-            e.currentTarget.style.boxShadow = `0 0 10px ${color}40`;
+            e.currentTarget.style.boxShadow = "0 0 10px #ff646440";
           }}
           onClick={handleOpenActionsPopover}
-          title={`Card Actions: ${currentPlayer?.actions?.length || 0}`}
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            ⚡
+          <div
+            className="text-base font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center gap-[2px] h-[32px] w-[32px] justify-center"
+            style={{ color: "#ff6464" }}
+          >
+            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
+            <span className="text-[8px] leading-none translate-y-[1px]">●</span>
+            <span className="text-[23px] leading-none">→</span>
           </div>
           <div
-            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${(currentPlayer?.actions?.length || 0) === 0 ? "text-white/60" : ""}`}
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.actions") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
           >
             {currentPlayer?.actions?.length || 0}
           </div>
@@ -354,12 +320,20 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #ff96ff40";
           }}
           onClick={handleOpenEffectsPopover}
-          title="View Card Effects"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            ✨
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#ff96ff" }}
+          >
+            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
+            <div className="flex flex-col items-center justify-center relative">
+              <span className="text-[10px] leading-none">●</span>
+              <span className="text-[10px] leading-none">●</span>
+            </div>
           </div>
-          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.effects") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+          >
             {currentPlayer?.effects?.length || 0}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
@@ -379,12 +353,21 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #64ff9640";
           }}
           onClick={handleOpenTagsPopover}
-          title="View Tags"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🏷️
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#64ff96" }}
+          >
+            <div className="absolute w-[26px] h-[26px] rounded-full border-2 border-current" />
+            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
+              <span>●</span>
+              <span>●</span>
+              <span>●</span>
+            </div>
           </div>
-          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.playedCards") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+          >
             {tagCounts.reduce((sum, tag) => sum + tag.count, 0)}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
@@ -404,12 +387,21 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #6496c840";
           }}
           onClick={handleOpenStoragesPopover}
-          title="View Card Storages"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            💾
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#6496c8" }}
+          >
+            <div className="absolute w-[26px] h-[26px] border-2 border-current" />
+            <div className="flex items-center gap-[2px] relative text-[8px] leading-none">
+              <span>●</span>
+              <span>●</span>
+              <span>●</span>
+            </div>
           </div>
-          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.resourceStorage") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+          >
             {storageCardsCount}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
@@ -428,12 +420,16 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #9664ff40";
           }}
           onClick={handleOpenCardsModal}
-          title="View Played Cards"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🃏
+          <div
+            className="text-2xl font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px]"
+            style={{ color: "#9664ff" }}
+          >
+            ↓
           </div>
-          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${hasPathChanged("currentPlayer.playedCards") ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+          >
             {playedCardsCount}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
@@ -452,12 +448,22 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
             e.currentTarget.style.boxShadow = "0 0 10px #ffc86440";
           }}
           onClick={handleOpenVictoryPointsModal}
-          title="View Victory Points"
         >
-          <div className="text-lg [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]">
-            🏆
+          <div
+            className="font-bold [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] flex items-center justify-center h-[32px] w-[32px] relative"
+            style={{ color: "#ffc864" }}
+          >
+            <span className="text-3xl absolute">○</span>
+            <span className="text-lg absolute">●</span>
           </div>
-          <div className="text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none">
+          <div
+            className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${
+              hasPathChanged("currentPlayer.victoryPoints") ||
+              hasPathChanged("currentPlayer.terraformRating")
+                ? "[animation:valueUpdateShine_0.8s_ease-in-out]"
+                : ""
+            }`}
+          >
             {currentPlayer?.victoryPoints || 0}
           </div>
           <div className="text-[10px] font-medium text-white/90 uppercase tracking-[0.5px] [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
@@ -465,53 +471,6 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
           </div>
         </button>
       </div>
-
-      <style>{`
-        .image-with-number {
-          position: relative;
-          display: inline-block;
-        }
-
-        .base-image {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-
-        .embedded-number {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-weight: bold;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-          pointer-events: none;
-          line-height: 1;
-        }
-
-        .production-display {
-          width: 24px;
-          height: 24px;
-        }
-
-        .production-display .embedded-number {
-          font-size: 12px;
-          color: #ffffff;
-        }
-
-        .credits-display {
-          width: 32px;
-          height: 32px;
-        }
-
-        .credits-display .embedded-number {
-          font-size: 14px;
-          color: #000000;
-          font-weight: 900;
-        }
-
-      `}</style>
 
       {/* Actions Popover */}
       <ActionsPopover

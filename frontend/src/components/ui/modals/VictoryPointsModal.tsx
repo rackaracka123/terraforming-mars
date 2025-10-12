@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { CardType } from "../../../types/cards.ts";
+import { CardType } from "@/types/cards.tsx";
 import VictoryPointsDisplay from "../display/VictoryPointsDisplay.tsx";
+import GameIcon, { GameIconType } from "../display/GameIcon.tsx";
+import {
+  ResourceTypeTR,
+  ResourceTypeGreeneryTile,
+  ResourceTypeCityTile,
+} from "@/types/generated/api-types.ts";
 
 interface VPSource {
   id: string;
@@ -232,16 +238,16 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
       .reduce((sum, s) => sum + s.points, 0),
   };
 
-  const getSourceIcon = (source: VPSource["source"]) => {
-    const icons = {
-      card: "/assets/misc/corpCard.png",
-      milestone: "/assets/misc/checkmark.png",
-      award: "/assets/misc/first-player.png",
-      terraformRating: "/assets/resources/tr.png",
-      greenery: "/assets/tiles/greenery.png",
-      city: "/assets/tiles/city.png",
+  const getSourceIconType = (source: VPSource["source"]): GameIconType => {
+    const iconTypeMap: Record<VPSource["source"], GameIconType> = {
+      card: "card",
+      milestone: "milestone",
+      award: "award",
+      terraformRating: ResourceTypeTR,
+      greenery: ResourceTypeGreeneryTile,
+      city: ResourceTypeCityTile,
     };
-    return icons[source] || "/assets/misc/checkmark.png";
+    return iconTypeMap[source] || "milestone";
   };
 
   const getSourceColor = (source: VPSource["source"]) => {
@@ -355,10 +361,11 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 <div key={source} className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2.5 text-white font-medium">
-                      <img
-                        src={getSourceIcon(source as VPSource["source"])}
-                        alt={source}
-                        className="w-5 h-5"
+                      <GameIcon
+                        iconType={getSourceIconType(
+                          source as VPSource["source"],
+                        )}
+                        size="small"
                       />
                       <span>
                         {getSourceLabel(source as VPSource["source"])}
@@ -392,11 +399,9 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
         <div className="flex-1 py-[25px] px-[30px] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,215,0,0.5)_rgba(50,75,125,0.3)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[rgba(50,75,125,0.3)] [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-[rgba(255,215,0,0.5)] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-[rgba(255,215,0,0.7)]">
           {filteredSources.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[60px] px-5 text-center min-h-[200px]">
-              <img
-                src="/assets/resources/tr.png"
-                alt="No VP sources"
-                className="w-16 h-16 mb-5 opacity-60"
-              />
+              <div className="mb-5 opacity-60">
+                <GameIcon iconType={ResourceTypeTR} size="large" />
+              </div>
               <h3 className="text-white text-2xl m-0 mb-2.5">
                 No Victory Point Sources
               </h3>
@@ -422,10 +427,9 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                   >
                     <div className="flex justify-between items-center mb-2.5">
                       <div className="flex items-center gap-[15px]">
-                        <img
-                          src={getSourceIcon(source.source)}
-                          alt={source.source}
-                          className="w-8 h-8"
+                        <GameIcon
+                          iconType={getSourceIconType(source.source)}
+                          size="medium"
                         />
                         <div className="flex flex-col gap-1">
                           <h3 className="text-white text-lg font-bold m-0 text-shadow-dark">
@@ -471,10 +475,9 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
                 style={{ borderColor: color, backgroundColor: `${color}20` }}
                 onClick={() => setFilterType(source as FilterType)}
               >
-                <img
-                  src={getSourceIcon(source as VPSource["source"])}
-                  alt={source}
-                  className="w-6 h-6"
+                <GameIcon
+                  iconType={getSourceIconType(source as VPSource["source"])}
+                  size="small"
                 />
                 <div className="flex flex-col items-start">
                   <span className="text-white text-base font-bold font-['Courier_New',monospace]">
@@ -493,11 +496,7 @@ const VictoryPointsModal: React.FC<VictoryPointsModalProps> = ({
             onClick={() => setFilterType("all")}
             style={{ backgroundColor: "rgba(255, 255, 255, 0.1)" }}
           >
-            <img
-              src="/assets/resources/tr.png"
-              alt="Total"
-              className="w-6 h-6"
-            />
+            <GameIcon iconType={ResourceTypeTR} size="small" />
             <div className="flex flex-col items-start">
               <span className="text-white text-base font-bold font-['Courier_New',monospace]">
                 {totalVP}

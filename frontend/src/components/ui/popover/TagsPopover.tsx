@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
+import GameIcon from "../display/GameIcon.tsx";
 
 interface TagCount {
   tag: string;
   count: number;
-  icon: string;
 }
 
 interface TagsPopoverProps {
@@ -87,20 +87,12 @@ const TagsPopover: React.FC<TagsPopoverProps> = ({
         </div>
       ) : (
         <div className="p-3 flex flex-col gap-2">
-          {visibleTags.map((tagData, index) => (
-            <div
-              key={tagData.tag}
-              className="flex items-center gap-3 p-2 transition-all duration-200 animate-[tagSlideIn_0.3s_ease-out] [animation-delay:calc(var(--index)*30ms)]"
-              style={{ "--index": index } as React.CSSProperties}
-            >
+          {visibleTags.map((tagData) => (
+            <div key={tagData.tag} className="flex items-center gap-3 p-2">
               <span className="min-w-[28px] text-center text-base font-bold text-white text-shadow-glow">
                 {tagData.count}
               </span>
-              <img
-                src={tagData.icon}
-                alt={tagData.tag}
-                className="w-8 h-8 object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.4))]"
-              />
+              <GameIcon iconType={tagData.tag} size="medium" />
             </div>
           ))}
         </div>
