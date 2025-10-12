@@ -1,5 +1,7 @@
 import React from "react";
 import ResourceDisplay from "./ResourceDisplay.tsx";
+import CardIcon from "./CardIcon.tsx";
+import { analyzeCardOutputs } from "../utils/displayAnalysis.ts";
 
 interface IconDisplayInfo {
   resourceType: string;
@@ -205,6 +207,27 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
   }
 
   // Regular behavior handling
+  // Analyze and consolidate card outputs (card-draw, card-peek, card-take, card-buy)
+  const consolidatedCards = behavior.outputs
+    ? analyzeCardOutputs(behavior.outputs)
+    : [];
+
+  // Helper to check if an output is a card resource
+  const isCardResource = (output: any): boolean => {
+    const type = output.resourceType || output.type || "";
+    return (
+      type === "card-draw" ||
+      type === "card-peek" ||
+      type === "card-take" ||
+      type === "card-buy"
+    );
+  };
+
+  // Filter out card resources from regular outputs (they'll be rendered via consolidatedCards)
+  const nonCardOutputs = behavior.outputs
+    ? behavior.outputs.filter((output: any) => !isCardResource(output))
+    : [];
+
   return (
     <div className="flex items-center justify-center gap-2 w-full">
       {/* Input side */}
@@ -239,27 +262,38 @@ const ManualActionLayout: React.FC<ManualActionLayoutProps> = ({
 
       {/* Output side */}
       <div className="flex flex-col gap-0.5 items-center min-w-0">
-        {behavior.outputs &&
-          behavior.outputs.map((output: any, outputIndex: number) => {
-            const displayInfo = analyzeResourceDisplayWithConstraints(
-              output,
-              3,
-              false,
-            );
-            return (
-              <React.Fragment key={`output-${outputIndex}`}>
-                <ResourceDisplay
-                  displayInfo={displayInfo}
-                  isInput={false}
-                  resource={output}
-                  isGroupedWithOtherNegatives={false}
-                  context="action"
-                  isAffordable={isResourceAffordable(output, false)}
-                  tileScaleInfo={tileScaleInfo}
-                />
-              </React.Fragment>
-            );
-          })}
+        {/* Regular non-card outputs */}
+        {nonCardOutputs.map((output: any, outputIndex: number) => {
+          const displayInfo = analyzeResourceDisplayWithConstraints(
+            output,
+            3,
+            false,
+          );
+          return (
+            <React.Fragment key={`output-${outputIndex}`}>
+              <ResourceDisplay
+                displayInfo={displayInfo}
+                isInput={false}
+                resource={output}
+                isGroupedWithOtherNegatives={false}
+                context="action"
+                isAffordable={isResourceAffordable(output, false)}
+                tileScaleInfo={tileScaleInfo}
+              />
+            </React.Fragment>
+          );
+        })}
+
+        {/* Consolidated card icons (card-draw, card-peek, card-take, card-buy) */}
+        {consolidatedCards.map((cardItem, index) => (
+          <React.Fragment key={`card-${index}`}>
+            <CardIcon
+              amount={cardItem.amount}
+              badgeType={cardItem.badgeType}
+              isAffordable={true}
+            />
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
