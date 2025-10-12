@@ -143,6 +143,7 @@ type BehaviorData struct {
 	RaiseTR     int
 
 	Cards         int
+	CardDetails   string
 	CardResources string
 	ResourceType  string
 	Where         string
@@ -430,6 +431,9 @@ func parseBehaviorFromRecord(record []string) *BehaviorData {
 	behavior.Cards = parseIntFromRecord(record, behaviorCards)
 
 	// Parse text fields
+	if len(record) > behaviorCardDetails {
+		behavior.CardDetails = strings.TrimSpace(record[behaviorCardDetails])
+	}
 	if len(record) > behaviorCardResources {
 		behavior.CardResources = strings.TrimSpace(record[behaviorCardResources])
 	}
@@ -1168,31 +1172,71 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 								Target: getTarget(model.ResourceCardDraw, false),
 							})
 						} else {
-							// Different amounts - use separate take and peek
-							outputs = append(outputs, model.ResourceCondition{
-								Type:   model.ResourceCardTake,
-								Amount: take,
+							// Check if this is a "buy or discard" card (use card-buy instead of card-take)
+							isBuyOrDiscard := strings.Contains(strings.ToLower(behavior.CardDetails), "buy") ||
+								strings.Contains(strings.ToLower(behavior.CardDetails), "discard")
 
-								Target: getTarget(model.ResourceCardTake, false),
-							})
-							outputs = append(outputs, model.ResourceCondition{
-								Type:   model.ResourceCardPeek,
-								Amount: peek,
+							if isBuyOrDiscard {
+								// Use card-buy for cards like Inventors' Guild, Business Network
+								outputs = append(outputs, model.ResourceCondition{
+									Type:   model.ResourceCardBuy,
+									Amount: take,
 
-								Target: getTarget(model.ResourceCardPeek, false),
-							})
+									Target: getTarget(model.ResourceCardBuy, false),
+								})
+								outputs = append(outputs, model.ResourceCondition{
+									Type:   model.ResourceCardPeek,
+									Amount: peek,
+
+									Target: getTarget(model.ResourceCardPeek, false),
+								})
+							} else {
+								// Different amounts - use separate take and peek (traditional card selection)
+								outputs = append(outputs, model.ResourceCondition{
+									Type:   model.ResourceCardTake,
+									Amount: take,
+
+									Target: getTarget(model.ResourceCardTake, false),
+								})
+								outputs = append(outputs, model.ResourceCondition{
+									Type:   model.ResourceCardPeek,
+									Amount: peek,
+
+									Target: getTarget(model.ResourceCardPeek, false),
+								})
+							}
 						}
 					}
 				}
 			}
 		} else if behavior.Cards > 0 {
-			// Simple card draw without "X of Y" pattern
-			outputs = append(outputs, model.ResourceCondition{
-				Type:   model.ResourceCardDraw,
-				Amount: behavior.Cards,
+			// Check if this is a "buy or discard" card (even without "X of Y" pattern)
+			isBuyOrDiscard := strings.Contains(strings.ToLower(behavior.CardDetails), "buy") ||
+				strings.Contains(strings.ToLower(behavior.CardDetails), "discard")
 
-				Target: getTarget(model.ResourceCardDraw, false),
-			})
+			if isBuyOrDiscard {
+				// Use card-buy for cards like Inventors' Guild (look at 1, buy 1)
+				outputs = append(outputs, model.ResourceCondition{
+					Type:   model.ResourceCardBuy,
+					Amount: behavior.Cards,
+
+					Target: getTarget(model.ResourceCardBuy, false),
+				})
+				outputs = append(outputs, model.ResourceCondition{
+					Type:   model.ResourceCardPeek,
+					Amount: behavior.Cards,
+
+					Target: getTarget(model.ResourceCardPeek, false),
+				})
+			} else {
+				// Simple card draw without "X of Y" pattern
+				outputs = append(outputs, model.ResourceCondition{
+					Type:   model.ResourceCardDraw,
+					Amount: behavior.Cards,
+
+					Target: getTarget(model.ResourceCardDraw, false),
+				})
+			}
 		}
 
 		if behavior.CardResources != "" && behavior.ResourceType != "" && behavior.CardResources != "N" {

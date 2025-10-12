@@ -234,7 +234,12 @@
         ],
         "outputs": [
           {
-            "type": "card-draw",
+            "type": "card-buy",
+            "amount": 1,
+            "target": "self-player"
+          },
+          {
+            "type": "card-peek",
             "amount": 1,
             "target": "self-player"
           }
@@ -4356,7 +4361,12 @@
         ],
         "outputs": [
           {
-            "type": "card-draw",
+            "type": "card-buy",
+            "amount": 1,
+            "target": "self-player"
+          },
+          {
+            "type": "card-peek",
             "amount": 1,
             "target": "self-player"
           }
