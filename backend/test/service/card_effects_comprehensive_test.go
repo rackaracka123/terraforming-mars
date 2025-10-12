@@ -1,17 +1,33 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// makePayment creates a credits-only payment for the given card cost
+func makePayment(ctx context.Context, cardRepo repository.CardRepository, cardID string) *model.CardPayment {
+	card, err := cardRepo.GetCardByID(ctx, cardID)
+	if err != nil {
+		// If card not found, return zero payment (test will fail with proper error)
+		return &model.CardPayment{Credits: 0, Steel: 0, Titanium: 0}
+	}
+	return &model.CardPayment{
+		Credits:  card.Cost,
+		Steel:    0,
+		Titanium: 0,
+	}
+}
+
 // TestDeepWellHeating_003 tests card 003: Increase your energy production 1 step. Increase temperature 1 step.
 func TestDeepWellHeating_003(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Setup: Give player enough credits
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
@@ -91,7 +107,7 @@ func TestAsteroidMining_040(t *testing.T) {
 
 // TestArchaebacteria_042 tests card 042: It must be -18°C or colder. Increase your plant production 1 step.
 func TestArchaebacteria_042(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to -18°C (at the max requirement)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -117,7 +133,7 @@ func TestArchaebacteria_042(t *testing.T) {
 
 // TestArchaebacteria_042_RequirementNotMet tests that Archaebacteria cannot be played when too warm
 func TestArchaebacteria_042_RequirementNotMet(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to -17°C (too warm)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -191,7 +207,7 @@ func TestNuclearPower_045(t *testing.T) {
 
 // TestAsteroid_009 tests card 009: Raise temperature 1 step and gain 2 titanium.
 func TestAsteroid_009(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
 		Temperature: -25, Oxygen: 0, Oceans: 0,
@@ -219,7 +235,7 @@ func TestAsteroid_009(t *testing.T) {
 
 // TestBigAsteroid_011 tests card 011: Raise temperature 2 steps and gain 4 titanium.
 func TestBigAsteroid_011(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
 		Temperature: -22, Oxygen: 0, Oceans: 0,
@@ -242,7 +258,7 @@ func TestBigAsteroid_011(t *testing.T) {
 
 // TestComet_010 tests card 010: Raise temperature 1 step and place an ocean tile.
 func TestComet_010(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
 		Temperature: -18, Oxygen: 0, Oceans: 0,
@@ -343,7 +359,7 @@ func TestBlackPolarDust_022(t *testing.T) {
 
 // TestMethaneFromTitan_018 tests card 018: Requires 2% oxygen. Increase your heat production 2 steps and your plant production 2 steps.
 func TestMethaneFromTitan_018(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set oxygen to 2% (minimum requirement)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -371,7 +387,7 @@ func TestMethaneFromTitan_018(t *testing.T) {
 
 // TestMethaneFromTitan_018_RequirementNotMet tests that Methane From Titan cannot be played with insufficient oxygen
 func TestMethaneFromTitan_018_RequirementNotMet(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set oxygen to 1% (below requirement)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -419,7 +435,7 @@ func TestUndergroundCity_032(t *testing.T) {
 
 // TestNitrogenRichAsteroid_037 tests card 037: Raise your terraform rating 2 steps and temperature 1 step. Increase your plant production 1 step.
 func TestNitrogenRichAsteroid_037(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
 		Temperature: -16, Oxygen: 0, Oceans: 0,
@@ -436,7 +452,7 @@ func TestNitrogenRichAsteroid_037(t *testing.T) {
 
 	// Choose option 0: +1 plant production (option 1 is +4 plant production but requires 3 plant tags)
 	choiceIndex := 0
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, &choiceIndex, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), &choiceIndex, nil)
 	require.NoError(t, err, "Should successfully play Nitrogen-Rich Asteroid")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -463,7 +479,7 @@ func TestImportedHydrogen_019(t *testing.T) {
 
 	// Choose option 0: Gain 3 plants (other options are microbes/animals to other cards)
 	choiceIndex := 0
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, &choiceIndex, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), &choiceIndex, nil)
 	require.NoError(t, err, "Should successfully play Imported Hydrogen")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
