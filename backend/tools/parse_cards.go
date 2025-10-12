@@ -1195,7 +1195,8 @@ func createResourceExchange(behavior BehaviorData, isAttack bool, triggerType *m
 			})
 		}
 
-		if behavior.CardResources != "" && behavior.ResourceType != "" {
+		if behavior.CardResources != "" && behavior.ResourceType != "" && behavior.CardResources != "N" {
+			// Skip if CardResources is "N" - it will be handled by parseNBasedConditionalOutput
 			resourceType := parseResourceType(behavior.ResourceType)
 			target := model.TargetAnyCard
 			if behavior.Where == "self" || behavior.Where == "here" {
@@ -1312,6 +1313,9 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		resourceType = model.ResourceEnergyProduction
 	} else if behavior.HeatProdRaw == "N" {
 		resourceType = model.ResourceHeatProduction
+	} else if behavior.CardResources == "N" && behavior.ResourceType != "" {
+		// Handle card resources like floaters, microbes, animals
+		resourceType = parseResourceType(behavior.ResourceType)
 	} else {
 		// No "N" found in resource or production columns
 		return nil
@@ -1433,12 +1437,27 @@ func parseNBasedConditionalOutput(behavior BehaviorData) *model.ResourceConditio
 		}
 	}
 
+	// Determine target and affectedTags for card resources
+	outputTarget := model.TargetSelfPlayer
+	var affectedTags []model.CardTag
+
+	// If this is a card resource (floaters, microbes, etc.), use card-specific targeting
+	if behavior.CardResources == "N" {
+		if behavior.Where == "self" || behavior.Where == "here" {
+			outputTarget = model.TargetSelfCard
+		} else {
+			outputTarget = model.TargetAnyCard
+		}
+		affectedTags = parseWhereToAffectedTags(behavior.Where)
+	}
+
 	// Create the conditional output
 	return &model.ResourceCondition{
-		Type:       resourceType,
-		Amount:     1, // Amount gained per condition (N means 1 per)
-		Target:     model.TargetSelfPlayer,
-		MaxTrigger: maxTrigger,
+		Type:         resourceType,
+		Amount:       1, // Amount gained per condition (N means 1 per)
+		Target:       outputTarget,
+		AffectedTags: affectedTags,
+		MaxTrigger:   maxTrigger,
 		Per: &model.PerCondition{
 			Type:     perType,
 			Amount:   perAmount,
@@ -2634,7 +2653,8 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 	}
 
 	// Card resources (like floaters, microbes, animals)
-	if choice.CardResources != "" && choice.ResourceType != "" {
+	if choice.CardResources != "" && choice.ResourceType != "" && choice.CardResources != "N" {
+		// Skip if CardResources is "N" - it will be handled by parseNBasedConditionalOutput
 		resourceType := parseResourceType(choice.ResourceType)
 		target := model.TargetAnyCard // Default for card resources
 		if choice.Where == "self" || choice.Where == "here" {
@@ -2678,6 +2698,13 @@ func extractAllEffectsFromChoice(choice BehaviorData, isAttack bool) []model.Res
 		effects = append(effects, model.ResourceCondition{
 			Type:   model.ResourceVenus,
 			Amount: choice.RaiseVenus,
+			Target: model.TargetNone,
+		})
+	}
+	if choice.RaiseTR > 0 {
+		effects = append(effects, model.ResourceCondition{
+			Type:   model.ResourceTR,
+			Amount: choice.RaiseTR,
 			Target: model.TargetNone,
 		})
 	}

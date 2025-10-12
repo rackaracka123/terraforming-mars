@@ -1,7 +1,7 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help run frontend backend kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
+.PHONY: help run frontend backend kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate parse-cards
 
 # Default target - show help
 help:
@@ -24,6 +24,7 @@ help:
 	@echo "  make typecheck    - Run TypeScript type checking"
 	@echo "  make format       - Format all code (Go + TypeScript)"
 	@echo "  make generate     - Generate TypeScript types from Go structs"
+	@echo "  make parse-cards  - Parse card data from CSV to JSON"
 	@echo ""
 	@echo "🏗️  Build & Deploy:"
 	@echo "  make build        - Build production binaries"
@@ -149,6 +150,12 @@ generate:
 	@echo "🔄 Generating TypeScript types from Go structs..."
 	cd backend && tygo generate
 	@echo "✅ TypeScript types generated"
+
+# Card data parsing
+parse-cards:
+	@echo "🃏 Parsing card data from CSV files..."
+	cd backend && go run tools/parse_cards.go assets/terraforming_mars_cards.json
+	@echo "✅ Card data parsed to backend/assets/terraforming_mars_cards.json"
 
 # Watch for changes (requires entr: apt install entr)
 test-watch:
