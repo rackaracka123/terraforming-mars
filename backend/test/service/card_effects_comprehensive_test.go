@@ -1,29 +1,13 @@
 package service
 
 import (
-	"context"
 	"testing"
 
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// makePayment creates a credits-only payment for the given card cost
-func makePayment(ctx context.Context, cardRepo repository.CardRepository, cardID string) *model.CardPayment {
-	card, err := cardRepo.GetCardByID(ctx, cardID)
-	if err != nil {
-		// If card not found, return zero payment (test will fail with proper error)
-		return &model.CardPayment{Credits: 0, Steel: 0, Titanium: 0}
-	}
-	return &model.CardPayment{
-		Credits:  card.Cost,
-		Steel:    0,
-		Titanium: 0,
-	}
-}
 
 // TestDeepWellHeating_003 tests card 003: Increase your energy production 1 step. Increase temperature 1 step.
 func TestDeepWellHeating_003(t *testing.T) {

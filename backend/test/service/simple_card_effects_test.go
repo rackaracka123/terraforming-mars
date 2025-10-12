@@ -286,7 +286,7 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	t.Logf("Initial credits: %d", initialCredits)
 
 	// Play Rover Construction
-	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, nil, nil)
+	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, makePayment(ctx, cardRepo, roverConstructionCardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
 	// Verify card was played
