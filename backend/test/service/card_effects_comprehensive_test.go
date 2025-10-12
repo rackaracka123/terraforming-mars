@@ -32,7 +32,7 @@ func TestDeepWellHeating_003(t *testing.T) {
 	assert.Equal(t, -20, gameBefore.GlobalParameters.Temperature, "Initial temperature should be -20°C")
 
 	// Play the card
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Deep Well Heating")
 
 	// Verify effects
@@ -47,7 +47,7 @@ func TestDeepWellHeating_003(t *testing.T) {
 
 // TestReleaseOfInertGases_036 tests card 036: Raise your terraform rating 2 steps.
 func TestReleaseOfInertGases_036(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
 	cardID := "036"
@@ -56,7 +56,7 @@ func TestReleaseOfInertGases_036(t *testing.T) {
 	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
 	assert.Equal(t, 20, playerBefore.TerraformRating, "Initial TR should be 20")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Release Of Inert Gases")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -68,7 +68,7 @@ func TestReleaseOfInertGases_036(t *testing.T) {
 
 // TestAsteroidMining_040 tests card 040: Increase your titanium production 2 steps. 2 VP.
 func TestAsteroidMining_040(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 35})
 	cardID := "040"
@@ -78,7 +78,7 @@ func TestAsteroidMining_040(t *testing.T) {
 	assert.Equal(t, 0, playerBefore.Production.Titanium, "Initial titanium production should be 0")
 	assert.Equal(t, 0, playerBefore.VictoryPoints, "Initial VP should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Asteroid Mining")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -105,7 +105,7 @@ func TestArchaebacteria_042(t *testing.T) {
 	playerBefore, _ := playerRepo.GetByID(ctx, gameID, playerID)
 	assert.Equal(t, 0, playerBefore.Production.Plants, "Initial plant production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Archaebacteria")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -128,7 +128,7 @@ func TestArchaebacteria_042_RequirementNotMet(t *testing.T) {
 	cardID := "042"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	assert.Error(t, err, "Should fail when temperature requirement not met")
 	assert.Contains(t, err.Error(), "requirements not met")
 
@@ -137,7 +137,7 @@ func TestArchaebacteria_042_RequirementNotMet(t *testing.T) {
 
 // TestCarbonateProcessing_043 tests card 043: Decrease your energy production 1 step and increase your heat production 3 steps.
 func TestCarbonateProcessing_043(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set initial production with some energy
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
@@ -151,7 +151,7 @@ func TestCarbonateProcessing_043(t *testing.T) {
 	assert.Equal(t, 2, playerBefore.Production.Energy, "Initial energy production should be 2")
 	assert.Equal(t, 0, playerBefore.Production.Heat, "Initial heat production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Carbonate Processing")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -164,7 +164,7 @@ func TestCarbonateProcessing_043(t *testing.T) {
 
 // TestNuclearPower_045 tests card 045: Decrease your M€ production 2 steps and increase your energy production 3 steps.
 func TestNuclearPower_045(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set initial production
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
@@ -178,7 +178,7 @@ func TestNuclearPower_045(t *testing.T) {
 	assert.Equal(t, 3, playerBefore.Production.Credits, "Initial credit production should be 3")
 	assert.Equal(t, 0, playerBefore.Production.Energy, "Initial energy production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Nuclear Power")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -205,7 +205,7 @@ func TestAsteroid_009(t *testing.T) {
 	assert.Equal(t, 0, playerBefore.Resources.Titanium, "Initial titanium should be 0")
 	assert.Equal(t, -25, gameBefore.GlobalParameters.Temperature, "Initial temperature should be -25°C")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Asteroid")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -228,7 +228,7 @@ func TestBigAsteroid_011(t *testing.T) {
 	cardID := "011"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Big Asteroid")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -251,7 +251,7 @@ func TestComet_010(t *testing.T) {
 	cardID := "010"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Comet")
 
 	gameAfter, _ := gameRepo.GetByID(ctx, gameID)
@@ -265,7 +265,7 @@ func TestComet_010(t *testing.T) {
 
 // TestFoodFactory_041 tests card 041: Decrease your plant production 1 step and increase your M€ production 4 steps.
 func TestFoodFactory_041(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set initial production with some plant production
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
@@ -279,7 +279,7 @@ func TestFoodFactory_041(t *testing.T) {
 	assert.Equal(t, 2, playerBefore.Production.Plants, "Initial plant production should be 2")
 	assert.Equal(t, 1, playerBefore.Production.Credits, "Initial credit production should be 1")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Food Factory")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -292,7 +292,7 @@ func TestFoodFactory_041(t *testing.T) {
 
 // TestLunarBeam_030 tests card 030: Decrease your M€ production 2 steps and increase your heat production and energy production 2 steps each.
 func TestLunarBeam_030(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
 		Credits: 5,
@@ -306,7 +306,7 @@ func TestLunarBeam_030(t *testing.T) {
 	assert.Equal(t, 0, playerBefore.Production.Heat, "Initial heat production should be 0")
 	assert.Equal(t, 0, playerBefore.Production.Energy, "Initial energy production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Lunar Beam")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -320,7 +320,7 @@ func TestLunarBeam_030(t *testing.T) {
 
 // TestBlackPolarDust_022 tests card 022: Place an ocean tile. Decrease your M€ production 2 steps and increase your heat production 3 steps.
 func TestBlackPolarDust_022(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
 		Credits: 4,
@@ -329,7 +329,7 @@ func TestBlackPolarDust_022(t *testing.T) {
 	cardID := "022"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Black Polar Dust")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -358,7 +358,7 @@ func TestMethaneFromTitan_018(t *testing.T) {
 	assert.Equal(t, 0, playerBefore.Production.Heat, "Initial heat production should be 0")
 	assert.Equal(t, 0, playerBefore.Production.Plants, "Initial plant production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Methane From Titan")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -382,7 +382,7 @@ func TestMethaneFromTitan_018_RequirementNotMet(t *testing.T) {
 	cardID := "018"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	assert.Error(t, err, "Should fail when oxygen requirement not met")
 	assert.Contains(t, err.Error(), "requirements not met")
 
@@ -391,7 +391,7 @@ func TestMethaneFromTitan_018_RequirementNotMet(t *testing.T) {
 
 // TestUndergroundCity_032 tests card 032: Place a city tile. Decrease your energy production 2 steps and increase your steel production 2 steps.
 func TestUndergroundCity_032(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
 		Credits: 1, Energy: 3,
@@ -404,7 +404,7 @@ func TestUndergroundCity_032(t *testing.T) {
 	assert.Equal(t, 3, playerBefore.Production.Energy, "Initial energy production should be 3")
 	assert.Equal(t, 0, playerBefore.Production.Steel, "Initial steel production should be 0")
 
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Underground City")
 
 	playerAfter, _ := playerRepo.GetByID(ctx, gameID, playerID)
@@ -452,7 +452,7 @@ func TestNitrogenRichAsteroid_037(t *testing.T) {
 
 // TestImportedHydrogen_019 tests card 019: Gain 3 plants. Place an ocean tile.
 func TestImportedHydrogen_019(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
 	cardID := "019"
