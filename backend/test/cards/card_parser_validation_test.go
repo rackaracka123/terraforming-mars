@@ -575,3 +575,161 @@ func TestGlobalParameterRequirementLimits(t *testing.T) {
 		}
 	}
 }
+
+// TestCardDrawingLogicValidation validates card drawing mechanics:
+// 1. card-draw can appear independently
+// 2. card-peek and card-take must always appear together
+// 3. card-peek and card-buy must always appear together
+// 4. card-take + card-buy amount cannot exceed card-peek amount
+// 5. A card can have all four (card-draw + card-peek + card-take + card-buy)
+func TestCardDrawingLogicValidation(t *testing.T) {
+	cards := loadCards(t)
+
+	var violations []string
+
+	for _, card := range cards {
+		for behaviorIdx, behavior := range card.Behaviors {
+			// Check behavior outputs
+			violations = append(violations, validateCardDrawingOutputs(card.ID, card.Name, behaviorIdx, -1, behavior.Outputs)...)
+
+			// Check choice outputs
+			for choiceIdx, choice := range behavior.Choices {
+				violations = append(violations, validateCardDrawingOutputs(card.ID, card.Name, behaviorIdx, choiceIdx, choice.Outputs)...)
+			}
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d card drawing logic violations:", len(violations))
+		t.Errorf("Rules:")
+		t.Errorf("  1. card-draw can appear independently")
+		t.Errorf("  2. card-peek and card-take must always appear together")
+		t.Errorf("  3. card-peek and card-buy must always appear together")
+		t.Errorf("  4. card-take + card-buy amount cannot exceed card-peek amount")
+		t.Errorf("  5. A card can have all four (card-draw + card-peek + card-take + card-buy)")
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}
+
+// validateCardDrawingOutputs checks if card drawing outputs are valid
+func validateCardDrawingOutputs(cardID, cardName string, behaviorIdx, choiceIdx int, outputs []model.ResourceCondition) []string {
+	var violations []string
+
+	hasCardPeek := false
+	hasCardTake := false
+	hasCardBuy := false
+
+	var cardPeekAmount, cardTakeAmount, cardBuyAmount int
+
+	// Count card operations and their amounts
+	for _, output := range outputs {
+		if output.Type == "card-peek" {
+			hasCardPeek = true
+			cardPeekAmount = output.Amount
+		}
+		if output.Type == "card-take" {
+			hasCardTake = true
+			cardTakeAmount = output.Amount
+		}
+		if output.Type == "card-buy" {
+			hasCardBuy = true
+			cardBuyAmount = output.Amount
+		}
+	}
+
+	location := formatLocation(behaviorIdx, choiceIdx)
+
+	// Validation: card-peek and card-take must appear together
+	if hasCardPeek && !hasCardTake && !hasCardBuy {
+		violations = append(violations,
+			fmt.Sprintf("Card %s (%s) %s: has card-peek but missing both card-take and card-buy",
+				cardID, cardName, location))
+	}
+
+	if hasCardTake && !hasCardPeek {
+		violations = append(violations,
+			fmt.Sprintf("Card %s (%s) %s: has card-take but missing card-peek",
+				cardID, cardName, location))
+	}
+
+	// Validation: card-peek and card-buy must appear together
+	if hasCardBuy && !hasCardPeek {
+		violations = append(violations,
+			fmt.Sprintf("Card %s (%s) %s: has card-buy but missing card-peek",
+				cardID, cardName, location))
+	}
+
+	// Validation: card-take + card-buy cannot exceed card-peek
+	if hasCardPeek && (hasCardTake || hasCardBuy) {
+		totalTakeOrBuy := cardTakeAmount + cardBuyAmount
+		if totalTakeOrBuy > cardPeekAmount {
+			violations = append(violations,
+				fmt.Sprintf("Card %s (%s) %s: card-take (%d) + card-buy (%d) = %d exceeds card-peek (%d)",
+					cardID, cardName, location, cardTakeAmount, cardBuyAmount, totalTakeOrBuy, cardPeekAmount))
+		}
+	}
+
+	return violations
+}
+
+// formatLocation formats the location string for error messages
+func formatLocation(behaviorIdx, choiceIdx int) string {
+	if choiceIdx == -1 {
+		return fmt.Sprintf("behavior[%d]", behaviorIdx)
+	}
+	return fmt.Sprintf("behavior[%d] choice[%d]", behaviorIdx, choiceIdx)
+}
+
+// TestCardOperationsNotInputs validates that card operation types cannot be used as inputs
+// card-draw, card-take, card-peek, and card-buy are output-only types
+func TestCardOperationsNotInputs(t *testing.T) {
+	cards := loadCards(t)
+
+	var violations []string
+
+	// Define card operation types that should never be inputs
+	cardOperationTypes := []model.ResourceType{
+		model.ResourceCardDraw,
+		model.ResourceCardTake,
+		model.ResourceCardPeek,
+		model.ResourceCardBuy,
+	}
+
+	for _, card := range cards {
+		for behaviorIdx, behavior := range card.Behaviors {
+			// Check behavior inputs
+			for inputIdx, input := range behavior.Inputs {
+				for _, cardOpType := range cardOperationTypes {
+					if input.Type == cardOpType {
+						violations = append(violations,
+							fmt.Sprintf("Card %s (%s) behavior[%d] input[%d]: %s cannot be used as input (output-only type)",
+								card.ID, card.Name, behaviorIdx, inputIdx, cardOpType))
+					}
+				}
+			}
+
+			// Check choice inputs
+			for choiceIdx, choice := range behavior.Choices {
+				for inputIdx, input := range choice.Inputs {
+					for _, cardOpType := range cardOperationTypes {
+						if input.Type == cardOpType {
+							violations = append(violations,
+								fmt.Sprintf("Card %s (%s) behavior[%d] choice[%d] input[%d]: %s cannot be used as input (output-only type)",
+									card.ID, card.Name, behaviorIdx, choiceIdx, inputIdx, cardOpType))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d card operation input violations:", len(violations))
+		t.Errorf("Card operations (card-draw, card-take, card-peek, card-buy) can only be outputs, not inputs")
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}

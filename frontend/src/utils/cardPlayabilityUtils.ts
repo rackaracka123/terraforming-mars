@@ -5,6 +5,8 @@ import {
   PlayerDto,
   ResourceTriggerAuto,
   ResourceTriggerManual,
+  TagBuilding,
+  TagSpace,
 } from "../types/generated/api-types.ts";
 
 // Cache for all cards fetched from the backend
@@ -617,7 +619,11 @@ export async function checkCardPlayability(
   }
 
   // Third check: Cost (highest priority after phase)
-  if (player.resources.credits < card.cost) {
+  // Skip cost check for cards with Building or Space tags - they can use alternative payment
+  const hasAlternativePayment =
+    card.tags?.includes(TagBuilding) || card.tags?.includes(TagSpace);
+
+  if (!hasAlternativePayment && player.resources.credits < card.cost) {
     failedRequirements.push({
       type: "cost",
       requirement: { cost: card.cost },

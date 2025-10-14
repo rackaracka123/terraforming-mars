@@ -9,9 +9,9 @@ const (
 	TriggerOxygenRaise         TriggerType = "oxygen-raise"
 	TriggerCityPlaced          TriggerType = "city-placed"
 	TriggerGreeneryPlaced      TriggerType = "greenery-placed"
+	TriggerTilePlaced          TriggerType = "tile-placed"
 	TriggerCardPlayed          TriggerType = "card-played"
 	TriggerTagPlayed           TriggerType = "tag-played"
-	TriggerGreeneryPlaced      TriggerType = "greenery-placed"
 	TriggerProductionIncreased TriggerType = "production-increased"
 	TriggerAlwaysActive        TriggerType = "always-active"
 )

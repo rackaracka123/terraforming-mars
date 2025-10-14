@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  CardPaymentDto,
   ErrorPayload,
   FullStatePayload,
   GameUpdatedPayload,
@@ -22,6 +23,7 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
   // Payload types
   PlayerDisconnectedPayload,
@@ -283,12 +285,14 @@ export class WebSocketService {
   // Card actions
   playCard(
     cardId: string,
+    payment: CardPaymentDto,
     choiceIndex?: number,
     cardStorageTarget?: string,
   ): string {
     return this.send(MessageTypeActionPlayCard, {
       type: "play-card",
       cardId,
+      payment,
       ...(choiceIndex !== undefined && { choiceIndex }),
       ...(cardStorageTarget !== undefined && { cardStorageTarget }),
     });
@@ -318,6 +322,13 @@ export class WebSocketService {
 
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
+  }
+
+  confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): string {
+    return this.send(MessageTypeActionCardDrawConfirmed, {
+      cardsToTake,
+      cardsToBuy,
+    });
   }
 
   // Tile selection actions

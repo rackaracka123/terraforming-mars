@@ -16,7 +16,7 @@ import (
 )
 
 // setupCardTest creates a basic game setup for card testing
-func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.GameRepository) {
+func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.GameRepository, repository.CardRepository) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
@@ -53,11 +53,11 @@ func setupCardTest(t *testing.T) (context.Context, string, string, service.CardS
 	gameRepo.AddPlayerID(ctx, game.ID, player.ID)
 	gameRepo.UpdateCurrentTurn(ctx, game.ID, &player.ID)
 
-	return ctx, game.ID, player.ID, cardService, playerRepo, gameRepo
+	return ctx, game.ID, player.ID, cardService, playerRepo, gameRepo, cardRepo
 }
 
 func TestColonizerTrainingCamp(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set low oxygen to meet card requirement (≤ 5%)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -73,7 +73,7 @@ func TestColonizerTrainingCamp(t *testing.T) {
 	assert.Equal(t, 50, playerBefore.Resources.Credits)
 
 	// Play the card
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Colonizer Training Camp")
 
 	// Verify effects
@@ -86,7 +86,7 @@ func TestColonizerTrainingCamp(t *testing.T) {
 }
 
 func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set high oxygen to violate card requirement (> 5%)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -97,7 +97,7 @@ func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
 	// Attempt to play the card - should fail
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	assert.Error(t, err, "Should fail when oxygen requirement not met")
 	assert.Contains(t, err.Error(), "requirements not met")
 
@@ -110,7 +110,7 @@ func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
 }
 
 func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources to afford Rover Construction (8 MC)
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50})
@@ -124,7 +124,7 @@ func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
 	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
 
 	// Play Rover Construction
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
 	// Verify card was played and cost was deducted
@@ -140,7 +140,7 @@ func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
 }
 
 func TestSpaceElevator_ImmediateEffect(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources to afford Space Elevator (27 MC)
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50})
@@ -155,7 +155,7 @@ func TestSpaceElevator_ImmediateEffect(t *testing.T) {
 	assert.Equal(t, 50, playerBefore.Resources.Credits, "Should start with 50 credits")
 
 	// Play Space Elevator
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Space Elevator")
 
 	// Verify immediate effects applied
@@ -188,7 +188,7 @@ func TestSpaceElevator_ImmediateEffect(t *testing.T) {
 }
 
 func TestSpaceElevator_ActionUse(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, _ := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources with steel for the action
 	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50, Steel: 3})
@@ -196,7 +196,7 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
 	// Play Space Elevator first to get the action
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err)
 
 	// Get state after playing card
@@ -286,7 +286,7 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	t.Logf("Initial credits: %d", initialCredits)
 
 	// Play Rover Construction
-	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, nil, nil)
+	err = cardService.OnPlayCard(ctx, game.ID, player.ID, roverConstructionCardID, makePayment(ctx, cardRepo, roverConstructionCardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Rover Construction")
 
 	// Verify card was played
@@ -319,7 +319,7 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 }
 
 func TestLavaFlows_TemperatureIncrease(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set initial temperature to -20°C
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -342,7 +342,7 @@ func TestLavaFlows_TemperatureIncrease(t *testing.T) {
 	assert.Equal(t, 20, playerBefore.Resources.Credits, "Should have 20 credits")
 
 	// Play Lava Flows
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Lava Flows")
 
 	// Verify effects
@@ -358,7 +358,7 @@ func TestLavaFlows_TemperatureIncrease(t *testing.T) {
 }
 
 func TestLavaFlows_TemperatureClampedAtMax(t *testing.T) {
-	ctx, gameID, playerID, cardService, playerRepo, gameRepo := setupCardTest(t)
+	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to 7°C (1 step below max of 8°C)
 	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
@@ -377,7 +377,7 @@ func TestLavaFlows_TemperatureClampedAtMax(t *testing.T) {
 	assert.Equal(t, 7, gameBefore.GlobalParameters.Temperature, "Initial temperature should be 7°C")
 
 	// Play Lava Flows (would increase by 2, but max is 8)
-	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+	err := cardService.OnPlayCard(ctx, gameID, playerID, cardID, makePayment(ctx, cardRepo, cardID), nil, nil)
 	require.NoError(t, err, "Should successfully play Lava Flows")
 
 	// Verify temperature is clamped at max

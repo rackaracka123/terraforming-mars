@@ -1,0 +1,396 @@
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  CardDto,
+  CardPaymentDto,
+  PaymentConstantsDto,
+  ResourcesDto,
+  TagBuilding,
+  TagSpace,
+} from "@/types/generated/api-types.ts";
+import GameIcon from "../display/GameIcon.tsx";
+
+interface PaymentSelectionPopoverProps {
+  cardId: string;
+  card: CardDto;
+  playerResources: ResourcesDto;
+  paymentConstants: PaymentConstantsDto;
+  onConfirm: (payment: CardPaymentDto) => void;
+  onCancel: () => void;
+  isVisible: boolean;
+}
+
+const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
+  cardId: _cardId,
+  card,
+  playerResources,
+  paymentConstants,
+  onConfirm,
+  onCancel,
+  isVisible,
+}) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Payment state - only steel and titanium, credits are calculated
+  const [steel, setSteel] = useState(0);
+  const [titanium, setTitanium] = useState(0);
+
+  // Reset payment when modal opens
+  useEffect(() => {
+    if (isVisible) {
+      setSteel(0);
+      setTitanium(0);
+    }
+  }, [isVisible, card.cost]);
+
+  // Calculate final cost after applying steel and titanium discounts
+  const finalCost =
+    card.cost -
+    steel * paymentConstants.steelValue -
+    titanium * paymentConstants.titaniumValue;
+
+  // Check which resources to show (only if card has appropriate tag)
+  const canUseSteel = card.tags?.includes(TagBuilding);
+  const canUseTitanium = card.tags?.includes(TagSpace);
+
+  // Calculate max units that can be used
+  const maxSteelUnits = canUseSteel
+    ? Math.min(
+        playerResources.steel,
+        Math.ceil(card.cost / paymentConstants.steelValue),
+      )
+    : 0;
+  const maxTitaniumUnits = canUseTitanium
+    ? Math.min(
+        playerResources.titanium,
+        Math.ceil(card.cost / paymentConstants.titaniumValue),
+      )
+    : 0;
+
+  // Check warnings
+  const isOverpaying = finalCost < 0;
+  const cannotAfford = finalCost > playerResources.credits;
+  const canConfirm = !cannotAfford;
+
+  const handleCancelClick = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onCancel();
+    }, 200);
+  }, [onCancel]);
+
+  const handleConfirm = useCallback(() => {
+    if (!canConfirm) return;
+
+    onConfirm({
+      credits: Math.max(0, finalCost), // Credits needed (0 if overpaying)
+      steel,
+      titanium,
+    });
+  }, [steel, titanium, finalCost, canConfirm, onConfirm]);
+
+  // Escape key handler
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isVisible) {
+        handleCancelClick();
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        event.button === 0 &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
+      ) {
+        handleCancelClick();
+      }
+    };
+
+    const preventScroll = (event: WheelEvent | TouchEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    if (isVisible) {
+      document.body.style.overflow = "hidden";
+      document.addEventListener("keydown", handleEscape);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("wheel", preventScroll, { passive: false });
+      document.addEventListener("touchmove", preventScroll, { passive: false });
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("wheel", preventScroll);
+      document.removeEventListener("touchmove", preventScroll);
+    };
+  }, [isVisible, handleCancelClick]);
+
+  // Early return if modal is not visible
+  if (!isVisible) return null;
+
+  // Increment/decrement handlers
+  const incrementSteel = () => {
+    if (steel < maxSteelUnits) {
+      setSteel(steel + 1);
+    }
+  };
+
+  const decrementSteel = () => {
+    if (steel > 0) {
+      setSteel(steel - 1);
+    }
+  };
+
+  const incrementTitanium = () => {
+    if (titanium < maxTitaniumUnits) {
+      setTitanium(titanium + 1);
+    }
+  };
+
+  const decrementTitanium = () => {
+    if (titanium > 0) {
+      setTitanium(titanium - 1);
+    }
+  };
+
+  return (
+    <div className="fixed top-0 left-0 right-0 bottom-0 z-[10002] flex items-start justify-center pt-[30vh] pointer-events-auto overflow-hidden">
+      <div
+        className={`
+          min-w-[400px] w-fit max-w-[90vw] max-h-[600px]
+          bg-space-black-darker/95
+          border-2 border-space-blue-500
+          rounded-xl
+          shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_15px_rgba(30,60,150,1)]
+          backdrop-blur-space
+          flex flex-col overflow-hidden isolate
+          pointer-events-auto
+          transition-all duration-300 ease-in-out
+          ${isClosing ? "animate-fadeOut" : "animate-popIn"}
+        `}
+        ref={popoverRef}
+      >
+        {/* Header */}
+        <div className="py-[15px] px-5 bg-black/40 border-b border-b-space-blue-500/60">
+          <h3 className="m-0 font-orbitron text-white text-base font-bold text-shadow-glow">
+            Select Payment Method
+          </h3>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-sm text-gray-400">Pay for: {card.name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Original cost:</span>
+              <GameIcon iconType="credits" amount={card.cost} size="small" />
+            </div>
+          </div>
+        </div>
+
+        {/* Payment options */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* Steel - shown only if card has building tag */}
+          {canUseSteel && maxSteelUnits > 0 && (
+            <div className="flex items-center justify-between rounded-md bg-black/30 border-2 border-space-blue-500/40 p-4">
+              <div className="flex items-center gap-3">
+                <GameIcon iconType="steel" size="medium" />
+                <div className="flex flex-col">
+                  <span className="text-white">Steel</span>
+                  <span className="text-xs text-gray-400">
+                    {paymentConstants.steelValue} MC each (
+                    {playerResources.steel} available)
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={decrementSteel}
+                  disabled={steel === 0}
+                  className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                >
+                  −
+                </button>
+                <span className="w-12 text-center text-lg text-white font-semibold">
+                  {steel}
+                </span>
+                <button
+                  onClick={incrementSteel}
+                  disabled={steel >= maxSteelUnits}
+                  className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Titanium - shown only if card has space tag */}
+          {canUseTitanium && maxTitaniumUnits > 0 && (
+            <div className="flex items-center justify-between rounded-md bg-black/30 border-2 border-space-blue-500/40 p-4">
+              <div className="flex items-center gap-3">
+                <GameIcon iconType="titanium" size="medium" />
+                <div className="flex flex-col">
+                  <span className="text-white">Titanium</span>
+                  <span className="text-xs text-gray-400">
+                    {paymentConstants.titaniumValue} MC each (
+                    {playerResources.titanium} available)
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={decrementTitanium}
+                  disabled={titanium === 0}
+                  className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                >
+                  −
+                </button>
+                <span className="w-12 text-center text-lg text-white font-semibold">
+                  {titanium}
+                </span>
+                <button
+                  onClick={incrementTitanium}
+                  disabled={titanium >= maxTitaniumUnits}
+                  className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Show message if no alternative payment options */}
+          {!canUseSteel && !canUseTitanium && (
+            <div className="text-center text-gray-400 py-4">
+              This card cannot use alternative payment methods
+            </div>
+          )}
+        </div>
+
+        {/* Payment summary */}
+        <div className="px-4 pb-4">
+          <div className="rounded-md border border-space-blue-500/30 bg-space-black/30 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Card cost:</span>
+              <div
+                className={`flex items-center gap-2 ${finalCost < 0 ? "opacity-90" : cannotAfford ? "opacity-90" : ""}`}
+              >
+                <GameIcon iconType="credits" amount={finalCost} size="medium" />
+              </div>
+            </div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isOverpaying ? "max-h-[100px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div
+                className={`mt-2 text-sm text-yellow-500 border-t border-space-blue-500/20 pt-2 transition-opacity duration-150 ${
+                  isOverpaying ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                Overpaying by {Math.max(-finalCost, 0)} MC (excess will be lost)
+              </div>
+            </div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                cannotAfford ? "max-h-[100px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div
+                className={`mt-2 text-sm text-error-red border-t border-space-blue-500/20 pt-2 transition-opacity duration-150 ${
+                  cannotAfford ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                Can't afford: Need{" "}
+                {Math.max(finalCost - playerResources.credits, 0)} more MC
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 bg-black/40 border-t border-space-blue-500/60 flex justify-end gap-3">
+          <button
+            onClick={handleCancelClick}
+            className="
+              bg-space-blue-600/50
+              border-2 border-space-blue-500/60
+              rounded-md text-white text-xs font-semibold
+              px-6 py-2 cursor-pointer
+              transition-all duration-200
+              text-shadow-glow font-orbitron
+              shadow-[0_0_8px_rgba(30,60,150,0.4)]
+              hover:bg-space-blue-500/60
+              hover:border-space-blue-500/80
+              hover:translate-y-[-2px]
+              hover:shadow-[0_0_12px_rgba(30,60,150,0.6)]
+            "
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+            className={`
+              border-2 rounded-md text-white text-xs font-semibold
+              px-6 py-2 cursor-pointer
+              transition-all duration-200
+              text-shadow-glow font-orbitron
+              ${
+                canConfirm
+                  ? "bg-green-600/80 border-green-500/60 shadow-[0_0_8px_rgba(34,197,94,0.4)] hover:bg-green-500/80 hover:border-green-500/80 hover:translate-y-[-2px] hover:shadow-[0_0_12px_rgba(34,197,94,0.6)]"
+                  : "bg-gray-600/50 border-gray-500/40 opacity-50 cursor-not-allowed"
+              }
+            `}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes popIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+
+        .animate-popIn {
+          animation: popIn 0.25s ease-out;
+        }
+
+        .animate-fadeOut {
+          animation: fadeOut 0.2s ease-out forwards;
+        }
+
+        /* Media queries */
+        @media (max-width: 768px) {
+          .min-w-\\[400px\\] {
+            min-width: 320px;
+          }
+          .max-w-\\[90vw\\] {
+            max-width: 95vw;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PaymentSelectionPopover;

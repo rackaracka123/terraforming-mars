@@ -2,7 +2,9 @@ import React from "react";
 import GameIcon from "../../../display/GameIcon.tsx";
 import ResourceDisplay from "./ResourceDisplay.tsx";
 import BehaviorIcon from "./BehaviorIcon.tsx";
+import CardIcon from "./CardIcon.tsx";
 import { getIconPath } from "@/utils/iconStore.ts";
+import { analyzeCardOutputs } from "../utils/displayAnalysis.ts";
 
 interface IconDisplayInfo {
   resourceType: string;
@@ -652,6 +654,20 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
+  // Analyze and consolidate card outputs (card-draw, card-peek, card-take, card-buy)
+  const consolidatedCards = analyzeCardOutputs(behavior.outputs);
+
+  // Helper to check if an output is a card resource
+  const isCardResource = (output: any): boolean => {
+    const type = output.resourceType || output.type || "";
+    return (
+      type === "card-draw" ||
+      type === "card-peek" ||
+      type === "card-take" ||
+      type === "card-buy"
+    );
+  };
+
   // Separate production and non-production outputs
   const productionOutputs = behavior.outputs.filter(
     (output: any) =>
@@ -659,13 +675,14 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       output.type?.includes("production") ||
       output.isProduction === true,
   );
+  // Filter out card resources from non-production outputs (they'll be rendered via consolidatedCards)
   const nonProductionOutputs = behavior.outputs.filter(
     (output: any) =>
       !(
         output.resourceType?.includes("production") ||
         output.type?.includes("production") ||
         output.isProduction === true
-      ),
+      ) && !isCardResource(output),
   );
 
   // Separate per-condition production (which already has its own wrapper) from regular production
@@ -1364,7 +1381,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       )}
 
       {/* Non-production outputs */}
-      {nonProductionOutputs.length > 0 && (
+      {(nonProductionOutputs.length > 0 || consolidatedCards.length > 0) && (
         <div
           className={`flex flex-col gap-[3px] justify-center ${negativeOutputs.length > 0 && positiveOutputs.length > 0 ? "items-start" : "items-center"}`}
         >
@@ -1459,6 +1476,21 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
                 </div>
               )}
             </>
+          )}
+
+          {/* Consolidated card icons (card-draw, card-peek, card-take, card-buy) */}
+          {consolidatedCards.length > 0 && (
+            <div className="flex gap-[3px] items-center justify-start">
+              {consolidatedCards.map((cardItem, index) => (
+                <React.Fragment key={`card-${index}`}>
+                  <CardIcon
+                    amount={cardItem.amount}
+                    badgeType={cardItem.badgeType}
+                    isAffordable={true}
+                  />
+                </React.Fragment>
+              ))}
+            </div>
           )}
         </div>
       )}

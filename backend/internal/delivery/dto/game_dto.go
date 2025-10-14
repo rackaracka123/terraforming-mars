@@ -241,7 +241,7 @@ type CardDto struct {
 	Cost            int                           `json:"cost" ts:"number"`
 	Description     string                        `json:"description" ts:"string"`
 	Pack            string                        `json:"pack" ts:"string"`
-	Tags            []CardTag                     `json:"tags" ts:"CardTag[]"`
+	Tags            []CardTag                     `json:"tags,omitempty" ts:"CardTag[] | undefined"`
 	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
 	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
 	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
@@ -352,6 +352,15 @@ type PendingCardSelectionDto struct {
 	MaxCards       int            `json:"maxCards" ts:"number"`                    // Maximum cards to select (hand size for sell patents)
 }
 
+// PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
+type PendingCardDrawSelectionDto struct {
+	AvailableCards []CardDto `json:"availableCards" ts:"CardDto[]"` // Cards shown to player (drawn or peeked)
+	FreeTakeCount  int       `json:"freeTakeCount" ts:"number"`     // Number of cards to take for free (mandatory for card-draw, 0 = optional)
+	MaxBuyCount    int       `json:"maxBuyCount" ts:"number"`       // Maximum cards to buy (optional, 0 = no buying allowed)
+	CardBuyCost    int       `json:"cardBuyCost" ts:"number"`       // Cost per card when buying (typically 3 MC, 0 if no buying)
+	Source         string    `json:"source" ts:"string"`            // Card ID or action that triggered this
+}
+
 // PlayerStatus represents the current status of a player in the game
 type PlayerStatus string
 
@@ -387,6 +396,8 @@ type PlayerDto struct {
 	PendingTileSelection *PendingTileSelectionDto `json:"pendingTileSelection" ts:"PendingTileSelectionDto | null"` // Pending tile placement, null when no tiles to place
 	// Card selection - nullable, exists only when player needs to select cards
 	PendingCardSelection *PendingCardSelectionDto `json:"pendingCardSelection" ts:"PendingCardSelectionDto | null"` // Pending card selection (sell patents, card effects, etc.)
+	// Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
+	PendingCardDrawSelection *PendingCardDrawSelectionDto `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelectionDto | null"` // Pending card draw/peek/take/buy selection from card effects
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
@@ -428,8 +439,9 @@ type GameDto struct {
 	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
 	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
 	Generation       int                 `json:"generation" ts:"number"`
-	TurnOrder        []string            `json:"turnOrder" ts:"string[]"` // Turn order of all players in game
-	Board            BoardDto            `json:"board" ts:"BoardDto"`     // Game board with tiles and occupancy state
+	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`                   // Turn order of all players in game
+	Board            BoardDto            `json:"board" ts:"BoardDto"`                       // Game board with tiles and occupancy state
+	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"` // Conversion rates for alternative payments
 }
 
 // Board-related DTOs for tygo generation

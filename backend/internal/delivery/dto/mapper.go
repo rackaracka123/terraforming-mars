@@ -4,6 +4,15 @@ import (
 	"terraforming-mars-backend/internal/model"
 )
 
+// ToCardPayment converts a CardPaymentDto to domain model CardPayment
+func ToCardPayment(dto CardPaymentDto) model.CardPayment {
+	return model.CardPayment{
+		Credits:  dto.Credits,
+		Steel:    dto.Steel,
+		Titanium: dto.Titanium,
+	}
+}
+
 // resolveCards is a helper function to resolve card IDs to Card objects for multiple players
 func resolveCards(cardIDs []string, resolvedMap map[string]model.Card) []CardDto {
 	if resolvedMap == nil {
@@ -27,7 +36,7 @@ func resolveCards(cardIDs []string, resolvedMap map[string]model.Card) []CardDto
 }
 
 // ToGameDto converts a model Game to personalized GameDto
-func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, resolvedCards map[string]model.Card) GameDto {
+func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, resolvedCards map[string]model.Card, paymentConstants PaymentConstantsDto) GameDto {
 	var currentPlayer PlayerDto
 	otherPlayers := make([]OtherPlayerDto, 0)
 
@@ -53,6 +62,7 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, 
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
 		Board:            ToBoardDto(game.Board),
+		PaymentConstants: paymentConstants,
 	}
 }
 
@@ -111,6 +121,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		StartingCards:            startingCards,
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
 		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection, resolvedCards),
+		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection, resolvedCards),
 		ResourceStorage:          player.ResourceStorage,
 	}
 }
@@ -208,7 +219,7 @@ func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 // ToGameDtoBasic provides a basic non-personalized game view (temporary compatibility)
 // This is used for cases where personalization isn't needed (like game listings)
 // TODO: Create a new model for this usecase. Or rename the other "Game" that contains player data,
-func ToGameDtoBasic(game model.Game) GameDto {
+func ToGameDtoBasic(game model.Game, paymentConstants PaymentConstantsDto) GameDto {
 	return GameDto{
 		ID:               game.ID,
 		Status:           GameStatus(game.Status),
@@ -223,14 +234,15 @@ func ToGameDtoBasic(game model.Game) GameDto {
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
 		Board:            ToBoardDto(game.Board),
+		PaymentConstants: paymentConstants,
 	}
 }
 
 // ToGameDtoSlice provides basic non-personalized game views (temporary compatibility)
-func ToGameDtoSlice(games []model.Game) []GameDto {
+func ToGameDtoSlice(games []model.Game, paymentConstants PaymentConstantsDto) []GameDto {
 	dtos := make([]GameDto, len(games))
 	for i, game := range games {
-		dtos[i] = ToGameDtoBasic(game)
+		dtos[i] = ToGameDtoBasic(game, paymentConstants)
 	}
 	return dtos
 }
@@ -305,8 +317,8 @@ func ToCardDtoSlice(cards []model.Card) []CardDto {
 
 // ToCardTagDtoSlice converts a slice of model CardTags to CardTag slice
 func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
-	if tags == nil {
-		return []CardTag{}
+	if tags == nil || len(tags) == 0 {
+		return nil
 	}
 
 	result := make([]CardTag, len(tags))
@@ -698,6 +710,24 @@ func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCa
 		Source:         selection.Source,
 		MinCards:       selection.MinCards,
 		MaxCards:       selection.MaxCards,
+	}
+}
+
+// ToPendingCardDrawSelectionDto converts a model PendingCardDrawSelection to PendingCardDrawSelectionDto
+func ToPendingCardDrawSelectionDto(selection *model.PendingCardDrawSelection, resolvedCards map[string]model.Card) *PendingCardDrawSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Resolve available cards from card IDs
+	availableCards := resolveCards(selection.AvailableCards, resolvedCards)
+
+	return &PendingCardDrawSelectionDto{
+		AvailableCards: availableCards,
+		FreeTakeCount:  selection.FreeTakeCount,
+		MaxBuyCount:    selection.MaxBuyCount,
+		CardBuyCost:    selection.CardBuyCost,
+		Source:         selection.Source,
 	}
 }
 

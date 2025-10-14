@@ -47,6 +47,7 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -139,6 +140,7 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -251,6 +253,14 @@ export interface SetGlobalParamsAdminCommand {
 export interface StartTileSelectionAdminCommand {
   playerId: string;
   tileType: string;
+}
+/**
+ * CardPaymentDto represents how a player is paying for a card
+ */
+export interface CardPaymentDto {
+  credits: number /* int */; // MC spent
+  steel: number /* int */; // Steel resources used (2 MC value each)
+  titanium: number /* int */; // Titanium resources used (3 MC value each)
 }
 
 //////////
@@ -501,7 +511,7 @@ export interface CardDto {
   cost: number /* int */;
   description: string;
   pack: string;
-  tags: CardTag[];
+  tags?: CardTag[];
   requirements?: any /* model.Requirement */[];
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
@@ -618,6 +628,16 @@ export interface PendingCardSelectionDto {
   maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
 }
 /**
+ * PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
+ */
+export interface PendingCardDrawSelectionDto {
+  availableCards: CardDto[]; // Cards shown to player (drawn or peeked)
+  freeTakeCount: number /* int */; // Number of cards to take for free (mandatory for card-draw, 0 = optional)
+  maxBuyCount: number /* int */; // Maximum cards to buy (optional, 0 = no buying allowed)
+  cardBuyCost: number /* int */; // Cost per card when buying (typically 3 MC, 0 if no buying)
+  source: string; // Card ID or action that triggered this
+}
+/**
  * PlayerStatus represents the current status of a player in the game
  */
 export type PlayerStatus = string;
@@ -657,6 +677,10 @@ export interface PlayerDto {
    * Card selection - nullable, exists only when player needs to select cards
    */
   pendingCardSelection?: PendingCardSelectionDto; // Pending card selection (sell patents, card effects, etc.)
+  /**
+   * Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
+   */
+  pendingCardDrawSelection?: PendingCardDrawSelectionDto; // Pending card draw/peek/take/buy selection from card effects
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
@@ -705,6 +729,7 @@ export interface GameDto {
   generation: number /* int */;
   turnOrder: string[]; // Turn order of all players in game
   board: BoardDto; // Game board with tiles and occupancy state
+  paymentConstants: PaymentConstantsDto; // Conversion rates for alternative payments
 }
 /**
  * TileBonusDto represents a resource bonus provided by a tile when occupied
@@ -904,10 +929,24 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+export const MessageTypeActionCardDrawConfirmed: MessageType =
+  "action.card.card-draw-confirmed";
 /**
  * Admin message types (development mode only)
  */
 export const MessageTypeAdminCommand: MessageType = "admin-command";
+
+//////////
+// source: payment_constants_dto.go
+
+/**
+ * PaymentConstantsDto contains the conversion rates for alternative payment methods
+ * These values are sent to the frontend so it knows how much each resource is worth
+ */
+export interface PaymentConstantsDto {
+  steelValue: number /* int */; // How many MC each steel is worth (2)
+  titaniumValue: number /* int */; // How many MC each titanium is worth (3)
+}
 
 //////////
 // source: websocket_dto.go

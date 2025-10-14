@@ -59,6 +59,11 @@ type PlayerRepository interface {
 	GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardSelection, error)
 	ClearPendingCardSelection(ctx context.Context, gameID, playerID string) error
 
+	// Card draw/peek selection methods
+	UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardDrawSelection) error
+	GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardDrawSelection, error)
+	ClearPendingCardDrawSelection(ctx context.Context, gameID, playerID string) error
+
 	// Resource storage methods
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 }
@@ -1062,6 +1067,91 @@ func (r *PlayerRepositoryImpl) ClearPendingCardSelection(ctx context.Context, ga
 
 	player.PendingCardSelection = nil
 	log.Debug("🗑️ Pending card selection cleared")
+
+	return nil
+}
+
+// UpdatePendingCardDrawSelection updates a player's pending card draw/peek/take/buy selection
+func (r *PlayerRepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardDrawSelection) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	if selection == nil {
+		player.PendingCardDrawSelection = nil
+		log.Debug("Cleared pending card draw selection")
+		return nil
+	}
+
+	// Deep copy the selection to prevent external mutation
+	availableCardsCopy := make([]string, len(selection.AvailableCards))
+	copy(availableCardsCopy, selection.AvailableCards)
+
+	player.PendingCardDrawSelection = &model.PendingCardDrawSelection{
+		AvailableCards: availableCardsCopy,
+		FreeTakeCount:  selection.FreeTakeCount,
+		MaxBuyCount:    selection.MaxBuyCount,
+		CardBuyCost:    selection.CardBuyCost,
+		Source:         selection.Source,
+	}
+
+	log.Debug("🃏 Pending card draw selection updated",
+		zap.String("source", selection.Source),
+		zap.Int("available_cards", len(selection.AvailableCards)),
+		zap.Int("free_take_count", selection.FreeTakeCount),
+		zap.Int("max_buy_count", selection.MaxBuyCount),
+		zap.Int("card_buy_cost", selection.CardBuyCost))
+
+	return nil
+}
+
+// GetPendingCardDrawSelection retrieves a player's pending card draw/peek/take/buy selection
+func (r *PlayerRepositoryImpl) GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardDrawSelection, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	if player.PendingCardDrawSelection == nil {
+		return nil, nil
+	}
+
+	// Return a deep copy to maintain immutability
+	availableCardsCopy := make([]string, len(player.PendingCardDrawSelection.AvailableCards))
+	copy(availableCardsCopy, player.PendingCardDrawSelection.AvailableCards)
+
+	return &model.PendingCardDrawSelection{
+		AvailableCards: availableCardsCopy,
+		FreeTakeCount:  player.PendingCardDrawSelection.FreeTakeCount,
+		MaxBuyCount:    player.PendingCardDrawSelection.MaxBuyCount,
+		CardBuyCost:    player.PendingCardDrawSelection.CardBuyCost,
+		Source:         player.PendingCardDrawSelection.Source,
+	}, nil
+}
+
+// ClearPendingCardDrawSelection clears a player's pending card draw/peek selection
+func (r *PlayerRepositoryImpl) ClearPendingCardDrawSelection(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.PendingCardDrawSelection = nil
+	log.Debug("🗑️ Pending card draw selection cleared")
 
 	return nil
 }
