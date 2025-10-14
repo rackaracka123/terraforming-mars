@@ -7,7 +7,7 @@ import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
-import PaymentSelectionModal from "../../ui/modals/PaymentSelectionModal.tsx";
+import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
@@ -1380,9 +1380,9 @@ export default function GameInterface() {
         />
       )}
 
-      {/* Payment selection modal */}
+      {/* Payment selection popover */}
       {pendingCardPayment && game && currentPlayer && (
-        <PaymentSelectionModal
+        <PaymentSelectionPopover
           cardId={pendingCardPayment.card.id}
           card={pendingCardPayment.card}
           playerResources={currentPlayer.resources}

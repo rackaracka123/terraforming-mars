@@ -3,6 +3,8 @@ import {
   CardPaymentDto,
   PaymentConstantsDto,
   ResourcesDto,
+  TagBuilding,
+  TagSpace,
 } from "../types/generated/api-types.ts";
 
 /**
@@ -34,23 +36,25 @@ export function createDefaultPayment(cardCost: number): CardPaymentDto {
 
 /**
  * Determines if the payment modal should be shown
- * Skip modal ONLY if player has ZERO steel AND ZERO titanium
- * Let backend decide if tags allow usage - we just check if resources exist
+ * Only show if card can actually use alternative payment resources
  */
 export function shouldShowPaymentModal(
   card: CardDto,
   playerResources: ResourcesDto,
 ): boolean {
-  // If player has no alternative resources, skip the modal
-  if (playerResources.steel === 0 && playerResources.titanium === 0) {
-    return false;
-  }
-
   // If card costs 0, no payment needed
   if (card.cost === 0) {
     return false;
   }
 
-  // Show modal if player has at least one alternative payment resource
-  return true;
+  // Check if card can use steel (has building tag) and player has steel
+  const canUseSteel =
+    (card.tags?.includes(TagBuilding) ?? false) && playerResources.steel > 0;
+
+  // Check if card can use titanium (has space tag) and player has titanium
+  const canUseTitanium =
+    (card.tags?.includes(TagSpace) ?? false) && playerResources.titanium > 0;
+
+  // Show modal only if at least one alternative payment option is available
+  return canUseSteel || canUseTitanium;
 }
