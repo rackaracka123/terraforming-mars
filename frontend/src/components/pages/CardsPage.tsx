@@ -114,7 +114,7 @@ const CardsPage: React.FC = () => {
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
     allCards.forEach((card) => {
-      card.tags.forEach((tag) => tags.add(tag));
+      card.tags?.forEach((tag) => tags.add(tag));
     });
     return Array.from(tags).sort();
   }, [allCards]);
@@ -144,14 +144,14 @@ const CardsPage: React.FC = () => {
             card.id.toLowerCase().includes(query) ||
             card.name.toLowerCase().includes(query) ||
             card.description.toLowerCase().includes(query) ||
-            card.tags.some((tag) => tag.toLowerCase().includes(query)),
+            card.tags?.some((tag) => tag.toLowerCase().includes(query)),
         );
       }
 
       // Apply tag filter (if any tags selected, show cards with ANY of the selected tags)
       if (selectedTags.size > 0) {
         filtered = filtered.filter((card) =>
-          card.tags.some((tag) => selectedTags.has(tag)),
+          card.tags?.some((tag) => selectedTags.has(tag)),
         );
       }
 

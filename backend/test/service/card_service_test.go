@@ -235,7 +235,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	updatedPlayer2, err := container.PlayerRepo.GetByID(ctx, gameID, player2.ID)
 	require.NoError(t, err)
 	assert.Contains(t, updatedPlayer2.Cards, availableCardIDs[1])
-	assert.Equal(t, 42, updatedPlayer2.Resources.Credits) // PC5 (Vitor) gives 45, minus 3 for 1 card
+	assert.Equal(t, 45, updatedPlayer2.Resources.Credits) // PC5 (Vitor) gives 48 (45 base + 3 from passive effect), minus 3 for 1 card = 45
 }
 
 func TestCardService_SelectCorporationWithManualAction(t *testing.T) {
@@ -346,7 +346,7 @@ func TestCardService_SelectCorporationWithPassiveEffect(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, updatedPlayer.Corporation, "Corporation should be set")
 	assert.Equal(t, "Manutech", updatedPlayer.Corporation.Name)
-	assert.Equal(t, 35, updatedPlayer.Resources.Credits) // V03 gives 35 MC
+	assert.Equal(t, 36, updatedPlayer.Resources.Credits) // V03 gives 35 MC + 1 MC from passive effect (steel production increase)
 	assert.Equal(t, 1, updatedPlayer.Production.Steel)   // V03 gives 1 steel production
 
 	// NOTE: Manutech's passive effect (TriggerProductionIncreased) is not yet implemented in CardEffectSubscriber

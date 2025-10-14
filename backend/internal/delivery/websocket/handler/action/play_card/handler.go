@@ -70,8 +70,18 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Execute the play card action with optional choice index and card storage target
-	err := h.cardService.OnPlayCard(ctx, gameID, playerID, request.CardID, request.ChoiceIndex, request.CardStorageTarget)
+	// Convert DTO payment to domain model
+	payment := dto.ToCardPayment(request.Payment)
+
+	h.logger.Debug("💰 Payment breakdown",
+		zap.String("connection_id", connection.ID),
+		zap.String("card_id", request.CardID),
+		zap.Int("credits", payment.Credits),
+		zap.Int("steel", payment.Steel),
+		zap.Int("titanium", payment.Titanium))
+
+	// Execute the play card action with payment, optional choice index, and card storage target
+	err := h.cardService.OnPlayCard(ctx, gameID, playerID, request.CardID, &payment, request.ChoiceIndex, request.CardStorageTarget)
 	if err != nil {
 		h.logger.Warn("Failed to play card",
 			zap.String("connection_id", connection.ID),

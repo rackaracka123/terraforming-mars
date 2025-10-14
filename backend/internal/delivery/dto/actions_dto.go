@@ -39,9 +39,10 @@ type SkipAction struct {
 
 // PlayCardAction represents playing a card from hand
 type PlayCardAction struct {
-	CardID            string  `json:"cardId" ts:"string"`
-	ChoiceIndex       *int    `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for cards with choices)
-	CardStorageTarget *string `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
+	CardID            string         `json:"cardId" ts:"string"`
+	Payment           CardPaymentDto `json:"payment" ts:"CardPaymentDto"`                         // Required: payment breakdown (credits, steel, titanium)
+	ChoiceIndex       *int           `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for cards with choices)
+	CardStorageTarget *string        `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 
 // PlayCardActionAction represents playing a card action from player's action list
@@ -134,15 +135,16 @@ func (ap *ActionSkipActionRequest) GetAction() *SkipAction {
 
 // ActionPlayCardRequest contains the action data for play card actions
 type ActionPlayCardRequest struct {
-	Type              ActionType `json:"type" ts:"ActionType"`
-	CardID            string     `json:"cardId" ts:"string"`
-	ChoiceIndex       *int       `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for cards with choices)
-	CardStorageTarget *string    `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
+	Type              ActionType     `json:"type" ts:"ActionType"`
+	CardID            string         `json:"cardId" ts:"string"`
+	Payment           CardPaymentDto `json:"payment" ts:"CardPaymentDto"`                         // Required: payment breakdown (credits, steel, titanium)
+	ChoiceIndex       *int           `json:"choiceIndex,omitempty" ts:"number | undefined"`       // Optional: index of choice to play (for cards with choices)
+	CardStorageTarget *string        `json:"cardStorageTarget,omitempty" ts:"string | undefined"` // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
 
 // GetAction returns the play card action
 func (ap *ActionPlayCardRequest) GetAction() *PlayCardAction {
-	return &PlayCardAction{CardID: ap.CardID, ChoiceIndex: ap.ChoiceIndex, CardStorageTarget: ap.CardStorageTarget}
+	return &PlayCardAction{CardID: ap.CardID, Payment: ap.Payment, ChoiceIndex: ap.ChoiceIndex, CardStorageTarget: ap.CardStorageTarget}
 }
 
 // ActionPlayCardActionRequest contains the action data for play card action actions
@@ -277,4 +279,11 @@ type SetGlobalParamsAdminCommand struct {
 type StartTileSelectionAdminCommand struct {
 	PlayerID string `json:"playerId" ts:"string"`
 	TileType string `json:"tileType" ts:"string"`
+}
+
+// CardPaymentDto represents how a player is paying for a card
+type CardPaymentDto struct {
+	Credits  int `json:"credits" ts:"number"`  // MC spent
+	Steel    int `json:"steel" ts:"number"`    // Steel resources used (2 MC value each)
+	Titanium int `json:"titanium" ts:"number"` // Titanium resources used (3 MC value each)
 }

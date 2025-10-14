@@ -47,6 +47,7 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -139,6 +140,7 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -251,6 +253,14 @@ export interface SetGlobalParamsAdminCommand {
 export interface StartTileSelectionAdminCommand {
   playerId: string;
   tileType: string;
+}
+/**
+ * CardPaymentDto represents how a player is paying for a card
+ */
+export interface CardPaymentDto {
+  credits: number /* int */; // MC spent
+  steel: number /* int */; // Steel resources used (2 MC value each)
+  titanium: number /* int */; // Titanium resources used (3 MC value each)
 }
 
 //////////
@@ -501,7 +511,7 @@ export interface CardDto {
   cost: number /* int */;
   description: string;
   pack: string;
-  tags: CardTag[];
+  tags?: CardTag[];
   requirements?: any /* model.Requirement */[];
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
@@ -719,6 +729,7 @@ export interface GameDto {
   generation: number /* int */;
   turnOrder: string[]; // Turn order of all players in game
   board: BoardDto; // Game board with tiles and occupancy state
+  paymentConstants: PaymentConstantsDto; // Conversion rates for alternative payments
 }
 /**
  * TileBonusDto represents a resource bonus provided by a tile when occupied
@@ -924,6 +935,18 @@ export const MessageTypeActionCardDrawConfirmed: MessageType =
  * Admin message types (development mode only)
  */
 export const MessageTypeAdminCommand: MessageType = "admin-command";
+
+//////////
+// source: payment_constants_dto.go
+
+/**
+ * PaymentConstantsDto contains the conversion rates for alternative payment methods
+ * These values are sent to the frontend so it knows how much each resource is worth
+ */
+export interface PaymentConstantsDto {
+  steelValue: number /* int */; // How many MC each steel is worth (2)
+  titaniumValue: number /* int */; // How many MC each titanium is worth (3)
+}
 
 //////////
 // source: websocket_dto.go

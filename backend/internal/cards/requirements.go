@@ -301,26 +301,48 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *model.Card, player *model.Player, choiceIndex *int) error {
+// payment is the proposed payment method (credits, steel, titanium) for the card cost
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *model.Card, player *model.Player, payment *model.CardPayment, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Calculate total costs including card cost and behavioral resource deductions (including choice inputs)
+	// Calculate total costs from card behaviors (excluding card cost which is paid separately)
 	totalCosts := rv.calculateTotalCardCosts(ctx, card, player, choiceIndex)
 
-	// Validate card cost
+	// Validate payment for card cost
 	if card.Cost > 0 {
-		if player.Resources.Credits < card.Cost+totalCosts.Credits {
-			return fmt.Errorf("insufficient credits: need %d (card cost %d + behavioral costs %d), have %d",
-				card.Cost+totalCosts.Credits, card.Cost, totalCosts.Credits, player.Resources.Credits)
+		// Check if card allows steel (has building tag) or titanium (has space tag)
+		allowSteel := rv.cardHasTag(card, model.TagBuilding)
+		allowTitanium := rv.cardHasTag(card, model.TagSpace)
+
+		// Validate payment format and coverage
+		if err := payment.CoversCardCost(card.Cost, allowSteel, allowTitanium); err != nil {
+			// Calculate minimum alternative resources for better error messages
+			minSteel, minTitanium := model.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
+
+			if minSteel > 0 && minTitanium > 0 {
+				return fmt.Errorf("cannot afford card: %w (hint: need minSteel:%d or minTitanium:%d)", err, minSteel, minTitanium)
+			} else if minSteel > 0 {
+				return fmt.Errorf("cannot afford card: %w (hint: need minSteel:%d)", err, minSteel)
+			} else if minTitanium > 0 {
+				return fmt.Errorf("cannot afford card: %w (hint: need minTitanium:%d)", err, minTitanium)
+			}
+			return fmt.Errorf("cannot afford card: %w", err)
+		}
+
+		// Validate player has the resources for this payment
+		if err := payment.CanAfford(player.Resources); err != nil {
+			return fmt.Errorf("insufficient resources for payment: %w", err)
 		}
 	}
 
-	// Validate resource deductions from card behaviors
-	if totalCosts.Steel > 0 && player.Resources.Steel < totalCosts.Steel {
-		return fmt.Errorf("insufficient steel for card effects: need %d, have %d", totalCosts.Steel, player.Resources.Steel)
+	// Validate resource deductions from card behaviors (separate from card cost payment)
+	if totalCosts.Steel > 0 && player.Resources.Steel-payment.Steel < totalCosts.Steel {
+		return fmt.Errorf("insufficient steel for card effects: need %d after payment, have %d total (payment uses %d)",
+			totalCosts.Steel, player.Resources.Steel, payment.Steel)
 	}
-	if totalCosts.Titanium > 0 && player.Resources.Titanium < totalCosts.Titanium {
-		return fmt.Errorf("insufficient titanium for card effects: need %d, have %d", totalCosts.Titanium, player.Resources.Titanium)
+	if totalCosts.Titanium > 0 && player.Resources.Titanium-payment.Titanium < totalCosts.Titanium {
+		return fmt.Errorf("insufficient titanium for card effects: need %d after payment, have %d total (payment uses %d)",
+			totalCosts.Titanium, player.Resources.Titanium, payment.Titanium)
 	}
 	if totalCosts.Plants > 0 && player.Resources.Plants < totalCosts.Plants {
 		return fmt.Errorf("insufficient plants for card effects: need %d, have %d", totalCosts.Plants, player.Resources.Plants)
@@ -331,6 +353,11 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	if totalCosts.Heat > 0 && player.Resources.Heat < totalCosts.Heat {
 		return fmt.Errorf("insufficient heat for card effects: need %d, have %d", totalCosts.Heat, player.Resources.Heat)
 	}
+	// Note: Credits check includes both payment and behavioral costs
+	if totalCosts.Credits > 0 && player.Resources.Credits-payment.Credits < totalCosts.Credits {
+		return fmt.Errorf("insufficient credits for card effects: need %d after payment, have %d total (payment uses %d)",
+			totalCosts.Credits, player.Resources.Credits, payment.Credits)
+	}
 
 	// Validate production deductions (negative production effects)
 	if err := rv.validateProductionDeductions(ctx, card, player, choiceIndex); err != nil {
@@ -338,8 +365,10 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	}
 
 	log.Debug("✅ Card affordability validation passed",
-		zap.Int("total_credit_cost", card.Cost+totalCosts.Credits),
 		zap.Int("card_cost", card.Cost),
+		zap.Int("payment_credits", payment.Credits),
+		zap.Int("payment_steel", payment.Steel),
+		zap.Int("payment_titanium", payment.Titanium),
 		zap.Int("behavioral_costs_credits", totalCosts.Credits),
 		zap.Int("behavioral_costs_steel", totalCosts.Steel),
 		zap.Int("behavioral_costs_titanium", totalCosts.Titanium),
@@ -348,6 +377,16 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		zap.Int("behavioral_costs_heat", totalCosts.Heat))
 
 	return nil
+}
+
+// cardHasTag checks if a card has a specific tag
+func (rv *RequirementsValidator) cardHasTag(card *model.Card, tag model.CardTag) bool {
+	for _, cardTag := range card.Tags {
+		if cardTag == tag {
+			return true
+		}
+	}
+	return false
 }
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs

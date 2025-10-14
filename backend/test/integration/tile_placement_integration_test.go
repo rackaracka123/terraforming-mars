@@ -121,6 +121,11 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	t.Log("🎯 Playing Field-Capped City card...")
 	err = client.SendAction(dto.MessageTypeActionPlayCard, map[string]interface{}{
 		"cardId": "X21",
+		"payment": map[string]interface{}{
+			"credits":  29, // Field-Capped City costs 29 MC
+			"steel":    0,
+			"titanium": 0,
+		},
 	})
 	require.NoError(t, err, "Should be able to send play-card action")
 

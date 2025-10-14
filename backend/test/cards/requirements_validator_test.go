@@ -249,7 +249,13 @@ func TestRequirementsValidator_AffordabilityValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validator.ValidateCardAffordability(ctx, "gameID", "playerID", &tt.card, &player, nil)
+			// Create a payment that covers the card cost with credits
+			payment := &model.CardPayment{
+				Credits:  tt.card.Cost,
+				Steel:    0,
+				Titanium: 0,
+			}
+			err := validator.ValidateCardAffordability(ctx, "gameID", "playerID", &tt.card, &player, payment, nil)
 
 			if tt.expectedError {
 				assert.Error(t, err)

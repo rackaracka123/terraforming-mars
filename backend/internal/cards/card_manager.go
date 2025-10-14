@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
@@ -13,14 +14,16 @@ import (
 // CardManager provides a simplified interface for card validation and playing
 type CardManager interface {
 	// CanPlay checks if a player can play a specific card (card validation only)
+	// payment is the proposed payment method (credits, steel, titanium) for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
+	CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 
 	// PlayCard plays a card (assumes CanPlay validation has passed)
+	// payment is the payment method to use for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error
+	PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 }
 
 // CardManagerImpl implements the simplified card management interface
@@ -52,9 +55,10 @@ func NewCardManager(
 }
 
 // CanPlay validates if a player can play a specific card (card-specific validation only)
+// payment is the proposed payment method (credits, steel, titanium) for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
+func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🔍 Validating card requirements and affordability", zap.String("card_id", cardID))
 
@@ -86,8 +90,8 @@ func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID
 		}
 	}
 
-	// Validate complete affordability (cost + behavioral resource deductions including choice inputs)
-	if err := cm.requirementsValidator.ValidateCardAffordability(ctx, gameID, playerID, card, &player, choiceIndex); err != nil {
+	// Validate complete affordability (cost + behavioral resource deductions including choice inputs and payment)
+	if err := cm.requirementsValidator.ValidateCardAffordability(ctx, gameID, playerID, card, &player, payment, choiceIndex); err != nil {
 		return fmt.Errorf("cannot afford to play card: %w", err)
 	}
 
@@ -96,9 +100,10 @@ func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID
 }
 
 // PlayCard plays a card (assumes CanPlay validation has already passed)
+// payment is the payment method to use for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, choiceIndex *int, cardStorageTarget *string) error {
+func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎮 Playing card", zap.String("card_id", cardID))
 
@@ -118,14 +123,20 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// STEP 1: Apply card cost payment
+	// STEP 1: Apply card cost payment (using credits, steel, and/or titanium)
 	if card.Cost > 0 {
 		updatedResources := player.Resources
-		updatedResources.Credits -= card.Cost
+		updatedResources.Credits -= payment.Credits
+		updatedResources.Steel -= payment.Steel
+		updatedResources.Titanium -= payment.Titanium
 		if err := cm.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
-		log.Debug("💰 Card cost paid", zap.Int("cost", card.Cost))
+		log.Debug("💰 Card cost paid",
+			zap.Int("cost", card.Cost),
+			zap.Int("credits_spent", payment.Credits),
+			zap.Int("steel_spent", payment.Steel),
+			zap.Int("titanium_spent", payment.Titanium))
 	}
 
 	// STEP 2: Move card from hand to played cards
