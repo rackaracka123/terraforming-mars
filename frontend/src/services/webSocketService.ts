@@ -22,6 +22,7 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
   // Payload types
   PlayerDisconnectedPayload,
@@ -318,6 +319,13 @@ export class WebSocketService {
 
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
+  }
+
+  confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): string {
+    return this.send(MessageTypeActionCardDrawConfirmed, {
+      cardsToTake,
+      cardsToBuy,
+    });
   }
 
   // Tile selection actions

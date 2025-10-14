@@ -21,7 +21,8 @@ func TestCardTilePlacementEffects(t *testing.T) {
 	// Setup repositories
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo)
 
 	// Create a game
 	gameSettings := model.GameSettings{

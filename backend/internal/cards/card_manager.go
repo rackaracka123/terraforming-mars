@@ -38,6 +38,7 @@ func NewCardManager(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
+	cardDeckRepo repository.CardDeckRepository,
 	effectSubscriber CardEffectSubscriber,
 ) CardManager {
 	return &CardManagerImpl{
@@ -45,7 +46,7 @@ func NewCardManager(
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		requirementsValidator: NewRequirementsValidator(cardRepo),
-		effectProcessor:       NewCardProcessor(gameRepo, playerRepo),
+		effectProcessor:       NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
 		effectSubscriber:      effectSubscriber,
 	}
 }

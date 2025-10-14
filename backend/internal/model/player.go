@@ -55,6 +55,15 @@ type PendingCardSelection struct {
 	MaxCards       int            `json:"maxCards" ts:"number"`                    // Maximum cards to select (hand size for sell patents)
 }
 
+// PendingCardDrawSelection represents a pending card draw/peek/take/buy action from card effects
+type PendingCardDrawSelection struct {
+	AvailableCards []string `json:"availableCards" ts:"CardDto[]"` // Card IDs shown to player (drawn or peeked)
+	FreeTakeCount  int      `json:"freeTakeCount" ts:"number"`     // Number of cards to take for free (mandatory, 0 = optional)
+	MaxBuyCount    int      `json:"maxBuyCount" ts:"number"`       // Maximum cards to buy (optional, 0 = no buying allowed)
+	CardBuyCost    int      `json:"cardBuyCost" ts:"number"`       // Cost per card when buying (typically 3 MC, 0 if no buying)
+	Source         string   `json:"source" ts:"string"`            // Card ID or action that triggered this
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -77,7 +86,8 @@ type Player struct {
 	PendingTileSelection      *PendingTileSelection      `json:"pendingTileSelection" ts:"PendingTileSelection | null"`           // Current active tile placement, null when no tiles to place
 	PendingTileSelectionQueue *PendingTileSelectionQueue `json:"pendingTileSelectionQueue" ts:"PendingTileSelectionQueue | null"` // Queue of remaining tile placements from cards
 	// Card selection - nullable, exists only when player needs to select cards
-	PendingCardSelection *PendingCardSelection `json:"pendingCardSelection" ts:"PendingCardSelection | null"` // Current active card selection (sell patents, card effects, etc.)
+	PendingCardSelection     *PendingCardSelection     `json:"pendingCardSelection" ts:"PendingCardSelection | null"`         // Current active card selection (sell patents, etc.)
+	PendingCardDrawSelection *PendingCardDrawSelection `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelection | null"` // Current active card draw/peek selection
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 }
@@ -222,6 +232,22 @@ func (p *Player) DeepCopy() *Player {
 		}
 	}
 
+	// Deep copy pending card draw selection if it exists
+	var pendingCardDrawSelectionCopy *PendingCardDrawSelection
+	if p.PendingCardDrawSelection != nil {
+		// Copy available cards slice
+		availableCardsCopy := make([]string, len(p.PendingCardDrawSelection.AvailableCards))
+		copy(availableCardsCopy, p.PendingCardDrawSelection.AvailableCards)
+
+		pendingCardDrawSelectionCopy = &PendingCardDrawSelection{
+			AvailableCards: availableCardsCopy,
+			FreeTakeCount:  p.PendingCardDrawSelection.FreeTakeCount,
+			MaxBuyCount:    p.PendingCardDrawSelection.MaxBuyCount,
+			CardBuyCost:    p.PendingCardDrawSelection.CardBuyCost,
+			Source:         p.PendingCardDrawSelection.Source,
+		}
+	}
+
 	// Deep copy corporation if it exists
 	var corporationCopy *Card
 	if p.Corporation != nil {
@@ -249,6 +275,7 @@ func (p *Player) DeepCopy() *Player {
 		PendingTileSelection:      pendingTileSelectionCopy,
 		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
 		PendingCardSelection:      pendingCardSelectionCopy,
+		PendingCardDrawSelection:  pendingCardDrawSelectionCopy,
 		ResourceStorage:           resourceStorageCopy,
 	}
 }

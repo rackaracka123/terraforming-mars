@@ -245,6 +245,14 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.selectCards(cardIds);
   }
 
+  async confirmCardDraw(
+    cardsToTake: string[],
+    cardsToBuy: string[],
+  ): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.confirmCardDraw(cardsToTake, cardsToBuy);
+  }
+
   // Tile selection actions
   async selectTile(coordinate: {
     q: number;

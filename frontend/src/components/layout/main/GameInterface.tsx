@@ -12,6 +12,7 @@ import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
+import CardDrawSelectionOverlay from "../../ui/overlay/CardDrawSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
@@ -123,6 +124,9 @@ export default function GameInterface() {
   // Pending card selection state (for sell patents, etc.)
   const [showPendingCardSelection, setShowPendingCardSelection] =
     useState(false);
+
+  // Card draw selection state (for card-draw/peek/take/buy effects)
+  const [showCardDrawSelection, setShowCardDrawSelection] = useState(false);
 
   // Unplayable card feedback state
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
@@ -320,6 +324,19 @@ export default function GameInterface() {
         // Overlay closes automatically when backend clears pendingCardSelection
       } catch (error) {
         console.error("Failed to select cards:", error);
+      }
+    },
+    [],
+  );
+
+  // Handle card draw selection confirmation
+  const handleCardDrawConfirm = useCallback(
+    async (cardsToTake: string[], cardsToBuy: string[]) => {
+      try {
+        await globalWebSocketManager.confirmCardDraw(cardsToTake, cardsToBuy);
+        // Overlay closes automatically when backend clears pendingCardDrawSelection
+      } catch (error) {
+        console.error("Failed to confirm card draw:", error);
       }
     },
     [],
@@ -969,6 +986,17 @@ export default function GameInterface() {
     }
   }, [game?.currentPlayer?.pendingCardSelection, showPendingCardSelection]);
 
+  // Show/hide card draw selection overlay
+  useEffect(() => {
+    const pendingDrawSelection = game?.currentPlayer?.pendingCardDrawSelection;
+
+    if (pendingDrawSelection && !showCardDrawSelection) {
+      setShowCardDrawSelection(true);
+    } else if (!pendingDrawSelection && showCardDrawSelection) {
+      setShowCardDrawSelection(false);
+    }
+  }, [game?.currentPlayer?.pendingCardDrawSelection, showCardDrawSelection]);
+
   // Demo keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -1156,6 +1184,16 @@ export default function GameInterface() {
         />
       )}
 
+      {/* Card draw selection overlay (card-draw/peek/take/buy effects) */}
+      {game?.currentPlayer?.pendingCardDrawSelection && (
+        <CardDrawSelectionOverlay
+          isOpen={showCardDrawSelection}
+          selection={game.currentPlayer.pendingCardDrawSelection}
+          playerCredits={currentPlayer?.resources?.credits || 0}
+          onConfirm={handleCardDrawConfirm}
+        />
+      )}
+
       {/* Card fan overlay for hand cards */}
       {game && currentPlayer && (
         <CardFanOverlay
@@ -1163,7 +1201,10 @@ export default function GameInterface() {
           game={game}
           player={currentPlayer}
           hideWhenModalOpen={
-            showCardSelection || showPendingCardSelection || isLobbyPhase
+            showCardSelection ||
+            showPendingCardSelection ||
+            showCardDrawSelection ||
+            isLobbyPhase
           }
           onCardSelect={(_cardId) => {
             // TODO: Implement card selection logic (view details, etc.)
