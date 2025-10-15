@@ -43,6 +43,11 @@ const isProjectAvailable = (
   );
   if (!canAfford) return false;
 
+  // Check if Sell Patents requires cards in hand
+  if (project.id === StandardProject.SELL_PATENTS) {
+    return gameState.currentPlayer.cards.length > 0;
+  }
+
   // Check global parameter limits for projects that modify them
   const globalParams = gameState.globalParameters;
   if (!globalParams) return true;
@@ -80,6 +85,15 @@ const getProjectTooltip = (
   }
 
   if (!isAvailable) {
+    // Check if Sell Patents is unavailable due to no cards
+    if (
+      project.id === StandardProject.SELL_PATENTS &&
+      gameState?.currentPlayer &&
+      gameState.currentPlayer.cards.length === 0
+    ) {
+      return "No cards to sell";
+    }
+
     if (
       project.cost > 0 &&
       gameState?.currentPlayer &&

@@ -469,6 +469,11 @@ func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID str
 	targetTile.OccupiedBy = occupant
 	targetTile.OwnerID = ownerID
 
+	// Clear bonuses when tile is occupied (bonuses are one-time awards on placement)
+	if occupant != nil {
+		targetTile.Bonuses = []model.TileBonus{}
+	}
+
 	game.UpdatedAt = time.Now()
 
 	occupantType := "empty"
