@@ -333,7 +333,10 @@ export default function ProjectedHexTile({
       {(tileType === "city" ||
         tileType === "greenery" ||
         tileType === "ocean") && (
-        <TileModel tileType={tileType} position={[0, 0, 0.03]} />
+        <TileModel
+          tileType={tileType}
+          position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]}
+        />
       )}
 
       {/* Special tile fallback emoji (no 3D model available) */}
@@ -444,8 +447,9 @@ function TileModel({ tileType, position }: TileModelProps) {
     // Clone the scene properly
     const clonedScene = SkeletonUtils.clone(scene);
 
-    // Calculate bounding box and scale - larger size for greenery
-    const targetSize = tileType === "greenery" ? 0.3 : 0.2;
+    // Calculate bounding box and scale - larger size for greenery and ocean to fill hex
+    const targetSize =
+      tileType === "greenery" ? 0.3 : tileType === "ocean" ? 0.33 : 0.28;
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);

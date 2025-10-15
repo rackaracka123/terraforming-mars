@@ -42,11 +42,11 @@ export default function MarsSphere({ gameState, onHexClick }: MarsSphereProps) {
   const marsScene = useMemo(() => {
     const clonedScene = scene.clone();
 
-    // Calculate bounding box to normalize size to radius 2
+    // Calculate bounding box to normalize size to radius 2.05 (slightly larger to align with hex tiles)
     const box = new THREE.Box3().setFromObject(clonedScene);
     const size = box.getSize(new THREE.Vector3());
     const maxDimension = Math.max(size.x, size.y, size.z);
-    const targetRadius = 2;
+    const targetRadius = 2.017;
     const scale = (targetRadius * 2) / maxDimension;
 
     clonedScene.scale.setScalar(scale);
