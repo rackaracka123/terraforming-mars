@@ -279,28 +279,18 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	resources, ok = currentPlayerMap["resources"].(map[string]interface{})
 	require.True(t, ok, "resources should be a map")
 
-	// Check for tile bonuses on the placed tile
+	// STEP 12: Verify that tile bonuses were cleared (consumed on placement)
 	bonuses, ok := placedTile["bonuses"].([]interface{})
-	if ok && len(bonuses) > 0 {
-		t.Logf("✅ Tile had %d bonuses", len(bonuses))
-		// Log what bonuses were found
-		for _, bonusInterface := range bonuses {
-			bonus, ok := bonusInterface.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			bonusType, _ := bonus["type"].(string)
-			bonusAmount, _ := bonus["amount"].(float64)
-			t.Logf("   - %s: %d", bonusType, int(bonusAmount))
-		}
-	}
+	require.True(t, ok, "bonuses should be an array")
+	assert.Equal(t, 0, len(bonuses), "Bonuses should be cleared after tile placement (they are one-time awards)")
+	t.Log("✅ Tile bonuses cleared after placement (bonuses are one-time awards)")
 
-	// Check for ocean adjacency bonuses (would show as increased credits)
+	// STEP 13: Check for ocean adjacency bonuses (would show as increased credits)
 	credits, ok := resources["credits"].(float64)
 	require.True(t, ok, "credits should be a number")
 	t.Logf("✅ Player has %d credits after tile placement", int(credits))
 
-	// STEP 13: Verify no pending tile selection remains
+	// STEP 14: Verify no pending tile selection remains
 	pendingTileSelectionAfter, hasSelection := currentPlayerMap["pendingTileSelection"]
 	assert.False(t, hasSelection && pendingTileSelectionAfter != nil, "Should not have pending tile selection after placement")
 

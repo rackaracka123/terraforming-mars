@@ -372,16 +372,16 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		Tags: []string{},
 	}
 
-	// Update the tile occupancy in the game board
-	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
-		log.Error("Failed to update tile occupancy", zap.Error(err))
-		return fmt.Errorf("failed to update tile occupancy: %w", err)
-	}
-
 	// Award placement bonuses to the player
 	if err := s.awardTilePlacementBonuses(ctx, gameID, playerID, coordinate); err != nil {
 		log.Error("Failed to award tile placement bonuses", zap.Error(err))
 		return fmt.Errorf("failed to award tile placement bonuses: %w", err)
+	}
+
+	// Update the tile occupancy in the game board
+	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
+		log.Error("Failed to update tile occupancy", zap.Error(err))
+		return fmt.Errorf("failed to update tile occupancy: %w", err)
 	}
 
 	// Passive effects are now triggered automatically via TilePlacedEvent from the repository
