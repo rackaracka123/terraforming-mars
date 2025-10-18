@@ -211,12 +211,20 @@ type TriggerDto struct {
 	Condition *ResourceTriggerConditionDto `json:"condition,omitempty" ts:"ResourceTriggerConditionDto | undefined"`
 }
 
+// MinMaxValueDto represents a minimum and/or maximum value constraint for client consumption
+type MinMaxValueDto struct {
+	Min *int `json:"min,omitempty" ts:"number | undefined"`
+	Max *int `json:"max,omitempty" ts:"number | undefined"`
+}
+
 // ResourceTriggerConditionDto represents a resource trigger condition for client consumption
 type ResourceTriggerConditionDto struct {
-	Type         TriggerType        `json:"type" ts:"TriggerType"`
-	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
-	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	Target       *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`
+	Type                   TriggerType                     `json:"type" ts:"TriggerType"`
+	Location               *CardApplyLocation              `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
+	AffectedTags           []CardTag                       `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	Target                 *TargetType                     `json:"target,omitempty" ts:"TargetType | undefined"`
+	RequiredOriginalCost   *MinMaxValueDto                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValueDto | undefined"`
+	RequiredResourceChange map[ResourceType]MinMaxValueDto `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValueDto> | undefined"`
 }
 
 // CardBehaviorDto represents a card behavior for client consumption

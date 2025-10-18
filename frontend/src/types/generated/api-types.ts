@@ -484,6 +484,13 @@ export interface TriggerDto {
   condition?: ResourceTriggerConditionDto;
 }
 /**
+ * MinMaxValueDto represents a minimum and/or maximum value constraint for client consumption
+ */
+export interface MinMaxValueDto {
+  min?: number /* int */;
+  max?: number /* int */;
+}
+/**
  * ResourceTriggerConditionDto represents a resource trigger condition for client consumption
  */
 export interface ResourceTriggerConditionDto {
@@ -491,6 +498,8 @@ export interface ResourceTriggerConditionDto {
   location?: CardApplyLocation;
   affectedTags?: CardTag[];
   target?: TargetType;
+  requiredOriginalCost?: MinMaxValueDto;
+  requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };
 }
 /**
  * CardBehaviorDto represents a card behavior for client consumption

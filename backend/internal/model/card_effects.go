@@ -4,16 +4,17 @@ package model
 type TriggerType string
 
 const (
-	TriggerOceanPlaced         TriggerType = "ocean-placed"
-	TriggerTemperatureRaise    TriggerType = "temperature-raise"
-	TriggerOxygenRaise         TriggerType = "oxygen-raise"
-	TriggerCityPlaced          TriggerType = "city-placed"
-	TriggerGreeneryPlaced      TriggerType = "greenery-placed"
-	TriggerTilePlaced          TriggerType = "tile-placed"
-	TriggerCardPlayed          TriggerType = "card-played"
-	TriggerTagPlayed           TriggerType = "tag-played"
-	TriggerProductionIncreased TriggerType = "production-increased"
-	TriggerAlwaysActive        TriggerType = "always-active"
+	TriggerOceanPlaced           TriggerType = "ocean-placed"
+	TriggerTemperatureRaise      TriggerType = "temperature-raise"
+	TriggerOxygenRaise           TriggerType = "oxygen-raise"
+	TriggerCityPlaced            TriggerType = "city-placed"
+	TriggerGreeneryPlaced        TriggerType = "greenery-placed"
+	TriggerTilePlaced            TriggerType = "tile-placed"
+	TriggerCardPlayed            TriggerType = "card-played"
+	TriggerStandardProjectPlayed TriggerType = "standard-project-played"
+	TriggerTagPlayed             TriggerType = "tag-played"
+	TriggerProductionIncreased   TriggerType = "production-increased"
+	TriggerAlwaysActive          TriggerType = "always-active"
 )
 
 // TerraformingActions represents tile placement actions
@@ -354,12 +355,20 @@ const (
 	ResourceTriggerAuto   ResourceTriggerType = "auto"   // Automatic activation (effects, immediate)
 )
 
+// MinMaxValue represents a minimum and/or maximum value constraint
+type MinMaxValue struct {
+	Min *int `json:"min,omitempty" ts:"number | undefined"` // Minimum value (e.g., at least 20)
+	Max *int `json:"max,omitempty" ts:"number | undefined"` // Maximum value (e.g., at most 10)
+}
+
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type         TriggerType        `json:"type" ts:"TriggerType"`                                 // What triggers this (onCityPlaced, etc.)
-	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Where the trigger applies (mars, anywhere)
-	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // Tags that trigger this effect
-	Target       *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`          // Whose actions trigger this (self-player, any-player, etc.)
+	Type                   TriggerType                  `json:"type" ts:"TriggerType"`                                                               // What triggers this (onCityPlaced, etc.)
+	Location               *CardApplyLocation           `json:"location,omitempty" ts:"CardApplyLocation | undefined"`                               // Where the trigger applies (mars, anywhere)
+	AffectedTags           []CardTag                    `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                                   // Tags that trigger this effect
+	Target                 *TargetType                  `json:"target,omitempty" ts:"TargetType | undefined"`                                        // Whose actions trigger this (self-player, any-player, etc.)
+	RequiredOriginalCost   *MinMaxValue                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValue | undefined"`                         // Original credit cost requirement (only for card-played/standard-project-played triggers)
+	RequiredResourceChange map[ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValue> | undefined"` // Min/max requirements for actual resources spent
 }
 
 // Trigger represents when and how an action or effect is activated

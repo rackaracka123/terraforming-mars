@@ -10340,7 +10340,24 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "card-played",
+              "target": "self-player",
+              "requiredOriginalCost": {
+                "min": 20
+              }
+            }
+          },
+          {
+            "type": "auto",
+            "condition": {
+              "type": "standard-project-played",
+              "target": "self-player",
+              "requiredOriginalCost": {
+                "min": 20
+              }
+            }
           }
         ],
         "outputs": [
@@ -10360,7 +10377,7 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 4,
+            "amount": 57,
             "target": "self-player"
           }
         ]

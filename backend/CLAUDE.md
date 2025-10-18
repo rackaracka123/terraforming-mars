@@ -77,8 +77,8 @@ backend/
 ├── pkg/                   # Public packages
 │   └── typegen/           # TypeScript type generation
 ├── test/                  # Test suite (mirrors internal/ structure)
-├── tools/                 # Development tools (see tools/CLAUDE.md)
-├── assets/                # Static game data (CSV, JSON)
+├── tools/                 # DEPRECATED: Card parser tool (being removed)
+├── assets/                # Static game data (JSON card definitions)
 └── docs/                  # Documentation
     └── swagger/           # Auto-generated API docs
 ```
@@ -365,7 +365,7 @@ func TestPlayerService_DoAction(t *testing.T) {
 ## Related Documentation
 
 - **Project Root CLAUDE.md**: Full-stack architecture and workflows
-- **tools/CLAUDE.md**: Card parser tool documentation
 - **frontend/CLAUDE.md**: Frontend architecture and patterns
 - **docs/EVENT_SYSTEM.md**: Detailed event system documentation
 - **TERRAFORMING_MARS_RULES.md**: Complete game rules reference
+- **assets/terraforming_mars_cards.json**: Authoritative card definitions (manually edited)

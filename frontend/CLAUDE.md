@@ -521,5 +521,5 @@ useEffect(() => {
 
 - **Project Root CLAUDE.md**: Full-stack architecture and workflows
 - **backend/CLAUDE.md**: Backend API architecture and patterns
-- **backend/tools/CLAUDE.md**: Card parser tool documentation
+- **backend/assets/terraforming_mars_cards.json**: Authoritative card definitions (manually edited)
 - **TERRAFORMING_MARS_RULES.md**: Complete game rules reference

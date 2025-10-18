@@ -486,6 +486,33 @@ func ToTriggerDtoSlice(triggers []model.Trigger) []TriggerDto {
 	return result
 }
 
+// ToMinMaxValueDto converts a model MinMaxValue pointer to MinMaxValueDto pointer
+func ToMinMaxValueDto(value *model.MinMaxValue) *MinMaxValueDto {
+	if value == nil {
+		return nil
+	}
+	return &MinMaxValueDto{
+		Min: value.Min,
+		Max: value.Max,
+	}
+}
+
+// ToResourceChangeMapDto converts a model RequiredResourceChange map to DTO map
+func ToResourceChangeMapDto(changeMap map[model.ResourceType]model.MinMaxValue) map[ResourceType]MinMaxValueDto {
+	if changeMap == nil {
+		return nil
+	}
+
+	result := make(map[ResourceType]MinMaxValueDto)
+	for k, v := range changeMap {
+		result[ResourceType(k)] = MinMaxValueDto{
+			Min: v.Min,
+			Max: v.Max,
+		}
+	}
+	return result
+}
+
 // ToResourceTriggerConditionDto converts a model ResourceTriggerCondition pointer to ResourceTriggerConditionDto pointer
 func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *ResourceTriggerConditionDto {
 	if condition == nil {
@@ -493,10 +520,12 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 	}
 
 	return &ResourceTriggerConditionDto{
-		Type:         TriggerType(condition.Type),
-		Location:     ToCardApplyLocationPointer(condition.Location),
-		AffectedTags: ToCardTagDtoSlice(condition.AffectedTags),
-		Target:       ToTargetTypePointer(condition.Target),
+		Type:                   TriggerType(condition.Type),
+		Location:               ToCardApplyLocationPointer(condition.Location),
+		AffectedTags:           ToCardTagDtoSlice(condition.AffectedTags),
+		Target:                 ToTargetTypePointer(condition.Target),
+		RequiredOriginalCost:   ToMinMaxValueDto(condition.RequiredOriginalCost),
+		RequiredResourceChange: ToResourceChangeMapDto(condition.RequiredResourceChange),
 	}
 }
 
