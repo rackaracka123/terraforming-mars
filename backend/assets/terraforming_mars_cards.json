@@ -10401,6 +10401,26 @@
             "target": "self-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "discount",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "plants"
+            ],
+            "affectedStandardProjects": [
+              "convert-plants-to-greenery"
+            ]
+          }
+        ]
       }
     ]
   },

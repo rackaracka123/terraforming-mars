@@ -2531,7 +2531,13 @@ func createTriggeredEffectBehavior(behavior BehaviorData) *model.CardBehavior {
 
 // createDiscountBehavior creates a behavior for discount effects using unified system
 func createDiscountBehavior(behavior BehaviorData) *model.CardBehavior {
-	// Get the discount amount from Megacredits column (positive value represents discount)
+	// Check if this is a standard project discount (e.g., Ecoline's plant conversion discount)
+	triggerLower := strings.ToLower(behavior.Trigger)
+	if strings.Contains(triggerLower, "standard action") || strings.Contains(triggerLower, "standard project") {
+		return createStandardProjectDiscountBehavior(behavior)
+	}
+
+	// Original card cost discount logic (M€ discount for card plays)
 	if behavior.Megacredits <= 0 {
 		return nil
 	}
@@ -2555,7 +2561,6 @@ func createDiscountBehavior(behavior BehaviorData) *model.CardBehavior {
 
 	if behavior.Trigger != "" && behavior.Trigger != "play card" {
 		// Make trigger comparison case-insensitive
-		triggerLower := strings.ToLower(behavior.Trigger)
 		if tag, exists := tagMapping[triggerLower]; exists {
 			affectedTags = []model.CardTag{tag}
 		}
@@ -2584,6 +2589,67 @@ func createDiscountBehavior(behavior BehaviorData) *model.CardBehavior {
 		Triggers: resourceExchange.Triggers,
 		Inputs:   resourceExchange.Inputs,
 		Outputs:  resourceExchange.Outputs,
+	}
+}
+
+// createStandardProjectDiscountBehavior creates a CardBehavior for standard project resource discounts
+// Example: Ecoline's "Convert Plants standard action" with 1 plant discount
+func createStandardProjectDiscountBehavior(behavior BehaviorData) *model.CardBehavior {
+	// Parse the trigger to identify which standard project
+	triggerLower := strings.ToLower(behavior.Trigger)
+	var standardProject model.StandardProject
+
+	if strings.Contains(triggerLower, "convert plants") {
+		standardProject = model.StandardProjectConvertPlantsToGreenery
+	} else if strings.Contains(triggerLower, "convert heat") {
+		standardProject = model.StandardProjectConvertHeatToTemperature
+	} else {
+		// Could add more mappings here for other standard projects
+		return nil
+	}
+
+	// Extract discount resources from inventory columns
+	var outputs []model.ResourceCondition
+
+	// Check each resource type for discount
+	discountResources := []struct {
+		amount       int
+		resourceType model.ResourceType
+		resourceName string
+	}{
+		{behavior.Megacredits, model.ResourceCredits, "credits"},
+		{behavior.Steel, model.ResourceSteel, "steel"},
+		{behavior.Titanium, model.ResourceTitanium, "titanium"},
+		{behavior.Plants, model.ResourcePlants, "plants"},
+		{behavior.Energy, model.ResourceEnergy, "energy"},
+		{behavior.Heat, model.ResourceHeat, "heat"},
+	}
+
+	for _, res := range discountResources {
+		if res.amount > 0 {
+			// Create a discount output for this resource
+			outputs = append(outputs, model.ResourceCondition{
+				Type:                     model.ResourceDiscount,
+				Amount:                   res.amount,
+				Target:                   model.TargetSelfPlayer,
+				AffectedResources:        []string{string(res.resourceType)},
+				AffectedStandardProjects: []model.StandardProject{standardProject},
+			})
+		}
+	}
+
+	if len(outputs) == 0 {
+		return nil
+	}
+
+	// Create auto trigger (discount applies automatically)
+	trigger := model.Trigger{
+		Type: model.ResourceTriggerAuto,
+	}
+
+	return &model.CardBehavior{
+		Triggers: []model.Trigger{trigger},
+		Outputs:  outputs,
 	}
 }
 

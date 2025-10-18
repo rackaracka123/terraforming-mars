@@ -11,13 +11,16 @@ const (
 	ActionTypeSkipAction ActionType = "skip-action"
 	ActionTypePlayCard   ActionType = "play-card"
 	ActionTypeCardAction ActionType = "card-action"
-	// Standard Projects
+	// Standard Projects (M€-based)
 	ActionTypeSellPatents     ActionType = "sell-patents"
 	ActionTypeBuildPowerPlant ActionType = "build-power-plant"
 	ActionTypeLaunchAsteroid  ActionType = "launch-asteroid"
 	ActionTypeBuildAquifer    ActionType = "build-aquifer"
 	ActionTypePlantGreenery   ActionType = "plant-greenery"
 	ActionTypeBuildCity       ActionType = "build-city"
+	// Resource Conversion Actions
+	ActionTypeConvertPlantsToGreenery  ActionType = "convert-plants-to-greenery"
+	ActionTypeConvertHeatToTemperature ActionType = "convert-heat-to-temperature"
 )
 
 // SelectStartingCardAction represents selecting starting cards and corporation

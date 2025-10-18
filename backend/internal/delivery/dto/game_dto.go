@@ -180,13 +180,14 @@ type ResourceSet struct {
 
 // ResourceConditionDto represents a resource condition for client consumption
 type ResourceConditionDto struct {
-	Type              ResourceType     `json:"type" ts:"ResourceType"`
-	Amount            int              `json:"amount" ts:"number"`
-	Target            TargetType       `json:"target" ts:"TargetType"`
-	AffectedResources []string         `json:"affectedResources,omitempty" ts:"string[] | undefined"`
-	AffectedTags      []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	MaxTrigger        *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per               *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Type                     ResourceType            `json:"type" ts:"ResourceType"`
+	Amount                   int                     `json:"amount" ts:"number"`
+	Target                   TargetType              `json:"target" ts:"TargetType"`
+	AffectedResources        []string                `json:"affectedResources,omitempty" ts:"string[] | undefined"`
+	AffectedTags             []CardTag               `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedStandardProjects []model.StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
+	MaxTrigger               *int                    `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per                      *PerConditionDto        `json:"per,omitempty" ts:"PerConditionDto | undefined"`
 }
 
 // PerConditionDto represents a per condition for client consumption

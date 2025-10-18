@@ -14,7 +14,7 @@ export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
 export const ActionTypeCardAction: ActionType = "card-action";
 /**
- * Standard Projects
+ * Standard Projects (M€-based)
  */
 export const ActionTypeSellPatents: ActionType = "sell-patents";
 export const ActionTypeBuildPowerPlant: ActionType = "build-power-plant";
@@ -22,6 +22,13 @@ export const ActionTypeLaunchAsteroid: ActionType = "launch-asteroid";
 export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
 export const ActionTypePlantGreenery: ActionType = "plant-greenery";
 export const ActionTypeBuildCity: ActionType = "build-city";
+/**
+ * Resource Conversion Actions
+ */
+export const ActionTypeConvertPlantsToGreenery: ActionType =
+  "convert-plants-to-greenery";
+export const ActionTypeConvertHeatToTemperature: ActionType =
+  "convert-heat-to-temperature";
 /**
  * SelectStartingCardAction represents selecting starting cards and corporation
  */
@@ -448,6 +455,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
+  affectedStandardProjects?: any /* model.StandardProject */[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
 }
@@ -903,7 +911,6 @@ export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeProductionPhaseStarted: MessageType =
   "production-phase-started";
 /**
- * New action-specific message types using composed constants
  * Standard project message types
  */
 export const MessageTypeActionSellPatents: MessageType =

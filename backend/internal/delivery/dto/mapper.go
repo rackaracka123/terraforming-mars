@@ -405,13 +405,14 @@ func ToProductionPhaseOtherPlayerDto(phase *model.ProductionPhase) *ProductionPh
 // ToResourceConditionDto converts a model ResourceCondition to ResourceConditionDto
 func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
 	return ResourceConditionDto{
-		Type:              ResourceType(rc.Type),
-		Amount:            rc.Amount,
-		Target:            TargetType(rc.Target),
-		AffectedResources: rc.AffectedResources,
-		AffectedTags:      ToCardTagDtoSlice(rc.AffectedTags),
-		MaxTrigger:        rc.MaxTrigger,
-		Per:               ToPerConditionDto(rc.Per),
+		Type:                     ResourceType(rc.Type),
+		Amount:                   rc.Amount,
+		Target:                   TargetType(rc.Target),
+		AffectedResources:        rc.AffectedResources,
+		AffectedTags:             ToCardTagDtoSlice(rc.AffectedTags),
+		AffectedStandardProjects: rc.AffectedStandardProjects, // Direct mapping, same type
+		MaxTrigger:               rc.MaxTrigger,
+		Per:                      ToPerConditionDto(rc.Per),
 	}
 }
 

@@ -16,7 +16,6 @@ const (
 	MessageTypeFullState              MessageType = "full-state"
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
-	// New action-specific message types using composed constants
 	// Standard project message types
 	MessageTypeActionSellPatents     MessageType = "action.standard-project.sell-patents"
 	MessageTypeActionLaunchAsteroid  MessageType = "action.standard-project.launch-asteroid"
