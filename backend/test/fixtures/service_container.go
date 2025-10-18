@@ -29,7 +29,8 @@ type ServiceContainer struct {
 	StandardProjectService service.StandardProjectService
 
 	// Card system
-	EffectSubscriber cards.CardEffectSubscriber
+	EffectSubscriber    cards.CardEffectSubscriber
+	ForcedActionManager cards.ForcedActionManager
 
 	// Mocks
 	SessionManager *test.MockSessionManager
@@ -53,8 +54,10 @@ func NewServiceContainer() *ServiceContainer {
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	forcedActionManager.SubscribeToPhaseChanges()
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
@@ -71,6 +74,7 @@ func NewServiceContainer() *ServiceContainer {
 		GameService:            gameService,
 		StandardProjectService: standardProjectService,
 		EffectSubscriber:       effectSubscriber,
+		ForcedActionManager:    forcedActionManager,
 		SessionManager:         sessionManager,
 	}
 }

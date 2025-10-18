@@ -87,12 +87,17 @@ func main() {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	log.Info("🎆 Card effect subscriber initialized")
 
+	// Initialize forced action manager for corporation forced first actions
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	forcedActionManager.SubscribeToPhaseChanges()
+	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
+
 	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 

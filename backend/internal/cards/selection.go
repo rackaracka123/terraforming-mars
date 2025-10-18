@@ -400,6 +400,71 @@ func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 	logger.WithGameContext(gameID, "").Debug("Cleared game selection data")
 }
 
+// extractForcedFirstAction parses a corporation's forced first action from its behaviors
+// Forced first actions are manual triggers with isInitialAction=true (e.g., Inventrix: draw 3 cards, Tharsis: place city)
+func (s *SelectionManager) extractForcedFirstAction(corporation *model.Card) *model.ForcedFirstAction {
+	for _, behavior := range corporation.Behaviors {
+		// Check if this behavior has a forced first action trigger
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerManual && trigger.IsInitialAction {
+				// Determine action type from outputs
+				actionType := s.determineActionType(behavior.Outputs)
+				description := s.generateForcedActionDescription(behavior.Outputs)
+
+				return &model.ForcedFirstAction{
+					ActionType:    actionType,
+					CorporationID: corporation.ID,
+					Completed:     false,
+					Description:   description,
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// determineActionType extracts the primary action type from behavior outputs
+func (s *SelectionManager) determineActionType(outputs []model.ResourceCondition) string {
+	if len(outputs) == 0 {
+		return "unknown"
+	}
+
+	// Return the first output type as the action type
+	switch outputs[0].Type {
+	case "card-draw":
+		return "card_draw"
+	case "city-placement":
+		return "city_placement"
+	case "greenery-placement":
+		return "greenery_placement"
+	case "card-take":
+		return "card_selection"
+	default:
+		return string(outputs[0].Type)
+	}
+}
+
+// generateForcedActionDescription creates a human-readable description from outputs
+func (s *SelectionManager) generateForcedActionDescription(outputs []model.ResourceCondition) string {
+	if len(outputs) == 0 {
+		return "Complete forced action"
+	}
+
+	// Generate description based on output type
+	switch outputs[0].Type {
+	case "card-draw":
+		return fmt.Sprintf("Draw %d cards", outputs[0].Amount)
+	case "city-placement":
+		return "Place a city tile"
+	case "greenery-placement":
+		return "Place a greenery tile"
+	case "card-take":
+		return fmt.Sprintf("Select %d cards", outputs[0].Amount)
+	default:
+		return fmt.Sprintf("Complete %s action", outputs[0].Type)
+	}
+}
+
 // applyCorporationSelection validates and applies corporation selection during starting card phase
 func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID, playerID, corporationID string, player *model.Player) error {
 	log := logger.WithGameContext(gameID, playerID)
@@ -492,19 +557,23 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	}
 
 	// Extract and register corporation manual actions (manual triggers)
+	// IMPORTANT: Skip forced first actions - they're handled separately below
 	var manualActions []model.PlayerAction
 	for behaviorIndex, behavior := range corporationCard.Behaviors {
 		// Check if this behavior has manual triggers
 		hasManualTrigger := false
+		isInitialAction := false
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == model.ResourceTriggerManual {
 				hasManualTrigger = true
+				isInitialAction = trigger.IsInitialAction
 				break
 			}
 		}
 
-		// If behavior has manual triggers, create a PlayerAction
-		if hasManualTrigger {
+		// If behavior has manual triggers but is NOT a forced first action, create a PlayerAction
+		// Forced first actions are handled separately via ForcedFirstAction system
+		if hasManualTrigger && !isInitialAction {
 			action := model.PlayerAction{
 				CardID:        corporationCard.ID,
 				CardName:      corporationCard.Name,
@@ -513,6 +582,10 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 			}
 			manualActions = append(manualActions, action)
 			log.Debug("🎯 Extracted manual action from corporation",
+				zap.String("corporation_name", corporationCard.Name),
+				zap.Int("behavior_index", behaviorIndex))
+		} else if hasManualTrigger && isInitialAction {
+			log.Debug("⏭️ Skipping forced first action (will be handled separately)",
 				zap.String("corporation_name", corporationCard.Name),
 				zap.Int("behavior_index", behaviorIndex))
 		}
@@ -544,6 +617,23 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	startingCredits := 0
 	if corporationCard.StartingResources != nil {
 		startingCredits = corporationCard.StartingResources.Credits
+	}
+
+	// Check if corporation requires a forced first turn action by parsing behaviors
+	// (e.g., Inventrix: draw 3 cards, Tharsis Republic: place city, Philares: place greenery)
+	forcedAction := s.extractForcedFirstAction(corporationCard)
+	if forcedAction != nil {
+		// Set forced first action flag - this action MUST be taken on the player's first turn
+
+		if err := s.playerRepo.UpdateForcedFirstAction(ctx, gameID, playerID, forcedAction); err != nil {
+			log.Error("Failed to set forced first action", zap.Error(err))
+			return fmt.Errorf("failed to set forced first action: %w", err)
+		}
+
+		log.Info("🎯 Corporation requires forced first turn action",
+			zap.String("corporation_id", corporationID),
+			zap.String("action_type", forcedAction.ActionType),
+			zap.String("description", forcedAction.Description))
 	}
 
 	log.Info("✅ Corporation selected and bonuses applied",

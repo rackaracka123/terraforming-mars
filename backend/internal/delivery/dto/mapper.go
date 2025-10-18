@@ -122,6 +122,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection),
 		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection, resolvedCards),
 		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection, resolvedCards),
+		ForcedFirstAction:        ToForcedFirstActionDto(player.ForcedFirstAction),
 		ResourceStorage:          player.ResourceStorage,
 	}
 }
@@ -682,6 +683,20 @@ func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
 }
 
 // ToPendingTileSelectionDto converts a model PendingTileSelection pointer to PendingTileSelectionDto pointer
+// ToForcedFirstActionDto converts a model ForcedFirstAction to ForcedFirstActionDto
+func ToForcedFirstActionDto(action *model.ForcedFirstAction) *ForcedFirstActionDto {
+	if action == nil {
+		return nil
+	}
+
+	return &ForcedFirstActionDto{
+		ActionType:    action.ActionType,
+		CorporationID: action.CorporationID,
+		Completed:     action.Completed,
+		Description:   action.Description,
+	}
+}
+
 func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTileSelectionDto {
 	if selection == nil {
 		return nil

@@ -168,21 +168,39 @@ func (r *GameRepositoryImpl) UpdateStatus(ctx context.Context, gameID string, st
 
 // UpdatePhase updates a game's current phase
 func (r *GameRepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	// Store old phase value before locking for event publishing
+	var oldPhase model.GamePhase
+	var shouldPublishEvent bool
 
-	log := logger.WithGameContext(gameID, "")
+	func() {
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
 
-	game, exists := r.games[gameID]
-	if !exists {
-		return fmt.Errorf("game with ID %s not found", gameID)
+		log := logger.WithGameContext(gameID, "")
+
+		game, exists := r.games[gameID]
+		if !exists {
+			return
+		}
+
+		oldPhase = game.CurrentPhase
+		game.CurrentPhase = phase
+		game.UpdatedAt = time.Now()
+
+		log.Info("Game phase updated", zap.String("old_phase", string(oldPhase)), zap.String("new_phase", string(phase)))
+
+		shouldPublishEvent = r.eventBus != nil && oldPhase != phase
+	}()
+
+	// Publish event AFTER releasing the lock to avoid deadlock
+	if shouldPublishEvent {
+		events.Publish(r.eventBus, GamePhaseChangedEvent{
+			GameID:    gameID,
+			OldPhase:  string(oldPhase),
+			NewPhase:  string(phase),
+			Timestamp: time.Now(),
+		})
 	}
-
-	oldPhase := game.CurrentPhase
-	game.CurrentPhase = phase
-	game.UpdatedAt = time.Now()
-
-	log.Info("Game phase updated", zap.String("old_phase", string(oldPhase)), zap.String("new_phase", string(phase)))
 
 	return nil
 }

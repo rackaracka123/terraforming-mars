@@ -10527,8 +10527,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -10708,8 +10707,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -14558,8 +14556,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -15432,8 +15429,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -15635,8 +15631,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -17527,8 +17522,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
@@ -17754,8 +17748,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "manual"
           }
         ],
         "outputs": [
