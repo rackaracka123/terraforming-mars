@@ -68,21 +68,17 @@ class BackgroundMusicService {
   }
 
   /**
-   * Stop playing background music with fade out
+   * Stop playing background music immediately
    */
-  public stop(immediate: boolean = false): void {
+  public stop(): void {
     if (!this.audio || !this.isPlaying) {
       return;
     }
 
-    if (immediate) {
-      this.audio.pause();
-      this.audio.currentTime = 0;
-      this.isPlaying = false;
-      this.cancelFade();
-    } else {
-      this.fadeOut();
-    }
+    this.audio.pause();
+    this.audio.currentTime = 0;
+    this.isPlaying = false;
+    this.cancelFade();
   }
 
   /**
@@ -110,39 +106,6 @@ class BackgroundMusicService {
       this.audio.volume = Math.min(this.volume, currentStep * volumeIncrement);
 
       if (currentStep >= this.FADE_STEPS) {
-        this.cancelFade();
-      }
-    }, stepDuration);
-  }
-
-  /**
-   * Fade out the music volume and stop
-   */
-  private fadeOut(): void {
-    if (!this.audio || this.isFading) {
-      return;
-    }
-
-    this.cancelFade();
-    this.isFading = true;
-
-    const stepDuration = this.FADE_DURATION_MS / this.FADE_STEPS;
-    const volumeDecrement = this.audio.volume / this.FADE_STEPS;
-    let currentStep = 0;
-
-    this.fadeInterval = setInterval(() => {
-      if (!this.audio) {
-        this.cancelFade();
-        return;
-      }
-
-      currentStep++;
-      this.audio.volume = Math.max(0, this.audio.volume - volumeDecrement);
-
-      if (currentStep >= this.FADE_STEPS) {
-        this.audio.pause();
-        this.audio.currentTime = 0;
-        this.isPlaying = false;
         this.cancelFade();
       }
     }, stepDuration);

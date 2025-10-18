@@ -317,7 +317,12 @@ export default function GameInterface() {
 
   // Control background music based on game status
   useEffect(() => {
-    if (!game) return;
+    if (!game) {
+      // Game not loaded yet - stop music preemptively
+      // (handles page refresh in active game)
+      backgroundMusicService.stop();
+      return;
+    }
 
     if (game.status === GameStatusLobby) {
       // Play music during lobby phase

@@ -1,6 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMainContent } from "@/contexts/MainContentContext.tsx";
 import { GameDto } from "@/types/generated/api-types.ts";
+import SettingsDropdown from "../../ui/dropdown/SettingsDropdown.tsx";
 
 interface TopMenuBarProps {
   gameState?: GameDto | null;
@@ -16,6 +17,8 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
   standardProjectsButtonRef,
 }) => {
   const { setContentType, setContentData } = useMainContent();
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Reset button inline border style when popover closes
   useEffect(() => {
@@ -151,7 +154,13 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
         </div>
 
         <div className="flex gap-2.5 max-md:gap-2 max-sm:flex-col max-sm:gap-1">
-          <button className="bg-white/10 border border-[#333] text-white py-2 px-3 rounded cursor-pointer text-xs hover:bg-white/20 max-lg:py-1.5 max-lg:px-2.5 max-lg:text-[11px] max-md:py-1.5 max-md:px-2.5 max-md:text-[11px] max-sm:py-1 max-sm:px-1.5 max-sm:text-[9px]">
+          <button
+            ref={settingsButtonRef}
+            onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+            className={`bg-white/10 border text-white py-2 px-3 rounded cursor-pointer text-xs hover:bg-white/20 max-lg:py-1.5 max-lg:px-2.5 max-lg:text-[11px] max-md:py-1.5 max-md:px-2.5 max-md:text-[11px] max-sm:py-1 max-sm:px-1.5 max-sm:text-[9px] ${
+              showSettingsDropdown ? "border-space-blue-400" : "border-[#333]"
+            }`}
+          >
             ⚙️ Settings
           </button>
           <button className="bg-white/10 border border-[#333] text-white py-2 px-3 rounded cursor-pointer text-xs hover:bg-white/20 max-lg:py-1.5 max-lg:px-2.5 max-lg:text-[11px] max-md:py-1.5 max-md:px-2.5 max-md:text-[11px] max-sm:py-1 max-sm:px-1.5 max-sm:text-[9px]">
@@ -166,6 +175,13 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
           DEV MODE
         </div>
       )}
+
+      {/* Settings Dropdown */}
+      <SettingsDropdown
+        isVisible={showSettingsDropdown}
+        onClose={() => setShowSettingsDropdown(false)}
+        buttonRef={settingsButtonRef}
+      />
     </div>
   );
 };

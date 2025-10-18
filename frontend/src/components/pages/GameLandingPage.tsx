@@ -13,15 +13,6 @@ const GameLandingPage: React.FC = () => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const { preloadSkybox } = useSpaceBackground();
 
-  // Start background music on mount
-  useEffect(() => {
-    void backgroundMusicService.play();
-
-    return () => {
-      backgroundMusicService.stop();
-    };
-  }, []);
-
   useEffect(() => {
     const checkExistingGame = async () => {
       try {
@@ -59,17 +50,26 @@ const GameLandingPage: React.FC = () => {
           }
         }
 
+        // No saved game found - we're on the actual landing page, start music
+        void backgroundMusicService.play();
         setIsLoading(false);
       } catch (err: any) {
         void err;
         // Clear invalid saved game data
         localStorage.removeItem("terraforming-mars-game");
         setError("Unable to reconnect to previous game");
+        // Start music since we're staying on landing page
+        void backgroundMusicService.play();
         setIsLoading(false);
       }
     };
 
     void checkExistingGame();
+
+    // Cleanup: stop music when unmounting
+    return () => {
+      backgroundMusicService.stop();
+    };
   }, [navigate, preloadSkybox]);
 
   const handleCreateGame = () => {

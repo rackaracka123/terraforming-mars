@@ -14,13 +14,17 @@ import ReconnectingPage from "./components/pages/ReconnectingPage.tsx";
 import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
 import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
 import SpaceBackground from "./components/3d/SpaceBackground.tsx";
+import audioSettingsManager from "./services/audioSettingsManager.ts";
 import "./App.css";
 
 function App() {
   const [isWebSocketReady, setIsWebSocketReady] = useState(false);
 
-  // Initialize WebSocket connection once on app startup
+  // Initialize audio settings and WebSocket connection once on app startup
   useEffect(() => {
+    // Initialize audio settings from localStorage
+    audioSettingsManager.init();
+
     const initializeWebSocket = async () => {
       try {
         // console.log("Initializing global WebSocket connection...");
