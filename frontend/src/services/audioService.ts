@@ -1,9 +1,11 @@
+import { Sound, getSoundPath } from "../utils/soundStore.ts";
+
 /**
  * Audio service for managing game sound effects
  * Handles loading, caching, and playing audio files for game events
  */
 class AudioService {
-  private audioCache: Map<string, HTMLAudioElement> = new Map();
+  private audioCache: Map<Sound, HTMLAudioElement> = new Map();
   private isEnabled: boolean = true;
   private volume: number = 0.5;
 
@@ -15,12 +17,10 @@ class AudioService {
    * Preload audio files for better performance
    */
   private preloadAudioFiles() {
-    const audioFiles = [
-      { key: "production", path: "/assets/audio/production.mp3" },
-    ];
-
-    audioFiles.forEach(({ key, path }) => {
+    // Preload all sounds defined in soundStore
+    Object.values(Sound).forEach((sound) => {
       try {
+        const path = getSoundPath(sound);
         const audio = new Audio(path);
         audio.preload = "auto";
         audio.volume = this.volume;
@@ -31,27 +31,27 @@ class AudioService {
         });
 
         audio.addEventListener("error", (e) => {
-          console.warn(`⚠️ Failed to preload audio: ${key}`, e);
+          console.warn(`⚠️ Failed to preload audio: ${sound}`, e);
         });
 
-        this.audioCache.set(key, audio);
+        this.audioCache.set(sound, audio);
       } catch (error) {
-        console.warn(`⚠️ Error creating audio element for ${key}:`, error);
+        console.warn(`⚠️ Error creating audio element for ${sound}:`, error);
       }
     });
   }
 
   /**
-   * Play a sound effect by key
+   * Play a sound effect using Sound enum (type-safe, no strings!)
    */
-  public async playSound(soundKey: string): Promise<void> {
+  public async playSound(sound: Sound): Promise<void> {
     if (!this.isEnabled) {
       return;
     }
 
-    const audio = this.audioCache.get(soundKey);
+    const audio = this.audioCache.get(sound);
     if (!audio) {
-      console.warn(`⚠️ Sound not found: ${soundKey}`);
+      console.warn(`⚠️ Sound not found: ${sound}`);
       return;
     }
 
@@ -62,7 +62,7 @@ class AudioService {
 
       await audioClone.play();
     } catch (error) {
-      console.warn(`⚠️ Failed to play sound ${soundKey}:`, error);
+      console.warn(`⚠️ Failed to play sound ${sound}:`, error);
     }
   }
 
@@ -70,7 +70,7 @@ class AudioService {
    * Play production phase sound effect
    */
   public async playProductionSound(): Promise<void> {
-    return this.playSound("production");
+    return this.playSound(Sound.Production);
   }
 
   /**

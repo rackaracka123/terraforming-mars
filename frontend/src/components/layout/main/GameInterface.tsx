@@ -22,6 +22,7 @@ import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPo
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
+import backgroundMusicService from "../../../services/backgroundMusicService.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import {
   CardDto,
@@ -313,6 +314,24 @@ export default function GameInterface() {
       isInitialMount.current = false;
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
+
+  // Control background music based on game status
+  useEffect(() => {
+    if (!game) return;
+
+    if (game.status === GameStatusLobby) {
+      // Play music during lobby phase
+      void backgroundMusicService.play();
+    } else if (game.status === GameStatusActive) {
+      // Stop music when game becomes active
+      backgroundMusicService.stop();
+    }
+
+    // Cleanup: stop music when leaving game interface
+    return () => {
+      backgroundMusicService.stop();
+    };
+  }, [game?.status]);
 
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[], corporationId: string) => {

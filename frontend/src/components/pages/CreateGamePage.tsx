@@ -6,6 +6,7 @@ import { GameSettingsDto } from "../../types/generated/api-types.ts";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
+import backgroundMusicService from "../../services/backgroundMusicService.ts";
 
 const CreateGamePage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,15 @@ const CreateGamePage: React.FC = () => {
     setTimeout(() => {
       setIsFadedIn(true);
     }, 10);
+  }, []);
+
+  // Start background music on mount
+  useEffect(() => {
+    void backgroundMusicService.play();
+
+    return () => {
+      backgroundMusicService.stop();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

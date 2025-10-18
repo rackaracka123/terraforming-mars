@@ -4,6 +4,7 @@ import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
+import backgroundMusicService from "../../services/backgroundMusicService.ts";
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,15 @@ const GameLandingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const { preloadSkybox } = useSpaceBackground();
+
+  // Start background music on mount
+  useEffect(() => {
+    void backgroundMusicService.play();
+
+    return () => {
+      backgroundMusicService.stop();
+    };
+  }, []);
 
   useEffect(() => {
     const checkExistingGame = async () => {
