@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -43,21 +44,23 @@ type PlayerService interface {
 
 // PlayerServiceImpl implements PlayerService interface
 type PlayerServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	sessionManager session.SessionManager
-	boardService   BoardService
-	tileService    TileService
+	gameRepo            repository.GameRepository
+	playerRepo          repository.PlayerRepository
+	sessionManager      session.SessionManager
+	boardService        BoardService
+	tileService         TileService
+	forcedActionManager cards.ForcedActionManager
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, forcedActionManager cards.ForcedActionManager) PlayerService {
 	return &PlayerServiceImpl{
-		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
-		sessionManager: sessionManager,
-		boardService:   boardService,
-		tileService:    tileService,
+		gameRepo:            gameRepo,
+		playerRepo:          playerRepo,
+		sessionManager:      sessionManager,
+		boardService:        boardService,
+		tileService:         tileService,
+		forcedActionManager: forcedActionManager,
 	}
 }
 
@@ -319,6 +322,24 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
 		return fmt.Errorf("failed to place tile: %w", err)
+	}
+
+	// Check if this tile placement was triggered by a forced action
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player for forced action check", zap.Error(err))
+	} else {
+		isForcedAction := player.ForcedFirstAction != nil &&
+			player.ForcedFirstAction.CorporationID == pendingSelection.Source
+
+		if isForcedAction {
+			if err := s.forcedActionManager.MarkComplete(ctx, gameID, playerID); err != nil {
+				log.Error("Failed to mark forced action complete", zap.Error(err))
+				// Don't fail the operation, just log the error
+			} else {
+				log.Info("🎯 Forced action marked as complete", zap.String("source", pendingSelection.Source))
+			}
+		}
 	}
 
 	// Clear the current pending tile selection

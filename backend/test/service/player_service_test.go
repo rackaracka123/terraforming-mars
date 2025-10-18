@@ -28,7 +28,6 @@ func setupPlayerServiceTest(t *testing.T) (
 	sessionManager := test.NewMockSessionManager()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -38,7 +37,9 @@ func setupPlayerServiceTest(t *testing.T) (
 	}
 
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()

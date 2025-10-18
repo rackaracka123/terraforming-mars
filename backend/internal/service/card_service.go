@@ -58,13 +58,14 @@ type CardServiceImpl struct {
 	requirementsValidator *cards.RequirementsValidator
 	effectProcessor       *cards.CardProcessor
 	cardManager           cards.CardManager
+	forcedActionManager   cards.ForcedActionManager
 
 	// Service dependencies
 	tileService TileService
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber) CardService {
+func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
@@ -76,6 +77,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
 		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
 		tileService:           tileService,
+		forcedActionManager:   forcedActionManager,
 	}
 }
 
@@ -122,6 +124,8 @@ func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, pla
 			log.Info("🎯 Game phase advanced successfully",
 				zap.String("previous_phase", string(model.GamePhaseStartingCardSelection)),
 				zap.String("new_phase", string(model.GamePhaseAction)))
+
+			// Note: Forced actions are now triggered via event system (GamePhaseChangedEvent)
 		}
 	}
 
@@ -238,9 +242,25 @@ func (s *CardServiceImpl) OnConfirmCardDraw(ctx context.Context, gameID, playerI
 			zap.Strings("card_ids", unselectedCards))
 	}
 
+	// Check if this card draw was triggered by a forced action
+	isForcedAction := false
+	if player.ForcedFirstAction != nil && player.ForcedFirstAction.CorporationID == selection.Source {
+		isForcedAction = true
+	}
+
 	// Clear pending card draw selection
 	if err := s.playerRepo.ClearPendingCardDrawSelection(ctx, gameID, playerID); err != nil {
 		return fmt.Errorf("failed to clear pending card draw selection: %w", err)
+	}
+
+	// If this was a forced action, mark it as complete
+	if isForcedAction {
+		if err := s.forcedActionManager.MarkComplete(ctx, gameID, playerID); err != nil {
+			log.Error("Failed to mark forced action complete", zap.Error(err))
+			// Don't fail the operation, just log the error
+		} else {
+			log.Info("🎯 Forced action marked as complete", zap.String("corporation_id", selection.Source))
+		}
 	}
 
 	log.Info("✅ Card draw confirmation completed",

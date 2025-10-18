@@ -610,7 +610,14 @@ export interface PlayerActionDto {
 }
 /**
  * PendingTileSelectionDto represents a pending tile placement action for client consumption
+ * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
  */
+export interface ForcedFirstActionDto {
+  actionType: string; // Type of action: "city_placement", "card_draw", etc.
+  corporationId: string; // Corporation that requires this action
+  completed: boolean; // Whether the forced action has been completed
+  description: string; // Human-readable description for UI
+}
 export interface PendingTileSelectionDto {
   tileType: string; // "city", "greenery", "ocean"
   availableHexes: string[]; // Backend-calculated valid hex coordinates
@@ -681,6 +688,10 @@ export interface PlayerDto {
    * Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
    */
   pendingCardDrawSelection?: PendingCardDrawSelectionDto; // Pending card draw/peek/take/buy selection from card effects
+  /**
+   * Forced first action - nullable, exists only when corporation requires specific first turn action
+   */
+  forcedFirstAction?: ForcedFirstActionDto; // Action that must be taken on first turn (Tharsis city placement, etc.)
   /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */

@@ -64,6 +64,12 @@ type PlayerRepository interface {
 	GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardDrawSelection, error)
 	ClearPendingCardDrawSelection(ctx context.Context, gameID, playerID string) error
 
+	// Forced first action methods
+	UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *model.ForcedFirstAction) error
+	GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*model.ForcedFirstAction, error)
+	MarkForcedFirstActionComplete(ctx context.Context, gameID, playerID string) error
+	ClearForcedFirstAction(ctx context.Context, gameID, playerID string) error
+
 	// Resource storage methods
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 }
@@ -1152,6 +1158,81 @@ func (r *PlayerRepositoryImpl) ClearPendingCardDrawSelection(ctx context.Context
 
 	player.PendingCardDrawSelection = nil
 	log.Debug("🗑️ Pending card draw selection cleared")
+
+	return nil
+}
+
+// UpdateForcedFirstAction sets a player's forced first action (corporation-specific first turn requirement)
+func (r *PlayerRepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *model.ForcedFirstAction) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.ForcedFirstAction = action
+	if action != nil {
+		log.Info("🎯 Forced first action set",
+			zap.String("action_type", action.ActionType),
+			zap.String("corporation_id", action.CorporationID),
+			zap.String("description", action.Description))
+	}
+
+	return nil
+}
+
+// GetForcedFirstAction retrieves a player's forced first action
+func (r *PlayerRepositoryImpl) GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*model.ForcedFirstAction, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return player.ForcedFirstAction, nil
+}
+
+// MarkForcedFirstActionComplete marks a player's forced first action as completed
+func (r *PlayerRepositoryImpl) MarkForcedFirstActionComplete(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	if player.ForcedFirstAction != nil {
+		player.ForcedFirstAction.Completed = true
+		log.Info("✅ Forced first action marked as completed",
+			zap.String("action_type", player.ForcedFirstAction.ActionType))
+	}
+
+	return nil
+}
+
+// ClearForcedFirstAction clears a player's forced first action
+func (r *PlayerRepositoryImpl) ClearForcedFirstAction(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.ForcedFirstAction = nil
+	log.Debug("🗑️ Forced first action cleared")
 
 	return nil
 }
