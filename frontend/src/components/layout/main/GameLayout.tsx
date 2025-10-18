@@ -22,6 +22,7 @@ interface GameLayoutProps {
   corporationCard?: CardDto | null;
   isAnyModalOpen?: boolean;
   isLobbyPhase?: boolean;
+  showCardSelection?: boolean;
   changedPaths?: Set<string>;
   onOpenCardEffectsModal?: () => void;
   onOpenCardsPlayedModal?: () => void;
@@ -40,6 +41,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   corporationCard = null,
   isAnyModalOpen: _isAnyModalOpen = false,
   isLobbyPhase = false,
+  showCardSelection = false,
   changedPaths = new Set(),
   onOpenCardEffectsModal,
   onOpenCardsPlayedModal,
@@ -75,12 +77,14 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   return (
     <MainContentProvider>
       <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
-        <TopMenuBar
-          gameState={gameState}
-          showStandardProjectsPopover={showStandardProjectsPopover}
-          onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
-          standardProjectsButtonRef={standardProjectsButtonRef}
-        />
+        {!isLobbyPhase && !showCardSelection && (
+          <TopMenuBar
+            gameState={gameState}
+            showStandardProjectsPopover={showStandardProjectsPopover}
+            onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
+            standardProjectsButtonRef={standardProjectsButtonRef}
+          />
+        )}
 
         <div className="grid grid-cols-1 min-h-0 gap-0 relative">
           <MainContentDisplay gameState={gameState} />
@@ -103,7 +107,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
 
         <PlayerOverlay players={allPlayers} currentPlayer={currentPlayer} />
 
-        {!isLobbyPhase && (
+        {!isLobbyPhase && !showCardSelection && (
           <>
             <BottomResourceBar
               currentPlayer={currentPlayer}

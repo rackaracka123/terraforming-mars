@@ -1186,8 +1186,27 @@ export default function GameInterface() {
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
 
+  // Check if we need the persistent backdrop (during overlay transitions)
+  const shouldShowBackdrop = isLobbyPhase || showCardSelection;
+
   return (
     <>
+      {/* Persistent backdrop for overlays to prevent blink during transitions */}
+      {shouldShowBackdrop && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]">
+          <style>{`
+            @keyframes backdropFadeIn {
+              0% {
+                opacity: 0;
+              }
+              100% {
+                opacity: 1;
+              }
+            }
+          `}</style>
+        </div>
+      )}
+
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
@@ -1195,6 +1214,7 @@ export default function GameInterface() {
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
+        showCardSelection={showCardSelection}
         changedPaths={changedPaths}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}

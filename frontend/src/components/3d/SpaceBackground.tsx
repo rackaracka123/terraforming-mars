@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useState, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import SkyboxLoader from "../game/view/SkyboxLoader.tsx";
-import LoadingSpinner from "../game/view/LoadingSpinner.tsx";
 import { skyboxCache, SkyboxLoadingState } from "../../services/SkyboxCache.ts";
 import * as THREE from "three";
 
@@ -126,11 +125,6 @@ export default function SpaceBackground({
         />
       )}
 
-      {/* Show loading spinner when skybox is loading */}
-      {skyboxLoadingState.isLoading && (
-        <LoadingSpinner message="Loading space environment..." />
-      )}
-
       {/* Content layer - always on top */}
       <div
         style={{
@@ -151,6 +145,52 @@ export default function SpaceBackground({
           }}
         >
           {children}
+
+          {/* Show loading spinner when skybox is loading - below content */}
+          {skyboxLoadingState.isLoading && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: "200px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "12px",
+                zIndex: 10,
+              }}
+            >
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  border: "4px solid rgba(255, 255, 255, 0.2)",
+                  borderTop: "4px solid rgba(255, 255, 255, 0.9)",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+              <style>
+                {`
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `}
+              </style>
+              <div
+                style={{
+                  color: "rgba(255, 255, 255, 0.8)",
+                  fontSize: "14px",
+                  fontFamily: "Orbitron, sans-serif",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Loading...
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
