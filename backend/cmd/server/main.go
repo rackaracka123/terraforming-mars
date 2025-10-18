@@ -135,7 +135,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)

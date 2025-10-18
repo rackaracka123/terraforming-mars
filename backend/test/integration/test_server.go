@@ -80,7 +80,7 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	// Setup router
 	mainRouter := mux.NewRouter()
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsService.ServeWS)
 

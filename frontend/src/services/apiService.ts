@@ -45,9 +45,14 @@ export class ApiService {
     }
   }
 
-  async getGame(gameId: string): Promise<GameDto | null> {
+  async getGame(gameId: string, playerId?: string): Promise<GameDto | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/games/${gameId}`);
+      const url = new URL(`${this.baseUrl}/games/${gameId}`);
+      if (playerId) {
+        url.searchParams.set("playerId", playerId);
+      }
+
+      const response = await fetch(url.toString());
 
       if (response.status === 404) {
         return null;
