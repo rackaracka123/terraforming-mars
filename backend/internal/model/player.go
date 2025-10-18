@@ -269,8 +269,7 @@ func (p *Player) DeepCopy() *Player {
 			Description:   p.ForcedFirstAction.Description,
 		}
 	}
-
-	// Deep copy corporation if it exists
+	
 	var corporationCopy *Card
 	if p.Corporation != nil {
 		corpCopy := p.Corporation.DeepCopy()
