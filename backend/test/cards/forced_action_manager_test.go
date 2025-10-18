@@ -51,10 +51,10 @@ func TestForcedActionManager_InventrixCardDrawAction(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "card_draw",
-			CorporationID:  "B05", // Inventrix
-			Completed:      false,
-			Description:    "Draw 3 cards",
+			ActionType:    "card_draw",
+			CorporationID: "B05", // Inventrix
+			Completed:     false,
+			Description:   "Draw 3 cards",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -139,10 +139,10 @@ func TestForcedActionManager_TharsisCityPlacementAction(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "city_placement",
-			CorporationID:  "B08", // Tharsis Republic
-			Completed:      false,
-			Description:    "Place a city tile",
+			ActionType:    "city_placement",
+			CorporationID: "B08", // Tharsis Republic
+			Completed:     false,
+			Description:   "Place a city tile",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -205,10 +205,10 @@ func TestForcedActionManager_NoActionForNonActionPhase(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "card_draw",
-			CorporationID:  "B05", // Inventrix
-			Completed:      false,
-			Description:    "Draw 3 cards",
+			ActionType:    "card_draw",
+			CorporationID: "B05", // Inventrix
+			Completed:     false,
+			Description:   "Draw 3 cards",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -279,10 +279,10 @@ func TestForcedActionManager_NoActionWhenAlreadyCompleted(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "card_draw",
-			CorporationID:  "inventrix",
-			Completed:      true, // Already completed
-			Description:    "Draw 3 cards",
+			ActionType:    "card_draw",
+			CorporationID: "inventrix",
+			Completed:     true, // Already completed
+			Description:   "Draw 3 cards",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -346,10 +346,10 @@ func TestForcedActionManager_MarkComplete(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "card_draw",
-			CorporationID:  "B05", // Inventrix
-			Completed:      false,
-			Description:    "Draw 3 cards",
+			ActionType:    "card_draw",
+			CorporationID: "B05", // Inventrix
+			Completed:     false,
+			Description:   "Draw 3 cards",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -390,12 +390,12 @@ func TestForcedActionManager_MarkCompleteWithNoForcedAction(t *testing.T) {
 
 	// Create a test player WITHOUT forced action
 	player := model.Player{
-		ID:              "player1",
-		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
+		ID:                "player1",
+		Name:              "TestPlayer",
+		Resources:         model.Resources{Credits: 100},
+		Production:        model.Production{Credits: 1},
+		TerraformRating:   20,
+		IsConnected:       true,
 		ForcedFirstAction: nil,
 	}
 	err = playerRepo.Create(ctx, game.ID, player)
@@ -448,10 +448,10 @@ func TestForcedActionManager_NoActionWhenPlayerNotCurrentTurn(t *testing.T) {
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
-			ActionType:     "card_draw",
-			CorporationID:  "B05", // Inventrix
-			Completed:      false,
-			Description:    "Draw 3 cards",
+			ActionType:    "card_draw",
+			CorporationID: "B05", // Inventrix
+			Completed:     false,
+			Description:   "Draw 3 cards",
 		},
 	}
 	err = playerRepo.Create(ctx, game.ID, player1)
