@@ -547,6 +547,56 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	player.Resources = updatedResources
 	player.Production = updatedProduction
 
+	// Extract and apply payment substitutes from corporation behaviors
+	paymentSubstitutes := []model.PaymentSubstitute{}
+	for _, behavior := range corporationCard.Behaviors {
+		// Look for auto-trigger behaviors without conditions (starting bonuses)
+		hasAutoTrigger := false
+		hasCondition := false
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAuto {
+				hasAutoTrigger = true
+				if trigger.Condition != nil {
+					hasCondition = true
+				}
+			}
+		}
+
+		// Only process auto behaviors without conditions (starting bonuses)
+		if !hasAutoTrigger || hasCondition {
+			continue
+		}
+
+		// Extract payment-substitute outputs
+		for _, output := range behavior.Outputs {
+			if output.Type == model.ResourcePaymentSubstitute {
+				// Extract the resource type from affectedResources
+				if len(output.AffectedResources) > 0 {
+					resourceTypeStr := output.AffectedResources[0]
+					substitute := model.PaymentSubstitute{
+						ResourceType:   model.ResourceType(resourceTypeStr),
+						ConversionRate: output.Amount,
+					}
+					paymentSubstitutes = append(paymentSubstitutes, substitute)
+					log.Debug("💰 Extracted payment substitute from corporation",
+						zap.String("resource_type", resourceTypeStr),
+						zap.Int("conversion_rate", output.Amount))
+				}
+			}
+		}
+	}
+
+	// Apply payment substitutes to player if any were found
+	if len(paymentSubstitutes) > 0 {
+		if err := s.playerRepo.UpdatePaymentSubstitutes(ctx, gameID, playerID, paymentSubstitutes); err != nil {
+			log.Error("Failed to update player payment substitutes", zap.Error(err))
+			return fmt.Errorf("failed to update player payment substitutes: %w", err)
+		}
+		log.Info("💰 Payment substitutes applied",
+			zap.String("corporation_name", corporationCard.Name),
+			zap.Int("substitutes_count", len(paymentSubstitutes)))
+	}
+
 	// Subscribe corporation passive effects using CardEffectSubscriber (event-driven system)
 	if s.effectSubscriber != nil {
 		if err := s.effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, corporationCard.ID, corporationCard); err != nil {

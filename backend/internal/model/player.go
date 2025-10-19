@@ -101,6 +101,8 @@ type Player struct {
 	ForcedFirstAction *ForcedFirstAction `json:"forcedFirstAction" ts:"ForcedFirstAction | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources that can be used as payment for credits
+	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -214,6 +216,13 @@ func (p *Player) DeepCopy() *Player {
 		resourceStorageCopy[cardID] = count
 	}
 
+	// Deep copy payment substitutes slice
+	var paymentSubstitutesCopy []PaymentSubstitute
+	if p.PaymentSubstitutes != nil {
+		paymentSubstitutesCopy = make([]PaymentSubstitute, len(p.PaymentSubstitutes))
+		copy(paymentSubstitutesCopy, p.PaymentSubstitutes)
+	}
+
 	// Deep copy pending card selection if it exists
 	var pendingCardSelectionCopy *PendingCardSelection
 	if p.PendingCardSelection != nil {
@@ -300,5 +309,6 @@ func (p *Player) DeepCopy() *Player {
 		PendingCardDrawSelection:  pendingCardDrawSelectionCopy,
 		ForcedFirstAction:         forcedFirstActionCopy,
 		ResourceStorage:           resourceStorageCopy,
+		PaymentSubstitutes:        paymentSubstitutesCopy,
 	}
 }

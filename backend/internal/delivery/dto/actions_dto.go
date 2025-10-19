@@ -242,6 +242,7 @@ const (
 	AdminCommandTypeSetGlobalParams    AdminCommandType = "set-global-params"
 	AdminCommandTypeStartTileSelection AdminCommandType = "start-tile-selection"
 	AdminCommandTypeSetCurrentTurn     AdminCommandType = "set-current-turn"
+	AdminCommandTypeSetCorporation     AdminCommandType = "set-corporation"
 )
 
 // AdminCommandRequest contains the admin command data
@@ -284,9 +285,16 @@ type StartTileSelectionAdminCommand struct {
 	TileType string `json:"tileType" ts:"string"`
 }
 
+// SetCorporationAdminCommand represents setting a player's corporation
+type SetCorporationAdminCommand struct {
+	PlayerID      string `json:"playerId" ts:"string"`
+	CorporationID string `json:"corporationId" ts:"string"`
+}
+
 // CardPaymentDto represents how a player is paying for a card
 type CardPaymentDto struct {
-	Credits  int `json:"credits" ts:"number"`  // MC spent
-	Steel    int `json:"steel" ts:"number"`    // Steel resources used (2 MC value each)
-	Titanium int `json:"titanium" ts:"number"` // Titanium resources used (3 MC value each)
+	Credits     int            `json:"credits" ts:"number"`                                           // MC spent
+	Steel       int            `json:"steel" ts:"number"`                                             // Steel resources used (2 MC value each)
+	Titanium    int            `json:"titanium" ts:"number"`                                          // Titanium resources used (3 MC value each)
+	Substitutes map[string]int `json:"substitutes,omitempty" ts:"Record<string, number> | undefined"` // Payment substitutes (e.g., heat for Helion)
 }

@@ -79,7 +79,6 @@ const GameLayout: React.FC<GameLayoutProps> = ({
       <div className="grid grid-rows-[auto_1fr] w-screen h-screen bg-[#000011] bg-[url('/assets/background-noise.png')] [background-attachment:fixed] bg-repeat text-white overflow-hidden">
         {!isLobbyPhase && !showCardSelection && (
           <TopMenuBar
-            gameState={gameState}
             showStandardProjectsPopover={showStandardProjectsPopover}
             onToggleStandardProjectsPopover={onToggleStandardProjectsPopover}
             standardProjectsButtonRef={standardProjectsButtonRef}

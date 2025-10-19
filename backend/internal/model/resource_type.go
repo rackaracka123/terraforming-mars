@@ -116,6 +116,8 @@ const (
 	ResourceDiscount ResourceType = "discount"
 	// ResourceValueModifier represents increases resource values (e.g., steel/titanium worth more)
 	ResourceValueModifier ResourceType = "value-modifier"
+	// ResourcePaymentSubstitute represents using one resource type as payment for another (e.g., heat as credits)
+	ResourcePaymentSubstitute ResourceType = "payment-substitute"
 	// ResourceOceanAdjacencyBonus represents additional bonus for placing tiles adjacent to oceans
 	ResourceOceanAdjacencyBonus ResourceType = "ocean-adjacency-bonus"
 )

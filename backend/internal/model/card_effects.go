@@ -180,6 +180,13 @@ type DiscountEffect struct {
 	Description string    `json:"description" ts:"string"`                   // Human readable description
 }
 
+// PaymentSubstitute represents an alternative resource that can be used as payment for credits
+// Example: Helion allows using heat as M€ with 1:1 conversion
+type PaymentSubstitute struct {
+	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"` // The resource that can be used (e.g., heat)
+	ConversionRate int          `json:"conversionRate" ts:"number"`     // How many credits each resource is worth (1 = 1:1)
+}
+
 // PlayerEffect represents ongoing effects that a player has active, aligned with PlayerAction structure
 type PlayerEffect struct {
 	CardID        string       `json:"cardId" ts:"string"`         // ID of the card that provides this effect

@@ -132,6 +132,8 @@ func (h *Handler) handleAdminCommand(ctx context.Context, gameID, playerID strin
 		return h.handleStartTileSelection(ctx, gameID, request.Payload)
 	case dto.AdminCommandTypeSetCurrentTurn:
 		return h.handleSetCurrentTurn(ctx, gameID, request.Payload)
+	case dto.AdminCommandTypeSetCorporation:
+		return h.handleSetCorporation(ctx, gameID, request.Payload)
 	default:
 		return fmt.Errorf("unknown admin command type: %s", request.CommandType)
 	}
@@ -276,6 +278,22 @@ func (h *Handler) handleSetCurrentTurn(ctx context.Context, gameID string, paylo
 
 	// Use AdminService to set current turn
 	return h.adminService.OnAdminSetCurrentTurn(ctx, gameID, playerID)
+}
+
+// handleSetCorporation sets a player's corporation
+func (h *Handler) handleSetCorporation(ctx context.Context, gameID string, payload interface{}) error {
+	var command dto.SetCorporationAdminCommand
+	if err := h.parsePayload(payload, &command); err != nil {
+		return fmt.Errorf("invalid set corporation payload: %w", err)
+	}
+
+	h.logger.Info("🏢 Admin setting player corporation",
+		zap.String("game_id", gameID),
+		zap.String("player_id", command.PlayerID),
+		zap.String("corporation_id", command.CorporationID))
+
+	// Use AdminService to set corporation
+	return h.adminService.OnAdminSetCorporation(ctx, gameID, command.PlayerID, command.CorporationID)
 }
 
 // parsePayload parses the payload interface{} into the target struct

@@ -214,6 +214,8 @@ export const AdminCommandTypeStartTileSelection: AdminCommandType =
   "start-tile-selection";
 export const AdminCommandTypeSetCurrentTurn: AdminCommandType =
   "set-current-turn";
+export const AdminCommandTypeSetCorporation: AdminCommandType =
+  "set-corporation";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -262,12 +264,20 @@ export interface StartTileSelectionAdminCommand {
   tileType: string;
 }
 /**
+ * SetCorporationAdminCommand represents setting a player's corporation
+ */
+export interface SetCorporationAdminCommand {
+  playerId: string;
+  corporationId: string;
+}
+/**
  * CardPaymentDto represents how a player is paying for a card
  */
 export interface CardPaymentDto {
   credits: number /* int */; // MC spent
   steel: number /* int */; // Steel resources used (2 MC value each)
   titanium: number /* int */; // Titanium resources used (3 MC value each)
+  substitutes?: { [key: string]: number /* int */ }; // Payment substitutes (e.g., heat for Helion)
 }
 
 //////////
@@ -606,6 +616,13 @@ export interface ProductionDto {
   heat: number /* int */;
 }
 /**
+ * PaymentSubstituteDto represents an alternative resource that can be used as payment for credits
+ */
+export interface PaymentSubstituteDto {
+  resourceType: ResourceType;
+  conversionRate: number /* int */;
+}
+/**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
  * Aligned with PlayerActionDto structure for consistent behavior handling
  */
@@ -713,6 +730,10 @@ export interface PlayerDto {
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -739,6 +760,10 @@ export interface OtherPlayerDto {
    * Resource storage - maps card IDs to resource counts stored on those cards (public information)
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits (public information)
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)

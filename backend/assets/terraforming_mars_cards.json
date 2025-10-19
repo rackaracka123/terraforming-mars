@@ -10468,6 +10468,14 @@
             "type": "heat-production",
             "amount": 3,
             "target": "self-player"
+          },
+          {
+            "type": "payment-substitute",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "heat"
+            ]
           }
         ]
       }

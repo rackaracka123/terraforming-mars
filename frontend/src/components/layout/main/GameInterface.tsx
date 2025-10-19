@@ -9,6 +9,7 @@ import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx"
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
+import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
@@ -435,7 +436,11 @@ export default function GameInterface() {
           // No auto-triggered choices, check if we need payment modal
           if (
             currentPlayer &&
-            shouldShowPaymentModal(card, currentPlayer.resources)
+            shouldShowPaymentModal(
+              card,
+              currentPlayer.resources,
+              currentPlayer.paymentSubstitutes,
+            )
           ) {
             // Show payment selection modal
             setPendingCardPayment({
@@ -493,7 +498,11 @@ export default function GameInterface() {
 
         // Check if we need payment modal
         if (
-          shouldShowPaymentModal(cardPendingChoice, currentPlayer.resources)
+          shouldShowPaymentModal(
+            cardPendingChoice,
+            currentPlayer.resources,
+            currentPlayer.paymentSubstitutes,
+          )
         ) {
           // Show payment selection modal
           setPendingCardPayment({
@@ -1191,6 +1200,9 @@ export default function GameInterface() {
 
   return (
     <>
+      {/* Dev Mode Chip - Always visible in dev mode */}
+      {game?.settings?.developmentMode && <DevModeChip />}
+
       {/* Persistent backdrop for overlays to prevent blink during transitions */}
       {shouldShowBackdrop && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]">
@@ -1407,6 +1419,7 @@ export default function GameInterface() {
           card={pendingCardPayment.card}
           playerResources={currentPlayer.resources}
           paymentConstants={game.paymentConstants}
+          playerPaymentSubstitutes={currentPlayer.paymentSubstitutes}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
           isVisible={showPaymentSelection}

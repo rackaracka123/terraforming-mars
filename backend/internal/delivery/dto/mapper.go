@@ -6,11 +6,21 @@ import (
 
 // ToCardPayment converts a CardPaymentDto to domain model CardPayment
 func ToCardPayment(dto CardPaymentDto) model.CardPayment {
-	return model.CardPayment{
+	payment := model.CardPayment{
 		Credits:  dto.Credits,
 		Steel:    dto.Steel,
 		Titanium: dto.Titanium,
 	}
+
+	// Convert substitutes map from string keys to ResourceType keys
+	if dto.Substitutes != nil && len(dto.Substitutes) > 0 {
+		payment.Substitutes = make(map[model.ResourceType]int, len(dto.Substitutes))
+		for resourceStr, amount := range dto.Substitutes {
+			payment.Substitutes[model.ResourceType(resourceStr)] = amount
+		}
+	}
+
+	return payment
 }
 
 // resolveCards is a helper function to resolve card IDs to Card objects for multiple players
@@ -124,6 +134,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection, resolvedCards),
 		ForcedFirstAction:        ToForcedFirstActionDto(player.ForcedFirstAction),
 		ResourceStorage:          player.ResourceStorage,
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes),
 	}
 }
 
@@ -172,6 +183,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		SelectStartingCardsPhase: ToSelectStartingCardsOtherPlayerDto(player.SelectStartingCardsPhase),
 		ProductionPhase:          ToProductionPhaseOtherPlayerDto(player.ProductionPhase),
 		ResourceStorage:          player.ResourceStorage, // Resource storage is public information
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes),
 	}
 }
 
@@ -197,6 +209,27 @@ func ToProductionDto(production model.Production) ProductionDto {
 		Energy:   production.Energy,
 		Heat:     production.Heat,
 	}
+}
+
+// ToPaymentSubstituteDto converts model PaymentSubstitute to PaymentSubstituteDto
+func ToPaymentSubstituteDto(substitute model.PaymentSubstitute) PaymentSubstituteDto {
+	return PaymentSubstituteDto{
+		ResourceType:   ResourceType(substitute.ResourceType),
+		ConversionRate: substitute.ConversionRate,
+	}
+}
+
+// ToPaymentSubstituteDtoSlice converts a slice of model PaymentSubstitute to PaymentSubstituteDto slice
+func ToPaymentSubstituteDtoSlice(substitutes []model.PaymentSubstitute) []PaymentSubstituteDto {
+	if substitutes == nil {
+		return []PaymentSubstituteDto{}
+	}
+
+	result := make([]PaymentSubstituteDto, len(substitutes))
+	for i, substitute := range substitutes {
+		result[i] = ToPaymentSubstituteDto(substitute)
+	}
+	return result
 }
 
 // ToGlobalParametersDto converts model GlobalParameters to GlobalParametersDto

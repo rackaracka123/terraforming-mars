@@ -325,6 +325,12 @@ type ProductionDto struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// PaymentSubstituteDto represents an alternative resource that can be used as payment for credits
+type PaymentSubstituteDto struct {
+	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"`
+	ConversionRate int          `json:"conversionRate" ts:"number"`
+}
+
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption
 // Aligned with PlayerActionDto structure for consistent behavior handling
 type PlayerEffectDto struct {
@@ -419,6 +425,8 @@ type PlayerDto struct {
 	ForcedFirstAction *ForcedFirstActionDto `json:"forcedFirstAction" ts:"ForcedFirstActionDto | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources usable as payment for credits
+	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -443,6 +451,8 @@ type OtherPlayerDto struct {
 	ProductionPhase          *ProductionPhaseOtherPlayerDto     `json:"productionPhase" ts:"ProductionPhaseOtherPlayerDto | null"`
 	// Resource storage - maps card IDs to resource counts stored on those cards (public information)
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources usable as payment for credits (public information)
+	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
 }
 
 // GameDto represents a game for client consumption (clean architecture)
