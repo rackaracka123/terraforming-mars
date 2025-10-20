@@ -29,6 +29,8 @@ interface GameLayoutProps {
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
+  onConvertPlantsToGreenery?: () => void;
+  onConvertHeatToTemperature?: () => void;
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
@@ -48,6 +50,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
+  onConvertPlantsToGreenery,
+  onConvertHeatToTemperature,
   showStandardProjectsPopover = false,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
@@ -118,6 +122,8 @@ const GameLayout: React.FC<GameLayoutProps> = ({
               onOpenVictoryPointsModal={onOpenVictoryPointsModal}
               onOpenActionsModal={onOpenActionsModal}
               onActionSelect={onActionSelect}
+              onConvertPlantsToGreenery={onConvertPlantsToGreenery}
+              onConvertHeatToTemperature={onConvertHeatToTemperature}
             />
 
             {corporationCard && (

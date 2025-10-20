@@ -911,6 +911,22 @@ export default function GameInterface() {
     [currentPlayer?.pendingTileSelection],
   );
 
+  // Resource conversion handlers
+  const handleConvertPlantsToGreenery = useCallback(() => {
+    // Block if tile selection is already pending
+    if (currentPlayer?.pendingTileSelection) {
+      return;
+    }
+
+    // Initiate plant conversion (backend creates pending tile selection)
+    void globalWebSocketManager.convertPlantsToGreenery();
+  }, [currentPlayer?.pendingTileSelection]);
+
+  const handleConvertHeatToTemperature = useCallback(() => {
+    // Convert heat to temperature directly (no tile selection needed)
+    void globalWebSocketManager.convertHeatToTemperature();
+  }, []);
+
   // Tab conflict handlers
   const handleTabTakeOver = () => {
     if (conflictingTabInfo) {
@@ -1233,6 +1249,8 @@ export default function GameInterface() {
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
+        onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
+        onConvertHeatToTemperature={handleConvertHeatToTemperature}
         showStandardProjectsPopover={showStandardProjectsPopover}
         onToggleStandardProjectsPopover={() =>
           setShowStandardProjectsPopover(!showStandardProjectsPopover)

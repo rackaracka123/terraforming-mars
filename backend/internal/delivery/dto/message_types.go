@@ -24,6 +24,10 @@ const (
 	MessageTypeActionPlantGreenery   MessageType = "action.standard-project.plant-greenery"
 	MessageTypeActionBuildCity       MessageType = "action.standard-project.build-city"
 
+	// Resource conversion message types
+	MessageTypeActionConvertPlantsToGreenery  MessageType = "action.resource-conversion.convert-plants-to-greenery"
+	MessageTypeActionConvertHeatToTemperature MessageType = "action.resource-conversion.convert-heat-to-temperature"
+
 	// Game management message types
 	MessageTypeActionStartGame  MessageType = "action.game-management.start-game"
 	MessageTypeActionSkipAction MessageType = "action.game-management.skip-action"

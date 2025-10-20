@@ -229,6 +229,38 @@ func (ap *ActionBuildCityRequest) GetAction() *BuildCityAction {
 	return &BuildCityAction{Type: ap.Type, HexPosition: ap.HexPosition}
 }
 
+// Resource Conversion Action Requests
+
+// ActionConvertPlantsToGreeneryRequest contains the action data for initiating plant conversion
+type ActionConvertPlantsToGreeneryRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the convert plants to greenery action
+func (ap *ActionConvertPlantsToGreeneryRequest) GetAction() *ConvertPlantsToGreeneryAction {
+	return &ConvertPlantsToGreeneryAction{Type: ap.Type}
+}
+
+// ActionConvertHeatToTemperatureRequest contains the action data for converting heat to temperature
+type ActionConvertHeatToTemperatureRequest struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// GetAction returns the convert heat to temperature action
+func (ap *ActionConvertHeatToTemperatureRequest) GetAction() *ConvertHeatToTemperatureAction {
+	return &ConvertHeatToTemperatureAction{Type: ap.Type}
+}
+
+// ConvertPlantsToGreeneryAction represents converting 8 plants to a greenery tile
+type ConvertPlantsToGreeneryAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
+// ConvertHeatToTemperatureAction represents converting 8 heat to raise temperature
+type ConvertHeatToTemperatureAction struct {
+	Type ActionType `json:"type" ts:"ActionType"`
+}
+
 // Admin Command Types (Development Mode Only)
 
 // AdminCommandType represents different types of admin commands

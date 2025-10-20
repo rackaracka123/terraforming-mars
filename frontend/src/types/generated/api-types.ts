@@ -201,6 +201,30 @@ export interface ActionBuildCityRequest {
   hexPosition: HexPositionDto;
 }
 /**
+ * ActionConvertPlantsToGreeneryRequest contains the action data for initiating plant conversion
+ */
+export interface ActionConvertPlantsToGreeneryRequest {
+  type: ActionType;
+}
+/**
+ * ActionConvertHeatToTemperatureRequest contains the action data for converting heat to temperature
+ */
+export interface ActionConvertHeatToTemperatureRequest {
+  type: ActionType;
+}
+/**
+ * ConvertPlantsToGreeneryAction represents converting 8 plants to a greenery tile
+ */
+export interface ConvertPlantsToGreeneryAction {
+  type: ActionType;
+}
+/**
+ * ConvertHeatToTemperatureAction represents converting 8 heat to raise temperature
+ */
+export interface ConvertHeatToTemperatureAction {
+  type: ActionType;
+}
+/**
  * AdminCommandType represents different types of admin commands
  */
 export type AdminCommandType = string;
@@ -311,6 +335,26 @@ export const CardTypeActive: CardType = "active";
 export const CardTypeEvent: CardType = "event";
 export const CardTypeCorporation: CardType = "corporation";
 export const CardTypePrelude: CardType = "prelude";
+/**
+ * StandardProject represents the different types of standard projects
+ */
+export type StandardProject = string;
+/**
+ * Standard Projects (M€-based)
+ */
+export const StandardProjectSellPatents: StandardProject = "sell-patents";
+export const StandardProjectPowerPlant: StandardProject = "power-plant";
+export const StandardProjectAsteroid: StandardProject = "asteroid";
+export const StandardProjectAquifer: StandardProject = "aquifer";
+export const StandardProjectGreenery: StandardProject = "greenery";
+export const StandardProjectCity: StandardProject = "city";
+/**
+ * Resource Conversion Actions (resource-based, not M€)
+ */
+export const StandardProjectConvertPlantsToGreenery: StandardProject =
+  "convert-plants-to-greenery";
+export const StandardProjectConvertHeatToTemperature: StandardProject =
+  "convert-heat-to-temperature";
 /**
  * CardTag represents different card categories and attributes
  */
@@ -465,7 +509,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
-  affectedStandardProjects?: any /* model.StandardProject */[];
+  affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
 }
@@ -959,6 +1003,13 @@ export const MessageTypeActionPlantGreenery: MessageType =
   "action.standard-project.plant-greenery";
 export const MessageTypeActionBuildCity: MessageType =
   "action.standard-project.build-city";
+/**
+ * Resource conversion message types
+ */
+export const MessageTypeActionConvertPlantsToGreenery: MessageType =
+  "action.resource-conversion.convert-plants-to-greenery";
+export const MessageTypeActionConvertHeatToTemperature: MessageType =
+  "action.resource-conversion.convert-heat-to-temperature";
 /**
  * Game management message types
  */

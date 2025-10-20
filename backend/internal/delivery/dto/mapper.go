@@ -362,6 +362,19 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 	return result
 }
 
+// ToStandardProjectDtoSlice converts a slice of model StandardProjects to StandardProject slice
+func ToStandardProjectDtoSlice(projects []model.StandardProject) []StandardProject {
+	if projects == nil || len(projects) == 0 {
+		return nil
+	}
+
+	result := make([]StandardProject, len(projects))
+	for i, project := range projects {
+		result[i] = StandardProject(project)
+	}
+	return result
+}
+
 // ToSelectStartingCardsPhaseDto converts model SelectStartingCardsPhase to SelectStartingCardsPhaseDto
 func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolvedCards map[string]model.Card) *SelectStartingCardsPhaseDto {
 	if phase == nil {
@@ -443,7 +456,7 @@ func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
 		Target:                   TargetType(rc.Target),
 		AffectedResources:        rc.AffectedResources,
 		AffectedTags:             ToCardTagDtoSlice(rc.AffectedTags),
-		AffectedStandardProjects: rc.AffectedStandardProjects, // Direct mapping, same type
+		AffectedStandardProjects: ToStandardProjectDtoSlice(rc.AffectedStandardProjects),
 		MaxTrigger:               rc.MaxTrigger,
 		Per:                      ToPerConditionDto(rc.Per),
 	}

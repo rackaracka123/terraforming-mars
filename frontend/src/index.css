@@ -607,3 +607,30 @@ code {
       0 0 30px rgba(91, 160, 242, 0.4);
   }
 }
+
+/* Resource conversion button animations */
+@keyframes foldOut {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  100% {
+    max-height: 50px;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes foldBack {
+  0% {
+    max-height: 50px;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}

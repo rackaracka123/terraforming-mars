@@ -34,6 +34,22 @@ const (
 	CardTypePrelude     CardType = "prelude"
 )
 
+// StandardProject represents the different types of standard projects
+type StandardProject string
+
+const (
+	// Standard Projects (M€-based)
+	StandardProjectSellPatents StandardProject = "sell-patents"
+	StandardProjectPowerPlant  StandardProject = "power-plant"
+	StandardProjectAsteroid    StandardProject = "asteroid"
+	StandardProjectAquifer     StandardProject = "aquifer"
+	StandardProjectGreenery    StandardProject = "greenery"
+	StandardProjectCity        StandardProject = "city"
+	// Resource Conversion Actions (resource-based, not M€)
+	StandardProjectConvertPlantsToGreenery  StandardProject = "convert-plants-to-greenery"
+	StandardProjectConvertHeatToTemperature StandardProject = "convert-heat-to-temperature"
+)
+
 // CardTag represents different card categories and attributes
 type CardTag string
 
@@ -180,14 +196,14 @@ type ResourceSet struct {
 
 // ResourceConditionDto represents a resource condition for client consumption
 type ResourceConditionDto struct {
-	Type                     ResourceType            `json:"type" ts:"ResourceType"`
-	Amount                   int                     `json:"amount" ts:"number"`
-	Target                   TargetType              `json:"target" ts:"TargetType"`
-	AffectedResources        []string                `json:"affectedResources,omitempty" ts:"string[] | undefined"`
-	AffectedTags             []CardTag               `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	AffectedStandardProjects []model.StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
-	MaxTrigger               *int                    `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per                      *PerConditionDto        `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Type                     ResourceType      `json:"type" ts:"ResourceType"`
+	Amount                   int               `json:"amount" ts:"number"`
+	Target                   TargetType        `json:"target" ts:"TargetType"`
+	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`
+	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
+	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per                      *PerConditionDto  `json:"per,omitempty" ts:"PerConditionDto | undefined"`
 }
 
 // PerConditionDto represents a per condition for client consumption
