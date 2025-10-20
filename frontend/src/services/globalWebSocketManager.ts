@@ -197,6 +197,17 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.buildCity();
   }
 
+  // Resource conversion actions
+  async convertPlantsToGreenery(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.convertPlantsToGreenery();
+  }
+
+  async convertHeatToTemperature(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.convertHeatToTemperature();
+  }
+
   // Game management actions
   async startGame(): Promise<string> {
     await this.ensureConnected();

@@ -123,20 +123,47 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// STEP 1: Apply card cost payment (using credits, steel, and/or titanium)
+	// STEP 1: Apply card cost payment (using credits, steel, titanium, and/or payment substitutes)
 	if card.Cost > 0 {
 		updatedResources := player.Resources
 		updatedResources.Credits -= payment.Credits
 		updatedResources.Steel -= payment.Steel
 		updatedResources.Titanium -= payment.Titanium
+
+		// Deduct payment substitutes (e.g., heat for Helion)
+		if payment.Substitutes != nil {
+			for resourceType, amount := range payment.Substitutes {
+				switch resourceType {
+				case model.ResourceHeat:
+					updatedResources.Heat -= amount
+				case model.ResourceEnergy:
+					updatedResources.Energy -= amount
+				case model.ResourcePlants:
+					updatedResources.Plants -= amount
+				// Add other resource types as needed
+				default:
+					log.Warn("Unknown payment substitute resource type", zap.String("resource_type", string(resourceType)))
+				}
+			}
+		}
+
 		if err := cm.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
-		log.Debug("💰 Card cost paid",
+
+		// Log payment details
+		logFields := []zap.Field{
 			zap.Int("cost", card.Cost),
 			zap.Int("credits_spent", payment.Credits),
 			zap.Int("steel_spent", payment.Steel),
-			zap.Int("titanium_spent", payment.Titanium))
+			zap.Int("titanium_spent", payment.Titanium),
+		}
+		if payment.Substitutes != nil && len(payment.Substitutes) > 0 {
+			for resourceType, amount := range payment.Substitutes {
+				logFields = append(logFields, zap.Int(string(resourceType)+"_spent", amount))
+			}
+		}
+		log.Debug("💰 Card cost paid", logFields...)
 	}
 
 	// STEP 2: Move card from hand to played cards

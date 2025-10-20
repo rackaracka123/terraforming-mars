@@ -6,6 +6,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_city"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_power_plant"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/action/convert_heat_to_temperature"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/action/convert_plants_to_greenery"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/launch_asteroid"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/plant_greenery"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/play_card"
@@ -26,7 +28,7 @@ import (
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
+func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -44,6 +46,10 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(standardProjectService, parser))
+
+	// Register resource conversion handlers
+	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convert_plants_to_greenery.NewHandler(resourceConversionService))
+	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convert_heat_to_temperature.NewHandler(resourceConversionService))
 
 	// Register skip action handler
 	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(gameService))

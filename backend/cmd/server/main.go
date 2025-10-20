@@ -102,7 +102,8 @@ func main() {
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager, effectSubscriber)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 
@@ -123,7 +124,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
@@ -135,7 +136,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)

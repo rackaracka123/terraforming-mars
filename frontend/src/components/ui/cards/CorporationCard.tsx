@@ -126,10 +126,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
   return (
     <div
-      className={`w-[400px] h-[380px] relative bg-[linear-gradient(135deg,rgba(30,50,80,0.6)_0%,rgba(20,40,70,0.5)_100%)] border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 ease-[ease] ${
+      className={`w-[400px] h-[380px] relative bg-[rgba(5,4,2,0.98)] border-2 rounded-xl p-3 cursor-pointer transition-all duration-300 ease-[ease] ${
         isSelected
-          ? "border-[rgba(74,144,226,0.8)] shadow-[0_0_18px_rgba(74,144,226,0.4)]"
-          : "border-white/20 hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_15px_rgba(100,150,255,0.2)] hover:border-[rgba(100,150,255,0.5)]"
+          ? "border-[#ffc107] shadow-[0_4px_20px_rgba(255,193,7,0.3),0_0_40px_rgba(255,193,7,0.2)]"
+          : "border-[rgba(255,193,7,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.4),0_0_15px_rgba(255,193,7,0.15)] hover:border-[rgba(255,193,7,0.5)]"
       }`}
       onClick={() => onSelect(corporation.id)}
     >
@@ -195,7 +195,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
       {showCheckbox && (
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-[2]">
           <div
-            className={`w-6 h-6 rounded-full bg-[#2a3142] border-2 border-[rgba(100,150,200,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#4a90e2] border-[#4a90e2]" : ""}`}
+            className={`w-6 h-6 rounded-full bg-[#1a1508] border-2 border-[rgba(255,193,7,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#3a2f0d] border-[#ffc107]" : ""}`}
           >
             {isSelected && (
               <span className="text-white text-sm font-bold">✓</span>

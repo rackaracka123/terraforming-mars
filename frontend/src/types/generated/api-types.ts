@@ -14,7 +14,7 @@ export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
 export const ActionTypeCardAction: ActionType = "card-action";
 /**
- * Standard Projects
+ * Standard Projects (M€-based)
  */
 export const ActionTypeSellPatents: ActionType = "sell-patents";
 export const ActionTypeBuildPowerPlant: ActionType = "build-power-plant";
@@ -22,6 +22,13 @@ export const ActionTypeLaunchAsteroid: ActionType = "launch-asteroid";
 export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
 export const ActionTypePlantGreenery: ActionType = "plant-greenery";
 export const ActionTypeBuildCity: ActionType = "build-city";
+/**
+ * Resource Conversion Actions
+ */
+export const ActionTypeConvertPlantsToGreenery: ActionType =
+  "convert-plants-to-greenery";
+export const ActionTypeConvertHeatToTemperature: ActionType =
+  "convert-heat-to-temperature";
 /**
  * SelectStartingCardAction represents selecting starting cards and corporation
  */
@@ -194,6 +201,30 @@ export interface ActionBuildCityRequest {
   hexPosition: HexPositionDto;
 }
 /**
+ * ActionConvertPlantsToGreeneryRequest contains the action data for initiating plant conversion
+ */
+export interface ActionConvertPlantsToGreeneryRequest {
+  type: ActionType;
+}
+/**
+ * ActionConvertHeatToTemperatureRequest contains the action data for converting heat to temperature
+ */
+export interface ActionConvertHeatToTemperatureRequest {
+  type: ActionType;
+}
+/**
+ * ConvertPlantsToGreeneryAction represents converting 8 plants to a greenery tile
+ */
+export interface ConvertPlantsToGreeneryAction {
+  type: ActionType;
+}
+/**
+ * ConvertHeatToTemperatureAction represents converting 8 heat to raise temperature
+ */
+export interface ConvertHeatToTemperatureAction {
+  type: ActionType;
+}
+/**
  * AdminCommandType represents different types of admin commands
  */
 export type AdminCommandType = string;
@@ -207,6 +238,8 @@ export const AdminCommandTypeStartTileSelection: AdminCommandType =
   "start-tile-selection";
 export const AdminCommandTypeSetCurrentTurn: AdminCommandType =
   "set-current-turn";
+export const AdminCommandTypeSetCorporation: AdminCommandType =
+  "set-corporation";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -255,12 +288,20 @@ export interface StartTileSelectionAdminCommand {
   tileType: string;
 }
 /**
+ * SetCorporationAdminCommand represents setting a player's corporation
+ */
+export interface SetCorporationAdminCommand {
+  playerId: string;
+  corporationId: string;
+}
+/**
  * CardPaymentDto represents how a player is paying for a card
  */
 export interface CardPaymentDto {
   credits: number /* int */; // MC spent
   steel: number /* int */; // Steel resources used (2 MC value each)
   titanium: number /* int */; // Titanium resources used (3 MC value each)
+  substitutes?: { [key: string]: number /* int */ }; // Payment substitutes (e.g., heat for Helion)
 }
 
 //////////
@@ -294,6 +335,26 @@ export const CardTypeActive: CardType = "active";
 export const CardTypeEvent: CardType = "event";
 export const CardTypeCorporation: CardType = "corporation";
 export const CardTypePrelude: CardType = "prelude";
+/**
+ * StandardProject represents the different types of standard projects
+ */
+export type StandardProject = string;
+/**
+ * Standard Projects (M€-based)
+ */
+export const StandardProjectSellPatents: StandardProject = "sell-patents";
+export const StandardProjectPowerPlant: StandardProject = "power-plant";
+export const StandardProjectAsteroid: StandardProject = "asteroid";
+export const StandardProjectAquifer: StandardProject = "aquifer";
+export const StandardProjectGreenery: StandardProject = "greenery";
+export const StandardProjectCity: StandardProject = "city";
+/**
+ * Resource Conversion Actions (resource-based, not M€)
+ */
+export const StandardProjectConvertPlantsToGreenery: StandardProject =
+  "convert-plants-to-greenery";
+export const StandardProjectConvertHeatToTemperature: StandardProject =
+  "convert-heat-to-temperature";
 /**
  * CardTag represents different card categories and attributes
  */
@@ -448,6 +509,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
+  affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
 }
@@ -476,6 +538,13 @@ export interface TriggerDto {
   condition?: ResourceTriggerConditionDto;
 }
 /**
+ * MinMaxValueDto represents a minimum and/or maximum value constraint for client consumption
+ */
+export interface MinMaxValueDto {
+  min?: number /* int */;
+  max?: number /* int */;
+}
+/**
  * ResourceTriggerConditionDto represents a resource trigger condition for client consumption
  */
 export interface ResourceTriggerConditionDto {
@@ -483,6 +552,8 @@ export interface ResourceTriggerConditionDto {
   location?: CardApplyLocation;
   affectedTags?: CardTag[];
   target?: TargetType;
+  requiredOriginalCost?: MinMaxValueDto;
+  requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };
 }
 /**
  * CardBehaviorDto represents a card behavior for client consumption
@@ -587,6 +658,13 @@ export interface ProductionDto {
   plants: number /* int */;
   energy: number /* int */;
   heat: number /* int */;
+}
+/**
+ * PaymentSubstituteDto represents an alternative resource that can be used as payment for credits
+ */
+export interface PaymentSubstituteDto {
+  resourceType: ResourceType;
+  conversionRate: number /* int */;
 }
 /**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
@@ -696,6 +774,10 @@ export interface PlayerDto {
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -722,6 +804,10 @@ export interface OtherPlayerDto {
    * Resource storage - maps card IDs to resource counts stored on those cards (public information)
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits (public information)
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)
@@ -903,7 +989,6 @@ export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeProductionPhaseStarted: MessageType =
   "production-phase-started";
 /**
- * New action-specific message types using composed constants
  * Standard project message types
  */
 export const MessageTypeActionSellPatents: MessageType =
@@ -918,6 +1003,13 @@ export const MessageTypeActionPlantGreenery: MessageType =
   "action.standard-project.plant-greenery";
 export const MessageTypeActionBuildCity: MessageType =
   "action.standard-project.build-city";
+/**
+ * Resource conversion message types
+ */
+export const MessageTypeActionConvertPlantsToGreenery: MessageType =
+  "action.resource-conversion.convert-plants-to-greenery";
+export const MessageTypeActionConvertHeatToTemperature: MessageType =
+  "action.resource-conversion.convert-heat-to-temperature";
 /**
  * Game management message types
  */

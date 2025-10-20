@@ -6,11 +6,21 @@ import (
 
 // ToCardPayment converts a CardPaymentDto to domain model CardPayment
 func ToCardPayment(dto CardPaymentDto) model.CardPayment {
-	return model.CardPayment{
+	payment := model.CardPayment{
 		Credits:  dto.Credits,
 		Steel:    dto.Steel,
 		Titanium: dto.Titanium,
 	}
+
+	// Convert substitutes map from string keys to ResourceType keys
+	if dto.Substitutes != nil && len(dto.Substitutes) > 0 {
+		payment.Substitutes = make(map[model.ResourceType]int, len(dto.Substitutes))
+		for resourceStr, amount := range dto.Substitutes {
+			payment.Substitutes[model.ResourceType(resourceStr)] = amount
+		}
+	}
+
+	return payment
 }
 
 // resolveCards is a helper function to resolve card IDs to Card objects for multiple players
@@ -124,6 +134,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection, resolvedCards),
 		ForcedFirstAction:        ToForcedFirstActionDto(player.ForcedFirstAction),
 		ResourceStorage:          player.ResourceStorage,
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes),
 	}
 }
 
@@ -172,6 +183,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 		SelectStartingCardsPhase: ToSelectStartingCardsOtherPlayerDto(player.SelectStartingCardsPhase),
 		ProductionPhase:          ToProductionPhaseOtherPlayerDto(player.ProductionPhase),
 		ResourceStorage:          player.ResourceStorage, // Resource storage is public information
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes),
 	}
 }
 
@@ -197,6 +209,27 @@ func ToProductionDto(production model.Production) ProductionDto {
 		Energy:   production.Energy,
 		Heat:     production.Heat,
 	}
+}
+
+// ToPaymentSubstituteDto converts model PaymentSubstitute to PaymentSubstituteDto
+func ToPaymentSubstituteDto(substitute model.PaymentSubstitute) PaymentSubstituteDto {
+	return PaymentSubstituteDto{
+		ResourceType:   ResourceType(substitute.ResourceType),
+		ConversionRate: substitute.ConversionRate,
+	}
+}
+
+// ToPaymentSubstituteDtoSlice converts a slice of model PaymentSubstitute to PaymentSubstituteDto slice
+func ToPaymentSubstituteDtoSlice(substitutes []model.PaymentSubstitute) []PaymentSubstituteDto {
+	if substitutes == nil {
+		return []PaymentSubstituteDto{}
+	}
+
+	result := make([]PaymentSubstituteDto, len(substitutes))
+	for i, substitute := range substitutes {
+		result[i] = ToPaymentSubstituteDto(substitute)
+	}
+	return result
 }
 
 // ToGlobalParametersDto converts model GlobalParameters to GlobalParametersDto
@@ -329,6 +362,19 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 	return result
 }
 
+// ToStandardProjectDtoSlice converts a slice of model StandardProjects to StandardProject slice
+func ToStandardProjectDtoSlice(projects []model.StandardProject) []StandardProject {
+	if projects == nil || len(projects) == 0 {
+		return nil
+	}
+
+	result := make([]StandardProject, len(projects))
+	for i, project := range projects {
+		result[i] = StandardProject(project)
+	}
+	return result
+}
+
 // ToSelectStartingCardsPhaseDto converts model SelectStartingCardsPhase to SelectStartingCardsPhaseDto
 func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolvedCards map[string]model.Card) *SelectStartingCardsPhaseDto {
 	if phase == nil {
@@ -405,13 +451,14 @@ func ToProductionPhaseOtherPlayerDto(phase *model.ProductionPhase) *ProductionPh
 // ToResourceConditionDto converts a model ResourceCondition to ResourceConditionDto
 func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
 	return ResourceConditionDto{
-		Type:              ResourceType(rc.Type),
-		Amount:            rc.Amount,
-		Target:            TargetType(rc.Target),
-		AffectedResources: rc.AffectedResources,
-		AffectedTags:      ToCardTagDtoSlice(rc.AffectedTags),
-		MaxTrigger:        rc.MaxTrigger,
-		Per:               ToPerConditionDto(rc.Per),
+		Type:                     ResourceType(rc.Type),
+		Amount:                   rc.Amount,
+		Target:                   TargetType(rc.Target),
+		AffectedResources:        rc.AffectedResources,
+		AffectedTags:             ToCardTagDtoSlice(rc.AffectedTags),
+		AffectedStandardProjects: ToStandardProjectDtoSlice(rc.AffectedStandardProjects),
+		MaxTrigger:               rc.MaxTrigger,
+		Per:                      ToPerConditionDto(rc.Per),
 	}
 }
 
@@ -485,6 +532,33 @@ func ToTriggerDtoSlice(triggers []model.Trigger) []TriggerDto {
 	return result
 }
 
+// ToMinMaxValueDto converts a model MinMaxValue pointer to MinMaxValueDto pointer
+func ToMinMaxValueDto(value *model.MinMaxValue) *MinMaxValueDto {
+	if value == nil {
+		return nil
+	}
+	return &MinMaxValueDto{
+		Min: value.Min,
+		Max: value.Max,
+	}
+}
+
+// ToResourceChangeMapDto converts a model RequiredResourceChange map to DTO map
+func ToResourceChangeMapDto(changeMap map[model.ResourceType]model.MinMaxValue) map[ResourceType]MinMaxValueDto {
+	if changeMap == nil {
+		return nil
+	}
+
+	result := make(map[ResourceType]MinMaxValueDto)
+	for k, v := range changeMap {
+		result[ResourceType(k)] = MinMaxValueDto{
+			Min: v.Min,
+			Max: v.Max,
+		}
+	}
+	return result
+}
+
 // ToResourceTriggerConditionDto converts a model ResourceTriggerCondition pointer to ResourceTriggerConditionDto pointer
 func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *ResourceTriggerConditionDto {
 	if condition == nil {
@@ -492,10 +566,12 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 	}
 
 	return &ResourceTriggerConditionDto{
-		Type:         TriggerType(condition.Type),
-		Location:     ToCardApplyLocationPointer(condition.Location),
-		AffectedTags: ToCardTagDtoSlice(condition.AffectedTags),
-		Target:       ToTargetTypePointer(condition.Target),
+		Type:                   TriggerType(condition.Type),
+		Location:               ToCardApplyLocationPointer(condition.Location),
+		AffectedTags:           ToCardTagDtoSlice(condition.AffectedTags),
+		Target:                 ToTargetTypePointer(condition.Target),
+		RequiredOriginalCost:   ToMinMaxValueDto(condition.RequiredOriginalCost),
+		RequiredResourceChange: ToResourceChangeMapDto(condition.RequiredResourceChange),
 	}
 }
 

@@ -318,6 +318,9 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("selected coordinate %s is not in available positions", coordinateKey)
 	}
 
+	// Check if this is a plant conversion (special handling for raising oxygen and TR)
+	isPlantConversion := pendingSelection.Source == "convert-plants-to-greenery"
+
 	// Place the tile using the private method
 	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
@@ -340,6 +343,52 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 				log.Info("🎯 Forced action marked as complete", zap.String("source", pendingSelection.Source))
 			}
 		}
+	}
+
+	// Handle plant conversion completion (raise oxygen and TR)
+	if isPlantConversion {
+		log.Info("🌱 Completing plant conversion - raising oxygen")
+
+		// Get game for oxygen check
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game for oxygen update", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		// Raise oxygen if not already maxed
+		oxygenRaised := false
+		if game.GlobalParameters.Oxygen < model.MaxOxygen {
+			newParams := game.GlobalParameters
+			newParams.Oxygen++
+
+			if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
+				log.Error("Failed to raise oxygen", zap.Error(err))
+				return fmt.Errorf("failed to raise oxygen: %w", err)
+			}
+
+			oxygenRaised = true
+			log.Info("🌍 Oxygen raised", zap.Int("new_oxygen", newParams.Oxygen))
+		}
+
+		// Award TR if oxygen was raised
+		if oxygenRaised {
+			player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + 1
+			if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update terraform rating", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("⭐ Terraform rating increased", zap.Int("new_tr", newTR))
+		}
+
+		log.Info("✅ Plant conversion completed successfully")
 	}
 
 	// Clear the current pending tile selection

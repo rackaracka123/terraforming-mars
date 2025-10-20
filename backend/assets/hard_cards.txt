@@ -4,5 +4,4 @@ Phobos Space Haven: Reserved area on map, needs some tagging on where allowed to
 Research Outpost: Can't be placed next to any other object
 Water Import From Europa: Also allow titanium as a resource to pay for water
 Noctis City: Pre-defined area on map, needs some tagging on where allowed to be placed
-Search For Life: Needs to draw one card, if microbe, put resource on card
 Law Suit: Needs to allow "stealing" resources from other players (and then placing the card in their played cards area)

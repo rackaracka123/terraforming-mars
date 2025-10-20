@@ -10340,7 +10340,24 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "card-played",
+              "target": "self-player",
+              "requiredOriginalCost": {
+                "min": 20
+              }
+            }
+          },
+          {
+            "type": "auto",
+            "condition": {
+              "type": "standard-project-played",
+              "target": "self-player",
+              "requiredOriginalCost": {
+                "min": 20
+              }
+            }
           }
         ],
         "outputs": [
@@ -10360,7 +10377,7 @@
         "outputs": [
           {
             "type": "credits",
-            "amount": 4,
+            "amount": 57,
             "target": "self-player"
           }
         ]
@@ -10401,6 +10418,26 @@
             "target": "self-player"
           }
         ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "discount",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "plants"
+            ],
+            "affectedStandardProjects": [
+              "convert-plants-to-greenery"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -10431,6 +10468,14 @@
             "type": "heat-production",
             "amount": 3,
             "target": "self-player"
+          },
+          {
+            "type": "payment-substitute",
+            "amount": 1,
+            "target": "self-player",
+            "affectedResources": [
+              "heat"
+            ]
           }
         ]
       }

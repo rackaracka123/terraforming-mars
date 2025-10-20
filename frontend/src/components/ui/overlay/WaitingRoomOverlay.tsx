@@ -29,12 +29,19 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
 
   return (
     <>
-      {/* Translucent overlay over Mars */}
-      <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/60 backdrop-blur-sm z-10" />
-
       {/* Waiting room controls */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 min-w-[400px] max-w-[600px] max-sm:min-w-[320px] max-sm:mx-5">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] min-w-[400px] max-w-[600px] max-sm:min-w-[320px] max-sm:mx-5 animate-[modalFadeIn_0.3s_ease-out]">
         <div className="bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] p-10 backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_40px_rgba(30,60,150,0.3)] text-center max-sm:p-6">
+          <style>{`
+            @keyframes modalFadeIn {
+              0% {
+                opacity: 0;
+              }
+              100% {
+                opacity: 1;
+              }
+            }
+          `}</style>
           <div>
             <h2 className="font-orbitron text-white text-[28px] m-0 mb-4 text-shadow-glow font-bold tracking-wider max-sm:text-[22px]">
               Waiting for players to join...

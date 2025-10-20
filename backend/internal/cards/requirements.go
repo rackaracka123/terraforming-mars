@@ -314,8 +314,8 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		allowSteel := rv.cardHasTag(card, model.TagBuilding)
 		allowTitanium := rv.cardHasTag(card, model.TagSpace)
 
-		// Validate payment format and coverage
-		if err := payment.CoversCardCost(card.Cost, allowSteel, allowTitanium); err != nil {
+		// Validate payment format and coverage (including payment substitutes)
+		if err := payment.CoversCardCost(card.Cost, allowSteel, allowTitanium, player.PaymentSubstitutes); err != nil {
 			// Calculate minimum alternative resources for better error messages
 			minSteel, minTitanium := model.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
 
@@ -350,9 +350,43 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	if totalCosts.Energy > 0 && player.Resources.Energy < totalCosts.Energy {
 		return fmt.Errorf("insufficient energy for card effects: need %d, have %d", totalCosts.Energy, player.Resources.Energy)
 	}
-	if totalCosts.Heat > 0 && player.Resources.Heat < totalCosts.Heat {
-		return fmt.Errorf("insufficient heat for card effects: need %d, have %d", totalCosts.Heat, player.Resources.Heat)
+
+	// Check payment substitutes don't interfere with behavioral costs
+	if payment.Substitutes != nil {
+		for resourceType, paymentAmount := range payment.Substitutes {
+			var totalUsed int
+			var available int
+
+			switch resourceType {
+			case model.ResourceHeat:
+				totalUsed = paymentAmount + totalCosts.Heat
+				available = player.Resources.Heat
+			case model.ResourceEnergy:
+				totalUsed = paymentAmount + totalCosts.Energy
+				available = player.Resources.Energy
+			case model.ResourcePlants:
+				totalUsed = paymentAmount + totalCosts.Plants
+				available = player.Resources.Plants
+			}
+
+			if totalUsed > available {
+				return fmt.Errorf("insufficient %s: need %d for payment + %d for card effects = %d total, have %d",
+					resourceType, paymentAmount, totalUsed-paymentAmount, totalUsed, available)
+			}
+		}
 	}
+
+	if totalCosts.Heat > 0 {
+		heatUsedForPayment := 0
+		if payment.Substitutes != nil {
+			heatUsedForPayment = payment.Substitutes[model.ResourceHeat]
+		}
+		if player.Resources.Heat-heatUsedForPayment < totalCosts.Heat {
+			return fmt.Errorf("insufficient heat for card effects: need %d after payment, have %d total (payment uses %d)",
+				totalCosts.Heat, player.Resources.Heat, heatUsedForPayment)
+		}
+	}
+
 	// Note: Credits check includes both payment and behavioral costs
 	if totalCosts.Credits > 0 && player.Resources.Credits-payment.Credits < totalCosts.Credits {
 		return fmt.Errorf("insufficient credits for card effects: need %d after payment, have %d total (payment uses %d)",

@@ -72,6 +72,9 @@ type PlayerRepository interface {
 
 	// Resource storage methods
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
+
+	// Payment substitute methods
+	UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []model.PaymentSubstitute) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -967,6 +970,31 @@ func (r *PlayerRepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID
 	}
 
 	log.Debug("Player resource storage updated", zap.Int("storage_entries", len(player.ResourceStorage)))
+
+	return nil
+}
+
+// UpdatePaymentSubstitutes updates a player's payment substitutes list
+func (r *PlayerRepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []model.PaymentSubstitute) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Deep copy the substitutes slice to prevent external mutation
+	if substitutes == nil {
+		player.PaymentSubstitutes = []model.PaymentSubstitute{}
+	} else {
+		player.PaymentSubstitutes = make([]model.PaymentSubstitute, len(substitutes))
+		copy(player.PaymentSubstitutes, substitutes)
+	}
+
+	log.Debug("Player payment substitutes updated", zap.Int("substitutes_count", len(player.PaymentSubstitutes)))
 
 	return nil
 }
