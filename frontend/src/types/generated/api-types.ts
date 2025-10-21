@@ -551,6 +551,7 @@ export interface ResourceTriggerConditionDto {
   type: TriggerType;
   location?: CardApplyLocation;
   affectedTags?: CardTag[];
+  affectedResources?: string[]; // Resource types that trigger this effect (for placement-bonus-gained)
   target?: TargetType;
   requiredOriginalCost?: MinMaxValueDto;
   requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };

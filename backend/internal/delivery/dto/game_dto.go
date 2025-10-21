@@ -238,6 +238,7 @@ type ResourceTriggerConditionDto struct {
 	Type                   TriggerType                     `json:"type" ts:"TriggerType"`
 	Location               *CardApplyLocation              `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
 	AffectedTags           []CardTag                       `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedResources      []string                        `json:"affectedResources,omitempty" ts:"string[] | undefined"` // Resource types that trigger this effect (for placement-bonus-gained)
 	Target                 *TargetType                     `json:"target,omitempty" ts:"TargetType | undefined"`
 	RequiredOriginalCost   *MinMaxValueDto                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValueDto | undefined"`
 	RequiredResourceChange map[ResourceType]MinMaxValueDto `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValueDto> | undefined"`
