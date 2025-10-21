@@ -213,13 +213,19 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 		subID := events.Subscribe(ces.eventBus, func(event repository.PlacementBonusGainedEvent) {
 			// Only trigger if it's this player's game
 			if event.GameID == gameID {
-				// Check if this resource type matches AffectedResources filter
+				// Check if any resource type in the event matches AffectedResources filter
 				trigger := behavior.Triggers[0]
 				if trigger.Condition != nil && trigger.Condition.AffectedResources != nil && len(trigger.Condition.AffectedResources) > 0 {
 					shouldTrigger := false
-					for _, affectedResource := range trigger.Condition.AffectedResources {
-						if event.ResourceType == affectedResource {
-							shouldTrigger = true
+					// Check if any of the gained resources match the affected resources
+					for resourceType := range event.Resources {
+						for _, affectedResource := range trigger.Condition.AffectedResources {
+							if resourceType == affectedResource {
+								shouldTrigger = true
+								break
+							}
+						}
+						if shouldTrigger {
 							break
 						}
 					}

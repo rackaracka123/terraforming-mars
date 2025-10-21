@@ -362,10 +362,18 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 	var totalCreditsBonus int
 	var bonusesAwarded []string
 
+	// Collect all placement bonuses for event publishing
+	placementBonuses := make(map[string]int)
+
 	// Award tile bonuses (steel, titanium, plants, card draw)
 	for _, bonus := range placedTile.Bonuses {
-		if description, applied := s.applyTileBonus(ctx, gameID, playerID, coordinate, &newResources, bonus, log); applied {
+		description, applied, resourceType, amount := s.applyTileBonus(ctx, gameID, playerID, coordinate, &newResources, bonus, log)
+		if applied {
 			bonusesAwarded = append(bonusesAwarded, description)
+			// Collect bonus for event
+			if resourceType != "" {
+				placementBonuses[resourceType] += amount
+			}
 		}
 	}
 
@@ -391,6 +399,22 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 
 		log.Info("✅ All tile placement bonuses awarded",
 			zap.Strings("bonuses", bonusesAwarded))
+	}
+
+	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
+	if len(placementBonuses) > 0 && s.eventBus != nil {
+		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			Resources: placementBonuses,
+			Q:         coordinate.Q,
+			R:         coordinate.R,
+			S:         coordinate.S,
+			Timestamp: time.Now(),
+		})
+
+		log.Debug("📢 Published PlacementBonusGainedEvent",
+			zap.Any("resources", placementBonuses))
 	}
 
 	return nil
@@ -423,8 +447,8 @@ func (s *ResourceConversionServiceImpl) calculateOceanAdjacencyBonus(game model.
 }
 
 // applyTileBonus applies a single tile bonus to player resources
-// Returns a description of the bonus and whether it was successfully applied
-func (s *ResourceConversionServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool) {
+// Returns: description, applied (bool), resourceType, amount
+func (s *ResourceConversionServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool, string, int) {
 	var resourceName string
 
 	switch bonus.Type {
@@ -445,43 +469,16 @@ func (s *ResourceConversionServiceImpl) applyTileBonus(ctx context.Context, game
 		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
 			zap.String("type", "card-draw"),
 			zap.Int("amount", bonus.Amount))
-		// Publish event for card draw bonus
-		if s.eventBus != nil {
-			events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
-				GameID:       gameID,
-				PlayerID:     playerID,
-				ResourceType: string(model.ResourceCardDraw),
-				Amount:       bonus.Amount,
-				Q:            coordinate.Q,
-				R:            coordinate.R,
-				S:            coordinate.S,
-				Timestamp:    time.Now(),
-			})
-		}
-		return fmt.Sprintf("+%d cards", bonus.Amount), true
+		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(model.ResourceCardDraw), bonus.Amount
 
 	default:
 		// Unknown bonus type, skip it
-		return "", false
+		return "", false, "", 0
 	}
 
 	log.Info("🎁 Tile bonus awarded",
 		zap.String("type", resourceName),
 		zap.Int("amount", bonus.Amount))
 
-	// Publish PlacementBonusGainedEvent for passive card effects (e.g., Mining Guild)
-	if s.eventBus != nil {
-		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
-			GameID:       gameID,
-			PlayerID:     playerID,
-			ResourceType: string(bonus.Type),
-			Amount:       bonus.Amount,
-			Q:            coordinate.Q,
-			R:            coordinate.R,
-			S:            coordinate.S,
-			Timestamp:    time.Now(),
-		})
-	}
-
-	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
+	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true, string(bonus.Type), bonus.Amount
 }

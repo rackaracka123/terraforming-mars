@@ -141,7 +141,7 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 		playerRepo.UpdateResources(ctx, game.ID, player.ID, player.Resources)
 
 		// Initiate plant conversion and select the steel bonus tile
-		err = standardProjectService.InitiatePlantConversion(ctx, game.ID, player.ID)
+		err = standardProjectService.PlantGreenery(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 
 		err = playerService.OnTileSelected(ctx, game.ID, player.ID, steelBonusTile.Coordinates)
@@ -164,7 +164,7 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 		playerRepo.UpdateResources(ctx, game.ID, player.ID, player.Resources)
 
 		// Initiate city placement via standard project
-		err = standardProjectService.InitiateCityPlacement(ctx, game.ID, player.ID)
+		err = standardProjectService.BuildCity(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 
 		err = playerService.OnTileSelected(ctx, game.ID, player.ID, titaniumBonusTile.Coordinates)
@@ -187,7 +187,7 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 		playerRepo.UpdateResources(ctx, game.ID, player.ID, player.Resources)
 
 		// Initiate plant conversion and select the plants bonus tile
-		err = standardProjectService.InitiatePlantConversion(ctx, game.ID, player.ID)
+		err = standardProjectService.PlantGreenery(ctx, game.ID, player.ID)
 		require.NoError(t, err)
 
 		err = playerService.OnTileSelected(ctx, game.ID, player.ID, plantsBonusTile.Coordinates)
