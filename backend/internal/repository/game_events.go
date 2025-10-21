@@ -66,3 +66,15 @@ type GenerationAdvancedEvent struct {
 	NewGeneration int
 	Timestamp     time.Time
 }
+
+// PlacementBonusGainedEvent is published when a player gains resources from tile placement bonuses
+type PlacementBonusGainedEvent struct {
+	GameID       string
+	PlayerID     string
+	ResourceType string // steel, titanium, plants, card-draw
+	Amount       int
+	Q            int // Hex coordinate Q
+	R            int // Hex coordinate R
+	S            int // Hex coordinate S
+	Timestamp    time.Time
+}

@@ -14,6 +14,7 @@ const (
 	TriggerStandardProjectPlayed TriggerType = "standard-project-played"
 	TriggerTagPlayed             TriggerType = "tag-played"
 	TriggerProductionIncreased   TriggerType = "production-increased"
+	TriggerPlacementBonusGained  TriggerType = "placement-bonus-gained"
 	TriggerAlwaysActive          TriggerType = "always-active"
 )
 
@@ -373,6 +374,7 @@ type ResourceTriggerCondition struct {
 	Type                   TriggerType                  `json:"type" ts:"TriggerType"`                                                               // What triggers this (onCityPlaced, etc.)
 	Location               *CardApplyLocation           `json:"location,omitempty" ts:"CardApplyLocation | undefined"`                               // Where the trigger applies (mars, anywhere)
 	AffectedTags           []CardTag                    `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                                   // Tags that trigger this effect
+	AffectedResources      []string                     `json:"affectedResources,omitempty" ts:"string[] | undefined"`                               // Resource types that trigger this effect (for placement-bonus-gained)
 	Target                 *TargetType                  `json:"target,omitempty" ts:"TargetType | undefined"`                                        // Whose actions trigger this (self-player, any-player, etc.)
 	RequiredOriginalCost   *MinMaxValue                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValue | undefined"`                         // Original credit cost requirement (only for card-played/standard-project-played triggers)
 	RequiredResourceChange map[ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValue> | undefined"` // Min/max requirements for actual resources spent

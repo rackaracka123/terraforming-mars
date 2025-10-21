@@ -64,11 +64,11 @@ func NewTestServer(port int) (*TestServer, error) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, sessionManager)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
 
 	// Register card-specific listeners (removed since we're using mock cards)

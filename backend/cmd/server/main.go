@@ -97,12 +97,12 @@ func main() {
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager, effectSubscriber)
 
 	log.Info("Services initialized with new architecture and reconnection system")
