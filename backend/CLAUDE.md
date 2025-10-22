@@ -6,6 +6,17 @@ This document provides guidance for working with the backend API server.
 
 Go-based REST and WebSocket API server implementing the Terraforming Mars board game logic. Provides real-time multiplayer game state synchronization and enforces game rules.
 
+## Server Restart Policy
+
+**CRITICAL**: NEVER restart the backend server yourself. ALWAYS ask the user if you think a restart is needed.
+
+- **Normal Mode**: User runs `make backend` or `make run` with **Air hot reload** - server automatically restarts on code changes
+- **Watch Mode Active**: Code changes (Go files, JSON assets) trigger instant automatic reload
+- **No Manual Restarts**: You should NEVER execute restart commands
+- **If Restart Seems Needed**: Ask user "Should I restart the backend?" (they'll confirm or explain why it's not needed)
+
+The user's development environment handles all server lifecycle management. Your role is to write code, not manage processes.
+
 ## Architecture
 
 ### Clean Architecture Layers
