@@ -49,6 +49,7 @@ type CardPlayedEvent struct {
 	PlayerID  string
 	CardID    string
 	CardName  string
+	CardType  string // Type of card played (event, automated, active, corporation, prelude)
 	Timestamp time.Time
 }
 

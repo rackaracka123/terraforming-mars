@@ -60,6 +60,11 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
                     trigger.condition?.affectedResources &&
                     trigger.condition.affectedResources.length > 0;
 
+                  // Check if trigger has condition with affectedCardTypes (e.g., card-played with event filter)
+                  const hasAffectedCardTypes =
+                    trigger.condition?.affectedCardTypes &&
+                    trigger.condition.affectedCardTypes.length > 0;
+
                   if (hasAffectedResources) {
                     // Render icons for affected resources (e.g., steel / titanium)
                     return (
@@ -76,6 +81,37 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
                                 </span>
                               )}
                               <GameIcon iconType={resource} size="small" />
+                            </React.Fragment>
+                          ),
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (hasAffectedCardTypes) {
+                    // Render icons/text for affected card types (e.g., event card icon)
+                    return (
+                      <div
+                        key={triggerIndex}
+                        className="flex gap-[2px] items-center"
+                      >
+                        {trigger.condition.affectedCardTypes.map(
+                          (cardType: string, typeIndex: number) => (
+                            <React.Fragment
+                              key={`${triggerIndex}-${typeIndex}`}
+                            >
+                              {typeIndex > 0 && (
+                                <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">
+                                  /
+                                </span>
+                              )}
+                              {cardType === "event" ? (
+                                <GameIcon iconType="event" size="small" />
+                              ) : (
+                                <span className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
+                                  {cardType}
+                                </span>
+                              )}
                             </React.Fragment>
                           ),
                         )}

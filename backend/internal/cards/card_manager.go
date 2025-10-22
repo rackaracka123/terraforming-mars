@@ -166,8 +166,8 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 		log.Debug("💰 Card cost paid", logFields...)
 	}
 
-	// STEP 2: Move card from hand to played cards
-	err = cm.playerRepo.RemoveCardFromHand(ctx, gameID, playerID, cardID)
+	// STEP 2: Move card from hand to played cards (publishes CardPlayedEvent)
+	err = cm.playerRepo.RemoveCardFromHand(ctx, gameID, playerID, cardID, card.Name, card.Type)
 	if err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}

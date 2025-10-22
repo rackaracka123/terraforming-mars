@@ -10514,7 +10514,13 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "affectedCardTypes": [
+                "event"
+              ],
+              "type": "card-played"
+            }
           }
         ],
         "outputs": [

@@ -32,7 +32,7 @@ type PlayerRepository interface {
 	UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
-	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID string) error
+	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType model.CardType) error
 
 	UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *model.SelectStartingCardsPhase) error
 	SetStartingCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
@@ -572,7 +572,7 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 }
 
 // PlayCard moves a card from hand to played cards
-func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID string) error {
+func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType model.CardType) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -600,7 +600,19 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 	// Add to played cards
 	player.PlayedCards = append(player.PlayedCards, cardID)
 
-	log.Info("Card played", zap.String("card_id", cardID))
+	// Publish CardPlayedEvent
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, CardPlayedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			CardID:    cardID,
+			CardName:  cardName,
+			CardType:  string(cardType),
+			Timestamp: time.Now(),
+		})
+	}
+
+	log.Info("🃏 Card played", zap.String("card_id", cardID), zap.String("card_name", cardName), zap.String("card_type", string(cardType)))
 
 	return nil
 }
