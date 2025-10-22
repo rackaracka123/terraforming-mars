@@ -42,7 +42,7 @@ func TestGameplayLogic(t *testing.T) {
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager)
+	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
 	ctx := context.Background()
 

@@ -46,9 +46,11 @@ const BehaviorContainer: React.FC<BehaviorContainerProps> = ({
         "bg-white/[0.08] border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
     };
 
-    // Manual actions should shrink to fit content, others take full width
+    // Manual actions and triggered effects should shrink to fit content, others take full width
     const widthClass =
-      type === "manual-action" ? "w-fit" : "w-[calc(100%-20px)]";
+      type === "manual-action" || type === "triggered-effect"
+        ? "w-fit"
+        : "w-[calc(100%-20px)]";
 
     return (
       <div

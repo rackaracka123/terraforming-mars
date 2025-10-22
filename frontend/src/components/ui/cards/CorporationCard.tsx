@@ -74,10 +74,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     // Regular resource display with icon and number
     return (
       <div className="inline-flex items-center gap-2">
-        <GameIcon iconType={resourceType} size="large" />
         <span className="text-white font-bold text-lg [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)]">
           {amount}
         </span>
+        <GameIcon iconType={resourceType} size="large" />
       </div>
     );
   };

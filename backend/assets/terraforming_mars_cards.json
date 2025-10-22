@@ -10625,7 +10625,12 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto",
+            "condition": {
+              "type": "placement-bonus-gained",
+              "affectedResources": ["steel", "titanium"],
+              "target": "self-player"
+            }
           }
         ],
         "outputs": [

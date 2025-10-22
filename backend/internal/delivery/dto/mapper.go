@@ -569,6 +569,7 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 		Type:                   TriggerType(condition.Type),
 		Location:               ToCardApplyLocationPointer(condition.Location),
 		AffectedTags:           ToCardTagDtoSlice(condition.AffectedTags),
+		AffectedResources:      condition.AffectedResources,
 		Target:                 ToTargetTypePointer(condition.Target),
 		RequiredOriginalCost:   ToMinMaxValueDto(condition.RequiredOriginalCost),
 		RequiredResourceChange: ToResourceChangeMapDto(condition.RequiredResourceChange),
