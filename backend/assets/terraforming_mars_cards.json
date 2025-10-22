@@ -9714,6 +9714,20 @@
       {
         "triggers": [
           {
+            "type": "auto"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 57,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
             "type": "auto",
             "condition": {
               "type": "card-played",
@@ -9738,20 +9752,6 @@
           {
             "type": "credits",
             "amount": 4,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 57,
             "target": "self-player"
           }
         ]

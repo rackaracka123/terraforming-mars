@@ -13,6 +13,8 @@ import BehaviorContainer from "./components/BehaviorContainer.tsx";
 import ManualActionLayout from "./components/ManualActionLayout.tsx";
 import TriggeredEffectLayout from "./components/TriggeredEffectLayout.tsx";
 import ImmediateResourceLayout from "./components/ImmediateResourceLayout.tsx";
+import DiscountLayout from "./components/DiscountLayout.tsx";
+import PaymentSubstituteLayout from "./components/PaymentSubstituteLayout.tsx";
 import BehaviorIcon from "./components/BehaviorIcon.tsx";
 
 const BehaviorSection: React.FC<BehaviorSectionProps> = ({
@@ -119,7 +121,6 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
       case "immediate-production":
       case "immediate-effect":
       case "auto-no-background":
-      case "discount":
         content = (
           <ImmediateResourceLayout
             behavior={behavior}
@@ -132,6 +133,14 @@ const BehaviorSection: React.FC<BehaviorSectionProps> = ({
             renderIcon={renderIcon}
           />
         );
+        break;
+
+      case "discount":
+        content = <DiscountLayout behavior={behavior} />;
+        break;
+
+      case "payment-substitute":
+        content = <PaymentSubstituteLayout behavior={behavior} />;
         break;
     }
 

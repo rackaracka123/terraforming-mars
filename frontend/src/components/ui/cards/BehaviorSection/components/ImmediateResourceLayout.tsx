@@ -675,7 +675,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
       output.type?.includes("production") ||
       output.isProduction === true,
   );
-  // Filter out card resources from non-production outputs (they'll be rendered via consolidatedCards)
+  // Filter out card resources from non-production outputs (they'll be rendered separately)
   const nonProductionOutputs = behavior.outputs.filter(
     (output: any) =>
       !(

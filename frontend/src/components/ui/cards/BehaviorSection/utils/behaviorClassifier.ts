@@ -19,8 +19,18 @@ export const classifyBehaviors = (
       behavior.outputs &&
       behavior.outputs.some((output: any) => output.type === "discount");
 
+    const hasPaymentSubstitute =
+      behavior.outputs &&
+      behavior.outputs.some(
+        (output: any) => output.type === "payment-substitute",
+      );
+
     if (hasDiscount) {
       return { behavior, type: "discount" };
+    }
+
+    if (hasPaymentSubstitute) {
+      return { behavior, type: "payment-substitute" };
     }
 
     if (triggerType === "manual") {

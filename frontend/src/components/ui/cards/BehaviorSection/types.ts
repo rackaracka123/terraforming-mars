@@ -16,7 +16,8 @@ export interface ClassifiedBehavior {
     | "immediate-effect"
     | "triggered-effect"
     | "auto-no-background"
-    | "discount";
+    | "discount"
+    | "payment-substitute";
 }
 
 export interface LayoutRequirement {
