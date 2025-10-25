@@ -362,6 +362,19 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 	return result
 }
 
+// ToCardTypeDtoSlice converts a slice of model CardType to CardType slice
+func ToCardTypeDtoSlice(cardTypes []model.CardType) []CardType {
+	if cardTypes == nil || len(cardTypes) == 0 {
+		return nil
+	}
+
+	result := make([]CardType, len(cardTypes))
+	for i, cardType := range cardTypes {
+		result[i] = CardType(cardType)
+	}
+	return result
+}
+
 // ToStandardProjectDtoSlice converts a slice of model StandardProjects to StandardProject slice
 func ToStandardProjectDtoSlice(projects []model.StandardProject) []StandardProject {
 	if projects == nil || len(projects) == 0 {
@@ -570,6 +583,7 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 		Location:               ToCardApplyLocationPointer(condition.Location),
 		AffectedTags:           ToCardTagDtoSlice(condition.AffectedTags),
 		AffectedResources:      condition.AffectedResources,
+		AffectedCardTypes:      ToCardTypeDtoSlice(condition.AffectedCardTypes),
 		Target:                 ToTargetTypePointer(condition.Target),
 		RequiredOriginalCost:   ToMinMaxValueDto(condition.RequiredOriginalCost),
 		RequiredResourceChange: ToResourceChangeMapDto(condition.RequiredResourceChange),

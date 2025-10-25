@@ -6,6 +6,17 @@ This document provides guidance for working with the React frontend application.
 
 React-based frontend with 3D Mars visualization using Three.js and React Three Fiber. Provides real-time multiplayer game interface with WebSocket state synchronization from Go backend.
 
+## Development Server Policy
+
+**CRITICAL**: NEVER restart the frontend dev server yourself. ALWAYS ask the user if you think a restart is needed.
+
+- **Normal Mode**: User runs `make frontend` or `make run` with **Vite hot reload** - frontend automatically reloads on code changes
+- **Hot Module Replacement Active**: React components, CSS, and TypeScript changes reload instantly in browser
+- **No Manual Restarts**: You should NEVER execute restart commands
+- **If Restart Seems Needed**: Ask user "Should I restart the frontend?" (they'll confirm or explain why it's not needed)
+
+The user's development environment handles all dev server lifecycle management. Your role is to write code, not manage processes.
+
 ## Architecture
 
 ### Application Structure

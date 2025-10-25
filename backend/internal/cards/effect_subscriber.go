@@ -238,6 +238,35 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 		})
 		return subID, nil
 
+	case model.TriggerCardPlayed:
+		// Subscribe to CardPlayedEvent for card-played triggers
+		subID := events.Subscribe(ces.eventBus, func(event repository.CardPlayedEvent) {
+			// Only trigger if it's this player's game
+			if event.GameID == gameID {
+				// Get trigger condition from behavior
+				trigger := behavior.Triggers[0]
+
+				// Check if card type matches affectedCardTypes filter
+				if trigger.Condition != nil && trigger.Condition.AffectedCardTypes != nil && len(trigger.Condition.AffectedCardTypes) > 0 {
+					shouldTrigger := false
+					for _, affectedType := range trigger.Condition.AffectedCardTypes {
+						if string(affectedType) == event.CardType {
+							shouldTrigger = true
+							break
+						}
+					}
+
+					if shouldTrigger {
+						ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
+					}
+				} else {
+					// No filter, trigger on any card played
+					ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
+				}
+			}
+		})
+		return subID, nil
+
 	default:
 		log.Debug("Trigger type not yet supported for event subscription",
 			zap.String("trigger_type", string(triggerType)),
@@ -265,6 +294,8 @@ func (ces *CardEffectSubscriberImpl) executePassiveEffect(
 	case repository.TilePlacedEvent:
 		eventPlayerID = e.PlayerID
 	case repository.PlacementBonusGainedEvent:
+		eventPlayerID = e.PlayerID
+	case repository.CardPlayedEvent:
 		eventPlayerID = e.PlayerID
 	default:
 		// For global events (temperature, oxygen, etc.) the event has no specific player

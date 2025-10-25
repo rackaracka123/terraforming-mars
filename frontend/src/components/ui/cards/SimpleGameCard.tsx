@@ -119,16 +119,26 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         className={`absolute top-0 left-0 right-0 bottom-0 rounded-[5px] border-2 pointer-events-none z-[1] ${cardType && borderColors[cardType] ? borderColors[cardType] : "border-[#4a90e2]"}`}
       ></div>
       {/* Tags at the very top, peeking out */}
-      {card.tags && card.tags.length > 0 && (
-        <div className="absolute -top-[15px] right-5 flex gap-0.5 z-[3] items-center justify-center max-md:-top-3 max-md:right-4">
-          {card.tags.slice(0, 3).map((tag, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-            >
-              <GameIcon iconType={tag.toLowerCase()} size="medium" />
+      {((card.tags && card.tags.length > 0) || card.type === "event") && (
+        <div className="absolute -top-[15px] right-0 flex gap-0.5 z-[3] items-center justify-center max-md:-top-3 max-md:right-2">
+          {/* Show other tags first (limit total to 3 including event tag) */}
+          {card.tags &&
+            card.tags
+              .slice(0, card.type === "event" ? 2 : 3)
+              .map((tag, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+                >
+                  <GameIcon iconType={tag.toLowerCase()} size="medium" />
+                </div>
+              ))}
+          {/* Show event tag icon last (right-most) if card type is event */}
+          {card.type === "event" && (
+            <div className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]">
+              <GameIcon iconType="event" size="medium" />
             </div>
-          ))}
+          )}
         </div>
       )}
 
