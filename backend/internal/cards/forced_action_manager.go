@@ -128,7 +128,7 @@ func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, 
 	var forcedBehavior *model.CardBehavior
 	for _, behavior := range corporation.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 				forcedBehavior = &behavior
 				break
 			}

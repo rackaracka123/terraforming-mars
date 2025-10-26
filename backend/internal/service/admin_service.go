@@ -448,20 +448,17 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	// Extract and apply payment substitutes from corporation behaviors
 	paymentSubstitutes := []model.PaymentSubstitute{}
 	for _, behavior := range corporationCard.Behaviors {
-		// Look for auto-trigger behaviors without conditions (starting bonuses)
-		hasAutoTrigger := false
-		hasCondition := false
+		// Look for corporation starting bonuses (auto-corporation-start trigger)
+		isStartingBonus := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto {
-				hasAutoTrigger = true
-				if trigger.Condition != nil {
-					hasCondition = true
-				}
+			if trigger.Type == model.ResourceTriggerAutoCorporationStart {
+				isStartingBonus = true
+				break
 			}
 		}
 
-		// Only process auto behaviors without conditions (starting bonuses)
-		if !hasAutoTrigger || hasCondition {
+		// Only process starting bonuses
+		if !isStartingBonus {
 			continue
 		}
 
@@ -614,7 +611,7 @@ func (s *AdminServiceImpl) extractForcedFirstAction(corporation *model.Card) *mo
 	for _, behavior := range corporation.Behaviors {
 		// Check if this behavior has a forced first action trigger
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 				// Determine action type from outputs
 				actionType := s.determineActionType(behavior.Outputs)
 				description := s.generateForcedActionDescription(behavior.Outputs)

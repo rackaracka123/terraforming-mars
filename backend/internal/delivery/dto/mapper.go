@@ -687,7 +687,7 @@ func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 		// Check if this is an auto-first-action that has already been played
 		isAutoFirstAction := false
 		if len(action.Behavior.Triggers) > 0 {
-			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoFirstAction
+			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoCorporationFirstAction
 		}
 
 		// Skip auto-first-actions that have been used

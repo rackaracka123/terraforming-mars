@@ -476,8 +476,10 @@ export const TriggerTilePlaced: TriggerType = "tile-placed";
 export type ResourceTriggerType = string;
 export const ResourceTriggerManual: ResourceTriggerType = "manual";
 export const ResourceTriggerAuto: ResourceTriggerType = "auto";
-export const ResourceTriggerAutoFirstAction: ResourceTriggerType =
-  "auto-first-action";
+export const ResourceTriggerAutoCorporationFirstAction: ResourceTriggerType =
+  "auto-corporation-first-action";
+export const ResourceTriggerAutoCorporationStart: ResourceTriggerType =
+  "auto-corporation-start";
 /**
  * ResourceSet represents a collection of resources and their amounts
  */

@@ -168,9 +168,10 @@ const (
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual          ResourceTriggerType = "manual"
-	ResourceTriggerAuto            ResourceTriggerType = "auto"
-	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action"
+	ResourceTriggerManual                     ResourceTriggerType = "manual"
+	ResourceTriggerAuto                       ResourceTriggerType = "auto"
+	ResourceTriggerAutoCorporationFirstAction ResourceTriggerType = "auto-corporation-first-action"
+	ResourceTriggerAutoCorporationStart       ResourceTriggerType = "auto-corporation-start"
 )
 
 // ResourceSet represents a collection of resources and their amounts

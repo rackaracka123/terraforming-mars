@@ -71,9 +71,30 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 
 		trigger := behavior.Triggers[0] // Get first trigger
 
-		// Skip non-auto triggers (manual actions)
+		// Skip non-auto triggers (manual actions and corporation starting bonuses)
+		if trigger.Type == model.ResourceTriggerManual {
+			log.Debug("Behavior trigger is manual, skipping",
+				zap.String("card_name", card.Name))
+			continue
+		}
+
+		// Skip corporation starting bonuses (not an effect)
+		if trigger.Type == model.ResourceTriggerAutoCorporationStart {
+			log.Debug("⏭️ Skipping corporation starting bonus (not an effect)",
+				zap.String("card_name", card.Name))
+			continue
+		}
+
+		// Skip corporation forced first actions (not an ongoing effect)
+		if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
+			log.Debug("⏭️ Skipping corporation forced first action (not an effect)",
+				zap.String("card_name", card.Name))
+			continue
+		}
+
+		// Only process auto triggers (immediate effects and event-driven passive effects)
 		if trigger.Type != model.ResourceTriggerAuto {
-			log.Debug("Behavior trigger is not auto, skipping",
+			log.Debug("Behavior trigger type not supported for effect subscription, skipping",
 				zap.String("card_name", card.Name),
 				zap.String("trigger_type", string(trigger.Type)))
 			continue

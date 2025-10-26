@@ -359,9 +359,10 @@ type ResourceCondition struct {
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual          ResourceTriggerType = "manual"            // Manual activation (actions)
-	ResourceTriggerAuto            ResourceTriggerType = "auto"              // Automatic activation (effects, immediate)
-	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action" // Automatic forced first action (corporations only)
+	ResourceTriggerManual                     ResourceTriggerType = "manual"                        // Manual activation (actions)
+	ResourceTriggerAuto                       ResourceTriggerType = "auto"                          // Automatic activation (effects, immediate)
+	ResourceTriggerAutoCorporationFirstAction ResourceTriggerType = "auto-corporation-first-action" // Automatic forced first action (corporations only)
+	ResourceTriggerAutoCorporationStart       ResourceTriggerType = "auto-corporation-start"        // Starting bonuses for corporations (not an effect)
 )
 
 // MinMaxValue represents a minimum and/or maximum value constraint

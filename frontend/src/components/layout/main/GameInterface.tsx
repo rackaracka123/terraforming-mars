@@ -761,9 +761,9 @@ export default function GameInterface() {
       // Step 1: Reconnect to game
       setReconnectionStep("game");
 
-      // Fetch current game state from server first
+      // Fetch current game state from server first (with playerId for personalized view)
       const response = await fetch(
-        `http://localhost:3001/api/v1/games/${gameId}`,
+        `http://localhost:3001/api/v1/games/${gameId}?playerId=${playerId}`,
       );
       if (!response.ok) {
         throw new Error(`Game not found: ${response.status}`);
