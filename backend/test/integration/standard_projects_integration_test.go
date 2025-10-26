@@ -77,8 +77,15 @@ func TestSellPatents_Integration(t *testing.T) {
 
 	corporationID := availableCorporations[0].(string)
 
+	// Select only 5 cards (15 MC) to ensure any corporation can afford them
+	// Some corporations like PhoboLog only give 23 MC, so selecting all 10 cards (30 MC) would fail
+	maxAffordableCards := 5
+	if len(cardIDs) > maxAffordableCards {
+		cardIDs = cardIDs[:maxAffordableCards]
+	}
+
 	selectStartingCardsPayload := map[string]interface{}{
-		"cardIds":       cardIDs, // Select all cards
+		"cardIds":       cardIDs,
 		"corporationId": corporationID,
 	}
 	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, selectStartingCardsPayload)
@@ -224,6 +231,13 @@ func TestSellPatents_SelectZeroCards(t *testing.T) {
 	selectStartingCardsPhase, _ := currentPlayer["selectStartingCardsPhase"].(map[string]interface{})
 	availableCorporations, _ := selectStartingCardsPhase["availableCorporations"].([]interface{})
 	corporationID := availableCorporations[0].(string)
+
+	// Select only 5 cards (15 MC) to ensure any corporation can afford them
+	// Some corporations like PhoboLog only give 23 MC, so selecting all 10 cards (30 MC) would fail
+	maxAffordableCards := 5
+	if len(cardIDs) > maxAffordableCards {
+		cardIDs = cardIDs[:maxAffordableCards]
+	}
 
 	err = client.SendRawMessage(dto.MessageTypeActionSelectStartingCard, map[string]interface{}{
 		"cardIds":       cardIDs,
