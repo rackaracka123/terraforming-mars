@@ -178,18 +178,27 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
             Object.entries(corporation.startingResources).map(
               ([type, amount]) =>
                 amount > 0 ? (
-                  <div key={type}>{renderResource(type, amount)}</div>
+                  <div key={type} className="flex items-center">
+                    {renderResource(type, amount)}
+                  </div>
                 ) : null,
             )}
           {corporation.startingProduction &&
             Object.entries(corporation.startingProduction).map(
               ([type, amount]) =>
                 amount > 0 ? (
-                  <div key={type}>{renderProduction(type, amount)}</div>
+                  <div key={type} className="flex items-center">
+                    {renderProduction(type, amount)}
+                  </div>
                 ) : null,
             )}
-          {getAutoFirstAction(corporation.behaviors) &&
-            renderAutoFirstAction(getAutoFirstAction(corporation.behaviors)!)}
+          {getAutoFirstAction(corporation.behaviors) && (
+            <div className="flex items-center">
+              {renderAutoFirstAction(
+                getAutoFirstAction(corporation.behaviors)!,
+              )}
+            </div>
+          )}
         </div>
       )}
 
