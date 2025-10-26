@@ -5,7 +5,7 @@ import RightSidebar from "../panels/RightSidebar.tsx";
 import MainContentDisplay from "../../ui/display/MainContentDisplay.tsx";
 import BottomResourceBar from "../../ui/overlay/BottomResourceBar.tsx";
 import PlayerOverlay from "../../ui/overlay/PlayerOverlay.tsx";
-import CorporationDisplay from "../../ui/display/CorporationDisplay.tsx";
+import CorporationViewer from "../../ui/display/CorporationViewer.tsx";
 import { MainContentProvider } from "../../../contexts/MainContentContext.tsx";
 import {
   GameDto,
@@ -127,7 +127,7 @@ const GameLayout: React.FC<GameLayoutProps> = ({
             />
 
             {corporationCard && (
-              <CorporationDisplay corporation={corporationCard} />
+              <CorporationViewer corporation={corporationCard} />
             )}
           </>
         )}
