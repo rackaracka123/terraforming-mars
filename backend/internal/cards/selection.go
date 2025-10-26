@@ -401,12 +401,12 @@ func (s *SelectionManager) ClearGameSelectionData(gameID string) {
 }
 
 // extractForcedFirstAction parses a corporation's forced first action from its behaviors
-// Forced first actions are manual triggers with isInitialAction=true (e.g., Inventrix: draw 3 cards, Tharsis: place city)
+// Forced first actions use auto-first-action trigger type (e.g., Inventrix: draw 3 cards, Tharsis: place city)
 func (s *SelectionManager) extractForcedFirstAction(corporation *model.Card) *model.ForcedFirstAction {
 	for _, behavior := range corporation.Behaviors {
 		// Check if this behavior has a forced first action trigger
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerManual && trigger.IsInitialAction {
+			if trigger.Type == model.ResourceTriggerAutoFirstAction {
 				// Determine action type from outputs
 				actionType := s.determineActionType(behavior.Outputs)
 				description := s.generateForcedActionDescription(behavior.Outputs)
@@ -610,20 +610,21 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 	// IMPORTANT: Skip forced first actions - they're handled separately below
 	var manualActions []model.PlayerAction
 	for behaviorIndex, behavior := range corporationCard.Behaviors {
-		// Check if this behavior has manual triggers
+		// Check if this behavior has manual triggers or auto-first-action triggers
 		hasManualTrigger := false
-		isInitialAction := false
+		isAutoFirstAction := false
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == model.ResourceTriggerManual {
 				hasManualTrigger = true
-				isInitialAction = trigger.IsInitialAction
-				break
+			}
+			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+				isAutoFirstAction = true
 			}
 		}
 
-		// If behavior has manual triggers but is NOT a forced first action, create a PlayerAction
-		// Forced first actions are handled separately via ForcedFirstAction system
-		if hasManualTrigger && !isInitialAction {
+		// If behavior has manual triggers (and is NOT a forced first action), create a PlayerAction
+		// Forced first actions (auto-first-action) are handled separately via ForcedFirstAction system
+		if hasManualTrigger {
 			action := model.PlayerAction{
 				CardID:        corporationCard.ID,
 				CardName:      corporationCard.Name,
@@ -634,7 +635,7 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 			log.Debug("🎯 Extracted manual action from corporation",
 				zap.String("corporation_name", corporationCard.Name),
 				zap.Int("behavior_index", behaviorIndex))
-		} else if hasManualTrigger && isInitialAction {
+		} else if isAutoFirstAction {
 			log.Debug("⏭️ Skipping forced first action (will be handled separately)",
 				zap.String("corporation_name", corporationCard.Name),
 				zap.Int("behavior_index", behaviorIndex))

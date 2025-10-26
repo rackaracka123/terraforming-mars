@@ -98,7 +98,27 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     );
   };
 
-  // Filter out the first auto behavior without conditions (starting bonuses shown above)
+  // Extract auto-first-action behavior for display in starting resources section
+  const getAutoFirstAction = (behaviors: CardBehaviorDto[] | undefined) => {
+    if (!behaviors) return null;
+
+    return behaviors.find((behavior) =>
+      behavior.triggers?.some((t) => t.type === "auto-first-action"),
+    );
+  };
+
+  // Render auto-first-action as simple icons (e.g., card icon with "3" inside)
+  const renderAutoFirstAction = (behavior: CardBehaviorDto) => {
+    if (!behavior.outputs || behavior.outputs.length === 0) return null;
+
+    const output = behavior.outputs[0];
+
+    return (
+      <GameIcon iconType={output.type} amount={output.amount} size="large" />
+    );
+  };
+
+  // Filter out starting bonuses and auto-first-action (shown separately)
   const filterBehaviors = (behaviors: CardBehaviorDto[] | undefined) => {
     if (!behaviors || behaviors.length === 0) return [];
 
@@ -107,6 +127,14 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         (t) => t.condition !== undefined,
       );
       const isAuto = behavior.triggers?.some((t) => t.type === "auto");
+      const isAutoFirstAction = behavior.triggers?.some(
+        (t) => t.type === "auto-first-action",
+      );
+
+      // Skip auto-first-action (shown in starting resources section)
+      if (isAutoFirstAction) {
+        return false;
+      }
 
       // Skip the first auto behavior without conditions (starting bonuses)
       if (isAuto && !hasCondition && index === 0) {
@@ -141,8 +169,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
         {getCorporationLogo(corporation.name.toLowerCase())}
       </div>
 
-      {/* Starting resources and production - compact, no headers */}
-      {(corporation.startingProduction || corporation.startingResources) && (
+      {/* Starting resources, production, and auto-first-action - compact, no headers */}
+      {(corporation.startingProduction ||
+        corporation.startingResources ||
+        getAutoFirstAction(corporation.behaviors)) && (
         <div className="flex flex-wrap gap-2 justify-center items-center mb-3 pb-3 border-b border-white/20">
           {corporation.startingResources &&
             Object.entries(corporation.startingResources).map(
@@ -158,6 +188,8 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
                   <div key={type}>{renderProduction(type, amount)}</div>
                 ) : null,
             )}
+          {getAutoFirstAction(corporation.behaviors) &&
+            renderAutoFirstAction(getAutoFirstAction(corporation.behaviors)!)}
         </div>
       )}
 

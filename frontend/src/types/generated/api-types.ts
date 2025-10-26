@@ -444,19 +444,6 @@ export const ResourceTypeDefense: ResourceType = "defense";
 export const ResourceTypeDiscount: ResourceType = "discount";
 export const ResourceTypeValueModifier: ResourceType = "value-modifier";
 /**
- * Legacy/deprecated (kept for backwards compatibility)
- */
-export const ResourceTypeFighters: ResourceType = "fighters";
-export const ResourceTypeCamps: ResourceType = "camps";
-export const ResourceTypePreservation: ResourceType = "preservation";
-export const ResourceTypeData: ResourceType = "data";
-export const ResourceTypeSpecialized: ResourceType = "specialized";
-export const ResourceTypeDelegate: ResourceType = "delegate";
-export const ResourceTypeInfluence: ResourceType = "influence";
-export const ResourceTypeSpecialTile: ResourceType = "special-tile";
-export const ResourceTypeTerraformRating: ResourceType = "terraform-rating"; // Use ResourceTypeTR instead
-export const ResourceTypeOceans: ResourceType = "oceans";
-/**
  * TargetType represents different targeting scopes for resource conditions for client consumption
  */
 export type TargetType = string;
@@ -489,6 +476,8 @@ export const TriggerTilePlaced: TriggerType = "tile-placed";
 export type ResourceTriggerType = string;
 export const ResourceTriggerManual: ResourceTriggerType = "manual";
 export const ResourceTriggerAuto: ResourceTriggerType = "auto";
+export const ResourceTriggerAutoFirstAction: ResourceTriggerType =
+  "auto-first-action";
 /**
  * ResourceSet represents a collection of resources and their amounts
  */
@@ -689,7 +678,6 @@ export interface PlayerActionDto {
   playCount: number /* int */; // Number of times this action has been played this generation
 }
 /**
- * PendingTileSelectionDto represents a pending tile placement action for client consumption
  * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
  */
 export interface ForcedFirstActionDto {
@@ -698,6 +686,9 @@ export interface ForcedFirstActionDto {
   completed: boolean; // Whether the forced action has been completed
   description: string; // Human-readable description for UI
 }
+/**
+ * PendingTileSelectionDto represents a pending tile placement action for client consumption
+ */
 export interface PendingTileSelectionDto {
   tileType: string; // "city", "greenery", "ocean"
   availableHexes: string[]; // Backend-calculated valid hex coordinates

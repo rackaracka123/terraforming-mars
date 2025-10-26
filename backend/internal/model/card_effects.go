@@ -359,8 +359,9 @@ type ResourceCondition struct {
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual ResourceTriggerType = "manual" // Manual activation (actions)
-	ResourceTriggerAuto   ResourceTriggerType = "auto"   // Automatic activation (effects, immediate)
+	ResourceTriggerManual          ResourceTriggerType = "manual"            // Manual activation (actions)
+	ResourceTriggerAuto            ResourceTriggerType = "auto"              // Automatic activation (effects, immediate)
+	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action" // Automatic forced first action (corporations only)
 )
 
 // MinMaxValue represents a minimum and/or maximum value constraint
@@ -383,9 +384,8 @@ type ResourceTriggerCondition struct {
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type            ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
-	Condition       *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
-	IsInitialAction bool                      `json:"isInitialAction,omitempty" ts:"boolean | undefined"`            // If true, action is only available as first action in the game
+	Type      ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
+	Condition *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
 }
 
 // ResourceExchange represents a directional resource trade (input → output)

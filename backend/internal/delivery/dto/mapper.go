@@ -677,21 +677,21 @@ func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
 }
 
 // ToPlayerActionDtoSlice converts a slice of model PlayerActions to PlayerActionDto slice
-// Filters out initial actions that have already been used (PlayCount > 0)
+// Filters out auto-first-action triggers that have already been used (PlayCount > 0)
 func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 	if actions == nil {
 		return []PlayerActionDto{}
 	}
 	result := make([]PlayerActionDto, 0, len(actions))
 	for _, action := range actions {
-		// Check if this is an initial action that has already been played
-		isInitialAction := false
+		// Check if this is an auto-first-action that has already been played
+		isAutoFirstAction := false
 		if len(action.Behavior.Triggers) > 0 {
-			isInitialAction = action.Behavior.Triggers[0].IsInitialAction
+			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoFirstAction
 		}
 
-		// Skip initial actions that have been used
-		if isInitialAction && action.PlayCount > 0 {
+		// Skip auto-first-actions that have been used
+		if isAutoFirstAction && action.PlayCount > 0 {
 			continue
 		}
 

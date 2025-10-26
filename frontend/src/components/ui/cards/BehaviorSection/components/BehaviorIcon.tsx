@@ -66,14 +66,15 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
   const isCard =
     cleanType === "card-draw" ||
     cleanType === "card-take" ||
-    cleanType === "card-peek";
+    cleanType === "card-peek" ||
+    cleanType === "card";
 
   // Check if this should be a standalone larger icon
   const isStandaloneTile =
     cleanType === "city-tile" ||
     cleanType === "greenery-tile" ||
     cleanType === "ocean-tile";
-  const isStandaloneCard = cleanType === "card-draw";
+  const isStandaloneCard = cleanType === "card-draw" || cleanType === "card";
   const shouldUseStandaloneSize =
     context === "standalone" && (isStandaloneTile || isStandaloneCard);
 
@@ -83,8 +84,11 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
       iconClass =
         "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite] max-md:w-[22px] max-md:h-[22px]";
     } else if (shouldUseStandaloneSize) {
-      iconClass =
-        "w-9 h-9 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.7))] max-md:w-8 max-md:h-8";
+      // Add card glow for standalone cards
+      const cardGlow = isStandaloneCard
+        ? "_drop-shadow(0_0_1px_rgba(255,248,220,0.6))_drop-shadow(0_0_2px_rgba(255,248,220,0.4))"
+        : "";
+      iconClass = `w-9 h-9 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.7))${cardGlow}] max-md:w-8 max-md:h-8`;
     } else if (isPlacement) {
       iconClass =
         "w-[30px] h-[30px] object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-[26px] max-md:h-[26px]";
@@ -93,7 +97,7 @@ const BehaviorIcon: React.FC<BehaviorIconProps> = ({
         "w-8 h-8 object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-7 max-md:h-7";
     } else if (isCard) {
       iconClass =
-        "w-[30px] h-[30px] object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))] max-md:w-[26px] max-md:h-[26px]";
+        "w-[30px] h-[30px] object-contain [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,248,220,0.6))_drop-shadow(0_0_2px_rgba(255,248,220,0.4))] max-md:w-[26px] max-md:h-[26px]";
     } else if (isTag) {
       iconClass =
         "w-[26px] h-[26px] object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))] max-md:w-[22px] max-md:h-[22px]";

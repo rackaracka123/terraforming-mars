@@ -129,18 +129,6 @@ const (
 	ResourceTypeDefense                 ResourceType = "defense"
 	ResourceTypeDiscount                ResourceType = "discount"
 	ResourceTypeValueModifier           ResourceType = "value-modifier"
-
-	// Legacy/deprecated (kept for backwards compatibility)
-	ResourceTypeFighters        ResourceType = "fighters"
-	ResourceTypeCamps           ResourceType = "camps"
-	ResourceTypePreservation    ResourceType = "preservation"
-	ResourceTypeData            ResourceType = "data"
-	ResourceTypeSpecialized     ResourceType = "specialized"
-	ResourceTypeDelegate        ResourceType = "delegate"
-	ResourceTypeInfluence       ResourceType = "influence"
-	ResourceTypeSpecialTile     ResourceType = "special-tile"
-	ResourceTypeTerraformRating ResourceType = "terraform-rating" // Use ResourceTypeTR instead
-	ResourceTypeOceans          ResourceType = "oceans"
 )
 
 // TargetType represents different targeting scopes for resource conditions for client consumption
@@ -180,8 +168,9 @@ const (
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual ResourceTriggerType = "manual"
-	ResourceTriggerAuto   ResourceTriggerType = "auto"
+	ResourceTriggerManual          ResourceTriggerType = "manual"
+	ResourceTriggerAuto            ResourceTriggerType = "auto"
+	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action"
 )
 
 // ResourceSet represents a collection of resources and their amounts
@@ -368,7 +357,6 @@ type PlayerActionDto struct {
 	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
 }
 
-// PendingTileSelectionDto represents a pending tile placement action for client consumption
 // ForcedFirstActionDto represents an action that must be completed as the player's first turn action
 type ForcedFirstActionDto struct {
 	ActionType    string `json:"actionType" ts:"string"`    // Type of action: "city_placement", "card_draw", etc.
@@ -377,6 +365,7 @@ type ForcedFirstActionDto struct {
 	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
 }
 
+// PendingTileSelectionDto represents a pending tile placement action for client consumption
 type PendingTileSelectionDto struct {
 	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
 	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
