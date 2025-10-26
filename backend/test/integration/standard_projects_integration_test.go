@@ -300,8 +300,14 @@ func TestSellPatents_InvalidSelection(t *testing.T) {
 	currentPlayer, _ := gameData["currentPlayer"].(map[string]interface{})
 	startingCards, _ := currentPlayer["startingCards"].([]interface{})
 
+	// Only select a few cards to ensure we have enough credits
+	// This test is about sell patents, not starting card selection
+	maxCardsToBuy := 3 // Buy max 3 cards (9 credits) to avoid credit issues
 	cardIDs := make([]string, 0)
-	for _, cardInterface := range startingCards {
+	for i, cardInterface := range startingCards {
+		if i >= maxCardsToBuy {
+			break
+		}
 		card, ok := cardInterface.(map[string]interface{})
 		if ok {
 			if cardID, ok := card["id"].(string); ok {
