@@ -37,6 +37,8 @@ func hasMultiplePlayers(msg *dto.WebSocketMessage) bool {
 // TestPlayerSeparationTwoPlayers tests that player data is properly separated
 // when two players join a game - each should see their own full data and limited data for others
 func TestPlayerSeparationTwoPlayers(t *testing.T) {
+	CleanState()
+
 	// Create two test clients
 	client1 := NewTestClient(t)
 	client2 := NewTestClient(t)
@@ -291,6 +293,8 @@ func TestPlayerSeparationTwoPlayers(t *testing.T) {
 
 // TestPlayerSeparationThreePlayers tests player separation with three players
 func TestPlayerSeparationThreePlayers(t *testing.T) {
+	CleanState()
+
 	// Create three test clients
 	client1 := NewTestClient(t)
 	client2 := NewTestClient(t)
@@ -390,6 +394,8 @@ func TestPlayerSeparationThreePlayers(t *testing.T) {
 
 // TestPlayerSeparationCardVisibility tests that hand cards are private but played cards are public
 func TestPlayerSeparationCardVisibility(t *testing.T) {
+	CleanState()
+
 	// This test verifies the card visibility rules by reusing the core test logic
 	// - Hand cards (cards field) should only be visible to the player who owns them
 	// - Played cards (playedCards field) should be visible to all players

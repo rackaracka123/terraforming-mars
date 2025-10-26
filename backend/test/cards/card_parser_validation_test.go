@@ -733,3 +733,33 @@ func TestCardOperationsNotInputs(t *testing.T) {
 		}
 	}
 }
+
+// TestAutoFirstActionOnlyOnCorporations validates that auto-first-action trigger type can only be used on corporation cards
+func TestAutoFirstActionOnlyOnCorporations(t *testing.T) {
+	cards := loadCards(t)
+
+	var violations []string
+
+	for _, card := range cards {
+		for behaviorIdx, behavior := range card.Behaviors {
+			for triggerIdx, trigger := range behavior.Triggers {
+				if trigger.Type == model.ResourceTriggerAutoFirstAction {
+					// Check if this card is a corporation
+					if card.Type != model.CardTypeCorporation {
+						violations = append(violations,
+							fmt.Sprintf("Card %s (%s) behavior[%d] trigger[%d]: auto-first-action trigger can only be used on corporation cards, but this card is type '%s'",
+								card.ID, card.Name, behaviorIdx, triggerIdx, card.Type))
+					}
+				}
+			}
+		}
+	}
+
+	if len(violations) > 0 {
+		t.Errorf("Found %d auto-first-action validation violations:", len(violations))
+		t.Errorf("Rule: auto-first-action trigger type can only be used on corporation cards")
+		for _, violation := range violations {
+			t.Errorf("  - %s", violation)
+		}
+	}
+}

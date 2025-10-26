@@ -1276,3 +1276,10 @@ func (r *PlayerRepositoryImpl) ClearForcedFirstAction(ctx context.Context, gameI
 
 	return nil
 }
+
+// Clear removes all players from the repository
+func (r *PlayerRepositoryImpl) Clear() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.players = make(map[string]map[string]*model.Player)
+}

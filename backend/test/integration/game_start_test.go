@@ -12,6 +12,8 @@ import (
 
 // TestStartGameFlow tests the complete flow from lobby to game start
 func TestStartGameFlow(t *testing.T) {
+	CleanState()
+
 	// Create test client
 	client := NewTestClient(t)
 	defer client.Close()

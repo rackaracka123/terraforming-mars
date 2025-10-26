@@ -12,6 +12,8 @@ import (
 
 // TestSellPatents_Integration tests the complete sell patents flow via WebSocket
 func TestSellPatents_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -190,6 +192,8 @@ func TestSellPatents_Integration(t *testing.T) {
 
 // TestSellPatents_SelectZeroCards tests selling zero cards (allowed by min=0)
 func TestSellPatents_SelectZeroCards(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -279,6 +283,8 @@ func TestSellPatents_SelectZeroCards(t *testing.T) {
 
 // TestSellPatents_InvalidSelection tests error handling for invalid card selections
 func TestSellPatents_InvalidSelection(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -354,6 +360,8 @@ func TestSellPatents_InvalidSelection(t *testing.T) {
 
 // TestSellPatents_NoCardsInHand tests error when player has no cards to sell
 func TestSellPatents_NoCardsInHand(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -417,6 +425,8 @@ func TestSellPatents_NoCardsInHand(t *testing.T) {
 
 // TestSellPatents_MultipleSelectionPhases tests multiple sell patents in sequence
 func TestSellPatents_MultipleSelectionPhases(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -539,6 +549,8 @@ func TestSellPatents_MultipleSelectionPhases(t *testing.T) {
 
 // TestBuildPowerPlant_Integration tests the complete build power plant flow via WebSocket
 func TestBuildPowerPlant_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -608,6 +620,8 @@ func TestBuildPowerPlant_Integration(t *testing.T) {
 
 // TestLaunchAsteroid_Integration tests the complete launch asteroid flow via WebSocket
 func TestLaunchAsteroid_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -684,6 +698,8 @@ func TestLaunchAsteroid_Integration(t *testing.T) {
 
 // TestBuildAquifer_Integration tests the complete build aquifer flow via WebSocket
 func TestBuildAquifer_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -762,6 +778,8 @@ func TestBuildAquifer_Integration(t *testing.T) {
 
 // TestBuildAquifer_InvalidHexPosition tests hex position validation
 func TestBuildAquifer_InvalidHexPosition(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -824,6 +842,8 @@ func TestBuildAquifer_InvalidHexPosition(t *testing.T) {
 
 // TestPlantGreenery_Integration tests the complete plant greenery flow via WebSocket
 func TestPlantGreenery_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -902,6 +922,8 @@ func TestPlantGreenery_Integration(t *testing.T) {
 
 // TestBuildCity_Integration tests the complete build city flow via WebSocket
 func TestBuildCity_Integration(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -976,6 +998,8 @@ func TestBuildCity_Integration(t *testing.T) {
 
 // TestMultiPlayerStandardProjects tests multiple players executing standard projects
 func TestMultiPlayerStandardProjects(t *testing.T) {
+	CleanState()
+
 	// Setup two clients
 	client1 := NewTestClient(t)
 	defer client1.Close()
@@ -1102,6 +1126,8 @@ func TestMultiPlayerStandardProjects(t *testing.T) {
 
 // TestStandardProjectsInsufficientFunds tests error handling for insufficient funds
 func TestStandardProjectsInsufficientFunds(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 
@@ -1161,6 +1187,8 @@ func TestStandardProjectsInsufficientFunds(t *testing.T) {
 
 // TestGlobalParameterLimits tests that global parameters don't exceed maximum values
 func TestGlobalParameterLimits(t *testing.T) {
+	CleanState()
+
 	client, _ := SetupBasicGameFlow(t, "TestPlayer")
 	defer client.Close()
 

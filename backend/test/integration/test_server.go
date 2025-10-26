@@ -29,6 +29,12 @@ type TestServer struct {
 	logger    *zap.Logger
 	started   bool
 	mu        sync.Mutex
+	// Repositories and event bus for state management
+	gameRepo            *repository.GameRepositoryImpl
+	playerRepo          *repository.PlayerRepositoryImpl
+	cardDeckRepo        *repository.CardDeckRepositoryImpl
+	eventBus            *events.EventBusImpl
+	forcedActionManager cards.ForcedActionManager
 }
 
 // NewTestServer creates a new test server on the specified port
@@ -39,8 +45,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	eventBus := events.NewEventBus()
 
 	// Initialize repositories
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus).(*repository.PlayerRepositoryImpl)
+	gameRepo := repository.NewGameRepository(eventBus).(*repository.GameRepositoryImpl)
 
 	// Initialize services with proper event bus wiring
 	cardRepo := repository.NewCardRepository()
@@ -50,7 +56,7 @@ func NewTestServer(port int) (*TestServer, error) {
 		logger.Warn("Failed to load card data in test server, using fallback", zap.Error(err))
 	}
 
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := repository.NewCardDeckRepository().(*repository.CardDeckRepositoryImpl)
 
 	// Create Hub first
 	hub := core.NewHub()
@@ -69,7 +75,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager, effectSubscriber)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -102,10 +108,15 @@ func NewTestServer(port int) (*TestServer, error) {
 	}
 
 	return &TestServer{
-		server:    server,
-		wsService: wsService,
-		port:      port,
-		logger:    logger,
+		server:              server,
+		wsService:           wsService,
+		port:                port,
+		logger:              logger,
+		gameRepo:            gameRepo,
+		playerRepo:          playerRepo,
+		cardDeckRepo:        cardDeckRepo,
+		eventBus:            eventBus,
+		forcedActionManager: forcedActionManager,
 	}, nil
 }
 
@@ -206,4 +217,38 @@ func (ts *TestServer) GetBaseURL() string {
 // GetWebSocketURL returns the WebSocket URL
 func (ts *TestServer) GetWebSocketURL() string {
 	return fmt.Sprintf("ws://localhost:%d/ws", ts.port)
+}
+
+// ClearState clears all repository and event bus state for test isolation
+func (ts *TestServer) ClearState() {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	// Clear all repositories
+	if ts.gameRepo != nil {
+		ts.gameRepo.Clear()
+	}
+	if ts.playerRepo != nil {
+		ts.playerRepo.Clear()
+	}
+	if ts.cardDeckRepo != nil {
+		ts.cardDeckRepo.Clear()
+	}
+
+	// Clear event bus subscriptions and re-subscribe system handlers
+	if ts.eventBus != nil {
+		ts.eventBus.Clear()
+		// Re-subscribe ForcedActionManager to phase changes
+		if ts.forcedActionManager != nil {
+			ts.forcedActionManager.SubscribeToPhaseChanges()
+		}
+	}
+
+	// Clear WebSocket connections to prevent old connections from interfering
+	if ts.wsService != nil {
+		hub := ts.wsService.GetHub()
+		if hub != nil {
+			hub.ClearConnections()
+		}
+	}
 }

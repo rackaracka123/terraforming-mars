@@ -21,6 +21,8 @@ import (
 // 6. Verifying the tile is placed
 // 7. Verifying bonuses are awarded (production changes, resource gains, placement bonuses)
 func TestFieldCappedCityTilePlacement(t *testing.T) {
+	CleanState()
+
 	client := NewTestClient(t)
 	defer client.Close()
 
