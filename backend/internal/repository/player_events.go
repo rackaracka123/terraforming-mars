@@ -91,3 +91,18 @@ type ResourceStorageChangedEvent struct {
 	NewAmount    int
 	Timestamp    time.Time
 }
+
+// CardHandUpdatedEvent is published when a player's card hand changes (cards added/removed)
+type CardHandUpdatedEvent struct {
+	GameID    string
+	PlayerID  string
+	CardIDs   []string // Current cards in hand
+	Timestamp time.Time
+}
+
+// PlayerEffectsChangedEvent is published when a player's effects list changes
+type PlayerEffectsChangedEvent struct {
+	GameID    string
+	PlayerID  string
+	Timestamp time.Time
+}

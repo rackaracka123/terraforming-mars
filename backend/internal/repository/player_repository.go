@@ -75,6 +75,9 @@ type PlayerRepository interface {
 
 	// Payment substitute methods
 	UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []model.PaymentSubstitute) error
+
+	// Requirement modifier methods
+	UpdateRequirementModifiers(ctx context.Context, gameID, playerID string, modifiers []model.RequirementModifier) error
 }
 
 // PlayerRepositoryImpl implements PlayerRepository with in-memory storage
@@ -496,12 +499,12 @@ func (r *PlayerRepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, 
 // UpdatePlayerEffects updates a player's active passive effects
 func (r *PlayerRepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(gameID, playerID)
 
 	player, err := r.getPlayerUnsafe(gameID, playerID)
 	if err != nil {
+		r.mutex.Unlock()
 		return err
 	}
 
@@ -517,6 +520,18 @@ func (r *PlayerRepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, 
 	log.Info("✨ Player effects updated",
 		zap.Int("old_effects_count", oldEffectsCount),
 		zap.Int("new_effects_count", len(effects)))
+
+	// Release lock BEFORE publishing event to avoid deadlock
+	r.mutex.Unlock()
+
+	// Publish player effects changed event (after releasing lock)
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, PlayerEffectsChangedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -544,6 +559,16 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 
 	log.Info("Card added to player hand", zap.String("card_id", cardID))
 
+	// Publish card hand updated event
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, CardHandUpdatedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			CardIDs:   player.Cards,
+			Timestamp: time.Now(),
+		})
+	}
+
 	return nil
 }
 
@@ -564,6 +589,17 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 		if existingCard == cardID {
 			player.Cards = append(player.Cards[:i], player.Cards[i+1:]...)
 			log.Info("Card removed from player hand", zap.String("card_id", cardID))
+
+			// Publish card hand updated event
+			if r.eventBus != nil {
+				events.Publish(r.eventBus, CardHandUpdatedEvent{
+					GameID:    gameID,
+					PlayerID:  playerID,
+					CardIDs:   player.Cards,
+					Timestamp: time.Now(),
+				})
+			}
+
 			return nil
 		}
 	}
@@ -601,6 +637,7 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 	player.PlayedCards = append(player.PlayedCards, cardID)
 
 	// Publish CardPlayedEvent
+	timestamp := time.Now()
 	if r.eventBus != nil {
 		events.Publish(r.eventBus, CardPlayedEvent{
 			GameID:    gameID,
@@ -608,7 +645,15 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 			CardID:    cardID,
 			CardName:  cardName,
 			CardType:  string(cardType),
-			Timestamp: time.Now(),
+			Timestamp: timestamp,
+		})
+
+		// Publish card hand updated event (hand changed when card was removed)
+		events.Publish(r.eventBus, CardHandUpdatedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			CardIDs:   player.Cards,
+			Timestamp: timestamp,
 		})
 	}
 
@@ -1007,6 +1052,55 @@ func (r *PlayerRepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gam
 	}
 
 	log.Debug("Player payment substitutes updated", zap.Int("substitutes_count", len(player.PaymentSubstitutes)))
+
+	return nil
+}
+
+// UpdateRequirementModifiers updates a player's requirement modifiers list
+func (r *PlayerRepositoryImpl) UpdateRequirementModifiers(ctx context.Context, gameID, playerID string, modifiers []model.RequirementModifier) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Deep copy the modifiers slice to prevent external mutation
+	if modifiers == nil {
+		player.RequirementModifiers = []model.RequirementModifier{}
+	} else {
+		player.RequirementModifiers = make([]model.RequirementModifier, len(modifiers))
+		for i, modifier := range modifiers {
+			// Copy affected resources slice
+			affectedResourcesCopy := make([]model.ResourceType, len(modifier.AffectedResources))
+			copy(affectedResourcesCopy, modifier.AffectedResources)
+
+			// Copy pointers
+			var cardTargetCopy *string
+			if modifier.CardTarget != nil {
+				cardTargetVal := *modifier.CardTarget
+				cardTargetCopy = &cardTargetVal
+			}
+
+			var standardProjectTargetCopy *model.StandardProject
+			if modifier.StandardProjectTarget != nil {
+				standardProjectTargetVal := *modifier.StandardProjectTarget
+				standardProjectTargetCopy = &standardProjectTargetVal
+			}
+
+			player.RequirementModifiers[i] = model.RequirementModifier{
+				Amount:                modifier.Amount,
+				AffectedResources:     affectedResourcesCopy,
+				CardTarget:            cardTargetCopy,
+				StandardProjectTarget: standardProjectTargetCopy,
+			}
+		}
+	}
+
+	log.Debug("💳 Player requirement modifiers updated", zap.Int("modifiers_count", len(player.RequirementModifiers)))
 
 	return nil
 }

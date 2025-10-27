@@ -73,6 +73,15 @@ type ForcedFirstAction struct {
 	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
 }
 
+// RequirementModifier represents a discount or lenience that modifies card/standard project requirements
+// These are calculated from player effects and automatically updated when card hand or effects change
+type RequirementModifier struct {
+	Amount                int              `json:"amount"`                          // Modifier amount (discount/lenience value)
+	AffectedResources     []ResourceType   `json:"affectedResources"`               // Resources affected (e.g., ["credits"] for price discount, ["temperature"] for global param)
+	CardTarget            *string          `json:"cardTarget,omitempty"`            // Optional: specific card ID this applies to (nil means applies to multiple cards by tag/type)
+	StandardProjectTarget *StandardProject `json:"standardProjectTarget,omitempty"` // Optional: specific standard project this applies to
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -103,6 +112,8 @@ type Player struct {
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 	// Payment substitutes - alternative resources that can be used as payment for credits
 	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
+	// Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
+	RequirementModifiers []RequirementModifier `json:"requirementModifiers" ts:"RequirementModifier[]"` // Calculated discounts/leniences for cards and standard projects
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -223,6 +234,38 @@ func (p *Player) DeepCopy() *Player {
 		copy(paymentSubstitutesCopy, p.PaymentSubstitutes)
 	}
 
+	// Deep copy requirement modifiers slice
+	var requirementModifiersCopy []RequirementModifier
+	if p.RequirementModifiers != nil {
+		requirementModifiersCopy = make([]RequirementModifier, len(p.RequirementModifiers))
+		for i, modifier := range p.RequirementModifiers {
+			// Copy affected resources slice
+			affectedResourcesCopy := make([]ResourceType, len(modifier.AffectedResources))
+			copy(affectedResourcesCopy, modifier.AffectedResources)
+
+			// Copy card target pointer if exists
+			var cardTargetCopy *string
+			if modifier.CardTarget != nil {
+				val := *modifier.CardTarget
+				cardTargetCopy = &val
+			}
+
+			// Copy standard project target pointer if exists
+			var standardProjectTargetCopy *StandardProject
+			if modifier.StandardProjectTarget != nil {
+				val := *modifier.StandardProjectTarget
+				standardProjectTargetCopy = &val
+			}
+
+			requirementModifiersCopy[i] = RequirementModifier{
+				Amount:                modifier.Amount,
+				AffectedResources:     affectedResourcesCopy,
+				CardTarget:            cardTargetCopy,
+				StandardProjectTarget: standardProjectTargetCopy,
+			}
+		}
+	}
+
 	// Deep copy pending card selection if it exists
 	var pendingCardSelectionCopy *PendingCardSelection
 	if p.PendingCardSelection != nil {
@@ -310,5 +353,6 @@ func (p *Player) DeepCopy() *Player {
 		ForcedFirstAction:         forcedFirstActionCopy,
 		ResourceStorage:           resourceStorageCopy,
 		PaymentSubstitutes:        paymentSubstitutesCopy,
+		RequirementModifiers:      requirementModifiersCopy,
 	}
 }

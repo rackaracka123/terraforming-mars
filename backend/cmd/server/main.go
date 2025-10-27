@@ -84,7 +84,7 @@ func main() {
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 
 	// Initialize card effect subscriber for passive effects
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 	log.Info("🎆 Card effect subscriber initialized")
 
 	// Initialize forced action manager for corporation forced first actions

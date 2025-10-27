@@ -26,6 +26,7 @@ type CardEffectSubscriberImpl struct {
 	eventBus   *events.EventBusImpl
 	playerRepo repository.PlayerRepository
 	gameRepo   repository.GameRepository
+	cardRepo   repository.CardRepository
 
 	// Track subscription IDs for cleanup
 	subscriptions map[string][]events.SubscriptionID // cardID -> list of subscription IDs
@@ -36,11 +37,13 @@ func NewCardEffectSubscriber(
 	eventBus *events.EventBusImpl,
 	playerRepo repository.PlayerRepository,
 	gameRepo repository.GameRepository,
+	cardRepo repository.CardRepository,
 ) CardEffectSubscriber {
 	return &CardEffectSubscriberImpl{
 		eventBus:      eventBus,
 		playerRepo:    playerRepo,
 		gameRepo:      gameRepo,
+		cardRepo:      cardRepo,
 		subscriptions: make(map[string][]events.SubscriptionID),
 	}
 }
@@ -288,6 +291,36 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 		})
 		return subID, nil
 
+	case model.TriggerCardHandUpdated:
+		// Subscribe to CardHandUpdatedEvent for requirement modifier recalculation
+		subID := events.Subscribe(ces.eventBus, func(event repository.CardHandUpdatedEvent) {
+			// Only trigger if it's this player's card hand
+			if event.GameID == gameID && event.PlayerID == playerID {
+				ctx := context.Background()
+				if err := ces.recalculateRequirementModifiers(ctx, gameID, playerID); err != nil {
+					log.Error("Failed to recalculate requirement modifiers on card hand update",
+						zap.String("card_name", cardName),
+						zap.Error(err))
+				}
+			}
+		})
+		return subID, nil
+
+	case model.TriggerPlayerEffectsChanged:
+		// Subscribe to PlayerEffectsChangedEvent for requirement modifier recalculation
+		subID := events.Subscribe(ces.eventBus, func(event repository.PlayerEffectsChangedEvent) {
+			// Only trigger if it's this player's effects
+			if event.GameID == gameID && event.PlayerID == playerID {
+				ctx := context.Background()
+				if err := ces.recalculateRequirementModifiers(ctx, gameID, playerID); err != nil {
+					log.Error("Failed to recalculate requirement modifiers on effects update",
+						zap.String("card_name", cardName),
+						zap.Error(err))
+				}
+			}
+		})
+		return subID, nil
+
 	default:
 		log.Debug("Trigger type not yet supported for event subscription",
 			zap.String("trigger_type", string(triggerType)),
@@ -457,6 +490,158 @@ func (ces *CardEffectSubscriberImpl) applyEffectOutput(
 		zap.Int("amount", output.Amount))
 
 	return nil
+}
+
+// recalculateRequirementModifiers recalculates all requirement modifiers for a player
+// based on their current card hand and active effects
+func (ces *CardEffectSubscriberImpl) recalculateRequirementModifiers(ctx context.Context, gameID, playerID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get player's current state
+	player, err := ces.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	log.Debug("🔄 Recalculating requirement modifiers",
+		zap.Int("cards_in_hand", len(player.Cards)),
+		zap.Int("active_effects", len(player.Effects)))
+
+	// Map to accumulate modifiers by target
+	// Key format: "card:{cardID}" or "standardProject:{projectName}" or "global" for unfiltered
+	modifierMap := make(map[string]*model.RequirementModifier)
+
+	// Iterate through player's active effects
+	for _, effect := range player.Effects {
+		for _, output := range effect.Behavior.Outputs {
+			// Only process discount and global-parameter-lenience outputs
+			if output.Type != model.ResourceDiscount && output.Type != model.ResourceGlobalParameterLenience {
+				continue
+			}
+
+			// Determine affected resources for this modifier
+			var affectedResources []model.ResourceType
+			if len(output.AffectedResources) > 0 {
+				// Convert []string to []ResourceType
+				affectedResources = make([]model.ResourceType, len(output.AffectedResources))
+				for i, res := range output.AffectedResources {
+					affectedResources[i] = model.ResourceType(res)
+				}
+			} else {
+				// If no specific resources, use the output type itself
+				// For discount, default to credits; for lenience, default to global-parameter
+				if output.Type == model.ResourceDiscount {
+					affectedResources = []model.ResourceType{model.ResourceCredits}
+				} else {
+					affectedResources = []model.ResourceType{model.ResourceGlobalParameter}
+				}
+			}
+
+			// Check if this effect has AffectedStandardProjects
+			if len(output.AffectedStandardProjects) > 0 {
+				for _, standardProject := range output.AffectedStandardProjects {
+					key := fmt.Sprintf("standardProject:%s", standardProject)
+					ces.accumulateModifier(modifierMap, key, output.Amount, affectedResources, nil, &standardProject)
+				}
+				continue
+			}
+
+			// Check if this effect has AffectedTags or AffectedCardTypes filters
+			hasTagFilter := len(output.AffectedTags) > 0
+			hasTypeFilter := len(output.AffectedCardTypes) > 0
+
+			if hasTagFilter || hasTypeFilter {
+				// This effect applies to specific cards in hand - check each card
+				for _, cardID := range player.Cards {
+					card, err := ces.cardRepo.GetCardByID(ctx, cardID)
+					if err != nil {
+						log.Warn("Failed to get card for requirement modifier calculation",
+							zap.String("card_id", cardID),
+							zap.Error(err))
+						continue
+					}
+
+					matchesTags := !hasTagFilter   // If no tag filter, matches by default
+					matchesTypes := !hasTypeFilter // If no type filter, matches by default
+
+					// Check tag matching
+					if hasTagFilter {
+						for _, cardTag := range card.Tags {
+							for _, affectedTag := range output.AffectedTags {
+								if cardTag == affectedTag {
+									matchesTags = true
+									break
+								}
+							}
+							if matchesTags {
+								break
+							}
+						}
+					}
+
+					// Check type matching
+					if hasTypeFilter {
+						for _, affectedType := range output.AffectedCardTypes {
+							if card.Type == affectedType {
+								matchesTypes = true
+								break
+							}
+						}
+					}
+
+					// If card matches filters, add modifier for this card
+					if matchesTags && matchesTypes {
+						key := fmt.Sprintf("card:%s", cardID)
+						ces.accumulateModifier(modifierMap, key, output.Amount, affectedResources, &cardID, nil)
+					}
+				}
+			} else {
+				// No filters - this is a global modifier (e.g., Inventrix global parameter lenience)
+				key := "global"
+				ces.accumulateModifier(modifierMap, key, output.Amount, affectedResources, nil, nil)
+			}
+		}
+	}
+
+	// Convert map to slice
+	modifiers := make([]model.RequirementModifier, 0, len(modifierMap))
+	for _, modifier := range modifierMap {
+		modifiers = append(modifiers, *modifier)
+	}
+
+	// Update player's RequirementModifiers via repository
+	if err := ces.playerRepo.UpdateRequirementModifiers(ctx, gameID, playerID, modifiers); err != nil {
+		return fmt.Errorf("failed to update requirement modifiers: %w", err)
+	}
+
+	log.Info("✨ Requirement modifiers recalculated",
+		zap.Int("total_modifiers", len(modifiers)))
+
+	return nil
+}
+
+// accumulateModifier adds or merges a modifier into the modifier map
+func (ces *CardEffectSubscriberImpl) accumulateModifier(
+	modifierMap map[string]*model.RequirementModifier,
+	key string,
+	amount int,
+	affectedResources []model.ResourceType,
+	cardTarget *string,
+	standardProjectTarget *model.StandardProject,
+) {
+	existing, exists := modifierMap[key]
+	if exists {
+		// Merge with existing modifier (accumulate amount)
+		existing.Amount += amount
+	} else {
+		// Create new modifier
+		modifierMap[key] = &model.RequirementModifier{
+			Amount:                amount,
+			AffectedResources:     affectedResources,
+			CardTarget:            cardTarget,
+			StandardProjectTarget: standardProjectTarget,
+		}
+	}
 }
 
 // UnsubscribeCardEffects unsubscribes all effects for a card

@@ -6,10 +6,7 @@
     "cost": 8,
     "description": "Oxygen must be 5% or less.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "jovian"
-    ],
+    "tags": ["building", "jovian"],
     "requirements": [
       {
         "type": "oxygen",
@@ -30,9 +27,7 @@
     "cost": 13,
     "description": "Requires that you have titanium production. Decrease any titanium production 1 step and increase your own 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "requirements": [
       {
         "type": "production",
@@ -84,10 +79,7 @@
     "cost": 13,
     "description": "Increase your energy production 1 step. Increase temperature 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -166,9 +158,7 @@
     "cost": 3,
     "description": "Action: Spend 1 M€ to reveal and discard the top card of the draw deck. If that card has a microbe tag, add a science resource here. Oxygen must be 6% or less. 3 VPs if you have one or more science resources here.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "oxygen",
@@ -222,9 +212,7 @@
     "cost": 9,
     "description": "Action: look at the top card and either buy it or discard it",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -254,9 +242,7 @@
     "cost": 13,
     "description": "Action: Spend 1 energy to gain 1 M€ for each city tile ON MARS.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -293,10 +279,7 @@
     "cost": 26,
     "description": "Requires 4 ocean tiles. Place this tile. Decrease your energy production 2 steps and increase your M€ production 5 steps. 1 Additional VP for each ocean tile adjacent to this city tile.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "requirements": [
       {
         "type": "oceans",
@@ -349,9 +332,7 @@
     "cost": 14,
     "description": "Raise temperature 1 step and gain 2 titanium. Remove up to 3 plants from any player.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -395,9 +376,7 @@
     "cost": 21,
     "description": "Raise temperature 1 step and place an ocean tile. Remove up to 3 plants from any player.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -441,9 +420,7 @@
     "cost": 27,
     "description": "Raise temperature 2 steps and gain 4 titanium. Remove up to 4 plants from any player.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -487,10 +464,7 @@
     "cost": 25,
     "description": "Action: Pay 12 M€ to place an ocean tile. TITANIUM MAY BE USED as if playing a space card. 1 VP for each Jovian tag you have.",
     "pack": "base-game",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -535,10 +509,7 @@
     "cost": 27,
     "description": "Action: Spend 1 steel to gain 5 M€ Increase your titanium production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "space"
-    ],
+    "tags": ["building", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -590,10 +561,7 @@
     "cost": 11,
     "description": "Action: Spend 1 energy to draw a card.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -625,9 +593,7 @@
     "cost": 11,
     "description": "Action: Decrease your energy production 1 step to increase your terraform rating 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -659,10 +625,7 @@
     "cost": 24,
     "description": "Oxygen must be 7% or less. Gain 3 plants and place a city tile. Decrease your energy production 1 step and increase M€ production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "requirements": [
       {
         "type": "oxygen",
@@ -714,10 +677,7 @@
     "cost": 18,
     "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile ON THE RESERVED AREA, disregarding normal placement restrictions.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -752,10 +712,7 @@
     "cost": 28,
     "description": "Requires 2% oxygen. Increase your heat production 2 steps and your plant production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "requirements": [
       {
         "type": "oxygen",
@@ -797,10 +754,7 @@
     "cost": 16,
     "description": "Gain 3 plants, or add 3 microbes or 2 animals to ANOTHER card. Place an ocean tile.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -854,11 +808,7 @@
     "cost": 18,
     "description": "Effect: When you play a card, you pay 1 M€ less for it. Place a city tile NEXT TO NO OTHER TILE.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city",
-      "science"
-    ],
+    "tags": ["building", "city", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -897,10 +847,7 @@
     "cost": 25,
     "description": "Increase your titanium production 1 step and place a city tile ON THE RESERVED AREA.",
     "pack": "base-game",
-    "tags": [
-      "city",
-      "space"
-    ],
+    "tags": ["city", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -965,9 +912,7 @@
     "cost": 12,
     "description": "Effect: When anyone places an ocean tile, gain 2 plants. It must be -12°C or colder to play. Gain 1 plant.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -1017,9 +962,7 @@
     "cost": 14,
     "description": "Action: Remove 1 animal from any card and add it to this card. Requires 11% oxygen. 1 VP per animal on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oxygen",
@@ -1067,9 +1010,7 @@
     "cost": 10,
     "description": "Effect: When you play a space card, you pay 2 M€ less for it.",
     "pack": "corporate-era",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -1082,9 +1023,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "affectedTags": ["space"]
           }
         ]
       }
@@ -1103,10 +1042,7 @@
     "cost": 16,
     "description": "Requires -12°C  or warmer. Add 1 animal TO ANY ANIMAL CARD. Gain 3 plants. Increase your M€ production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "plant"
-    ],
+    "tags": ["building", "plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -1153,10 +1089,7 @@
     "cost": 24,
     "description": "Requires 5 science tags.",
     "pack": "corporate-era",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -1178,9 +1111,7 @@
     "cost": 12,
     "description": "Action: Spend 1 titanium to add 1 fighter resource to this card. 1 VP for each fighter resource on this card.",
     "pack": "corporate-era",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -1225,10 +1156,7 @@
     "cost": 16,
     "description": "Oxygen must be 9% or less. Place a city tile. Decrease your energy production 1 step and increase your M€ production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "requirements": [
       {
         "type": "oxygen",
@@ -1269,10 +1197,7 @@
     "cost": 13,
     "description": "Decrease your M€ production 2 steps and increase your heat production and energy production 2 steps each.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "power"
-    ],
+    "tags": ["earth", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -1307,9 +1232,7 @@
     "cost": 7,
     "description": "Effect: When you place a space event, you gain 3 M€ and 3 heat.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -1339,10 +1262,7 @@
     "cost": 18,
     "description": "Place a city tile. Decrease your energy production 2 steps and increase your steel production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -1377,10 +1297,7 @@
     "cost": 13,
     "description": "Action: Add 1 microbe to this card, or remove 2 microbes from this card to raise oxygen level 1 step.",
     "pack": "base-game",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -1429,10 +1346,7 @@
     "cost": 8,
     "description": "Action: Add 1 microbe to this card, or remove 2 microbes to raise temperature 1 step. Requires 4% oxygen.",
     "pack": "base-game",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "requirements": [
       {
         "type": "oxygen",
@@ -1487,9 +1401,7 @@
     "cost": 9,
     "description": "Action: Remove 1 microbe from any card to add 1 to this card. Requires 4% oxygen. 1 VP per 2 microbes on this card.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "oxygen",
@@ -1561,9 +1473,7 @@
     "cost": 31,
     "description": "Raise your terraform rating 2 steps and temperature 1 step. Increase your plant production 1 step, or 4 steps if you have 3 plant tags.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -1613,9 +1523,7 @@
     "cost": 8,
     "description": "Effect: When any city tile is placed, gain 2 M€.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -1651,9 +1559,7 @@
     "cost": 31,
     "description": "Raise temperature 3 steps and gain 4 steel. Remove up to 8 plants from any player.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -1697,10 +1603,7 @@
     "cost": 30,
     "description": "Increase your titanium production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -1731,9 +1634,7 @@
     "cost": 12,
     "description": "Decrease your plant production 1 step and increase your M€ production 4 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -1769,9 +1670,7 @@
     "cost": 6,
     "description": "It must be -18°C or colder. Increase your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "temperature",
@@ -1802,9 +1701,7 @@
     "cost": 6,
     "description": "Decrease your energy production 1 step and increase your heat production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -1834,10 +1731,7 @@
     "cost": 9,
     "description": "Oxygen must be 4% or less. Place this tile NEXT TO NO OTHER TILE. Increase your M€ production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "requirements": [
       {
         "type": "oxygen",
@@ -1874,10 +1768,7 @@
     "cost": 10,
     "description": "Decrease your M€ production 2 steps and increase your energy production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -1907,9 +1798,7 @@
     "cost": 8,
     "description": "Requires 3 science tags. Increase your energy production and your M€ production 1 step each.",
     "pack": "corporate-era",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "requirements": [
       {
         "type": "tags",
@@ -1952,9 +1841,7 @@
     "cost": 10,
     "description": "Requires 5 ocean tiles. Gain 1 plant and increase your plant production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "oceans",
@@ -1990,9 +1877,7 @@
     "cost": 9,
     "description": "Increase your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -2017,9 +1902,7 @@
     "cost": 4,
     "description": "Action: Add 1 microbe to this card. 1 VP per 4 microbes on this card.",
     "pack": "corporate-era",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -2061,9 +1944,7 @@
     "cost": 1,
     "description": "Remove up to 2 animals or 5 plants from any player.",
     "pack": "corporate-era",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -2101,10 +1982,7 @@
     "cost": 12,
     "description": "Increase your M€ production 1 step for each Earth tag you have.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -2142,9 +2020,7 @@
     "cost": 9,
     "description": "Action: Add 1 animal to this card. Requires 2°C or warmer. Decrease any plant production 1 step. 1 VP for each animal on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "temperature",
@@ -2242,9 +2118,7 @@
     "cost": 6,
     "description": "Action: Add 1 animal to this card. Requires 6% oxygen. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oxygen",
@@ -2306,9 +2180,7 @@
     "cost": 17,
     "description": "Requires 6 ocean tiles. Increase your M€ production 2 steps and your plant production 3 steps. Gain 2 plants.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "oceans",
@@ -2355,9 +2227,7 @@
     "cost": 4,
     "description": "Increase your steel production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -2382,10 +2252,7 @@
     "cost": 15,
     "description": "Increase your titanium production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -2416,11 +2283,7 @@
     "cost": 32,
     "description": "Requires a Jovian tag. Increase your heat production and energy production 3 steps each.",
     "pack": "base-game",
-    "tags": [
-      "jovian",
-      "power",
-      "space"
-    ],
+    "tags": ["jovian", "power", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -2463,9 +2326,7 @@
     "cost": 12,
     "description": "Requires +4°C or warmer. Place a Greenery tile ON AN AREA RESERVED FOR OCEAN and raise oxygen 1 step. Disregard normal placement restrictions for this.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -2502,9 +2363,7 @@
     "cost": 13,
     "description": "Requires -4°C or warmer. Increase your plant production 3 steps. Gain 1 plant.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -2658,9 +2517,7 @@
     "cost": 4,
     "description": "Place this tile on an area with a steel or titanium placement bonus, adjacent to another of your tiles. Increase your production of that resource 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -2698,9 +2555,7 @@
     "cost": 6,
     "description": "Decrease your energy production 1 step and increase your steel production 2 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -2738,9 +2593,7 @@
     "cost": 9,
     "description": "Place this tile on an area with a steel or titanium placement bonus. Increase that production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -2778,9 +2631,7 @@
     "cost": 6,
     "description": "Increase your M€ production 2  steps.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -2805,9 +2656,7 @@
     "cost": 17,
     "description": "Action: Spend 1 plant or 1 steel to gain 7 M€. Oxygen must be 8% or less. Decrease your energy production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "requirements": [
       {
         "type": "oxygen",
@@ -2878,9 +2727,7 @@
     "cost": 23,
     "description": "Effect: When you play a card, you pay 2 M€ less for it.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -2911,9 +2758,7 @@
     "cost": 9,
     "description": "Effect: Each titanium you have is worth 1 M€ extra. Each steel you have is worth 1 M€ extra.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -2926,9 +2771,7 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
-            ]
+            "affectedResources": ["steel"]
           }
         ]
       },
@@ -2943,9 +2786,7 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
-            ]
+            "affectedResources": ["titanium"]
           }
         ]
       }
@@ -2958,9 +2799,7 @@
     "cost": 10,
     "description": "Action: Add an animal to this card. Requires 13% oxygen. Decrease any plant production 2 steps. 1 VP for each animal on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oxygen",
@@ -3022,10 +2861,7 @@
     "cost": 8,
     "description": "Effect: When you play a science tag, including this, you may discard a card from hand to draw a card.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -3056,10 +2892,7 @@
     "cost": 9,
     "description": "Effect: When you play a plant, microbe, or an animal tag, including this, gain 1 plant or add 1 resource TO THAT CARD.",
     "pack": "corporate-era",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -3067,11 +2900,7 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
-              ],
+              "affectedTags": ["plant", "microbe", "animal"],
               "target": "self-player"
             }
           }
@@ -3106,9 +2935,7 @@
     "cost": 23,
     "description": "Gain 2 plants. Raise oxygen level 1 step and place an ocean tile.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -3143,10 +2970,7 @@
     "cost": 3,
     "description": "Action: Spend 7 M€ to increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "power",
-      "space"
-    ],
+    "tags": ["power", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -3178,11 +3002,7 @@
     "cost": 11,
     "description": "Increase your energy production 1 step and gain 2 titanium.",
     "pack": "base-game",
-    "tags": [
-      "power",
-      "science",
-      "space"
-    ],
+    "tags": ["power", "science", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -3212,9 +3032,7 @@
     "cost": 23,
     "description": "Place 2 ocean tiles.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -3239,10 +3057,7 @@
     "cost": 13,
     "description": "Effect: When you play a space card, you pay 2 M€ less for it Requires 4 science tags. Increase your energy production 4 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "power",
-      "science"
-    ],
+    "tags": ["power", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -3262,9 +3077,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "affectedTags": ["space"]
           }
         ]
       },
@@ -3291,9 +3104,7 @@
     "cost": 36,
     "description": "Raise temperature 2 steps and place 2 ocean tiles. Remove up to 6 plants from any player.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -3337,11 +3148,7 @@
     "cost": 20,
     "description": "Place a city tile ON THE RESERVED AREA. 1 VP per Jovian tag you have.",
     "pack": "base-game",
-    "tags": [
-      "city",
-      "jovian",
-      "space"
-    ],
+    "tags": ["city", "jovian", "space"],
     "vpConditions": [
       {
         "amount": 1,
@@ -3363,10 +3170,7 @@
     "cost": 24,
     "description": "Increase your M€ production 3 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -3397,10 +3201,7 @@
     "cost": 17,
     "description": "Increase your energy production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "power",
-      "space"
-    ],
+    "tags": ["power", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -3425,10 +3226,7 @@
     "cost": 6,
     "description": "",
     "pack": "corporate-era",
-    "tags": [
-      "science",
-      "space"
-    ],
+    "tags": ["science", "space"],
     "vpConditions": [
       {
         "amount": 1,
@@ -3443,9 +3241,7 @@
     "cost": 16,
     "description": "Decrease your energy production 1 step and increase your M€ production 4 steps. Place this tile. 1 VP per adjacent city tile.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -3487,9 +3283,7 @@
     "cost": 9,
     "description": "Duplicate only the production box of one of your building cards.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ]
+    "tags": ["science"]
   },
   {
     "id": "087",
@@ -3498,9 +3292,7 @@
     "cost": 11,
     "description": "Requires -16°C or warmer. Increase your plant production 1 step. Gain 3 plants.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -3536,9 +3328,7 @@
     "cost": 6,
     "description": "Requires -14°C or warmer. Increase your plant production 1 step. Gain 1 plant.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -3574,10 +3364,7 @@
     "cost": 7,
     "description": "Decrease your M€ production 1 step and increase your energy production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -3607,10 +3394,7 @@
     "cost": 11,
     "description": "Counts as playing 2 science cards. Draw 2 cards.",
     "pack": "corporate-era",
-    "tags": [
-      "science",
-      "science"
-    ],
+    "tags": ["science", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -3641,9 +3425,7 @@
     "cost": 12,
     "description": "Requires 3 science tags. Increase your M€ production 2 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "tags",
@@ -3681,10 +3463,7 @@
     "cost": 41,
     "description": "Increase your titanium production 2 steps and your M€ production 2 steps. 1 VP per Jovian tag you have.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -3727,9 +3506,7 @@
     "cost": 10,
     "description": "Requires -10°C or warmer. Increase your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -3765,10 +3542,7 @@
     "cost": 8,
     "description": "Effect: When you play a space card, you pay 2 M€ less for it. Requires 5 science tags. Increase your energy production 6 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "power",
-      "science"
-    ],
+    "tags": ["power", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -3788,9 +3562,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "affectedTags": ["space"]
           }
         ]
       },
@@ -3817,10 +3589,7 @@
     "cost": 12,
     "description": "Action: Spend 6 energy to add a science resource to this card. 2 VP for each science resource on this card.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -3869,10 +3638,7 @@
     "cost": 6,
     "description": "Gain 1 plant for each city tile in play.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "plant"
-    ],
+    "tags": ["building", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -3902,9 +3668,7 @@
     "cost": 10,
     "description": "Place this tile and raise temperature 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -3929,9 +3693,7 @@
     "cost": 13,
     "description": "Decrease your heat production 2 steps and increase your M€ production 3 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -3967,9 +3729,7 @@
     "cost": 12,
     "description": "Increase your M€ production 1 step for each space tag your OPPONENTS have.",
     "pack": "corporate-era",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -4001,10 +3761,7 @@
     "cost": 1,
     "description": "Decrease your M€ production 1 step and increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -4034,9 +3791,7 @@
     "cost": 11,
     "description": "Action: Spend 4 energy to gain 1 steel and increase oxygen 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -4073,9 +3828,7 @@
     "cost": 18,
     "description": "Increase your energy production 1 step for each power tag you have, including this.)",
     "pack": "base-game",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -4107,9 +3860,7 @@
     "cost": 15,
     "description": "Action: Spend 4 energy to gain 2 steel and increase oxygen 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -4146,9 +3897,7 @@
     "cost": 13,
     "description": "Action: Spend 4 energy to gain 1 titanium and increase oxygen 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -4185,9 +3934,7 @@
     "cost": 1,
     "description": "Effect: When you play an Earth tag, you pay 3 M€ less for it.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4200,9 +3947,7 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
-            ]
+            "affectedTags": ["earth"]
           }
         ]
       }
@@ -4215,9 +3960,7 @@
     "cost": 10,
     "description": "Increase your M€ production 3 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4242,9 +3985,7 @@
     "cost": 8,
     "description": "Gain 1 M€ for each event EVER PLAYED by all players.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ]
+    "tags": ["earth"]
   },
   {
     "id": "108",
@@ -4253,10 +3994,7 @@
     "cost": 23,
     "description": "Requires 12% oxygen. Decrease your energy production 1 step and increase your M€ production 4 steps. Gain 2 plants and place a city tile.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "requirements": [
       {
         "type": "oxygen",
@@ -4308,9 +4046,7 @@
     "cost": 6,
     "description": "Effect: After you play an event card, you gain 3 M€.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4335,9 +4071,7 @@
     "cost": 4,
     "description": "Action: LOOK AT THE TOP CARD AND EITHER BUY IT OR DISCARD IT Decrease your M€ production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4381,9 +4115,7 @@
     "cost": 7,
     "description": "Look at the top 4 cards from the deck. Take 2 of them into hand and discard the other 2",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4413,9 +4145,7 @@
     "cost": 7,
     "description": "Raise your terraform rating 2 steps.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -4440,10 +4170,7 @@
     "cost": 11,
     "description": "Increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -4474,9 +4201,7 @@
     "cost": 11,
     "description": "Requires 7% oxygen.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "oxygen",
@@ -4497,9 +4222,7 @@
     "cost": 12,
     "description": "Increase your plant production 1 step or your energy production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -4537,9 +4260,7 @@
     "cost": 15,
     "description": "Requires -6°C or warmer. Place 1 ocean tile ON AN AREA NOT RESERVED FOR OCEAN.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "requirements": [
       {
         "type": "temperature",
@@ -4576,10 +4297,7 @@
     "cost": 11,
     "description": "Increase your energy production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -4604,9 +4322,7 @@
     "cost": 16,
     "description": "Requires +4°C or warmer. Increase your M€ production 2 steps and your plant production 2 steps. Gain 2 plants.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -4673,10 +4389,7 @@
     "cost": 10,
     "description": "Decrease your energy production 1 step and increase your M€ production 2 steps. Place a city tile ADJACENT TO AT LEAST 2 OTHER CITY TILES.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -4757,9 +4470,7 @@
     "cost": 4,
     "description": "Requires 3 ocean tiles and that you lose 1 plant. Increase your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "oceans",
@@ -4795,9 +4506,7 @@
     "cost": 4,
     "description": "Action: Spend 7 M€ to increase your steel production 1 step. Place this tile ADJACENT TO A CITY TILE.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -4909,9 +4618,7 @@
     "cost": 11,
     "description": "Decrease your energy production 1 step and increase your heat production 4 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -4965,10 +4672,7 @@
     "cost": 12,
     "description": "Effect: When you play an animal or a plant tag (including these 2), add an animal to this card. Requires that you have a greenery tile. Place this tile ADJACENT TO ANY GREENERY TILE. 1 VP per 2 animals on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal",
-      "plant"
-    ],
+    "tags": ["animal", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -4990,10 +4694,7 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
-              ],
+              "affectedTags": ["plant", "animal"],
               "target": "self-player"
             }
           }
@@ -5073,9 +4774,7 @@
     "cost": 8,
     "description": "Requires 4% oxygen. Increase your plant production 1 step for every 2 microbe tags you have, including this.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "oxygen",
@@ -5113,9 +4812,7 @@
     "cost": 5,
     "description": "Effect: When you play an animal, plant, or microbe tag, including this, add a microbe to this card. Requires 3% oxygen. 1 VP per 3 microbes on this card.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "oxygen",
@@ -5129,11 +4826,7 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
-              ],
+              "affectedTags": ["plant", "microbe", "animal"],
               "target": "self-player"
             }
           }
@@ -5172,11 +4865,7 @@
     "cost": 14,
     "description": "Requires 2 power tags. Increase your energy production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power",
-      "science"
-    ],
+    "tags": ["building", "power", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -5208,9 +4897,7 @@
     "cost": 4,
     "description": "Action: Add a microbe to ANOTHER card. Requires -14°C or warmer.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "temperature",
@@ -5241,9 +4928,7 @@
     "cost": 13,
     "description": "Action: Gain 1 plant or add 2 microbes to ANOTHER card. It must be -10°C or colder.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "temperature",
@@ -5287,11 +4972,7 @@
     "cost": 11,
     "description": "Requires a plant tag, a microbe tag, and an animal tag.",
     "pack": "base-game",
-    "tags": [
-      "animal",
-      "microbe",
-      "plant"
-    ],
+    "tags": ["animal", "microbe", "plant"],
     "vpConditions": [
       {
         "amount": 3,
@@ -5306,10 +4987,7 @@
     "cost": 12,
     "description": "Requires 4 ocean tiles. Increase your energy production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "requirements": [
       {
         "type": "oceans",
@@ -5346,9 +5024,7 @@
     "cost": 8,
     "description": "Increase your M€ production 1 step for each Earth tag you have, including this.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -5380,9 +5056,7 @@
     "cost": 25,
     "description": "Decrease your energy production 2 steps. Increase your steel production 2 steps and your titanium production 1 step. Raise oxygen 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -5422,9 +5096,7 @@
     "cost": 8,
     "description": "Requires 3 ocean tiles. Increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "requirements": [
       {
         "type": "oceans",
@@ -5485,10 +5157,7 @@
     "cost": 4,
     "description": "Increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -5513,9 +5182,7 @@
     "cost": 20,
     "description": "Increase your heat production 4 steps. Place this tile ON AN AREA RESERVED FOR OCEAN.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -5540,10 +5207,7 @@
     "cost": 36,
     "description": "Place an ocean tile and draw 2 cards. Gain 5 plants, or add 4 animals to ANOTHER card.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -5599,9 +5263,7 @@
     "cost": 7,
     "description": "Increase your titanium production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -5626,10 +5288,7 @@
     "cost": 18,
     "description": "Requires 2 science tags. Increase your energy production 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "requirements": [
       {
         "type": "tags",
@@ -5667,9 +5326,7 @@
     "cost": 8,
     "description": "Requires 3 ocean tiles and that you lose 2 plants. Increase your plant production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "oceans",
@@ -5705,9 +5362,7 @@
     "cost": 12,
     "description": "Effect: When you place a greenery tile, add an animal to this card. Requires 8% oxygen. Add 1 animal to this card. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oxygen",
@@ -5787,9 +5442,7 @@
     "cost": 9,
     "description": "Requires 6% oxygen. Increase your plant production 1 step for each plant tag you have.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "oxygen",
@@ -5851,9 +5504,7 @@
     "cost": 14,
     "description": "Effect: When you play a card, you pay 2 M€ less for it. Requires 7 science tags.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "tags",
@@ -5891,9 +5542,7 @@
     "cost": 3,
     "description": "Decrease your M€ production 1 step. Gain 10 M€.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -5931,9 +5580,7 @@
     "cost": 12,
     "description": "Effect: Your global requirements are +2 or -2 steps, your choice in each case.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -6004,10 +5651,7 @@
     "cost": 16,
     "description": "It must be -14°C or colder. Increase your plant production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "requirements": [
       {
         "type": "temperature",
@@ -6038,9 +5682,7 @@
     "cost": 6,
     "description": "Effect: After you pay for a standard project, except selling patents, you gain 3 M€.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -6065,9 +5707,7 @@
     "cost": 11,
     "description": "Action: Add 1 microbe to this card, or remove 3 microbes to increase your TR 1 step. Add 3 microbes to this card.",
     "pack": "base-game",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -6130,10 +5770,7 @@
     "cost": 12,
     "description": "Increase your energy production and your steel production 1 step each.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "microbe"
-    ],
+    "tags": ["building", "microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -6163,9 +5800,7 @@
     "cost": 7,
     "description": "Requires -24°C or warmer. Increase your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -6196,9 +5831,7 @@
     "cost": 5,
     "description": "Requires 2 power tags. Decrease any energy production 1 step and increase your own 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "requirements": [
       {
         "type": "tags",
@@ -6244,9 +5877,7 @@
     "cost": 15,
     "description": "Place 1 ocean tile and draw 1 card.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -6276,10 +5907,7 @@
     "cost": 7,
     "description": "Increase your heat production 1 step and gain 3 heat.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -6309,10 +5937,7 @@
     "cost": 23,
     "description": "Raise your TR 1 step and gain 4 plants. Add 3 microbes to ANOTHER card and 2 animals to ANOTHER card.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -6376,9 +6001,7 @@
     "cost": 20,
     "description": "Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -6413,9 +6036,7 @@
     "cost": 10,
     "description": "Effect: When you play a space card, you pay 2 M€ less for it. Requires 5% oxygen. Decrease your energy production 1 step and increase your M€ production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "oxygen",
@@ -6453,9 +6074,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "affectedTags": ["space"]
           }
         ]
       }
@@ -6474,10 +6093,7 @@
     "cost": 9,
     "description": "Increase your heat production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -6502,10 +6118,7 @@
     "cost": 6,
     "description": "Requires 7% oxygen. Increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "requirements": [
       {
         "type": "oxygen",
@@ -6542,9 +6155,7 @@
     "cost": 16,
     "description": "Requires -6°C or warmer. Increase your plant production 1 step and your M€ production 2 steps. Gain 1 plant.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -6591,9 +6202,7 @@
     "cost": 26,
     "description": "Add 2 microbes to ANOTHER card. Increase your heat production 3 steps and your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -6628,9 +6237,7 @@
     "cost": 5,
     "description": "Decrease your energy production 2 steps and increase your plant production 1 step. Raise your terraform rating 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -6665,10 +6272,7 @@
     "cost": 10,
     "description": "Effect: When any city tile is placed, add an animal to this card. ANIMALS MAY NOT BE REMOVED FROM THIS CARD Add 1 animal to this card. 1 VP per 2 animals here.",
     "pack": "base-game",
-    "tags": [
-      "animal",
-      "earth"
-    ],
+    "tags": ["animal", "earth"],
     "behaviors": [
       {
         "triggers": [
@@ -6714,9 +6318,7 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "animals"
-            ]
+            "affectedResources": ["animals"]
           }
         ]
       }
@@ -6758,11 +6360,7 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plants",
-              "microbes",
-              "animals"
-            ]
+            "affectedResources": ["plants", "microbes", "animals"]
           }
         ]
       }
@@ -6775,10 +6373,7 @@
     "cost": 23,
     "description": "Increase your M€ production 2 steps. Place a greenery tile ON AN AREA RESERVED FOR OCEAN, disregarding normal placement restrictions, and increase oxygen 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "plant"
-    ],
+    "tags": ["building", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -6808,9 +6403,7 @@
     "cost": 10,
     "description": "Increase your M€ production 1 step for each space tag you have, including this.",
     "pack": "corporate-era",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -6842,10 +6435,7 @@
     "cost": 10,
     "description": "Requires -20°C or warmer. Increase your M€ production 1 step and gain 2 plants.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "plant"
-    ],
+    "tags": ["building", "plant"],
     "requirements": [
       {
         "type": "temperature",
@@ -6887,9 +6477,7 @@
     "cost": 12,
     "description": "Action: Spend 3 energy to raise oxygen 1 step. Requires 2 ocean tiles.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "requirements": [
       {
         "type": "oceans",
@@ -6927,10 +6515,7 @@
     "cost": 6,
     "description": "Decrease any heat production 2 steps and increase your energy production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -6969,9 +6554,7 @@
     "cost": 9,
     "description": "Decrease your energy production 1 step and increase your plant production 1 step.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -7007,9 +6590,7 @@
     "cost": 6,
     "description": "Decrease your energy production 1 step and increase your titanium and your M€ production 1 step each.",
     "pack": "corporate-era",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -7074,10 +6655,7 @@
     "cost": 11,
     "description": "Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -7112,10 +6690,7 @@
     "cost": 4,
     "description": "Requires 6% oxygen. Decrease any plant production 1 step and increase your energy production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "requirements": [
       {
         "type": "oxygen",
@@ -7160,9 +6735,7 @@
     "cost": 13,
     "description": "Action: Add 1 animal to this card. Requires 9% oxygen. Decrease your plant production 1 step and increase your M€ production 2 steps. 1 VP for each animal on this card.",
     "pack": "base-game",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oxygen",
@@ -7229,11 +6802,7 @@
     "cost": 10,
     "description": "Effect: When you play a science tag, including this, either add a science resource to this card, or remove a science resource from this card to draw a card.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "earth",
-      "science"
-    ],
+    "tags": ["building", "earth", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -7241,9 +6810,7 @@
             "type": "auto",
             "condition": {
               "type": "tag-played",
-              "affectedTags": [
-                "science"
-              ]
+              "affectedTags": ["science"]
             }
           }
         ],
@@ -7324,9 +6891,7 @@
     "cost": 18,
     "description": "Action: Spend 8 M€ to place 1 ocean tile. STEEL MAY BE USED as if you were playing a building card.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -7396,9 +6961,7 @@
     "cost": 15,
     "description": "Increase your energy production 1 step for each city tile in play.",
     "pack": "base-game",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -7502,9 +7065,7 @@
     "cost": 2,
     "description": "Look at the top 3 cards from the deck. Take 1 of them into hand and discard the other 2",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -7534,9 +7095,7 @@
     "cost": 15,
     "description": "Requires 2 science tags. Place a greenery tile and raise oxygen 1 step.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "tags",
@@ -7568,10 +7127,7 @@
     "cost": 4,
     "description": "Action: Spend any number of energy to gain that amount of M€.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "power"
-    ]
+    "tags": ["building", "power"]
   },
   {
     "id": "195",
@@ -7588,10 +7144,7 @@
     "cost": 9,
     "description": "Draw 1 card.",
     "pack": "corporate-era",
-    "tags": [
-      "science",
-      "space"
-    ],
+    "tags": ["science", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -7622,10 +7175,7 @@
     "cost": 33,
     "description": "Raise your TR 1 step for each Jovian tag you have, including this.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "vpConditions": [
       {
         "amount": 2,
@@ -7640,10 +7190,7 @@
     "cost": 31,
     "description": "Increase your M€ production 5 steps. 1 VP for every 3rd city in play.",
     "pack": "base-game",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -7680,9 +7227,7 @@
     "cost": 11,
     "description": "Action: Spend 2 M€ to draw a card. Place this tile.",
     "pack": "corporate-era",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -7714,10 +7259,7 @@
     "cost": 13,
     "description": "Effect: Each time a city tile is placed, including this, increase your M€ production 1 step. Decrease your energy production 1 step and decrease your M€ production 2 steps. Place a city tile.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -7771,9 +7313,7 @@
     "cost": 3,
     "description": "Decrease any energy production 1 step and increase your own 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -7812,9 +7352,7 @@
     "cost": 6,
     "description": "Action: Spend 10 M€ to increase your heat production 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -7846,9 +7384,7 @@
     "cost": 35,
     "description": "Increase your heat production 7 steps.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -7873,10 +7409,7 @@
     "cost": 5,
     "description": "Draw 2 cards.",
     "pack": "corporate-era",
-    "tags": [
-      "science",
-      "space"
-    ],
+    "tags": ["science", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -7901,9 +7434,7 @@
     "cost": 8,
     "description": "Decrease your energy production 1 step. Raise your terraform rating 2 steps.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -7933,9 +7464,7 @@
     "cost": 4,
     "description": "The next card you play this generation is +2 or -2 in global requirements, your choice.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ]
+    "tags": ["science"]
   },
   {
     "id": "207",
@@ -7944,10 +7473,7 @@
     "cost": 13,
     "description": "Increase your M€ production 1 step for every 2 building tags you have, including this.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -7985,10 +7511,7 @@
     "cost": 21,
     "description": "Action: Draw 2 cards. Requires 3 science tags to play. Decrease your energy production 1 step.",
     "pack": "corporate-era",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -8040,9 +7563,7 @@
     "cost": 10,
     "description": "Increase temperature 1 step. Remove up to 2 plants from any player.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -8131,9 +7652,7 @@
     "cost": 12,
     "description": "Requires 2 oceans. Increase your plant production and your heat production 1 step each.",
     "pack": "promo",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "requirements": [
       {
         "type": "oceans",
@@ -8169,9 +7688,7 @@
     "cost": 7,
     "description": "Action: Add 1 animal to this card. Requires 8 oceans. 1 VP for each animal on this card.",
     "pack": "promo",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "oceans",
@@ -8219,9 +7736,7 @@
     "cost": 11,
     "description": "Action: Add 1 floater to ANY card, or spend 1 floater here to draw a card.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8318,9 +7833,7 @@
     "cost": 13,
     "description": "Raise Venus 1 step. Add 3 floaters to ANY VENUS CARD.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8333,9 +7846,7 @@
             "type": "floaters",
             "amount": 3,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
-            ]
+            "affectedTags": ["venus"]
           }
         ]
       }
@@ -8348,10 +7859,7 @@
     "cost": 10,
     "description": "Requires 3 science tags. Draw 2 cards.",
     "pack": "venus-next",
-    "tags": [
-      "science",
-      "venus"
-    ],
+    "tags": ["science", "venus"],
     "requirements": [
       {
         "type": "tags",
@@ -8389,10 +7897,7 @@
     "cost": 22,
     "description": "Requires 3 science tags. Either raise the temperature 2 steps, or raise Venus 2 steps. Add 2 floaters to ANY card.",
     "pack": "venus-next",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -8450,9 +7955,7 @@
     "cost": 11,
     "description": "Raise Venus 1 step. Remove up to 4 M€ from a player WITH A VENUS TAG IN PLAY.",
     "pack": "venus-next",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -8477,9 +7980,7 @@
     "cost": 8,
     "description": "Increase your M€ production 2 steps. Add 1 resource to ANY VENUS CARD.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8497,9 +7998,7 @@
             "type": "credits",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
-            ]
+            "affectedTags": ["venus"]
           }
         ]
       }
@@ -8512,10 +8011,7 @@
     "cost": 15,
     "description": "Requires 4 science tags. Decrease your energy production 1 step. Increase your titanium production 1 step. Place a city tile ON THE RESERVED AREA.",
     "pack": "venus-next",
-    "tags": [
-      "city",
-      "space"
-    ],
+    "tags": ["city", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -8558,11 +8054,7 @@
     "cost": 11,
     "description": "Action: Add 1 floater to this card, or spend 1 floater here to increase your energy production 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "power",
-      "space",
-      "venus"
-    ],
+    "tags": ["power", "space", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8611,9 +8103,7 @@
     "cost": 11,
     "description": "Action: Add 1 floater to ANY card. / Effect: When playing a Venus tag, floaters here may be used as payment, and are worth 3 M€ each.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8656,9 +8146,7 @@
     "cost": 21,
     "description": "Action: Add 1 floater to this card, or remove 2 floaters here to raise Venus 1 step. Add 3 floaters to this card.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8721,10 +8209,7 @@
     "cost": 3,
     "description": "Action: Add 1 microbe to ANY card. Requires 2 science tags. 1 VP per 3 microbes on this card.",
     "pack": "venus-next",
-    "tags": [
-      "microbe",
-      "venus"
-    ],
+    "tags": ["microbe", "venus"],
     "requirements": [
       {
         "type": "tags",
@@ -8773,9 +8258,7 @@
     "cost": 5,
     "description": "Action: Spend 2 M€ to add 1 floater to ANY card. Requires 2 science tags. 1 VP per 2 floaters on this card.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "requirements": [
       {
         "type": "tags",
@@ -8831,9 +8314,7 @@
     "cost": 8,
     "description": "Action: Spend 2 M€ to add a floater to this card, or spend 2 floaters here to increase Venus 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8889,10 +8370,7 @@
     "cost": 14,
     "description": "Requires Venus 10%. Add 2 microbes or 2 animals TO ANOTHER VENUS CARD. Decrease your energy production 1 step, and increase your M€ production 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "plant",
-      "venus"
-    ],
+    "tags": ["plant", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -8925,9 +8403,7 @@
                 "type": "animals",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
-                ]
+                "affectedTags": ["venus"]
               }
             ]
           },
@@ -8937,9 +8413,7 @@
                 "type": "microbes",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
-                ]
+                "affectedTags": ["venus"]
               }
             ]
           }
@@ -8960,10 +8434,7 @@
     "cost": 23,
     "description": "Raise Venus 1 step. Increase your heat production 3 steps.",
     "pack": "venus-next",
-    "tags": [
-      "space",
-      "venus"
-    ],
+    "tags": ["space", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -8988,10 +8459,7 @@
     "cost": 27,
     "description": "Raise Venus 3 steps.",
     "pack": "venus-next",
-    "tags": [
-      "space",
-      "venus"
-    ]
+    "tags": ["space", "venus"]
   },
   {
     "id": "230",
@@ -9000,10 +8468,7 @@
     "cost": 20,
     "description": "Decrease your energy production 2 steps. Increase your M€ production 1  step for each Venus and Earth tag you have. Place a city tile.",
     "pack": "venus-next",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -9045,9 +8510,7 @@
     "cost": 11,
     "description": "Raise Venus 1 step. Add 1 floater to A VENUS CARD for each Jovian tag you have.",
     "pack": "venus-next",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -9060,9 +8523,7 @@
             "type": "floaters",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
-            ],
+            "affectedTags": ["venus"],
             "per": {
               "type": "tag",
               "amount": 1,
@@ -9082,10 +8543,7 @@
     "cost": 17,
     "description": "Draw 1 card, or draw 3 cards if you have at least 3 Venus tags.",
     "pack": "venus-next",
-    "tags": [
-      "jovian",
-      "science"
-    ],
+    "tags": ["jovian", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -9129,9 +8587,7 @@
     "cost": 5,
     "description": "Requires Venus 8%. Increase your titanium production 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9162,9 +8618,7 @@
     "cost": 12,
     "description": "Action: Spend 1 titanium to add 2 floaters to this card, or remove 2 floaters here to raise Venus 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -9220,9 +8674,7 @@
     "cost": 4,
     "description": "Action: Add 1 floater to this card, or spend 1 floater here to raise your M€ production 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -9271,11 +8723,7 @@
     "cost": 21,
     "description": "Increase your M€ production 1 step for each Earth tag you have, including this. Place a city tile ON THE RESERVED AREA.",
     "pack": "venus-next",
-    "tags": [
-      "city",
-      "earth",
-      "space"
-    ],
+    "tags": ["city", "earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -9344,10 +8792,7 @@
     "cost": 18,
     "description": "Action: Add 1 resource to ANOTHER VENUS CARD. Requires Venus 12%. Decrease your energy production 1 step. Place a city tile ON THE RESERVED AREA.",
     "pack": "venus-next",
-    "tags": [
-      "city",
-      "venus"
-    ],
+    "tags": ["city", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9380,9 +8825,7 @@
             "type": "credits",
             "amount": 1,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
-            ]
+            "affectedTags": ["venus"]
           }
         ]
       }
@@ -9401,9 +8844,7 @@
     "cost": 5,
     "description": "Requires Venus, Earth and Jovian tags. Increase your steel production 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "requirements": [
       {
         "type": "tags",
@@ -9445,9 +8886,7 @@
     "cost": 7,
     "description": "Requires Venus 10%. Increase Venus 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9462,9 +8901,7 @@
     "cost": 11,
     "description": "Requires Venus, Earth, and Jovian tags. Increase your TR 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "requirements": [
       {
         "type": "tags",
@@ -9506,10 +8943,7 @@
     "cost": 26,
     "description": "Raise Venus 2 steps. Increase your heat production 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "space",
-      "venus"
-    ],
+    "tags": ["space", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -9534,9 +8968,7 @@
     "cost": 6,
     "description": "Action: Spend 6 M€ to add an asteroid resource to this card (TITANIUM MAY BE USED), or spend a resource from this card to increase Venus 1 step. Venus must be 14% or lower.",
     "pack": "venus-next",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "venus",
@@ -9598,10 +9030,7 @@
     "cost": 7,
     "description": "Requires Venus and Earth tag. Increase your M€ production 3 steps.",
     "pack": "venus-next",
-    "tags": [
-      "earth",
-      "venus"
-    ],
+    "tags": ["earth", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -9673,9 +9102,7 @@
     "cost": 16,
     "description": "Venus must be 10% or lower. Raise Venus 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "venus",
@@ -9690,10 +9117,7 @@
     "cost": 9,
     "description": "Discard 1 card from hand and THEN draw 3 cards. All OPPONENTS draw 1 card.",
     "pack": "venus-next",
-    "tags": [
-      "earth",
-      "science"
-    ],
+    "tags": ["earth", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -9724,10 +9148,7 @@
     "cost": 22,
     "description": "Action: Add 2 floaters to ANY VENUS CARD. Requires 2 science tags. Increase your M€ production 2 steps. Place a city tile on THE RESERVED AREA. 1 VP per 3 floaters on this card.",
     "pack": "venus-next",
-    "tags": [
-      "city",
-      "venus"
-    ],
+    "tags": ["city", "venus"],
     "requirements": [
       {
         "type": "tags",
@@ -9761,9 +9182,7 @@
             "type": "floaters",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "venus"
-            ]
+            "affectedTags": ["venus"]
           }
         ]
       }
@@ -9793,10 +9212,7 @@
     "cost": 12,
     "description": "Action: Add 1 animal to this card. Requires Venus 12%, and that you spend 1 floater from any card. 1 VP for each animal on this card.",
     "pack": "venus-next",
-    "tags": [
-      "animal",
-      "venus"
-    ],
+    "tags": ["animal", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9858,10 +9274,7 @@
     "cost": 21,
     "description": "Increase Venus 1 step. Increase your M€ production 1 step for each Venus tag you have, including this.",
     "pack": "venus-next",
-    "tags": [
-      "space",
-      "venus"
-    ],
+    "tags": ["space", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -9893,10 +9306,7 @@
     "cost": 6,
     "description": "Action: Add 1 microbe to this card, or spend any number of microbes here to gain triple that amount of M€. Requires Venus 6%.",
     "pack": "venus-next",
-    "tags": [
-      "microbe",
-      "venus"
-    ],
+    "tags": ["microbe", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9931,9 +9341,7 @@
     "cost": 8,
     "description": "Requires that you have at least 25 TR. Increase your M€ production 4 steps.",
     "pack": "venus-next",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -9958,10 +9366,7 @@
     "cost": 9,
     "description": "Action: Add 1 microbe to ANY VENUS CARD, or spend 2 microbes here to raise Venus 1 step. Requires Venus 6%.",
     "pack": "venus-next",
-    "tags": [
-      "microbe",
-      "venus"
-    ],
+    "tags": ["microbe", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -9982,9 +9387,7 @@
                 "type": "microbes",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
-                ]
+                "affectedTags": ["venus"]
               }
             ]
           },
@@ -10019,9 +9422,7 @@
     "cost": 9,
     "description": "Raise Venus 1 step.",
     "pack": "venus-next",
-    "tags": [
-      "space"
-    ]
+    "tags": ["space"]
   },
   {
     "id": "255",
@@ -10030,10 +9431,7 @@
     "cost": 4,
     "description": "Requires 2 Venus tags. Increase your M€ production 2 steps.",
     "pack": "venus-next",
-    "tags": [
-      "venus",
-      "venus"
-    ],
+    "tags": ["venus", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -10064,9 +9462,7 @@
     "cost": 7,
     "description": "Action: Decrease your energy production 1 step to raise Venus 1 step. Requires Venus 10%",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "requirements": [
       {
         "type": "venus",
@@ -10097,10 +9493,7 @@
     "cost": 20,
     "description": "Raise Venus 1 step. Increase your plant production 1 step. Add 2 microbes to ANOTHER card.",
     "pack": "venus-next",
-    "tags": [
-      "plant",
-      "venus"
-    ],
+    "tags": ["plant", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -10130,10 +9523,7 @@
     "cost": 9,
     "description": "Effect: When you play a Venus tag, you pay 2 M€ less for it.",
     "pack": "venus-next",
-    "tags": [
-      "space",
-      "venus"
-    ],
+    "tags": ["space", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -10146,9 +9536,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "venus"
-            ]
+            "affectedTags": ["venus"]
           }
         ]
       }
@@ -10167,11 +9555,7 @@
     "cost": 15,
     "description": "Effect: When you play a science tag, including this, add 1 animal to this card. Requires Venus 18%. 1 VP for each animal on this card.",
     "pack": "venus-next",
-    "tags": [
-      "animal",
-      "science",
-      "venus"
-    ],
+    "tags": ["animal", "science", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -10219,10 +9603,7 @@
     "cost": 5,
     "description": "Action: Add 1 microbe to this card. Requires Venus 12%. 1 VP per 2 microbes on this card.",
     "pack": "venus-next",
-    "tags": [
-      "microbe",
-      "venus"
-    ],
+    "tags": ["microbe", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -10270,10 +9651,7 @@
     "cost": 13,
     "description": "Requires Venus 16%. Raise Venus 1 step. Add 1 microbe or 1 animal to ANOTHER VENUS CARD.",
     "pack": "venus-next",
-    "tags": [
-      "plant",
-      "venus"
-    ],
+    "tags": ["plant", "venus"],
     "requirements": [
       {
         "type": "venus",
@@ -10301,9 +9679,7 @@
                 "type": "animals",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
-                ]
+                "affectedTags": ["venus"]
               }
             ]
           },
@@ -10313,9 +9689,7 @@
                 "type": "microbes",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "venus"
-                ]
+                "affectedTags": ["venus"]
               }
             ]
           }
@@ -10391,9 +9765,7 @@
     "cost": 0,
     "description": "Effect: You may always pay 7 plants, instead of 8, to place 1 greenery. You start with 2 plant production, 3 plants, and 36 M€.",
     "pack": "base-game",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -10430,12 +9802,8 @@
             "type": "discount",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "plants"
-            ],
-            "affectedStandardProjects": [
-              "convert-plants-to-greenery"
-            ]
+            "affectedResources": ["plants"],
+            "affectedStandardProjects": ["convert-plants-to-greenery"]
           }
         ]
       }
@@ -10448,9 +9816,7 @@
     "cost": 0,
     "description": "Effect: You may use heat as M€. You may not use M€ as heat. You start with 3 heat production and 42 M€.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -10482,9 +9848,7 @@
             "type": "payment-substitute",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "heat"
-            ]
+            "affectedResources": ["heat"]
           }
         ]
       }
@@ -10497,9 +9861,7 @@
     "cost": 0,
     "description": "Effect: Each time you play an event, you gain 2 M€. You start with 20 steel and 30 M€.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -10525,9 +9887,7 @@
           {
             "type": "auto",
             "condition": {
-              "affectedCardTypes": [
-                "event"
-              ],
+              "affectedCardTypes": ["event"],
               "type": "card-played"
             }
           }
@@ -10549,9 +9909,7 @@
     "cost": 0,
     "description": "Effect: Your temperature, oxygen, and ocean requirements are +2 or -2 steps, your choice in each case. As your first action in the game, draw 3 cards. Start with 45 M€.",
     "pack": "base-game",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -10607,10 +9965,7 @@
     "cost": 0,
     "description": "Effect: Each time you place a tile on an area with steel or titanium placement bonus, increase your steel production 1 step. You start with 30 M€, 5 steel, and 1 steel production.",
     "pack": "base-game",
-    "tags": [
-      "building",
-      "building"
-    ],
+    "tags": ["building", "building"],
     "behaviors": [
       {
         "triggers": [
@@ -10642,10 +9997,7 @@
             "type": "auto",
             "condition": {
               "type": "placement-bonus-gained",
-              "affectedResources": [
-                "steel",
-                "titanium"
-              ],
+              "affectedResources": ["steel", "titanium"],
               "target": "self-player"
             }
           }
@@ -10667,9 +10019,7 @@
     "cost": 0,
     "description": "Effect: Your titanium resources are each worth 1 M€ extra. You start with 10 titanium and 23 M€.",
     "pack": "base-game",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -10701,9 +10051,7 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
-            ]
+            "affectedResources": ["titanium"]
           }
         ]
       }
@@ -10716,9 +10064,7 @@
     "cost": 0,
     "description": "Effect: When any city tile is placed ON MARS, increase your M€ production 1 step. When you place a city tile, gain 3 M€. You start with 40 M€. As your first action in the game, place a city tile.",
     "pack": "base-game",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -10795,9 +10141,7 @@
     "cost": 0,
     "description": "Effect: When playing a power card OR THE STANDARD PROJECT POWER PLANT, you pay 3 M€ less for it. You start with 1 energy production and 48 M€.",
     "pack": "base-game",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -10829,9 +10173,7 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "power"
-            ]
+            "affectedTags": ["power"]
           }
         ]
       },
@@ -10858,9 +10200,7 @@
     "cost": 0,
     "description": "Action: If your Terraform Rating was raised this generation, you may pay 3 M€ to raise it 1 step more. You start with 40 M€.",
     "pack": "base-game",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -10906,9 +10246,7 @@
     "cost": 0,
     "description": "Effect: Each time any Jovian tag is put into play, including this, increase your M€ production 1 step. You start with 1 titanium production and 42 M€.",
     "pack": "corporate-era",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -10952,9 +10290,7 @@
     "cost": 0,
     "description": "Effect: When playing an Earth card, you pay 3 M€ less for it. You start with 60 M€.",
     "pack": "corporate-era",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -10981,9 +10317,7 @@
             "type": "discount",
             "amount": 3,
             "target": "self-player",
-            "affectedTags": [
-              "earth"
-            ]
+            "affectedTags": ["earth"]
           }
         ]
       }
@@ -11184,9 +10518,7 @@
     "cost": 5,
     "description": "Requires 2 Earth tags. The next card you play this generation costs 16 M€ less.",
     "pack": "colonies",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "requirements": [
       {
         "type": "tags",
@@ -11202,10 +10534,7 @@
     "cost": 10,
     "description": "Requires 4 science tags. Increase your energy production 4 steps.",
     "pack": "colonies",
-    "tags": [
-      "power",
-      "space"
-    ],
+    "tags": ["power", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -11237,9 +10566,7 @@
     "cost": 10,
     "description": "Effect: When you trade, you pay 1 less resource for it.",
     "pack": "colonies",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -11292,10 +10619,7 @@
     "cost": 43,
     "description": "Increase your titanium production 3 steps.",
     "pack": "colonies",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -11326,12 +10650,7 @@
     "cost": 21,
     "description": "Increase your plant production 1 step for each colony you own. Add 1 animal to ANOTHER card and 2 microbes to ANOTHER card.",
     "pack": "colonies",
-    "tags": [
-      "animal",
-      "microbe",
-      "plant",
-      "science"
-    ],
+    "tags": ["animal", "microbe", "plant", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -11375,9 +10694,7 @@
     "cost": 2,
     "description": "Add 2 floaters to ANOTHER card.",
     "pack": "colonies",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -11402,9 +10719,7 @@
     "cost": 7,
     "description": "Action: Add 1 floater to ANOTHER card.",
     "pack": "colonies",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -11429,9 +10744,7 @@
     "cost": 15,
     "description": "Increase your M€ production 1 step for every Jovian tag in play.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -11469,9 +10782,7 @@
     "cost": 3,
     "description": "Requires 2 Earth tags. Increase your M€ production 2 steps, and gain 4 M€.",
     "pack": "colonies",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "requirements": [
       {
         "type": "tags",
@@ -11508,9 +10819,7 @@
     "cost": 23,
     "description": "Place 1 colony and 1 ocean tile.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -11535,9 +10844,7 @@
     "cost": 11,
     "description": "Requries 2 Jovian tags. Gain 12 heat. Remove up to 2 plants from any player.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "tags",
@@ -11583,10 +10890,7 @@
     "cost": 12,
     "description": "Place a colony.",
     "pack": "colonies",
-    "tags": [
-      "earth",
-      "space"
-    ]
+    "tags": ["earth", "space"]
   },
   {
     "id": "C18",
@@ -11595,9 +10899,7 @@
     "cost": 20,
     "description": "Action: Spend 1 titanium to add 2 floaters here. Requires 1 Jovian tag. Increase your TR 1 step. Add 2 floaters to ANY card. 1 VP per 2 floaters here.",
     "pack": "colonies",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "requirements": [
       {
         "type": "tags",
@@ -11672,9 +10974,7 @@
     "cost": 9,
     "description": "Action: Add 1 floater to a JOVIAN CARD, or gain 1 M€ for every floater here (MAX 4). Requires 3 science tags.",
     "pack": "colonies",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "requirements": [
       {
         "type": "tags",
@@ -11696,9 +10996,7 @@
                 "type": "floaters",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
-                ]
+                "affectedTags": ["jovian"]
               }
             ]
           },
@@ -11739,10 +11037,7 @@
     "cost": 4,
     "description": "Requires 3 Earth tags. Increase your M€ production 2 steps.",
     "pack": "colonies",
-    "tags": [
-      "earth",
-      "earth"
-    ],
+    "tags": ["earth", "earth"],
     "requirements": [
       {
         "type": "tags",
@@ -11774,10 +11069,7 @@
     "cost": 19,
     "description": "Increase your plant production 2 steps, or increase your M€ production 5 steps.",
     "pack": "colonies",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -11815,9 +11107,7 @@
     "cost": 11,
     "description": "Increase your titanium production 1 step for every 2 Earth tags you have in play, including this.",
     "pack": "colonies",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -11849,9 +11139,7 @@
     "cost": 1,
     "description": "Increase one colony tile track 1 step. Decrease another colony tile track 1 step",
     "pack": "colonies",
-    "tags": [
-      "earth"
-    ]
+    "tags": ["earth"]
   },
   {
     "id": "C24",
@@ -11860,10 +11148,7 @@
     "cost": 12,
     "description": "Effect: When you play an Earth tag, place an animal here. / Action: Gain 1 M€ per animal here. Requires 2 city tiles in play.",
     "pack": "colonies",
-    "tags": [
-      "animal",
-      "building"
-    ],
+    "tags": ["animal", "building"],
     "behaviors": [
       {
         "triggers": [
@@ -11898,9 +11183,7 @@
     "cost": 20,
     "description": "Increase your titanium production 1 step. Place a colony.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -11925,9 +11208,7 @@
     "cost": 5,
     "description": "Decrease your M€ production 2 steps. Place a colony.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -11952,9 +11233,7 @@
     "cost": 11,
     "description": "Gain 1 M€ for each city tile in play. Gain 1 M€ for each colony in play.",
     "pack": "colonies",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -11990,10 +11269,7 @@
     "cost": 25,
     "description": "Raise your TR 2 steps. Add 2 floaters to a JOVIAN CARD.",
     "pack": "colonies",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -12006,9 +11282,7 @@
             "type": "floaters",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
-            ]
+            "affectedTags": ["jovian"]
           },
           {
             "type": "tr",
@@ -12032,9 +11306,7 @@
     "cost": 13,
     "description": "Requires that you have no more than 1 colony. Decrease your M€ production 2 steps. Place a colony.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -12094,10 +11366,7 @@
     "cost": 17,
     "description": "Action: Add 1 floater to this card, or spend 1 floater here to draw a card. Requires 3 science tags. Draw 2 cards.",
     "pack": "colonies",
-    "tags": [
-      "jovian",
-      "science"
-    ],
+    "tags": ["jovian", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -12173,9 +11442,7 @@
     "cost": 10,
     "description": "Action: Decrease your M€ production 1 step to add a camp resource to this card. 1 VP for each camp resource on this card.",
     "pack": "colonies",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -12207,10 +11474,7 @@
     "cost": 20,
     "description": "Place a colony. May be placed where you already have a colony. Draw 2 cards.",
     "pack": "colonies",
-    "tags": [
-      "science",
-      "space"
-    ],
+    "tags": ["science", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -12235,9 +11499,7 @@
     "cost": 4,
     "description": "Effect: When you trade, you pay 1 less resource for it.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -12284,10 +11546,7 @@
     "cost": 18,
     "description": "Effect: When you play a card, you pay 1 M€ less for it. Requires 2 Earth tags. Gain 1 Trade Fleet.",
     "pack": "colonies",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -12325,10 +11584,7 @@
     "cost": 9,
     "description": "Draw 1 card for every 3 science tags you have, including this.",
     "pack": "colonies",
-    "tags": [
-      "science",
-      "space"
-    ],
+    "tags": ["science", "space"],
     "vpConditions": [
       {
         "amount": 1,
@@ -12343,9 +11599,7 @@
     "cost": 23,
     "description": "Increase your heat production 5 steps.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -12370,10 +11624,7 @@
     "cost": 22,
     "description": "Requires 1 colony. Gain 1 Trade Fleet. Place a city tile. Decrease your energy production 1 step, and increase your M€ production 4 steps.",
     "pack": "colonies",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -12408,9 +11659,7 @@
     "cost": 27,
     "description": "Requires a colony. Place a colony. May be placed on a colony tile where you already have a colony. Gain 1 Trade Fleet. 1 VP per 2 colonies in play.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "vpConditions": [
       {
         "amount": 1,
@@ -12431,9 +11680,7 @@
     "cost": 10,
     "description": "Effect: WHEN PLAYING A CARD WITH A BASIC COST OF 20 M€ OR MORE, draw a card. Increase your M€ production 2 steps.",
     "pack": "colonies",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -12458,9 +11705,7 @@
     "cost": 5,
     "description": "Action: Add 1 animal to this card. Requires -6°C or warmer. Decrease any plant production 1 step. 1 VP per 2 animals on this card.",
     "pack": "colonies",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "requirements": [
       {
         "type": "temperature",
@@ -12522,9 +11767,7 @@
     "cost": 21,
     "description": "Action: Spend 1 titanium to add 2 floaters to this card, or spend 2 floaters here to increase your TR 1 step.",
     "pack": "colonies",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -12586,9 +11829,7 @@
     "cost": 18,
     "description": "Action: Add 1 floater to ANY JOVIAN CARD, or spend 1 floater here to trade for free. Add 2 floaters to ANY JOVIAN CARD.",
     "pack": "colonies",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -12601,9 +11842,7 @@
             "type": "floaters",
             "amount": 2,
             "target": "any-card",
-            "affectedTags": [
-              "jovian"
-            ]
+            "affectedTags": ["jovian"]
           }
         ]
       },
@@ -12620,9 +11859,7 @@
                 "type": "floaters",
                 "amount": 1,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
-                ]
+                "affectedTags": ["jovian"]
               }
             ]
           },
@@ -12656,10 +11893,7 @@
     "cost": 23,
     "description": "Action: Add 2 floaters to ANY JOVIAN CARD, or spend any number of floaters here to gain the same number of titanium.",
     "pack": "colonies",
-    "tags": [
-      "jovian",
-      "space"
-    ],
+    "tags": ["jovian", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -12674,9 +11908,7 @@
                 "type": "floaters",
                 "amount": 2,
                 "target": "any-card",
-                "affectedTags": [
-                  "jovian"
-                ]
+                "affectedTags": ["jovian"]
               }
             ]
           },
@@ -12718,9 +11950,7 @@
     "cost": 18,
     "description": "Effect: When you trade, you may first increase that Colony Tile track 1 step. Place a colony.",
     "pack": "colonies",
-    "tags": [
-      "space"
-    ]
+    "tags": ["space"]
   },
   {
     "id": "C48",
@@ -12729,9 +11959,7 @@
     "cost": 6,
     "description": "Requires that you have 1 city tile and 1 colony in play. Increase your plant production 1 step, and add 2 microbes to ANOTHER card.",
     "pack": "colonies",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -12761,9 +11989,7 @@
     "cost": 14,
     "description": "Effect: When you play a space tag, you pay 4 M€ less for it. Requires 5 science tags.",
     "pack": "colonies",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "tags",
@@ -12783,9 +12009,7 @@
             "type": "discount",
             "amount": 4,
             "target": "self-player",
-            "affectedTags": [
-              "space"
-            ]
+            "affectedTags": ["space"]
           }
         ]
       }
@@ -12842,9 +12066,7 @@
     "cost": 0,
     "description": "Effect: When you play an animal or plant tag, including this, add 1 animal to this card. You start with 45 M€. Increase your M€ production 2 steps. 1 VP per 2 animals on this card.",
     "pack": "colonies",
-    "tags": [
-      "animal"
-    ],
+    "tags": ["animal"],
     "behaviors": [
       {
         "triggers": [
@@ -12852,10 +12074,7 @@
             "type": "auto-corporation-start",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "animal"
-              ],
+              "affectedTags": ["plant", "animal"],
               "target": "self-player"
             }
           }
@@ -12985,9 +12204,7 @@
     "cost": 0,
     "description": "Action: Add 1 floater to ANY card. / Effect: Floaters on this card may be used as 2 heat each. You start with 48 M€.",
     "pack": "colonies",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -13044,9 +12261,7 @@
     "cost": 0,
     "description": "Increase your M€ production 4 steps. Gain 3 M€.",
     "pack": "prelude",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -13076,9 +12291,7 @@
     "cost": 0,
     "description": "Place an ocean tile. Increase your energy production 2 steps. Remove 3 M€.",
     "pack": "prelude",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -13113,9 +12326,7 @@
     "cost": 0,
     "description": "Increase your plant production and energy production 1 step each. Gain 2 plants.",
     "pack": "prelude",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -13150,9 +12361,7 @@
     "cost": 0,
     "description": "Increase your plant production 1 step. Draw 3 cards.",
     "pack": "prelude",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -13182,9 +12391,7 @@
     "cost": 0,
     "description": "Decrease your M€ production 1 step. Increase your plant production 2 steps.",
     "pack": "prelude",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -13214,9 +12421,7 @@
     "cost": 0,
     "description": "Increase your M€ production 6 steps. Remove 6 M€.",
     "pack": "prelude",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -13246,10 +12451,7 @@
     "cost": 0,
     "description": "Increase your plant production 1 step. Increase your M€ production 2 steps.",
     "pack": "prelude",
-    "tags": [
-      "building",
-      "plant"
-    ],
+    "tags": ["building", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -13303,10 +12505,7 @@
     "cost": 0,
     "description": "Place a city tile. Increase your plant production 1 step.",
     "pack": "prelude",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -13336,10 +12535,7 @@
     "cost": 0,
     "description": "Increase your plant production 1 step. Play a card from hand, ignoring global requirements",
     "pack": "prelude",
-    "tags": [
-      "microbe",
-      "plant"
-    ],
+    "tags": ["microbe", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -13388,9 +12584,7 @@
     "cost": 0,
     "description": "Place a greenery tile and increase oxygen 1 step. Reveal cards from the deck until you have revealed 2 plant-tag cards. Take these into your hand, and discard the rest.",
     "pack": "prelude",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -13420,9 +12614,7 @@
     "cost": 0,
     "description": "Increase your titanium production 2 steps. Remove 5 M€.",
     "pack": "prelude",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -13505,10 +12697,7 @@
     "cost": 0,
     "description": "Increase your titanium production 1 step. Draw 1 card.",
     "pack": "prelude",
-    "tags": [
-      "jovian",
-      "science"
-    ],
+    "tags": ["jovian", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -13567,9 +12756,7 @@
     "cost": 0,
     "description": "Increase your energy production and steel production 1 step each. Gain 6 M€.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -13672,9 +12859,7 @@
     "cost": 0,
     "description": "Increase your steel production 2 steps. Gain 4 steel.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -13704,9 +12889,7 @@
     "cost": 0,
     "description": "Increse your heat production 3 steps. Gain 3 heat.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -13736,9 +12919,7 @@
     "cost": 0,
     "description": "Increase your steel production 1 step, and your heat production 2 steps. Gain 2 heat.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -13807,9 +12988,7 @@
     "cost": 0,
     "description": "Increase your titanium production 1 step. Gain 4 titanium.",
     "pack": "prelude",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -13839,9 +13018,7 @@
     "cost": 0,
     "description": "Place 1 ocean tile. Increase your heat production 2 steps.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -13871,9 +13048,7 @@
     "cost": 0,
     "description": "Increase your energy production 3 steps.",
     "pack": "prelude",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -13898,9 +13073,7 @@
     "cost": 0,
     "description": "Draw 3 cards, and increase your M€ production 1 step. After being played, when you perform an action, the wild tag is any tag of your choice.",
     "pack": "prelude",
-    "tags": [
-      "wild"
-    ],
+    "tags": ["wild"],
     "behaviors": [
       {
         "triggers": [
@@ -13925,10 +13098,7 @@
     "cost": 0,
     "description": "Place a city tile. Increase your M€ production 2 steps.",
     "pack": "prelude",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -13958,9 +13128,7 @@
     "cost": 0,
     "description": "Raise oxygen 2 steps. Gain 5 steel.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14029,9 +13197,7 @@
     "cost": 0,
     "description": "Increase your energy production 2 steps. Gain 4 steel.",
     "pack": "prelude",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -14095,9 +13261,7 @@
     "cost": 0,
     "description": "Raise your terraform rating 3 steps. Draw 1 card.",
     "pack": "prelude",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -14156,9 +13320,7 @@
     "cost": 10,
     "description": "Increase your steel production 1 step.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14189,10 +13351,7 @@
     "cost": 15,
     "description": "Decrease your energy production 1 step. Increase your M€ production 2 steps. Place a city tile ON A VOLCANIC AREA, same as Lava Flows, regardless of adjacent cities.",
     "pack": "prelude",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -14227,9 +13386,7 @@
     "cost": 9,
     "description": "Oxygen must be 4% or lower. Draw 2 cards.",
     "pack": "prelude",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "requirements": [
       {
         "type": "oxygen",
@@ -14266,9 +13423,7 @@
     "cost": 2,
     "description": "Action: Add a microbe to this card. / Effect: When paying for a plant card, microbes here may be used as 2 M€ each. Requires temperature -20°C or colder.",
     "pack": "prelude",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "requirements": [
       {
         "type": "temperature",
@@ -14317,9 +13472,7 @@
     "cost": 4,
     "description": "After being played, when you perform an action, the wild tag counts as any tag of your choice.",
     "pack": "prelude",
-    "tags": [
-      "wild"
-    ]
+    "tags": ["wild"]
   },
   {
     "id": "P41",
@@ -14328,9 +13481,7 @@
     "cost": 7,
     "description": "Draw 1 card.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14361,10 +13512,7 @@
     "cost": 12,
     "description": "Requires 2 Earth tags. Increase your M€ production 4 steps.",
     "pack": "prelude",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "requirements": [
       {
         "type": "tags",
@@ -14396,9 +13544,7 @@
     "cost": 0,
     "description": "Effect: When you play a building tag, you pay 2 M€ less for it. You start with 44 M€ and 3 M€ production.",
     "pack": "prelude",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14430,9 +13576,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "building"
-            ]
+            "affectedTags": ["building"]
           }
         ]
       }
@@ -14445,10 +13589,7 @@
     "cost": 0,
     "description": "Effect: When you play a Earth tag, including this, draw a card. You start with 38 M€ and 1 titanium production.",
     "pack": "prelude",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -14586,9 +13727,7 @@
     "cost": 0,
     "description": "Effect: When you play a science tag, you pay 2 M€ less for it. You start with 37 M€. As your first action, draw 3 Prelude cards, and play one of them. Discard the other two.",
     "pack": "prelude",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -14615,9 +13754,7 @@
             "type": "discount",
             "amount": 2,
             "target": "self-player",
-            "affectedTags": [
-              "science"
-            ]
+            "affectedTags": ["science"]
           }
         ]
       },
@@ -14649,9 +13786,7 @@
     "cost": 0,
     "description": "Effect: When you play a card with a NON-NEGATIVE VP icon, including this, gain 3 M€. You start with 45 M€. As your first action, fund an award for free.",
     "pack": "prelude",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -14736,10 +13871,7 @@
     "cost": 20,
     "description": "Requires that Unity is ruling or that you have 2 delegates there. Decrease your energy production 1 step and increase your M€ production 3 steps. Place a city tile. Place 2 delegates in 1 party.",
     "pack": "turmoil",
-    "tags": [
-      "building",
-      "city"
-    ],
+    "tags": ["building", "city"],
     "behaviors": [
       {
         "triggers": [
@@ -14774,9 +13906,7 @@
     "cost": 7,
     "description": "Requires that Reds are ruling or that you have 2 delegates there. Gain 1 M€ for each Jovian tag in play.",
     "pack": "turmoil",
-    "tags": [
-      "jovian"
-    ],
+    "tags": ["jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -14808,9 +13938,7 @@
     "cost": 5,
     "description": "Effect: You have influence +1. Requires that Scientists are ruling or that you have 2 delegates there.",
     "pack": "turmoil",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "vpConditions": [
       {
         "amount": 1,
@@ -14825,10 +13953,7 @@
     "cost": 3,
     "description": "Effect: Each time you play a plant, animal, or microbe tag, including this, gain 2 M€. Requires that Greens are ruling or that you have 2 delegates there.",
     "pack": "turmoil",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -14836,11 +13961,7 @@
             "type": "auto",
             "condition": {
               "type": "card-played",
-              "affectedTags": [
-                "plant",
-                "microbe",
-                "animal"
-              ],
+              "affectedTags": ["plant", "microbe", "animal"],
               "target": "self-player"
             }
           }
@@ -14862,9 +13983,7 @@
     "cost": 7,
     "description": "Action: Pay 3 M€ to add a delegate to any party. Requires that Mars First is ruling or that you have 2 delegates there. Increase your M€ production 2 steps.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14903,9 +14022,7 @@
     "cost": 8,
     "description": "Requires that Mars First is ruling or that you have 2 delegates there. Increase M€ production 1 step for every 3 building tags you have, including this.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -14943,9 +14060,7 @@
     "cost": 7,
     "description": "Requires that Unity is ruling or that you have 2 delegates there. Gain 1 TR. Gain 1 M€ for each Earth tag you have, including this.",
     "pack": "turmoil",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -15004,9 +14119,7 @@
     "cost": 3,
     "description": "Requires that Reds are ruling or that you have 2 delegates there. Gain 1 M€ for each EMPTY AREA ADJACENT TO YOUR TILES.",
     "pack": "turmoil",
-    "tags": [
-      "earth"
-    ]
+    "tags": ["earth"]
   },
   {
     "id": "T13",
@@ -15015,9 +14128,7 @@
     "cost": 5,
     "description": "Requires that Kelvinists are ruling or that you have 2 delegates there. Increase your heat production 2 steps.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -15042,9 +14153,7 @@
     "cost": 3,
     "description": "Requires that Scientists are ruling or that you have 2 delegates there. Draw 2 cards.",
     "pack": "turmoil",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -15069,11 +14178,7 @@
     "cost": 15,
     "description": "Requires that Greens are ruling or that you have 2 delegates there. Place a greenery tile and raise oxygen 1 step.",
     "pack": "turmoil",
-    "tags": [
-      "animal",
-      "building",
-      "plant"
-    ],
+    "tags": ["animal", "building", "plant"],
     "behaviors": [
       {
         "triggers": [
@@ -15122,9 +14227,7 @@
     "cost": 0,
     "description": "Effect: When any ocean is placed, increase your M€ production 1 step. / Your bonus for placing adjacent to oceans is 3 M€ instead of 2 M€. You start with 54 M€.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -15230,9 +14333,7 @@
     "cost": 0,
     "description": "Action: Gain 2 M€ for EACH PARTY WHERE YOU HAVE AT LEAST 1 DELEGATE. You start with 36 M€. When you perform an action, the wild tag counts as any tag of your choice.",
     "pack": "turmoil",
-    "tags": [
-      "wild"
-    ],
+    "tags": ["wild"],
     "behaviors": [
       {
         "triggers": [
@@ -15257,10 +14358,7 @@
     "cost": 0,
     "description": "Effect: Buying cards to hand costs 1 M€, including your starting hand. You start with 14 M€. Lower your TR 1 step.",
     "pack": "turmoil",
-    "tags": [
-      "earth",
-      "science"
-    ],
+    "tags": ["earth", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -15299,9 +14397,7 @@
     "cost": 0,
     "description": "Action: Decrease any production to gain 4 resources of that kind. You start with 40 M€. Increase your steel and titanium production 1 step each.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -15429,10 +14525,7 @@
     "cost": 0,
     "description": "Effect: Whenever Venus is terraformed 1 step, you gain 2 M€. You start with 47 M€ and 1 plant production.",
     "pack": "venus-next",
-    "tags": [
-      "plant",
-      "venus"
-    ],
+    "tags": ["plant", "venus"],
     "behaviors": [
       {
         "triggers": [
@@ -15476,9 +14569,7 @@
     "cost": 0,
     "description": "Action: Add a floater to ANY card. You start with 42 M€. As your first action, reveal cards from the deck until you have revealed 2 cards with a floater icon on it. Take those 2 cards into hand, and discard the rest. 1 VP per 3 floaters on this card.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -15548,9 +14639,7 @@
     "cost": 0,
     "description": "Effect: For each step you increase the production of a resource, including this, you also gain that resource. You start with 1 steel production and 35 M€.",
     "pack": "venus-next",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -15664,9 +14753,7 @@
     "cost": 0,
     "description": "Effect: Your Venus requirements are +/- 2 steps, your choice in each case. You start with 50 M€. As your first action, reveal cards from the deck until you have revealed 3 Venus-tag cards. Take those into hand and discard the rest.",
     "pack": "venus-next",
-    "tags": [
-      "venus"
-    ],
+    "tags": ["venus"],
     "behaviors": [
       {
         "triggers": [
@@ -15719,9 +14806,7 @@
     "cost": 0,
     "description": "Action: Use a blue card action that has already been used this generation. You start with 48 M€.",
     "pack": "venus-next",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -15746,9 +14831,7 @@
     "cost": 8,
     "description": "Requires 2 science tags. Decrease your energy production 1 step, and increase your titanium production 1 step. Gain 4 titanium.",
     "pack": "turmoil",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "tags",
@@ -15798,9 +14881,7 @@
     "cost": 3,
     "description": "Action: Spend 2X M€ to gain X energy, or decrease energy production 1 step to gain 8 M€.",
     "pack": "turmoil",
-    "tags": [
-      "power"
-    ],
+    "tags": ["power"],
     "behaviors": [
       {
         "triggers": [
@@ -15837,10 +14918,7 @@
     "cost": 17,
     "description": "Action: Spend any amount of energy to draw the same number of cards. Take 1 into hand and discard the rest.",
     "pack": "turmoil",
-    "tags": [
-      "building",
-      "science"
-    ],
+    "tags": ["building", "science"],
     "vpConditions": [
       {
         "amount": 1,
@@ -15855,9 +14933,7 @@
     "cost": 27,
     "description": "Increase your M€ production 1 step per different tag you have in play, including this.",
     "pack": "turmoil",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "vpConditions": [
       {
         "amount": 1,
@@ -15872,9 +14948,7 @@
     "cost": 2,
     "description": "Steal 3 M€ from a player that REMOVED YOUR RESOURCES OR DECREASED YOUR PRODUCTION this generation. Place this card face down in THAT PLAYER'S EVENT PILE.",
     "pack": "turmoil",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -15899,9 +14973,7 @@
     "cost": 3,
     "description": "Effect: Your titanium resources are worth 1 M€ extra. Requires 2 science tags.",
     "pack": "turmoil",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "tags",
@@ -15921,9 +14993,7 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "titanium"
-            ]
+            "affectedResources": ["titanium"]
           }
         ]
       }
@@ -15936,10 +15006,7 @@
     "cost": 14,
     "description": "Action: Gain 1 M€ per science tag you have. Decrease your M€ production 2 steps.",
     "pack": "turmoil",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -16015,9 +15082,7 @@
     "cost": 10,
     "description": "Effect: Your steel resources are worth 1 M€ extra.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -16030,9 +15095,7 @@
             "type": "value-modifier",
             "amount": 1,
             "target": "self-player",
-            "affectedResources": [
-              "steel"
-            ]
+            "affectedResources": ["steel"]
           }
         ]
       }
@@ -16051,10 +15114,7 @@
     "cost": 13,
     "description": "Action: Spend 1 floater from here to gain 1 M€ for each floater here, INCLUDING THE PAID FLOATER (max 5). Add 1 floater here for every Earth tag you have, including this.",
     "pack": "turmoil",
-    "tags": [
-      "earth",
-      "jovian"
-    ],
+    "tags": ["earth", "jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -16114,10 +15174,7 @@
     "cost": 12,
     "description": "Place a city tile IN SPACE, outside and separate from the planet.",
     "pack": "turmoil",
-    "tags": [
-      "city",
-      "space"
-    ],
+    "tags": ["city", "space"],
     "vpConditions": [
       {
         "amount": 2,
@@ -16132,9 +15189,7 @@
     "cost": 4,
     "description": "Effect: When you play a card with a basic cost of 20 M€ or more, increase your M€ production 1 step.",
     "pack": "promo",
-    "tags": [
-      "earth"
-    ],
+    "tags": ["earth"],
     "behaviors": [
       {
         "triggers": [
@@ -16159,11 +15214,7 @@
     "cost": 13,
     "description": "Action: REVEAL AND DISCARD the top card of the deck. If it has a space tag, add an asteroid here. / OPPONENTS MAY NOT REMOVE YOUR PLANTS Decrease energy production 1 step. 1 VP per asteroid on this card.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "earth",
-      "space"
-    ],
+    "tags": ["building", "earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -16176,11 +15227,7 @@
             "type": "defense",
             "amount": 1,
             "target": "self-card",
-            "affectedResources": [
-              "plants",
-              "microbes",
-              "animals"
-            ]
+            "affectedResources": ["plants", "microbes", "animals"]
           }
         ]
       },
@@ -16225,9 +15272,7 @@
     "cost": 16,
     "description": "Action: Spend 1 titanium to add 1 asteroid resource here and increase M€ production 1 step. 1 VP per 2 asteroids on this card.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -16268,9 +15313,7 @@
     "cost": 17,
     "description": "Action: Spend 1 titanium to add 1 asteroid resource to ANY CARD or remove 1 asteroid here to place an ocean tile.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -16369,9 +15412,7 @@
     "cost": 12,
     "description": "Effect: When playing a card with a requirement, you pay 2 M€ less.",
     "pack": "promo",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -16402,9 +15443,7 @@
     "cost": 8,
     "description": "Action: Spend 6 M€ to add 1 asteroid to ANY CARD (titanium may be used to pay for this), or remove 1 asteroid here to raise temperature 1 step.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -16484,11 +15523,7 @@
     "cost": 29,
     "description": "Increase your M€ production 2 steps, and increase your energy production 1 step. Gain 3 plants, and place a city tile.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "city",
-      "power"
-    ],
+    "tags": ["building", "city", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -16528,10 +15563,7 @@
     "cost": 14,
     "description": "Gain 4 plants, and add 4 microbes to ANOTHER CARD.",
     "pack": "promo",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -16561,10 +15593,7 @@
     "cost": 14,
     "description": "Raise your TR 1 step.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "jovian"
-    ],
+    "tags": ["building", "jovian"],
     "behaviors": [
       {
         "triggers": [
@@ -16595,9 +15624,7 @@
     "cost": 24,
     "description": "Requires 3 power tags. Raise your TR 4 steps.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "requirements": [
       {
         "type": "tags",
@@ -16629,9 +15656,7 @@
     "cost": 5,
     "description": "Effect: When you gain an animal to ANY CARD, gain 2 M€.",
     "pack": "promo",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -16656,9 +15681,7 @@
     "cost": 4,
     "description": "Action: Spend 5 heat to gain 3 steel.",
     "pack": "promo",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -16690,9 +15713,7 @@
     "cost": 31,
     "description": "Action: Add a microbe or animal to ANOTHER card. Place an ocean tile. Raise temperature 1 step. Gain 3 plants.",
     "pack": "promo",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -16754,9 +15775,7 @@
     "cost": 2,
     "description": "Requires that you lose 2 plants. Increase your M€ production 2 steps.",
     "pack": "promo",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -16786,11 +15805,7 @@
     "cost": 20,
     "description": "Action: Draw a card. Requires 2 science tags.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "earth",
-      "science"
-    ],
+    "tags": ["building", "earth", "science"],
     "requirements": [
       {
         "type": "tags",
@@ -16828,10 +15843,7 @@
     "cost": 8,
     "description": "Effect: When you gain a microbe to ANY CARD, also gain 1 M€. Gain 3 plants.",
     "pack": "promo",
-    "tags": [
-      "earth",
-      "microbe"
-    ],
+    "tags": ["earth", "microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -16870,9 +15882,7 @@
     "cost": 31,
     "description": "Raise temperature 3 steps. Place this tile ADJACENT TO NO CITY TILE. Gain 4 steel. Remove up to 6 plants from any player.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -16916,10 +15926,7 @@
     "cost": 15,
     "description": "Requires 4 ocean tiles. Increase your energy production 2 steps. Place this tile ADJACENT TO AN OCEAN TILE.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "requirements": [
       {
         "type": "oceans",
@@ -16956,9 +15963,7 @@
     "cost": 22,
     "description": "Decrease your energy production 4 steps and increase your plant production 2 steps. Raise your TR 3 steps. Place this tile.",
     "pack": "promo",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -16993,10 +15998,7 @@
     "cost": 10,
     "description": "Action: Spend 1 M€ to add 1 asteroid to ANY card, OR spend 1 asteroid here to raise your M€ production 1 step or gain 2 titanium. Gain 2 asteroids to this card.",
     "pack": "promo",
-    "tags": [
-      "earth",
-      "space"
-    ],
+    "tags": ["earth", "space"],
     "behaviors": [
       {
         "triggers": [
@@ -17082,10 +16084,7 @@
     "cost": 10,
     "description": "Draw 1 card. Choose 1 of your played cards and add 1 microbe to it for each science tag you have, including this.",
     "pack": "promo",
-    "tags": [
-      "microbe",
-      "science"
-    ],
+    "tags": ["microbe", "science"],
     "behaviors": [
       {
         "triggers": [
@@ -17122,9 +16121,7 @@
     "cost": 7,
     "description": "Action: Spend 2 energy to gain 2 plants OR to add 1 animal to ANOTHER card.",
     "pack": "promo",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -17169,9 +16166,7 @@
     "cost": 4,
     "description": "Requires that you have 3 greenery tiles in play. Gain 12 M€.",
     "pack": "promo",
-    "tags": [
-      "plant"
-    ],
+    "tags": ["plant"],
     "behaviors": [
       {
         "triggers": [
@@ -17226,9 +16221,7 @@
     "cost": 0,
     "description": "Gain 13 M€. Look at the top 7 cards from the deck. Take 2 of them into hand and discard the other 5",
     "pack": "promo",
-    "tags": [
-      "science"
-    ],
+    "tags": ["science"],
     "behaviors": [
       {
         "triggers": [
@@ -17363,9 +16356,7 @@
     "cost": 31,
     "description": "Increase titanium production 2 steps. Gain 3 titanium.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -17486,10 +16477,7 @@
     "cost": 0,
     "description": "Effect: When you play a building tag, including this, gain 1 microbe to this card, or remove 2 microbes here and raise your plant production 1 step. You start with 38 M€ and 1 steel production.",
     "pack": "promo",
-    "tags": [
-      "building",
-      "microbe"
-    ],
+    "tags": ["building", "microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -17555,9 +16543,7 @@
     "cost": 0,
     "description": "Effect: Each time a microbe tag is played, including this, THAT PLAYER gains 2 M€, or adds a microbe to THAT card, and you gain 2 M€. You start with 44 M€. As your first action, reveal cards until you have revealed a microbe tag. Take that card into hand, and discard the rest.",
     "pack": "promo",
-    "tags": [
-      "microbe"
-    ],
+    "tags": ["microbe"],
     "behaviors": [
       {
         "triggers": [
@@ -17610,10 +16596,7 @@
     "cost": 0,
     "description": "Action: Increase your energy production 1 step IF YOU HAVE NO ENERGY RESOURCES, or spend 3 M€ to draw a building card. You start with 37 M€. Increase your steel production 1 step.",
     "pack": "turmoil",
-    "tags": [
-      "building",
-      "power"
-    ],
+    "tags": ["building", "power"],
     "behaviors": [
       {
         "triggers": [
@@ -17732,9 +16715,7 @@
     "cost": 0,
     "description": "Effect: Each new adjacency between your tile and an opponent's tile gives you a standard resource of your choice (regardless of who just placed a tile). You start with 47 M€. As your first action, place a greenery tile and raise the oxygen 1 step.",
     "pack": "turmoil",
-    "tags": [
-      "building"
-    ],
+    "tags": ["building"],
     "behaviors": [
       {
         "triggers": [
@@ -17836,9 +16817,7 @@
     "cost": 0,
     "description": "Action: Either add 1 asteroid to ANY CARD or gain any standard resource, OR spend 1 asteroid here to gain 3 titanium. You start with 35 M€, and 3 asteroid resources here.",
     "pack": "promo",
-    "tags": [
-      "space"
-    ],
+    "tags": ["space"],
     "behaviors": [
       {
         "triggers": [
@@ -17958,10 +16937,7 @@
     "cost": 0,
     "description": "Effect: When ANY microbe tag is played, including these 2, add a disease here and lose 4 M€ or as much as possible. When you play a science tag, remove 1 disease from here and raise your TR 1 step, OR, if there are no diseases here, you may raise your TR 3 steps and place this card in your event pile. It now counts as a played event. You start with 54 M€. Draw a science card.",
     "pack": "promo",
-    "tags": [
-      "microbe",
-      "microbe"
-    ],
+    "tags": ["microbe", "microbe"],
     "behaviors": [
       {
         "triggers": [
