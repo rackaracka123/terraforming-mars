@@ -16,6 +16,7 @@ import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
 import SpaceBackground from "./components/3d/SpaceBackground.tsx";
 import audioSettingsManager from "./services/audioSettingsManager.ts";
 import globalMusicManager from "./services/globalMusicManager.ts";
+import { isLandingPage } from "./services/musicConstants";
 import "./App.css";
 
 function App() {
@@ -80,21 +81,16 @@ function App() {
 function AppWithBackground() {
   const location = useLocation();
 
-  // Show space background for landing, create, and join pages
-  const showSpaceBackground = ["/", "/create", "/join"].includes(
-    location.pathname,
-  );
+  // Show space background for landing pages
+  const showSpaceBackground = isLandingPage(location.pathname);
 
   // Control music based on route changes and user interaction
   useEffect(() => {
-    const path = location.pathname;
-
     // Landing pages: start music (restart if coming from active game)
-    if (path === "/" || path === "/create" || path === "/join") {
+    if (isLandingPage(location.pathname)) {
       // Only start music on user interaction to comply with browser policies
       const handleInteraction = () => {
         const shouldRestart = globalMusicManager.shouldRestart();
-        console.log("🎵 User interaction detected, starting music...");
         void globalMusicManager.startMusic(shouldRestart);
       };
 

@@ -16,11 +16,11 @@ class GlobalMusicManager {
   private comingFromActiveGame: boolean = false;
 
   /**
-   * Initialize the manager and attempt to start music
+   * Initialize the manager
    * Called once when the app starts
    */
   public init(): void {
-    console.log("🎵 Global Music Manager initialized");
+    // Manager is ready - no action needed
   }
 
   /**
@@ -32,16 +32,13 @@ class GlobalMusicManager {
 
     // If music is already playing and we don't need to restart, do nothing
     if (settings.isPlaying && !restart) {
-      console.log("🎵 Music already playing, continuing seamlessly");
       return;
     }
 
     if (restart) {
-      console.log("🎵 Starting music from beginning");
       await backgroundMusicService.restart();
       this.comingFromActiveGame = false;
     } else {
-      console.log("🎵 Starting/resuming music");
       await backgroundMusicService.play();
     }
   }
@@ -51,7 +48,6 @@ class GlobalMusicManager {
    * Sets flag to restart music when returning to landing pages
    */
   public stopMusic(): void {
-    console.log("🎵 Stopping music");
     backgroundMusicService.stop();
     this.comingFromActiveGame = true;
   }
