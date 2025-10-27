@@ -1,5 +1,6 @@
 import React from "react";
 import ResourceDisplay from "./ResourceDisplay.tsx";
+import GameIcon from "../../../display/GameIcon.tsx";
 
 interface IconDisplayInfo {
   resourceType: string;
@@ -53,14 +54,136 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
           behavior.triggers.length > 0 && (
             <>
               <div className="flex gap-[3px] items-center">
-                {behavior.triggers.map((trigger: any, triggerIndex: number) => (
-                  <span
-                    key={triggerIndex}
-                    className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]"
-                  >
-                    {trigger.description || trigger.type || "trigger"}
-                  </span>
-                ))}
+                {(() => {
+                  // Check if any trigger has requiredOriginalCost
+                  const triggersWithCost = behavior.triggers.filter(
+                    (trigger: any) =>
+                      trigger.condition?.requiredOriginalCost !== undefined,
+                  );
+
+                  // If we have cost-based triggers, deduplicate and show once
+                  if (triggersWithCost.length > 0) {
+                    // Get unique cost requirements
+                    const uniqueCosts: string[] = Array.from(
+                      new Set(
+                        triggersWithCost.map((trigger: any) => {
+                          const costReq =
+                            trigger.condition.requiredOriginalCost;
+                          const hasMin = costReq.min !== undefined;
+                          const hasMax = costReq.max !== undefined;
+                          const value = hasMin ? costReq.min : costReq.max;
+                          const prefix = hasMax && !hasMin ? "Max-" : "";
+                          return `${prefix}${value}`;
+                        }),
+                      ),
+                    );
+
+                    // Render unique cost requirements
+                    return uniqueCosts.map((costKey: string, idx: number) => {
+                      const isMax = costKey.startsWith("Max-");
+                      const value = parseInt(costKey.replace("Max-", ""), 10);
+
+                      return (
+                        <div
+                          key={`cost-${idx}`}
+                          className="flex gap-[3px] items-center"
+                        >
+                          {isMax && (
+                            <span className="text-xs font-semibold text-[#e0e0e0] [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
+                              Max
+                            </span>
+                          )}
+                          <GameIcon
+                            iconType="credits"
+                            amount={-value}
+                            size="small"
+                          />
+                        </div>
+                      );
+                    });
+                  }
+
+                  // Otherwise, render other trigger types normally
+                  return behavior.triggers.map(
+                    (trigger: any, triggerIndex: number) => {
+                      // Check if trigger has condition with affectedResources (e.g., placement-bonus-gained)
+                      const hasAffectedResources =
+                        trigger.condition?.affectedResources &&
+                        trigger.condition.affectedResources.length > 0;
+
+                      // Check if trigger has condition with affectedCardTypes (e.g., card-played with event filter)
+                      const hasAffectedCardTypes =
+                        trigger.condition?.affectedCardTypes &&
+                        trigger.condition.affectedCardTypes.length > 0;
+
+                      if (hasAffectedResources) {
+                        // Render icons for affected resources (e.g., steel / titanium)
+                        return (
+                          <div
+                            key={triggerIndex}
+                            className="flex gap-[2px] items-center"
+                          >
+                            {trigger.condition.affectedResources.map(
+                              (resource: string, resIndex: number) => (
+                                <React.Fragment
+                                  key={`${triggerIndex}-${resIndex}`}
+                                >
+                                  {resIndex > 0 && (
+                                    <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">
+                                      /
+                                    </span>
+                                  )}
+                                  <GameIcon iconType={resource} size="small" />
+                                </React.Fragment>
+                              ),
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (hasAffectedCardTypes) {
+                        // Render icons/text for affected card types (e.g., event card icon)
+                        return (
+                          <div
+                            key={triggerIndex}
+                            className="flex gap-[2px] items-center"
+                          >
+                            {trigger.condition.affectedCardTypes.map(
+                              (cardType: string, typeIndex: number) => (
+                                <React.Fragment
+                                  key={`${triggerIndex}-${typeIndex}`}
+                                >
+                                  {typeIndex > 0 && (
+                                    <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">
+                                      /
+                                    </span>
+                                  )}
+                                  {cardType === "event" ? (
+                                    <GameIcon iconType="event" size="small" />
+                                  ) : (
+                                    <span className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
+                                      {cardType}
+                                    </span>
+                                  )}
+                                </React.Fragment>
+                              ),
+                            )}
+                          </div>
+                        );
+                      }
+
+                      // Fallback to text display for other trigger types
+                      return (
+                        <span
+                          key={triggerIndex}
+                          className="text-xs font-semibold text-[#e0e0e0] capitalize [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]"
+                        >
+                          {trigger.description || trigger.type || "trigger"}
+                        </span>
+                      );
+                    },
+                  );
+                })()}
               </div>
               <span className="flex items-center justify-center text-white text-base font-bold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] min-w-[20px] z-[1]">
                 :

@@ -271,11 +271,11 @@ const CardsPage: React.FC = () => {
       // Responsive header offset calculation
       let headerOffset = 120;
       if (width <= 480) {
-        headerOffset = showFilters ? 430 : 180;
+        headerOffset = showFilters ? 470 : 180;
       } else if (width <= 768) {
-        headerOffset = showFilters ? 400 : 160;
+        headerOffset = showFilters ? 440 : 160;
       } else {
-        headerOffset = showFilters ? 240 : 120;
+        headerOffset = showFilters ? 320 : 120;
       }
 
       const adjustedScrollTop = Math.max(0, scrollTop - headerOffset);
@@ -731,10 +731,7 @@ const CardsPage: React.FC = () => {
       <div className="container">
         <div className={`header-spacer ${showFilters ? "expanded" : ""}`}></div>
 
-        <div className="content-header">
-          {error && <div className="error-message">{error}</div>}
-          <div className="divider"></div>
-        </div>
+        {error && <div className="error-message">{error}</div>}
 
         <div
           className="cards-virtual-container"
@@ -807,7 +804,6 @@ const CardsPage: React.FC = () => {
         .sticky-header.scrolled {
           background: rgba(5, 5, 10, 0.98);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
           box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
         }
 
@@ -820,6 +816,36 @@ const CardsPage: React.FC = () => {
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 20px;
+          position: relative;
+        }
+
+        .sticky-content::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 20%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0.1) 80%,
+            transparent 100%
+          );
+          transition: opacity 0.3s ease;
+        }
+
+        .sticky-header.scrolled .sticky-content::after {
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(30, 60, 150, 0.15) 20%,
+            rgba(30, 60, 150, 0.25) 50%,
+            rgba(30, 60, 150, 0.15) 80%,
+            transparent 100%
+          );
         }
 
         .container {
@@ -834,7 +860,7 @@ const CardsPage: React.FC = () => {
         }
 
         .header-spacer.expanded {
-          height: 240px;
+          height: 320px;
         }
 
         .content-header {
@@ -928,8 +954,6 @@ const CardsPage: React.FC = () => {
           margin: 0;
           text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
           font-weight: bold;
-          flex: 1;
-          text-align: center;
           letter-spacing: 2px;
         }
 
@@ -1048,13 +1072,13 @@ const CardsPage: React.FC = () => {
           top: 100%;
           left: 0;
           right: 0;
-          background: rgba(5, 5, 10, 0.98);
-          border: 2px solid rgba(30, 60, 150, 0.4);
+          background: rgba(0, 0, 0, 0.98);
+          border: 2px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           backdrop-filter: blur(10px);
           z-index: 1000;
           margin-top: 4px;
-          box-shadow: 0 4px 20px rgba(30, 60, 150, 0.3);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         .sort-option {
@@ -1087,25 +1111,39 @@ const CardsPage: React.FC = () => {
         }
 
         .filters-panel {
-          background: rgba(5, 5, 10, 0.98);
+          background: rgba(0, 0, 0, 0.85);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
           padding: 20px;
-          max-width: 1400px;
-          margin: 0 auto;
-          animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          width: 100%;
+          position: relative;
+          animation: slideDown 0.3s ease-out forwards;
           transform-origin: top;
         }
 
         @keyframes slideDown {
           from {
-            opacity: 0;
-            transform: translateY(-20px) scaleY(0.8);
+            transform: translateY(-20px);
           }
           to {
-            opacity: 1;
-            transform: translateY(0) scaleY(1);
+            transform: translateY(0);
           }
+        }
+
+        .filters-panel::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 20%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0.1) 80%,
+            transparent 100%
+          );
         }
 
         .filter-section {
@@ -1317,7 +1355,7 @@ const CardsPage: React.FC = () => {
           }
 
           .header-spacer.expanded {
-            height: 400px;
+            height: 440px;
           }
 
           .filters-panel {
@@ -1373,7 +1411,7 @@ const CardsPage: React.FC = () => {
           }
 
           .header-spacer.expanded {
-            height: 430px;
+            height: 470px;
           }
 
           .container {

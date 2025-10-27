@@ -10,12 +10,18 @@ import {
   ResourceTypePlants,
   ResourceTypeEnergy,
   ResourceTypeHeat,
+  ResourceTypeGreeneryTile,
+  ResourceTypeTemperature,
 } from "@/types/generated/api-types.ts";
 import ActionsPopover from "../popover/ActionsPopover.tsx";
 import EffectsPopover from "../popover/EffectsPopover.tsx";
 import TagsPopover from "../popover/TagsPopover.tsx";
 import StoragesPopover from "../popover/StoragesPopover.tsx";
 import GameIcon from "../display/GameIcon.tsx";
+import {
+  calculatePlantsForGreenery,
+  calculateHeatForTemperature,
+} from "@/utils/resourceConversionUtils.ts";
 // Modal components are now imported and managed in GameInterface
 
 interface ResourceData {
@@ -36,6 +42,8 @@ interface BottomResourceBarProps {
   onOpenVictoryPointsModal?: () => void;
   onOpenActionsModal?: () => void;
   onActionSelect?: (action: PlayerActionDto) => void;
+  onConvertPlantsToGreenery?: () => void;
+  onConvertHeatToTemperature?: () => void;
 }
 
 const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
@@ -48,6 +56,8 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   onOpenVictoryPointsModal,
   onOpenActionsModal,
   onActionSelect,
+  onConvertPlantsToGreenery,
+  onConvertHeatToTemperature,
 }) => {
   const [showActionsPopover, setShowActionsPopover] = useState(false);
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
@@ -179,6 +189,17 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Get actual played cards count from game state
   const playedCardsCount = currentPlayer?.playedCards?.length || 0;
 
+  // Calculate required resources for conversions
+  const requiredPlants = calculatePlantsForGreenery(currentPlayer?.effects);
+  const requiredHeat = calculateHeatForTemperature(currentPlayer?.effects);
+
+  // Check if player can afford conversions
+  const canConvertPlants =
+    (currentPlayer?.resources.plants ?? 0) >= requiredPlants;
+  const canConvertHeat =
+    (currentPlayer?.resources.heat ?? 0) >= requiredHeat &&
+    (gameState?.globalParameters?.temperature ?? -30) < 8; // Same check as Asteroid standard project
+
   // Modal handlers
   const handleOpenCardsModal = () => {
     // Opening cards modal
@@ -215,7 +236,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
       {/* Resource Grid */}
       <div className="flex-[2] -translate-y-[30px] pointer-events-auto relative">
-        <div className="grid grid-cols-6 gap-[15px] max-w-[500px]">
+        <div className="grid grid-cols-6 gap-[15px] max-w-[500px] items-end">
           {playerResources.map((resource) => {
             const resourceChanged = hasPathChanged(
               `currentPlayer.resources.${resource.id}`,
@@ -224,51 +245,104 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
               `currentPlayer.production.${resource.id}`,
             );
 
-            return (
-              <div
-                key={resource.id}
-                className="flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 transition-all duration-200 cursor-pointer relative overflow-hidden hover:-translate-y-0.5"
-                style={
-                  {
-                    "--resource-color": resource.color,
-                    borderColor: resource.color,
-                    boxShadow: `0 0 10px ${resource.color}40`,
-                  } as React.CSSProperties
-                }
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.4), 0 0 20px ${resource.color}`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = `0 0 10px ${resource.color}40`;
-                }}
-              >
-                <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
-                  <span
-                    className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${productionChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-                  >
-                    {resource.production}
-                  </span>
-                </div>
+            // Check if this resource has a conversion button
+            const showConversionButton =
+              (resource.id === "plants" && canConvertPlants) ||
+              (resource.id === "heat" && canConvertHeat);
 
-                {resource.id === "credits" ? (
-                  <GameIcon
-                    iconType={ResourceTypeCredits}
-                    amount={resource.current}
-                    size="medium"
-                  />
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <GameIcon
-                      iconType={getResourceType(resource.id)}
-                      size="medium"
-                    />
-                    <div
-                      className={`text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
-                    >
-                      {resource.current}
-                    </div>
+            // Disable conversion buttons during tile placement
+            const isTilePlacementActive = !!currentPlayer?.pendingTileSelection;
+            const isConversionDisabled = isTilePlacementActive;
+
+            return (
+              <div key={resource.id} className="flex flex-col items-center">
+                <div
+                  className={`flex flex-col items-center gap-1.5 bg-space-black-darker/90 border-2 rounded-xl p-2 relative overflow-hidden transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]`}
+                  style={
+                    {
+                      "--resource-color": resource.color,
+                      borderColor: resource.color,
+                      boxShadow: `0 0 10px ${resource.color}40`,
+                    } as React.CSSProperties
+                  }
+                >
+                  {/* Conversion button area - all resources have this for consistent height */}
+                  <div
+                    className={`transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] ${showConversionButton ? "max-h-[40px] h-auto opacity-100 mb-1" : "max-h-0 h-0 opacity-0 mb-0"}`}
+                  >
+                    {(resource.id === "plants" || resource.id === "heat") && (
+                      <button
+                        disabled={isConversionDisabled || !showConversionButton}
+                        className={`flex items-center justify-center gap-0.5 px-2 py-1 bg-space-black-darker/95 border rounded transition-all duration-200 ${isConversionDisabled || !showConversionButton ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                        style={{
+                          borderColor: resource.color,
+                          boxShadow: "none",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isConversionDisabled || !showConversionButton)
+                            return;
+                          // Execute conversion immediately
+                          if (resource.id === "plants") {
+                            void onConvertPlantsToGreenery?.();
+                          } else if (resource.id === "heat") {
+                            void onConvertHeatToTemperature?.();
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isConversionDisabled && showConversionButton) {
+                            e.currentTarget.style.boxShadow = `0 0 8px ${resource.color}, 0 0 16px ${resource.color}, 0 3px 6px rgba(0, 0, 0, 0.3)`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                      >
+                        <span className="text-[15px] font-bold text-white/90">
+                          +
+                        </span>
+                        <GameIcon
+                          iconType={
+                            resource.id === "plants"
+                              ? ResourceTypeGreeneryTile
+                              : ResourceTypeTemperature
+                          }
+                          size="small"
+                        />
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  <div className="inline-flex items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-2 py-1 shadow-[0_1px_3px_rgba(0,0,0,0.2)] mb-1 min-w-[28px]">
+                    <span
+                      className={`text-sm font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] leading-none ${productionChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+                    >
+                      {resource.production}
+                    </span>
+                  </div>
+
+                  {resource.id === "credits" ? (
+                    <div className="flex items-center gap-1.5 min-w-[52px] justify-center">
+                      <GameIcon
+                        iconType={ResourceTypeCredits}
+                        amount={resource.current}
+                        size="medium"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 min-w-[52px]">
+                      <GameIcon
+                        iconType={getResourceType(resource.id)}
+                        size="medium"
+                      />
+                      <div
+                        className={`text-lg font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] ${resourceChanged ? "[animation:valueUpdateShine_0.8s_ease-in-out]" : ""}`}
+                      >
+                        {resource.current}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}

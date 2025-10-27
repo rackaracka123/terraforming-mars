@@ -4,17 +4,17 @@ import { GameDto } from "@/types/generated/api-types.ts";
 import SettingsDropdown from "../../ui/dropdown/SettingsDropdown.tsx";
 
 interface TopMenuBarProps {
-  gameState?: GameDto | null;
   showStandardProjectsPopover?: boolean;
   onToggleStandardProjectsPopover?: () => void;
   standardProjectsButtonRef?: React.RefObject<HTMLButtonElement | null>;
+  gameState?: GameDto | null;
 }
 
 const TopMenuBar: React.FC<TopMenuBarProps> = ({
-  gameState,
   showStandardProjectsPopover,
   onToggleStandardProjectsPopover,
   standardProjectsButtonRef,
+  gameState: _gameState,
 }) => {
   const { setContentType, setContentData } = useMainContent();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
@@ -31,13 +31,10 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     { id: "milestones" as const, label: "MILESTONES", color: "#ff6b35" },
     { id: "projects" as const, label: "STANDARD PROJECTS", color: "#4a90e2" },
     { id: "awards" as const, label: "AWARDS", color: "#f39c12" },
-    { id: "debug" as const, label: "ADMIN TOOLS", color: "#9b59b6" },
   ];
 
   // Mock data for different content types - normally this would come from game state
-  const getMockData = (
-    type: "milestones" | "projects" | "awards" | "debug",
-  ) => {
+  const getMockData = (type: "milestones" | "projects" | "awards") => {
     if (type === "milestones") {
       return {
         milestones: [
@@ -110,14 +107,7 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
     return {};
   };
 
-  const handleTabClick = (
-    tabId: "milestones" | "projects" | "awards" | "debug",
-  ) => {
-    // For debug, we'll emit a custom event instead of using content context
-    if (tabId === "debug") {
-      window.dispatchEvent(new CustomEvent("toggle-debug-dropdown"));
-      return;
-    }
+  const handleTabClick = (tabId: "milestones" | "projects" | "awards") => {
     // For standard projects, toggle the popover
     if (tabId === "projects") {
       onToggleStandardProjectsPopover?.();
@@ -168,13 +158,6 @@ const TopMenuBar: React.FC<TopMenuBarProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Dev Mode Chip */}
-      {gameState?.settings?.developmentMode && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 bg-[#ff6b35] text-white text-[10px] font-bold py-1 px-3 rounded-b-lg border border-[#e55a2e] border-t-0 z-[99] whitespace-nowrap shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-          DEV MODE
-        </div>
-      )}
 
       {/* Settings Dropdown */}
       <SettingsDropdown

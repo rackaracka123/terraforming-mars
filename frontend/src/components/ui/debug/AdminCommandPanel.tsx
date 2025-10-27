@@ -124,6 +124,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     playerId: "",
     tileType: "",
   });
+  const [setCorporationForm, setSetCorporationForm] = useState({
+    playerId: "",
+    corporationId: "",
+  });
 
   const allPlayers = [gameState.currentPlayer, ...gameState.otherPlayers];
 
@@ -435,6 +439,29 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     }
   };
 
+  const handleSetCorporation = async () => {
+    const errors: Record<string, boolean> = {};
+
+    if (!setCorporationForm.playerId) errors.setCorporationPlayerId = true;
+    if (!setCorporationForm.corporationId)
+      errors.setCorporationCorporationId = true;
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setTimeout(() => setValidationErrors({}), 3000);
+      return;
+    }
+
+    const command = {
+      playerId: setCorporationForm.playerId,
+      corporationId: setCorporationForm.corporationId,
+    };
+
+    await sendAdminCommand("set-corporation" as any, command);
+    setSetCorporationForm({ playerId: "", corporationId: "" });
+  };
+
   const commandOptions = [
     { value: "give-card", label: "Give Card to Player" },
     { value: "set-phase", label: "Set Game Phase" },
@@ -442,6 +469,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     { value: "set-production", label: "Set Player Production" },
     { value: "set-global-params", label: "Set Global Parameters" },
     { value: "start-tile-selection", label: "Start Tile Selection (Demo)" },
+    { value: "set-corporation", label: "Set Player Corporation" },
   ];
 
   const phaseOptions = [
@@ -890,6 +918,68 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
         </div>
       )}
 
+      {selectedCommand === "set-corporation" && (
+        <div style={{ marginBottom: "16px" }}>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
+            Set Player Corporation
+          </h4>
+          <div style={{ marginBottom: "8px" }}>
+            <select
+              value={setCorporationForm.playerId}
+              onChange={(e) =>
+                setSetCorporationForm({
+                  ...setCorporationForm,
+                  playerId: e.target.value,
+                })
+              }
+              style={getSelectStyle(validationErrors.setCorporationPlayerId)}
+            >
+              <option value="">Select player...</option>
+              {allPlayers.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ marginBottom: "8px" }}>
+            <input
+              type="text"
+              placeholder="Enter corporation ID (e.g., B03 for Helion)"
+              value={setCorporationForm.corporationId}
+              onChange={(e) =>
+                setSetCorporationForm({
+                  ...setCorporationForm,
+                  corporationId: e.target.value,
+                })
+              }
+              style={{
+                ...getInputStyle(validationErrors.setCorporationCorporationId),
+                width: "100%",
+              }}
+            />
+          </div>
+          <button onClick={handleSetCorporation} style={buttonStyle}>
+            Set Corporation
+          </button>
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "8px",
+              background: "rgba(255, 193, 7, 0.1)",
+              border: "1px solid rgba(255, 193, 7, 0.3)",
+              borderRadius: "4px",
+              fontSize: "11px",
+              color: "#ffc107",
+            }}
+          >
+            ⚠️ <strong>Warning:</strong> This will clear any pending selections
+            and apply corporation bonuses (resources, production, payment
+            substitutes, effects, and actions).
+          </div>
+        </div>
+      )}
+
       {!selectedCommand && (
         <div
           style={{
@@ -910,6 +1000,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
             <li>Set player production</li>
             <li>Modify global parameters</li>
             <li>Start tile selection (demo)</li>
+            <li>Set player corporation</li>
           </ul>
         </div>
       )}

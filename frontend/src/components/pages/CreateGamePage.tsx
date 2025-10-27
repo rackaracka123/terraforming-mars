@@ -37,7 +37,8 @@ const CreateGamePage: React.FC = () => {
     void backgroundMusicService.play();
 
     return () => {
-      backgroundMusicService.stop();
+      // Pause instead of stop to maintain playback position
+      backgroundMusicService.pause();
     };
   }, []);
 
@@ -164,7 +165,7 @@ const CreateGamePage: React.FC = () => {
             </h1>
 
             <form onSubmit={handleSubmit} className="max-w-[400px] mx-auto">
-              <div className="relative flex items-center bg-space-black-darker/80 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space focus-within:border-space-blue-800 focus-within:shadow-glow overflow-hidden">
+              <div className="relative flex items-center bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-0 transition-all duration-200 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)] focus-within:border-space-blue-600 focus-within:shadow-[0_0_30px_rgba(30,60,150,0.4)] overflow-hidden">
                 <input
                   type="text"
                   value={playerName}
@@ -216,7 +217,7 @@ const CreateGamePage: React.FC = () => {
               </div>
 
               {/* Card Pack Selection */}
-              <div className="mt-6 bg-space-black-darker/60 border border-space-blue-400/40 rounded-lg p-4 backdrop-blur-space">
+              <div className="mt-6 bg-space-black-darker/95 border-2 border-space-blue-400 rounded-xl p-4 backdrop-blur-space shadow-[0_0_20px_rgba(30,60,150,0.2)]">
                 <h3 className="text-white text-sm font-semibold mb-3 text-center">
                   Card Packs
                 </h3>

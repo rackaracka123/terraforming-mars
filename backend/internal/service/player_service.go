@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -43,21 +46,25 @@ type PlayerService interface {
 
 // PlayerServiceImpl implements PlayerService interface
 type PlayerServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	sessionManager session.SessionManager
-	boardService   BoardService
-	tileService    TileService
+	gameRepo            repository.GameRepository
+	playerRepo          repository.PlayerRepository
+	sessionManager      session.SessionManager
+	boardService        BoardService
+	tileService         TileService
+	forcedActionManager cards.ForcedActionManager
+	eventBus            *events.EventBusImpl
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, forcedActionManager cards.ForcedActionManager, eventBus *events.EventBusImpl) PlayerService {
 	return &PlayerServiceImpl{
-		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
-		sessionManager: sessionManager,
-		boardService:   boardService,
-		tileService:    tileService,
+		gameRepo:            gameRepo,
+		playerRepo:          playerRepo,
+		sessionManager:      sessionManager,
+		boardService:        boardService,
+		tileService:         tileService,
+		forcedActionManager: forcedActionManager,
+		eventBus:            eventBus,
 	}
 }
 
@@ -315,10 +322,77 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("selected coordinate %s is not in available positions", coordinateKey)
 	}
 
+	// Check if this is a plant conversion (special handling for raising oxygen and TR)
+	isPlantConversion := pendingSelection.Source == "convert-plants-to-greenery"
+
 	// Place the tile using the private method
 	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
 		return fmt.Errorf("failed to place tile: %w", err)
+	}
+
+	// Check if this tile placement was triggered by a forced action
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player for forced action check", zap.Error(err))
+	} else {
+		isForcedAction := player.ForcedFirstAction != nil &&
+			player.ForcedFirstAction.CorporationID == pendingSelection.Source
+
+		if isForcedAction {
+			if err := s.forcedActionManager.MarkComplete(ctx, gameID, playerID); err != nil {
+				log.Error("Failed to mark forced action complete", zap.Error(err))
+				// Don't fail the operation, just log the error
+			} else {
+				log.Info("🎯 Forced action marked as complete", zap.String("source", pendingSelection.Source))
+			}
+		}
+	}
+
+	// Handle plant conversion completion (raise oxygen and TR)
+	if isPlantConversion {
+		log.Info("🌱 Completing plant conversion - raising oxygen")
+
+		// Get game for oxygen check
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game for oxygen update", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		// Raise oxygen if not already maxed
+		oxygenRaised := false
+		if game.GlobalParameters.Oxygen < model.MaxOxygen {
+			newParams := game.GlobalParameters
+			newParams.Oxygen++
+
+			if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
+				log.Error("Failed to raise oxygen", zap.Error(err))
+				return fmt.Errorf("failed to raise oxygen: %w", err)
+			}
+
+			oxygenRaised = true
+			log.Info("🌍 Oxygen raised", zap.Int("new_oxygen", newParams.Oxygen))
+		}
+
+		// Award TR if oxygen was raised
+		if oxygenRaised {
+			player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + 1
+			if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update terraform rating", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("⭐ Terraform rating increased", zap.Int("new_tr", newTR))
+		}
+
+		log.Info("✅ Plant conversion completed successfully")
 	}
 
 	// Clear the current pending tile selection
@@ -428,10 +502,18 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 	var totalCreditsBonus int
 	var bonusesAwarded []string
 
+	// Collect all placement bonuses for event publishing
+	placementBonuses := make(map[string]int)
+
 	// Award tile bonuses (steel, titanium, plants, card draw)
 	for _, bonus := range placedTile.Bonuses {
-		if description, applied := s.applyTileBonus(&newResources, bonus, log); applied {
+		description, applied, resourceType, amount := s.applyTileBonus(ctx, gameID, playerID, coordinate, &newResources, bonus, log)
+		if applied {
 			bonusesAwarded = append(bonusesAwarded, description)
+			// Collect bonus for event
+			if resourceType != "" {
+				placementBonuses[resourceType] += amount
+			}
 		}
 	}
 
@@ -457,6 +539,22 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 
 		log.Info("✅ All tile placement bonuses awarded",
 			zap.Strings("bonuses", bonusesAwarded))
+	}
+
+	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
+	if len(placementBonuses) > 0 && s.eventBus != nil {
+		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			Resources: placementBonuses,
+			Q:         coordinate.Q,
+			R:         coordinate.R,
+			S:         coordinate.S,
+			Timestamp: time.Now(),
+		})
+
+		log.Debug("📢 Published PlacementBonusGainedEvent",
+			zap.Any("resources", placementBonuses))
 	}
 
 	return nil
@@ -492,8 +590,8 @@ func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player
 }
 
 // applyTileBonus applies a single tile bonus to player resources
-// Returns a description of the bonus and whether it was successfully applied
-func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool) {
+// Returns: description, applied (bool), resourceType, amount
+func (s *PlayerServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool, string, int) {
 	var resourceName string
 
 	switch bonus.Type {
@@ -514,16 +612,16 @@ func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus mod
 		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
 			zap.String("type", "card-draw"),
 			zap.Int("amount", bonus.Amount))
-		return fmt.Sprintf("+%d cards", bonus.Amount), true
+		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(model.ResourceCardDraw), bonus.Amount
 
 	default:
 		// Unknown bonus type, skip it
-		return "", false
+		return "", false, "", 0
 	}
 
 	log.Info("🎁 Tile bonus awarded",
 		zap.String("type", resourceName),
 		zap.Int("amount", bonus.Amount))
 
-	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
+	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true, string(bonus.Type), bonus.Amount
 }

@@ -2,6 +2,7 @@ import {
   CardDto,
   CardPaymentDto,
   PaymentConstantsDto,
+  PaymentSubstituteDto,
   ResourcesDto,
   TagBuilding,
   TagSpace,
@@ -14,12 +15,26 @@ import {
 export function calculatePaymentValue(
   payment: CardPaymentDto,
   constants: PaymentConstantsDto,
+  playerSubstitutes?: PaymentSubstituteDto[],
 ): number {
-  return (
+  let total =
     payment.credits +
     payment.steel * constants.steelValue +
-    payment.titanium * constants.titaniumValue
-  );
+    payment.titanium * constants.titaniumValue;
+
+  // Add value from payment substitutes
+  if (payment.substitutes && playerSubstitutes) {
+    for (const [resourceType, amount] of Object.entries(payment.substitutes)) {
+      const substitute = playerSubstitutes.find(
+        (sub) => sub.resourceType === resourceType,
+      );
+      if (substitute) {
+        total += amount * substitute.conversionRate;
+      }
+    }
+  }
+
+  return total;
 }
 
 /**
@@ -31,16 +46,20 @@ export function createDefaultPayment(cardCost: number): CardPaymentDto {
     credits: cardCost,
     steel: 0,
     titanium: 0,
+    substitutes: undefined,
   };
 }
 
 /**
  * Determines if the payment modal should be shown
- * Only show if card can actually use alternative payment resources
+ * Show if:
+ * 1. Card can use steel/titanium AND player has them, OR
+ * 2. Player has any payment substitutes
  */
 export function shouldShowPaymentModal(
   card: CardDto,
   playerResources: ResourcesDto,
+  playerSubstitutes?: PaymentSubstituteDto[],
 ): boolean {
   // If card costs 0, no payment needed
   if (card.cost === 0) {
@@ -55,6 +74,25 @@ export function shouldShowPaymentModal(
   const canUseTitanium =
     (card.tags?.includes(TagSpace) ?? false) && playerResources.titanium > 0;
 
-  // Show modal only if at least one alternative payment option is available
-  return canUseSteel || canUseTitanium;
+  // Check if player has any payment substitutes with available resources
+  const hasUsableSubstitutes =
+    playerSubstitutes &&
+    playerSubstitutes.length > 0 &&
+    playerSubstitutes.some((sub) => {
+      const resourceType = sub.resourceType;
+      // Check if player has this resource available
+      switch (resourceType) {
+        case "heat":
+          return playerResources.heat > 0;
+        case "energy":
+          return playerResources.energy > 0;
+        case "plants":
+          return playerResources.plants > 0;
+        default:
+          return false;
+      }
+    });
+
+  // Show modal if at least one alternative payment option is available
+  return canUseSteel || canUseTitanium || !!hasUsableSubstitutes;
 }

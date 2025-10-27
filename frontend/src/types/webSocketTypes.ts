@@ -21,6 +21,10 @@ export interface WebSocketConnection {
   plantGreenery(hexPosition: HexPositionDto): Promise<string>;
   buildCity(hexPosition: HexPositionDto): Promise<string>;
 
+  // Resource conversion actions
+  convertPlantsToGreenery(): Promise<string>;
+  convertHeatToTemperature(): Promise<string>;
+
   // Game management actions
   startGame(): Promise<string>;
   skipAction(): Promise<string>;

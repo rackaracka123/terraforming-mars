@@ -7,6 +7,7 @@ export const classifyBehaviors = (
   return behaviors.map((behavior) => {
     const hasTrigger = behavior.triggers && behavior.triggers.length > 0;
     const triggerType = hasTrigger ? behavior.triggers?.[0]?.type : null;
+    const hasCondition = behavior.triggers?.[0]?.condition !== undefined;
     const hasInputs = behavior.inputs && behavior.inputs.length > 0;
     const hasProduction =
       behavior.outputs &&
@@ -18,12 +19,27 @@ export const classifyBehaviors = (
       behavior.outputs &&
       behavior.outputs.some((output: any) => output.type === "discount");
 
+    const hasPaymentSubstitute =
+      behavior.outputs &&
+      behavior.outputs.some(
+        (output: any) => output.type === "payment-substitute",
+      );
+
     if (hasDiscount) {
       return { behavior, type: "discount" };
     }
 
+    if (hasPaymentSubstitute) {
+      return { behavior, type: "payment-substitute" };
+    }
+
     if (triggerType === "manual") {
       return { behavior, type: "manual-action" };
+    }
+
+    // Auto triggers with conditions (e.g., placement-bonus-gained) should be triggered-effect
+    if (triggerType === "auto" && hasCondition) {
+      return { behavior, type: "triggered-effect" };
     }
 
     if (triggerType === "auto" && !hasInputs) {

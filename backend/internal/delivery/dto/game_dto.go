@@ -34,6 +34,22 @@ const (
 	CardTypePrelude     CardType = "prelude"
 )
 
+// StandardProject represents the different types of standard projects
+type StandardProject string
+
+const (
+	// Standard Projects (M€-based)
+	StandardProjectSellPatents StandardProject = "sell-patents"
+	StandardProjectPowerPlant  StandardProject = "power-plant"
+	StandardProjectAsteroid    StandardProject = "asteroid"
+	StandardProjectAquifer     StandardProject = "aquifer"
+	StandardProjectGreenery    StandardProject = "greenery"
+	StandardProjectCity        StandardProject = "city"
+	// Resource Conversion Actions (resource-based, not M€)
+	StandardProjectConvertPlantsToGreenery  StandardProject = "convert-plants-to-greenery"
+	StandardProjectConvertHeatToTemperature StandardProject = "convert-heat-to-temperature"
+)
+
 // CardTag represents different card categories and attributes
 type CardTag string
 
@@ -180,13 +196,14 @@ type ResourceSet struct {
 
 // ResourceConditionDto represents a resource condition for client consumption
 type ResourceConditionDto struct {
-	Type              ResourceType     `json:"type" ts:"ResourceType"`
-	Amount            int              `json:"amount" ts:"number"`
-	Target            TargetType       `json:"target" ts:"TargetType"`
-	AffectedResources []string         `json:"affectedResources,omitempty" ts:"string[] | undefined"`
-	AffectedTags      []CardTag        `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	MaxTrigger        *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
-	Per               *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
+	Type                     ResourceType      `json:"type" ts:"ResourceType"`
+	Amount                   int               `json:"amount" ts:"number"`
+	Target                   TargetType        `json:"target" ts:"TargetType"`
+	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`
+	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
+	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per                      *PerConditionDto  `json:"per,omitempty" ts:"PerConditionDto | undefined"`
 }
 
 // PerConditionDto represents a per condition for client consumption
@@ -210,12 +227,22 @@ type TriggerDto struct {
 	Condition *ResourceTriggerConditionDto `json:"condition,omitempty" ts:"ResourceTriggerConditionDto | undefined"`
 }
 
+// MinMaxValueDto represents a minimum and/or maximum value constraint for client consumption
+type MinMaxValueDto struct {
+	Min *int `json:"min,omitempty" ts:"number | undefined"`
+	Max *int `json:"max,omitempty" ts:"number | undefined"`
+}
+
 // ResourceTriggerConditionDto represents a resource trigger condition for client consumption
 type ResourceTriggerConditionDto struct {
-	Type         TriggerType        `json:"type" ts:"TriggerType"`
-	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
-	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
-	Target       *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`
+	Type                   TriggerType                     `json:"type" ts:"TriggerType"`
+	Location               *CardApplyLocation              `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
+	AffectedTags           []CardTag                       `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedResources      []string                        `json:"affectedResources,omitempty" ts:"string[] | undefined"`   // Resource types that trigger this effect (for placement-bonus-gained)
+	AffectedCardTypes      []CardType                      `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"` // Card types that trigger this effect (for card-played)
+	Target                 *TargetType                     `json:"target,omitempty" ts:"TargetType | undefined"`
+	RequiredOriginalCost   *MinMaxValueDto                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValueDto | undefined"`
+	RequiredResourceChange map[ResourceType]MinMaxValueDto `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValueDto> | undefined"`
 }
 
 // CardBehaviorDto represents a card behavior for client consumption
@@ -316,6 +343,12 @@ type ProductionDto struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// PaymentSubstituteDto represents an alternative resource that can be used as payment for credits
+type PaymentSubstituteDto struct {
+	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"`
+	ConversionRate int          `json:"conversionRate" ts:"number"`
+}
+
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption
 // Aligned with PlayerActionDto structure for consistent behavior handling
 type PlayerEffectDto struct {
@@ -336,6 +369,14 @@ type PlayerActionDto struct {
 }
 
 // PendingTileSelectionDto represents a pending tile placement action for client consumption
+// ForcedFirstActionDto represents an action that must be completed as the player's first turn action
+type ForcedFirstActionDto struct {
+	ActionType    string `json:"actionType" ts:"string"`    // Type of action: "city_placement", "card_draw", etc.
+	CorporationID string `json:"corporationId" ts:"string"` // Corporation that requires this action
+	Completed     bool   `json:"completed" ts:"boolean"`    // Whether the forced action has been completed
+	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
+}
+
 type PendingTileSelectionDto struct {
 	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
 	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
@@ -398,8 +439,12 @@ type PlayerDto struct {
 	PendingCardSelection *PendingCardSelectionDto `json:"pendingCardSelection" ts:"PendingCardSelectionDto | null"` // Pending card selection (sell patents, card effects, etc.)
 	// Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
 	PendingCardDrawSelection *PendingCardDrawSelectionDto `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelectionDto | null"` // Pending card draw/peek/take/buy selection from card effects
+	// Forced first action - nullable, exists only when corporation requires specific first turn action
+	ForcedFirstAction *ForcedFirstActionDto `json:"forcedFirstAction" ts:"ForcedFirstActionDto | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources usable as payment for credits
+	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -424,6 +469,8 @@ type OtherPlayerDto struct {
 	ProductionPhase          *ProductionPhaseOtherPlayerDto     `json:"productionPhase" ts:"ProductionPhaseOtherPlayerDto | null"`
 	// Resource storage - maps card IDs to resource counts stored on those cards (public information)
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources usable as payment for credits (public information)
+	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
 }
 
 // GameDto represents a game for client consumption (clean architecture)

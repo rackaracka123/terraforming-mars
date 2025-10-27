@@ -3,6 +3,7 @@ import {
   CardDto,
   CardPaymentDto,
   PaymentConstantsDto,
+  PaymentSubstituteDto,
   ResourcesDto,
   TagBuilding,
   TagSpace,
@@ -14,6 +15,7 @@ interface PaymentSelectionPopoverProps {
   card: CardDto;
   playerResources: ResourcesDto;
   paymentConstants: PaymentConstantsDto;
+  playerPaymentSubstitutes?: PaymentSubstituteDto[];
   onConfirm: (payment: CardPaymentDto) => void;
   onCancel: () => void;
   isVisible: boolean;
@@ -24,6 +26,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   card,
   playerResources,
   paymentConstants,
+  playerPaymentSubstitutes,
   onConfirm,
   onCancel,
   isVisible,
@@ -35,35 +38,86 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   const [steel, setSteel] = useState(0);
   const [titanium, setTitanium] = useState(0);
 
+  // Payment substitutes state (dynamic based on player's available substitutes)
+  const [substitutes, setSubstitutes] = useState<Record<string, number>>({});
+
   // Reset payment when modal opens
   useEffect(() => {
     if (isVisible) {
       setSteel(0);
       setTitanium(0);
+      setSubstitutes({});
     }
   }, [isVisible, card.cost]);
 
-  // Calculate final cost after applying steel and titanium discounts
+  // Calculate final cost after applying steel, titanium, and substitute discounts
+  let substitutesValue = 0;
+  if (playerPaymentSubstitutes) {
+    for (const [resourceType, amount] of Object.entries(substitutes)) {
+      const substitute = playerPaymentSubstitutes.find(
+        (sub) => sub.resourceType === resourceType,
+      );
+      if (substitute) {
+        substitutesValue += amount * substitute.conversionRate;
+      }
+    }
+  }
+
   const finalCost =
     card.cost -
     steel * paymentConstants.steelValue -
-    titanium * paymentConstants.titaniumValue;
+    titanium * paymentConstants.titaniumValue -
+    substitutesValue;
 
   // Check which resources to show (only if card has appropriate tag)
   const canUseSteel = card.tags?.includes(TagBuilding);
   const canUseTitanium = card.tags?.includes(TagSpace);
 
-  // Calculate max units that can be used
+  // Calculate max units dynamically based on current payment state
+  // For steel: remaining cost excluding steel itself
+  let remainingCostForSteel = card.cost;
+  remainingCostForSteel -= titanium * paymentConstants.titaniumValue;
+  if (playerPaymentSubstitutes) {
+    for (const [resourceType, amount] of Object.entries(substitutes)) {
+      const sub = playerPaymentSubstitutes.find(
+        (s) => s.resourceType === resourceType,
+      );
+      if (sub) {
+        remainingCostForSteel -= amount * sub.conversionRate;
+      }
+    }
+  }
+
   const maxSteelUnits = canUseSteel
     ? Math.min(
         playerResources.steel,
-        Math.ceil(card.cost / paymentConstants.steelValue),
+        Math.ceil(
+          Math.max(0, remainingCostForSteel) / paymentConstants.steelValue,
+        ),
       )
     : 0;
+
+  // For titanium: remaining cost excluding titanium itself
+  let remainingCostForTitanium = card.cost;
+  remainingCostForTitanium -= steel * paymentConstants.steelValue;
+  if (playerPaymentSubstitutes) {
+    for (const [resourceType, amount] of Object.entries(substitutes)) {
+      const sub = playerPaymentSubstitutes.find(
+        (s) => s.resourceType === resourceType,
+      );
+      if (sub) {
+        remainingCostForTitanium -= amount * sub.conversionRate;
+      }
+    }
+  }
+
   const maxTitaniumUnits = canUseTitanium
     ? Math.min(
         playerResources.titanium,
-        Math.ceil(card.cost / paymentConstants.titaniumValue),
+        Math.ceil(
+          Math.max(0, remainingCostForTitanium) /
+            paymentConstants.titaniumValue,
+        ),
       )
     : 0;
 
@@ -83,12 +137,16 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
   const handleConfirm = useCallback(() => {
     if (!canConfirm) return;
 
-    onConfirm({
+    const payment: CardPaymentDto = {
       credits: Math.max(0, finalCost), // Credits needed (0 if overpaying)
       steel,
       titanium,
-    });
-  }, [steel, titanium, finalCost, canConfirm, onConfirm]);
+      substitutes:
+        Object.keys(substitutes).length > 0 ? substitutes : undefined,
+    };
+
+    onConfirm(payment);
+  }, [steel, titanium, substitutes, finalCost, canConfirm, onConfirm]);
 
   // Escape key handler
   useEffect(() => {
@@ -191,8 +249,8 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
 
         {/* Payment options */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {/* Steel - shown only if card has building tag */}
-          {canUseSteel && maxSteelUnits > 0 && (
+          {/* Steel - shown only if card has building tag and player has steel */}
+          {canUseSteel && playerResources.steel > 0 && (
             <div className="flex items-center justify-between rounded-md bg-black/30 border-2 border-space-blue-500/40 p-4">
               <div className="flex items-center gap-3">
                 <GameIcon iconType="steel" size="medium" />
@@ -226,8 +284,8 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
             </div>
           )}
 
-          {/* Titanium - shown only if card has space tag */}
-          {canUseTitanium && maxTitaniumUnits > 0 && (
+          {/* Titanium - shown only if card has space tag and player has titanium */}
+          {canUseTitanium && playerResources.titanium > 0 && (
             <div className="flex items-center justify-between rounded-md bg-black/30 border-2 border-space-blue-500/40 p-4">
               <div className="flex items-center gap-3">
                 <GameIcon iconType="titanium" size="medium" />
@@ -261,12 +319,132 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
             </div>
           )}
 
+          {/* Payment Substitutes - shown for each substitute player has */}
+          {playerPaymentSubstitutes &&
+            playerPaymentSubstitutes.map((substitute) => {
+              const resourceType = substitute.resourceType;
+              let available = 0;
+
+              switch (resourceType) {
+                case "heat":
+                  available = playerResources.heat;
+                  break;
+                case "energy":
+                  available = playerResources.energy;
+                  break;
+                case "plants":
+                  available = playerResources.plants;
+                  break;
+              }
+
+              if (available === 0) return null;
+
+              const currentAmount = substitutes[resourceType] || 0;
+
+              // Calculate remaining cost excluding THIS substitute
+              let remainingCostForThisSubstitute = card.cost;
+              remainingCostForThisSubstitute -=
+                steel * paymentConstants.steelValue;
+              remainingCostForThisSubstitute -=
+                titanium * paymentConstants.titaniumValue;
+
+              // Subtract OTHER substitutes' values (not this one)
+              if (playerPaymentSubstitutes) {
+                for (const [otherResourceType, amount] of Object.entries(
+                  substitutes,
+                )) {
+                  if (otherResourceType !== resourceType) {
+                    const otherSub = playerPaymentSubstitutes.find(
+                      (sub) => sub.resourceType === otherResourceType,
+                    );
+                    if (otherSub) {
+                      remainingCostForThisSubstitute -=
+                        amount * otherSub.conversionRate;
+                    }
+                  }
+                }
+              }
+
+              const maxUnits = Math.min(
+                available,
+                Math.ceil(
+                  Math.max(0, remainingCostForThisSubstitute) /
+                    substitute.conversionRate,
+                ),
+              );
+
+              const incrementSubstitute = () => {
+                if (currentAmount < maxUnits) {
+                  setSubstitutes((prev) => ({
+                    ...prev,
+                    [resourceType]: currentAmount + 1,
+                  }));
+                }
+              };
+
+              const decrementSubstitute = () => {
+                if (currentAmount > 0) {
+                  setSubstitutes((prev) => {
+                    const newSubs = { ...prev };
+                    if (currentAmount === 1) {
+                      delete newSubs[resourceType];
+                    } else {
+                      newSubs[resourceType] = currentAmount - 1;
+                    }
+                    return newSubs;
+                  });
+                }
+              };
+
+              return (
+                <div
+                  key={resourceType}
+                  className="flex items-center justify-between rounded-md bg-black/30 border-2 border-space-blue-500/40 p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <GameIcon iconType={resourceType} size="medium" />
+                    <div className="flex flex-col">
+                      <span className="text-white capitalize">
+                        {resourceType}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {substitute.conversionRate} MC each ({available}{" "}
+                        available)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={decrementSubstitute}
+                      disabled={currentAmount === 0}
+                      className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                    >
+                      −
+                    </button>
+                    <span className="w-12 text-center text-lg text-white font-semibold">
+                      {currentAmount}
+                    </span>
+                    <button
+                      onClick={incrementSubstitute}
+                      disabled={currentAmount >= maxUnits}
+                      className="h-8 w-8 rounded border border-space-blue-500 bg-space-black text-white hover:bg-space-blue-900 disabled:opacity-30 disabled:hover:bg-space-black transition-all"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
           {/* Show message if no alternative payment options */}
-          {!canUseSteel && !canUseTitanium && (
-            <div className="text-center text-gray-400 py-4">
-              This card cannot use alternative payment methods
-            </div>
-          )}
+          {!canUseSteel &&
+            !canUseTitanium &&
+            (!playerPaymentSubstitutes ||
+              playerPaymentSubstitutes.length === 0) && (
+              <div className="text-center text-gray-400 py-4">
+                This card cannot use alternative payment methods
+              </div>
+            )}
         </div>
 
         {/* Payment summary */}

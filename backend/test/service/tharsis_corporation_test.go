@@ -30,8 +30,9 @@ func TestTharsisRepublic_CityPlacement_ProductionIncrease(t *testing.T) {
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	// Load cards
@@ -150,8 +151,9 @@ func TestTharsisRepublic_OtherPlayerCityPlacement(t *testing.T) {
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	// Load cards
@@ -268,4 +270,104 @@ func TestTharsisRepublic_OtherPlayerCityPlacement(t *testing.T) {
 		player1After.Production.Credits, initialProduction,
 		player1After.Resources.Credits, initialCredits)
 	t.Log("🎉 Tharsis self-only passive effect test passed!")
+}
+
+// TestTharsisRepublic_ForcedFirstActionFlag tests that selecting Tharsis Republic
+// sets the forced first action flag (action must be taken on first turn, not immediately)
+func TestTharsisRepublic_ForcedFirstActionFlag(t *testing.T) {
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+
+	// Setup repositories and services
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	sessionManager := test.NewMockSessionManager()
+	boardService := service.NewBoardService()
+	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+
+	// Load cards
+	require.NoError(t, cardRepo.LoadCards(ctx))
+
+	// Create test game
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	require.NoError(t, err)
+
+	// Initialize board
+	board := boardService.GenerateDefaultBoard()
+	gameRepo.UpdateBoard(ctx, game.ID, board)
+	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+
+	// Create test player
+	player := model.Player{
+		ID:              "player1",
+		Name:            "Test Player",
+		Resources:       model.Resources{Credits: 100},
+		Production:      model.Production{Credits: 1},
+		TerraformRating: 20,
+		IsConnected:     true,
+	}
+	playerRepo.Create(ctx, game.ID, player)
+
+	// Get cards and corporations
+	startingCards, _ := cardRepo.GetStartingCardPool(ctx)
+	corporations, _ := cardRepo.GetCorporations(ctx)
+	require.GreaterOrEqual(t, len(startingCards), 2)
+	require.GreaterOrEqual(t, len(corporations), 1)
+
+	// Find Tharsis Republic
+	var tharsisID string
+	for _, corp := range corporations {
+		if corp.ID == "B08" {
+			tharsisID = corp.ID
+			break
+		}
+	}
+	require.NotEmpty(t, tharsisID, "Tharsis Republic (B08) should be available")
+
+	// Set up starting card selection
+	availableCardIDs := []string{startingCards[0].ID, startingCards[1].ID}
+	corporationIDs := []string{tharsisID, corporations[1].ID}
+
+	playerRepo.UpdateSelectStartingCardsPhase(ctx, game.ID, player.ID, &model.SelectStartingCardsPhase{
+		AvailableCards:        availableCardIDs,
+		AvailableCorporations: corporationIDs,
+	})
+
+	// Select Tharsis Republic
+	selectedCardIDs := []string{startingCards[0].ID}
+	err = cardService.OnSelectStartingCards(ctx, game.ID, player.ID, selectedCardIDs, tharsisID)
+	require.NoError(t, err, "Should successfully select Tharsis Republic")
+
+	t.Log("✅ Tharsis Republic selected")
+
+	// Verify player has forced first action flag set
+	playerAfterSelection, err := playerRepo.GetByID(ctx, game.ID, player.ID)
+	require.NoError(t, err)
+	require.NotNil(t, playerAfterSelection.ForcedFirstAction, "Player should have forced first action")
+	assert.Equal(t, "city_placement", playerAfterSelection.ForcedFirstAction.ActionType, "Action type should be city_placement")
+	assert.Equal(t, "B08", playerAfterSelection.ForcedFirstAction.CorporationID, "Should be from Tharsis Republic")
+	assert.False(t, playerAfterSelection.ForcedFirstAction.Completed, "Action should not be completed yet")
+	assert.NotEmpty(t, playerAfterSelection.ForcedFirstAction.Description, "Should have description")
+
+	t.Logf("🎯 Forced first action set: %s", playerAfterSelection.ForcedFirstAction.Description)
+
+	// Verify NO tile selection was created (unlike immediate actions, forced actions wait for player's turn)
+	assert.Nil(t, playerAfterSelection.PendingTileSelection, "Should NOT have pending tile selection yet")
+	assert.Nil(t, playerAfterSelection.PendingTileSelectionQueue, "Should NOT have tile queue yet")
+
+	t.Log("✅ Forced action is flagged but not triggered (will happen on first turn)")
+
+	// Verify game advances to action phase normally (not waiting for forced action to complete)
+	game, err = gameRepo.GetByID(ctx, game.ID)
+	require.NoError(t, err)
+	assert.Equal(t, model.GamePhaseAction, game.CurrentPhase, "Game should advance to action phase (forced actions don't block phase transition)")
+
+	t.Log("🎉 Tharsis Republic forced first action flag test passed!")
+	t.Log("📝 Note: Actual forced action execution during first turn is not yet implemented")
 }

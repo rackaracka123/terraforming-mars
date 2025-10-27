@@ -25,6 +25,8 @@ import {
   MessageTypeActionSelectStartingCard,
   MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
+  MessageTypeActionConvertPlantsToGreenery,
+  MessageTypeActionConvertHeatToTemperature,
   // Payload types
   PlayerDisconnectedPayload,
   WebSocketMessage,
@@ -271,6 +273,19 @@ export class WebSocketService {
 
   buildCity(): string {
     return this.send(MessageTypeActionBuildCity, {});
+  }
+
+  // Resource conversion actions
+  convertPlantsToGreenery(): string {
+    return this.send(MessageTypeActionConvertPlantsToGreenery, {
+      type: "convert-plants-to-greenery",
+    });
+  }
+
+  convertHeatToTemperature(): string {
+    return this.send(MessageTypeActionConvertHeatToTemperature, {
+      type: "convert-heat-to-temperature",
+    });
   }
 
   // Game management actions

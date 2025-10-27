@@ -9,6 +9,7 @@ import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx"
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
 import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
+import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
@@ -318,23 +319,18 @@ export default function GameInterface() {
   // Control background music based on game status
   useEffect(() => {
     if (!game) {
-      // Game not loaded yet - stop music preemptively
+      // Game not loaded yet - pause music preemptively
       // (handles page refresh in active game)
-      backgroundMusicService.stop();
+      backgroundMusicService.pause();
       return;
     }
 
-    if (game.status === GameStatusLobby) {
-      // Play music during lobby phase
-      void backgroundMusicService.play();
-    } else if (game.status === GameStatusActive) {
-      // Stop music when game becomes active
-      backgroundMusicService.stop();
-    }
+    // Play music during both lobby and active game
+    void backgroundMusicService.play();
 
-    // Cleanup: stop music when leaving game interface
+    // Cleanup: pause music when leaving game interface (maintains position)
     return () => {
-      backgroundMusicService.stop();
+      backgroundMusicService.pause();
     };
   }, [game?.status]);
 
@@ -459,7 +455,11 @@ export default function GameInterface() {
           // No auto-triggered choices, check if we need payment modal
           if (
             currentPlayer &&
-            shouldShowPaymentModal(card, currentPlayer.resources)
+            shouldShowPaymentModal(
+              card,
+              currentPlayer.resources,
+              currentPlayer.paymentSubstitutes,
+            )
           ) {
             // Show payment selection modal
             setPendingCardPayment({
@@ -517,7 +517,11 @@ export default function GameInterface() {
 
         // Check if we need payment modal
         if (
-          shouldShowPaymentModal(cardPendingChoice, currentPlayer.resources)
+          shouldShowPaymentModal(
+            cardPendingChoice,
+            currentPlayer.resources,
+            currentPlayer.paymentSubstitutes,
+          )
         ) {
           // Show payment selection modal
           setPendingCardPayment({
@@ -926,6 +930,22 @@ export default function GameInterface() {
     [currentPlayer?.pendingTileSelection],
   );
 
+  // Resource conversion handlers
+  const handleConvertPlantsToGreenery = useCallback(() => {
+    // Block if tile selection is already pending
+    if (currentPlayer?.pendingTileSelection) {
+      return;
+    }
+
+    // Initiate plant conversion (backend creates pending tile selection)
+    void globalWebSocketManager.convertPlantsToGreenery();
+  }, [currentPlayer?.pendingTileSelection]);
+
+  const handleConvertHeatToTemperature = useCallback(() => {
+    // Convert heat to temperature directly (no tile selection needed)
+    void globalWebSocketManager.convertHeatToTemperature();
+  }, []);
+
   // Tab conflict handlers
   const handleTabTakeOver = () => {
     if (conflictingTabInfo) {
@@ -1210,8 +1230,30 @@ export default function GameInterface() {
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
 
+  // Check if we need the persistent backdrop (during overlay transitions)
+  const shouldShowBackdrop = isLobbyPhase || showCardSelection;
+
   return (
     <>
+      {/* Dev Mode Chip - Always visible in dev mode */}
+      {game?.settings?.developmentMode && <DevModeChip />}
+
+      {/* Persistent backdrop for overlays to prevent blink during transitions */}
+      {shouldShowBackdrop && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]">
+          <style>{`
+            @keyframes backdropFadeIn {
+              0% {
+                opacity: 0;
+              }
+              100% {
+                opacity: 1;
+              }
+            }
+          `}</style>
+        </div>
+      )}
+
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
@@ -1219,12 +1261,15 @@ export default function GameInterface() {
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
+        showCardSelection={showCardSelection}
         changedPaths={changedPaths}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
+        onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
+        onConvertHeatToTemperature={handleConvertHeatToTemperature}
         showStandardProjectsPopover={showStandardProjectsPopover}
         onToggleStandardProjectsPopover={() =>
           setShowStandardProjectsPopover(!showStandardProjectsPopover)
@@ -1411,6 +1456,7 @@ export default function GameInterface() {
           card={pendingCardPayment.card}
           playerResources={currentPlayer.resources}
           paymentConstants={game.paymentConstants}
+          playerPaymentSubstitutes={currentPlayer.paymentSubstitutes}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
           isVisible={showPaymentSelection}

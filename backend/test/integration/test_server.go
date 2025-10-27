@@ -62,11 +62,14 @@ func NewTestServer(port int) (*TestServer, error) {
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	forcedActionManager.SubscribeToPhaseChanges()
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager, effectSubscriber)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -74,11 +77,11 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsService.ServeWS)
 

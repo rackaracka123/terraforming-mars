@@ -68,10 +68,25 @@ class BackgroundMusicService {
   }
 
   /**
-   * Stop playing background music immediately
+   * Pause background music without resetting position
+   * Use this when temporarily pausing (e.g., navigating between pages)
+   */
+  public pause(): void {
+    if (!this.audio || !this.isPlaying) {
+      return;
+    }
+
+    this.audio.pause();
+    this.isPlaying = false;
+    this.cancelFade();
+  }
+
+  /**
+   * Stop playing background music and reset to beginning
+   * Use this when completely stopping music (e.g., leaving to a different section)
    */
   public stop(): void {
-    if (!this.audio || !this.isPlaying) {
+    if (!this.audio) {
       return;
     }
 

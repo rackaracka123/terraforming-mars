@@ -6,12 +6,16 @@ import "fmt"
 type StandardProject string
 
 const (
-	StandardProjectSellPatents StandardProject = "SELL_PATENTS"
-	StandardProjectPowerPlant  StandardProject = "POWER_PLANT"
-	StandardProjectAsteroid    StandardProject = "ASTEROID"
-	StandardProjectAquifer     StandardProject = "AQUIFER"
-	StandardProjectGreenery    StandardProject = "GREENERY"
-	StandardProjectCity        StandardProject = "CITY"
+	// Standard Projects (M€-based)
+	StandardProjectSellPatents StandardProject = "sell-patents"
+	StandardProjectPowerPlant  StandardProject = "power-plant"
+	StandardProjectAsteroid    StandardProject = "asteroid"
+	StandardProjectAquifer     StandardProject = "aquifer"
+	StandardProjectGreenery    StandardProject = "greenery"
+	StandardProjectCity        StandardProject = "city"
+	// Resource Conversion Actions (resource-based, not M€)
+	StandardProjectConvertPlantsToGreenery  StandardProject = "convert-plants-to-greenery"
+	StandardProjectConvertHeatToTemperature StandardProject = "convert-heat-to-temperature"
 )
 
 // StandardProjectCost represents the credit cost for each standard project

@@ -64,6 +64,15 @@ type PendingCardDrawSelection struct {
 	Source         string   `json:"source" ts:"string"`            // Card ID or action that triggered this
 }
 
+// ForcedFirstAction represents an action that must be completed as the player's first turn action
+// Examples: Tharsis Republic must place a city as their first action
+type ForcedFirstAction struct {
+	ActionType    string `json:"actionType" ts:"string"`    // Type of action: "city_placement", "card_draw", etc.
+	CorporationID string `json:"corporationId" ts:"string"` // Corporation that requires this action
+	Completed     bool   `json:"completed" ts:"boolean"`    // Whether the forced action has been completed
+	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -88,8 +97,12 @@ type Player struct {
 	// Card selection - nullable, exists only when player needs to select cards
 	PendingCardSelection     *PendingCardSelection     `json:"pendingCardSelection" ts:"PendingCardSelection | null"`         // Current active card selection (sell patents, etc.)
 	PendingCardDrawSelection *PendingCardDrawSelection `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelection | null"` // Current active card draw/peek selection
+	// Forced first action - nullable, exists only when corporation requires specific first turn action
+	ForcedFirstAction *ForcedFirstAction `json:"forcedFirstAction" ts:"ForcedFirstAction | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources that can be used as payment for credits
+	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -203,6 +216,13 @@ func (p *Player) DeepCopy() *Player {
 		resourceStorageCopy[cardID] = count
 	}
 
+	// Deep copy payment substitutes slice
+	var paymentSubstitutesCopy []PaymentSubstitute
+	if p.PaymentSubstitutes != nil {
+		paymentSubstitutesCopy = make([]PaymentSubstitute, len(p.PaymentSubstitutes))
+		copy(paymentSubstitutesCopy, p.PaymentSubstitutes)
+	}
+
 	// Deep copy pending card selection if it exists
 	var pendingCardSelectionCopy *PendingCardSelection
 	if p.PendingCardSelection != nil {
@@ -248,6 +268,17 @@ func (p *Player) DeepCopy() *Player {
 		}
 	}
 
+	// Deep copy forced first action if it exists
+	var forcedFirstActionCopy *ForcedFirstAction
+	if p.ForcedFirstAction != nil {
+		forcedFirstActionCopy = &ForcedFirstAction{
+			ActionType:    p.ForcedFirstAction.ActionType,
+			CorporationID: p.ForcedFirstAction.CorporationID,
+			Completed:     p.ForcedFirstAction.Completed,
+			Description:   p.ForcedFirstAction.Description,
+		}
+	}
+
 	// Deep copy corporation if it exists
 	var corporationCopy *Card
 	if p.Corporation != nil {
@@ -276,6 +307,8 @@ func (p *Player) DeepCopy() *Player {
 		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
 		PendingCardSelection:      pendingCardSelectionCopy,
 		PendingCardDrawSelection:  pendingCardDrawSelectionCopy,
+		ForcedFirstAction:         forcedFirstActionCopy,
 		ResourceStorage:           resourceStorageCopy,
+		PaymentSubstitutes:        paymentSubstitutesCopy,
 	}
 }

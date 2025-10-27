@@ -87,17 +87,23 @@ func main() {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	log.Info("🎆 Card effect subscriber initialized")
 
+	// Initialize forced action manager for corporation forced first actions
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	forcedActionManager.SubscribeToPhaseChanges()
+	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
+
 	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, sessionManager, effectSubscriber)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 
@@ -118,7 +124,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
@@ -130,7 +136,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
