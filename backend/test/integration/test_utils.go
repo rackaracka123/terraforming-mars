@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 	// Run tests
 	code := m.Run()
 
-	// Stop test server
+	// Shutdown: Stop test server
 	if testServer != nil {
 		testServer.Stop()
 	}
@@ -104,6 +104,14 @@ func setupTestServer() error {
 	return nil
 }
 
+// CleanState clears all test server state to ensure test isolation
+// This should be called at the beginning of each test
+func CleanState() {
+	if testServer != nil {
+		testServer.ClearState()
+	}
+}
+
 // TestClient represents a test client for integration tests
 type TestClient struct {
 	conn     *websocket.Conn
@@ -121,7 +129,7 @@ type TestClient struct {
 func NewTestClient(t *testing.T) *TestClient {
 	return &TestClient{
 		t:        t,
-		messages: make(chan dto.WebSocketMessage, 10),
+		messages: make(chan dto.WebSocketMessage, 100), // Increased buffer to prevent message drops
 		done:     make(chan struct{}),
 	}
 }
@@ -220,11 +228,12 @@ func (c *TestClient) readMessages() {
 				// Message sent successfully
 			case <-c.done:
 				return
-			case <-time.After(50 * time.Millisecond):
+			case <-time.After(500 * time.Millisecond):
 				// Channel might be full, try to drop oldest and retry once
 				select {
 				case <-c.messages:
 					// Dropped one message
+					c.t.Logf("Warning: Channel full, dropped oldest message to make room")
 				default:
 				}
 				select {
@@ -233,7 +242,7 @@ func (c *TestClient) readMessages() {
 				case <-c.done:
 					return
 				default:
-					c.t.Logf("Warning: Dropping message due to full channel: %s", message.Type)
+					c.t.Logf("Error: Failed to send message even after dropping oldest: %s", message.Type)
 				}
 			}
 		}

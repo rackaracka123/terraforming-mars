@@ -19,6 +19,9 @@ type ForcedActionManager interface {
 
 	// MarkComplete marks a player's forced action as complete
 	MarkComplete(ctx context.Context, gameID, playerID string) error
+
+	// TriggerForcedFirstAction manually triggers a player's forced first action
+	TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player model.Player) error
 }
 
 // ForcedActionManagerImpl implements ForcedActionManager
@@ -103,15 +106,15 @@ func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event repo
 		zap.String("corporation_id", player.ForcedFirstAction.CorporationID))
 
 	// Trigger the forced action
-	if err := m.triggerForcedAction(ctx, event.GameID, playerID, player); err != nil {
+	if err := m.TriggerForcedFirstAction(ctx, event.GameID, playerID, player); err != nil {
 		return fmt.Errorf("failed to trigger forced action: %w", err)
 	}
 
 	return nil
 }
 
-// triggerForcedAction triggers the forced action for a player
-func (m *ForcedActionManagerImpl) triggerForcedAction(ctx context.Context, gameID, playerID string, player model.Player) error {
+// TriggerForcedFirstAction triggers the forced action for a player
+func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player model.Player) error {
 	// Look up the corporation card to get the behavior details
 	corporation, err := m.cardRepo.GetCardByID(ctx, player.ForcedFirstAction.CorporationID)
 	if err != nil {
@@ -121,11 +124,11 @@ func (m *ForcedActionManagerImpl) triggerForcedAction(ctx context.Context, gameI
 		return fmt.Errorf("corporation card not found: %s", player.ForcedFirstAction.CorporationID)
 	}
 
-	// Find the forced action behavior (manual trigger with isInitialAction: true)
+	// Find the forced action behavior (auto-first-action trigger)
 	var forcedBehavior *model.CardBehavior
 	for _, behavior := range corporation.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerManual && trigger.IsInitialAction {
+			if trigger.Type == model.ResourceTriggerAutoFirstAction {
 				forcedBehavior = &behavior
 				break
 			}

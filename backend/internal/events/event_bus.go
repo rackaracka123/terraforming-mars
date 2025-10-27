@@ -123,3 +123,11 @@ func (eb *EventBusImpl) Unsubscribe(id SubscriptionID) {
 			zap.String("event_type", sub.eventType))
 	}
 }
+
+// Clear removes all subscriptions from the event bus
+func (eb *EventBusImpl) Clear() {
+	eb.mutex.Lock()
+	defer eb.mutex.Unlock()
+	eb.subscriptions = make(map[SubscriptionID]*subscription)
+	eb.nextID = 1
+}

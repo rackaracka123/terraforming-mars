@@ -10,6 +10,8 @@ import (
 
 // TestCreateAndJoinGame tests creating a game via HTTP and joining via WebSocket
 func TestCreateAndJoinGame(t *testing.T) {
+	CleanState()
+
 	// Create test client
 	client := NewTestClient(t)
 	defer client.Close()

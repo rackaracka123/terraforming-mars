@@ -187,7 +187,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, cardID := range player.Cards {
-			err = playerRepo.RemoveCardFromHand(ctx, game.ID, playerID, cardID)
+			err = playerRepo.RemoveCard(ctx, game.ID, playerID, cardID)
 			require.NoError(t, err)
 		}
 

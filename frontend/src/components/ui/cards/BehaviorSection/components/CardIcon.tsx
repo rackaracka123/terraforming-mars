@@ -26,9 +26,9 @@ const CardIcon: React.FC<CardIconProps> = ({
 
   const badge = badgeSymbols[badgeType];
 
-  // Blue glow for better visibility on dark backgrounds
+  // Yellowish-white glow for card icons (matching GameIcon and BehaviorIcon)
   const glowFilter =
-    "drop-shadow(0_0_3px_rgba(59,130,246,0.6))_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))";
+    "drop-shadow(0_1px_3px_rgba(0,0,0,0.6))_drop-shadow(0_0_1px_rgba(255,248,220,0.6))_drop-shadow(0_0_2px_rgba(255,248,220,0.4))";
 
   const iconClass = isAffordable
     ? `w-[26px] h-[26px] object-contain [filter:${glowFilter}] max-md:w-[22px] max-md:h-[22px]`

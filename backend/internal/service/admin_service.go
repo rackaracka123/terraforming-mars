@@ -42,11 +42,13 @@ type AdminService interface {
 
 // AdminServiceImpl implements AdminService interface
 type AdminServiceImpl struct {
-	gameRepo         repository.GameRepository
-	playerRepo       repository.PlayerRepository
-	cardRepo         repository.CardRepository
-	sessionManager   session.SessionManager
-	effectSubscriber cards.CardEffectSubscriber
+	gameRepo            repository.GameRepository
+	playerRepo          repository.PlayerRepository
+	cardRepo            repository.CardRepository
+	cardDeckRepo        repository.CardDeckRepository
+	sessionManager      session.SessionManager
+	effectSubscriber    cards.CardEffectSubscriber
+	forcedActionManager cards.ForcedActionManager
 }
 
 // NewAdminService creates a new AdminService instance
@@ -54,15 +56,19 @@ func NewAdminService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
+	cardDeckRepo repository.CardDeckRepository,
 	sessionManager session.SessionManager,
 	effectSubscriber cards.CardEffectSubscriber,
+	forcedActionManager cards.ForcedActionManager,
 ) AdminService {
 	return &AdminServiceImpl{
-		gameRepo:         gameRepo,
-		playerRepo:       playerRepo,
-		cardRepo:         cardRepo,
-		sessionManager:   sessionManager,
-		effectSubscriber: effectSubscriber,
+		gameRepo:            gameRepo,
+		playerRepo:          playerRepo,
+		cardRepo:            cardRepo,
+		cardDeckRepo:        cardDeckRepo,
+		sessionManager:      sessionManager,
+		effectSubscriber:    effectSubscriber,
+		forcedActionManager: forcedActionManager,
 	}
 }
 
@@ -545,6 +551,37 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 			zap.Int("actions_count", len(manualActions)))
 	}
 
+	// Extract and set forced first action if corporation has one
+	forcedAction := s.extractForcedFirstAction(corporationCard)
+	if forcedAction != nil {
+		if err := s.playerRepo.UpdateForcedFirstAction(ctx, gameID, playerID, forcedAction); err != nil {
+			log.Error("Failed to set forced first action", zap.Error(err))
+			return fmt.Errorf("failed to set forced first action: %w", err)
+		}
+
+		log.Info("🎯 Corporation requires forced first turn action",
+			zap.String("corporation_id", corporationID),
+			zap.String("action_type", forcedAction.ActionType),
+			zap.String("description", forcedAction.Description))
+
+		// Trigger the forced action immediately (admin tools don't wait for phase changes)
+		// Get updated player with forced action set
+		updatedPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			log.Error("Failed to get player for triggering forced action", zap.Error(err))
+			return fmt.Errorf("failed to get player for triggering forced action: %w", err)
+		}
+
+		// Trigger the forced action via ForcedActionManager
+		if err := s.forcedActionManager.TriggerForcedFirstAction(ctx, gameID, playerID, updatedPlayer); err != nil {
+			log.Error("Failed to trigger forced first action", zap.Error(err))
+			return fmt.Errorf("failed to trigger forced first action: %w", err)
+		}
+
+		log.Info("✅ Forced first action triggered",
+			zap.String("action_type", forcedAction.ActionType))
+	}
+
 	log.Info("✅ Corporation set successfully",
 		zap.String("corporation_id", corporationID),
 		zap.String("corporation_name", corporationCard.Name))
@@ -556,4 +593,69 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	}
 
 	return nil
+}
+
+// extractForcedFirstAction parses a corporation's forced first action from its behaviors
+// Forced first actions use auto-first-action trigger type (e.g., Inventrix: draw 3 cards, Tharsis: place city)
+func (s *AdminServiceImpl) extractForcedFirstAction(corporation *model.Card) *model.ForcedFirstAction {
+	for _, behavior := range corporation.Behaviors {
+		// Check if this behavior has a forced first action trigger
+		for _, trigger := range behavior.Triggers {
+			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+				// Determine action type from outputs
+				actionType := s.determineActionType(behavior.Outputs)
+				description := s.generateForcedActionDescription(behavior.Outputs)
+
+				return &model.ForcedFirstAction{
+					ActionType:    actionType,
+					CorporationID: corporation.ID,
+					Completed:     false,
+					Description:   description,
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// determineActionType extracts the primary action type from behavior outputs
+func (s *AdminServiceImpl) determineActionType(outputs []model.ResourceCondition) string {
+	if len(outputs) == 0 {
+		return "unknown"
+	}
+
+	// Return the first output type as the action type
+	switch outputs[0].Type {
+	case "card-draw":
+		return "card_draw"
+	case "city-placement":
+		return "city_placement"
+	case "greenery-placement":
+		return "greenery_placement"
+	case "card-take":
+		return "card_selection"
+	default:
+		return string(outputs[0].Type)
+	}
+}
+
+// generateForcedActionDescription creates a human-readable description from outputs
+func (s *AdminServiceImpl) generateForcedActionDescription(outputs []model.ResourceCondition) string {
+	if len(outputs) == 0 {
+		return "Complete forced action"
+	}
+
+	// Generate description based on output type
+	switch outputs[0].Type {
+	case "card-draw":
+		return fmt.Sprintf("Draw %d cards", outputs[0].Amount)
+	case "city-placement":
+		return "Place a city tile"
+	case "greenery-placement":
+		return "Place a greenery tile"
+	case "card-take":
+		return fmt.Sprintf("Select %d cards", outputs[0].Amount)
+	default:
+		return fmt.Sprintf("Complete %s action", outputs[0].Type)
+	}
 }

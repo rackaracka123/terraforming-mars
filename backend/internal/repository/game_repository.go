@@ -645,3 +645,10 @@ func (r *GameRepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oc
 
 	return nil
 }
+
+// Clear removes all games from the repository
+func (r *GameRepositoryImpl) Clear() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.games = make(map[string]*model.Game)
+}

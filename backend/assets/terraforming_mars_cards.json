@@ -9928,16 +9928,13 @@
       {
         "triggers": [
           {
-            "type": "auto",
-            "condition": {
-              "type": "card-played"
-            }
+            "type": "auto-first-action"
           }
         ],
         "outputs": [
           {
-            "type": "global-parameter-lenience",
-            "amount": 2,
+            "type": "card-draw",
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -9945,14 +9942,16 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "auto",
+            "condition": {
+              "type": "card-hand-updated"
+            }
           }
         ],
         "outputs": [
           {
-            "type": "card-draw",
-            "amount": 3,
+            "type": "global-parameter-lenience",
+            "amount": 2,
             "target": "self-player"
           }
         ]
@@ -10084,6 +10083,20 @@
       {
         "triggers": [
           {
+            "type": "auto-first-action"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "city-placement",
+            "amount": 1,
+            "target": "none"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
             "type": "auto",
             "condition": {
               "type": "city-placed",
@@ -10116,21 +10129,6 @@
             "type": "credits-production",
             "amount": 1,
             "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "manual",
-            "isInitialAction": true
-          }
-        ],
-        "outputs": [
-          {
-            "type": "city-placement",
-            "amount": 1,
-            "target": "none"
           }
         ]
       }
@@ -13763,8 +13761,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "auto-first-action"
           }
         ],
         "outputs": [
@@ -14591,8 +14588,7 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "auto-first-action"
           }
         ],
         "outputs": [
@@ -14776,13 +14772,13 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-first-action"
           }
         ],
         "outputs": [
           {
-            "type": "venus-lenience",
-            "amount": 2,
+            "type": "card-draw",
+            "amount": 3,
             "target": "self-player"
           }
         ]
@@ -14790,14 +14786,13 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "auto"
           }
         ],
         "outputs": [
           {
-            "type": "card-draw",
-            "amount": 3,
+            "type": "venus-lenience",
+            "amount": 2,
             "target": "self-player"
           }
         ]
@@ -16567,13 +16562,13 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-first-action"
           }
         ],
         "outputs": [
           {
-            "type": "credits",
-            "amount": 2,
+            "type": "card-draw",
+            "amount": 1,
             "target": "self-player"
           }
         ]
@@ -16581,14 +16576,13 @@
       {
         "triggers": [
           {
-            "type": "manual",
-            "isInitialAction": true
+            "type": "auto"
           }
         ],
         "outputs": [
           {
-            "type": "card-draw",
-            "amount": 1,
+            "type": "credits",
+            "amount": 2,
             "target": "self-player"
           }
         ]
@@ -16729,6 +16723,34 @@
             "type": "auto"
           }
         ],
+        "outputs": [
+          {
+            "type": "credits",
+            "amount": 47,
+            "target": "self-player"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto-first-action"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "greenery-placement",
+            "amount": 1,
+            "target": "none"
+          }
+        ]
+      },
+      {
+        "triggers": [
+          {
+            "type": "auto"
+          }
+        ],
         "choices": [
           {
             "outputs": [
@@ -16783,35 +16805,6 @@
                 "target": "self-player"
               }
             ]
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "auto"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "credits",
-            "amount": 47,
-            "target": "self-player"
-          }
-        ]
-      },
-      {
-        "triggers": [
-          {
-            "type": "manual",
-            "isInitialAction": true
-          }
-        ],
-        "outputs": [
-          {
-            "type": "greenery-placement",
-            "amount": 1,
-            "target": "none"
           }
         ]
       }
