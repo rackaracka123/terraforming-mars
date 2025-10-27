@@ -23,7 +23,7 @@ import CardStorageSelectionPopover from "../../ui/popover/CardStorageSelectionPo
 import { globalWebSocketManager } from "@/services/globalWebSocketManager.ts";
 import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
-import backgroundMusicService from "../../../services/backgroundMusicService.ts";
+import globalMusicManager from "../../../services/globalMusicManager.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import {
   CardDto,
@@ -316,22 +316,21 @@ export default function GameInterface() {
     }
   }, [currentPlayer?.productionPhase, game, showProductionPhaseModal]);
 
-  // Control background music based on game status
+  // Control background music based on game status using global music manager
   useEffect(() => {
     if (!game) {
-      // Game not loaded yet - pause music preemptively
-      // (handles page refresh in active game)
-      backgroundMusicService.pause();
+      // Game not loaded yet - no context change needed
       return;
     }
 
-    // Play music during both lobby and active game
-    void backgroundMusicService.play();
-
-    // Cleanup: pause music when leaving game interface (maintains position)
-    return () => {
-      backgroundMusicService.pause();
-    };
+    // Control music based on game status
+    if (game.status === GameStatusLobby) {
+      // In lobby - continue playing music (don't restart)
+      void globalMusicManager.startMusic(false);
+    } else if (game.status === GameStatusActive) {
+      // Game active - stop music completely
+      globalMusicManager.stopMusic();
+    }
   }, [game?.status]);
 
   const handleCardSelection = useCallback(

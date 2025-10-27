@@ -28,12 +28,52 @@ class BackgroundMusicService {
       audio.loop = true; // Enable looping
       audio.volume = 0; // Start at 0 for fade in
 
+      // Listen to actual playback state from audio element
+      audio.addEventListener("play", () => {
+        console.log("🎵 Audio element: play event fired");
+        this.isPlaying = true;
+      });
+
+      audio.addEventListener("playing", () => {
+        console.log("🎵 Audio element: actually playing");
+        this.isPlaying = true;
+      });
+
+      audio.addEventListener("pause", (event) => {
+        console.log("🎵 Audio element: paused", {
+          currentTime: audio.currentTime,
+          enabled: this.isEnabled,
+          readyState: audio.readyState,
+          isTrusted: event.isTrusted,
+          documentHidden: document.hidden
+        });
+
+        // If music was paused unexpectedly (not by us), try to resume
+        if (this.isEnabled && this.isPlaying && event.isTrusted) {
+          console.warn("⚠️ Audio paused unexpectedly, attempting to resume...");
+          setTimeout(() => {
+            if (audio.paused && this.isEnabled) {
+              console.log("🎵 Resuming audio after unexpected pause");
+              audio.play().catch(err => console.warn("Failed to resume:", err));
+            }
+          }, 100);
+        }
+
+        this.isPlaying = false;
+      });
+
+      audio.addEventListener("ended", () => {
+        console.log("🎵 Audio element: ended (shouldn't happen with loop)");
+        this.isPlaying = false;
+      });
+
       audio.addEventListener("canplaythrough", () => {
-        // Music preloaded successfully
+        console.log("🎵 Audio element: can play through");
       });
 
       audio.addEventListener("error", (e) => {
         console.warn("⚠️ Failed to preload background music", e);
+        this.isPlaying = false;
       });
 
       this.audio = audio;
@@ -46,24 +86,50 @@ class BackgroundMusicService {
    * Start playing background music with fade in
    */
   public async play(): Promise<void> {
-    if (!this.isEnabled || !this.audio || this.isPlaying) {
+    if (!this.isEnabled) {
+      console.warn("🎵 Background music is disabled");
       return;
     }
 
+    if (!this.audio) {
+      console.warn("🎵 Audio element not initialized");
+      return;
+    }
+
+    // Check actual audio state, not just our flag
+    if (this.isPlaying && !this.audio.paused) {
+      console.log("🎵 Music already playing (verified), no action needed");
+      return;
+    }
+
+    // If our flag says playing but audio is paused, fix the state
+    if (this.isPlaying && this.audio.paused) {
+      console.warn(
+        "🎵 State mismatch detected: isPlaying=true but audio is paused, fixing...",
+      );
+      this.isPlaying = false;
+    }
+
     try {
-      // Reset audio to beginning if it was stopped
-      if (this.audio.currentTime > 0 && this.audio.paused) {
-        this.audio.currentTime = 0;
-      }
+      console.log("🎵 Attempting to start playback...", {
+        paused: this.audio.paused,
+        currentTime: this.audio.currentTime,
+        volume: this.audio.volume,
+      });
+
+      // Don't reset position - allow resuming from current time
+      // Use restart() method if you want to start from beginning
 
       this.audio.volume = 0;
       await this.audio.play();
-      this.isPlaying = true;
+      // Note: isPlaying is set by the 'play' event listener, not here
+      console.log("🎵 Play promise resolved, fading in...");
 
       // Fade in
       this.fadeIn();
     } catch (error) {
       console.warn("⚠️ Failed to play background music:", error);
+      this.isPlaying = false; // Explicitly set to false on error
     }
   }
 
@@ -72,10 +138,18 @@ class BackgroundMusicService {
    * Use this when temporarily pausing (e.g., navigating between pages)
    */
   public pause(): void {
+    console.warn("🎵 Pause called", {
+      hasAudio: !!this.audio,
+      isPlaying: this.isPlaying,
+      stack: new Error().stack?.split('\n').slice(0, 5).join('\n'),
+    });
+
     if (!this.audio || !this.isPlaying) {
+      console.warn("🎵 Pause ignored - audio not playing");
       return;
     }
 
+    console.warn("🎵 Actually pausing audio");
     this.audio.pause();
     this.isPlaying = false;
     this.cancelFade();
@@ -94,6 +168,16 @@ class BackgroundMusicService {
     this.audio.currentTime = 0;
     this.isPlaying = false;
     this.cancelFade();
+  }
+
+  /**
+   * Restart music from the beginning with fade in
+   * Stops current playback and starts fresh
+   */
+  public async restart(): Promise<void> {
+    console.log("🎵 Restarting music from beginning");
+    this.stop();
+    await this.play();
   }
 
   /**

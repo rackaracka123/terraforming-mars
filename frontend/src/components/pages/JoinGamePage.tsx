@@ -5,7 +5,6 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
-import backgroundMusicService from "../../services/backgroundMusicService.ts";
 
 // UUIDv4 validation regex
 const UUID_V4_REGEX =
@@ -36,16 +35,6 @@ const JoinGamePage: React.FC = () => {
     setTimeout(() => {
       setIsFadedIn(true);
     }, 10);
-  }, []);
-
-  // Start background music on mount
-  useEffect(() => {
-    void backgroundMusicService.play();
-
-    return () => {
-      // Pause instead of stop to maintain playback position
-      backgroundMusicService.pause();
-    };
   }, []);
 
   // Handle URL parameter on mount

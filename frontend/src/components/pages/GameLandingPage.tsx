@@ -5,7 +5,6 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
 import { GameDto } from "../../types/generated/api-types.ts";
 import { getCorporationLogo } from "../../utils/corporationLogos.tsx";
-import backgroundMusicService from "../../services/backgroundMusicService.ts";
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,25 +42,15 @@ const GameLandingPage: React.FC = () => {
             setSavedGameData({ game, playerId, playerName });
           }
         }
-
-        // No saved game found - we're on the actual landing page, start music
-        void backgroundMusicService.play();
       } catch (err: any) {
         void err;
         // Clear invalid saved game data
         localStorage.removeItem("terraforming-mars-game");
         setError("Unable to reconnect to previous game");
-        // Start music since we're staying on landing page
-        void backgroundMusicService.play();
       }
     };
 
     void checkExistingGame();
-
-    // Cleanup: pause music when unmounting (maintains position for smooth continuation)
-    return () => {
-      backgroundMusicService.pause();
-    };
   }, [navigate, preloadSkybox]);
 
   const handleCreateGame = (e: React.MouseEvent<HTMLAnchorElement>) => {

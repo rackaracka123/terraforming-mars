@@ -15,15 +15,19 @@ import { globalWebSocketManager } from "./services/globalWebSocketManager.ts";
 import { SpaceBackgroundProvider } from "./contexts/SpaceBackgroundContext.tsx";
 import SpaceBackground from "./components/3d/SpaceBackground.tsx";
 import audioSettingsManager from "./services/audioSettingsManager.ts";
+import globalMusicManager from "./services/globalMusicManager.ts";
 import "./App.css";
 
 function App() {
   const [isWebSocketReady, setIsWebSocketReady] = useState(false);
 
-  // Initialize audio settings and WebSocket connection once on app startup
+  // Initialize audio settings, music manager, and WebSocket connection once on app startup
   useEffect(() => {
     // Initialize audio settings from localStorage
     audioSettingsManager.init();
+
+    // Initialize global music manager
+    globalMusicManager.init();
 
     const initializeWebSocket = async () => {
       try {
@@ -72,7 +76,7 @@ function App() {
   );
 }
 
-// Component that handles background visibility based on route
+// Component that handles background visibility and music control based on route
 function AppWithBackground() {
   const location = useLocation();
 
@@ -80,6 +84,32 @@ function AppWithBackground() {
   const showSpaceBackground = ["/", "/create", "/join"].includes(
     location.pathname,
   );
+
+  // Control music based on route changes and user interaction
+  useEffect(() => {
+    const path = location.pathname;
+
+    // Landing pages: start music (restart if coming from active game)
+    if (path === "/" || path === "/create" || path === "/join") {
+      // Only start music on user interaction to comply with browser policies
+      const handleInteraction = () => {
+        const shouldRestart = globalMusicManager.shouldRestart();
+        console.log("🎵 User interaction detected, starting music...");
+        void globalMusicManager.startMusic(shouldRestart);
+      };
+
+      document.addEventListener("click", handleInteraction, { once: true });
+      document.addEventListener("keydown", handleInteraction, { once: true });
+
+      return () => {
+        document.removeEventListener("click", handleInteraction);
+        document.removeEventListener("keydown", handleInteraction);
+      };
+    }
+
+    // Note: /game route music is handled by GameInterface component
+    // because it needs to distinguish between lobby (music continues) and active (music stops)
+  }, [location.pathname]);
 
   return (
     <>
