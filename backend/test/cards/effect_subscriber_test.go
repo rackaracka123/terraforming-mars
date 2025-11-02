@@ -16,8 +16,9 @@ func TestCardEffectSubscriberTemperatureIncrease(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	ctx := context.Background()
 
@@ -108,8 +109,9 @@ func TestCardEffectSubscriberOxygenIncrease(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	ctx := context.Background()
 
@@ -184,8 +186,9 @@ func TestCardEffectSubscriberUnsubscribe(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	ctx := context.Background()
 
@@ -280,8 +283,9 @@ func TestCardEffectSubscriberNoPassiveEffects(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	ctx := context.Background()
 
@@ -321,8 +325,9 @@ func TestCardEffectSubscriberMultipleCards(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	ctx := context.Background()
 

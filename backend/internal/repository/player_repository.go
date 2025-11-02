@@ -539,18 +539,19 @@ func (r *PlayerRepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, 
 // AddCard adds a card to a player's hand
 func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID string, cardID string) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(gameID, playerID)
 
 	player, err := r.getPlayerUnsafe(gameID, playerID)
 	if err != nil {
+		r.mutex.Unlock()
 		return err
 	}
 
 	// Check if card already exists in hand
 	for _, existingCard := range player.Cards {
 		if existingCard == cardID {
+			r.mutex.Unlock()
 			return fmt.Errorf("card %s already exists in player %s hand", cardID, playerID)
 		}
 	}
@@ -559,12 +560,19 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 
 	log.Info("Card added to player hand", zap.String("card_id", cardID))
 
-	// Publish card hand updated event
+	// Copy card IDs before releasing lock
+	cardIDsCopy := make([]string, len(player.Cards))
+	copy(cardIDsCopy, player.Cards)
+
+	// Release lock BEFORE publishing event to avoid deadlock
+	r.mutex.Unlock()
+
+	// Publish card hand updated event (after releasing lock)
 	if r.eventBus != nil {
 		events.Publish(r.eventBus, CardHandUpdatedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
-			CardIDs:   player.Cards,
+			CardIDs:   cardIDsCopy,
 			Timestamp: time.Now(),
 		})
 	}
@@ -575,12 +583,12 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 // RemoveCard removes a card from a player's hand
 func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(gameID, playerID)
 
 	player, err := r.getPlayerUnsafe(gameID, playerID)
 	if err != nil {
+		r.mutex.Unlock()
 		return err
 	}
 
@@ -590,12 +598,19 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 			player.Cards = append(player.Cards[:i], player.Cards[i+1:]...)
 			log.Info("Card removed from player hand", zap.String("card_id", cardID))
 
-			// Publish card hand updated event
+			// Copy card IDs before releasing lock
+			cardIDsCopy := make([]string, len(player.Cards))
+			copy(cardIDsCopy, player.Cards)
+
+			// Release lock BEFORE publishing event to avoid deadlock
+			r.mutex.Unlock()
+
+			// Publish card hand updated event (after releasing lock)
 			if r.eventBus != nil {
 				events.Publish(r.eventBus, CardHandUpdatedEvent{
 					GameID:    gameID,
 					PlayerID:  playerID,
-					CardIDs:   player.Cards,
+					CardIDs:   cardIDsCopy,
 					Timestamp: time.Now(),
 				})
 			}
@@ -604,18 +619,19 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 		}
 	}
 
+	r.mutex.Unlock()
 	return fmt.Errorf("card %s not found in player %s hand", cardID, playerID)
 }
 
 // PlayCard moves a card from hand to played cards
 func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType model.CardType) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	log := logger.WithGameContext(gameID, playerID)
 
 	player, err := r.getPlayerUnsafe(gameID, playerID)
 	if err != nil {
+		r.mutex.Unlock()
 		return err
 	}
 
@@ -630,13 +646,23 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 	}
 
 	if !cardFound {
+		r.mutex.Unlock()
 		return fmt.Errorf("card %s not found in player %s hand", cardID, playerID)
 	}
 
 	// Add to played cards
 	player.PlayedCards = append(player.PlayedCards, cardID)
 
-	// Publish CardPlayedEvent
+	log.Info("🃏 Card played", zap.String("card_id", cardID), zap.String("card_name", cardName), zap.String("card_type", string(cardType)))
+
+	// Copy card IDs before releasing lock
+	cardIDsCopy := make([]string, len(player.Cards))
+	copy(cardIDsCopy, player.Cards)
+
+	// Release lock BEFORE publishing events to avoid deadlock
+	r.mutex.Unlock()
+
+	// Publish events (after releasing lock)
 	timestamp := time.Now()
 	if r.eventBus != nil {
 		events.Publish(r.eventBus, CardPlayedEvent{
@@ -652,12 +678,10 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 		events.Publish(r.eventBus, CardHandUpdatedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
-			CardIDs:   player.Cards,
+			CardIDs:   cardIDsCopy,
 			Timestamp: timestamp,
 		})
 	}
-
-	log.Info("🃏 Card played", zap.String("card_id", cardID), zap.String("card_name", cardName), zap.String("card_type", string(cardType)))
 
 	return nil
 }

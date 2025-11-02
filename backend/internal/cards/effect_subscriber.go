@@ -63,6 +63,7 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 	// Subscribe each auto-triggered behavior
 	var subIDs []events.SubscriptionID
 	var playerEffects []model.PlayerEffect
+	needsInitialTrigger := false // Track if we need to trigger CardHandUpdated after subscription
 
 	for i, behavior := range card.Behaviors {
 		if len(behavior.Triggers) == 0 {
@@ -126,17 +127,43 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 					zap.String("subscription_id", string(subID)))
 			}
 		} else {
-			// Auto trigger without condition = static passive effect (discounts, value modifiers, etc.)
-			// These don't need event subscriptions but must be in player's Effects array
-			playerEffects = append(playerEffects, model.PlayerEffect{
-				CardID:        cardID,
-				CardName:      card.Name,
-				BehaviorIndex: i,
-				Behavior:      behavior,
-			})
-			log.Debug("✅ Static passive effect registered",
-				zap.String("card_name", card.Name),
-				zap.Int("behavior_index", i))
+			// Auto trigger without condition - check if it's a static passive effect or immediate effect
+			// Only add to player's effects list if it's truly a passive effect (discounts, value modifiers, etc.)
+			if isPassiveEffect(behavior) {
+				playerEffects = append(playerEffects, model.PlayerEffect{
+					CardID:        cardID,
+					CardName:      card.Name,
+					BehaviorIndex: i,
+					Behavior:      behavior,
+				})
+				log.Debug("✅ Static passive effect registered",
+					zap.String("card_name", card.Name),
+					zap.Int("behavior_index", i))
+
+				// Auto-subscribe discounts/lenience to CardHandUpdated if they filter cards
+				// This ensures modifiers are recalculated when cards are added/removed from hand
+				if needsCardHandSubscription(behavior) {
+					subID, err := ces.subscribeEffectByTriggerType(
+						gameID, playerID, cardID, card.Name,
+						model.TriggerCardHandUpdated, // Implicit subscription
+						behavior)
+					if err != nil {
+						return fmt.Errorf("failed to auto-subscribe effect to card hand updates for card %s: %w", cardID, err)
+					}
+
+					if subID != "" {
+						subIDs = append(subIDs, subID)
+						needsInitialTrigger = true // Mark that we need to trigger recalculation for existing cards
+						log.Debug("✅ Auto-subscribed static passive effect to card hand updates",
+							zap.String("card_name", card.Name),
+							zap.String("subscription_id", string(subID)))
+					}
+				}
+			} else {
+				log.Debug("⏭️ Skipping immediate effect (not a passive effect)",
+					zap.String("card_name", card.Name),
+					zap.Int("behavior_index", i))
+			}
 		}
 	}
 
@@ -166,6 +193,17 @@ func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, g
 		log.Info("✨ Player effects list updated",
 			zap.Int("new_effects_added", len(playerEffects)),
 			zap.Int("total_effects", len(updatedEffects)))
+	}
+
+	// If we auto-subscribed discount/lenience effects, trigger immediate recalculation
+	// for existing cards in hand by publishing CardHandUpdatedEvent
+	if needsInitialTrigger {
+		log.Debug("🔄 Publishing CardHandUpdatedEvent to recalculate modifiers for existing cards",
+			zap.String("card_name", card.Name))
+		events.Publish(ces.eventBus, repository.CardHandUpdatedEvent{
+			GameID:   gameID,
+			PlayerID: playerID,
+		})
 	}
 
 	return nil
@@ -546,6 +584,39 @@ func (ces *CardEffectSubscriberImpl) recalculateRequirementModifiers(ctx context
 				continue
 			}
 
+			// Special case: ResourceGlobalParameterLenience should check card requirements
+			// and create per-card modifiers (e.g., Inventrix)
+			if output.Type == model.ResourceGlobalParameterLenience {
+				// Iterate through cards in hand and check for global parameter requirements
+				for _, cardID := range player.Cards {
+					card, err := ces.cardRepo.GetCardByID(ctx, cardID)
+					if err != nil {
+						log.Warn("Failed to get card for requirement modifier calculation",
+							zap.String("card_id", cardID),
+							zap.Error(err))
+						continue
+					}
+
+					// Check if card has any global parameter requirements (temperature, oxygen, oceans)
+					hasGlobalParamReq := false
+					for _, req := range card.Requirements {
+						if req.Type == model.RequirementTemperature ||
+							req.Type == model.RequirementOxygen ||
+							req.Type == model.RequirementOceans {
+							hasGlobalParamReq = true
+							break
+						}
+					}
+
+					// If card has global parameter requirements, create modifier for it
+					if hasGlobalParamReq {
+						key := fmt.Sprintf("card:%s", cardID)
+						ces.accumulateModifier(modifierMap, key, output.Amount, affectedResources, &cardID, nil)
+					}
+				}
+				continue
+			}
+
 			// Check if this effect has AffectedTags or AffectedCardTypes filters
 			hasTagFilter := len(output.AffectedTags) > 0
 			hasTypeFilter := len(output.AffectedCardTypes) > 0
@@ -596,7 +667,7 @@ func (ces *CardEffectSubscriberImpl) recalculateRequirementModifiers(ctx context
 					}
 				}
 			} else {
-				// No filters - this is a global modifier (e.g., Inventrix global parameter lenience)
+				// No filters and NOT global-parameter-lenience - this is a generic global modifier
 				key := "global"
 				ces.accumulateModifier(modifierMap, key, output.Amount, affectedResources, nil, nil)
 			}
@@ -665,4 +736,45 @@ func (ces *CardEffectSubscriberImpl) UnsubscribeCardEffects(cardID string) error
 	delete(ces.subscriptions, cardID)
 
 	return nil
+}
+
+// isPassiveEffect checks if a behavior contains passive effect outputs (not immediate effects)
+// Passive effects include discounts, value modifiers, payment substitutes, etc.
+// Immediate effects include resources, production, global parameters, tile placements, etc.
+func isPassiveEffect(behavior model.CardBehavior) bool {
+	// Check if any output is a passive effect type
+	for _, output := range behavior.Outputs {
+		switch output.Type {
+		// Passive effect types (ongoing modifiers)
+		case model.ResourceDiscount,
+			model.ResourceValueModifier,
+			model.ResourcePaymentSubstitute,
+			model.ResourceOceanAdjacencyBonus,
+			model.ResourceDefense,
+			model.ResourceGlobalParameterLenience:
+			return true
+		}
+	}
+	return false
+}
+
+// needsCardHandSubscription determines if a static passive effect (without explicit trigger condition)
+// should automatically subscribe to CardHandUpdated events.
+// This applies to effects that create per-card modifiers based on cards in hand (discounts, lenience).
+func needsCardHandSubscription(behavior model.CardBehavior) bool {
+	for _, output := range behavior.Outputs {
+		// ResourceDiscount with tag/type filters needs to react to card hand changes
+		// (e.g., Shuttles giving -2 MC discount for space-tagged cards)
+		if output.Type == model.ResourceDiscount &&
+			(len(output.AffectedTags) > 0 || len(output.AffectedCardTypes) > 0) {
+			return true
+		}
+
+		// ResourceGlobalParameterLenience always needs to react to card hand changes
+		// (e.g., Inventrix giving +2 lenience for cards with temperature/oxygen/oceans requirements)
+		if output.Type == model.ResourceGlobalParameterLenience {
+			return true
+		}
+	}
+	return false
 }
