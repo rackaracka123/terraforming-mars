@@ -3,6 +3,9 @@ package fixtures
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/tiles"
+	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -59,8 +62,14 @@ func NewServiceContainer() *ServiceContainer {
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+
+	// Initialize game mechanics
+	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
+	turnMechanic := turn.NewService(gameRepo, playerRepo)
+	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 

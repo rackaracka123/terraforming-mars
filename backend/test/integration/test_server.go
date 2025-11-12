@@ -11,6 +11,9 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/tiles"
+	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -73,7 +76,13 @@ func NewTestServer(port int) (*TestServer, error) {
 	forcedActionManager.SubscribeToPhaseChanges()
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+
+	// Initialize game mechanics
+	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
+	turnMechanic := turn.NewService(gameRepo, playerRepo)
+	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)

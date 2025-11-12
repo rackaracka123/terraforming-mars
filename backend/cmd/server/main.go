@@ -14,6 +14,9 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/tiles"
+	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -97,10 +100,16 @@ func main() {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
+	// Initialize game mechanics (isolated, self-contained modules)
+	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
+	turnMechanic := turn.NewService(gameRepo, playerRepo)
+	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+	log.Info("🔧 Game mechanics initialized (tiles, turn, production)")
+
 	// PlayerService needs TileService for processing queues after tile placement
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 
 	// Initialize lobby service for pre-game operations
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)

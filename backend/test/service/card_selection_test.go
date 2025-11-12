@@ -2,15 +2,18 @@ package service_test
 
 import (
 	"context"
+	"testing"
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/tiles"
+	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +38,13 @@ func TestCardSelectionFlow(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+
+	// Initialize game mechanics
+	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
+	turnMechanic := turn.NewService(gameRepo, playerRepo)
+	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+
+	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// EventBus tracking removed - using SessionManager for state updates
