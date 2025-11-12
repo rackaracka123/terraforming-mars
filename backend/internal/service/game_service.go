@@ -12,7 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// GameService handles active game operations including turn management, phases, and player actions
+// GameService handles active game operations including turn management, phases, and player actions.
+//
+// Scope: Active gameplay operations ONLY (game.Status = "active")
+//   - Turn management and rotation
+//   - Production phase execution
+//   - Global parameter reads
+//   - Player reconnection handling
+//
+// Boundary: Pre-game operations (game creation, joining, starting) are handled by lobby.Service
 type GameService interface {
 	// Get game by ID
 	GetGame(ctx context.Context, gameID string) (model.Game, error)

@@ -15,7 +15,22 @@ import (
 	"go.uber.org/zap"
 )
 
-// Service handles all lobby operations including game creation, player joining, and game starting
+// Service handles all lobby operations including game creation, player joining, and game starting.
+//
+// Scope: Pre-game phase operations ONLY
+//   - Game creation with settings validation
+//   - Player joining and capacity management
+//   - Host management and permissions
+//   - Game starting (lobby → active transition)
+//   - Starting card distribution (as part of game start)
+//
+// Boundary: Once game.Status = "active", all operations move to GameService and other services
+// This service should NOT handle active gameplay operations like:
+//   - Turn management
+//   - Card playing
+//   - Resource/production updates
+//   - Tile placement
+//   - Global parameter changes
 type Service interface {
 	// Create a new game with specified settings
 	CreateGame(ctx context.Context, settings model.GameSettings) (model.Game, error)
