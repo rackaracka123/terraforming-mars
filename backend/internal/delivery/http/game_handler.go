@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -15,18 +16,20 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
-	gameService service.GameService
-	playerRepo  repository.PlayerRepository
-	cardRepo    repository.CardRepository
+	gameService  service.GameService
+	lobbyService lobby.Service
+	playerRepo   repository.PlayerRepository
+	cardRepo     repository.CardRepository
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
+func NewGameHandler(gameService service.GameService, lobbyService lobby.Service, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
 	return &GameHandler{
-		BaseHandler: NewBaseHandler(),
-		gameService: gameService,
-		playerRepo:  playerRepo,
-		cardRepo:    cardRepo,
+		BaseHandler:  NewBaseHandler(),
+		gameService:  gameService,
+		lobbyService: lobbyService,
+		playerRepo:   playerRepo,
+		cardRepo:     cardRepo,
 	}
 }
 
@@ -44,7 +47,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		DevelopmentMode: req.DevelopmentMode,
 	}
 
-	game, err := h.gameService.CreateGame(r.Context(), gameSettings)
+	game, err := h.lobbyService.CreateGame(r.Context(), gameSettings)
 	if err != nil {
 		h.logger.Error("Failed to create game", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
@@ -126,7 +129,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 // ListGames retrieves all games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	// Delegate to service (list all games by passing empty status)
-	games, err := h.gameService.ListGames(r.Context(), "")
+	games, err := h.lobbyService.ListGames(r.Context(), "")
 	if err != nil {
 		h.logger.Error("Failed to list games", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")

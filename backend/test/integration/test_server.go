@@ -11,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"time"
@@ -73,6 +74,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
@@ -83,11 +85,11 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	wsService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
+	apiRouter := httpHandler.SetupRouter(gameService, lobbyService, playerService, cardService, playerRepo, cardRepo)
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 	mainRouter.HandleFunc("/ws", wsService.ServeWS)
 

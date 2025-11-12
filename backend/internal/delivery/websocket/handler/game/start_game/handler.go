@@ -6,23 +6,23 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles start game action requests
 type Handler struct {
-	gameService  service.GameService
+	lobbyService lobby.Service
 	errorHandler *utils.ErrorHandler
 	logger       *zap.Logger
 }
 
 // NewHandler creates a new start game handler
-func NewHandler(gameService service.GameService) *Handler {
+func NewHandler(lobbyService lobby.Service) *Handler {
 	return &Handler{
-		gameService:  gameService,
+		lobbyService: lobbyService,
 		errorHandler: utils.NewErrorHandler(),
 		logger:       logger.Get(),
 	}
@@ -44,7 +44,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("game_id", gameID))
 
 	// Start game doesn't need payload parsing - it's a simple action
-	if err := h.gameService.StartGame(ctx, gameID, playerID); err != nil {
+	if err := h.lobbyService.StartGame(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to start game",
 			zap.Error(err),
 			zap.String("player_id", playerID),

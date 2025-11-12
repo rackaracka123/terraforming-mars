@@ -5,6 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -34,24 +35,25 @@ func TestCardSelectionFlow(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// EventBus tracking removed - using SessionManager for state updates
 
 	// Create game
-	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 	t.Logf("Created game: %s", game.ID)
 
 	// Join player
-	updatedGame, err := gameService.JoinGame(ctx, game.ID, "TestPlayer")
+	updatedGame, err := lobbyService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
 	require.Len(t, updatedGame.PlayerIDs, 1)
 	playerID := updatedGame.PlayerIDs[0]
 	t.Logf("Player joined: %s", playerID)
 
 	// Start game (this should distribute starting cards)
-	err = gameService.StartGame(ctx, game.ID, playerID)
+	err = lobbyService.StartGame(ctx, game.ID, playerID)
 	require.NoError(t, err)
 	t.Log("Game started")
 

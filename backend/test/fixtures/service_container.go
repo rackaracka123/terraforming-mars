@@ -3,6 +3,7 @@ package fixtures
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
@@ -26,6 +27,7 @@ type ServiceContainer struct {
 	CardService            service.CardService
 	PlayerService          service.PlayerService
 	GameService            service.GameService
+	LobbyService           lobby.Service
 	StandardProjectService service.StandardProjectService
 
 	// Card system
@@ -59,6 +61,7 @@ func NewServiceContainer() *ServiceContainer {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	return &ServiceContainer{
@@ -72,6 +75,7 @@ func NewServiceContainer() *ServiceContainer {
 		CardService:            cardService,
 		PlayerService:          playerService,
 		GameService:            gameService,
+		LobbyService:           lobbyService,
 		StandardProjectService: standardProjectService,
 		EffectSubscriber:       effectSubscriber,
 		ForcedActionManager:    forcedActionManager,

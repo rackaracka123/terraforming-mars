@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
@@ -14,15 +15,15 @@ import (
 type PlayerHandler struct {
 	*BaseHandler
 	playerService service.PlayerService
-	gameService   service.GameService
+	lobbyService  lobby.Service
 }
 
 // NewPlayerHandler creates a new player handler
-func NewPlayerHandler(playerService service.PlayerService, gameService service.GameService) *PlayerHandler {
+func NewPlayerHandler(playerService service.PlayerService, lobbyService lobby.Service) *PlayerHandler {
 	return &PlayerHandler{
 		BaseHandler:   NewBaseHandler(),
 		playerService: playerService,
-		gameService:   gameService,
+		lobbyService:  lobbyService,
 	}
 }
 
@@ -43,7 +44,7 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delegate to service
-	game, err := h.gameService.JoinGame(r.Context(), gameID, req.PlayerName)
+	game, err := h.lobbyService.JoinGame(r.Context(), gameID, req.PlayerName)
 	if err != nil {
 		h.logger.Error("Failed to join game", zap.Error(err),
 			zap.String("game_id", gameID),

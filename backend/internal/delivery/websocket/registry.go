@@ -23,16 +23,17 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
+func RegisterHandlers(hub *core.Hub, gameService service.GameService, lobbyService lobby.Service, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
 	parser := utils.NewMessageParser()
 
-	// Register connection handler
-	connectionHandler := connect.NewConnectionHandler(gameService, playerService)
+	// Register connection handler (uses lobby for joining, game for reconnection)
+	connectionHandler := connect.NewConnectionHandler(lobbyService, gameService, playerService)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler
@@ -55,7 +56,7 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(gameService))
 
 	// Register game management handlers
-	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(gameService))
+	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(lobbyService))
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))

@@ -14,6 +14,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -101,6 +102,10 @@ func main() {
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
+	// Initialize lobby service for pre-game operations
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	log.Info("Lobby service initialized for game creation and joining")
+
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
@@ -116,7 +121,7 @@ func main() {
 
 	// Show that the service is working by testing it
 	ctx := context.Background()
-	testGame, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	testGame, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		log.Error("Failed to create test game", zap.Error(err))
 	} else {
@@ -124,7 +129,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	webSocketService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
@@ -136,7 +141,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
+	apiRouter := httpHandler.SetupRouter(gameService, lobbyService, playerService, cardService, playerRepo, cardRepo)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)

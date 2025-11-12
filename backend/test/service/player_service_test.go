@@ -5,6 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -20,6 +21,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	service.GameService,
 	repository.PlayerRepository,
 	model.Game,
+	lobby.Service,
 ) {
 	eventBus := events.NewEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
@@ -41,19 +43,20 @@ func setupPlayerServiceTest(t *testing.T) (
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()
-	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
-	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
+	game, err = lobbyService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
 
-	return playerService, gameService, playerRepo, game
+	return playerService, gameService, playerRepo, game, lobbyService
 }
 
 func TestPlayerService_UpdatePlayerResources(t *testing.T) {
-	playerService, _, playerRepo, game := setupPlayerServiceTest(t)
+	playerService, _, playerRepo, game, _ := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -113,7 +116,7 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 }
 
 func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
-	playerService, _, playerRepo, game := setupPlayerServiceTest(t)
+	playerService, _, playerRepo, game, _ := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -181,7 +184,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 }
 
 func TestPlayerService_GetPlayer(t *testing.T) {
-	playerService, _, _, game := setupPlayerServiceTest(t)
+	playerService, _, _, game, _ := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -205,7 +208,7 @@ func TestPlayerService_GetPlayer(t *testing.T) {
 }
 
 func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
-	playerService, _, _, game := setupPlayerServiceTest(t)
+	playerService, _, _, game, _ := setupPlayerServiceTest(t)
 	ctx := context.Background()
 	playerID := game.PlayerIDs[0]
 
@@ -237,11 +240,11 @@ func TestPlayerService_UpdatePlayerConnectionStatus(t *testing.T) {
 }
 
 func TestPlayerService_FindPlayerByName(t *testing.T) {
-	playerService, gameService, _, game := setupPlayerServiceTest(t)
+	playerService, _, _, game, lobbyService := setupPlayerServiceTest(t)
 	ctx := context.Background()
 
 	// Add another player to the game for testing
-	game, err := gameService.JoinGame(ctx, game.ID, "TestPlayer2")
+	game, err := lobbyService.JoinGame(ctx, game.ID, "TestPlayer2")
 	require.NoError(t, err)
 
 	t.Run("Find existing player by name", func(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -41,14 +42,15 @@ func TestGameplayLogic(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
+	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	_ = service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()
 
 	t.Run("Test Basic Game Flow - Create and Join", func(t *testing.T) {
 		// Create a game
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
 		assert.NoError(t, err)
 		assert.Equal(t, model.GameStatusLobby, game.Status)
 		assert.Equal(t, -30, game.GlobalParameters.Temperature) // Mars starting temp
@@ -56,7 +58,7 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 0, game.GlobalParameters.Oceans)
 
 		// Join players
-		game, err = gameService.JoinGame(ctx, game.ID, "Alice")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Alice")
 		assert.NoError(t, err)
 		assert.Len(t, game.PlayerIDs, 1)
 		// Get player details separately using clean architecture
@@ -67,17 +69,17 @@ func TestGameplayLogic(t *testing.T) {
 		assert.Equal(t, 20, players[0].TerraformRating)   // Starting TR
 		assert.Equal(t, 1, players[0].Production.Credits) // Base production
 
-		game, err = gameService.JoinGame(ctx, game.ID, "Bob")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Bob")
 		assert.NoError(t, err)
 		assert.Len(t, game.PlayerIDs, 2)
 	})
 
 	t.Run("Test Resource Management", func(t *testing.T) {
 		// Create game and add player
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
-		game, err = gameService.JoinGame(ctx, game.ID, "Player1")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Player1")
 		assert.NoError(t, err)
 		playerID := game.PlayerIDs[0]
 
@@ -107,10 +109,10 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Production Management", func(t *testing.T) {
 		// Create game and add player
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
-		game, err = gameService.JoinGame(ctx, game.ID, "Producer")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Producer")
 		assert.NoError(t, err)
 		playerID := game.PlayerIDs[0]
 
@@ -140,20 +142,20 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Game Capacity Limits", func(t *testing.T) {
 		// Create game with max 2 players
-		game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
 		// Join 2 players
-		game, err = gameService.JoinGame(ctx, game.ID, "Player1")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Player1")
 		assert.NoError(t, err)
 		assert.Len(t, game.PlayerIDs, 1)
 
-		game, err = gameService.JoinGame(ctx, game.ID, "Player2")
+		game, err = lobbyService.JoinGame(ctx, game.ID, "Player2")
 		assert.NoError(t, err)
 		assert.Len(t, game.PlayerIDs, 2)
 
 		// Try to join a third player (should fail)
-		_, err = gameService.JoinGame(ctx, game.ID, "Player3")
+		_, err = lobbyService.JoinGame(ctx, game.ID, "Player3")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "game is full")
 	})

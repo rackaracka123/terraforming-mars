@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
@@ -16,6 +17,7 @@ import (
 
 // ConnectionHandler handles player connection and reconnection logic
 type ConnectionHandler struct {
+	lobbyService  lobby.Service
 	gameService   service.GameService
 	playerService service.PlayerService
 	parser        *utils.MessageParser
@@ -35,10 +37,12 @@ type connectionContext struct {
 
 // NewConnectionHandler creates a new connection handler
 func NewConnectionHandler(
+	lobbyService lobby.Service,
 	gameService service.GameService,
 	playerService service.PlayerService,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
+		lobbyService:  lobbyService,
 		gameService:   gameService,
 		playerService: playerService,
 		parser:        utils.NewMessageParser(),
@@ -95,7 +99,7 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 		zap.String("player_name", payload.PlayerName))
 
 	// Validate game exists
-	game, err := ch.gameService.GetGame(ctx, payload.GameID)
+	game, err := ch.lobbyService.GetGame(ctx, payload.GameID)
 	if err != nil {
 		ch.logger.Error("Failed to get game for WebSocket connection",
 			zap.Error(err))
@@ -162,7 +166,7 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		zap.String("player_id", playerID))
 
 	// Join game using the pre-generated player ID
-	game, err := ch.gameService.JoinGameWithPlayerID(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
+	game, err := ch.lobbyService.JoinGameWithPlayerID(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
 	if err != nil {
 		ch.logger.Error("Failed to join game via WebSocket",
 			zap.Error(err))

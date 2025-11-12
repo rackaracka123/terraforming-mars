@@ -8,6 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -77,15 +78,16 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()
 
 	// Create a test game
-	game, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Add a test player with sufficient resources
-	game, err = gameService.JoinGame(ctx, game.ID, "TestPlayer")
+	game, err = lobbyService.JoinGame(ctx, game.ID, "TestPlayer")
 	require.NoError(t, err)
 	require.Len(t, game.PlayerIDs, 1)
 
