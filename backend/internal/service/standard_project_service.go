@@ -289,33 +289,34 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 	})
 }
 
-// PlantGreenery places greenery tile for 23 M€ and grants TR
+// PlantGreenery places greenery tile for 23 M€ and grants TR only if oxygen increases
 func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	return s.executeTileQueuedProject(ctx, gameID, playerID, model.StandardProjectGreenery, "greenery", func(player *model.Player) error {
-		// Increase terraform rating
-		player.TerraformRating++
-
-		// Increase oxygen by 1% - greenery effect
 		game, err := s.gameRepo.GetByID(ctx, gameID)
 		if err != nil {
 			log.Error("Failed to get game", zap.Error(err))
 			return fmt.Errorf("failed to get game: %w", err)
 		}
 
-		newParams := game.GlobalParameters
-		newParams.Oxygen++
-		if newParams.Oxygen > model.MaxOxygen {
-			newParams.Oxygen = model.MaxOxygen
+		currentOxygen := game.GlobalParameters.Oxygen
+
+		if currentOxygen < model.MaxOxygen {
+			newParams := game.GlobalParameters
+			newParams.Oxygen++
+
+			if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
+				log.Error("Failed to increase oxygen", zap.Error(err))
+				return fmt.Errorf("failed to increase oxygen: %w", err)
+			}
+
+			player.TerraformRating++
+			log.Info("Player planted greenery with oxygen increase (queuing tile placement)", zap.Int("new_terraform_rating", player.TerraformRating), zap.Int("new_oxygen", newParams.Oxygen))
+		} else {
+			log.Info("Player planted greenery without oxygen increase (oxygen already at max, queuing tile placement)", zap.Int("terraform_rating", player.TerraformRating))
 		}
 
-		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
-			log.Error("Failed to increase oxygen", zap.Error(err))
-			return fmt.Errorf("failed to increase oxygen: %w", err)
-		}
-
-		log.Info("Player planted greenery (queuing tile placement)", zap.Int("new_terraform_rating", player.TerraformRating))
 		return nil
 	})
 }

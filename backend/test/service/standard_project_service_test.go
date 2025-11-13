@@ -48,6 +48,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	service.GameService,
 	service.PlayerService,
 	repository.PlayerRepository,
+	repository.GameRepository,
 	model.Game,
 	string, // playerID
 ) {
@@ -124,11 +125,11 @@ func setupStandardProjectServiceTest(t *testing.T) (
 		require.NoError(t, err)
 	}
 
-	return standardProjectService, gameService, playerService, playerRepo, updatedGame, playerID
+	return standardProjectService, gameService, playerService, playerRepo, gameRepo, updatedGame, playerID
 }
 
 func TestStandardProjectService_SellPatents(t *testing.T) {
-	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Initiate sell patents creates pending card selection", func(t *testing.T) {
@@ -247,7 +248,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
-	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build power plant", func(t *testing.T) {
@@ -282,7 +283,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 }
 
 func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
-	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful launch asteroid", func(t *testing.T) {
@@ -316,7 +317,7 @@ func TestStandardProjectService_LaunchAsteroid(t *testing.T) {
 }
 
 func TestStandardProjectService_BuildAquifer(t *testing.T) {
-	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build aquifer", func(t *testing.T) {
@@ -352,7 +353,7 @@ func TestStandardProjectService_BuildAquifer(t *testing.T) {
 }
 
 func TestStandardProjectService_PlantGreenery(t *testing.T) {
-	standardProjectService, gameService, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, gameService, _, playerRepo, gameRepo, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful plant greenery", func(t *testing.T) {
@@ -384,11 +385,39 @@ func TestStandardProjectService_PlantGreenery(t *testing.T) {
 		assert.Equal(t, initialOxygen+1, updatedParams.Oxygen)
 	})
 
+	t.Run("Plant greenery when oxygen is at maximum", func(t *testing.T) {
+		gameObj, err := gameRepo.GetByID(ctx, game.ID)
+		require.NoError(t, err)
+
+		maxOxygenParams := gameObj.GlobalParameters
+		maxOxygenParams.Oxygen = model.MaxOxygen
+		err = gameRepo.UpdateGlobalParameters(ctx, game.ID, maxOxygenParams)
+		require.NoError(t, err)
+
+		initialPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
+		require.NoError(t, err)
+		initialCredits := initialPlayer.Resources.Credits
+		initialTR := initialPlayer.TerraformRating
+		expectedCost := 23
+
+		err = standardProjectService.PlantGreenery(ctx, game.ID, playerID)
+		assert.NoError(t, err)
+
+		updatedPlayer, err := playerRepo.GetByID(ctx, game.ID, playerID)
+		require.NoError(t, err)
+		assert.Equal(t, initialCredits-expectedCost, updatedPlayer.Resources.Credits)
+		assert.Equal(t, initialTR, updatedPlayer.TerraformRating)
+
+		updatedParams, err := gameService.GetGlobalParameters(ctx, game.ID)
+		require.NoError(t, err)
+		assert.Equal(t, model.MaxOxygen, updatedParams.Oxygen)
+	})
+
 	// Invalid hex position test removed - hex positions now handled by tile queue system
 }
 
 func TestStandardProjectService_BuildCity(t *testing.T) {
-	standardProjectService, _, _, playerRepo, game, playerID := setupStandardProjectServiceTest(t)
+	standardProjectService, _, _, playerRepo, _, game, playerID := setupStandardProjectServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("Successful build city", func(t *testing.T) {

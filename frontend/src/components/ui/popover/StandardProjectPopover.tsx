@@ -62,9 +62,6 @@ const isProjectAvailable = (
   if (outputs.includes("oceans") || outputs.includes("ocean-tile")) {
     return globalParams.oceans < 9;
   }
-  if (outputs.includes("oxygen") || outputs.includes("greenery-tile")) {
-    return globalParams.oxygen < 14;
-  }
 
   return true;
 };
@@ -199,6 +196,17 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
     return effects;
   };
 
+  // Get project description, modifying for greenery when oxygen is maxed
+  const getProjectDescription = (project: StandardProjectCard) => {
+    if (
+      project.id === StandardProject.GREENERY &&
+      gameState?.globalParameters?.oxygen === 14
+    ) {
+      return "Action: Spend 23 M€ to place a greenery tile. You will not get any TR.";
+    }
+    return project.description;
+  };
+
   return (
     <div
       ref={popoverRef}
@@ -265,6 +273,12 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                         Tile
                       </span>
                     )}
+                    {project.id === StandardProject.GREENERY &&
+                      gameState?.globalParameters?.oxygen === 14 && (
+                        <span className="text-[10px] text-white/80 bg-red-900/60 border border-red-700/40 px-1.5 py-0.5 rounded">
+                          Max Oxygen
+                        </span>
+                      )}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -302,7 +316,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
               </div>
 
               <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
-                {project.description}
+                {getProjectDescription(project)}
               </p>
             </div>
           );
