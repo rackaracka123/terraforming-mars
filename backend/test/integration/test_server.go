@@ -12,6 +12,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/actions"
+	"terraforming-mars-backend/internal/game/actions/card_selection"
 	"terraforming-mars-backend/internal/game/actions/standard_projects"
 	"terraforming-mars-backend/internal/game/parameters"
 	"terraforming-mars-backend/internal/game/production"
@@ -78,6 +79,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
+	cardManager := cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
+	selectionManager := cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
@@ -109,13 +112,54 @@ func NewTestServer(port int) (*TestServer, error) {
 	convertHeatAction := actions.NewConvertHeatToTemperatureAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, sessionManager)
 	convertPlantsAction := actions.NewConvertPlantsToGreeneryAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, tilesMechanic, sessionManager)
 
+	// Card-related actions
+	sellPatentsAction := standard_projects.NewSellPatentsAction(playerRepo, sessionManager)
+	playCardAction := actions.NewPlayCardAction(cardManager, tilesMechanic, gameRepo, playerRepo, cardRepo, sessionManager)
+	selectTileAction := actions.NewSelectTileAction(playerRepo, gameRepo, tilesMechanic, parametersMechanic, forcedActionManager, sessionManager)
+	playCardActionAction := actions.NewPlayCardActionAction(cardService, gameRepo, playerRepo, sessionManager)
+
+	// Card selection actions (not needing gameService)
+	submitSellPatentsAction := card_selection.NewSubmitSellPatentsAction(playerRepo, resourcesMechanic, sessionManager)
+	confirmCardDrawAction := card_selection.NewConfirmCardDrawAction(playerRepo, resourcesMechanic, forcedActionManager, sessionManager)
+
+	// Card selection actions that need gameService
+	selectStartingCardsAction := card_selection.NewSelectStartingCardsAction(selectionManager, gameRepo, sessionManager)
+	selectProductionCardsAction := card_selection.NewSelectProductionCardsAction(selectionManager, gameService, sessionManager)
+
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
 	// 	return nil, fmt.Errorf("failed to register card listeners: %w", err)
 	// }
 
 	// Initialize WebSocket service with Hub
-	wsService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub, buildAquiferAction, launchAsteroidAction, buildPowerPlantAction, plantGreeneryAction, buildCityAction, skipAction, convertHeatAction, convertPlantsAction)
+	wsService := wsHandler.NewWebSocketService(
+		gameService,
+		lobbyService,
+		playerService,
+		standardProjectService,
+		cardService,
+		adminService,
+		gameRepo,
+		playerRepo,
+		cardRepo,
+		hub,
+		buildAquiferAction,
+		launchAsteroidAction,
+		buildPowerPlantAction,
+		plantGreeneryAction,
+		buildCityAction,
+		skipAction,
+		convertHeatAction,
+		convertPlantsAction,
+		sellPatentsAction,
+		submitSellPatentsAction,
+		selectStartingCardsAction,
+		selectProductionCardsAction,
+		confirmCardDrawAction,
+		playCardAction,
+		selectTileAction,
+		playCardActionAction,
+	)
 
 	// Setup router
 	mainRouter := mux.NewRouter()
