@@ -2,8 +2,8 @@ package http
 
 import (
 	"net/http"
-	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/lobby"
+	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 

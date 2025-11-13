@@ -21,7 +21,8 @@ func setupTest(t *testing.T) (production.Service, repository.GameRepository, rep
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDeckRepo := repository.NewCardDeckRepository()
 
-	productionService := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+	productionService := production.NewService(productionRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{
@@ -252,7 +253,8 @@ func TestProductionService_ExecuteProductionPhaseSolo(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDeckRepo := repository.NewCardDeckRepository()
 
-	productionService := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+	productionService := production.NewService(productionRepo)
 
 	// Create solo game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 1})

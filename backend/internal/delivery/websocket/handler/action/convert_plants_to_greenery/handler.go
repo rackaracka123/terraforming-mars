@@ -6,25 +6,25 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles convert plants to greenery action requests
 type Handler struct {
-	resourceConversionService service.ResourceConversionService
-	errorHandler              *utils.ErrorHandler
-	logger                    *zap.Logger
+	convertPlantsAction *actions.ConvertPlantsToGreeneryAction
+	errorHandler        *utils.ErrorHandler
+	logger              *zap.Logger
 }
 
 // NewHandler creates a new convert plants to greenery handler
-func NewHandler(resourceConversionService service.ResourceConversionService) *Handler {
+func NewHandler(convertPlantsAction *actions.ConvertPlantsToGreeneryAction) *Handler {
 	return &Handler{
-		resourceConversionService: resourceConversionService,
-		errorHandler:              utils.NewErrorHandler(),
-		logger:                    logger.Get(),
+		convertPlantsAction: convertPlantsAction,
+		errorHandler:        utils.NewErrorHandler(),
+		logger:              logger.Get(),
 	}
 }
 
@@ -43,8 +43,8 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	// Initiate plant conversion (deducts plants, creates pending tile selection)
-	if err := h.resourceConversionService.InitiatePlantConversion(ctx, gameID, playerID); err != nil {
+	// Execute plant conversion (deducts plants, raises oxygen, creates pending tile selection)
+	if err := h.convertPlantsAction.Execute(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to initiate plant conversion",
 			zap.Error(err),
 			zap.String("player_id", playerID),

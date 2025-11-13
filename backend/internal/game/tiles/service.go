@@ -7,7 +7,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
@@ -15,9 +14,9 @@ import (
 
 // BoardService interface for hex calculations (avoids import cycle with service package)
 type BoardService interface {
-	GenerateDefaultBoard() model.Board
-	CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error)
-	CalculateAvailableHexesForTileTypeWithPlayer(game model.Game, tileType, playerID string) ([]string, error)
+	GenerateDefaultBoard() Board
+	CalculateAvailableHexesForTileType(game Game, tileType string) ([]string, error)
+	CalculateAvailableHexesForTileTypeWithPlayer(game Game, tileType, playerID string) ([]string, error)
 }
 
 // Service handles tile placement operations on the Mars board.
@@ -41,12 +40,12 @@ type BoardService interface {
 //   - EventBus (for publishing tile placement events)
 type Service interface {
 	// Tile placement operations
-	PlaceTile(ctx context.Context, gameID, playerID, tileType string, coordinate model.HexPosition) error
+	PlaceTile(ctx context.Context, gameID, playerID, tileType string, coordinate HexPosition) error
 	ValidatePlacement(ctx context.Context, gameID, tileType string) error
 	CalculateAvailableHexes(ctx context.Context, gameID, playerID, tileType string) ([]string, error)
 
 	// Bonus operations
-	AwardPlacementBonuses(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error
+	AwardPlacementBonuses(ctx context.Context, gameID, playerID string, coordinate HexPosition) error
 
 	// Queue operations
 	ProcessTileQueue(ctx context.Context, gameID, playerID string) error
@@ -54,17 +53,15 @@ type Service interface {
 
 // ServiceImpl implements the Tiles mechanic service
 type ServiceImpl struct {
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
+	repo         Repository
 	boardService BoardService
 	eventBus     *events.EventBusImpl
 }
 
 // NewService creates a new Tiles mechanic service
-func NewService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, boardService BoardService, eventBus *events.EventBusImpl) Service {
+func NewService(repo Repository, boardService BoardService, eventBus *events.EventBusImpl) Service {
 	return &ServiceImpl{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
+		repo:         repo,
 		boardService: boardService,
 		eventBus:     eventBus,
 	}
@@ -73,7 +70,7 @@ func NewService(gameRepo repository.GameRepository, playerRepo repository.Player
 // PlaceTile places a tile of the specified type at the given coordinate.
 // Awards placement bonuses and updates board occupancy.
 // Does NOT raise global parameters - that's the parameters mechanic's job.
-func (s *ServiceImpl) PlaceTile(ctx context.Context, gameID, playerID, tileType string, coordinate model.HexPosition) error {
+func (s *ServiceImpl) PlaceTile(ctx context.Context, gameID, playerID, tileType string, coordinate HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🔧 Placing tile",
 		zap.String("tile_type", tileType),
@@ -82,14 +79,14 @@ func (s *ServiceImpl) PlaceTile(ctx context.Context, gameID, playerID, tileType 
 		zap.Int("s", coordinate.S))
 
 	// Convert tile type string to ResourceType
-	resourceType, err := model.TileTypeToResourceType(tileType)
+	resourceType, err := TileTypeToResourceType(tileType)
 	if err != nil {
 		log.Error("Unknown tile type", zap.String("tile_type", tileType))
 		return err
 	}
 
 	// Create the tile occupant
-	occupant := &model.TileOccupant{
+	occupant := &TileOccupant{
 		Type: resourceType,
 		Tags: []string{},
 	}
@@ -101,7 +98,7 @@ func (s *ServiceImpl) PlaceTile(ctx context.Context, gameID, playerID, tileType 
 	}
 
 	// Update the tile occupancy in the game board
-	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
+	if err := s.repo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
 		log.Error("Failed to update tile occupancy", zap.Error(err))
 		return fmt.Errorf("failed to update tile occupancy: %w", err)
 	}
@@ -123,7 +120,7 @@ func (s *ServiceImpl) ValidatePlacement(ctx context.Context, gameID, tileType st
 
 	// Only ocean tiles have placement validation (count limit)
 	if tileType == "ocean" {
-		game, err := s.gameRepo.GetByID(ctx, gameID)
+		game, err := s.repo.GetGame(ctx, gameID)
 		if err != nil {
 			return fmt.Errorf("failed to get game: %w", err)
 		}
@@ -131,15 +128,15 @@ func (s *ServiceImpl) ValidatePlacement(ctx context.Context, gameID, tileType st
 		// Count oceans on board (source of truth)
 		oceansPlaced := 0
 		for _, tile := range game.Board.Tiles {
-			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == ResourceOceanTile {
 				oceansPlaced++
 			}
 		}
 
-		if oceansPlaced >= model.MaxOceans {
+		if oceansPlaced >= MaxOceans {
 			log.Warn("Cannot place ocean tile - maximum oceans reached",
 				zap.Int("current_oceans", oceansPlaced),
-				zap.Int("max_oceans", model.MaxOceans))
+				zap.Int("max_oceans", MaxOceans))
 			return fmt.Errorf("maximum oceans already placed")
 		}
 	}
@@ -150,7 +147,7 @@ func (s *ServiceImpl) ValidatePlacement(ctx context.Context, gameID, tileType st
 // CalculateAvailableHexes calculates available hexes for tile placement.
 // Uses BoardService for hex calculation logic.
 func (s *ServiceImpl) CalculateAvailableHexes(ctx context.Context, gameID, playerID, tileType string) ([]string, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get game: %w", err)
 	}
@@ -166,17 +163,17 @@ func (s *ServiceImpl) CalculateAvailableHexes(ctx context.Context, gameID, playe
 
 // AwardPlacementBonuses awards bonuses to the player for placing a tile.
 // Bonuses include: steel, titanium, plants, card draw (from board), ocean adjacency (from placement)
-func (s *ServiceImpl) AwardPlacementBonuses(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+func (s *ServiceImpl) AwardPlacementBonuses(ctx context.Context, gameID, playerID string, coordinate HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get the game state to access the board
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Find the placed tile in the board
-	var placedTile *model.Tile
+	var placedTile *Tile
 	for i, tile := range game.Board.Tiles {
 		if tile.Coordinates.Equals(coordinate) {
 			placedTile = &game.Board.Tiles[i]
@@ -190,7 +187,7 @@ func (s *ServiceImpl) AwardPlacementBonuses(ctx context.Context, gameID, playerI
 	}
 
 	// Get current player resources
-	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	player, err := s.repo.GetPlayer(ctx, gameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to get player: %w", err)
 	}
@@ -230,7 +227,7 @@ func (s *ServiceImpl) AwardPlacementBonuses(ctx context.Context, gameID, playerI
 
 	// Update player resources if any bonuses were awarded
 	if len(bonusesAwarded) > 0 {
-		if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
+		if err := s.repo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
 
@@ -259,7 +256,7 @@ func (s *ServiceImpl) AwardPlacementBonuses(ctx context.Context, gameID, playerI
 
 // calculateOceanAdjacencyBonus calculates the bonus from adjacent ocean tiles.
 // Base bonus is 2 MC per ocean, but can be modified by effects (e.g., Lakefront Resorts adds +1).
-func (s *ServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player model.Player, coordinate model.HexPosition) int {
+func (s *ServiceImpl) calculateOceanAdjacencyBonus(game Game, player Player, coordinate HexPosition) int {
 	adjacentOceanCount := 0
 
 	// Check each adjacent position for ocean tiles
@@ -268,7 +265,7 @@ func (s *ServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player model
 		for _, tile := range game.Board.Tiles {
 			if tile.Coordinates.Equals(adjacentCoord) {
 				// Check if this tile has an ocean
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == ResourceOceanTile {
 					adjacentOceanCount++
 				}
 				break
@@ -288,28 +285,28 @@ func (s *ServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player model
 
 // applyTileBonus applies a single tile bonus to player resources.
 // Returns: description, applied (bool), resourceType, amount
-func (s *ServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool, string, int) {
+func (s *ServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate HexPosition, resources *Resources, bonus TileBonus, log *zap.Logger) (string, bool, string, int) {
 	var resourceName string
 
 	switch bonus.Type {
-	case model.ResourceSteel:
+	case ResourceSteel:
 		resources.Steel += bonus.Amount
 		resourceName = "steel"
 
-	case model.ResourceTitanium:
+	case ResourceTitanium:
 		resources.Titanium += bonus.Amount
 		resourceName = "titanium"
 
-	case model.ResourcePlants:
+	case ResourcePlants:
 		resources.Plants += bonus.Amount
 		resourceName = "plants"
 
-	case model.ResourceCardDraw:
+	case ResourceCardDraw:
 		// TODO: Implement card drawing bonus
 		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
 			zap.String("type", "card-draw"),
 			zap.Int("amount", bonus.Amount))
-		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(model.ResourceCardDraw), bonus.Amount
+		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(ResourceCardDraw), bonus.Amount
 
 	default:
 		// Unknown bonus type, skip it
@@ -329,7 +326,7 @@ func (s *ServiceImpl) ProcessTileQueue(ctx context.Context, gameID, playerID str
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get the next tile type from the queue (pops from queue)
-	nextTileType, err := s.playerRepo.ProcessNextTileInQueue(ctx, gameID, playerID)
+	nextTileType, err := s.repo.ProcessNextTileInQueue(ctx, gameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to process next tile in queue: %w", err)
 	}
@@ -341,7 +338,7 @@ func (s *ServiceImpl) ProcessTileQueue(ctx context.Context, gameID, playerID str
 	}
 
 	// Get the queue to determine the source
-	queue, err := s.playerRepo.GetPendingTileSelectionQueue(ctx, gameID, playerID)
+	queue, err := s.repo.GetPendingTileSelectionQueue(ctx, gameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to get tile queue: %w", err)
 	}
@@ -380,13 +377,13 @@ func (s *ServiceImpl) ProcessTileQueue(ctx context.Context, gameID, playerID str
 	}
 
 	// Set pending tile selection with available hexes
-	pendingSelection := model.PendingTileSelection{
+	pendingSelection := PendingTileSelection{
 		TileType:       nextTileType,
 		Source:         source,
 		AvailableHexes: availableHexes,
 	}
 
-	if err := s.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, &pendingSelection); err != nil {
+	if err := s.repo.UpdatePendingTileSelection(ctx, gameID, playerID, &pendingSelection); err != nil {
 		return fmt.Errorf("failed to set pending tile selection: %w", err)
 	}
 

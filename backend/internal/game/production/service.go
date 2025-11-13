@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -37,24 +35,20 @@ type Service interface {
 	ProcessPlayerReady(ctx context.Context, gameID, playerID string) (allReady bool, err error)
 
 	// Helper operations
-	ApplyProduction(ctx context.Context, gameID, playerID string) (oldResources, newResources model.Resources, energyConverted int, err error)
+	ApplyProduction(ctx context.Context, gameID, playerID string) (oldResources, newResources Resources, energyConverted int, err error)
 	DrawProductionCards(ctx context.Context, gameID, playerID string, count int) ([]string, error)
 	ResetPlayerForNewGeneration(ctx context.Context, gameID, playerID string, isSolo bool) error
 }
 
 // ServiceImpl implements the Production Phase mechanic service
 type ServiceImpl struct {
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardDeckRepo repository.CardDeckRepository
+	repo Repository
 }
 
 // NewService creates a new Production Phase mechanic service
-func NewService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDeckRepo repository.CardDeckRepository) Service {
+func NewService(repo Repository) Service {
 	return &ServiceImpl{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
-		cardDeckRepo: cardDeckRepo,
+		repo: repo,
 	}
 }
 
@@ -65,21 +59,21 @@ func (s *ServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string)
 	log.Debug("Executing production phase")
 
 	// Get current game state
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for production phase", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Validate game is active
-	if game.Status != model.GameStatusActive {
+	if game.Status != GameStatusActive {
 		log.Warn("Attempted to execute production phase in non-active game",
 			zap.String("current_status", string(game.Status)))
 		return fmt.Errorf("game is not active")
 	}
 
 	// Get all players
-	gamePlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
+	gamePlayers, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players for production phase", zap.Error(err))
 		return fmt.Errorf("failed to list players: %w", err)
@@ -117,7 +111,7 @@ func (s *ServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string)
 			zap.Int("cards_drawn", len(drawnCards)))
 
 		// Set production phase data
-		productionPhaseData := model.ProductionPhase{
+		productionPhaseData := ProductionPhase{
 			AvailableCards:    drawnCards,
 			SelectionComplete: false,
 			BeforeResources:   oldResources,
@@ -126,7 +120,7 @@ func (s *ServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string)
 			CreditsIncome:     player.Production.Credits + player.TerraformRating,
 		}
 
-		if err := s.playerRepo.UpdateProductionPhase(ctx, gameID, player.ID, &productionPhaseData); err != nil {
+		if err := s.repo.UpdateProductionPhase(ctx, gameID, player.ID, &productionPhaseData); err != nil {
 			log.Error("Failed to set player production phase data",
 				zap.String("player_id", player.ID),
 				zap.Error(err))
@@ -148,20 +142,20 @@ func (s *ServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string)
 	}
 
 	// Advance generation
-	if err := s.gameRepo.UpdateGeneration(ctx, game.ID, game.Generation+1); err != nil {
+	if err := s.repo.UpdateGeneration(ctx, game.ID, game.Generation+1); err != nil {
 		log.Error("Failed to update game generation", zap.Error(err))
 		return fmt.Errorf("failed to update game generation: %w", err)
 	}
 
 	// Set phase to production and card draw
-	if err := s.gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProductionAndCardDraw); err != nil {
+	if err := s.repo.UpdatePhase(ctx, game.ID, GamePhaseProductionAndCardDraw); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
 
 	// Update the current turn to the first player for the new generation
 	if len(game.PlayerIDs) > 0 {
-		if err := s.gameRepo.UpdateCurrentTurn(ctx, game.ID, &game.PlayerIDs[0]); err != nil {
+		if err := s.repo.UpdateCurrentTurn(ctx, game.ID, &game.PlayerIDs[0]); err != nil {
 			log.Error("Failed to update current turn for new generation", zap.Error(err))
 			return fmt.Errorf("failed to update current turn: %w", err)
 		}
@@ -177,14 +171,14 @@ func (s *ServiceImpl) ExecuteProductionPhase(ctx context.Context, gameID string)
 
 // ApplyProduction converts energy to heat and applies production to a player's resources.
 // Returns old resources, new resources, and energy converted.
-func (s *ServiceImpl) ApplyProduction(ctx context.Context, gameID, playerID string) (model.Resources, model.Resources, int, error) {
+func (s *ServiceImpl) ApplyProduction(ctx context.Context, gameID, playerID string) (Resources, Resources, int, error) {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
-	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	player, err := s.repo.GetPlayer(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for production", zap.Error(err))
-		return model.Resources{}, model.Resources{}, 0, fmt.Errorf("failed to get player: %w", err)
+		return Resources{}, Resources{}, 0, fmt.Errorf("failed to get player: %w", err)
 	}
 
 	// Save old resources for production phase display
@@ -194,7 +188,7 @@ func (s *ServiceImpl) ApplyProduction(ctx context.Context, gameID, playerID stri
 	energyConverted := player.Resources.Energy
 
 	// Calculate new resources: resources + production, energy becomes 0, heat += old energy
-	newResources := model.Resources{
+	newResources := Resources{
 		Credits:  player.Resources.Credits + player.Production.Credits + player.TerraformRating, // TR provides 1 credit per point
 		Steel:    player.Resources.Steel + player.Production.Steel,
 		Titanium: player.Resources.Titanium + player.Production.Titanium,
@@ -204,9 +198,9 @@ func (s *ServiceImpl) ApplyProduction(ctx context.Context, gameID, playerID stri
 	}
 
 	// Update player resources
-	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
+	if err := s.repo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
 		log.Error("Failed to update player resources during production", zap.Error(err))
-		return model.Resources{}, model.Resources{}, 0, fmt.Errorf("failed to update player resources: %w", err)
+		return Resources{}, Resources{}, 0, fmt.Errorf("failed to update player resources: %w", err)
 	}
 
 	log.Debug("Applied production to player",
@@ -223,7 +217,7 @@ func (s *ServiceImpl) DrawProductionCards(ctx context.Context, gameID, playerID 
 
 	drawnCards := []string{}
 	for i := 0; i < count; i++ {
-		cardID, err := s.cardDeckRepo.Pop(ctx, gameID)
+		cardID, err := s.repo.PopCard(ctx, gameID)
 		if err != nil {
 			log.Warn("Failed to draw card from deck for production phase",
 				zap.Int("drawn_so_far", i),
@@ -243,7 +237,7 @@ func (s *ServiceImpl) ResetPlayerForNewGeneration(ctx context.Context, gameID, p
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Reset passed status
-	if err := s.playerRepo.UpdatePassed(ctx, gameID, playerID, false); err != nil {
+	if err := s.repo.UpdatePassed(ctx, gameID, playerID, false); err != nil {
 		log.Error("Failed to reset player passed status", zap.Error(err))
 		return fmt.Errorf("failed to reset player passed status: %w", err)
 	}
@@ -254,7 +248,7 @@ func (s *ServiceImpl) ResetPlayerForNewGeneration(ctx context.Context, gameID, p
 		resetTurns = -1 // Unlimited actions for solo play
 	}
 
-	if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, resetTurns); err != nil {
+	if err := s.repo.UpdateAvailableActions(ctx, gameID, playerID, resetTurns); err != nil {
 		log.Error("Failed to reset player available actions", zap.Error(err))
 		return fmt.Errorf("failed to reset player available actions: %w", err)
 	}
@@ -269,27 +263,27 @@ func (s *ServiceImpl) ProcessPlayerReady(ctx context.Context, gameID, playerID s
 	log.Debug("Processing production phase ready")
 
 	// Get current game state
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for production ready", zap.Error(err))
 		return false, fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Validate game state
-	if game.Status != model.GameStatusActive {
+	if game.Status != GameStatusActive {
 		log.Warn("Attempted to mark ready in non-active game",
 			zap.String("current_status", string(game.Status)))
 		return false, fmt.Errorf("game is not active")
 	}
 
-	if game.CurrentPhase != model.GamePhaseProductionAndCardDraw {
+	if game.CurrentPhase != GamePhaseProductionAndCardDraw {
 		log.Warn("Attempted to mark ready in non-production phase",
 			zap.String("current_phase", string(game.CurrentPhase)))
 		return false, fmt.Errorf("game is not in production phase")
 	}
 
 	// Check if all players are ready
-	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	players, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players to check readiness", zap.Error(err))
 		return false, fmt.Errorf("failed to list players: %w", err)
@@ -316,7 +310,7 @@ func (s *ServiceImpl) ProcessPlayerReady(ctx context.Context, gameID, playerID s
 			zap.Int("generation", game.Generation))
 
 		// Advance to action phase
-		if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
+		if err := s.repo.UpdatePhase(ctx, gameID, GamePhaseAction); err != nil {
 			log.Error("Failed to advance phase to action", zap.Error(err))
 			return false, fmt.Errorf("failed to advance phase to action: %w", err)
 		}
@@ -324,7 +318,7 @@ func (s *ServiceImpl) ProcessPlayerReady(ctx context.Context, gameID, playerID s
 		// Set first player's turn for new generation
 		if len(players) > 0 {
 			firstPlayerID := players[0].ID
-			if err := s.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID); err != nil {
+			if err := s.repo.SetCurrentTurn(ctx, gameID, &firstPlayerID); err != nil {
 				log.Error("Failed to set current turn for new generation", zap.Error(err))
 				return false, fmt.Errorf("failed to set current turn: %w", err)
 			}

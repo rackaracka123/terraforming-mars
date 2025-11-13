@@ -6,27 +6,27 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions/card_selection"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles card draw confirmation requests
 type Handler struct {
-	cardService  service.CardService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	confirmCardDrawAction *card_selection.ConfirmCardDrawAction
+	parser                *utils.MessageParser
+	errorHandler          *utils.ErrorHandler
+	logger                *zap.Logger
 }
 
 // NewHandler creates a new card draw confirmation handler
-func NewHandler(cardService service.CardService, parser *utils.MessageParser) *Handler {
+func NewHandler(confirmCardDrawAction *card_selection.ConfirmCardDrawAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		confirmCardDrawAction: confirmCardDrawAction,
+		parser:                parser,
+		errorHandler:          utils.NewErrorHandler(),
+		logger:                logger.Get(),
 	}
 }
 
@@ -61,9 +61,9 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Execute the card draw confirmation
-	if err := h.cardService.OnConfirmCardDraw(ctx, gameID, playerID, request.CardsToTake, request.CardsToBuy); err != nil {
-		h.logger.Error("Failed to process card draw confirmation",
+	// Execute the card draw confirmation via ConfirmCardDrawAction
+	if err := h.confirmCardDrawAction.Execute(ctx, gameID, playerID, request.CardsToTake, request.CardsToBuy); err != nil {
+		h.logger.Error("Failed to process card draw confirmation via action",
 			zap.Error(err),
 			zap.String("player_id", playerID),
 			zap.String("game_id", gameID),

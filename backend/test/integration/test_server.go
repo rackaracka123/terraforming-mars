@@ -11,7 +11,11 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/actions"
+	"terraforming-mars-backend/internal/game/actions/standard_projects"
+	"terraforming-mars-backend/internal/game/parameters"
 	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/resources"
 	"terraforming-mars-backend/internal/game/tiles"
 	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
@@ -78,15 +82,32 @@ func NewTestServer(port int) (*TestServer, error) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
 	// Initialize game mechanics
-	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
-	turnMechanic := turn.NewService(gameRepo, playerRepo)
-	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	turnRepo := turn.NewRepository(gameRepo, playerRepo)
+	turnMechanic := turn.NewService(turnRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+	productionMechanic := production.NewService(productionRepo)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
+
+	// Initialize actions for WebSocket handlers
+	resourcesRepo := resources.NewRepository(playerRepo)
+	resourcesMechanic := resources.NewService(resourcesRepo)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersMechanic := parameters.NewService(parametersRepo)
+	buildAquiferAction := standard_projects.NewBuildAquiferAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, tilesMechanic, sessionManager)
+	launchAsteroidAction := standard_projects.NewLaunchAsteroidAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, sessionManager)
+	buildPowerPlantAction := standard_projects.NewBuildPowerPlantAction(playerRepo, gameRepo, resourcesMechanic, sessionManager)
+	plantGreeneryAction := standard_projects.NewPlantGreeneryAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, tilesMechanic, sessionManager)
+	buildCityAction := standard_projects.NewBuildCityAction(playerRepo, gameRepo, resourcesMechanic, tilesMechanic, sessionManager)
+	skipAction := actions.NewSkipAction(turnMechanic, productionMechanic, sessionManager)
+	convertHeatAction := actions.NewConvertHeatToTemperatureAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, sessionManager)
+	convertPlantsAction := actions.NewConvertPlantsToGreeneryAction(playerRepo, gameRepo, resourcesMechanic, parametersMechanic, tilesMechanic, sessionManager)
 
 	// Register card-specific listeners (removed since we're using mock cards)
 	// if err := initialization.RegisterCardListeners(eventBus); err != nil {
@@ -94,7 +115,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub
-	wsService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	wsService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, gameRepo, playerRepo, cardRepo, hub, buildAquiferAction, launchAsteroidAction, buildPowerPlantAction, plantGreeneryAction, buildCityAction, skipAction, convertHeatAction, convertPlantsAction)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

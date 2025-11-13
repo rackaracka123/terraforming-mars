@@ -6,25 +6,25 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles convert heat to temperature action requests
 type Handler struct {
-	resourceConversionService service.ResourceConversionService
-	errorHandler              *utils.ErrorHandler
-	logger                    *zap.Logger
+	convertHeatAction *actions.ConvertHeatToTemperatureAction
+	errorHandler      *utils.ErrorHandler
+	logger            *zap.Logger
 }
 
 // NewHandler creates a new convert heat to temperature handler
-func NewHandler(resourceConversionService service.ResourceConversionService) *Handler {
+func NewHandler(convertHeatAction *actions.ConvertHeatToTemperatureAction) *Handler {
 	return &Handler{
-		resourceConversionService: resourceConversionService,
-		errorHandler:              utils.NewErrorHandler(),
-		logger:                    logger.Get(),
+		convertHeatAction: convertHeatAction,
+		errorHandler:      utils.NewErrorHandler(),
+		logger:            logger.Get(),
 	}
 }
 
@@ -44,7 +44,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("game_id", gameID))
 
 	// Execute conversion (no hex position needed for temperature)
-	if err := h.resourceConversionService.ConvertHeatToTemperature(ctx, gameID, playerID); err != nil {
+	if err := h.convertHeatAction.Execute(ctx, gameID, playerID); err != nil {
 		h.logger.Error("Failed to convert heat to temperature",
 			zap.Error(err),
 			zap.String("player_id", playerID),

@@ -36,7 +36,8 @@ func setupTest(t *testing.T) (parameters.Service, string, string) {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager).(*service.CardServiceImpl)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
-	parametersService := parameters.NewService(gameRepo, playerRepo)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersService := parameters.NewService(parametersRepo)
 
 	// Create game and player
 	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})

@@ -20,7 +20,8 @@ func setupTest(t *testing.T) (turn.Service, repository.GameRepository, repositor
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
-	turnService := turn.NewService(gameRepo, playerRepo)
+	turnRepo := turn.NewRepository(gameRepo, playerRepo)
+	turnService := turn.NewService(turnRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{

@@ -14,15 +14,125 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// boardServiceAdapter adapts service.BoardService to tiles.BoardService
+type boardServiceAdapter struct {
+	boardService service.BoardService
+}
+
+func (a *boardServiceAdapter) GenerateDefaultBoard() tiles.Board {
+	modelBoard := a.boardService.GenerateDefaultBoard()
+	return toTilesBoard(modelBoard)
+}
+
+func (a *boardServiceAdapter) CalculateAvailableHexesForTileType(game tiles.Game, tileType string) ([]string, error) {
+	modelGame := toModelGame(game)
+	return a.boardService.CalculateAvailableHexesForTileType(modelGame, tileType)
+}
+
+func (a *boardServiceAdapter) CalculateAvailableHexesForTileTypeWithPlayer(game tiles.Game, tileType, playerID string) ([]string, error) {
+	modelGame := toModelGame(game)
+	return a.boardService.CalculateAvailableHexesForTileTypeWithPlayer(modelGame, tileType, playerID)
+}
+
+// Conversion helpers
+func toModelGame(g tiles.Game) model.Game {
+	return model.Game{
+		ID:    g.ID,
+		Board: toModelBoard(g.Board),
+	}
+}
+
+func toModelBoard(b tiles.Board) model.Board {
+	modelTiles := make([]model.Tile, len(b.Tiles))
+	for i, t := range b.Tiles {
+		modelTiles[i] = toModelTile(t)
+	}
+	return model.Board{
+		Tiles: modelTiles,
+	}
+}
+
+func toModelTile(t tiles.Tile) model.Tile {
+	var occupiedBy *model.TileOccupant
+	if t.OccupiedBy != nil {
+		occ := model.TileOccupant{
+			Type: model.ResourceType(t.OccupiedBy.Type),
+			Tags: t.OccupiedBy.Tags,
+		}
+		occupiedBy = &occ
+	}
+
+	bonuses := make([]model.TileBonus, len(t.Bonuses))
+	for i, b := range t.Bonuses {
+		bonuses[i] = model.TileBonus{
+			Type:   model.ResourceType(b.Type),
+			Amount: b.Amount,
+		}
+	}
+
+	return model.Tile{
+		Coordinates: model.HexPosition{
+			Q: t.Coordinates.Q,
+			R: t.Coordinates.R,
+			S: t.Coordinates.S,
+		},
+		OccupiedBy: occupiedBy,
+		OwnerID:    t.OwnerID,
+		Bonuses:    bonuses,
+	}
+}
+
+func toTilesBoard(mb model.Board) tiles.Board {
+	tilesList := make([]tiles.Tile, len(mb.Tiles))
+	for i, t := range mb.Tiles {
+		tilesList[i] = toTilesTile(t)
+	}
+	return tiles.Board{
+		Tiles: tilesList,
+	}
+}
+
+func toTilesTile(mt model.Tile) tiles.Tile {
+	var occupiedBy *tiles.TileOccupant
+	if mt.OccupiedBy != nil {
+		occ := tiles.TileOccupant{
+			Type: tiles.ResourceType(mt.OccupiedBy.Type),
+			Tags: mt.OccupiedBy.Tags,
+		}
+		occupiedBy = &occ
+	}
+
+	bonuses := make([]tiles.TileBonus, len(mt.Bonuses))
+	for i, b := range mt.Bonuses {
+		bonuses[i] = tiles.TileBonus{
+			Type:   tiles.ResourceType(b.Type),
+			Amount: b.Amount,
+		}
+	}
+
+	return tiles.Tile{
+		Coordinates: tiles.HexPosition{
+			Q: mt.Coordinates.Q,
+			R: mt.Coordinates.R,
+			S: mt.Coordinates.S,
+		},
+		OccupiedBy: occupiedBy,
+		OwnerID:    mt.OwnerID,
+		Bonuses:    bonuses,
+	}
+}
+
 func setupTest(t *testing.T) (tiles.Service, repository.GameRepository, repository.PlayerRepository, string, string) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	boardService := service.NewBoardService()
+	centralBoardService := service.NewBoardService()
+	boardService := &boardServiceAdapter{boardService: centralBoardService}
 
-	tilesService := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesService := tiles.NewService(tilesRepo, boardService, eventBus)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{
@@ -33,7 +143,8 @@ func setupTest(t *testing.T) (tiles.Service, repository.GameRepository, reposito
 
 	// Initialize board using boardService
 	board := boardService.GenerateDefaultBoard()
-	err = gameRepo.UpdateBoard(ctx, gameID, board)
+	modelBoard := toModelBoard(board)
+	err = gameRepo.UpdateBoard(ctx, gameID, modelBoard)
 	require.NoError(t, err)
 
 	// Create player
@@ -76,8 +187,12 @@ func TestTilesService_PlaceTile(t *testing.T) {
 	}
 	require.True(t, found, "Should find an empty land tile")
 
-	// Place a city tile
-	err = tilesService.PlaceTile(ctx, gameID, playerID, "city", emptyTileCoord)
+	// Place a city tile (convert model.HexPosition to tiles.HexPosition)
+	err = tilesService.PlaceTile(ctx, gameID, playerID, "city", tiles.HexPosition{
+		Q: emptyTileCoord.Q,
+		R: emptyTileCoord.R,
+		S: emptyTileCoord.S,
+	})
 	assert.NoError(t, err)
 
 	// Verify tile was placed
@@ -216,8 +331,12 @@ func TestTilesService_AwardPlacementBonuses(t *testing.T) {
 	require.NoError(t, err)
 	initialResources := player.Resources
 
-	// Award bonuses
-	err = tilesService.AwardPlacementBonuses(ctx, gameID, playerID, tileWithBonuses.Coordinates)
+	// Award bonuses (convert model.HexPosition to tiles.HexPosition)
+	err = tilesService.AwardPlacementBonuses(ctx, gameID, playerID, tiles.HexPosition{
+		Q: tileWithBonuses.Coordinates.Q,
+		R: tileWithBonuses.Coordinates.R,
+		S: tileWithBonuses.Coordinates.S,
+	})
 	assert.NoError(t, err)
 
 	// Verify resources increased
@@ -278,8 +397,12 @@ func TestTilesService_OceanAdjacencyBonus(t *testing.T) {
 	require.NoError(t, err)
 	initialCredits := player.Resources.Credits
 
-	// Award placement bonuses (includes ocean adjacency)
-	err = tilesService.AwardPlacementBonuses(ctx, gameID, playerID, adjacentCoord)
+	// Award placement bonuses (includes ocean adjacency) - convert model.HexPosition to tiles.HexPosition
+	err = tilesService.AwardPlacementBonuses(ctx, gameID, playerID, tiles.HexPosition{
+		Q: adjacentCoord.Q,
+		R: adjacentCoord.R,
+		S: adjacentCoord.S,
+	})
 	assert.NoError(t, err)
 
 	// Verify credits increased by at least 2 (base ocean adjacency bonus)

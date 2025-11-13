@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -41,15 +39,13 @@ type Service interface {
 
 // ServiceImpl implements the Turn mechanic service
 type ServiceImpl struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	repo Repository
 }
 
 // NewService creates a new Turn mechanic service
-func NewService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) Service {
+func NewService(repo Repository) Service {
 	return &ServiceImpl{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		repo: repo,
 	}
 }
 
@@ -66,14 +62,14 @@ func (s *ServiceImpl) SkipTurn(ctx context.Context, gameID, playerID string) (bo
 	}
 
 	// Get current player to determine pass vs skip
-	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	player, err := s.repo.GetPlayer(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for skip turn", zap.Error(err))
 		return false, fmt.Errorf("failed to get player: %w", err)
 	}
 
 	// Get all players to check active count
-	allPlayers, err := s.playerRepo.ListByGameID(ctx, gameID)
+	allPlayers, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players for skip turn", zap.Error(err))
 		return false, fmt.Errorf("failed to list players: %w", err)
@@ -91,7 +87,7 @@ func (s *ServiceImpl) SkipTurn(ctx context.Context, gameID, playerID string) (bo
 	isPassing := player.AvailableActions == 2 || player.AvailableActions == -1
 	if isPassing {
 		// PASS: Mark player as passed for generation end check
-		if err := s.playerRepo.UpdatePassed(ctx, gameID, playerID, true); err != nil {
+		if err := s.repo.UpdatePassed(ctx, gameID, playerID, true); err != nil {
 			log.Error("Failed to mark player as passed", zap.Error(err))
 			return false, fmt.Errorf("failed to update player passed status: %w", err)
 		}
@@ -104,7 +100,7 @@ func (s *ServiceImpl) SkipTurn(ctx context.Context, gameID, playerID string) (bo
 		if activePlayerCount == 2 {
 			for _, p := range allPlayers {
 				if !p.Passed && p.ID != playerID {
-					if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, p.ID, -1); err != nil {
+					if err := s.repo.UpdateAvailableActions(ctx, gameID, p.ID, -1); err != nil {
 						log.Error("Failed to grant unlimited actions to last active player",
 							zap.String("last_player_id", p.ID),
 							zap.Error(err))
@@ -150,7 +146,7 @@ func (s *ServiceImpl) AdvanceToNextPlayer(ctx context.Context, gameID string) er
 	log.Debug("Advancing to next player")
 
 	// Get game and current turn
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
@@ -162,7 +158,7 @@ func (s *ServiceImpl) AdvanceToNextPlayer(ctx context.Context, gameID string) er
 	}
 
 	// Get all players (in order they were added to game)
-	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	players, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players", zap.Error(err))
 		return fmt.Errorf("failed to list players: %w", err)
@@ -195,7 +191,7 @@ func (s *ServiceImpl) AdvanceToNextPlayer(ctx context.Context, gameID string) er
 	nextPlayerID := players[nextPlayerIndex].ID
 
 	// Update current turn
-	if err := s.gameRepo.UpdateCurrentTurn(ctx, gameID, &nextPlayerID); err != nil {
+	if err := s.repo.UpdateCurrentTurn(ctx, gameID, &nextPlayerID); err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update current turn: %w", err)
 	}
@@ -212,14 +208,14 @@ func (s *ServiceImpl) ValidateCurrentPlayer(ctx context.Context, gameID, playerI
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get game
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for validation", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Validate game is active
-	if game.Status != model.GameStatusActive {
+	if game.Status != GameStatusActive {
 		log.Warn("Attempted turn action in non-active game",
 			zap.String("current_status", string(game.Status)))
 		return fmt.Errorf("game is not active")
@@ -247,7 +243,7 @@ func (s *ServiceImpl) IsGenerationEnded(ctx context.Context, gameID string) (boo
 	log := logger.WithGameContext(gameID, "")
 
 	// Get all players
-	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	players, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players for generation end check", zap.Error(err))
 		return false, fmt.Errorf("failed to list players: %w", err)
@@ -284,7 +280,7 @@ func (s *ServiceImpl) GetNextPlayer(ctx context.Context, gameID string) (string,
 	log := logger.WithGameContext(gameID, "")
 
 	// Get game and current turn
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	game, err := s.repo.GetGame(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return "", fmt.Errorf("failed to get game: %w", err)
@@ -296,7 +292,7 @@ func (s *ServiceImpl) GetNextPlayer(ctx context.Context, gameID string) (string,
 	}
 
 	// Get all players
-	players, err := s.playerRepo.ListByGameID(ctx, gameID)
+	players, err := s.repo.ListPlayers(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to list players", zap.Error(err))
 		return "", fmt.Errorf("failed to list players: %w", err)

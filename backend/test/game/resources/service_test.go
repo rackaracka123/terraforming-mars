@@ -16,7 +16,10 @@ import (
 func setupTest(t *testing.T) (resources.Service, repository.PlayerRepository, string, string) {
 	eventBus := events.NewEventBus()
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	resourcesService := resources.NewService(playerRepo)
+
+	// Create resources repository and service
+	resourcesRepo := resources.NewRepository(playerRepo)
+	resourcesService := resources.NewService(resourcesRepo)
 
 	// Create test data
 	ctx := context.Background()
@@ -56,7 +59,7 @@ func TestResourceService_AddResources(t *testing.T) {
 	ctx := context.Background()
 
 	// Add resources
-	err := resourcesService.AddResources(ctx, gameID, playerID, model.ResourceSet{
+	err := resourcesService.AddResources(ctx, gameID, playerID, resources.ResourceSet{
 		Credits: 10,
 		Steel:   5,
 	})
@@ -74,7 +77,7 @@ func TestResourceService_ValidateResourceCost(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Sufficient resources", func(t *testing.T) {
-		err := resourcesService.ValidateResourceCost(ctx, gameID, playerID, model.ResourceSet{
+		err := resourcesService.ValidateResourceCost(ctx, gameID, playerID, resources.ResourceSet{
 			Credits: 30,
 			Steel:   5,
 		})
@@ -82,7 +85,7 @@ func TestResourceService_ValidateResourceCost(t *testing.T) {
 	})
 
 	t.Run("Insufficient resources", func(t *testing.T) {
-		err := resourcesService.ValidateResourceCost(ctx, gameID, playerID, model.ResourceSet{
+		err := resourcesService.ValidateResourceCost(ctx, gameID, playerID, resources.ResourceSet{
 			Credits: 100, // Player only has 50
 		})
 		assert.Error(t, err)
@@ -95,7 +98,7 @@ func TestResourceService_PayResourceCost(t *testing.T) {
 	ctx := context.Background()
 
 	// Pay cost
-	err := resourcesService.PayResourceCost(ctx, gameID, playerID, model.ResourceSet{
+	err := resourcesService.PayResourceCost(ctx, gameID, playerID, resources.ResourceSet{
 		Credits: 20,
 		Steel:   3,
 	})
@@ -113,7 +116,7 @@ func TestResourceService_AddProduction(t *testing.T) {
 	ctx := context.Background()
 
 	// Add production
-	err := resourcesService.AddProduction(ctx, gameID, playerID, model.ResourceSet{
+	err := resourcesService.AddProduction(ctx, gameID, playerID, resources.ResourceSet{
 		Credits: 2,
 		Energy:  1,
 	})
@@ -131,7 +134,7 @@ func TestResourceService_ValidateProductionRequirement(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Sufficient production", func(t *testing.T) {
-		err := resourcesService.ValidateProductionRequirement(ctx, gameID, playerID, model.ResourceSet{
+		err := resourcesService.ValidateProductionRequirement(ctx, gameID, playerID, resources.ResourceSet{
 			Credits: 2,
 			Steel:   1,
 		})
@@ -139,7 +142,7 @@ func TestResourceService_ValidateProductionRequirement(t *testing.T) {
 	})
 
 	t.Run("Insufficient production", func(t *testing.T) {
-		err := resourcesService.ValidateProductionRequirement(ctx, gameID, playerID, model.ResourceSet{
+		err := resourcesService.ValidateProductionRequirement(ctx, gameID, playerID, resources.ResourceSet{
 			Credits: 10, // Player only has 3
 		})
 		assert.Error(t, err)

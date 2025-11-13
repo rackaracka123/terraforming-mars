@@ -7,29 +7,27 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions/card_selection"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles select starting card action requests
 type Handler struct {
-	cardService  service.CardService
-	gameService  service.GameService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	selectStartingCardsAction *card_selection.SelectStartingCardsAction
+	parser                    *utils.MessageParser
+	errorHandler              *utils.ErrorHandler
+	logger                    *zap.Logger
 }
 
 // NewHandler creates a new select starting card handler
-func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
+func NewHandler(selectStartingCardsAction *card_selection.SelectStartingCardsAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		gameService:  gameService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		selectStartingCardsAction: selectStartingCardsAction,
+		parser:                    parser,
+		errorHandler:              utils.NewErrorHandler(),
+		logger:                    logger.Get(),
 	}
 }
 
@@ -78,30 +76,18 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // handle processes the select starting card action (internal method)
 func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
-	h.logCardSelection(gameID, playerID, cardIDs, corporationID)
-
-	return h.selectCards(ctx, gameID, playerID, cardIDs, corporationID)
-}
-
-// logCardSelection logs the card and corporation selection attempt
-func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string, corporationID string) {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Debug("Player selecting starting cards and corporation",
+	log.Debug("Player selecting starting cards and corporation via SelectStartingCardsAction",
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)),
 		zap.String("corporation_id", corporationID))
-}
 
-// selectCards processes the card and corporation selection through the service
-func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	if err := h.cardService.OnSelectStartingCards(ctx, gameID, playerID, cardIDs, corporationID); err != nil {
-		log.Error("Failed to select starting cards", zap.Error(err))
+	if err := h.selectStartingCardsAction.Execute(ctx, gameID, playerID, cardIDs, corporationID); err != nil {
+		log.Error("Failed to select starting cards via action", zap.Error(err))
 		return fmt.Errorf("card selection failed: %w", err)
 	}
 
-	log.Info("Player selected starting cards (pending confirmation)",
+	log.Info("Player selected starting cards via action",
 		zap.Strings("selected_cards", cardIDs))
 
 	return nil

@@ -517,22 +517,22 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 		zap.Int("play_count", targetAction.PlayCount))
 
 	// Validate that the player can afford the action inputs (including choice-specific inputs)
-	if err := s.validateActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
+	if err := s.ValidateActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
 		return fmt.Errorf("action input validation failed: %w", err)
 	}
 
 	// Apply the action inputs (deduct resources, including choice-specific inputs)
-	if err := s.applyActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
+	if err := s.ApplyActionInputs(ctx, gameID, playerID, targetAction, choiceIndex); err != nil {
 		return fmt.Errorf("failed to apply action inputs: %w", err)
 	}
 
 	// Apply the action outputs (give resources/production/etc., including choice-specific outputs)
-	if err := s.applyActionOutputs(ctx, gameID, playerID, targetAction, choiceIndex, cardStorageTarget); err != nil {
+	if err := s.ApplyActionOutputs(ctx, gameID, playerID, targetAction, choiceIndex, cardStorageTarget); err != nil {
 		return fmt.Errorf("failed to apply action outputs: %w", err)
 	}
 
 	// Increment the play count for this action
-	if err := s.incrementActionPlayCount(ctx, gameID, playerID, cardID, behaviorIndex); err != nil {
+	if err := s.IncrementActionPlayCount(ctx, gameID, playerID, cardID, behaviorIndex); err != nil {
 		return fmt.Errorf("failed to increment action play count: %w", err)
 	}
 
@@ -564,9 +564,9 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 	return nil
 }
 
-// validateActionInputs validates that the player has sufficient resources for the action inputs
+// ValidateActionInputs validates that the player has sufficient resources for the action inputs
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
+func (s *CardServiceImpl) ValidateActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to check resources
@@ -624,9 +624,9 @@ func (s *CardServiceImpl) validateActionInputs(ctx context.Context, gameID, play
 	return nil
 }
 
-// applyActionInputs applies the action inputs by deducting resources from the player
+// ApplyActionInputs applies the action inputs by deducting resources from the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
+func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player resources
@@ -768,9 +768,9 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 	return nil
 }
 
-// applyActionOutputs applies the action outputs by giving resources/production/etc. to the player
+// ApplyActionOutputs applies the action outputs by giving resources/production/etc. to the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) applyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
+func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources and production
@@ -1017,8 +1017,8 @@ func (s *CardServiceImpl) applyActionCardDrawPeekEffects(ctx context.Context, ga
 	return nil
 }
 
-// incrementActionPlayCount increments the play count for a specific action
-func (s *CardServiceImpl) incrementActionPlayCount(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
+// IncrementActionPlayCount increments the play count for a specific action
+func (s *CardServiceImpl) IncrementActionPlayCount(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current actions

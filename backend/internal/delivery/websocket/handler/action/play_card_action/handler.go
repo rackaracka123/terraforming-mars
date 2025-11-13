@@ -6,27 +6,27 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles play card action requests
 type Handler struct {
-	cardService  service.CardService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	playCardActionAction *actions.PlayCardActionAction
+	parser               *utils.MessageParser
+	errorHandler         *utils.ErrorHandler
+	logger               *zap.Logger
 }
 
 // NewHandler creates a new play card action handler
-func NewHandler(cardService service.CardService, parser *utils.MessageParser) *Handler {
+func NewHandler(playCardActionAction *actions.PlayCardActionAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		playCardActionAction: playCardActionAction,
+		parser:               parser,
+		errorHandler:         utils.NewErrorHandler(),
+		logger:               logger.Get(),
 	}
 }
 
@@ -80,10 +80,10 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Execute the play card action with optional choice index and card storage target
-	err := h.cardService.OnPlayCardAction(ctx, gameID, playerID, request.CardID, request.BehaviorIndex, request.ChoiceIndex, request.CardStorageTarget)
+	// Execute the play card action via PlayCardActionAction
+	err := h.playCardActionAction.Execute(ctx, gameID, playerID, request.CardID, request.BehaviorIndex, request.ChoiceIndex, request.CardStorageTarget)
 	if err != nil {
-		h.logger.Warn("Failed to play card action",
+		h.logger.Warn("Failed to play card action via PlayCardActionAction",
 			zap.String("connection_id", connection.ID),
 			zap.String("player_id", playerID),
 			zap.String("card_id", request.CardID),
@@ -93,12 +93,12 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	h.logger.Info("✅ Card action played successfully",
+	h.logger.Info("✅ Card action played successfully via PlayCardActionAction",
 		zap.String("connection_id", connection.ID),
 		zap.String("player_id", playerID),
 		zap.String("card_id", request.CardID),
 		zap.Int("behavior_index", request.BehaviorIndex))
 
-	// The CardService will publish game updated events, so we don't need to send a response here
+	// The PlayCardActionAction will broadcast game state, so we don't need to send a response here
 	// The client will receive the updated game state via the game-updated event
 }

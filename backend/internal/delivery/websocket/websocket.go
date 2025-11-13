@@ -5,6 +5,9 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/game/actions"
+	"terraforming-mars-backend/internal/game/actions/card_selection"
+	"terraforming-mars-backend/internal/game/actions/standard_projects"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -24,16 +27,58 @@ func NewWebSocketService(
 	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
 	adminService service.AdminService,
-	resourceConversionService service.ResourceConversionService,
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
 	hub *core.Hub,
+	buildAquiferAction *standard_projects.BuildAquiferAction,
+	launchAsteroidAction *standard_projects.LaunchAsteroidAction,
+	buildPowerPlantAction *standard_projects.BuildPowerPlantAction,
+	plantGreeneryAction *standard_projects.PlantGreeneryAction,
+	buildCityAction *standard_projects.BuildCityAction,
+	skipAction *actions.SkipAction,
+	convertHeatAction *actions.ConvertHeatToTemperatureAction,
+	convertPlantsAction *actions.ConvertPlantsToGreeneryAction,
+	sellPatentsAction *standard_projects.SellPatentsAction,
+	submitSellPatentsAction *card_selection.SubmitSellPatentsAction,
+	selectStartingCardsAction *card_selection.SelectStartingCardsAction,
+	selectProductionCardsAction *card_selection.SelectProductionCardsAction,
+	confirmCardDrawAction *card_selection.ConfirmCardDrawAction,
+	playCardAction *actions.PlayCardAction,
+	selectTileAction *actions.SelectTileAction,
+	playCardActionAction *actions.PlayCardActionAction,
 ) *WebSocketService {
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, gameService, lobbyService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo)
+	RegisterHandlers(
+		hub,
+		gameService,
+		lobbyService,
+		playerService,
+		standardProjectService,
+		cardService,
+		adminService,
+		gameRepo,
+		playerRepo,
+		cardRepo,
+		buildAquiferAction,
+		launchAsteroidAction,
+		buildPowerPlantAction,
+		plantGreeneryAction,
+		buildCityAction,
+		skipAction,
+		convertHeatAction,
+		convertPlantsAction,
+		sellPatentsAction,
+		submitSellPatentsAction,
+		selectStartingCardsAction,
+		selectProductionCardsAction,
+		confirmCardDrawAction,
+		playCardAction,
+		selectTileAction,
+		playCardActionAction,
+	)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

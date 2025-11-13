@@ -64,9 +64,13 @@ func NewServiceContainer() *ServiceContainer {
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
 	// Initialize game mechanics
-	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
-	turnMechanic := turn.NewService(gameRepo, playerRepo)
-	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	turnRepo := turn.NewRepository(gameRepo, playerRepo)
+	turnMechanic := turn.NewService(turnRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+	productionMechanic := production.NewService(productionRepo)
 
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)

@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -45,20 +43,18 @@ type Service interface {
 	IsOceansMaxed(ctx context.Context, gameID string) (bool, error)
 
 	// Combined operations
-	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
+	GetGlobalParameters(ctx context.Context, gameID string) (GlobalParameters, error)
 }
 
 // ServiceImpl implements the Global Parameters mechanic service
 type ServiceImpl struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	repo Repository // Use local repository abstraction
 }
 
 // NewService creates a new Global Parameters mechanic service
-func NewService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) Service {
+func NewService(repo Repository) Service {
 	return &ServiceImpl{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		repo: repo,
 	}
 }
 
@@ -73,19 +69,19 @@ func (s *ServiceImpl) RaiseTemperature(ctx context.Context, gameID, playerID str
 	}
 
 	// Get current temperature
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get game: %w", err)
+		return 0, fmt.Errorf("failed to get global parameters: %w", err)
 	}
 
-	currentTemp := game.GlobalParameters.Temperature
+	currentTemp := params.Temperature
 	newTemp := currentTemp + (steps * 2) // Each step raises temperature by 2°C
 
 	// Cap at maximum
 	actualSteps := steps
-	if newTemp > model.MaxTemperature {
-		newTemp = model.MaxTemperature
-		actualSteps = (model.MaxTemperature - currentTemp) / 2
+	if newTemp > MaxTemperature {
+		newTemp = MaxTemperature
+		actualSteps = (MaxTemperature - currentTemp) / 2
 	}
 
 	if actualSteps <= 0 {
@@ -94,21 +90,22 @@ func (s *ServiceImpl) RaiseTemperature(ctx context.Context, gameID, playerID str
 	}
 
 	// Update temperature
-	if err := s.gameRepo.UpdateTemperature(ctx, gameID, newTemp); err != nil {
+	params.Temperature = newTemp
+	if err := s.repo.UpdateGlobalParameters(ctx, gameID, params); err != nil {
 		log.Error("Failed to update temperature", zap.Error(err))
 		return 0, fmt.Errorf("failed to update temperature: %w", err)
 	}
 
 	// Award TR for each step
 	if playerID != "" && actualSteps > 0 {
-		player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		playerTR, err := s.repo.GetPlayerTR(ctx, gameID, playerID)
 		if err != nil {
-			log.Error("Failed to get player for TR award", zap.Error(err))
-			return actualSteps, fmt.Errorf("failed to get player: %w", err)
+			log.Error("Failed to get player TR for award", zap.Error(err))
+			return actualSteps, fmt.Errorf("failed to get player TR: %w", err)
 		}
 
-		newTR := player.TerraformRating + actualSteps
-		if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+		newTR := playerTR + actualSteps
+		if err := s.repo.UpdatePlayerTR(ctx, gameID, playerID, newTR); err != nil {
 			log.Error("Failed to award TR for temperature raise", zap.Error(err))
 			return actualSteps, fmt.Errorf("failed to award TR: %w", err)
 		}
@@ -125,12 +122,12 @@ func (s *ServiceImpl) RaiseTemperature(ctx context.Context, gameID, playerID str
 
 // GetTemperature retrieves the current global temperature
 func (s *ServiceImpl) GetTemperature(ctx context.Context, gameID string) (int, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get game: %w", err)
 	}
 
-	return game.GlobalParameters.Temperature, nil
+	return params.Temperature, nil
 }
 
 // IsTemperatureMaxed checks if temperature is at maximum
@@ -140,7 +137,7 @@ func (s *ServiceImpl) IsTemperatureMaxed(ctx context.Context, gameID string) (bo
 		return false, err
 	}
 
-	return temp >= model.MaxTemperature, nil
+	return temp >= MaxTemperature, nil
 }
 
 // RaiseOxygen raises the global oxygen by the specified number of steps.
@@ -154,19 +151,19 @@ func (s *ServiceImpl) RaiseOxygen(ctx context.Context, gameID, playerID string, 
 	}
 
 	// Get current oxygen
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get game: %w", err)
 	}
 
-	currentOxygen := game.GlobalParameters.Oxygen
+	currentOxygen := params.Oxygen
 	newOxygen := currentOxygen + steps
 
 	// Cap at maximum
 	actualSteps := steps
-	if newOxygen > model.MaxOxygen {
-		newOxygen = model.MaxOxygen
-		actualSteps = model.MaxOxygen - currentOxygen
+	if newOxygen > MaxOxygen {
+		newOxygen = MaxOxygen
+		actualSteps = MaxOxygen - currentOxygen
 	}
 
 	if actualSteps <= 0 {
@@ -175,21 +172,22 @@ func (s *ServiceImpl) RaiseOxygen(ctx context.Context, gameID, playerID string, 
 	}
 
 	// Update oxygen
-	if err := s.gameRepo.UpdateOxygen(ctx, gameID, newOxygen); err != nil {
+	params.Oxygen = newOxygen
+	if err := s.repo.UpdateGlobalParameters(ctx, gameID, params); err != nil {
 		log.Error("Failed to update oxygen", zap.Error(err))
 		return 0, fmt.Errorf("failed to update oxygen: %w", err)
 	}
 
 	// Award TR for each step
 	if playerID != "" && actualSteps > 0 {
-		player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		playerTR, err := s.repo.GetPlayerTR(ctx, gameID, playerID)
 		if err != nil {
 			log.Error("Failed to get player for TR award", zap.Error(err))
 			return actualSteps, fmt.Errorf("failed to get player: %w", err)
 		}
 
-		newTR := player.TerraformRating + actualSteps
-		if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+		newTR := playerTR + actualSteps
+		if err := s.repo.UpdatePlayerTR(ctx, gameID, playerID, newTR); err != nil {
 			log.Error("Failed to award TR for oxygen raise", zap.Error(err))
 			return actualSteps, fmt.Errorf("failed to award TR: %w", err)
 		}
@@ -206,12 +204,12 @@ func (s *ServiceImpl) RaiseOxygen(ctx context.Context, gameID, playerID string, 
 
 // GetOxygen retrieves the current global oxygen level
 func (s *ServiceImpl) GetOxygen(ctx context.Context, gameID string) (int, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get game: %w", err)
 	}
 
-	return game.GlobalParameters.Oxygen, nil
+	return params.Oxygen, nil
 }
 
 // IsOxygenMaxed checks if oxygen is at maximum
@@ -221,7 +219,7 @@ func (s *ServiceImpl) IsOxygenMaxed(ctx context.Context, gameID string) (bool, e
 		return false, err
 	}
 
-	return oxygen >= model.MaxOxygen, nil
+	return oxygen >= MaxOxygen, nil
 }
 
 // PlaceOcean places an ocean tile and increments the ocean count.
@@ -231,36 +229,37 @@ func (s *ServiceImpl) PlaceOcean(ctx context.Context, gameID, playerID string) e
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current ocean count
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
-	currentOceans := game.GlobalParameters.Oceans
+	currentOceans := params.Oceans
 
 	// Check if already at maximum
-	if currentOceans >= model.MaxOceans {
+	if currentOceans >= MaxOceans {
 		log.Debug("Oceans already at maximum")
 		return fmt.Errorf("maximum oceans already placed")
 	}
 
 	// Increment ocean count
 	newOceans := currentOceans + 1
-	if err := s.gameRepo.UpdateOceans(ctx, gameID, newOceans); err != nil {
+	params.Oceans = newOceans
+	if err := s.repo.UpdateGlobalParameters(ctx, gameID, params); err != nil {
 		log.Error("Failed to update ocean count", zap.Error(err))
 		return fmt.Errorf("failed to update oceans: %w", err)
 	}
 
 	// Award TR (1 TR per ocean)
 	if playerID != "" {
-		player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		playerTR, err := s.repo.GetPlayerTR(ctx, gameID, playerID)
 		if err != nil {
 			log.Error("Failed to get player for TR award", zap.Error(err))
 			return fmt.Errorf("failed to get player: %w", err)
 		}
 
-		newTR := player.TerraformRating + 1
-		if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+		newTR := playerTR + 1
+		if err := s.repo.UpdatePlayerTR(ctx, gameID, playerID, newTR); err != nil {
 			log.Error("Failed to award TR for ocean placement", zap.Error(err))
 			return fmt.Errorf("failed to award TR: %w", err)
 		}
@@ -276,12 +275,12 @@ func (s *ServiceImpl) PlaceOcean(ctx context.Context, gameID, playerID string) e
 
 // GetOceans retrieves the current ocean count
 func (s *ServiceImpl) GetOceans(ctx context.Context, gameID string) (int, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get game: %w", err)
 	}
 
-	return game.GlobalParameters.Oceans, nil
+	return params.Oceans, nil
 }
 
 // IsOceansMaxed checks if oceans are at maximum
@@ -291,15 +290,15 @@ func (s *ServiceImpl) IsOceansMaxed(ctx context.Context, gameID string) (bool, e
 		return false, err
 	}
 
-	return oceans >= model.MaxOceans, nil
+	return oceans >= MaxOceans, nil
 }
 
 // GetGlobalParameters retrieves all global parameters
-func (s *ServiceImpl) GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+func (s *ServiceImpl) GetGlobalParameters(ctx context.Context, gameID string) (GlobalParameters, error) {
+	params, err := s.repo.GetGlobalParameters(ctx, gameID)
 	if err != nil {
-		return model.GlobalParameters{}, fmt.Errorf("failed to get game: %w", err)
+		return GlobalParameters{}, fmt.Errorf("failed to get game: %w", err)
 	}
 
-	return game.GlobalParameters, nil
+	return params, nil
 }

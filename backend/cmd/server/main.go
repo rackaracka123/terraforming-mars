@@ -14,7 +14,12 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/actions"
+	"terraforming-mars-backend/internal/game/actions/card_selection"
+	"terraforming-mars-backend/internal/game/actions/standard_projects"
+	"terraforming-mars-backend/internal/game/parameters"
 	"terraforming-mars-backend/internal/game/production"
+	"terraforming-mars-backend/internal/game/resources"
 	"terraforming-mars-backend/internal/game/tiles"
 	"terraforming-mars-backend/internal/game/turn"
 	"terraforming-mars-backend/internal/lobby"
@@ -96,27 +101,159 @@ func main() {
 	forcedActionManager.SubscribeToPhaseChanges()
 	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
 
+	// Initialize card manager for card validation and playing
+	cardManager := cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
+	log.Info("🃏 Card manager initialized")
+
+	// Initialize selection manager for card selection operations
+	selectionManager := cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
+	log.Info("📋 Selection manager initialized")
+
 	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
 	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// Initialize game mechanics (isolated, self-contained modules)
-	tilesMechanic := tiles.NewService(gameRepo, playerRepo, boardService, eventBus)
-	turnMechanic := turn.NewService(gameRepo, playerRepo)
-	productionMechanic := production.NewService(gameRepo, playerRepo, cardDeckRepo)
-	log.Info("🔧 Game mechanics initialized (tiles, turn, production)")
+	// Create mechanic-specific repositories
+	resourcesRepo := resources.NewRepository(playerRepo)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	turnRepo := turn.NewRepository(gameRepo, playerRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+
+	// Create mechanic services
+	resourcesMechanic := resources.NewService(resourcesRepo)
+	parametersMechanic := parameters.NewService(parametersRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	turnMechanic := turn.NewService(turnRepo)
+	productionMechanic := production.NewService(productionRepo)
+	log.Info("🔧 Game mechanics initialized (resources, parameters, tiles, turn, production)")
+
+	// Initialize actions (orchestration layer)
+	buildAquiferAction := standard_projects.NewBuildAquiferAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		parametersMechanic,
+		tilesMechanic,
+		sessionManager,
+	)
+	launchAsteroidAction := standard_projects.NewLaunchAsteroidAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		parametersMechanic,
+		sessionManager,
+	)
+	buildPowerPlantAction := standard_projects.NewBuildPowerPlantAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		sessionManager,
+	)
+	plantGreeneryAction := standard_projects.NewPlantGreeneryAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		parametersMechanic,
+		tilesMechanic,
+		sessionManager,
+	)
+	buildCityAction := standard_projects.NewBuildCityAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		tilesMechanic,
+		sessionManager,
+	)
+	skipAction := actions.NewSkipAction(
+		turnMechanic,
+		productionMechanic,
+		sessionManager,
+	)
+	convertHeatAction := actions.NewConvertHeatToTemperatureAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		parametersMechanic,
+		sessionManager,
+	)
+	convertPlantsAction := actions.NewConvertPlantsToGreeneryAction(
+		playerRepo,
+		gameRepo,
+		resourcesMechanic,
+		parametersMechanic,
+		tilesMechanic,
+		sessionManager,
+	)
+
+	// Card-related actions
+	sellPatentsAction := standard_projects.NewSellPatentsAction(
+		playerRepo,
+		sessionManager,
+	)
+	playCardAction := actions.NewPlayCardAction(
+		cardManager,
+		tilesMechanic,
+		gameRepo,
+		playerRepo,
+		cardRepo,
+		sessionManager,
+	)
+	selectTileAction := actions.NewSelectTileAction(
+		playerRepo,
+		gameRepo,
+		tilesMechanic,
+		parametersMechanic,
+		forcedActionManager,
+		sessionManager,
+	)
+	playCardActionAction := actions.NewPlayCardActionAction(
+		cardService,
+		gameRepo,
+		playerRepo,
+		sessionManager,
+	)
+
+	// Card selection actions (not needing gameService)
+	submitSellPatentsAction := card_selection.NewSubmitSellPatentsAction(
+		playerRepo,
+		resourcesMechanic,
+		sessionManager,
+	)
+	confirmCardDrawAction := card_selection.NewConfirmCardDrawAction(
+		playerRepo,
+		resourcesMechanic,
+		forcedActionManager,
+		sessionManager,
+	)
+
+	log.Info("🎬 Actions initialized (aquifer, asteroid, power plant, greenery, city, skip, convert heat, convert plants, sell patents, play card, select tile, play card action, submit sell patents, confirm card draw)")
 
 	// PlayerService needs TileService for processing queues after tile placement
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
 
+	// Card selection actions that need gameService
+	selectStartingCardsAction := card_selection.NewSelectStartingCardsAction(
+		selectionManager,
+		gameRepo,
+		sessionManager,
+	)
+	selectProductionCardsAction := card_selection.NewSelectProductionCardsAction(
+		selectionManager,
+		gameService,
+		sessionManager,
+	)
+	log.Info("🎬 Card selection actions initialized (select starting cards, select production cards)")
+
 	// Initialize lobby service for pre-game operations
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	log.Info("Lobby service initialized for game creation and joining")
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
 	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
 
 	log.Info("Services initialized with new architecture and reconnection system")
@@ -138,7 +275,34 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, lobbyService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	webSocketService := wsHandler.NewWebSocketService(
+		gameService,
+		lobbyService,
+		playerService,
+		standardProjectService,
+		cardService,
+		adminService,
+		gameRepo,
+		playerRepo,
+		cardRepo,
+		hub,
+		buildAquiferAction,
+		launchAsteroidAction,
+		buildPowerPlantAction,
+		plantGreeneryAction,
+		buildCityAction,
+		skipAction,
+		convertHeatAction,
+		convertPlantsAction,
+		sellPatentsAction,
+		submitSellPatentsAction,
+		selectStartingCardsAction,
+		selectProductionCardsAction,
+		confirmCardDrawAction,
+		playCardAction,
+		selectTileAction,
+		playCardActionAction,
+	)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

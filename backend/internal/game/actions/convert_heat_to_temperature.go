@@ -25,11 +25,11 @@ const (
 // - Resources mechanic (deduct heat)
 // - Parameters mechanic (raise temperature, award TR)
 type ConvertHeatToTemperatureAction struct {
-	playerRepo       repository.PlayerRepository
-	gameRepo         repository.GameRepository
-	resourcesMech    resources.Service
-	parametersMech   parameters.Service
-	sessionManager   session.SessionManager
+	playerRepo     repository.PlayerRepository
+	gameRepo       repository.GameRepository
+	resourcesMech  resources.Service
+	parametersMech parameters.Service
+	sessionManager session.SessionManager
 }
 
 // NewConvertHeatToTemperatureAction creates a new heat conversion action
@@ -79,7 +79,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID str
 	}
 
 	// Deduct heat via resources mechanic
-	cost := model.ResourceSet{
+	cost := resources.ResourceSet{
 		Heat: requiredHeat,
 	}
 

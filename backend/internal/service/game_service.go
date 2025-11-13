@@ -43,16 +43,16 @@ type GameService interface {
 
 // GameServiceImpl implements GameService interface
 type GameServiceImpl struct {
-	gameRepo          repository.GameRepository
-	playerRepo        repository.PlayerRepository
-	cardRepo          repository.CardRepository
-	cardService       CardService
-	cardDeckRepo      repository.CardDeckRepository
-	boardService      BoardService
-	sessionManager    session.SessionManager
-	turnMechanic      turn.Service
+	gameRepo           repository.GameRepository
+	playerRepo         repository.PlayerRepository
+	cardRepo           repository.CardRepository
+	cardService        CardService
+	cardDeckRepo       repository.CardDeckRepository
+	boardService       BoardService
+	sessionManager     session.SessionManager
+	turnMechanic       turn.Service
 	productionMechanic production.Service
-	tilesMechanic     tiles.Service
+	tilesMechanic      tiles.Service
 }
 
 // NewGameService creates a new GameService instance

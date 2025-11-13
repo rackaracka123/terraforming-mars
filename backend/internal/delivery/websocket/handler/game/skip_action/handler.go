@@ -6,23 +6,23 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/game/actions"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles skip action requests
 type Handler struct {
-	gameService  service.GameService
+	skipAction   *actions.SkipAction
 	errorHandler *utils.ErrorHandler
 	logger       *zap.Logger
 }
 
 // NewHandler creates a new skip action handler
-func NewHandler(gameService service.GameService) *Handler {
+func NewHandler(skipAction *actions.SkipAction) *Handler {
 	return &Handler{
-		gameService:  gameService,
+		skipAction:   skipAction,
 		errorHandler: utils.NewErrorHandler(),
 		logger:       logger.Get(),
 	}
@@ -61,6 +61,6 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // handle processes the skip action (internal method)
 func (h *Handler) handle(ctx context.Context, gameID, playerID string) error {
-	// Let the service handle all validation and business logic
-	return h.gameService.SkipPlayerTurn(ctx, gameID, playerID)
+	// Let the action handle all validation and business logic
+	return h.skipAction.Execute(ctx, gameID, playerID)
 }
