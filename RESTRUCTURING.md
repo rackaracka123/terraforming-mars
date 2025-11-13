@@ -370,15 +370,16 @@ func (s *Service) Operation2(...) error
    - All mechanics have comprehensive test coverage (44+ tests)
    - All tests passing across entire codebase
 
-✅ **Phase 4 COMPLETE**: Action layer fully established for all resource and turn management
+✅ **Phase 4 COMPLETE**: Action layer fully established for ALL game actions
 
    **Standard Projects** (internal/game/actions/standard_projects/):
-   - Implemented all 5 standard project actions in organized subfolder:
+   - Implemented all 6 standard project actions in organized subfolder:
      * build_aquifer.go - Deduct credits, raise ocean, award TR, queue ocean tile placement
      * launch_asteroid.go - Deduct credits, raise temperature, award TR
      * build_power_plant.go - Deduct credits, increase energy production
      * plant_greenery.go - Deduct credits, raise oxygen, award TR, queue greenery tile placement
      * build_city.go - Deduct credits, increase credit production, queue city tile placement
+     * sell_patents.go - Initiate patent selling by creating pending card selection
 
    **Resource Conversions** (internal/game/actions/):
    - convert_heat_to_temperature.go - Deduct heat (with card discounts), raise temperature, award TR
@@ -387,12 +388,29 @@ func (s *Service) Operation2(...) error
    **Turn Management** (internal/game/actions/):
    - skip_action.go - End player turn, trigger production phase if applicable
 
+   **Card Operations** (internal/game/actions/):
+   - play_card.go - Plays a card from hand (validation, payment, tile queue processing)
+   - select_tile.go - Handles tile placement selection (with plant conversion special case)
+   - play_card_action.go - Plays blue card actions (once per generation validation)
+
+   **Card Selection** (internal/game/actions/card_selection/):
+   - submit_sell_patents.go - Completes patent selling transaction (awards credits, removes cards)
+   - select_starting_cards.go - Starting card/corporation selection (checks all players ready)
+   - select_production_cards.go - Production phase card selection (coordinates multi-player phase)
+   - confirm_card_draw.go - Card draw confirmation (handles free vs paid cards)
+
+   **Infrastructure Additions**:
+   - ✅ Created CardManager interface for card validation and playing
+   - ✅ Created SelectionManager for card selection operations
+   - ✅ Both CardManager and SelectionManager wired up in main.go and test fixtures
+
    **Architecture Achievements**:
-   - ✅ All handlers migrated to use actions instead of services
+   - ✅ ALL 15 WebSocket handlers migrated to use actions instead of services
    - ✅ Established consistent action pattern with dependency injection
    - ✅ Created BoardServiceAdapter to bridge service.BoardService to tiles.BoardService
-   - ✅ Organized standard projects into dedicated subfolder for better structure
-   - ✅ Updated all test fixtures to wire up actions
+   - ✅ Organized actions into logical subfolders (standard_projects/, card_selection/)
+   - ✅ Updated all test fixtures (main.go, test_server.go) to wire up all actions
+   - ✅ Updated registry.go and websocket.go with new action parameters
    - ✅ All tests passing (except pre-existing tiles test issue)
 
    **Pattern Proven**: Actions successfully orchestrate across multiple mechanics:
@@ -401,22 +419,21 @@ func (s *Service) Operation2(...) error
    - ✅ Tiles mechanic: Tile queue creation and processing
    - ✅ Turn mechanic: Phase progression and turn management
    - ✅ Production mechanic: Resource generation at turn end
+   - ✅ Cards mechanic: Card validation, playing, selection management
    - ✅ Zero cross-mechanic dependencies maintained
-   - ✅ Clean separation: handlers → actions → mechanics
+   - ✅ Clean separation: handlers → actions → mechanics → repositories
 
 📋 **Next Steps**:
 
-1. **Phase 4 Continuation**: Card and selection actions
-   - Create card-related actions (play_card, sell_patents, play_card_action)
-   - Create selection actions (select_cards, select_tile, etc.)
+1. **Phase 5**: Implement event-driven effects system
+   - Already functional via CardEffectSubscriber
+   - Document patterns and ensure comprehensive coverage
 
-2. **Phase 5**: Implement event-driven effects system
-
-3. **Phase 6**: Tests & cleanup
-   - Delete old StandardProjectService methods
-   - Delete old ResourceConversionService methods
-   - Clean up unused code
-   - Update documentation
+2. **Phase 6**: Tests & cleanup
+   - Fix pre-existing tiles test issue
+   - Delete old service methods that are now replaced by actions
+   - Clean up unused code paths
+   - Update documentation to reflect new architecture
 
 ## References
 
@@ -426,5 +443,5 @@ func (s *Service) Operation2(...) error
 
 ---
 
-**Last Updated**: 2025-11-12
-**Status**: Phase 3 ENHANCED COMPLETE ✅ | Phase 4 COMPLETE ✅ (Resource & Turn Management Actions)
+**Last Updated**: 2025-11-13
+**Status**: Phase 3 ENHANCED COMPLETE ✅ | Phase 4 COMPLETE ✅ (ALL Actions Implemented)
