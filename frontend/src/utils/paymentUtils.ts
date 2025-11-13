@@ -77,7 +77,6 @@ export function shouldShowPaymentModal(
   // Check if player has any payment substitutes with available resources
   const hasUsableSubstitutes =
     playerSubstitutes &&
-    playerSubstitutes.length > 0 &&
     playerSubstitutes.some((sub) => {
       const resourceType = sub.resourceType;
       // Check if player has this resource available

@@ -35,11 +35,11 @@ make test-watch   # Watch Go files and run tests on changes (requires entr)
 
 ### 🔧 Code Quality
 ```bash
-make lint         # Run all linters (Go fmt + ESLint)
+make lint         # Run all linters (Go fmt + oxlint)
 make format       # Format all code (Go + TypeScript)
 make generate     # Generate TypeScript types from Go structs
 make lint-backend # Go formatting only
-make lint-frontend# ESLint only
+make lint-frontend# oxlint only
 ```
 
 ### 🏗️ Build & Deploy
@@ -564,11 +564,11 @@ cd backend
 make format            # Format Go code with gofmt
 ```
 
-### Frontend Formatting  
+### Frontend Formatting
 ```bash
 cd frontend
-npm run format:write   # Format code with Prettier  
-npm run lint           # Check for ESLint errors
+npm run format:write   # Format code with Prettier
+npm run lint           # Check for oxlint errors
 ```
 
 **Note**: These commands must be run from the respective directories (backend/ and frontend/). Always format both backend and frontend code after any changes, even if you only modified one side, to maintain consistent code quality across the entire codebase.

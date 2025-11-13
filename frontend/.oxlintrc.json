@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "correctness": "warn",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "ignore": [
+    "build/**",
+    "dist/**",
+    "node_modules/**",
+    "*.config.js",
+    "*.config.ts",
+    "vite.config.ts",
+    "src/types/generated/**"
+  ]
+}

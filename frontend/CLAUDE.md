@@ -108,11 +108,11 @@ npm run preview           # Preview production build
 
 ```bash
 # From project root
-make lint-frontend        # Run ESLint
+make lint-frontend        # Run oxlint
 make format               # Format all code
 
 # From frontend/
-npm run lint              # ESLint check
+npm run lint              # oxlint check
 npm run format:write      # Prettier format
 npm run format:check      # Check formatting
 ```
@@ -524,7 +524,7 @@ useEffect(() => {
 
 - **Vite**: Build tool and dev server
 - **TypeScript**: Type safety
-- **ESLint**: Code linting
+- **oxlint**: Fast code linting
 - **Prettier**: Code formatting
 - **Playwright**: End-to-end testing
 
