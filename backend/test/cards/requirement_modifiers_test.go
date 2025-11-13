@@ -1063,3 +1063,113 @@ func TestMixedLenienceAndDiscount(t *testing.T) {
 
 	t.Log("✅ Mixed lenience and discount test passed")
 }
+
+// TestDiscountAppliedDuringValidation tests that discounts are correctly applied during card affordability validation
+func TestDiscountAppliedDuringValidation(t *testing.T) {
+	ctx := context.Background()
+
+	// Setup infrastructure
+	eventBus := events.NewEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus)
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+
+	// Load cards from JSON
+	err := cardRepo.LoadCards(ctx)
+	require.NoError(t, err, "Failed to load cards from JSON")
+
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	cardManager := cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
+
+	// Create game
+	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	require.NoError(t, err)
+	gameID := game.ID
+
+	// Create player with 34 credits (not enough for Soletta's 35 MC cost normally)
+	playerID := "player-1"
+	player := model.Player{
+		ID:   playerID,
+		Name: "Test Player",
+		Resources: model.Resources{
+			Credits: 34, // One credit short of Soletta's 35 MC cost
+		},
+		Cards:   []string{},
+		Effects: []model.PlayerEffect{},
+	}
+	require.NoError(t, playerRepo.Create(ctx, gameID, player))
+
+	// Create Space Station card behavior (discount -2 MC for space tags)
+	spaceStationCard := &model.Card{
+		ID:   "025",
+		Name: "Space Station",
+		Type: model.CardTypeActive,
+		Behaviors: []model.CardBehavior{
+			{
+				Triggers: []model.Trigger{{Type: model.ResourceTriggerAuto}},
+				Outputs: []model.ResourceCondition{
+					{
+						Type:              model.ResourceDiscount,
+						Amount:            -2,
+						Target:            model.TargetSelfPlayer,
+						AffectedTags:      []model.CardTag{model.TagSpace},
+						AffectedResources: []string{string(model.ResourceCredits)},
+					},
+				},
+			},
+		},
+	}
+
+	// Subscribe Space Station effect
+	err = effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, spaceStationCard.ID, spaceStationCard)
+	require.NoError(t, err)
+
+	// Add Soletta (space-tagged card, 35 MC cost) to player's hand
+	solettaID := "203"
+	err = playerRepo.AddCard(ctx, gameID, playerID, solettaID)
+	require.NoError(t, err)
+
+	// Verify discount modifier was created for Soletta
+	player1, err := playerRepo.GetByID(ctx, gameID, playerID)
+	require.NoError(t, err)
+	require.Len(t, player1.RequirementModifiers, 1, "Should have 1 modifier for Soletta")
+
+	modifier := player1.RequirementModifiers[0]
+	assert.Equal(t, -2, modifier.Amount, "Should have -2 MC discount")
+	require.NotNil(t, modifier.CardTarget, "Should target Soletta")
+	assert.Equal(t, solettaID, *modifier.CardTarget)
+
+	// Test 1: Try to play Soletta with only 33 credits payment (should succeed with discount)
+	payment := &model.CardPayment{
+		Credits:  33, // Effective cost after 2 MC discount: 35 - 2 = 33
+		Steel:    0,
+		Titanium: 0,
+	}
+
+	// This should succeed because discount makes card cost 33 MC
+	err = cardManager.CanPlay(ctx, gameID, playerID, solettaID, payment, nil, nil)
+	assert.NoError(t, err, "Should be able to play Soletta with 34 credits when discount reduces cost to 33")
+
+	// Test 2: Try to play with only 32 credits (should fail, even with discount)
+	payment2 := &model.CardPayment{
+		Credits:  32,
+		Steel:    0,
+		Titanium: 0,
+	}
+
+	err = cardManager.CanPlay(ctx, gameID, playerID, solettaID, payment2, nil, nil)
+	assert.Error(t, err, "Should not be able to play Soletta with only 32 credits when discounted cost is 33")
+
+	// Test 3: Try to play with 34 credits (should succeed, overpayment is allowed)
+	payment3 := &model.CardPayment{
+		Credits:  34,
+		Steel:    0,
+		Titanium: 0,
+	}
+
+	err = cardManager.CanPlay(ctx, gameID, playerID, solettaID, payment3, nil, nil)
+	assert.NoError(t, err, "Should be able to play Soletta with 34 credits (overpayment allowed)")
+
+	t.Log("✅ Discount applied during validation test passed")
+}

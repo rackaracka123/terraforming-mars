@@ -299,6 +299,39 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 	return nil
 }
 
+// calculateEffectiveCost calculates the card cost after applying requirement modifiers (discounts)
+func (rv *RequirementsValidator) calculateEffectiveCost(card *model.Card, player *model.Player) int {
+	effectiveCost := card.Cost
+
+	// Apply discounts from requirement modifiers
+	for _, modifier := range player.RequirementModifiers {
+		// Check if this modifier applies to this card
+		if modifier.CardTarget != nil && *modifier.CardTarget == card.ID {
+			// Check if this modifier affects credits (cost discounts)
+			for _, affectedResource := range modifier.AffectedResources {
+				if affectedResource == model.ResourceCredits {
+					// Discount modifiers have negative amounts (e.g., -2 for 2 MC discount)
+					// But the stored amount can be positive representing the discount value
+					// So we subtract the absolute value
+					if modifier.Amount < 0 {
+						effectiveCost += modifier.Amount // Already negative, so this reduces cost
+					} else {
+						effectiveCost -= modifier.Amount // Positive amount means discount, so subtract
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Ensure cost doesn't go below 0
+	if effectiveCost < 0 {
+		effectiveCost = 0
+	}
+
+	return effectiveCost
+}
+
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
@@ -310,12 +343,15 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 
 	// Validate payment for card cost
 	if card.Cost > 0 {
+		// Calculate effective cost after applying discounts
+		effectiveCost := rv.calculateEffectiveCost(card, player)
+
 		// Check if card allows steel (has building tag) or titanium (has space tag)
 		allowSteel := rv.cardHasTag(card, model.TagBuilding)
 		allowTitanium := rv.cardHasTag(card, model.TagSpace)
 
 		// Validate payment format and coverage (including payment substitutes)
-		if err := payment.CoversCardCost(card.Cost, allowSteel, allowTitanium, player.PaymentSubstitutes); err != nil {
+		if err := payment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, player.PaymentSubstitutes); err != nil {
 			// Calculate minimum alternative resources for better error messages
 			minSteel, minTitanium := model.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
 
@@ -398,8 +434,15 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		return fmt.Errorf("production requirement validation failed: %w", err)
 	}
 
+	// Calculate effective cost for logging purposes
+	effectiveCost := card.Cost
+	if card.Cost > 0 {
+		effectiveCost = rv.calculateEffectiveCost(card, player)
+	}
+
 	log.Debug("✅ Card affordability validation passed",
 		zap.Int("card_cost", card.Cost),
+		zap.Int("effective_cost", effectiveCost),
 		zap.Int("payment_credits", payment.Credits),
 		zap.Int("payment_steel", payment.Steel),
 		zap.Int("payment_titanium", payment.Titanium),
