@@ -1,10 +1,33 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import { CardDto, GameDto, PlayerDto } from "@/types/generated/api-types.ts";
+import {
+  CardDto,
+  GameDto,
+  PlayerDto,
+  RequirementModifierDto,
+  ResourceType,
+} from "@/types/generated/api-types.ts";
 import {
   checkCardPlayability,
   UnplayableReason,
 } from "@/utils/cardPlayabilityUtils.ts";
+
+/**
+ * Calculate the total discount applicable to a specific card from player's requirement modifiers
+ */
+function calculateCardDiscount(
+  cardId: string,
+  requirementModifiers: RequirementModifierDto[],
+): number {
+  return requirementModifiers
+    .filter(
+      (mod) =>
+        mod.affectedResources.includes("credits" as ResourceType) &&
+        (!mod.cardTarget || mod.cardTarget === cardId) &&
+        !mod.standardProjectTarget,
+    )
+    .reduce((total, mod) => total + mod.amount, 0);
+}
 
 interface CardFanOverlayProps {
   cards: CardDto[];
@@ -565,9 +588,19 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           >
             <SimpleGameCard
               card={card}
-              isSelected={isHighlighted}
+              isSelected={
+                isHighlighted ||
+                isHovered ||
+                (isDraggedCard &&
+                  isInThrowZone &&
+                  playabilityInfo?.playable === true)
+              }
               onSelect={() => {}} // Handled by parent div click
               animationDelay={0}
+              discountAmount={calculateCardDiscount(
+                card.id,
+                player.requirementModifiers,
+              )}
             />
           </div>
         );
@@ -598,15 +631,11 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         }
 
         .terraforming-card.hovered {
-          box-shadow:
-            0 0 10px rgba(255, 255, 255, 0.2),
-            0 4px 16px rgba(0, 0, 0, 0.3);
+          /* Glow is now handled by SimpleGameCard's isSelected prop */
         }
 
         .terraforming-card.highlighted {
-          box-shadow:
-            0 0 20px rgba(255, 165, 0, 0.8),
-            0 8px 32px rgba(0, 0, 0, 0.6);
+          /* Glow is now handled by SimpleGameCard's isSelected prop */
         }
 
         .terraforming-card.dragged {
@@ -616,10 +645,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         }
 
         .terraforming-card.throw-zone {
-          box-shadow:
-            0 0 30px rgba(0, 255, 100, 0.8),
-            0 8px 40px rgba(0, 255, 100, 0.4);
-          filter: brightness(1.2);
+          /* Glow is now handled by SimpleGameCard's isSelected prop */
+          /* Keeping only the brightness filter for extra visual feedback */
+          filter: brightness(1.15);
         }
 
         .terraforming-card.unplayable-throw-zone {

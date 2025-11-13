@@ -1345,6 +1345,7 @@ export default function GameInterface() {
           isOpen={showPendingCardSelection}
           selection={game.currentPlayer.pendingCardSelection}
           playerCredits={currentPlayer?.resources?.credits || 0}
+          requirementModifiers={currentPlayer?.requirementModifiers || []}
           onSelectCards={handlePendingCardSelection}
         />
       )}
@@ -1355,6 +1356,7 @@ export default function GameInterface() {
           isOpen={showCardDrawSelection}
           selection={game.currentPlayer.pendingCardDrawSelection}
           playerCredits={currentPlayer?.resources?.credits || 0}
+          requirementModifiers={currentPlayer?.requirementModifiers || []}
           onConfirm={handleCardDrawConfirm}
         />
       )}

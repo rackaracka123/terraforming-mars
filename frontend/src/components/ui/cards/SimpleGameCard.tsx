@@ -11,6 +11,7 @@ interface SimpleGameCardProps {
   onSelect: (cardId: string) => void;
   animationDelay?: number;
   showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
+  discountAmount?: number; // Optional discount to apply to card cost
 }
 
 const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
@@ -19,6 +20,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   onSelect,
   animationDelay = 0,
   showCheckbox = false,
+  discountAmount = 0,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -143,13 +145,50 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       )}
 
       {/* Cost in top-left */}
-      <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
-        <GameIcon
-          iconType={ResourceTypeCredits}
-          amount={card.cost}
-          size="medium"
-        />
-      </div>
+      {discountAmount > 0 ? (
+        // Stacked display when discounted
+        <div className="absolute -top-3 -left-3 flex flex-col items-center z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
+          {/* Original cost (faded) */}
+          <div className="grayscale-[0.7]">
+            <GameIcon
+              iconType={ResourceTypeCredits}
+              amount={card.cost}
+              size="medium"
+            />
+          </div>
+          {/* Downward arrow - centered container */}
+          <div className="w-full flex justify-center items-center">
+            <svg
+              width="12"
+              height="8"
+              viewBox="0 0 12 8"
+              className="opacity-70 my-[6px]"
+            >
+              <path
+                d="M6 8 L0 0 L3 0 L6 5 L9 0 L12 0 Z"
+                fill="rgba(76, 175, 80, 0.9)"
+              />
+            </svg>
+          </div>
+          {/* Discounted cost (clear) */}
+          <div>
+            <GameIcon
+              iconType={ResourceTypeCredits}
+              amount={Math.max(0, card.cost - discountAmount)}
+              size="medium"
+            />
+          </div>
+        </div>
+      ) : (
+        // Single icon when no discount
+        <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
+          <GameIcon
+            iconType={ResourceTypeCredits}
+            amount={card.cost}
+            size="medium"
+          />
+        </div>
+      )}
 
       {/* Image area */}
       <div className="absolute top-5 left-4 right-4 h-[35%] bg-white/5 rounded border border-dashed border-white/20 z-[1] overflow-hidden max-md:top-4 max-md:left-3 max-md:right-3">
