@@ -78,7 +78,7 @@ type ForcedFirstAction struct {
 type RequirementModifier struct {
 	Amount                int              `json:"amount"`                          // Modifier amount (discount/lenience value)
 	AffectedResources     []ResourceType   `json:"affectedResources"`               // Resources affected (e.g., ["credits"] for price discount, ["temperature"] for global param)
-	CardTarget            *string          `json:"cardTarget,omitempty"`            // Optional: specific card ID this applies to (nil means applies to multiple cards by tag/type)
+	CardTarget            *string          `json:"cardTarget,omitempty"`            // Optional: specific card ID this applies to
 	StandardProjectTarget *StandardProject `json:"standardProjectTarget,omitempty"` // Optional: specific standard project this applies to
 }
 
