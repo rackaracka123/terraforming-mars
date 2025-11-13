@@ -168,9 +168,10 @@ const (
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual          ResourceTriggerType = "manual"
-	ResourceTriggerAuto            ResourceTriggerType = "auto"
-	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action"
+	ResourceTriggerManual                     ResourceTriggerType = "manual"
+	ResourceTriggerAuto                       ResourceTriggerType = "auto"
+	ResourceTriggerAutoCorporationFirstAction ResourceTriggerType = "auto-corporation-first-action"
+	ResourceTriggerAutoCorporationStart       ResourceTriggerType = "auto-corporation-start"
 )
 
 // ResourceSet represents a collection of resources and their amounts
@@ -338,6 +339,15 @@ type PaymentSubstituteDto struct {
 	ConversionRate int          `json:"conversionRate" ts:"number"`
 }
 
+// RequirementModifierDto represents a discount or lenience that modifies card/standard project requirements
+// These are calculated from player effects and automatically updated when card hand or effects change
+type RequirementModifierDto struct {
+	Amount                int              `json:"amount" ts:"number"`                                               // Modifier amount (discount/lenience value)
+	AffectedResources     []ResourceType   `json:"affectedResources" ts:"ResourceType[]"`                            // Resources affected (e.g., ["credits"] for price discount)
+	CardTarget            *string          `json:"cardTarget,omitempty" ts:"string | undefined"`                     // Optional: specific card ID this applies to
+	StandardProjectTarget *StandardProject `json:"standardProjectTarget,omitempty" ts:"StandardProject | undefined"` // Optional: specific standard project this applies to
+}
+
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption
 // Aligned with PlayerActionDto structure for consistent behavior handling
 type PlayerEffectDto struct {
@@ -434,6 +444,8 @@ type PlayerDto struct {
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
 	// Payment substitutes - alternative resources usable as payment for credits
 	PaymentSubstitutes []PaymentSubstituteDto `json:"paymentSubstitutes" ts:"PaymentSubstituteDto[]"` // Alternative resources usable as payment
+	// Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
+	RequirementModifiers []RequirementModifierDto `json:"requirementModifiers" ts:"RequirementModifierDto[]"` // Calculated discounts/leniences for cards and standard projects
 }
 
 // OtherPlayerDto represents another player from the viewing player's perspective (limited data)

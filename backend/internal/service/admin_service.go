@@ -448,20 +448,17 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	// Extract and apply payment substitutes from corporation behaviors
 	paymentSubstitutes := []model.PaymentSubstitute{}
 	for _, behavior := range corporationCard.Behaviors {
-		// Look for auto-trigger behaviors without conditions (starting bonuses)
-		hasAutoTrigger := false
-		hasCondition := false
+		// Look for corporation starting bonuses (auto-corporation-start trigger)
+		isStartingBonus := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto {
-				hasAutoTrigger = true
-				if trigger.Condition != nil {
-					hasCondition = true
-				}
+			if trigger.Type == model.ResourceTriggerAutoCorporationStart {
+				isStartingBonus = true
+				break
 			}
 		}
 
-		// Only process auto behaviors without conditions (starting bonuses)
-		if !hasAutoTrigger || hasCondition {
+		// Only process starting bonuses
+		if !isStartingBonus {
 			continue
 		}
 
@@ -493,6 +490,23 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 		log.Debug("💰 Payment substitutes applied",
 			zap.Int("substitutes_count", len(paymentSubstitutes)))
 	}
+
+	// Unsubscribe old corporation effects before subscribing new ones
+	if player.Corporation != nil && s.effectSubscriber != nil {
+		if err := s.effectSubscriber.UnsubscribeCardEffects(player.Corporation.ID); err != nil {
+			log.Warn("Failed to unsubscribe old corporation effects", zap.Error(err))
+			// Don't fail, just log warning
+		}
+		log.Debug("🧹 Old corporation effects unsubscribed",
+			zap.String("old_corporation", player.Corporation.Name))
+	}
+
+	// Clear all player effects (will be re-added when subscribing new corporation)
+	if err := s.playerRepo.UpdatePlayerEffects(ctx, gameID, playerID, []model.PlayerEffect{}); err != nil {
+		log.Error("Failed to clear player effects", zap.Error(err))
+		return fmt.Errorf("failed to clear player effects: %w", err)
+	}
+	log.Debug("🧹 Player effects cleared")
 
 	// Subscribe corporation passive effects using CardEffectSubscriber (event-driven system)
 	if s.effectSubscriber != nil {
@@ -529,21 +543,17 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 		}
 	}
 
+	// Clear all player manual actions (will be replaced with new corporation's actions)
+	if err := s.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, []model.PlayerAction{}); err != nil {
+		log.Error("Failed to clear player actions", zap.Error(err))
+		return fmt.Errorf("failed to clear player actions: %w", err)
+	}
+	log.Debug("🧹 Player manual actions cleared")
+
 	// Add manual actions to player if any were found
 	if len(manualActions) > 0 {
-		// Get current player state to append to existing actions
-		currentPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
-		if err != nil {
-			return fmt.Errorf("failed to get player for actions update: %w", err)
-		}
-
-		// Create new actions list with existing + new corporation actions
-		newActions := make([]model.PlayerAction, len(currentPlayer.Actions)+len(manualActions))
-		copy(newActions, currentPlayer.Actions)
-		copy(newActions[len(currentPlayer.Actions):], manualActions)
-
-		// Update player with new actions
-		if err := s.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, newActions); err != nil {
+		// Update player with new corporation actions
+		if err := s.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, manualActions); err != nil {
 			return fmt.Errorf("failed to update player manual actions: %w", err)
 		}
 
@@ -601,7 +611,7 @@ func (s *AdminServiceImpl) extractForcedFirstAction(corporation *model.Card) *mo
 	for _, behavior := range corporation.Behaviors {
 		// Check if this behavior has a forced first action trigger
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 				// Determine action type from outputs
 				actionType := s.determineActionType(behavior.Outputs)
 				description := s.generateForcedActionDescription(behavior.Outputs)

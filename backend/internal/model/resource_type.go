@@ -76,6 +76,8 @@ const (
 	ResourceVenus ResourceType = "venus"
 	// ResourceTR represents terraform Rating change
 	ResourceTR ResourceType = "tr"
+	// ResourceGlobalParameter represents any global parameter (for leniences/requirements)
+	ResourceGlobalParameter ResourceType = "global-parameter"
 
 	// Production resources (for spending production)
 

@@ -27,7 +27,6 @@ func setupPlayerServiceTest(t *testing.T) (
 	boardService := service.NewBoardService()
 	sessionManager := test.NewMockSessionManager()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -35,6 +34,8 @@ func setupPlayerServiceTest(t *testing.T) (
 	if err != nil {
 		t.Fatal("Failed to load card data:", err)
 	}
+
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	cardDeckRepo := repository.NewCardDeckRepository()
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)

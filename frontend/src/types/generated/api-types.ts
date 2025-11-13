@@ -476,8 +476,10 @@ export const TriggerTilePlaced: TriggerType = "tile-placed";
 export type ResourceTriggerType = string;
 export const ResourceTriggerManual: ResourceTriggerType = "manual";
 export const ResourceTriggerAuto: ResourceTriggerType = "auto";
-export const ResourceTriggerAutoFirstAction: ResourceTriggerType =
-  "auto-first-action";
+export const ResourceTriggerAutoCorporationFirstAction: ResourceTriggerType =
+  "auto-corporation-first-action";
+export const ResourceTriggerAutoCorporationStart: ResourceTriggerType =
+  "auto-corporation-start";
 /**
  * ResourceSet represents a collection of resources and their amounts
  */
@@ -658,6 +660,16 @@ export interface PaymentSubstituteDto {
   conversionRate: number /* int */;
 }
 /**
+ * RequirementModifierDto represents a discount or lenience that modifies card/standard project requirements
+ * These are calculated from player effects and automatically updated when card hand or effects change
+ */
+export interface RequirementModifierDto {
+  amount: number /* int */; // Modifier amount (discount/lenience value)
+  affectedResources: ResourceType[]; // Resources affected (e.g., ["credits"] for price discount)
+  cardTarget?: string; // Optional: specific card ID this applies to
+  standardProjectTarget?: StandardProject; // Optional: specific standard project this applies to
+}
+/**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
  * Aligned with PlayerActionDto structure for consistent behavior handling
  */
@@ -771,6 +783,10 @@ export interface PlayerDto {
    * Payment substitutes - alternative resources usable as payment for credits
    */
   paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
+  /**
+   * Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
+   */
+  requirementModifiers: RequirementModifierDto[]; // Calculated discounts/leniences for cards and standard projects
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)

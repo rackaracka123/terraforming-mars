@@ -135,6 +135,7 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 		ForcedFirstAction:        ToForcedFirstActionDto(player.ForcedFirstAction),
 		ResourceStorage:          player.ResourceStorage,
 		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes),
+		RequirementModifiers:     ToRequirementModifierDtoSlice(player.RequirementModifiers),
 	}
 }
 
@@ -228,6 +229,49 @@ func ToPaymentSubstituteDtoSlice(substitutes []model.PaymentSubstitute) []Paymen
 	result := make([]PaymentSubstituteDto, len(substitutes))
 	for i, substitute := range substitutes {
 		result[i] = ToPaymentSubstituteDto(substitute)
+	}
+	return result
+}
+
+// ToRequirementModifierDto converts model RequirementModifier to RequirementModifierDto
+func ToRequirementModifierDto(modifier model.RequirementModifier) RequirementModifierDto {
+	// Convert affected resources slice
+	affectedResources := make([]ResourceType, len(modifier.AffectedResources))
+	for i, res := range modifier.AffectedResources {
+		affectedResources[i] = ResourceType(res)
+	}
+
+	// Convert card target pointer if exists
+	var cardTarget *string
+	if modifier.CardTarget != nil {
+		val := *modifier.CardTarget
+		cardTarget = &val
+	}
+
+	// Convert standard project target pointer if exists
+	var standardProjectTarget *StandardProject
+	if modifier.StandardProjectTarget != nil {
+		val := StandardProject(*modifier.StandardProjectTarget)
+		standardProjectTarget = &val
+	}
+
+	return RequirementModifierDto{
+		Amount:                modifier.Amount,
+		AffectedResources:     affectedResources,
+		CardTarget:            cardTarget,
+		StandardProjectTarget: standardProjectTarget,
+	}
+}
+
+// ToRequirementModifierDtoSlice converts a slice of model RequirementModifier to RequirementModifierDto slice
+func ToRequirementModifierDtoSlice(modifiers []model.RequirementModifier) []RequirementModifierDto {
+	if modifiers == nil {
+		return []RequirementModifierDto{}
+	}
+
+	result := make([]RequirementModifierDto, len(modifiers))
+	for i, modifier := range modifiers {
+		result[i] = ToRequirementModifierDto(modifier)
 	}
 	return result
 }
@@ -687,7 +731,7 @@ func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 		// Check if this is an auto-first-action that has already been played
 		isAutoFirstAction := false
 		if len(action.Behavior.Triggers) > 0 {
-			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoFirstAction
+			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoCorporationFirstAction
 		}
 
 		// Skip auto-first-actions that have been used

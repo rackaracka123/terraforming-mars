@@ -9714,7 +9714,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -9770,7 +9770,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -9821,7 +9821,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -9866,7 +9866,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -9914,7 +9914,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -9928,7 +9928,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -9970,7 +9970,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10024,7 +10024,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10069,7 +10069,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10083,7 +10083,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -10146,7 +10146,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10205,7 +10205,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10251,7 +10251,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -10295,7 +10295,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -12032,7 +12032,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -12071,7 +12071,7 @@
       {
         "triggers": [
           {
-            "type": "auto",
+            "type": "auto-corporation-start",
             "condition": {
               "type": "card-played",
               "affectedTags": ["plant", "animal"],
@@ -12136,7 +12136,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -12170,7 +12170,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -12209,7 +12209,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -13549,7 +13549,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -13594,7 +13594,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -13637,7 +13637,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -13732,7 +13732,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -13761,7 +13761,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -13791,7 +13791,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14232,7 +14232,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14294,7 +14294,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14338,7 +14338,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14363,7 +14363,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14402,7 +14402,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14530,7 +14530,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14574,7 +14574,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14588,7 +14588,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -14644,7 +14644,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14758,7 +14758,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -14772,7 +14772,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -14811,7 +14811,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16438,7 +16438,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16482,7 +16482,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "choices": [
@@ -16548,7 +16548,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16562,7 +16562,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -16601,7 +16601,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16662,7 +16662,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16720,7 +16720,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16734,7 +16734,7 @@
       {
         "triggers": [
           {
-            "type": "auto-first-action"
+            "type": "auto-corporation-first-action"
           }
         ],
         "outputs": [
@@ -16822,7 +16822,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [
@@ -16942,7 +16942,7 @@
       {
         "triggers": [
           {
-            "type": "auto"
+            "type": "auto-corporation-start"
           }
         ],
         "outputs": [

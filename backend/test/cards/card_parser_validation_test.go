@@ -743,7 +743,7 @@ func TestAutoFirstActionOnlyOnCorporations(t *testing.T) {
 	for _, card := range cards {
 		for behaviorIdx, behavior := range card.Behaviors {
 			for triggerIdx, trigger := range behavior.Triggers {
-				if trigger.Type == model.ResourceTriggerAutoFirstAction {
+				if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 					// Check if this card is a corporation
 					if card.Type != model.CardTypeCorporation {
 						violations = append(violations,

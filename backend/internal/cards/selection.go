@@ -406,7 +406,7 @@ func (s *SelectionManager) extractForcedFirstAction(corporation *model.Card) *mo
 	for _, behavior := range corporation.Behaviors {
 		// Check if this behavior has a forced first action trigger
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 				// Determine action type from outputs
 				actionType := s.determineActionType(behavior.Outputs)
 				description := s.generateForcedActionDescription(behavior.Outputs)
@@ -617,7 +617,7 @@ func (s *SelectionManager) applyCorporationSelection(ctx context.Context, gameID
 			if trigger.Type == model.ResourceTriggerManual {
 				hasManualTrigger = true
 			}
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
 				isAutoFirstAction = true
 			}
 		}

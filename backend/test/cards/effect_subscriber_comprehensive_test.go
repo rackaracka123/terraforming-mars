@@ -18,7 +18,8 @@ func TestEffectSubscriberTemperatureRaise(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -97,7 +98,8 @@ func TestEffectSubscriberOxygenRaise(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -176,7 +178,8 @@ func TestEffectSubscriberOceanPlaced(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -255,7 +258,8 @@ func TestEffectSubscriberMultipleEffectsOnSameCard(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -361,7 +365,8 @@ func TestEffectSubscriberUnsubscribeStopsTriggering(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -459,7 +464,8 @@ func TestEffectSubscriberNoAutoTriggerIgnored(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game and player
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -515,7 +521,8 @@ func TestEffectSubscriberMultiplePlayersIndependent(t *testing.T) {
 	eventBus := events.NewEventBus()
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
+	cardRepo := repository.NewCardRepository()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})

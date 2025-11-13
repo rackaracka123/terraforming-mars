@@ -4,13 +4,33 @@ import GameIcon from "../display/GameIcon.tsx";
 import {
   CardDto,
   PendingCardDrawSelectionDto,
+  RequirementModifierDto,
+  ResourceType,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
+
+/**
+ * Calculate the total discount applicable to a specific card from player's requirement modifiers
+ */
+function calculateCardDiscount(
+  cardId: string,
+  requirementModifiers: RequirementModifierDto[],
+): number {
+  return requirementModifiers
+    .filter(
+      (mod) =>
+        mod.affectedResources.includes("credits" as ResourceType) &&
+        (!mod.cardTarget || mod.cardTarget === cardId) &&
+        !mod.standardProjectTarget,
+    )
+    .reduce((total, mod) => total + mod.amount, 0);
+}
 
 interface CardDrawSelectionOverlayProps {
   isOpen: boolean;
   selection: PendingCardDrawSelectionDto;
   playerCredits: number;
+  requirementModifiers?: RequirementModifierDto[];
   onConfirm: (cardsToTake: string[], cardsToBuy: string[]) => void;
 }
 
@@ -18,6 +38,7 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
   isOpen,
   selection,
   playerCredits,
+  requirementModifiers = [],
   onConfirm,
 }) => {
   const [cardsToTake, setCardsToTake] = useState<string[]>([]);
@@ -212,6 +233,10 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
                     onSelect={handleCardSelect}
                     animationDelay={index * 100}
                     showCheckbox={!isCardDraw}
+                    discountAmount={calculateCardDiscount(
+                      card.id,
+                      requirementModifiers,
+                    )}
                   />
                   {/* FREE Badge - only show for cards in free take list */}
                   {!isCardDraw && badge.type === "free" && (

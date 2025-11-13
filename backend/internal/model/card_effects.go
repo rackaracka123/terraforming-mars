@@ -16,6 +16,8 @@ const (
 	TriggerProductionIncreased   TriggerType = "production-increased"
 	TriggerPlacementBonusGained  TriggerType = "placement-bonus-gained"
 	TriggerAlwaysActive          TriggerType = "always-active"
+	TriggerCardHandUpdated       TriggerType = "card-hand-updated"      // When player's card hand changes (cards added/removed)
+	TriggerPlayerEffectsChanged  TriggerType = "player-effects-changed" // When player's effects list changes
 )
 
 // TerraformingActions represents tile placement actions
@@ -350,6 +352,7 @@ type ResourceCondition struct {
 	Target                   TargetType        `json:"target" ts:"TargetType"`                                                // Target for this resource condition
 	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`                 // For defense: resources being protected
 	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                     // For discount: tags qualifying for discount
+	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`               // For discount/effects: card types qualifying
 	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"` // For discount: standard projects affected
 	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`                          // Max times it can trigger (-1 = unlimited), only for "per" conditions
 	Per                      *PerCondition     `json:"per,omitempty" ts:"PerCondition | undefined"`                           // For conditional gains: what to count
@@ -359,9 +362,10 @@ type ResourceCondition struct {
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual          ResourceTriggerType = "manual"            // Manual activation (actions)
-	ResourceTriggerAuto            ResourceTriggerType = "auto"              // Automatic activation (effects, immediate)
-	ResourceTriggerAutoFirstAction ResourceTriggerType = "auto-first-action" // Automatic forced first action (corporations only)
+	ResourceTriggerManual                     ResourceTriggerType = "manual"                        // Manual activation (actions)
+	ResourceTriggerAuto                       ResourceTriggerType = "auto"                          // Automatic activation (effects, immediate)
+	ResourceTriggerAutoCorporationFirstAction ResourceTriggerType = "auto-corporation-first-action" // Automatic forced first action (corporations only)
+	ResourceTriggerAutoCorporationStart       ResourceTriggerType = "auto-corporation-start"        // Starting bonuses for corporations (not an effect)
 )
 
 // MinMaxValue represents a minimum and/or maximum value constraint
