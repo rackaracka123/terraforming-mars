@@ -101,7 +101,7 @@ lint-backend:
 	@echo "✅ Backend formatting complete"
 
 lint-frontend:
-	@echo "🔍 Running frontend linting (ESLint)..."
+	@echo "🔍 Running frontend linting (oxlint)..."
 	cd frontend && npm run lint
 	@echo "✅ Frontend linting complete"
 

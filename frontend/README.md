@@ -35,7 +35,7 @@ Launches the test runner in interactive watch mode.
 
 ### Code Quality
 ```bash
-npm run lint          # Check for ESLint errors
+npm run lint          # Check for oxlint errors
 npm run format:write  # Format code with Prettier
 ```
 
@@ -102,7 +102,7 @@ tygo generate
 This updates `src/types/generated/` with latest backend types.
 
 ### Code Quality Standards
-- **ESLint**: Enforces code quality and consistency
+- **oxlint**: Fast linting for code quality and consistency
 - **Prettier**: Automatic code formatting
 - **TypeScript**: Strict typing with generated backend types
 - **No Console Logs**: Use `console.warn` or `console.error` only
