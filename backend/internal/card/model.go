@@ -1,4 +1,158 @@
-package model
+package card
+
+
+// CardType represents different types of cards in Terraforming Mars
+type CardType string
+
+const (
+	CardTypeAutomated   CardType = "automated"   // Green cards - immediate effects, production bonuses (was "effect")
+	CardTypeActive      CardType = "active"      // Blue cards - ongoing effects, repeatable actions
+	CardTypeEvent       CardType = "event"       // Red cards - one-time effects
+	CardTypeCorporation CardType = "corporation" // Corporation cards - unique player abilities
+	CardTypePrelude     CardType = "prelude"     // Prelude cards - setup phase cards
+)
+
+// ProductionEffects represents changes to resource production
+type ProductionEffects struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// Card represents a game card
+type Card struct {
+	ID              string                  `json:"id" ts:"string"`
+	Name            string                  `json:"name" ts:"string"`
+	Type            CardType                `json:"type" ts:"CardType"`
+	Cost            int                     `json:"cost" ts:"number"`
+	Description     string                  `json:"description" ts:"string"`
+	Pack            string                  `json:"pack" ts:"string"` // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
+	Tags            []CardTag               `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    []Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
+	Behaviors       []CardBehavior          `json:"behaviors,omitempty" ts:"CardBehavior[] | undefined"`             // All card behaviors (immediate and repeatable)
+	ResourceStorage *ResourceStorage        `json:"resourceStorage,omitempty" ts:"ResourceStorage | undefined"`      // Cards that can hold resources
+	VPConditions    []VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"` // VP per X conditions
+
+	// Corporation-specific fields (nil for non-corporation cards)
+	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
+	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
+}
+
+// DeepCopy creates a deep copy of the Card
+func (c Card) DeepCopy() Card {
+	// Copy slices
+	tags := make([]CardTag, len(c.Tags))
+	copy(tags, c.Tags)
+
+	requirements := make([]Requirement, len(c.Requirements))
+	copy(requirements, c.Requirements)
+
+	behaviors := make([]CardBehavior, len(c.Behaviors))
+	for i, behavior := range c.Behaviors {
+		behaviors[i] = behavior.DeepCopy()
+	}
+
+	vpConditions := make([]VictoryPointCondition, len(c.VPConditions))
+	copy(vpConditions, c.VPConditions)
+
+	// Copy resource storage
+	var resourceStorage *ResourceStorage
+	if c.ResourceStorage != nil {
+		rs := *c.ResourceStorage
+		resourceStorage = &rs
+	}
+
+	// Copy corporation-specific fields
+	var startingResources *ResourceSet
+	if c.StartingResources != nil {
+		rs := *c.StartingResources
+		startingResources = &rs
+	}
+
+	var startingProduction *ResourceSet
+	if c.StartingProduction != nil {
+		sp := *c.StartingProduction
+		startingProduction = &sp
+	}
+
+	return Card{
+		ID:                 c.ID,
+		Name:               c.Name,
+		Type:               c.Type,
+		Cost:               c.Cost,
+		Description:        c.Description,
+		Pack:               c.Pack,
+		Tags:               tags,
+		Requirements:       requirements,
+		Behaviors:          behaviors,
+		ResourceStorage:    resourceStorage,
+		VPConditions:       vpConditions,
+		StartingResources:  startingResources,
+		StartingProduction: startingProduction,
+	}
+}
+
+
+// CardTag represents different card categories and attributes
+type CardTag string
+
+const (
+	TagSpace    CardTag = "space"
+	TagEarth    CardTag = "earth"
+	TagScience  CardTag = "science"
+	TagPower    CardTag = "power"
+	TagBuilding CardTag = "building"
+	TagMicrobe  CardTag = "microbe"
+	TagAnimal   CardTag = "animal"
+	TagPlant    CardTag = "plant"
+	TagEvent    CardTag = "event"
+	TagCity     CardTag = "city"
+	TagVenus    CardTag = "venus"
+	TagJovian   CardTag = "jovian"
+	TagWildlife CardTag = "wildlife"
+	TagWild     CardTag = "wild"
+)
+
+// ResourceSet represents a collection of resources and their amounts
+type ResourceSet struct {
+	Credits  int `json:"credits,omitempty" ts:"number"`
+	Steel    int `json:"steel,omitempty" ts:"number"`
+	Titanium int `json:"titanium,omitempty" ts:"number"`
+	Plants   int `json:"plants,omitempty" ts:"number"`
+	Energy   int `json:"energy,omitempty" ts:"number"`
+	Heat     int `json:"heat,omitempty" ts:"number"`
+}
+
+// CardRequirements defines what conditions must be met to play a card
+type CardRequirements struct {
+	// MinTemperature is the minimum global temperature required (-30 to +8)
+	MinTemperature *int `json:"minTemperature,omitempty" ts:"number | undefined"`
+
+	// MaxTemperature is the maximum global temperature allowed (-30 to +8)
+	MaxTemperature *int `json:"maxTemperature,omitempty" ts:"number | undefined"`
+
+	// MinOxygen is the minimum oxygen percentage required (0-14)
+	MinOxygen *int `json:"minOxygen,omitempty" ts:"number | undefined"`
+
+	// MaxOxygen is the maximum oxygen percentage allowed (0-14)
+	MaxOxygen *int `json:"maxOxygen,omitempty" ts:"number | undefined"`
+
+	// MinOceans is the minimum number of ocean tiles required (0-9)
+	MinOceans *int `json:"minOceans,omitempty" ts:"number | undefined"`
+
+	// MaxOceans is the maximum number of ocean tiles allowed (0-9)
+	MaxOceans *int `json:"maxOceans,omitempty" ts:"number | undefined"`
+
+	// RequiredTags are tags that the player must have from played cards
+	RequiredTags []CardTag `json:"requiredTags,omitempty" ts:"CardTag[] | undefined"`
+
+	// RequiredProduction specifies minimum production requirements
+	RequiredProduction *ResourceSet `json:"requiredProduction,omitempty" ts:"ResourceSet | undefined"`
+}
+
 
 // TriggerType represents different trigger conditions
 type TriggerType string
@@ -404,4 +558,151 @@ type EffectContext struct {
 	TagType            *CardTag      `json:"tagType" ts:"CardTag | null"`            // Tag type for tag-played events
 	TileType           *ResourceType `json:"tileType" ts:"ResourceType | null"`      // Type of tile placed (city, ocean, greenery)
 	ParameterChange    *int          `json:"parameterChange" ts:"number | null"`     // Amount of parameter change (temperature, oxygen)
+}
+
+
+// CardSelection represents the card selection phase data
+type CardSelection struct {
+	PlayerCardOptions            []PlayerCardOptions `json:"playerCardOptions" ts:"PlayerCardOptions[]"`
+	PlayersWhoCompletedSelection []string            `json:"playersWhoCompletedSelection" ts:"string[]"`
+}
+
+
+// PlayerCardOptions represents the card options for a specific player
+type PlayerCardOptions struct {
+	PlayerID    string   `json:"playerId" ts:"string"`
+	CardOptions []string `json:"cardOptions" ts:"string[]"`
+}
+
+// PlayerAction represents an action that a player can take, typically from a card with manual triggers
+type PlayerAction struct {
+	CardID        string       `json:"cardId" ts:"string"`         // ID of the card that provides this action
+	CardName      string       `json:"cardName" ts:"string"`       // Name of the card for display purposes
+	BehaviorIndex int          `json:"behaviorIndex" ts:"number"`  // Which behavior on the card this action represents
+	Behavior      CardBehavior `json:"behavior" ts:"CardBehavior"` // The actual behavior definition with inputs/outputs
+	PlayCount     int          `json:"playCount" ts:"number"`      // Number of times this action has been played this generation
+}
+
+// DeepCopy creates a deep copy of the PlayerAction
+func (pa *PlayerAction) DeepCopy() *PlayerAction {
+	if pa == nil {
+		return nil
+	}
+
+	// Deep copy the behavior
+	var behaviorCopy CardBehavior
+
+	// Copy triggers slice
+	if pa.Behavior.Triggers != nil {
+		behaviorCopy.Triggers = make([]Trigger, len(pa.Behavior.Triggers))
+		for i, trigger := range pa.Behavior.Triggers {
+			behaviorCopy.Triggers[i] = Trigger{
+				Type: trigger.Type,
+			}
+			// Deep copy condition if it exists
+			if trigger.Condition != nil {
+				conditionCopy := &ResourceTriggerCondition{
+					Type:     trigger.Condition.Type,
+					Location: trigger.Condition.Location,
+				}
+				// Copy affected tags slice
+				if trigger.Condition.AffectedTags != nil {
+					conditionCopy.AffectedTags = make([]CardTag, len(trigger.Condition.AffectedTags))
+					copy(conditionCopy.AffectedTags, trigger.Condition.AffectedTags)
+				}
+				behaviorCopy.Triggers[i].Condition = conditionCopy
+			}
+		}
+	}
+
+	// Copy inputs slice
+	if pa.Behavior.Inputs != nil {
+		behaviorCopy.Inputs = make([]ResourceCondition, len(pa.Behavior.Inputs))
+		for i, input := range pa.Behavior.Inputs {
+			behaviorCopy.Inputs[i] = ResourceCondition{
+				Type:       input.Type,
+				Amount:     input.Amount,
+				Target:     input.Target,
+				MaxTrigger: input.MaxTrigger,
+			}
+			// Copy affected resources slice
+			if input.AffectedResources != nil {
+				behaviorCopy.Inputs[i].AffectedResources = make([]string, len(input.AffectedResources))
+				copy(behaviorCopy.Inputs[i].AffectedResources, input.AffectedResources)
+			}
+			// Copy affected tags slice
+			if input.AffectedTags != nil {
+				behaviorCopy.Inputs[i].AffectedTags = make([]CardTag, len(input.AffectedTags))
+				copy(behaviorCopy.Inputs[i].AffectedTags, input.AffectedTags)
+			}
+			// Deep copy per condition if it exists
+			if input.Per != nil {
+				behaviorCopy.Inputs[i].Per = &PerCondition{
+					Type:     input.Per.Type,
+					Amount:   input.Per.Amount,
+					Location: input.Per.Location,
+					Target:   input.Per.Target,
+					Tag:      input.Per.Tag,
+				}
+			}
+		}
+	}
+
+	// Copy outputs slice
+	if pa.Behavior.Outputs != nil {
+		behaviorCopy.Outputs = make([]ResourceCondition, len(pa.Behavior.Outputs))
+		for i, output := range pa.Behavior.Outputs {
+			behaviorCopy.Outputs[i] = ResourceCondition{
+				Type:       output.Type,
+				Amount:     output.Amount,
+				Target:     output.Target,
+				MaxTrigger: output.MaxTrigger,
+			}
+			// Copy affected resources slice
+			if output.AffectedResources != nil {
+				behaviorCopy.Outputs[i].AffectedResources = make([]string, len(output.AffectedResources))
+				copy(behaviorCopy.Outputs[i].AffectedResources, output.AffectedResources)
+			}
+			// Copy affected tags slice
+			if output.AffectedTags != nil {
+				behaviorCopy.Outputs[i].AffectedTags = make([]CardTag, len(output.AffectedTags))
+				copy(behaviorCopy.Outputs[i].AffectedTags, output.AffectedTags)
+			}
+			// Deep copy per condition if it exists
+			if output.Per != nil {
+				behaviorCopy.Outputs[i].Per = &PerCondition{
+					Type:     output.Per.Type,
+					Amount:   output.Per.Amount,
+					Location: output.Per.Location,
+					Target:   output.Per.Target,
+					Tag:      output.Per.Tag,
+				}
+			}
+		}
+	}
+
+	// Copy choices slice
+	if pa.Behavior.Choices != nil {
+		behaviorCopy.Choices = make([]Choice, len(pa.Behavior.Choices))
+		for i, choice := range pa.Behavior.Choices {
+			// Copy inputs slice for this choice
+			if choice.Inputs != nil {
+				behaviorCopy.Choices[i].Inputs = make([]ResourceCondition, len(choice.Inputs))
+				copy(behaviorCopy.Choices[i].Inputs, choice.Inputs)
+			}
+			// Copy outputs slice for this choice
+			if choice.Outputs != nil {
+				behaviorCopy.Choices[i].Outputs = make([]ResourceCondition, len(choice.Outputs))
+				copy(behaviorCopy.Choices[i].Outputs, choice.Outputs)
+			}
+		}
+	}
+
+	return &PlayerAction{
+		CardID:        pa.CardID,
+		CardName:      pa.CardName,
+		BehaviorIndex: pa.BehaviorIndex,
+		Behavior:      behaviorCopy,
+		PlayCount:     pa.PlayCount,
+	}
 }

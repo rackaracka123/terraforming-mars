@@ -1,4 +1,4 @@
-package model
+package player
 
 import (
 	"terraforming-mars-backend/internal/features/production"
@@ -10,12 +10,12 @@ import (
 // ProductionPhase contains production phase state for display only
 // Actual card selection state is managed by production feature service
 type ProductionPhase struct {
-	AvailableCards    []string  `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
-	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
-	BeforeResources   Resources `json:"beforeResources" ts:"ResourcesDto"`
-	AfterResources    Resources `json:"afterResources" ts:"ResourcesDto"`
-	EnergyConverted   int       `json:"energyConverted" ts:"number"`
-	CreditsIncome     int       `json:"creditsIncome" ts:"number"`
+	AvailableCards    []string            `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
+	SelectionComplete bool                `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	BeforeResources   resources.Resources `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources    resources.Resources `json:"afterResources" ts:"ResourcesDto"`
+	EnergyConverted   int                 `json:"energyConverted" ts:"number"`
+	CreditsIncome     int                 `json:"creditsIncome" ts:"number"`
 }
 
 // DeepCopy creates a deep copy of the ProductionPhase
