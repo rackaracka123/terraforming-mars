@@ -3,10 +3,10 @@ package launch_asteroid
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/actions/standard_projects"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/actions/standard_projects"
 )
 
 // Handler handles launch asteroid standard project action requests

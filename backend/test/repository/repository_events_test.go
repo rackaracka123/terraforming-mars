@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 )
@@ -17,16 +16,16 @@ func TestGameRepositoryPublishesTemperatureChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent game.TemperatureChangedEvent
+	var receivedEvent events.TemperatureChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event game.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event events.TemperatureChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
 
 	// Create a game
 	ctx := context.Background()
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
@@ -60,16 +59,16 @@ func TestGameRepositoryPublishesOxygenChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent game.OxygenChangedEvent
+	var receivedEvent events.OxygenChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event game.OxygenChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event events.OxygenChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
 
 	// Create a game
 	ctx := context.Background()
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
@@ -103,16 +102,16 @@ func TestGameRepositoryPublishesOceansChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent game.OceansChangedEvent
+	var receivedEvent events.OceansChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event game.OceansChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event events.OceansChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
 
 	// Create a game
 	ctx := context.Background()
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
@@ -145,18 +144,18 @@ func TestPlayerRepositoryPublishesResourcesChangedEvent(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	// Track events
-	var eventsReceived []player.ResourcesChangedEvent
+	var eventsReceived []events.ResourcesChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event player.ResourcesChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event events.ResourcesChangedEvent) {
 		eventsReceived = append(eventsReceived, event)
 	})
 
 	// Create a player
 	ctx := context.Background()
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 10,
 			Plants:  2,
 		},
@@ -168,7 +167,7 @@ func TestPlayerRepositoryPublishesResourcesChangedEvent(t *testing.T) {
 	}
 
 	// Update resources
-	newResources := model.Resources{
+	newResources := resources.Resources{
 		Credits: 15,
 		Plants:  5,
 		Steel:   3,
@@ -221,7 +220,7 @@ func TestPlayerRepositoryPublishesTerraformRatingChangedEvent(t *testing.T) {
 
 	// Create a player
 	ctx := context.Background()
-	player := model.Player{
+	player := player.Player{
 		ID:              "player-123",
 		Name:            "Test Player",
 		TerraformRating: 20,
@@ -265,13 +264,13 @@ func TestRepositoryDoesNotPublishWhenNoChange(t *testing.T) {
 	// Track events
 	var tempEventCount int
 
-	_ = events.Subscribe(eventBus, func(event game.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event events.TemperatureChangedEvent) {
 		tempEventCount++
 	})
 
 	// Create a game
 	ctx := context.Background()
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
 
@@ -14,18 +14,18 @@ import (
 
 // SelectProductionCardsAction handles card selection during production phase
 // This action orchestrates:
-// - Card selection via cards.SelectionManager
+// - Card selection via service.SelectionManager
 // - Multi-player production phase coordination via GameService
 // - Phase transition when all players ready
 type SelectProductionCardsAction struct {
-	selectionManager *cards.SelectionManager
+	selectionManager *service.SelectionManager
 	gameService      service.GameService
 	sessionManager   session.SessionManager
 }
 
 // NewSelectProductionCardsAction creates a new select production cards action
 func NewSelectProductionCardsAction(
-	selectionManager *cards.SelectionManager,
+	selectionManager *service.SelectionManager,
 	gameService service.GameService,
 	sessionManager session.SessionManager,
 ) *SelectProductionCardsAction {

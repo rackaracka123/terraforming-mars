@@ -18,7 +18,6 @@ type Service interface {
 	SetAvailableCards(ctx context.Context, cardIDs []string) error
 	MarkSelectionComplete(ctx context.Context) error
 	ClearState(ctx context.Context) error
-
 }
 
 // ServiceImpl implements the production phase state service

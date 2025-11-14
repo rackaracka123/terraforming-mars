@@ -4,11 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -49,22 +48,22 @@ func TestTharsisRepublic_CityPlacement_ProductionIncrease(t *testing.T) {
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game in starting card selection phase
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Initialize board with default tiles
 	board := boardService.GenerateDefaultBoard()
 	gameRepo.UpdateBoard(ctx, game.ID, board)
 
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 
 	// Create test player
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -113,11 +112,11 @@ func TestTharsisRepublic_CityPlacement_ProductionIncrease(t *testing.T) {
 	t.Logf("✅ Tharsis Republic selected, initial production: %d", playerAfterSelection.Production.Credits)
 
 	// Change game phase to action phase so we can place tiles
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	gameRepo.SetCurrentTurn(ctx, game.ID, &player.ID)
 
 	// Give player sufficient resources for city placement
-	playerRepo.UpdateResources(ctx, game.ID, player.ID, model.Resources{Credits: 100})
+	playerRepo.UpdateResources(ctx, game.ID, player.ID, resources.Resources{Credits: 100})
 
 	// Place a city using standard project (costs 25 M€)
 	err = standardProjectService.BuildCity(ctx, game.ID, player.ID)
@@ -177,33 +176,33 @@ func TestTharsisRepublic_OtherPlayerCityPlacement(t *testing.T) {
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Initialize board with default tiles
 	board := boardService.GenerateDefaultBoard()
 	gameRepo.UpdateBoard(ctx, game.ID, board)
 
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 
 	// Create Player 1 (Tharsis owner)
-	player1 := model.Player{
+	player1 := player.Player{
 		ID:              "player1",
 		Name:            "Tharsis Player",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
 	playerRepo.Create(ctx, game.ID, player1)
 
 	// Create Player 2 (other player)
-	player2 := model.Player{
+	player2 := player.Player{
 		ID:              "player2",
 		Name:            "Other Player",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -253,7 +252,7 @@ func TestTharsisRepublic_OtherPlayerCityPlacement(t *testing.T) {
 	t.Logf("📊 Tharsis player before: Production=%d, Credits=%d", initialProduction, initialCredits)
 
 	// Change to action phase
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	gameRepo.SetCurrentTurn(ctx, game.ID, &player2.ID)
 
 	// Player 2 builds a city
@@ -313,21 +312,21 @@ func TestTharsisRepublic_ForcedFirstActionFlag(t *testing.T) {
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Initialize board
 	board := boardService.GenerateDefaultBoard()
 	gameRepo.UpdateBoard(ctx, game.ID, board)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 
 	// Create test player
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -385,7 +384,7 @@ func TestTharsisRepublic_ForcedFirstActionFlag(t *testing.T) {
 	// Verify game advances to action phase normally (not waiting for forced action to complete)
 	game, err = gameRepo.GetByID(ctx, game.ID)
 	require.NoError(t, err)
-	assert.Equal(t, model.GamePhaseAction, game.CurrentPhase, "Game should advance to action phase (forced actions don't block phase transition)")
+	assert.Equal(t, game.GamePhaseAction, game.CurrentPhase, "Game should advance to action phase (forced actions don't block phase transition)")
 
 	t.Log("🎉 Tharsis Republic forced first action flag test passed!")
 	t.Log("📝 Note: Actual forced action execution during first turn is not yet implemented")

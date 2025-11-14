@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/features/turn"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -25,25 +24,25 @@ func setupTest(t *testing.T) (turn.Service, game.Repository, player.Repository, 
 	turnService := turn.NewService(turnRepo)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{
+	game, err := gameRepo.Create(ctx, game.GameSettings{
 		MaxPlayers: 4,
 	})
 	require.NoError(t, err)
 	gameID := game.ID
 
 	// Set game to active status
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
 
 	// Create 3 players
 	playerIDs := []string{"player1", "player2", "player3"}
 	for _, playerID := range playerIDs {
-		player := model.Player{
+		player := player.Player{
 			ID:               playerID,
 			Name:             "Player " + playerID,
 			AvailableActions: 2,
 			Passed:           false,
-			Resources: model.Resources{
+			Resources: resources.Resources{
 				Credits: 50,
 			},
 			TerraformRating: 20,

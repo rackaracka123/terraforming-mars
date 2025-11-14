@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"slices"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -21,12 +22,12 @@ import (
 // - Turn and action validation
 // - Card ownership validation
 // - Auto-triggered choice validation
-// - Card validation and payment via cards.CardManager
-// - Card playing via cards.CardManager
+// - Card validation and payment via service.CardManager
+// - Card playing via service.CardManager
 // - Tile queue processing if card creates tiles
 // - Action consumption
 type PlayCardAction struct {
-	cardManager    cards.CardManager
+	cardManager    service.CardManager
 	tilesMech      tiles.Service
 	gameRepo       game.Repository
 	playerRepo     player.Repository
@@ -36,7 +37,7 @@ type PlayCardAction struct {
 
 // NewPlayCardAction creates a new play card action
 func NewPlayCardAction(
-	cardManager cards.CardManager,
+	cardManager service.CardManager,
 	tilesMech tiles.Service,
 	gameRepo game.Repository,
 	playerRepo player.Repository,
@@ -64,7 +65,7 @@ func NewPlayCardAction(
 // 7. Process tile queue if card created tiles
 // 8. Consume player action (if not infinite)
 // 9. Broadcast state
-func (a *PlayCardAction) Execute(ctx context.Context, gameID string, playerID string, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+func (a *PlayCardAction) Execute(ctx context.Context, gameID string, playerID string, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🃏 Executing play card action", zap.String("card_id", cardID))
 
@@ -124,7 +125,7 @@ func (a *PlayCardAction) Execute(ctx context.Context, gameID string, playerID st
 		// Only check behaviors with auto triggers
 		hasAutoTrigger := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto {
+			if trigger.Type == card.ResourceTriggerAuto {
 				hasAutoTrigger = true
 				break
 			}

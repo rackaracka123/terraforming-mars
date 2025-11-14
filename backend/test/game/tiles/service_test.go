@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -36,8 +35,8 @@ func (a *boardServiceAdapter) CalculateAvailableHexesForTileTypeWithPlayer(game 
 }
 
 // Conversion helpers
-func toModelGame(g tiles.Game) model.Game {
-	return model.Game{
+func toModelGame(g tiles.Game) game.Game {
+	return game.Game{
 		ID:    g.ID,
 		Board: toModelBoard(g.Board),
 	}
@@ -136,7 +135,7 @@ func setupTest(t *testing.T) (tiles.Service, game.Repository, player.Repository,
 	tilesService := tiles.NewService(tilesRepo, boardService, eventBus)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{
+	game, err := gameRepo.Create(ctx, game.GameSettings{
 		MaxPlayers: 4,
 	})
 	require.NoError(t, err)
@@ -150,10 +149,10 @@ func setupTest(t *testing.T) (tiles.Service, game.Repository, player.Repository,
 
 	// Create player
 	playerID := "test-player-id"
-	player := model.Player{
+	player := player.Player{
 		ID:   playerID,
 		Name: "TestPlayer",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  50,
 			Steel:    10,
 			Titanium: 5,

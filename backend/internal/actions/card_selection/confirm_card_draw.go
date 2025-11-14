@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"slices"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
@@ -25,7 +25,7 @@ import (
 type ConfirmCardDrawAction struct {
 	playerRepo          player.Repository
 	resourcesMech       resources.Service
-	forcedActionManager cards.ForcedActionManager
+	forcedActionManager service.ForcedActionManager
 	sessionManager      session.SessionManager
 }
 
@@ -33,7 +33,7 @@ type ConfirmCardDrawAction struct {
 func NewConfirmCardDrawAction(
 	playerRepo player.Repository,
 	resourcesMech resources.Service,
-	forcedActionManager cards.ForcedActionManager,
+	forcedActionManager service.ForcedActionManager,
 	sessionManager session.SessionManager,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{

@@ -4,12 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/actions/card_selection"
 	"terraforming-mars-backend/internal/actions/standard_projects"
-	"terraforming-mars-backend/internal/lobby"
+	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 )

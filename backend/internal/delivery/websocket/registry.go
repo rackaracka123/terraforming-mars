@@ -1,6 +1,9 @@
 package websocket
 
 import (
+	"terraforming-mars-backend/internal/actions"
+	"terraforming-mars-backend/internal/actions/card_selection"
+	"terraforming-mars-backend/internal/actions/standard_projects"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
@@ -23,11 +26,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/actions"
-	"terraforming-mars-backend/internal/actions/card_selection"
-	"terraforming-mars-backend/internal/actions/standard_projects"
-	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 )
@@ -91,7 +91,7 @@ func RegisterHandlers(
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(submitSellPatentsAction, selectProductionCardsAction, playerRepo, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_service.NewHandler(submitSellPatentsAction, selectProductionCardsAction, playerRepo, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
 
 	// Register play card handler

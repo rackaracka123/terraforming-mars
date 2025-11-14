@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -34,21 +33,21 @@ func TestForcedActionManager_InventrixCardDrawAction(t *testing.T) {
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
-	err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create a test player with Inventrix forced action
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -80,7 +79,7 @@ func TestForcedActionManager_InventrixCardDrawAction(t *testing.T) {
 
 	// Publish phase change event to Action phase (this should trigger the forced action)
 	// Events are synchronous, so the forced action will trigger immediately
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Verify that a PendingCardDrawSelection was created
@@ -117,7 +116,7 @@ func TestForcedActionManager_TharsisCityPlacementAction(t *testing.T) {
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Initialize board with default tiles
@@ -125,18 +124,18 @@ func TestForcedActionManager_TharsisCityPlacementAction(t *testing.T) {
 	err = gameRepo.UpdateBoard(ctx, game.ID, board)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create a test player with Tharsis Republic forced action
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -154,7 +153,7 @@ func TestForcedActionManager_TharsisCityPlacementAction(t *testing.T) {
 	require.NoError(t, err)
 
 	// Publish phase change event to Action phase (events are synchronous)
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Verify that a PendingTileSelection was created
@@ -188,21 +187,21 @@ func TestForcedActionManager_NoActionForNonActionPhase(t *testing.T) {
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
-	err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create a test player with forced action
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -233,7 +232,7 @@ func TestForcedActionManager_NoActionForNonActionPhase(t *testing.T) {
 	require.NoError(t, err)
 
 	// Publish phase change event to Production phase (NOT Action phase)
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseProductionAndCardDraw)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseProductionAndCardDraw)
 	require.NoError(t, err)
 
 	// Verify that NO PendingCardDrawSelection was created
@@ -262,21 +261,21 @@ func TestForcedActionManager_NoActionWhenAlreadyCompleted(t *testing.T) {
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
-	err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create a test player with COMPLETED forced action
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -307,7 +306,7 @@ func TestForcedActionManager_NoActionWhenAlreadyCompleted(t *testing.T) {
 	require.NoError(t, err)
 
 	// Publish phase change event to Action phase
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Verify that NO PendingCardDrawSelection was created (already completed)
@@ -335,15 +334,15 @@ func TestForcedActionManager_MarkComplete(t *testing.T) {
 	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Create a test player with forced action
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "TestPlayer",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -386,15 +385,15 @@ func TestForcedActionManager_MarkCompleteWithNoForcedAction(t *testing.T) {
 	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Create a test player WITHOUT forced action
-	player := model.Player{
+	player := player.Player{
 		ID:                "player1",
 		Name:              "TestPlayer",
-		Resources:         model.Resources{Credits: 100},
-		Production:        model.Production{Credits: 1},
+		Resources:         resources.Resources{Credits: 100},
+		Production:        resources.Production{Credits: 1},
 		TerraformRating:   20,
 		IsConnected:       true,
 		ForcedFirstAction: nil,
@@ -431,21 +430,21 @@ func TestForcedActionManager_NoActionWhenPlayerNotCurrentTurn(t *testing.T) {
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
-	err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 	require.NoError(t, err)
 
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create two players
-	player1 := model.Player{
+	player1 := player.Player{
 		ID:              "player1",
 		Name:            "Player1",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 		ForcedFirstAction: &model.ForcedFirstAction{
@@ -458,11 +457,11 @@ func TestForcedActionManager_NoActionWhenPlayerNotCurrentTurn(t *testing.T) {
 	err = playerRepo.Create(ctx, game.ID, player1)
 	require.NoError(t, err)
 
-	player2 := model.Player{
+	player2 := player.Player{
 		ID:              "player2",
 		Name:            "Player2",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -487,7 +486,7 @@ func TestForcedActionManager_NoActionWhenPlayerNotCurrentTurn(t *testing.T) {
 	require.NoError(t, err)
 
 	// Publish phase change event to Action phase
-	err = gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Verify that NO PendingCardDrawSelection was created for player1

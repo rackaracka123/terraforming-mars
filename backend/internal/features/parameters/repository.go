@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
 )
 
 // Repository defines granular operations for global parameters storage
 type Repository interface {
 	// Get current parameters
-	Get(ctx context.Context) (model.GlobalParameters, error)
+	Get(ctx context.Context) (GlobalParameters, error)
 
 	// Granular temperature operations
 	IncreaseTemperature(ctx context.Context, steps int) (int, error)
@@ -35,12 +34,12 @@ type Repository interface {
 type RepositoryImpl struct {
 	mu       sync.RWMutex
 	gameID   string
-	params   model.GlobalParameters
+	params   GlobalParameters
 	eventBus *events.EventBusImpl
 }
 
 // NewRepository creates a new independent parameters repository with initial state
-func NewRepository(gameID string, initialParams model.GlobalParameters, eventBus *events.EventBusImpl) (Repository, error) {
+func NewRepository(gameID string, initialParams GlobalParameters, eventBus *events.EventBusImpl) (Repository, error) {
 	// Validate initial parameters
 	if initialParams.Temperature < -30 || initialParams.Temperature > MaxTemperature {
 		return nil, fmt.Errorf("invalid temperature: %d", initialParams.Temperature)
@@ -60,7 +59,7 @@ func NewRepository(gameID string, initialParams model.GlobalParameters, eventBus
 }
 
 // Get retrieves current global parameters
-func (r *RepositoryImpl) Get(ctx context.Context) (model.GlobalParameters, error) {
+func (r *RepositoryImpl) Get(ctx context.Context) (GlobalParameters, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -95,7 +94,7 @@ func (r *RepositoryImpl) IncreaseTemperature(ctx context.Context, steps int) (in
 
 	// Publish event if eventBus is available
 	if r.eventBus != nil && currentTemp != newTemp {
-		events.Publish(r.eventBus, events.TemperatureChangedEvent{
+		events.Publish(r.eventBus, TemperatureChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  currentTemp,
 			NewValue:  newTemp,
@@ -143,7 +142,7 @@ func (r *RepositoryImpl) IncreaseOxygen(ctx context.Context, steps int) (int, er
 
 	// Publish event if eventBus is available
 	if r.eventBus != nil && currentOxygen != newOxygen {
-		events.Publish(r.eventBus, events.OxygenChangedEvent{
+		events.Publish(r.eventBus, OxygenChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  currentOxygen,
 			NewValue:  newOxygen,
@@ -191,7 +190,7 @@ func (r *RepositoryImpl) IncreaseOceans(ctx context.Context, count int) (int, er
 
 	// Publish event if eventBus is available
 	if r.eventBus != nil && currentOceans != newOceans {
-		events.Publish(r.eventBus, events.OceansChangedEvent{
+		events.Publish(r.eventBus, OceansChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  currentOceans,
 			NewValue:  newOceans,
@@ -226,7 +225,7 @@ func (r *RepositoryImpl) SetTemperature(ctx context.Context, temperature int) er
 
 	// Publish event if changed and eventBus available
 	if r.eventBus != nil && oldTemp != temperature {
-		events.Publish(r.eventBus, events.TemperatureChangedEvent{
+		events.Publish(r.eventBus, TemperatureChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  oldTemp,
 			NewValue:  temperature,
@@ -253,7 +252,7 @@ func (r *RepositoryImpl) SetOxygen(ctx context.Context, oxygen int) error {
 
 	// Publish event if changed and eventBus available
 	if r.eventBus != nil && oldOxygen != oxygen {
-		events.Publish(r.eventBus, events.OxygenChangedEvent{
+		events.Publish(r.eventBus, OxygenChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  oldOxygen,
 			NewValue:  oxygen,
@@ -280,7 +279,7 @@ func (r *RepositoryImpl) SetOceans(ctx context.Context, oceans int) error {
 
 	// Publish event if changed and eventBus available
 	if r.eventBus != nil && oldOceans != oceans {
-		events.Publish(r.eventBus, events.OceansChangedEvent{
+		events.Publish(r.eventBus, OceansChangedEvent{
 			GameID:    r.gameID,
 			OldValue:  oldOceans,
 			NewValue:  oceans,

@@ -2,7 +2,6 @@ package resources
 
 import (
 	"context"
-"terraforming-mars-backend/internal/model"
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
@@ -10,12 +9,22 @@ import (
 	"go.uber.org/zap"
 )
 
+// ResourceSet represents a set of resource amounts (duplicated from card package to avoid circular import)
+type ResourceSet struct {
+	Credits  int `json:"credits,omitempty" ts:"number"`
+	Steel    int `json:"steel,omitempty" ts:"number"`
+	Titanium int `json:"titanium,omitempty" ts:"number"`
+	Plants   int `json:"plants,omitempty" ts:"number"`
+	Energy   int `json:"energy,omitempty" ts:"number"`
+	Heat     int `json:"heat,omitempty" ts:"number"`
+}
+
 // Service handles resource and production operations.
 //
 // Scope: Isolated resource management for a single player
 //   - Resource validation (can afford X?)
 //   - Resource updates (add/subtract resources)
-//   - model.Production validation and updates
+//   - Production validation and updates
 //   - Owns its own repository (independent storage)
 //
 // This feature is ISOLATED and should NOT:
@@ -29,7 +38,7 @@ type Service interface {
 	AddResources(ctx context.Context, resources ResourceSet) error
 	CanAffordCost(ctx context.Context, cost ResourceSet) (bool, error)
 	PayCost(ctx context.Context, cost ResourceSet) error
-	Get(ctx context.Context) (model.Resources, error)
+	Get(ctx context.Context) (Resources, error)
 
 	// Individual resource operations
 	AddCredits(ctx context.Context, amount int) error
@@ -50,10 +59,10 @@ type Service interface {
 	AddHeat(ctx context.Context, amount int) error
 	DeductHeat(ctx context.Context, amount int) error
 
-	// model.Production operations
+	// Production operations
 	AddProduction(ctx context.Context, production ResourceSet) error
 	CanMeetProductionRequirement(ctx context.Context, requirement ResourceSet) (bool, error)
-	GetProduction(ctx context.Context) (model.Production, error)
+	GetProduction(ctx context.Context) (Production, error)
 
 	// Special operations
 	ConvertEnergyToHeat(ctx context.Context) error
@@ -61,12 +70,12 @@ type Service interface {
 	// Initialize
 }
 
-// ServiceImpl implements the model.Resources service
+// ServiceImpl implements the Resources service
 type ServiceImpl struct {
 	repo Repository
 }
 
-// NewService creates a new model.Resources service
+// NewService creates a new Resources service
 func NewService(repo Repository) Service {
 	return &ServiceImpl{
 		repo: repo,
@@ -106,7 +115,7 @@ func (s *ServiceImpl) AddResources(ctx context.Context, resources ResourceSet) e
 		}
 	}
 
-	logger.Get().Debug("model.Resources added",
+	logger.Get().Debug("Resources added",
 		zap.Int("credits", resources.Credits),
 		zap.Int("steel", resources.Steel),
 		zap.Int("titanium", resources.Titanium),
@@ -193,7 +202,7 @@ func (s *ServiceImpl) PayCost(ctx context.Context, cost ResourceSet) error {
 }
 
 // Get retrieves current resources
-func (s *ServiceImpl) Get(ctx context.Context) (model.Resources, error) {
+func (s *ServiceImpl) Get(ctx context.Context) (Resources, error) {
 	return s.repo.Get(ctx)
 }
 
@@ -274,7 +283,7 @@ func (s *ServiceImpl) DeductHeat(ctx context.Context, amount int) error {
 	return s.repo.DeductHeat(ctx, amount)
 }
 
-// model.Production operations
+// Production operations
 func (s *ServiceImpl) AddProduction(ctx context.Context, production ResourceSet) error {
 	if production.Credits != 0 {
 		if production.Credits > 0 {
@@ -319,7 +328,7 @@ func (s *ServiceImpl) AddProduction(ctx context.Context, production ResourceSet)
 		}
 	}
 
-	logger.Get().Debug("model.Production updated",
+	logger.Get().Debug("Production updated",
 		zap.Int("credits", production.Credits),
 		zap.Int("steel", production.Steel),
 		zap.Int("titanium", production.Titanium),
@@ -350,7 +359,7 @@ func (s *ServiceImpl) CanMeetProductionRequirement(ctx context.Context, requirem
 }
 
 // GetProduction retrieves current production
-func (s *ServiceImpl) GetProduction(ctx context.Context) (model.Production, error) {
+func (s *ServiceImpl) GetProduction(ctx context.Context) (Production, error) {
 	return s.repo.GetProduction(ctx)
 }
 

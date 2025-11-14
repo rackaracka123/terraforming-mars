@@ -5,9 +5,8 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
@@ -30,9 +29,9 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 
 	t.Run("Game Repository CRUD Operations", func(t *testing.T) {
 		// Create a game
-		game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+		game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 		require.NoError(t, err)
-		assert.Equal(t, model.GameStatusLobby, game.Status)
+		assert.Equal(t, game.GameStatusLobby, game.Status)
 		assert.Equal(t, 4, game.Settings.MaxPlayers)
 		assert.Empty(t, game.PlayerIDs) // Should start with no players
 		assert.Equal(t, -30, game.GlobalParameters.Temperature)
@@ -46,13 +45,13 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 		assert.Equal(t, game.Status, retrievedGame.Status)
 
 		// Update game status
-		err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+		err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 		require.NoError(t, err)
 
 		// Verify status was updated
 		updatedGame, err := gameRepo.GetByID(ctx, gameID)
 		require.NoError(t, err)
-		assert.Equal(t, model.GameStatusActive, updatedGame.Status)
+		assert.Equal(t, game.GameStatusActive, updatedGame.Status)
 
 		// Add a player ID to the game
 		err = gameRepo.AddPlayerID(ctx, gameID, "player-1")
@@ -81,14 +80,14 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 
 	t.Run("Player Repository CRUD Operations", func(t *testing.T) {
 		gameID := "test-game-1"
-		player := model.Player{
+		player := player.Player{
 			ID:              "player-1",
 			Name:            "Alice",
 			TerraformRating: 20,
-			Resources: model.Resources{
+			Resources: resources.Resources{
 				Credits: 45,
 			},
-			Production: model.Production{
+			Production: resources.Production{
 				Credits: 1,
 			},
 			IsConnected: true,
@@ -106,7 +105,7 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 		assert.Equal(t, 45, retrievedPlayer.Resources.Credits)
 
 		// Update player resources
-		newResources := model.Resources{Credits: 50, Steel: 5}
+		newResources := resources.Resources{Credits: 50, Steel: 5}
 		err = playerRepo.UpdateResources(ctx, gameID, "player-1", newResources)
 		require.NoError(t, err)
 
@@ -142,13 +141,13 @@ func TestSimplifiedRepositoryPattern(t *testing.T) {
 
 	t.Run("Global Parameters Update", func(t *testing.T) {
 		// Create a game for testing global parameters
-		game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 2})
 		require.NoError(t, err)
 
 		gameID := game.ID
 
 		// Update global parameters
-		newParams := model.GlobalParameters{
+		newParams := parameters.GlobalParameters{
 			Temperature: -24,
 			Oxygen:      2,
 			Oceans:      1,

@@ -22,7 +22,6 @@ type TurnOrderService interface {
 	SetCurrentTurn(ctx context.Context, playerID *string) error
 	AdvanceTurn(ctx context.Context) (*string, error)
 	SetPlayerOrder(ctx context.Context, playerIDs []string) error
-
 }
 
 // TurnOrderServiceImpl implements the turn order service

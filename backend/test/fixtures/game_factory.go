@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ import (
 type GameFixture struct {
 	GameID    string
 	PlayerID  string
-	Player    model.Player
+	Player    player.Player
 	Container *ServiceContainer
 }
 
@@ -22,22 +22,22 @@ func NewGameInActionPhase(t *testing.T, container *ServiceContainer) *GameFixtur
 	ctx := context.Background()
 
 	// Create game
-	game, err := container.GameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := container.GameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 	gameID := game.ID
 
 	// Set game to active status and action phase
-	err = container.GameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = container.GameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
-	err = container.GameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction)
+	err = container.GameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Create player with default resources
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 40},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 40},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -57,15 +57,15 @@ func NewGameInLobby(t *testing.T, container *ServiceContainer) *GameFixture {
 	ctx := context.Background()
 
 	// Create game (defaults to lobby status)
-	game, err := container.GameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := container.GameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Create host player
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Host Player",
-		Resources:       model.Resources{Credits: 0},
-		Production:      model.Production{},
+		Resources:       resources.Resources{Credits: 0},
+		Production:      resources.Production{},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -85,26 +85,26 @@ func NewGameWithMultiplePlayers(t *testing.T, container *ServiceContainer, playe
 	ctx := context.Background()
 
 	// Create game
-	game, err := container.GameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := container.GameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 	gameID := game.ID
 
 	// Set game to active status and action phase
-	err = container.GameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = container.GameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
-	err = container.GameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction)
+	err = container.GameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Create multiple players
 	var firstPlayerID string
-	var firstPlayer model.Player
+	var firstPlayer player.Player
 
 	for i := 0; i < playerCount; i++ {
-		player := model.Player{
+		player := player.Player{
 			ID:              "player" + string(rune('1'+i)),
 			Name:            "Test Player " + string(rune('1'+i)),
-			Resources:       model.Resources{Credits: 40},
-			Production:      model.Production{Credits: 1},
+			Resources:       resources.Resources{Credits: 40},
+			Production:      resources.Production{Credits: 1},
 			TerraformRating: 20,
 			IsConnected:     true,
 		}
@@ -130,22 +130,22 @@ func NewGameInStartingCardSelection(t *testing.T, container *ServiceContainer) *
 	ctx := context.Background()
 
 	// Create game
-	game, err := container.GameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := container.GameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 	gameID := game.ID
 
 	// Set game to active status and starting card selection phase
-	err = container.GameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = container.GameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
-	err = container.GameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection)
+	err = container.GameRepo.UpdatePhase(ctx, gameID, game.GamePhaseStartingCardSelection)
 	require.NoError(t, err)
 
 	// Create player without corporation (will be selected later)
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 42}, // Standard corporation starting credits
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 42}, // Standard corporation starting credits
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		Corporation:     nil,
 		IsConnected:     true,

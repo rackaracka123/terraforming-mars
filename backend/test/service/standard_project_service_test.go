@@ -7,16 +7,15 @@ import (
 	"fmt"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/production"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
@@ -63,7 +62,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	service.GameService,
 	service.PlayerService,
 	player.Repository,
-	model.Game,
+	game.Game,
 	string, // playerID
 ) {
 	// Initialize logger for testing
@@ -108,7 +107,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	ctx := context.Background()
 
 	// Create a test game
-	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Add a test player with sufficient resources
@@ -119,7 +118,7 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	playerID := game.PlayerIDs[0]
 
 	// Give the player sufficient credits and cards for testing
-	updatedResources := model.Resources{
+	updatedResources := resources.Resources{
 		Credits:  100, // Enough for all standard projects
 		Steel:    10,
 		Titanium: 10,
@@ -298,7 +297,7 @@ func TestStandardProjectService_BuildPowerPlant(t *testing.T) {
 
 	t.Run("Insufficient credits", func(t *testing.T) {
 		// Set player credits to less than cost
-		insufficientResources := model.Resources{Credits: 5}
+		insufficientResources := resources.Resources{Credits: 5}
 		err := playerRepo.UpdateResources(ctx, game.ID, playerID, insufficientResources)
 		require.NoError(t, err)
 
@@ -440,8 +439,8 @@ func TestStandardProjectService_BuildCity(t *testing.T) {
 }
 
 func TestPlayer_CanAffordStandardProject(t *testing.T) {
-	player := &model.Player{
-		Resources: model.Resources{Credits: 20},
+	player := &player.Player{
+		Resources: resources.Resources{Credits: 20},
 	}
 
 	tests := []struct {
@@ -467,7 +466,7 @@ func TestPlayer_CanAffordStandardProject(t *testing.T) {
 }
 
 func TestPlayer_HasCardsToSell(t *testing.T) {
-	player := &model.Player{
+	player := &player.Player{
 		Cards: []string{"card1", "card2", "card3"},
 	}
 
@@ -505,7 +504,7 @@ func TestPlayer_GetMaxCardsToSell(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			player := &model.Player{Cards: tt.cards}
+			player := &player.Player{Cards: tt.cards}
 			svc := createTestPlayerService()
 			result := svc.GetMaxCardsToSell(player)
 			assert.Equal(t, tt.expected, result)

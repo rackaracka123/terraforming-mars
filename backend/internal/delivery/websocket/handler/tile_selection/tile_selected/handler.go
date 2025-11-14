@@ -3,12 +3,11 @@ package tile_selected
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 
 	"go.uber.org/zap"
 )
@@ -33,7 +32,7 @@ func NewHandler(selectTileAction *actions.SelectTileAction, parser *utils.Messag
 
 // TileSelectedRequest represents the payload for tile selection
 type TileSelectedRequest struct {
-	Coordinate model.HexPosition `json:"coordinate" ts:"HexPosition"`
+	Coordinate types.HexPosition `json:"coordinate" ts:"HexPosition"`
 }
 
 // HandleMessage implements the MessageHandler interface

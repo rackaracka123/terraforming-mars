@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 )
@@ -23,15 +22,15 @@ func TestCardEffectSubscriberTemperatureIncrease(t *testing.T) {
 	ctx := context.Background()
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 10,
 			Plants:  0,
 		},
@@ -115,15 +114,15 @@ func TestCardEffectSubscriberOxygenIncrease(t *testing.T) {
 	ctx := context.Background()
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 10,
 			Heat:    0,
 		},
@@ -191,15 +190,15 @@ func TestCardEffectSubscriberUnsubscribe(t *testing.T) {
 	ctx := context.Background()
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Plants: 0,
 		},
 	}
@@ -287,12 +286,12 @@ func TestCardEffectSubscriberNoPassiveEffects(t *testing.T) {
 	ctx := context.Background()
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
 	}
@@ -328,15 +327,15 @@ func TestCardEffectSubscriberMultipleCards(t *testing.T) {
 	ctx := context.Background()
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Plants: 0,
 			Heat:   0,
 		},

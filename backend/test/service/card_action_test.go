@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -41,7 +40,7 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -54,7 +53,7 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test player with action and sufficient resources
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-elevator",
 		CardName:      "Space Elevator",
 		BehaviorIndex: 1,
@@ -72,12 +71,12 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 5, Credits: 10},
+		Resources:        resources.Resources{Steel: 5, Credits: 10},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -122,7 +121,7 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -135,7 +134,7 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a player with insufficient resources
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-elevator",
 		CardName:      "Space Elevator",
 		BehaviorIndex: 1,
@@ -153,12 +152,12 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 2, Credits: 10}, // Only have 2 steel
+		Resources:        resources.Resources{Steel: 2, Credits: 10}, // Only have 2 steel
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -200,7 +199,7 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -213,7 +212,7 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a player with no available actions
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-elevator",
 		CardName:      "Space Elevator",
 		BehaviorIndex: 1,
@@ -231,12 +230,12 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 5, Credits: 10},
+		Resources:        resources.Resources{Steel: 5, Credits: 10},
 		AvailableActions: 0, // No available actions
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -269,7 +268,7 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -282,12 +281,12 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a player with no actions
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 5, Credits: 10},
+		Resources:        resources.Resources{Steel: 5, Credits: 10},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{}, // No actions
+		Actions:          []player.PlayerAction{}, // No actions
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -320,7 +319,7 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -333,7 +332,7 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an action that has already been played this generation
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-elevator",
 		CardName:      "Space Elevator",
 		BehaviorIndex: 1,
@@ -351,12 +350,12 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 5, Credits: 10},
+		Resources:        resources.Resources{Steel: 5, Credits: 10},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -389,7 +388,7 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -402,7 +401,7 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an action that affects production
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-mirrors",
 		CardName:      "Space Mirrors",
 		BehaviorIndex: 0,
@@ -420,13 +419,13 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Credits: 20},
-		Production:       model.Production{Energy: 2},
+		Resources:        resources.Resources{Credits: 20},
+		Production:       resources.Production{Energy: 2},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -471,7 +470,7 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -484,7 +483,7 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an action that affects terraform rating
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "equatorial-magnetizer",
 		CardName:      "Equatorial Magnetizer",
 		BehaviorIndex: 0,
@@ -501,14 +500,14 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Credits: 20},
-		Production:       model.Production{Energy: 3},
+		Resources:        resources.Resources{Credits: 20},
+		Production:       resources.Production{Energy: 3},
 		TerraformRating:  20,
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)

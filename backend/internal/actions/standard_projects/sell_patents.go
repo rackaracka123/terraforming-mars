@@ -6,8 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/player"
+	playerPkg "terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -17,13 +16,13 @@ import (
 // - Validation that player has cards to sell
 // - Creating pending card selection for player to choose which cards to sell
 type SellPatentsAction struct {
-	playerRepo     player.Repository
+	playerRepo     playerPkg.Repository
 	sessionManager session.SessionManager
 }
 
 // NewSellPatentsAction creates a new sell patents action
 func NewSellPatentsAction(
-	playerRepo player.Repository,
+	playerRepo playerPkg.Repository,
 	sessionManager session.SessionManager,
 ) *SellPatentsAction {
 	return &SellPatentsAction{
@@ -63,7 +62,7 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 		cardRewards[cardID] = 1 // Gain 1 MC per card sold
 	}
 
-	selection := &model.PendingCardSelection{
+	selection := &playerPkg.PendingCardSelection{
 		AvailableCards: player.Cards, // All cards in hand available
 		CardCosts:      cardCosts,
 		CardRewards:    cardRewards,

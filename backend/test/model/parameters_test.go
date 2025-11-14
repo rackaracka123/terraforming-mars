@@ -1,14 +1,15 @@
 package model_test
 
 import (
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGlobalParameters_InitialState(t *testing.T) {
-	params := model.GlobalParameters{}
+	params := parameters.GlobalParameters{}
 
 	// Test zero values
 	assert.Equal(t, 0, params.Temperature)
@@ -17,7 +18,7 @@ func TestGlobalParameters_InitialState(t *testing.T) {
 }
 
 func TestGlobalParameters_MarsStartingConditions(t *testing.T) {
-	params := model.GlobalParameters{
+	params := parameters.GlobalParameters{
 		Temperature: -30,
 		Oxygen:      0,
 		Oceans:      0,

@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/features/resources"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -28,10 +27,10 @@ func setupTest(t *testing.T) (resources.Service, player.Repository, string, stri
 	playerID := "test-player-id"
 
 	// Create a test player
-	player := model.Player{
+	player := player.Player{
 		ID:   playerID,
 		Name: "TestPlayer",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  50,
 			Steel:    10,
 			Titanium: 5,
@@ -39,7 +38,7 @@ func setupTest(t *testing.T) (resources.Service, player.Repository, string, stri
 			Energy:   15,
 			Heat:     8,
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits:  3,
 			Steel:    2,
 			Titanium: 1,

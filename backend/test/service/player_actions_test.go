@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -41,7 +40,7 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -54,13 +53,13 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test player with available actions and credits
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
 		Cards:            []string{"manual-card"},
-		Resources:        model.Resources{Credits: 10},
+		Resources:        resources.Resources{Credits: 10},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{}, // Start with no actions
+		Actions:          []player.PlayerAction{}, // Start with no actions
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -150,7 +149,7 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      4,
 		DevelopmentMode: true,
 	}
@@ -163,13 +162,13 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test player with available actions and credits
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
 		Cards:            []string{"auto-card"},
-		Resources:        model.Resources{Credits: 10},
+		Resources:        resources.Resources{Credits: 10},
 		AvailableActions: 2,
-		Actions:          []model.PlayerAction{}, // Start with no actions
+		Actions:          []player.PlayerAction{}, // Start with no actions
 	}
 	err = playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
@@ -226,16 +225,16 @@ func TestPlayerRepository_UpdatePlayerActions(t *testing.T) {
 	playerID := "player1"
 
 	// Create a test player
-	player := model.Player{
+	player := player.Player{
 		ID:      playerID,
 		Name:    "Test Player",
-		Actions: []model.PlayerAction{},
+		Actions: []player.PlayerAction{},
 	}
 	err := playerRepo.Create(ctx, gameID, player)
 	require.NoError(t, err)
 
 	// Create test actions
-	actions := []model.PlayerAction{
+	actions := []player.PlayerAction{
 		{
 			CardID:        "card1",
 			CardName:      "Test Card 1",

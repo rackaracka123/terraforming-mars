@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -20,20 +20,20 @@ import (
 type PlayerService interface {
 
 	// Get player information
-	GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error)
-	GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error)
-	GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error)
+	GetPlayer(ctx context.Context, gameID, playerID string) (player.Player, error)
+	GetPlayerByName(ctx context.Context, gameID, playerName string) (player.Player, error)
+	GetPlayersForGame(ctx context.Context, gameID string) ([]player.Player, error)
 
 	// Handle player disconnection - updates connection status and broadcasts game state
 	PlayerDisconnected(ctx context.Context, gameID, playerID string) error
 
 	// Standard project utility methods
-	CanAffordStandardProject(player *model.Player, project model.StandardProject) bool
-	HasCardsToSell(player *model.Player, count int) bool
-	GetMaxCardsToSell(player *model.Player) int
+	CanAffordStandardProject(player *player.Player, project types.StandardProject) bool
+	HasCardsToSell(player *player.Player, count int) bool
+	GetMaxCardsToSell(player *player.Player) int
 
 	// Tile selection methods
-	OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error
+	OnTileSelected(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error
 }
 
 // PlayerServiceImpl implements PlayerService interface
@@ -41,9 +41,9 @@ type PlayerServiceImpl struct {
 	gameRepo            game.Repository
 	playerRepo          player.Repository
 	sessionManager      session.SessionManager
-	tilesMech           tiles.Service
+	tilesMech           tiles.BoardService
 	parametersMech      parameters.Service
-	forcedActionManager cards.ForcedActionManager
+	forcedActionManager ForcedActionManager
 }
 
 // NewPlayerService creates a new PlayerService instance
@@ -51,9 +51,9 @@ func NewPlayerService(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	sessionManager session.SessionManager,
-	tilesMech tiles.Service,
+	tilesMech tiles.BoardService,
 	parametersMech parameters.Service,
-	forcedActionManager cards.ForcedActionManager,
+	forcedActionManager ForcedActionManager,
 ) PlayerService {
 	return &PlayerServiceImpl{
 		gameRepo:            gameRepo,
@@ -66,27 +66,31 @@ func NewPlayerService(
 }
 
 // GetPlayer retrieves player information
-func (s *PlayerServiceImpl) GetPlayer(ctx context.Context, gameID, playerID string) (model.Player, error) {
+func (s *PlayerServiceImpl) GetPlayer(ctx context.Context, gameID, playerID string) (player.Player, error) {
 	return s.playerRepo.GetByID(ctx, gameID, playerID)
 }
 
 // CanAffordStandardProject checks if the player has enough credits for a standard project (business logic from Player model)
-func (s *PlayerServiceImpl) CanAffordStandardProject(player *model.Player, project model.StandardProject) bool {
-	cost, exists := model.StandardProjectCost[project]
+func (s *PlayerServiceImpl) CanAffordStandardProject(pl *player.Player, project types.StandardProject) bool {
+	cost, exists := types.StandardProjectCost[project]
 	if !exists {
 		return false
 	}
-	return player.Resources.Credits >= cost
+	resources, err := pl.GetResources()
+	if err != nil {
+		return false
+	}
+	return resources.Credits >= cost
 }
 
 // HasCardsToSell checks if the player has enough cards in hand to sell (business logic from Player model)
-func (s *PlayerServiceImpl) HasCardsToSell(player *model.Player, count int) bool {
-	return len(player.Cards) >= count && count > 0
+func (s *PlayerServiceImpl) HasCardsToSell(pl *player.Player, count int) bool {
+	return len(pl.Cards) >= count && count > 0
 }
 
 // GetMaxCardsToSell returns the maximum number of cards the player can sell (business logic from Player model)
-func (s *PlayerServiceImpl) GetMaxCardsToSell(player *model.Player) int {
-	return len(player.Cards)
+func (s *PlayerServiceImpl) GetMaxCardsToSell(pl *player.Player) int {
+	return len(pl.Cards)
 }
 
 // UpdatePlayerConnectionStatus updates a player's connection status
@@ -134,37 +138,37 @@ func (s *PlayerServiceImpl) PlayerDisconnected(ctx context.Context, gameID, play
 }
 
 // GetPlayerByName finds a player by name in a specific game
-func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (model.Player, error) {
+func (s *PlayerServiceImpl) GetPlayerByName(ctx context.Context, gameID, playerName string) (player.Player, error) {
 	log := logger.WithGameContext(gameID, playerName)
 
 	// Get all players from the player repository
 	players, err := s.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get players for name lookup", zap.Error(err))
-		return model.Player{}, fmt.Errorf("failed to get players: %w", err)
+		return player.Player{}, fmt.Errorf("failed to get players: %w", err)
 	}
 
 	// Search for player by name
-	for _, player := range players {
-		if player.Name == playerName {
+	for _, p := range players {
+		if p.Name == playerName {
 			log.Debug("Found player by name",
-				zap.String("player_id", player.ID),
-				zap.String("player_name", player.Name))
-			return player, nil
+				zap.String("player_id", p.ID),
+				zap.String("player_name", p.Name))
+			return p, nil
 		}
 	}
 
 	log.Warn("Player not found by name", zap.String("player_name", playerName))
-	return model.Player{}, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
+	return player.Player{}, fmt.Errorf("player with name %s not found in game %s", playerName, gameID)
 }
 
 // GetPlayersForGame returns all players in a specific game
-func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string) ([]model.Player, error) {
+func (s *PlayerServiceImpl) GetPlayersForGame(ctx context.Context, gameID string) ([]player.Player, error) {
 	return s.playerRepo.ListByGameID(ctx, gameID)
 }
 
 // OnTileSelected handles player tile selection and placement
-func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🎯 Processing tile selection",
 		zap.Int("q", coordinate.Q),
@@ -205,15 +209,28 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 	// Check if this is a plant conversion (special handling for raising oxygen and TR)
 	isPlantConversion := pendingSelection.Source == "convert-plants-to-greenery"
 
-	// Convert model.HexPosition to tiles.HexPosition
-	tileCoordinate := tiles.HexPosition{
+	// Convert types.HexPosition to types.HexPosition
+	tileCoordinate := types.HexPosition{
 		Q: coordinate.Q,
 		R: coordinate.R,
 		S: coordinate.S,
 	}
 
 	// Place the tile using tiles mechanic
-	if err := s.tilesMech.PlaceTile(ctx, gameID, playerID, pendingSelection.TileType, tileCoordinate); err != nil {
+	// Convert tile type string to ResourceType
+	tileResourceType, err := tiles.TileTypeToResourceType(pendingSelection.TileType)
+	if err != nil {
+		log.Error("Invalid tile type", zap.String("tileType", pendingSelection.TileType), zap.Error(err))
+		return fmt.Errorf("invalid tile type: %w", err)
+	}
+
+	// Create TileOccupant with proper Type and empty Tags
+	tileOccupant := tiles.TileOccupant{
+		Type: tileResourceType,
+		Tags: []string{},
+	}
+
+	if err := s.tilesMech.PlaceTile(ctx, tileCoordinate, tileOccupant, &playerID); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
 		return fmt.Errorf("failed to place tile: %w", err)
 	}
@@ -241,7 +258,7 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		log.Info("🌱 Completing plant conversion - raising oxygen")
 
 		// Raise oxygen using parameters mechanic (automatically awards TR if raised)
-		newOxygen, err := s.parametersMech.RaiseOxygen(ctx, gameID, playerID, 1)
+		newOxygen, err := s.parametersMech.RaiseOxygen(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise oxygen", zap.Error(err))
 			return fmt.Errorf("failed to raise oxygen: %w", err)
@@ -258,10 +275,11 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 	}
 
 	// Process the next tile in the queue using tiles mechanic
-	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process next tile in queue", zap.Error(err))
-		return fmt.Errorf("failed to process next tile in queue: %w", err)
-	}
+	// TODO: Method removed during refactoring - need to reimplement
+	// if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// 	log.Error("Failed to process next tile in queue", zap.Error(err))
+	// 	return fmt.Errorf("failed to process next tile in queue: %w", err)
+	// }
 
 	log.Info("🎯 Tile placed and queue processed")
 

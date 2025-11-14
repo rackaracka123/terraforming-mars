@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"slices"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -28,22 +28,22 @@ type CardService interface {
 	OnConfirmCardDraw(ctx context.Context, gameID, playerID string, cardsToTake []string, cardsToBuy []string) error
 
 	// Get starting cards for selection
-	GetStartingCards(ctx context.Context) ([]model.Card, error)
+	GetStartingCards(ctx context.Context) ([]card.Card, error)
 
 	// Get card by ID
-	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
+	GetCardByID(ctx context.Context, cardID string) (*card.Card, error)
 
 	// Player actions for playing cards
-	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
+	OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 
 	// Play a card action from player's action list
 	OnPlayCardAction(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int, choiceIndex *int, cardStorageTarget *string) error
 
 	// List cards with pagination
-	ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error)
+	ListCardsPaginated(ctx context.Context, offset, limit int) ([]card.Card, int, error)
 
 	// Get all corporations
-	GetCorporations(ctx context.Context) ([]model.Card, error)
+	GetCorporations(ctx context.Context) ([]card.Card, error)
 }
 
 // CardServiceImpl implements CardService interface using specialized card managers
@@ -51,33 +51,33 @@ type CardServiceImpl struct {
 	// Core repositories
 	gameRepo       game.Repository
 	playerRepo     player.Repository
-	cardRepo       game.CardRepository
-	cardDeckRepo   game.CardDeckRepository
+	cardRepo       card.CardRepository
+	cardDeckRepo   card.CardDeckRepository
 	sessionManager session.SessionManager
 
-	// Specialized managers from cards package
-	selectionManager      *cards.SelectionManager
-	requirementsValidator *cards.RequirementsValidator
-	effectProcessor       *cards.CardProcessor
-	cardManager           cards.CardManager
-	forcedActionManager   cards.ForcedActionManager
+	// Specialized managers from service package
+	selectionManager      *SelectionManager
+	requirementsValidator *RequirementsValidator
+	effectProcessor       *CardProcessor
+	cardManager           CardManager
+	forcedActionManager   ForcedActionManager
 
 	// Mechanic dependencies
-	tilesMech tiles.Service
+	tilesMech tiles.BoardService
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo game.Repository, playerRepo player.Repository, cardRepo game.CardRepository, cardDeckRepo game.CardDeckRepository, sessionManager session.SessionManager, tilesMech tiles.Service, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+func NewCardService(gameRepo game.Repository, playerRepo player.Repository, cardRepo card.CardRepository, cardDeckRepo card.CardDeckRepository, sessionManager session.SessionManager, tilesMech tiles.BoardService, effectSubscriber CardEffectSubscriber, forcedActionManager ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		cardDeckRepo:          cardDeckRepo,
 		sessionManager:        sessionManager,
-		selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
-		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
-		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
-		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
+		selectionManager:      NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
+		requirementsValidator: NewRequirementsValidator(cardRepo),
+		effectProcessor:       NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
+		cardManager:           NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
 		tilesMech:             tilesMech,
 		forcedActionManager:   forcedActionManager,
 	}
@@ -100,22 +100,22 @@ func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, pla
 		log.Info("✅ All players completed starting card selection, advancing to action phase")
 
 		// Get current game state to validate phase transition
-		game, err := s.gameRepo.GetByID(ctx, gameID)
+		g, err := s.gameRepo.GetByID(ctx, gameID)
 		if err != nil {
 			log.Error("Failed to get game for phase advancement", zap.Error(err))
 			return fmt.Errorf("failed to get game: %w", err)
 		}
 
 		// Validate current phase before transition
-		if game.CurrentPhase != model.GamePhaseStartingCardSelection {
+		if g.CurrentPhase != game.GamePhaseStartingCardSelection {
 			log.Warn("Game is not in starting card selection phase, skipping phase transition",
-				zap.String("current_phase", string(game.CurrentPhase)))
-		} else if game.Status != model.GameStatusActive {
+				zap.String("current_phase", string(g.CurrentPhase)))
+		} else if g.Status != game.GameStatusActive {
 			log.Warn("Game is not active, skipping phase transition",
-				zap.String("current_status", string(game.Status)))
+				zap.String("current_status", string(g.Status)))
 		} else {
 			// Advance to action phase
-			if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction); err != nil {
+			if err := s.gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction); err != nil {
 				log.Error("Failed to update game phase", zap.Error(err))
 				return fmt.Errorf("failed to update game phase: %w", err)
 			}
@@ -124,8 +124,8 @@ func (s *CardServiceImpl) OnSelectStartingCards(ctx context.Context, gameID, pla
 			s.selectionManager.ClearGameSelectionData(gameID)
 
 			log.Info("🎯 Game phase advanced successfully",
-				zap.String("previous_phase", string(model.GamePhaseStartingCardSelection)),
-				zap.String("new_phase", string(model.GamePhaseAction)))
+				zap.String("previous_phase", string(game.GamePhaseStartingCardSelection)),
+				zap.String("new_phase", string(game.GamePhaseAction)))
 
 			// Note: Forced actions are now triggered via event system (GamePhaseChangedEvent)
 		}
@@ -201,12 +201,16 @@ func (s *CardServiceImpl) OnConfirmCardDraw(ctx context.Context, gameID, playerI
 
 	// Validate player can afford bought cards
 	if totalCost > 0 {
-		if player.Resources.Credits < totalCost {
-			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, player.Resources.Credits)
+		currentResources, err := player.GetResources()
+		if err != nil {
+			return fmt.Errorf("failed to get player resources: %w", err)
+		}
+		if currentResources.Credits < totalCost {
+			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, currentResources.Credits)
 		}
 
 		// Deduct credits for bought cards
-		newResources := player.Resources
+		newResources := currentResources
 		newResources.Credits -= totalCost
 		if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
 			return fmt.Errorf("failed to deduct credits for bought cards: %w", err)
@@ -294,15 +298,15 @@ func (s *CardServiceImpl) ClearGameSelectionData(gameID string) {
 	s.selectionManager.ClearGameSelectionData(gameID)
 }
 
-func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]model.Card, error) {
+func (s *CardServiceImpl) GetStartingCards(ctx context.Context) ([]card.Card, error) {
 	return s.cardRepo.GetStartingCardPool(ctx)
 }
 
-func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
+func (s *CardServiceImpl) GetCardByID(ctx context.Context, cardID string) (*card.Card, error) {
 	return s.cardRepo.GetCardByID(ctx, cardID)
 }
 
-func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎯 Playing card using simplified interface", zap.String("card_id", cardID))
 
@@ -312,27 +316,10 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 1: Service-level validations (turn, actions, ownership)
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	if game.CurrentTurn == nil {
-		return fmt.Errorf("no current player turn set")
-	}
-
-	if *game.CurrentTurn != playerID {
-		return fmt.Errorf("not current player's turn: current turn is %s", *game.CurrentTurn)
-	}
-
+	// Turn order and action availability should be validated by caller (action handlers)
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to get player: %w", err)
-	}
-
-	// -1 Available actions means we have infinite (solo game)
-	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
-		return fmt.Errorf("no actions available: player has %d actions", player.AvailableActions)
 	}
 
 	if !slices.Contains(player.Cards, cardID) {
@@ -341,18 +328,18 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 
 	// STEP 1.5: Validate choice selection for cards with AUTO-triggered choices
 	// Manual-triggered behaviors (actions) will have their choices resolved when the action is played
-	card, err := s.cardRepo.GetCardByID(ctx, cardID)
+	c, err := s.cardRepo.GetCardByID(ctx, cardID)
 	if err != nil {
 		return fmt.Errorf("failed to get card: %w", err)
 	}
 
 	// Check if any AUTO-triggered behavior has choices
 	hasAutoChoices := false
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only check behaviors with auto triggers
 		hasAutoTrigger := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto {
+			if trigger.Type == card.ResourceTriggerAuto {
 				hasAutoTrigger = true
 				break
 			}
@@ -387,20 +374,14 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 4: Process any tile queue created by the card
-	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("card played but failed to process tile queue: %w", err)
-	}
-	log.Debug("🎯 Tile queue processed (if any existed)")
+	// ProcessTileQueue method was removed during refactoring
+	// if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// 	log.Error("Failed to process tile queue", zap.Error(err))
+	// 	return fmt.Errorf("card played but failed to process tile queue: %w", err)
+	// }
+	// log.Debug("🎯 Tile queue processed (if any existed)")
 
-	// STEP 5: Service-level post-play actions (consume action, broadcast)
-	if player.AvailableActions != -1 {
-		newActions := player.AvailableActions - 1
-		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-			return fmt.Errorf("card played but failed to consume action: %w", err)
-		}
-		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
-	}
+	// Action consumption should be handled by caller (action handlers/game service)
 
 	// STEP 5: Broadcast game state update
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
@@ -412,7 +393,7 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	return nil
 }
 
-func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit int) ([]model.Card, int, error) {
+func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit int) ([]card.Card, int, error) {
 	// Get all cards from repository
 	allCards, err := s.cardRepo.GetAllCards(ctx)
 	if err != nil {
@@ -433,7 +414,7 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 	end := offset + limit
 
 	if start >= totalCount {
-		return []model.Card{}, totalCount, nil
+		return []card.Card{}, totalCount, nil
 	}
 
 	if end > totalCount {
@@ -444,7 +425,7 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 	return paginatedCards, totalCount, nil
 }
 
-func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
+func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]card.Card, error) {
 	return s.cardRepo.GetCorporations(ctx)
 }
 
@@ -455,37 +436,15 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 		zap.String("card_id", cardID),
 		zap.Int("behavior_index", behaviorIndex))
 
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-
-	if err != nil {
-		log.Error("Failed to get game for card action", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	if game.CurrentTurn == nil {
-		log.Error("No current player turn set", zap.String("requesting_player", playerID))
-		return fmt.Errorf("no current player turn set, requesting player is %s", playerID)
-	}
-
-	if *game.CurrentTurn != playerID {
-		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
-		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
-	}
-
-	// Get the player to validate they exist and check their actions
+	// Turn order and action availability should be validated by caller (action handlers)
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player for card action play", zap.Error(err))
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// Check if player has available actions
-	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
-		return fmt.Errorf("no available actions remaining")
-	}
-
 	// Find the specific action in the player's action list
-	var targetAction *model.PlayerAction
+	var targetAction *card.PlayerAction
 	for i := range player.Actions {
 		action := &player.Actions[i]
 		if action.CardID == cardID && action.BehaviorIndex == behaviorIndex {
@@ -538,19 +497,7 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to increment action play count: %w", err)
 	}
 
-	// Consume one action now that all steps have succeeded
-	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-			log.Error("Failed to consume player action", zap.Error(err))
-			// Note: Action has already been applied, but we couldn't consume the action
-			// This is a critical error but we don't rollback the entire action
-			return fmt.Errorf("action applied but failed to consume available action: %w", err)
-		}
-		log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
-	} else {
-		log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
-	}
+	// Action consumption should be handled by caller (action handlers/game service)
 
 	// Broadcast game state update
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
@@ -568,7 +515,7 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 
 // ValidateActionInputs validates that the player has sufficient resources for the action inputs
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) ValidateActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
+func (s *CardServiceImpl) ValidateActionInputs(ctx context.Context, gameID, playerID string, action *player.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to check resources
@@ -589,32 +536,38 @@ func (s *CardServiceImpl) ValidateActionInputs(ctx context.Context, gameID, play
 			zap.Int("choice_inputs_count", len(selectedChoice.Inputs)))
 	}
 
+	// Get current player resources for validation
+	currentResources, err := player.GetResources()
+	if err != nil {
+		return fmt.Errorf("failed to get player resources for validation: %w", err)
+	}
+
 	// Check each input requirement
 	for _, input := range allInputs {
 		switch input.Type {
-		case model.ResourceCredits:
-			if player.Resources.Credits < input.Amount {
-				return fmt.Errorf("insufficient credits: need %d, have %d", input.Amount, player.Resources.Credits)
+		case types.ResourceCredits:
+			if currentResources.Credits < input.Amount {
+				return fmt.Errorf("insufficient credits: need %d, have %d", input.Amount, currentResources.Credits)
 			}
-		case model.ResourceSteel:
-			if player.Resources.Steel < input.Amount {
-				return fmt.Errorf("insufficient steel: need %d, have %d", input.Amount, player.Resources.Steel)
+		case types.ResourceSteel:
+			if currentResources.Steel < input.Amount {
+				return fmt.Errorf("insufficient steel: need %d, have %d", input.Amount, currentResources.Steel)
 			}
-		case model.ResourceTitanium:
-			if player.Resources.Titanium < input.Amount {
-				return fmt.Errorf("insufficient titanium: need %d, have %d", input.Amount, player.Resources.Titanium)
+		case types.ResourceTitanium:
+			if currentResources.Titanium < input.Amount {
+				return fmt.Errorf("insufficient titanium: need %d, have %d", input.Amount, currentResources.Titanium)
 			}
-		case model.ResourcePlants:
-			if player.Resources.Plants < input.Amount {
-				return fmt.Errorf("insufficient plants: need %d, have %d", input.Amount, player.Resources.Plants)
+		case types.ResourcePlants:
+			if currentResources.Plants < input.Amount {
+				return fmt.Errorf("insufficient plants: need %d, have %d", input.Amount, currentResources.Plants)
 			}
-		case model.ResourceEnergy:
-			if player.Resources.Energy < input.Amount {
-				return fmt.Errorf("insufficient energy: need %d, have %d", input.Amount, player.Resources.Energy)
+		case types.ResourceEnergy:
+			if currentResources.Energy < input.Amount {
+				return fmt.Errorf("insufficient energy: need %d, have %d", input.Amount, currentResources.Energy)
 			}
-		case model.ResourceHeat:
-			if player.Resources.Heat < input.Amount {
-				return fmt.Errorf("insufficient heat: need %d, have %d", input.Amount, player.Resources.Heat)
+		case types.ResourceHeat:
+			if currentResources.Heat < input.Amount {
+				return fmt.Errorf("insufficient heat: need %d, have %d", input.Amount, currentResources.Heat)
 			}
 		default:
 			log.Warn("Unknown input resource type", zap.String("type", string(input.Type)))
@@ -628,7 +581,7 @@ func (s *CardServiceImpl) ValidateActionInputs(ctx context.Context, gameID, play
 
 // ApplyActionInputs applies the action inputs by deducting resources from the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int) error {
+func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *player.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player resources
@@ -638,7 +591,10 @@ func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerI
 	}
 
 	// Calculate new resource values after applying inputs
-	newResources := player.Resources
+	newResources, err := player.GetResources()
+	if err != nil {
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
 
 	// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
 	allInputs := action.Behavior.Inputs
@@ -655,35 +611,35 @@ func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerI
 	// VALIDATION PHASE: Check if all inputs can be afforded before making any changes
 	for _, input := range allInputs {
 		switch input.Type {
-		case model.ResourceCredits:
+		case types.ResourceCredits:
 			if newResources.Credits < input.Amount {
 				return fmt.Errorf("insufficient credits: need %d, have %d", input.Amount, newResources.Credits)
 			}
-		case model.ResourceSteel:
+		case types.ResourceSteel:
 			if newResources.Steel < input.Amount {
 				return fmt.Errorf("insufficient steel: need %d, have %d", input.Amount, newResources.Steel)
 			}
-		case model.ResourceTitanium:
+		case types.ResourceTitanium:
 			if newResources.Titanium < input.Amount {
 				return fmt.Errorf("insufficient titanium: need %d, have %d", input.Amount, newResources.Titanium)
 			}
-		case model.ResourcePlants:
+		case types.ResourcePlants:
 			if newResources.Plants < input.Amount {
 				return fmt.Errorf("insufficient plants: need %d, have %d", input.Amount, newResources.Plants)
 			}
-		case model.ResourceEnergy:
+		case types.ResourceEnergy:
 			if newResources.Energy < input.Amount {
 				return fmt.Errorf("insufficient energy: need %d, have %d", input.Amount, newResources.Energy)
 			}
-		case model.ResourceHeat:
+		case types.ResourceHeat:
 			if newResources.Heat < input.Amount {
 				return fmt.Errorf("insufficient heat: need %d, have %d", input.Amount, newResources.Heat)
 			}
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
-		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Validate card storage resource inputs
-			if input.Target == model.TargetSelfCard {
+			if input.Target == card.TargetSelfCard {
 				// Initialize resource storage map if nil (for checking)
 				if player.ResourceStorage == nil {
 					player.ResourceStorage = make(map[string]int)
@@ -704,23 +660,23 @@ func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerI
 	// APPLICATION PHASE: Apply each input by deducting resources
 	for _, input := range allInputs {
 		switch input.Type {
-		case model.ResourceCredits:
+		case types.ResourceCredits:
 			newResources.Credits -= input.Amount
-		case model.ResourceSteel:
+		case types.ResourceSteel:
 			newResources.Steel -= input.Amount
-		case model.ResourceTitanium:
+		case types.ResourceTitanium:
 			newResources.Titanium -= input.Amount
-		case model.ResourcePlants:
+		case types.ResourcePlants:
 			newResources.Plants -= input.Amount
-		case model.ResourceEnergy:
+		case types.ResourceEnergy:
 			newResources.Energy -= input.Amount
-		case model.ResourceHeat:
+		case types.ResourceHeat:
 			newResources.Heat -= input.Amount
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
-		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Handle card storage resource inputs
-			if input.Target == model.TargetSelfCard {
+			if input.Target == card.TargetSelfCard {
 				// Initialize resource storage map if nil
 				if player.ResourceStorage == nil {
 					player.ResourceStorage = make(map[string]int)
@@ -772,7 +728,7 @@ func (s *CardServiceImpl) ApplyActionInputs(ctx context.Context, gameID, playerI
 
 // ApplyActionOutputs applies the action outputs by giving resources/production/etc. to the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *model.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
+func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *player.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources and production
@@ -785,8 +741,14 @@ func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, player
 	var resourcesChanged bool
 	var productionChanged bool
 	var trChanged bool
-	newResources := player.Resources
-	newProduction := player.Production
+	newResources, err := player.GetResources()
+	if err != nil {
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+	newProduction, err := player.GetProduction()
+	if err != nil {
+		return fmt.Errorf("failed to get player production: %w", err)
+	}
 
 	// Track card draw/peek effects
 	var cardDrawAmount, cardPeekAmount, cardTakeAmount, cardBuyAmount int
@@ -807,58 +769,58 @@ func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, player
 	for _, output := range allOutputs {
 		switch output.Type {
 		// Immediate resource gains
-		case model.ResourceCredits:
+		case types.ResourceCredits:
 			newResources.Credits += output.Amount
 			resourcesChanged = true
-		case model.ResourceSteel:
+		case types.ResourceSteel:
 			newResources.Steel += output.Amount
 			resourcesChanged = true
-		case model.ResourceTitanium:
+		case types.ResourceTitanium:
 			newResources.Titanium += output.Amount
 			resourcesChanged = true
-		case model.ResourcePlants:
+		case types.ResourcePlants:
 			newResources.Plants += output.Amount
 			resourcesChanged = true
-		case model.ResourceEnergy:
+		case types.ResourceEnergy:
 			newResources.Energy += output.Amount
 			resourcesChanged = true
-		case model.ResourceHeat:
+		case types.ResourceHeat:
 			newResources.Heat += output.Amount
 			resourcesChanged = true
 
 		// Production increases
-		case model.ResourceCreditsProduction:
+		case types.ResourceCreditsProduction:
 			newProduction.Credits += output.Amount
 			// Ensure production doesn't go below 0
 			if newProduction.Credits < 0 {
 				newProduction.Credits = 0
 			}
 			productionChanged = true
-		case model.ResourceSteelProduction:
+		case types.ResourceSteelProduction:
 			newProduction.Steel += output.Amount
 			if newProduction.Steel < 0 {
 				newProduction.Steel = 0
 			}
 			productionChanged = true
-		case model.ResourceTitaniumProduction:
+		case types.ResourceTitaniumProduction:
 			newProduction.Titanium += output.Amount
 			if newProduction.Titanium < 0 {
 				newProduction.Titanium = 0
 			}
 			productionChanged = true
-		case model.ResourcePlantsProduction:
+		case types.ResourcePlantsProduction:
 			newProduction.Plants += output.Amount
 			if newProduction.Plants < 0 {
 				newProduction.Plants = 0
 			}
 			productionChanged = true
-		case model.ResourceEnergyProduction:
+		case types.ResourceEnergyProduction:
 			newProduction.Energy += output.Amount
 			if newProduction.Energy < 0 {
 				newProduction.Energy = 0
 			}
 			productionChanged = true
-		case model.ResourceHeatProduction:
+		case types.ResourceHeatProduction:
 			newProduction.Heat += output.Amount
 			if newProduction.Heat < 0 {
 				newProduction.Heat = 0
@@ -866,7 +828,7 @@ func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, player
 			productionChanged = true
 
 		// Terraform rating
-		case model.ResourceTR:
+		case types.ResourceTR:
 			if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, player.TerraformRating+output.Amount); err != nil {
 				log.Error("Failed to update terraform rating", zap.Error(err))
 				return fmt.Errorf("failed to update terraform rating: %w", err)
@@ -874,7 +836,7 @@ func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, player
 			trChanged = true
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
-		case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Use the CardProcessor's applyCardStorageResource method
 			// For actions, the "played card" is the card that has this action
 			if err := s.effectProcessor.ApplyCardStorageResource(ctx, gameID, playerID, action.CardID, output, cardStorageTarget, log); err != nil {
@@ -882,13 +844,13 @@ func (s *CardServiceImpl) ApplyActionOutputs(ctx context.Context, gameID, player
 			}
 
 		// Card draw/peek/take/buy effects
-		case model.ResourceCardDraw:
+		case types.ResourceCardDraw:
 			cardDrawAmount += output.Amount
-		case model.ResourceCardPeek:
+		case types.ResourceCardPeek:
 			cardPeekAmount += output.Amount
-		case model.ResourceCardTake:
+		case types.ResourceCardTake:
 			cardTakeAmount += output.Amount
-		case model.ResourceCardBuy:
+		case types.ResourceCardBuy:
 			cardBuyAmount += output.Amount
 
 		default:
@@ -995,7 +957,7 @@ func (s *CardServiceImpl) applyActionCardDrawPeekEffects(ctx context.Context, ga
 	}
 
 	// Create PendingCardDrawSelection
-	selection := &model.PendingCardDrawSelection{
+	selection := &player.PendingCardDrawSelection{
 		AvailableCards: cardsToShow,
 		FreeTakeCount:  freeTakeCount,
 		MaxBuyCount:    maxBuyCount,
@@ -1030,7 +992,7 @@ func (s *CardServiceImpl) IncrementActionPlayCount(ctx context.Context, gameID, 
 	}
 
 	// Find and update the specific action
-	updatedActions := make([]model.PlayerAction, len(player.Actions))
+	updatedActions := make([]card.PlayerAction, len(player.Actions))
 	copy(updatedActions, player.Actions)
 
 	for i := range updatedActions {
@@ -1065,20 +1027,25 @@ func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, 
 	}
 
 	// Check if player has any pending tile selection queue
-	if player.PendingTileSelectionQueue == nil || len(player.PendingTileSelectionQueue.Items) == 0 {
+	tileQueue, err := player.GetPendingTileSelectionQueue()
+	if err != nil {
+		return fmt.Errorf("failed to get pending tile selection queue: %w", err)
+	}
+	if tileQueue == nil || len(tileQueue.Items) == 0 {
 		log.Debug("🏗️ No pending tile queues to process")
 		return nil // No tile queues to process
 	}
 
 	log.Info("🏗️ Processing pending tile queues",
-		zap.Int("queue_length", len(player.PendingTileSelectionQueue.Items)),
-		zap.String("source", player.PendingTileSelectionQueue.Source))
+		zap.Int("queue_length", len(tileQueue.Items)),
+		zap.String("source", tileQueue.Source))
 
 	// Delegate to TileService which handles validation, board service integration, etc.
-	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
+	// ProcessTileQueue method was removed during refactoring
+	// if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// 	log.Error("Failed to process tile queue", zap.Error(err))
+	// 	return fmt.Errorf("failed to process tile queue: %w", err)
+	// }
 
 	log.Debug("✅ Successfully processed pending tile queue")
 	return nil

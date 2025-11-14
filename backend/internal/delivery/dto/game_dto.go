@@ -1,6 +1,6 @@
 package dto
 
-import "terraforming-mars-backend/internal/model"
+import "terraforming-mars-backend/internal/features/card"
 
 // GamePhase represents the current phase of the game
 type GamePhase string
@@ -71,7 +71,7 @@ const (
 )
 
 // ResourceType represents different types of resources for client consumption
-// This is a 1:1 mapping from model.ResourceType
+// This is a 1:1 mapping from card.ResourceType
 type ResourceType string
 
 const (
@@ -244,24 +244,24 @@ type CardBehaviorDto struct {
 
 // ResourceStorageDto represents a card's resource storage capability for client consumption
 type ResourceStorageDto struct {
-	Type     model.ResourceType `json:"type" ts:"ResourceType"`
-	Capacity *int               `json:"capacity,omitempty" ts:"number | undefined"`
-	Starting int                `json:"starting" ts:"number"`
+	Type     card.ResourceType `json:"type" ts:"ResourceType"`
+	Capacity *int              `json:"capacity,omitempty" ts:"number | undefined"`
+	Starting int               `json:"starting" ts:"number"`
 }
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID              string                        `json:"id" ts:"string"`
-	Name            string                        `json:"name" ts:"string"`
-	Type            CardType                      `json:"type" ts:"CardType"`
-	Cost            int                           `json:"cost" ts:"number"`
-	Description     string                        `json:"description" ts:"string"`
-	Pack            string                        `json:"pack" ts:"string"`
-	Tags            []CardTag                     `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
-	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []model.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
+	ID              string                       `json:"id" ts:"string"`
+	Name            string                       `json:"name" ts:"string"`
+	Type            CardType                     `json:"type" ts:"CardType"`
+	Cost            int                          `json:"cost" ts:"number"`
+	Description     string                       `json:"description" ts:"string"`
+	Pack            string                       `json:"pack" ts:"string"`
+	Tags            []CardTag                    `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    []card.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
+	Behaviors       []CardBehaviorDto            `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto          `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []card.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
 
 	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)

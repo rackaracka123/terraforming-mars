@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -30,7 +29,7 @@ type SelectTileAction struct {
 	gameRepo            game.Repository
 	tilesMech           tiles.Service
 	parametersMech      parameters.Service
-	forcedActionManager cards.ForcedActionManager
+	forcedActionManager service.ForcedActionManager
 	sessionManager      session.SessionManager
 }
 
@@ -40,7 +39,7 @@ func NewSelectTileAction(
 	gameRepo game.Repository,
 	tilesMech tiles.Service,
 	parametersMech parameters.Service,
-	forcedActionManager cards.ForcedActionManager,
+	forcedActionManager service.ForcedActionManager,
 	sessionManager session.SessionManager,
 ) *SelectTileAction {
 	return &SelectTileAction{
@@ -63,7 +62,7 @@ func NewSelectTileAction(
 // 6. Clear pending tile selection
 // 7. Process next tile in queue
 // 8. Broadcast state
-func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID string, coordinate model.HexPosition) error {
+func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID string, coordinate types.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🎯 Executing select tile action",
 		zap.Int("q", coordinate.Q),
@@ -106,8 +105,8 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	// Check if this is a plant conversion (special handling for raising oxygen and TR)
 	isPlantConversion := pendingSelection.Source == "convert-plants-to-greenery"
 
-	// Convert model.HexPosition to tiles.HexPosition for tiles mechanic
-	tilesCoordinate := tiles.HexPosition{
+	// Convert types.HexPosition to types.HexPosition for tiles mechanic
+	tilesCoordinate := types.HexPosition{
 		Q: coordinate.Q,
 		R: coordinate.R,
 		S: coordinate.S,

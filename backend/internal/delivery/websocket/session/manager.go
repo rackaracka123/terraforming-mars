@@ -7,10 +7,10 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/features/card"
+	gamepkg "terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/player"
+	playerpkg "terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -26,9 +26,9 @@ type SessionManager interface {
 // SessionManagerImpl implements the SessionManager interface
 type SessionManagerImpl struct {
 	// Dependencies for game state broadcasting
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	cardRepo   game.CardRepository
+	gameRepo   gamepkg.Repository
+	playerRepo playerpkg.Repository
+	cardRepo   card.CardRepository
 	hub        *core.Hub
 
 	// Synchronization
@@ -37,9 +37,9 @@ type SessionManagerImpl struct {
 
 // NewSessionManager creates a new session manager
 func NewSessionManager(
-	gameRepo game.Repository,
-	playerRepo player.Repository,
-	cardRepo game.CardRepository,
+	gameRepo gamepkg.Repository,
+	playerRepo playerpkg.Repository,
+	cardRepo card.CardRepository,
 	hub *core.Hub,
 ) SessionManager {
 	return &SessionManagerImpl{
@@ -79,7 +79,7 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	game, err := sm.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		// Handle missing game gracefully - this can happen during test cleanup or if game was deleted
-		var notFoundErr *model.NotFoundError
+		var notFoundErr *gamepkg.NotFoundError
 		if errors.As(err, &notFoundErr) {
 			log.Debug("Game no longer exists, skipping broadcast", zap.Error(err))
 			return nil // No error, just skip the broadcast
@@ -115,8 +115,8 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		for _, cardID := range player.PlayedCards {
 			allCardIds[cardID] = struct{}{}
 		}
-		if player.ProductionPhase != nil {
-			for _, cardID := range player.ProductionPhase.AvailableCards {
+		if player.PendingCardSelection != nil {
+			for _, cardID := range player.PendingCardSelection.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
 		}
@@ -168,10 +168,10 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	playersToSend := players
 	if targetPlayerID != "" {
 		// Find specific player
-		playersToSend = []model.Player{}
+		playersToSend = []playerpkg.Player{}
 		for _, player := range players {
 			if player.ID == targetPlayerID {
-				playersToSend = []model.Player{player}
+				playersToSend = []playerpkg.Player{player}
 				break
 			}
 		}
@@ -185,7 +185,11 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	// Send personalized game state to target player(s)
 	for _, player := range playersToSend {
-		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, resolvedCards, paymentConstants)
+		personalizedGameDTO, err := dto.ToGameDto(game, players, player.ID, resolvedCards, paymentConstants)
+		if err != nil {
+			log.Error("Failed to convert game to DTO", zap.Error(err))
+			return fmt.Errorf("failed to convert game to DTO: %w", err)
+		}
 
 		// Send game state via direct session call
 		err = sm.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
@@ -193,8 +197,8 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		})
 		if err != nil {
 			// Handle missing sessions gracefully - this can happen during test cleanup
-			var notFoundErr *model.NotFoundError
-			var sessionErr *model.SessionNotFoundError
+			var notFoundErr *gamepkg.NotFoundError
+			var sessionErr *SessionNotFoundError
 			if errors.As(err, &notFoundErr) || errors.As(err, &sessionErr) {
 				log.Debug("Player session no longer exists, skipping broadcast",
 					zap.Error(err),

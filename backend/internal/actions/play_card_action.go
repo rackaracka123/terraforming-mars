@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 

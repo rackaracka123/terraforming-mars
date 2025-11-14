@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -36,10 +35,10 @@ func TestDeepWellHeating_MaxTemperature(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to max (8°C)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: 8, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 15})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 15})
 	cardID := "003"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -65,10 +64,10 @@ func TestNuclearPower_NegativeCreditsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set credits production to 1 (effect is -2, result is -1 which is allowed)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Credits: 1,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 12})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 12})
 	cardID := "045"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -87,10 +86,10 @@ func TestNuclearPower_MinimumCreditsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set credits production to exactly 2 (minimum to play)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Credits: 2,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 12})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 12})
 	cardID := "045"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -109,10 +108,10 @@ func TestCarbonateProcessing_InsufficientEnergyProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with 0 energy production (effect is -1, would go negative which is not allowed)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Energy: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 8})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 8})
 	cardID := "043"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -128,10 +127,10 @@ func TestCarbonateProcessing_MinimumEnergyProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with 1 energy production (minimum to play the card)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Energy: 1,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 8})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 8})
 	cardID := "043"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -150,10 +149,10 @@ func TestFoodFactory_InsufficientPlantsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with 0 plants production (effect is -1, would go negative which is not allowed)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Plants: 0, Credits: 1,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 15})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 15})
 	cardID := "041"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -169,10 +168,10 @@ func TestFoodFactory_MinimumPlantsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with exactly 1 plants production (minimum to play)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Plants: 1, Credits: 1,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 15})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 15})
 	cardID := "041"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -191,10 +190,10 @@ func TestBigAsteroid_MaxTemperature(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature near max
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: 7, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 30})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 30})
 	cardID := "011"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -216,10 +215,10 @@ func TestArchaebacteria_ExactTemperatureRequirement(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to exactly -18°C (the requirement boundary)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -18, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 8})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 8})
 	cardID := "042"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -237,10 +236,10 @@ func TestMethaneFromTitan_ExactOxygenRequirement(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set oxygen to exactly 2% (the requirement boundary)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -30, Oxygen: 2, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 30})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 30})
 	cardID := "018"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -259,10 +258,10 @@ func TestLunarBeam_MinimumCreditsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with exactly 2 credits production (minimum to play)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Credits: 2,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 15})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 15})
 	cardID := "030"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -282,10 +281,10 @@ func TestUndergroundCity_MinimumEnergyProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with exactly 2 energy production (minimum to play)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Energy: 2,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20})
 	cardID := "032"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -305,10 +304,10 @@ func TestBlackPolarDust_MinimumCreditsProduction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Start with exactly 2 credits production (minimum to play)
-	playerRepo.UpdateProduction(ctx, gameID, playerID, model.Production{
+	playerRepo.UpdateProduction(ctx, gameID, playerID, resources.Production{
 		Credits: 2,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20})
 	cardID := "022"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -328,10 +327,10 @@ func TestComet_MinTemperature(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to minimum
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -30, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 25})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 25})
 	cardID := "010"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -349,10 +348,10 @@ func TestAsteroid_MinTemperature(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to minimum
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -30, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 16})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 16})
 	cardID := "009"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -372,10 +371,10 @@ func TestAsteroid_MinTemperature(t *testing.T) {
 func TestNitrogenRichAsteroid_ChoiceIndex1(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -16, Oxygen: 0, Oceans: 0,
 	})
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 35})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 35})
 	cardID := "037"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -397,7 +396,7 @@ func TestNitrogenRichAsteroid_ChoiceIndex1(t *testing.T) {
 func TestImportedHydrogen_Choice0_GainPlants(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20, Plants: 5})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20, Plants: 5})
 	cardID := "019"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -422,7 +421,7 @@ func TestReleaseOfInertGases_HighTR(t *testing.T) {
 
 	// Set TR to a high value
 	playerRepo.UpdateTerraformRating(ctx, gameID, playerID, 50)
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20})
 	cardID := "036"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -442,7 +441,7 @@ func TestReleaseOfInertGases_HighTR(t *testing.T) {
 func TestAsteroidMining_VictoryPoints(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 35})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 35})
 	cardID := "040"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -574,16 +573,16 @@ func setupCorporationTest(t *testing.T) (context.Context, string, string, servic
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game in starting card selection phase
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 
 	// Create test player
-	player := model.Player{
+	player := player.Player{
 		ID: "player1", Name: "Test Player",
-		Resources:       model.Resources{Credits: 50},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 50},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20, IsConnected: true,
 	}
 	playerRepo.Create(ctx, game.ID, player)

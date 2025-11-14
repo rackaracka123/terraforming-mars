@@ -11,47 +11,47 @@ import (
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 
 	"go.uber.org/zap"
 )
 
 // Repository provides clean CRUD operations and granular updates for players
 type Repository interface {
-	Create(ctx context.Context, gameID string, player model.Player) error
-	GetByID(ctx context.Context, gameID, playerID string) (model.Player, error)
+	Create(ctx context.Context, gameID string, player Player) error
+	GetByID(ctx context.Context, gameID, playerID string) (Player, error)
 	Delete(ctx context.Context, gameID, playerID string) error
-	ListByGameID(ctx context.Context, gameID string) ([]model.Player, error)
+	ListByGameID(ctx context.Context, gameID string) ([]Player, error)
 
-	UpdateResources(ctx context.Context, gameID, playerID string, resources model.Resources) error
-	UpdateProduction(ctx context.Context, gameID, playerID string, production model.Production) error
+	UpdateResources(ctx context.Context, gameID, playerID string, resources Resources) error
+	UpdateProduction(ctx context.Context, gameID, playerID string, production Production) error
 	UpdateTerraformRating(ctx context.Context, gameID, playerID string, rating int) error
-	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation model.Card) error
+	UpdateCorporation(ctx context.Context, gameID, playerID string, corporation Card) error
 	UpdateConnectionStatus(ctx context.Context, gameID, playerID string, isConnected bool) error
 	UpdatePassed(ctx context.Context, gameID, playerID string, passed bool) error
 	UpdateAvailableActions(ctx context.Context, gameID, playerID string, actions int) error
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
-	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error
-	UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error
+	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []PlayerAction) error
+	UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []PlayerEffect) error
 	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
-	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType model.CardType) error
+	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType CardType) error
 
-	UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *model.SelectStartingCardsPhase) error
+	UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *SelectStartingCardsPhase) error
 	SetStartingCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
 
-	UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *model.ProductionPhase) error
+	UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *ProductionPhase) error
 	SetProductionCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
 
 	// Tile selection methods
-	UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *model.PendingTileSelection) error
-	GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error)
+	UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *PendingTileSelection) error
+	GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*PendingTileSelection, error)
 	ClearPendingTileSelection(ctx context.Context, gameID, playerID string) error
 
 	// Tile queue methods
-	UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error
-	GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error)
+	UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *PendingTileSelectionQueue) error
+	GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*PendingTileSelectionQueue, error)
 	ClearPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) error
 
 	// Tile queue operations
@@ -59,18 +59,18 @@ type Repository interface {
 	ProcessNextTileInQueue(ctx context.Context, gameID, playerID string) (string, error)
 
 	// Card selection methods
-	UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardSelection) error
-	GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardSelection, error)
+	UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *PendingCardSelection) error
+	GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*PendingCardSelection, error)
 	ClearPendingCardSelection(ctx context.Context, gameID, playerID string) error
 
 	// Card draw/peek selection methods
-	UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardDrawSelection) error
-	GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardDrawSelection, error)
+	UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *PendingCardDrawSelection) error
+	GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*PendingCardDrawSelection, error)
 	ClearPendingCardDrawSelection(ctx context.Context, gameID, playerID string) error
 
 	// Forced first action methods
-	UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *model.ForcedFirstAction) error
-	GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*model.ForcedFirstAction, error)
+	UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *ForcedFirstAction) error
+	GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*ForcedFirstAction, error)
 	MarkForcedFirstActionComplete(ctx context.Context, gameID, playerID string) error
 	ClearForcedFirstAction(ctx context.Context, gameID, playerID string) error
 
@@ -78,13 +78,13 @@ type Repository interface {
 	UpdateResourceStorage(ctx context.Context, gameID, playerID string, resourceStorage map[string]int) error
 
 	// Payment substitute methods
-	UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []model.PaymentSubstitute) error
+	UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []PaymentSubstitute) error
 }
 
 // RepositoryImpl implements Repository with in-memory storage
 type RepositoryImpl struct {
 	// Map of gameID -> map of playerID -> Player
-	players  map[string]map[string]*model.Player
+	players  map[string]map[string]*Player
 	mutex    sync.RWMutex
 	eventBus *events.EventBusImpl
 
@@ -98,7 +98,7 @@ type RepositoryImpl struct {
 // NewRepository creates a new player repository
 func NewRepository(eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
-		players:         make(map[string]map[string]*model.Player),
+		players:         make(map[string]map[string]*Player),
 		eventBus:        eventBus,
 		resourcesRepos:  make(map[string]resources.Repository),
 		productionRepos: make(map[string]production.Repository),
@@ -113,7 +113,7 @@ func (r *RepositoryImpl) getPlayerKey(gameID, playerID string) string {
 }
 
 // Create adds a player to a game
-func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player model.Player) error {
+func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player Player) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -129,7 +129,7 @@ func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player model
 
 	// Initialize game players map if it doesn't exist
 	if r.players[gameID] == nil {
-		r.players[gameID] = make(map[string]*model.Player)
+		r.players[gameID] = make(map[string]*Player)
 	}
 
 	// Check if player already exists
@@ -176,7 +176,7 @@ func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player model
 }
 
 // injectServices creates a copy of the player with feature services injected
-func (r *RepositoryImpl) injectServices(gameID, playerID string, player *model.Player) model.Player {
+func (r *RepositoryImpl) injectServices(gameID, playerID string, player *Player) Player {
 	playerCopy := *player.DeepCopy()
 
 	playerKey := r.getPlayerKey(gameID, playerID)
@@ -199,20 +199,20 @@ func (r *RepositoryImpl) injectServices(gameID, playerID string, player *model.P
 }
 
 // GetByID retrieves a player by game and player ID
-func (r *RepositoryImpl) GetByID(ctx context.Context, gameID, playerID string) (model.Player, error) {
+func (r *RepositoryImpl) GetByID(ctx context.Context, gameID, playerID string) (Player, error) {
 	// Check context cancellation
 	select {
 	case <-ctx.Done():
-		return model.Player{}, fmt.Errorf("context cancelled: %w", ctx.Err())
+		return Player{}, fmt.Errorf("context cancelled: %w", ctx.Err())
 	default:
 	}
 
 	if gameID == "" {
-		return model.Player{}, fmt.Errorf("game ID cannot be empty")
+		return Player{}, fmt.Errorf("game ID cannot be empty")
 	}
 
 	if playerID == "" {
-		return model.Player{}, fmt.Errorf("player ID cannot be empty")
+		return Player{}, fmt.Errorf("player ID cannot be empty")
 	}
 
 	r.mutex.RLock()
@@ -220,12 +220,12 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID, playerID string) (
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return model.Player{}, fmt.Errorf("no players found for game %s", gameID)
+		return Player{}, fmt.Errorf("no players found for game %s", gameID)
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return model.Player{}, &model.NotFoundError{Resource: "player", ID: playerID}
+		return Player{}, &game.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// Return a copy with services injected
@@ -270,7 +270,7 @@ func (r *RepositoryImpl) Delete(ctx context.Context, gameID, playerID string) er
 }
 
 // ListByGameID returns all players in a game
-func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]model.Player, error) {
+func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]Player, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -280,10 +280,10 @@ func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]mod
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return make([]model.Player, 0), nil
+		return make([]Player, 0), nil
 	}
 
-	players := make([]model.Player, 0, len(gamePlayers))
+	players := make([]Player, 0, len(gamePlayers))
 	for playerID, player := range gamePlayers {
 		players = append(players, r.injectServices(gameID, playerID, player))
 	}
@@ -292,7 +292,7 @@ func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]mod
 }
 
 // UpdateResources updates a player's resources
-func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID, playerID string, res model.Resources) error {
+func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID, playerID string, res Resources) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -329,9 +329,8 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID, playerID s
 	return nil
 }
 
-
 // UpdateProduction updates a player's production
-func (r *RepositoryImpl) UpdateProduction(ctx context.Context, gameID, playerID string, prod model.Production) error {
+func (r *RepositoryImpl) UpdateProduction(ctx context.Context, gameID, playerID string, prod Production) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -387,7 +386,7 @@ func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID, play
 
 	// Publish terraform rating changed event
 	if r.eventBus != nil && oldTR != rating {
-		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
+		events.Publish(r.eventBus, TerraformRatingChangedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			OldRating: oldTR,
@@ -400,7 +399,7 @@ func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID, play
 }
 
 // UpdateCorporation updates a player's corporation
-func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID, playerID string, corporation model.Card) error {
+func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID, playerID string, corporation Card) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -520,7 +519,7 @@ func (r *RepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID, player
 }
 
 // UpdatePlayerActions updates a player's available actions
-func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []model.PlayerAction) error {
+func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []PlayerAction) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	log := logger.WithGameContext(gameID, playerID)
@@ -531,7 +530,7 @@ func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, player
 	}
 
 	// Deep copy the actions to prevent external mutation
-	actionsCopy := make([]model.PlayerAction, len(actions))
+	actionsCopy := make([]PlayerAction, len(actions))
 	for i, action := range actions {
 		actionsCopy[i] = *action.DeepCopy()
 	}
@@ -546,7 +545,7 @@ func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID, player
 }
 
 // UpdatePlayerEffects updates a player's active passive effects
-func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []model.PlayerEffect) error {
+func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []PlayerEffect) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -558,7 +557,7 @@ func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, player
 	}
 
 	// Deep copy the effects to prevent external mutation
-	effectsCopy := make([]model.PlayerEffect, len(effects))
+	effectsCopy := make([]PlayerEffect, len(effects))
 	for i, effect := range effects {
 		effectsCopy[i] = *effect.DeepCopy()
 	}
@@ -624,7 +623,7 @@ func (r *RepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID string
 }
 
 // PlayCard moves a card from hand to played cards
-func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType model.CardType) error {
+func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType CardType) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -654,7 +653,7 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerI
 
 	// Publish CardPlayedEvent
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, events.CardPlayedEvent{
+		events.Publish(r.eventBus, CardPlayedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			CardID:    cardID,
@@ -670,7 +669,7 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerI
 }
 
 // getPlayerUnsafe retrieves a player without acquiring locks (assumes lock is held)
-func (r *RepositoryImpl) getPlayerUnsafe(gameID, playerID string) (*model.Player, error) {
+func (r *RepositoryImpl) getPlayerUnsafe(gameID, playerID string) (*Player, error) {
 	if gameID == "" {
 		return nil, fmt.Errorf("game ID cannot be empty")
 	}
@@ -693,7 +692,7 @@ func (r *RepositoryImpl) getPlayerUnsafe(gameID, playerID string) (*model.Player
 }
 
 // UpdateSelectStartingCardsPhase updates the starting card selection phase for a player
-func (r *RepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *model.SelectStartingCardsPhase) error {
+func (r *RepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *SelectStartingCardsPhase) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -712,7 +711,7 @@ func (r *RepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Context, gam
 		corpsCopy := make([]string, len(selectStartingCardPhase.AvailableCorporations))
 		copy(corpsCopy, selectStartingCardPhase.AvailableCorporations)
 
-		player.SelectStartingCardsPhase = &model.SelectStartingCardsPhase{
+		player.SelectStartingCardsPhase = &SelectStartingCardsPhase{
 			AvailableCards:        cardsCopy,
 			AvailableCorporations: corpsCopy,
 		}
@@ -753,7 +752,7 @@ func (r *RepositoryImpl) SetStartingCardsSelectionComplete(ctx context.Context, 
 }
 
 // UpdateProductionPhase updates the production phase for a player
-func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *model.ProductionPhase) error {
+func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *ProductionPhase) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -835,7 +834,7 @@ func (r *RepositoryImpl) SetProductionCardsSelectionComplete(ctx context.Context
 }
 
 // UpdatePendingTileSelection updates the pending tile selection for a player
-func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *model.PendingTileSelection) error {
+func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID, playerID string, selection *PendingTileSelection) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -859,7 +858,7 @@ func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID,
 		}
 		log.Info("🎯 Pending tile selection cleared for player")
 	} else {
-		// Convert model.PendingTileSelection to tiles.PendingTileSelection
+		// Convert PendingTileSelection to tiles.PendingTileSelection
 		tileSelection := &tiles.PendingTileSelection{
 			TileType:       selection.TileType,
 			Source:         selection.Source,
@@ -881,7 +880,7 @@ func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID,
 }
 
 // GetPendingTileSelection retrieves the pending tile selection for a player
-func (r *RepositoryImpl) GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*model.PendingTileSelection, error) {
+func (r *RepositoryImpl) GetPendingTileSelection(ctx context.Context, gameID, playerID string) (*PendingTileSelection, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -905,8 +904,8 @@ func (r *RepositoryImpl) GetPendingTileSelection(ctx context.Context, gameID, pl
 		return nil, nil
 	}
 
-	// Convert tiles.PendingTileSelection to model.PendingTileSelection
-	return &model.PendingTileSelection{
+	// Convert tiles.PendingTileSelection to PendingTileSelection
+	return &PendingTileSelection{
 		TileType:       tileSelection.TileType,
 		Source:         tileSelection.Source,
 		AvailableHexes: append([]string{}, tileSelection.AvailableHexes...),
@@ -919,7 +918,7 @@ func (r *RepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID, 
 }
 
 // UpdatePendingTileSelectionQueue updates the pending tile selection queue for a player
-func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *model.PendingTileSelectionQueue) error {
+func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID, playerID string, queue *PendingTileSelectionQueue) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -943,7 +942,7 @@ func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, ga
 		}
 		log.Info("🎯 Pending tile selection queue cleared for player")
 	} else {
-		// Convert model.PendingTileSelectionQueue to tiles.PendingTileSelectionQueue
+		// Convert PendingTileSelectionQueue to tiles.PendingTileSelectionQueue
 		tileQueue := &tiles.PendingTileSelectionQueue{
 			Items:  make([]string, len(queue.Items)),
 			Source: queue.Source,
@@ -964,7 +963,7 @@ func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, ga
 }
 
 // GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
-func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*model.PendingTileSelectionQueue, error) {
+func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID, playerID string) (*PendingTileSelectionQueue, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -988,8 +987,8 @@ func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameI
 		return nil, nil
 	}
 
-	// Convert tiles.PendingTileSelectionQueue to model.PendingTileSelectionQueue
-	return &model.PendingTileSelectionQueue{
+	// Convert tiles.PendingTileSelectionQueue to PendingTileSelectionQueue
+	return &PendingTileSelectionQueue{
 		Items:  append([]string{}, tileQueue.Items...),
 		Source: tileQueue.Source,
 	}, nil
@@ -1016,7 +1015,7 @@ func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID, playerID, 
 		zap.Strings("placement_queue", tilePlacements))
 
 	// Create the tile placement queue
-	queue := &model.PendingTileSelectionQueue{
+	queue := &PendingTileSelectionQueue{
 		Items:  tilePlacements,
 		Source: cardID,
 	}
@@ -1058,7 +1057,7 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID, pla
 
 	// Update queue with remaining items or clear if empty
 	if len(remainingItems) > 0 {
-		updatedQueue := &model.PendingTileSelectionQueue{
+		updatedQueue := &PendingTileSelectionQueue{
 			Items:  remainingItems,
 			Source: queue.Source,
 		}
@@ -1104,7 +1103,7 @@ func (r *RepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID, play
 }
 
 // UpdatePaymentSubstitutes updates a player's payment substitutes list
-func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []model.PaymentSubstitute) error {
+func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []PaymentSubstitute) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -1117,9 +1116,9 @@ func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID, p
 
 	// Deep copy the substitutes slice to prevent external mutation
 	if substitutes == nil {
-		player.PaymentSubstitutes = []model.PaymentSubstitute{}
+		player.PaymentSubstitutes = []PaymentSubstitute{}
 	} else {
-		player.PaymentSubstitutes = make([]model.PaymentSubstitute, len(substitutes))
+		player.PaymentSubstitutes = make([]PaymentSubstitute, len(substitutes))
 		copy(player.PaymentSubstitutes, substitutes)
 	}
 
@@ -1129,7 +1128,7 @@ func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID, p
 }
 
 // UpdatePendingCardSelection updates a player's pending card selection
-func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardSelection) error {
+func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID, playerID string, selection *PendingCardSelection) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -1160,7 +1159,7 @@ func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID,
 		cardRewardsCopy[cardID] = reward
 	}
 
-	player.PendingCardSelection = &model.PendingCardSelection{
+	player.PendingCardSelection = &PendingCardSelection{
 		AvailableCards: availableCardsCopy,
 		CardCosts:      cardCostsCopy,
 		CardRewards:    cardRewardsCopy,
@@ -1179,7 +1178,7 @@ func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID,
 }
 
 // GetPendingCardSelection retrieves a player's pending card selection
-func (r *RepositoryImpl) GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardSelection, error) {
+func (r *RepositoryImpl) GetPendingCardSelection(ctx context.Context, gameID, playerID string) (*PendingCardSelection, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -1206,7 +1205,7 @@ func (r *RepositoryImpl) GetPendingCardSelection(ctx context.Context, gameID, pl
 		cardRewardsCopy[cardID] = reward
 	}
 
-	return &model.PendingCardSelection{
+	return &PendingCardSelection{
 		AvailableCards: availableCardsCopy,
 		CardCosts:      cardCostsCopy,
 		CardRewards:    cardRewardsCopy,
@@ -1235,7 +1234,7 @@ func (r *RepositoryImpl) ClearPendingCardSelection(ctx context.Context, gameID, 
 }
 
 // UpdatePendingCardDrawSelection updates a player's pending card draw/peek/take/buy selection
-func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *model.PendingCardDrawSelection) error {
+func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID, playerID string, selection *PendingCardDrawSelection) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -1256,7 +1255,7 @@ func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gam
 	availableCardsCopy := make([]string, len(selection.AvailableCards))
 	copy(availableCardsCopy, selection.AvailableCards)
 
-	player.PendingCardDrawSelection = &model.PendingCardDrawSelection{
+	player.PendingCardDrawSelection = &PendingCardDrawSelection{
 		AvailableCards: availableCardsCopy,
 		FreeTakeCount:  selection.FreeTakeCount,
 		MaxBuyCount:    selection.MaxBuyCount,
@@ -1275,7 +1274,7 @@ func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gam
 }
 
 // GetPendingCardDrawSelection retrieves a player's pending card draw/peek/take/buy selection
-func (r *RepositoryImpl) GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*model.PendingCardDrawSelection, error) {
+func (r *RepositoryImpl) GetPendingCardDrawSelection(ctx context.Context, gameID, playerID string) (*PendingCardDrawSelection, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -1292,7 +1291,7 @@ func (r *RepositoryImpl) GetPendingCardDrawSelection(ctx context.Context, gameID
 	availableCardsCopy := make([]string, len(player.PendingCardDrawSelection.AvailableCards))
 	copy(availableCardsCopy, player.PendingCardDrawSelection.AvailableCards)
 
-	return &model.PendingCardDrawSelection{
+	return &PendingCardDrawSelection{
 		AvailableCards: availableCardsCopy,
 		FreeTakeCount:  player.PendingCardDrawSelection.FreeTakeCount,
 		MaxBuyCount:    player.PendingCardDrawSelection.MaxBuyCount,
@@ -1320,7 +1319,7 @@ func (r *RepositoryImpl) ClearPendingCardDrawSelection(ctx context.Context, game
 }
 
 // UpdateForcedFirstAction sets a player's forced first action (corporation-specific first turn requirement)
-func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *model.ForcedFirstAction) error {
+func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID, playerID string, action *ForcedFirstAction) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -1343,7 +1342,7 @@ func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID, pl
 }
 
 // GetForcedFirstAction retrieves a player's forced first action
-func (r *RepositoryImpl) GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*model.ForcedFirstAction, error) {
+func (r *RepositoryImpl) GetForcedFirstAction(ctx context.Context, gameID, playerID string) (*ForcedFirstAction, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -1398,7 +1397,7 @@ func (r *RepositoryImpl) ClearForcedFirstAction(ctx context.Context, gameID, pla
 func (r *RepositoryImpl) Clear() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.players = make(map[string]map[string]*model.Player)
+	r.players = make(map[string]map[string]*Player)
 	r.resourcesRepos = make(map[string]resources.Repository)
 	r.productionRepos = make(map[string]production.Repository)
 	r.tileQueueRepos = make(map[string]tiles.TileQueueRepository)

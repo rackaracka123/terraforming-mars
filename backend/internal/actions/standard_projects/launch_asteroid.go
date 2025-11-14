@@ -7,8 +7,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/resources"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -63,11 +63,17 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.Resources.Credits < AsteroidCost {
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
+	if playerResources.Credits < AsteroidCost {
 		log.Warn("Player cannot afford asteroid",
 			zap.Int("cost", AsteroidCost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", AsteroidCost, player.Resources.Credits)
+			zap.Int("available", playerResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", AsteroidCost, playerResources.Credits)
 	}
 
 	// 2. Deduct credits via resources mechanic
@@ -75,23 +81,30 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 		Credits: AsteroidCost,
 	}
 
-	if err := a.resourcesMech.PayResourceCost(ctx, gameID, playerID, cost); err != nil {
+	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
 	log.Info("💰 Credits deducted", zap.Int("amount", AsteroidCost))
 
-	// 3. Check if temperature can be raised
-	isMaxed, err := a.parametersMech.IsTemperatureMaxed(ctx, gameID)
+	// 3. Get game for parameters service
+	game, err := a.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// 4. Check if temperature can be raised
+	isMaxed, err := game.ParametersService.IsTemperatureMaxed(ctx)
 	if err != nil {
 		log.Error("Failed to check temperature max", zap.Error(err))
 		return fmt.Errorf("failed to check temperature: %w", err)
 	}
 
-	// 4. Raise temperature by 1 step (awards TR automatically in parameters mechanic)
+	// 5. Raise temperature by 1 step (awards TR automatically in parameters mechanic)
 	if !isMaxed {
-		stepsRaised, err := a.parametersMech.RaiseTemperature(ctx, gameID, playerID, 1)
+		stepsRaised, err := game.ParametersService.RaiseTemperature(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise temperature", zap.Error(err))
 			return fmt.Errorf("failed to raise temperature: %w", err)

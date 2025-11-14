@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -76,7 +75,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	}
 
 	// Calculate required plants (considering discounts from cards)
-	requiredPlants := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	requiredPlants := cards.CalculateResourceConversionCost(&player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
 
 	// Validate player has enough plants
 	if player.Resources.Plants < requiredPlants {

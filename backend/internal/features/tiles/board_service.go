@@ -2,7 +2,6 @@ package tiles
 
 import (
 	"context"
-"terraforming-mars-backend/internal/model"
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
@@ -13,14 +12,14 @@ import (
 // BoardService handles board tile operations
 //
 // Scope: Isolated board management for a game
-//   - model.Tile placement
-//   - model.Tile occupancy checking
-//   - model.Board state retrieval
+//   - Tile placement
+//   - Tile occupancy checking
+//   - Board state retrieval
 type BoardService interface {
-	GetBoard(ctx context.Context) (model.Board, error)
-	PlaceTile(ctx context.Context, coordinate model.HexPosition, occupant model.TileOccupant, ownerID *string) error
-	GetTile(ctx context.Context, coordinate model.HexPosition) (*model.Tile, error)
-	IsTileOccupied(ctx context.Context, coordinate model.HexPosition) (bool, error)
+	GetBoard(ctx context.Context) (Board, error)
+	PlaceTile(ctx context.Context, coordinate HexPosition, occupant TileOccupant, ownerID *string) error
+	GetTile(ctx context.Context, coordinate HexPosition) (*Tile, error)
+	IsTileOccupied(ctx context.Context, coordinate HexPosition) (bool, error)
 }
 
 // BoardServiceImpl implements the board service
@@ -36,17 +35,17 @@ func NewBoardService(repo BoardRepository) BoardService {
 }
 
 // GetBoard retrieves the complete board
-func (s *BoardServiceImpl) GetBoard(ctx context.Context) (model.Board, error) {
+func (s *BoardServiceImpl) GetBoard(ctx context.Context) (Board, error) {
 	return s.repo.GetBoard(ctx)
 }
 
 // PlaceTile places a tile on the board
-func (s *BoardServiceImpl) PlaceTile(ctx context.Context, coordinate model.HexPosition, occupant model.TileOccupant, ownerID *string) error {
+func (s *BoardServiceImpl) PlaceTile(ctx context.Context, coordinate HexPosition, occupant TileOccupant, ownerID *string) error {
 	if err := s.repo.PlaceTile(ctx, coordinate, occupant, ownerID); err != nil {
 		return fmt.Errorf("failed to place tile: %w", err)
 	}
 
-	logger.Get().Info("🏗️ model.Tile placed",
+	logger.Get().Info("🏗️ Tile placed",
 		zap.String("coordinate", coordinate.String()),
 		zap.String("type", string(occupant.Type)),
 		zap.Stringp("owner_id", ownerID))
@@ -57,7 +56,7 @@ func (s *BoardServiceImpl) PlaceTile(ctx context.Context, coordinate model.HexPo
 }
 
 // GetTile retrieves a specific tile
-func (s *BoardServiceImpl) GetTile(ctx context.Context, coordinate model.HexPosition) (*model.Tile, error) {
+func (s *BoardServiceImpl) GetTile(ctx context.Context, coordinate HexPosition) (*Tile, error) {
 	tile, err := s.repo.GetTile(ctx, coordinate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tile: %w", err)
@@ -66,7 +65,7 @@ func (s *BoardServiceImpl) GetTile(ctx context.Context, coordinate model.HexPosi
 }
 
 // IsTileOccupied checks if a tile is occupied
-func (s *BoardServiceImpl) IsTileOccupied(ctx context.Context, coordinate model.HexPosition) (bool, error) {
+func (s *BoardServiceImpl) IsTileOccupied(ctx context.Context, coordinate HexPosition) (bool, error) {
 	occupied, err := s.repo.IsTileOccupied(ctx, coordinate)
 	if err != nil {
 		return false, fmt.Errorf("failed to check tile occupancy: %w", err)

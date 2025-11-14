@@ -21,7 +21,6 @@ type PlayerTurnService interface {
 	SetPassed(ctx context.Context, passed bool) error
 	SetAvailableActions(ctx context.Context, actions int) error
 	DecrementAvailableActions(ctx context.Context) error
-
 }
 
 // PlayerTurnServiceImpl implements the player turn service

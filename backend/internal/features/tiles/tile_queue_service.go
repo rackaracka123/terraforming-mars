@@ -2,7 +2,6 @@ package tiles
 
 import (
 	"context"
-"terraforming-mars-backend/internal/model"
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
@@ -17,17 +16,16 @@ import (
 //   - Pop tiles from queue
 //   - Manage pending selection state
 type TileQueueService interface {
-	GetQueue(ctx context.Context) (*model.PendingTileSelectionQueue, error)
-	GetPendingSelection(ctx context.Context) (*model.PendingTileSelection, error)
+	GetQueue(ctx context.Context) (*PendingTileSelectionQueue, error)
+	GetPendingSelection(ctx context.Context) (*PendingTileSelection, error)
 
 	AddToQueue(ctx context.Context, tileType string) error
 	PopFromQueue(ctx context.Context) (string, error)
 	ClearQueue(ctx context.Context) error
 	GetQueueLength(ctx context.Context) (int, error)
 
-	SetPendingSelection(ctx context.Context, selection *model.PendingTileSelection) error
+	SetPendingSelection(ctx context.Context, selection *PendingTileSelection) error
 	ClearPendingSelection(ctx context.Context) error
-
 }
 
 // TileQueueServiceImpl implements the tile queue service
@@ -43,12 +41,12 @@ func NewTileQueueService(repo TileQueueRepository) TileQueueService {
 }
 
 // GetQueue retrieves the current queue
-func (s *TileQueueServiceImpl) GetQueue(ctx context.Context) (*model.PendingTileSelectionQueue, error) {
+func (s *TileQueueServiceImpl) GetQueue(ctx context.Context) (*PendingTileSelectionQueue, error) {
 	return s.repo.GetQueue(ctx)
 }
 
 // GetPendingSelection retrieves the current pending selection
-func (s *TileQueueServiceImpl) GetPendingSelection(ctx context.Context) (*model.PendingTileSelection, error) {
+func (s *TileQueueServiceImpl) GetPendingSelection(ctx context.Context) (*PendingTileSelection, error) {
 	return s.repo.GetPendingSelection(ctx)
 }
 
@@ -93,7 +91,7 @@ func (s *TileQueueServiceImpl) GetQueueLength(ctx context.Context) (int, error) 
 }
 
 // SetPendingSelection sets the current pending tile selection
-func (s *TileQueueServiceImpl) SetPendingSelection(ctx context.Context, selection *model.PendingTileSelection) error {
+func (s *TileQueueServiceImpl) SetPendingSelection(ctx context.Context, selection *PendingTileSelection) error {
 	if err := s.repo.SetPendingSelection(ctx, selection); err != nil {
 		return fmt.Errorf("failed to set pending selection: %w", err)
 	}

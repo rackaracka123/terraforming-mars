@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/production"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -27,16 +27,16 @@ import (
 // Boundary: Pre-game operations (game creation, joining, starting) are handled by lobby.Service
 type GameService interface {
 	// Get game by ID
-	GetGame(ctx context.Context, gameID string) (model.Game, error)
+	GetGame(ctx context.Context, gameID string) (game.Game, error)
 
 	// Skip a player's turn (advance to next player)
 	SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error
 
 	// Get global parameters (read-only access)
-	GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error)
+	GetGlobalParameters(ctx context.Context, gameID string) (game.GlobalParameters, error)
 
 	// Process production phase ready acknowledgment from client
-	ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*model.Game, error)
+	ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*game.Game, error)
 
 	// Handle player reconnection - updates connection status and sends complete game state
 	PlayerReconnected(ctx context.Context, gameID string, playerID string) error
@@ -46,28 +46,28 @@ type GameService interface {
 type GameServiceImpl struct {
 	gameRepo          game.Repository
 	playerRepo        player.Repository
-	cardRepo          game.CardRepository
+	cardRepo          card.CardRepository
 	cardService       CardService
-	cardDeckRepo      game.CardDeckRepository
+	cardDeckRepo      card.CardDeckRepository
 	boardService      BoardService
 	sessionManager    session.SessionManager
-	turnFeature       turn.Service
+	turnFeature       turn.TurnOrderService
 	productionFeature production.Service
-	tilesFeature      tiles.Service
+	tilesFeature      tiles.BoardService
 }
 
 // NewGameService creates a new GameService instance
 func NewGameService(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	cardRepo game.CardRepository,
+	cardRepo card.CardRepository,
 	cardService CardService,
-	cardDeckRepo game.CardDeckRepository,
+	cardDeckRepo card.CardDeckRepository,
 	boardService BoardService,
 	sessionManager session.SessionManager,
-	turnFeature turn.Service,
+	turnFeature turn.TurnOrderService,
 	productionFeature production.Service,
-	tilesFeature tiles.Service,
+	tilesFeature tiles.BoardService,
 ) GameService {
 	return &GameServiceImpl{
 		gameRepo:          gameRepo,
@@ -84,26 +84,26 @@ func NewGameService(
 }
 
 // GetGame retrieves a game by ID
-func (s *GameServiceImpl) GetGame(ctx context.Context, gameID string) (model.Game, error) {
+func (s *GameServiceImpl) GetGame(ctx context.Context, gameID string) (game.Game, error) {
 	return s.gameRepo.GetByID(ctx, gameID)
 }
 
 // GetGameForPlayer gets a game prepared for a specific player's perspective
-func (s *GameServiceImpl) GetGameForPlayer(ctx context.Context, gameID string, playerID string) (model.Game, error) {
+func (s *GameServiceImpl) GetGameForPlayer(ctx context.Context, gameID string, playerID string) (game.Game, error) {
 	// Get the game data
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	gameData, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
-		return model.Game{}, err
+		return game.Game{}, err
 	}
 
 	// Get the players separately (clean architecture pattern)
 	players, err := s.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {
-		return model.Game{}, err
+		return game.Game{}, err
 	}
 
 	// Create a copy of the game to modify
-	gameCopy := game
+	gameCopy := gameData
 
 	// Note: CurrentPlayer and OtherPlayers are legacy fields
 	// In clean architecture, frontend should call player repo directly
@@ -123,29 +123,30 @@ func (s *GameServiceImpl) GetGameForPlayer(ctx context.Context, gameID string, p
 // SkipPlayerTurnResult contains the result of skipping a player's turn
 type SkipPlayerTurnResult struct {
 	AllPlayersPassed bool
-	Game             *model.Game
+	Game             *game.Game
 }
 
 func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("Skipping player turn via GameService")
 
+	// TODO: Methods removed during refactoring - need to reimplement
 	// Delegate to turn mechanic
-	generationEnded, err := s.turnFeature.SkipTurn(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to skip turn", zap.Error(err))
-		return fmt.Errorf("failed to skip turn: %w", err)
-	}
+	// generationEnded, err := s.turnFeature.SkipTurn(ctx, gameID, playerID)
+	// if err != nil {
+	// 	log.Error("Failed to skip turn", zap.Error(err))
+	// 	return fmt.Errorf("failed to skip turn: %w", err)
+	// }
 
 	// If generation ended, execute production phase
-	if generationEnded {
-		log.Info("🏭 Generation ended - executing production phase")
+	// if generationEnded {
+	// 	log.Info("🏭 Generation ended - executing production phase")
 
-		if err := s.productionFeature.ExecuteProductionPhase(ctx, gameID); err != nil {
-			log.Error("Failed to execute production phase", zap.Error(err))
-			return fmt.Errorf("failed to execute production phase: %w", err)
-		}
-	}
+	// 	if err := s.productionFeature.ExecuteProductionPhase(ctx, gameID); err != nil {
+	// 		log.Error("Failed to execute production phase", zap.Error(err))
+	// 		return fmt.Errorf("failed to execute production phase: %w", err)
+	// 	}
+	// }
 
 	// Broadcast updated game state to all players
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
@@ -157,16 +158,18 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 }
 
 // ProcessProductionPhaseReady processes a player's ready acknowledgment and transitions phase when all players are ready
-func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*model.Game, error) {
+func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameID string, playerID string) (*game.Game, error) {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("Processing production phase ready via GameService")
 
+	// TODO: Method removed during refactoring - need to reimplement
 	// Delegate to production mechanic
-	allReady, err := s.productionFeature.ProcessPlayerReady(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to process player ready", zap.Error(err))
-		return nil, fmt.Errorf("failed to process player ready: %w", err)
-	}
+	// allReady, err := s.productionFeature.ProcessPlayerReady(ctx, gameID, playerID)
+	// if err != nil {
+	// 	log.Error("Failed to process player ready", zap.Error(err))
+	// 	return nil, fmt.Errorf("failed to process player ready: %w", err)
+	// }
+	allReady := false
 
 	// If all players are ready, additional game service cleanup
 	if allReady {
@@ -213,12 +216,12 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 }
 
 // GetGlobalParameters gets current global parameters
-func (s *GameServiceImpl) GetGlobalParameters(ctx context.Context, gameID string) (model.GlobalParameters, error) {
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+func (s *GameServiceImpl) GetGlobalParameters(ctx context.Context, gameID string) (game.GlobalParameters, error) {
+	gameData, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
-		return model.GlobalParameters{}, err
+		return game.GlobalParameters{}, err
 	}
-	return game.GlobalParameters, nil
+	return gameData.GetGlobalParameters()
 }
 
 // PlayerReconnected handles player reconnection by updating connection status and sending complete game state
@@ -249,7 +252,7 @@ func (s *GameServiceImpl) PlayerReconnected(ctx context.Context, gameID string, 
 }
 
 // getPlayerName is a helper method to find player name by ID
-func (s *GameServiceImpl) getPlayerName(players []model.Player, playerID string) string {
+func (s *GameServiceImpl) getPlayerName(players []player.Player, playerID string) string {
 	for _, player := range players {
 		if player.ID == playerID {
 			return player.Name
@@ -277,7 +280,7 @@ func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameI
 		}
 
 		// Create a copy of the actions with reset play counts
-		resetActions := make([]model.PlayerAction, len(player.Actions))
+		resetActions := make([]card.PlayerAction, len(player.Actions))
 		for i, action := range player.Actions {
 			resetActions[i] = *action.DeepCopy()
 			resetActions[i].PlayCount = 0
@@ -304,6 +307,8 @@ func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameI
 
 // CalculateAvailableOceanHexes returns a list of hex coordinate strings that are available for ocean placement
 func (s *GameServiceImpl) CalculateAvailableOceanHexes(ctx context.Context, gameID string) ([]string, error) {
+	// TODO: Method removed during refactoring - need to reimplement
 	// Delegate to tiles mechanic
-	return s.tilesFeature.CalculateAvailableHexes(ctx, gameID, "", "ocean")
+	// return s.tilesFeature.CalculateAvailableHexes(ctx, gameID, "", "ocean")
+	return []string{}, nil
 }

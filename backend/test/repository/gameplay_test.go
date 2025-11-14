@@ -2,16 +2,15 @@ package repository_test
 
 import (
 	"context"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/production"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
@@ -67,9 +66,9 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Basic Game Flow - Create and Join", func(t *testing.T) {
 		// Create a game
-		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+		game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 4})
 		assert.NoError(t, err)
-		assert.Equal(t, model.GameStatusLobby, game.Status)
+		assert.Equal(t, game.GameStatusLobby, game.Status)
 		assert.Equal(t, -30, game.GlobalParameters.Temperature) // Mars starting temp
 		assert.Equal(t, 0, game.GlobalParameters.Oxygen)
 		assert.Equal(t, 0, game.GlobalParameters.Oceans)
@@ -93,7 +92,7 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Resource Management", func(t *testing.T) {
 		// Create game and add player
-		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
 		game, err = lobbyService.JoinGame(ctx, game.ID, "Player1")
@@ -101,7 +100,7 @@ func TestGameplayLogic(t *testing.T) {
 		playerID := game.PlayerIDs[0]
 
 		// Test resource updates
-		newResources := model.Resources{
+		newResources := resources.Resources{
 			Credits:  42,
 			Steel:    8,
 			Titanium: 3,
@@ -126,7 +125,7 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Production Management", func(t *testing.T) {
 		// Create game and add player
-		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
 		game, err = lobbyService.JoinGame(ctx, game.ID, "Producer")
@@ -134,7 +133,7 @@ func TestGameplayLogic(t *testing.T) {
 		playerID := game.PlayerIDs[0]
 
 		// Test production updates
-		newProduction := model.Production{
+		newProduction := resources.Production{
 			Credits:  3, // Increased from base 1
 			Steel:    2,
 			Titanium: 1,
@@ -159,7 +158,7 @@ func TestGameplayLogic(t *testing.T) {
 
 	t.Run("Test Game Capacity Limits", func(t *testing.T) {
 		// Create game with max 2 players
-		game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 2})
+		game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 2})
 		assert.NoError(t, err)
 
 		// Join 2 players

@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -40,16 +39,16 @@ func setupCardTest(t *testing.T) (context.Context, string, string, service.CardS
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game in action phase
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 
 	// Create test player
-	player := model.Player{
+	player := player.Player{
 		ID: "player1", Name: "Test Player",
-		Resources:       model.Resources{Credits: 50},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 50},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20, IsConnected: true,
 		AvailableActions: 2, // Sufficient actions for testing
 	}
@@ -65,7 +64,7 @@ func TestColonizerTrainingCamp(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set low oxygen to meet card requirement (≤ 5%)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -30, Oxygen: 3, Oceans: 0,
 	})
 
@@ -94,7 +93,7 @@ func TestColonizerTrainingCamp_RequirementNotMet(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set high oxygen to violate card requirement (> 5%)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -30, Oxygen: 8, Oceans: 0, // Above 5% requirement
 	})
 
@@ -118,7 +117,7 @@ func TestRoverConstruction_PassiveEffectExtraction(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources to afford Rover Construction (8 MC)
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 50})
 
 	// Add Rover Construction to player's hand (card 038)
 	cardID := "038"
@@ -148,7 +147,7 @@ func TestSpaceElevator_ImmediateEffect(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources to afford Space Elevator (27 MC)
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 50})
 
 	// Add Space Elevator to player's hand
 	cardID := "013"
@@ -196,7 +195,7 @@ func TestSpaceElevator_ActionUse(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, _, cardRepo := setupCardTest(t)
 
 	// Set player resources with steel for the action
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 50, Steel: 3})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 50, Steel: 3})
 	cardID := "013"
 	playerRepo.AddCard(ctx, gameID, playerID, cardID)
 
@@ -259,10 +258,10 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game in action phase
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 
 	// Initialize the board with default tiles
 	board := boardService.GenerateDefaultBoard()
@@ -270,11 +269,11 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create test player with enough credits
-	player := model.Player{
+	player := player.Player{
 		ID:               "player1",
 		Name:             "Test Player",
-		Resources:        model.Resources{Credits: 50},
-		Production:       model.Production{Credits: 1},
+		Resources:        resources.Resources{Credits: 50},
+		Production:       resources.Production{Credits: 1},
 		TerraformRating:  20,
 		IsConnected:      true,
 		AvailableActions: 2,
@@ -330,12 +329,12 @@ func TestLavaFlows_TemperatureIncrease(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set initial temperature to -20°C
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: -20, Oxygen: 0, Oceans: 0,
 	})
 
 	// Give player enough credits to play Lava Flows (cost: 18)
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20})
 
 	// Add Lava Flows to player's hand
 	cardID := "140"
@@ -369,12 +368,12 @@ func TestLavaFlows_TemperatureClampedAtMax(t *testing.T) {
 	ctx, gameID, playerID, cardService, playerRepo, gameRepo, cardRepo := setupCardTest(t)
 
 	// Set temperature to 7°C (1 step below max of 8°C)
-	gameRepo.UpdateGlobalParameters(ctx, gameID, model.GlobalParameters{
+	gameRepo.UpdateGlobalParameters(ctx, gameID, parameters.GlobalParameters{
 		Temperature: 7, Oxygen: 0, Oceans: 0,
 	})
 
 	// Give player enough credits
-	playerRepo.UpdateResources(ctx, gameID, playerID, model.Resources{Credits: 20})
+	playerRepo.UpdateResources(ctx, gameID, playerID, resources.Resources{Credits: 20})
 
 	// Add Lava Flows to player's hand
 	cardID := "140"

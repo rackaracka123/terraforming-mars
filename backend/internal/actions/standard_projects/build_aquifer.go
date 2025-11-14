@@ -8,9 +8,8 @@ import (
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -31,7 +30,7 @@ type BuildAquiferAction struct {
 	gameRepo       game.Repository
 	resourcesMech  resources.Service
 	parametersMech parameters.Service
-	tilesMech      tiles.Service
+	tilesMech      tiles.TileQueueService
 	sessionManager session.SessionManager
 }
 
@@ -41,7 +40,7 @@ func NewBuildAquiferAction(
 	gameRepo game.Repository,
 	resourcesMech resources.Service,
 	parametersMech parameters.Service,
-	tilesMech tiles.Service,
+	tilesMech tiles.TileQueueService,
 	sessionManager session.SessionManager,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
@@ -74,11 +73,17 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.Resources.Credits < AquiferCost {
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
+	if playerResources.Credits < AquiferCost {
 		log.Warn("Player cannot afford aquifer",
 			zap.Int("cost", AquiferCost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", AquiferCost, player.Resources.Credits)
+			zap.Int("available", playerResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", AquiferCost, playerResources.Credits)
 	}
 
 	// Deduct credits via resources mechanic
@@ -86,7 +91,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		Credits: AquiferCost,
 	}
 
-	if err := a.resourcesMech.PayResourceCost(ctx, gameID, playerID, cost); err != nil {
+	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
@@ -100,10 +105,16 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	globalParams, err := game.GetGlobalParameters()
+	if err != nil {
+		log.Error("Failed to get global parameters", zap.Error(err))
+		return fmt.Errorf("failed to get global parameters: %w", err)
+	}
+
 	oceanRaised := false
-	if game.GlobalParameters.Oceans < model.MaxOceans {
+	if globalParams.Oceans < parameters.MaxOceans {
 		// Place ocean via parameters mechanic (also awards TR)
-		if err := a.parametersMech.PlaceOcean(ctx, gameID, playerID); err != nil {
+		if err := game.ParametersService.PlaceOcean(ctx); err != nil {
 			log.Error("Failed to place ocean", zap.Error(err))
 			return fmt.Errorf("failed to place ocean: %w", err)
 		}
@@ -137,13 +148,15 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return fmt.Errorf("failed to create tile queue: %w", err)
 	}
 
-	// Process tile queue to set pendingTileSelection
-	if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
+	// TODO: Implement tile queue processing
+	// ProcessTileQueue method was removed during refactoring
+	// Need to implement: pop from queue, calculate available hexes, set pending selection
+	// if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// 	log.Error("Failed to process tile queue", zap.Error(err))
+	// 	return fmt.Errorf("failed to process tile queue: %w", err)
+	// }
 
-	log.Info("🎯 Tile queue processed, awaiting player selection")
+	log.Info("🎯 Tile queue created, awaiting player selection (TODO: process queue)")
 
 	// Broadcast updated game state (includes pendingTileSelection)
 	if err := a.sessionManager.Broadcast(gameID); err != nil {

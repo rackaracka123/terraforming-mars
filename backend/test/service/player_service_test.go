@@ -4,15 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/production"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
-	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
@@ -25,7 +24,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	service.PlayerService,
 	service.GameService,
 	player.Repository,
-	model.Game,
+	game.Game,
 	lobby.Service,
 ) {
 	eventBus := events.NewEventBus()
@@ -64,7 +63,7 @@ func setupPlayerServiceTest(t *testing.T) (
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()
-	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	game, err = lobbyService.JoinGame(ctx, game.ID, "TestPlayer")
@@ -79,7 +78,7 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 	playerID := game.PlayerIDs[0]
 
 	t.Run("Valid resource update", func(t *testing.T) {
-		newResources := model.Resources{
+		newResources := resources.Resources{
 			Credits:  50,
 			Steel:    10,
 			Titanium: 5,
@@ -104,19 +103,19 @@ func TestPlayerService_UpdatePlayerResources(t *testing.T) {
 	})
 
 	t.Run("Invalid game ID", func(t *testing.T) {
-		newResources := model.Resources{Credits: 30}
+		newResources := resources.Resources{Credits: 30}
 		err := playerRepo.UpdateResources(ctx, "invalid-game-id", playerID, newResources)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
-		newResources := model.Resources{Credits: 30}
+		newResources := resources.Resources{Credits: 30}
 		err := playerRepo.UpdateResources(ctx, game.ID, "invalid-player-id", newResources)
 		assert.Error(t, err)
 	})
 
 	t.Run("Zero resources", func(t *testing.T) {
-		newResources := model.Resources{} // All zeros
+		newResources := resources.Resources{} // All zeros
 		err := playerRepo.UpdateResources(ctx, game.ID, playerID, newResources)
 		assert.NoError(t, err)
 
@@ -139,7 +138,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 	playerID := game.PlayerIDs[0]
 
 	t.Run("Valid production update", func(t *testing.T) {
-		newProduction := model.Production{
+		newProduction := resources.Production{
 			Credits:  3,
 			Steel:    2,
 			Titanium: 1,
@@ -164,7 +163,7 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 	})
 
 	t.Run("Negative production values", func(t *testing.T) {
-		newProduction := model.Production{
+		newProduction := resources.Production{
 			Credits:  -1,
 			Steel:    -2,
 			Titanium: 1,
@@ -189,13 +188,13 @@ func TestPlayerService_UpdatePlayerProduction(t *testing.T) {
 	})
 
 	t.Run("Invalid game ID", func(t *testing.T) {
-		newProduction := model.Production{Credits: 5}
+		newProduction := resources.Production{Credits: 5}
 		err := playerRepo.UpdateProduction(ctx, "invalid-game-id", playerID, newProduction)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid player ID", func(t *testing.T) {
-		newProduction := model.Production{Credits: 5}
+		newProduction := resources.Production{Credits: 5}
 		err := playerRepo.UpdateProduction(ctx, game.ID, "invalid-player-id", newProduction)
 		assert.Error(t, err)
 	})

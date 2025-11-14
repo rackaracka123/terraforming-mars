@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/features/production"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -26,29 +25,29 @@ func setupTest(t *testing.T) (production.Service, game.Repository, player.Reposi
 	productionService := production.NewService(productionRepo)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{
+	game, err := gameRepo.Create(ctx, game.GameSettings{
 		MaxPlayers: 4,
 	})
 	require.NoError(t, err)
 	gameID := game.ID
 
 	// Set game to active status
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
 
 	// Set initial phase to action
-	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Create 3 players with resources and production
 	playerIDs := []string{"player1", "player2", "player3"}
 	for _, playerID := range playerIDs {
-		player := model.Player{
+		player := player.Player{
 			ID:               playerID,
 			Name:             "Player " + playerID,
 			AvailableActions: 2,
 			Passed:           false,
-			Resources: model.Resources{
+			Resources: resources.Resources{
 				Credits:  10,
 				Steel:    5,
 				Titanium: 3,
@@ -56,7 +55,7 @@ func setupTest(t *testing.T) (production.Service, game.Repository, player.Reposi
 				Energy:   6,
 				Heat:     4,
 			},
-			Production: model.Production{
+			Production: resources.Production{
 				Credits:  3,
 				Steel:    2,
 				Titanium: 1,
@@ -213,7 +212,7 @@ func TestProductionService_ExecuteProductionPhase(t *testing.T) {
 	assert.Equal(t, initialGeneration+1, game.Generation, "Generation should advance by 1")
 
 	// Verify phase updated
-	assert.Equal(t, model.GamePhaseProductionAndCardDraw, game.CurrentPhase)
+	assert.Equal(t, game.GamePhaseProductionAndCardDraw, game.CurrentPhase)
 
 	// Verify current turn set to first player
 	require.NotNil(t, game.CurrentTurn)
@@ -258,24 +257,24 @@ func TestProductionService_ExecuteProductionPhaseSolo(t *testing.T) {
 	productionService := production.NewService(productionRepo)
 
 	// Create solo game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 1})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 1})
 	require.NoError(t, err)
 	gameID := game.ID
 
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
 
 	// Create single player
 	playerID := "solo-player"
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Solo Player",
 		AvailableActions: 2,
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 10,
 			Energy:  5,
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits: 2,
 			Energy:  3,
 		},
@@ -310,7 +309,7 @@ func TestProductionService_ProcessPlayerReady(t *testing.T) {
 	// Verify game is in production phase
 	game, err := gameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
-	assert.Equal(t, model.GamePhaseProductionAndCardDraw, game.CurrentPhase)
+	assert.Equal(t, game.GamePhaseProductionAndCardDraw, game.CurrentPhase)
 
 	t.Run("Not all players ready", func(t *testing.T) {
 		// Mark player 1 as ready
@@ -324,7 +323,7 @@ func TestProductionService_ProcessPlayerReady(t *testing.T) {
 		// Verify phase didn't change
 		game, err := gameRepo.GetByID(ctx, gameID)
 		require.NoError(t, err)
-		assert.Equal(t, model.GamePhaseProductionAndCardDraw, game.CurrentPhase)
+		assert.Equal(t, game.GamePhaseProductionAndCardDraw, game.CurrentPhase)
 	})
 
 	t.Run("All players ready", func(t *testing.T) {
@@ -341,7 +340,7 @@ func TestProductionService_ProcessPlayerReady(t *testing.T) {
 		// Verify phase advanced to action
 		game, err := gameRepo.GetByID(ctx, gameID)
 		require.NoError(t, err)
-		assert.Equal(t, model.GamePhaseAction, game.CurrentPhase)
+		assert.Equal(t, game.GamePhaseAction, game.CurrentPhase)
 
 		// Verify current turn set to first player
 		require.NotNil(t, game.CurrentTurn)
@@ -355,7 +354,7 @@ func TestProductionService_ExecuteProductionPhaseValidation(t *testing.T) {
 
 	t.Run("Non-active game", func(t *testing.T) {
 		// Set game to non-active status
-		err := gameRepo.UpdateStatus(ctx, gameID, model.GameStatusLobby)
+		err := gameRepo.UpdateStatus(ctx, gameID, game.GameStatusLobby)
 		require.NoError(t, err)
 
 		err = productionService.ExecuteProductionPhase(ctx, gameID)
@@ -363,7 +362,7 @@ func TestProductionService_ExecuteProductionPhaseValidation(t *testing.T) {
 		assert.Contains(t, err.Error(), "not active")
 
 		// Restore active status
-		err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+		err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 		require.NoError(t, err)
 	})
 }
@@ -373,7 +372,7 @@ func TestProductionService_ProcessPlayerReadyValidation(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Non-active game", func(t *testing.T) {
-		err := gameRepo.UpdateStatus(ctx, gameID, model.GameStatusLobby)
+		err := gameRepo.UpdateStatus(ctx, gameID, game.GameStatusLobby)
 		require.NoError(t, err)
 
 		_, err = productionService.ProcessPlayerReady(ctx, gameID, playerIDs[0])
@@ -381,7 +380,7 @@ func TestProductionService_ProcessPlayerReadyValidation(t *testing.T) {
 		assert.Contains(t, err.Error(), "not active")
 
 		// Restore active status
-		err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+		err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 		require.NoError(t, err)
 	})
 

@@ -8,7 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 )
 
 // loadCards loads the parsed card JSON for testing

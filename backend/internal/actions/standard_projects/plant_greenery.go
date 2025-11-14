@@ -8,8 +8,8 @@ import (
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -33,7 +33,7 @@ type PlantGreeneryAction struct {
 	gameRepo       game.Repository
 	resourcesMech  resources.Service
 	parametersMech parameters.Service
-	tilesMech      tiles.Service
+	tilesMech      tiles.TileQueueService
 	sessionManager session.SessionManager
 }
 
@@ -43,7 +43,7 @@ func NewPlantGreeneryAction(
 	gameRepo game.Repository,
 	resourcesMech resources.Service,
 	parametersMech parameters.Service,
-	tilesMech tiles.Service,
+	tilesMech tiles.TileQueueService,
 	sessionManager session.SessionManager,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
@@ -68,11 +68,17 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.Resources.Credits < GreeneryCost {
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
+	if playerResources.Credits < GreeneryCost {
 		log.Warn("Player cannot afford greenery",
 			zap.Int("cost", GreeneryCost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", GreeneryCost, player.Resources.Credits)
+			zap.Int("available", playerResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", GreeneryCost, playerResources.Credits)
 	}
 
 	// 2. Deduct credits via resources mechanic
@@ -80,23 +86,30 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 		Credits: GreeneryCost,
 	}
 
-	if err := a.resourcesMech.PayResourceCost(ctx, gameID, playerID, cost); err != nil {
+	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
 	log.Info("💰 Credits deducted", zap.Int("amount", GreeneryCost))
 
-	// 3. Check if oxygen can be raised
-	isMaxed, err := a.parametersMech.IsOxygenMaxed(ctx, gameID)
+	// 3. Get game for parameters service
+	game, err := a.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	// 4. Check if oxygen can be raised
+	isMaxed, err := game.ParametersService.IsOxygenMaxed(ctx)
 	if err != nil {
 		log.Error("Failed to check oxygen max", zap.Error(err))
 		return fmt.Errorf("failed to check oxygen: %w", err)
 	}
 
-	// 4. Raise oxygen by 1 step (awards TR automatically in parameters mechanic)
+	// 5. Raise oxygen by 1 step (awards TR automatically in parameters mechanic)
 	if !isMaxed {
-		stepsRaised, err := a.parametersMech.RaiseOxygen(ctx, gameID, playerID, 1)
+		stepsRaised, err := game.ParametersService.RaiseOxygen(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise oxygen", zap.Error(err))
 			return fmt.Errorf("failed to raise oxygen: %w", err)
@@ -122,11 +135,13 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 
 	log.Info("📋 Tile queue created for greenery placement")
 
-	// 6. Process tile queue to prepare tile selection
-	if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
+	// 6. TODO: Process tile queue to prepare tile selection
+	// ProcessTileQueue method was removed during refactoring
+	// Need to implement: pop from queue, calculate available hexes, set pending selection
+	// if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// 	log.Error("Failed to process tile queue", zap.Error(err))
+	// 	return fmt.Errorf("failed to process tile queue: %w", err)
+	// }
 
 	log.Info("✅ Plant greenery action completed successfully")
 

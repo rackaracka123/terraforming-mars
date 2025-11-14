@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -27,16 +26,16 @@ func TestInterplanetaryCinematicsTriggersOnEventCards(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Create player with Interplanetary Cinematics
 	playerID := "player-1"
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Credits: 50},
-		Production:       model.Production{},
+		Resources:        resources.Resources{Credits: 50},
+		Production:       resources.Production{},
 		TerraformRating:  20,
 		AvailableActions: 2,
 	}
@@ -129,16 +128,16 @@ func TestInterplanetaryCinematicsMultipleEventCards(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Create player with Interplanetary Cinematics
 	playerID := "player-1"
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Credits: 50},
-		Production:       model.Production{},
+		Resources:        resources.Resources{Credits: 50},
+		Production:       resources.Production{},
 		TerraformRating:  20,
 		AvailableActions: 2,
 	}

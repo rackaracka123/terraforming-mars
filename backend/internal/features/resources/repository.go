@@ -7,18 +7,17 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
 )
 
 // Repository defines granular operations for resource storage
 type Repository interface {
 	// Get operations
-	Get(ctx context.Context) (model.Resources, error)
-	GetProduction(ctx context.Context) (model.Production, error)
+	Get(ctx context.Context) (Resources, error)
+	GetProduction(ctx context.Context) (Production, error)
 
 	// Set operations for bulk updates
-	Set(ctx context.Context, resources model.Resources) error
-	SetProduction(ctx context.Context, production model.Production) error
+	Set(ctx context.Context, resources Resources) error
+	SetProduction(ctx context.Context, production Production) error
 
 	// Granular resource operations
 	AddCredits(ctx context.Context, amount int) error
@@ -69,13 +68,13 @@ type RepositoryImpl struct {
 	mu         sync.RWMutex
 	gameID     string
 	playerID   string
-	resources  model.Resources
-	production model.Production
+	resources  Resources
+	production Production
 	eventBus   *events.EventBusImpl
 }
 
 // NewRepository creates a new independent resources repository with initial state
-func NewRepository(gameID, playerID string, initialResources model.Resources, initialProduction model.Production, eventBus *events.EventBusImpl) Repository {
+func NewRepository(gameID, playerID string, initialResources Resources, initialProduction Production, eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
 		gameID:     gameID,
 		playerID:   playerID,
@@ -86,21 +85,21 @@ func NewRepository(gameID, playerID string, initialResources model.Resources, in
 }
 
 // Get retrieves current resources
-func (r *RepositoryImpl) Get(ctx context.Context) (model.Resources, error) {
+func (r *RepositoryImpl) Get(ctx context.Context) (Resources, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.resources, nil
 }
 
 // GetProduction retrieves current production
-func (r *RepositoryImpl) GetProduction(ctx context.Context) (model.Production, error) {
+func (r *RepositoryImpl) GetProduction(ctx context.Context) (Production, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.production, nil
 }
 
 // Set directly sets resources to specific values (for bulk updates)
-func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) error {
+func (r *RepositoryImpl) Set(ctx context.Context, resources Resources) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -111,7 +110,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 	// Publish events for changed resources if eventBus is available
 	if r.eventBus != nil {
 		if oldResources.Credits != resources.Credits {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "credits",
@@ -121,7 +120,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 			})
 		}
 		if oldResources.Steel != resources.Steel {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "steel",
@@ -131,7 +130,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 			})
 		}
 		if oldResources.Titanium != resources.Titanium {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "titanium",
@@ -141,7 +140,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 			})
 		}
 		if oldResources.Plants != resources.Plants {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "plants",
@@ -151,7 +150,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 			})
 		}
 		if oldResources.Energy != resources.Energy {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "energy",
@@ -161,7 +160,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 			})
 		}
 		if oldResources.Heat != resources.Heat {
-			events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			events.Publish(r.eventBus, ResourcesChangedEvent{
 				GameID:       r.gameID,
 				PlayerID:     r.playerID,
 				ResourceType: "heat",
@@ -176,7 +175,7 @@ func (r *RepositoryImpl) Set(ctx context.Context, resources model.Resources) err
 }
 
 // SetProduction directly sets production to specific values (for bulk updates)
-func (r *RepositoryImpl) SetProduction(ctx context.Context, production model.Production) error {
+func (r *RepositoryImpl) SetProduction(ctx context.Context, production Production) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -197,7 +196,7 @@ func (r *RepositoryImpl) AddCredits(ctx context.Context, amount int) error {
 
 	// Publish event if eventBus is available and amount changed
 	if r.eventBus != nil && amount > 0 {
-		events.Publish(r.eventBus, events.ResourcesChangedEvent{
+		events.Publish(r.eventBus, ResourcesChangedEvent{
 			GameID:       r.gameID,
 			PlayerID:     r.playerID,
 			ResourceType: "credits",
@@ -225,7 +224,7 @@ func (r *RepositoryImpl) DeductCredits(ctx context.Context, amount int) error {
 
 	// Publish event if eventBus is available and amount changed
 	if r.eventBus != nil && amount > 0 {
-		events.Publish(r.eventBus, events.ResourcesChangedEvent{
+		events.Publish(r.eventBus, ResourcesChangedEvent{
 			GameID:       r.gameID,
 			PlayerID:     r.playerID,
 			ResourceType: "credits",

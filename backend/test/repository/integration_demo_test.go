@@ -6,9 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
@@ -29,22 +28,22 @@ func NewDemoGameService(gameRepo game.Repository, playerRepo player.Repository) 
 }
 
 // CreateGameWithPlayer demonstrates clean service composition
-func (s *DemoGameService) CreateGameWithPlayer(ctx context.Context, playerName string) (model.Game, model.Player, error) {
+func (s *DemoGameService) CreateGameWithPlayer(ctx context.Context, playerName string) (game.Game, player.Player, error) {
 	// Create game
-	game, err := s.gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := s.gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
-		return model.Game{}, model.Player{}, err
+		return game.Game{}, player.Player{}, err
 	}
 
 	// Create player
-	player := model.Player{
+	player := player.Player{
 		ID:              "player-1",
 		Name:            playerName,
 		TerraformRating: 20,
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 45,
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits: 1,
 		},
 		IsConnected: true,
@@ -52,19 +51,19 @@ func (s *DemoGameService) CreateGameWithPlayer(ctx context.Context, playerName s
 
 	err = s.playerRepo.Create(ctx, game.ID, player)
 	if err != nil {
-		return model.Game{}, model.Player{}, err
+		return game.Game{}, player.Player{}, err
 	}
 
 	// Add player ID to game
 	err = s.gameRepo.AddPlayerID(ctx, game.ID, player.ID)
 	if err != nil {
-		return model.Game{}, model.Player{}, err
+		return game.Game{}, player.Player{}, err
 	}
 
 	// Get updated game
 	updatedGame, err := s.gameRepo.GetByID(ctx, game.ID)
 	if err != nil {
-		return model.Game{}, model.Player{}, err
+		return game.Game{}, player.Player{}, err
 	}
 
 	return updatedGame, player, nil
@@ -113,7 +112,7 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify game was created correctly
-		assert.Equal(t, model.GameStatusLobby, game.Status)
+		assert.Equal(t, game.GameStatusLobby, game.Status)
 		assert.Contains(t, game.PlayerIDs, "player-1")
 		assert.Equal(t, "player-1", game.HostPlayerID) // First player becomes host
 
@@ -137,7 +136,7 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 		err = playerRepo.UpdateTerraformRating(ctx, game.ID, "player-1", 25)
 		require.NoError(t, err)
 
-		err = gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
+		err = gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
 		require.NoError(t, err)
 
 		// Verify updates through service
@@ -150,25 +149,25 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 
 	t.Run("Multiple Players and Complex Operations", func(t *testing.T) {
 		// Create game
-		game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 3})
+		game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 3})
 		require.NoError(t, err)
 
 		// Add multiple players
-		players := []model.Player{
+		players := []player.Player{
 			{
 				ID:              "p1",
 				Name:            "Alice",
 				TerraformRating: 20,
-				Resources:       model.Resources{Credits: 45},
-				Production:      model.Production{Credits: 1},
+				Resources:       resources.Resources{Credits: 45},
+				Production:      resources.Production{Credits: 1},
 				IsConnected:     true,
 			},
 			{
 				ID:              "p2",
 				Name:            "Bob",
 				TerraformRating: 20,
-				Resources:       model.Resources{Credits: 45},
-				Production:      model.Production{Credits: 1},
+				Resources:       resources.Resources{Credits: 45},
+				Production:      resources.Production{Credits: 1},
 				IsConnected:     true,
 			},
 		}
@@ -195,7 +194,7 @@ func TestCleanArchitectureIntegration(t *testing.T) {
 		// Test granular updates on multiple players
 		for i, player := range players {
 			newCredits := 50 + i*10
-			err = playerRepo.UpdateResources(ctx, game.ID, player.ID, model.Resources{Credits: newCredits})
+			err = playerRepo.UpdateResources(ctx, game.ID, player.ID, resources.Resources{Credits: newCredits})
 			require.NoError(t, err)
 		}
 

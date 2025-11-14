@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/test/fixtures"
 
 	"github.com/stretchr/testify/assert"
@@ -206,7 +207,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	// Verify game is in starting card selection phase
 	game, err := container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
-	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
+	assert.Equal(t, game.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// First player selects starting cards (should NOT trigger phase transition)
 	err = container.CardService.OnSelectStartingCards(ctx, gameID, fixture.PlayerID, []string{availableCardIDs[0]}, "CC1")
@@ -215,7 +216,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	// Verify game is still in starting card selection phase
 	game, err = container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
-	assert.Equal(t, model.GamePhaseStartingCardSelection, game.CurrentPhase)
+	assert.Equal(t, game.GamePhaseStartingCardSelection, game.CurrentPhase)
 
 	// Second player selects starting cards (should trigger automatic phase transition)
 	err = container.CardService.OnSelectStartingCards(ctx, gameID, player2.ID, []string{availableCardIDs[1]}, "PC5")
@@ -224,7 +225,7 @@ func TestCardService_SelectStartingCards_AutomaticPhaseTransition(t *testing.T) 
 	// Verify game automatically transitioned to action phase
 	game, err = container.GameRepo.GetByID(ctx, gameID)
 	require.NoError(t, err)
-	assert.Equal(t, model.GamePhaseAction, game.CurrentPhase, "Game should automatically transition to action phase when all players complete starting card selection")
+	assert.Equal(t, game.GamePhaseAction, game.CurrentPhase, "Game should automatically transition to action phase when all players complete starting card selection")
 
 	// Verify both players have their selected cards
 	updatedPlayer1, err := container.PlayerRepo.GetByID(ctx, gameID, fixture.PlayerID)

@@ -4,13 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
@@ -44,7 +43,7 @@ func setupTest(t *testing.T) (parameters.Service, string, string) {
 	parametersService := parameters.NewService(parametersRepo)
 
 	// Create game and player
-	game, err := lobbyService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := lobbyService.CreateGame(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	game, err = lobbyService.JoinGame(ctx, game.ID, "TestPlayer")

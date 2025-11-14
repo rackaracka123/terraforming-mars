@@ -2,19 +2,31 @@ package tiles
 
 import (
 	"context"
-"terraforming-mars-backend/internal/model"
 	"fmt"
 	"sync"
 )
 
+// PendingTileSelection represents a pending tile placement action
+type PendingTileSelection struct {
+	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
+	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
+	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
+}
+
+// PendingTileSelectionQueue represents a queue of tile placements to be made
+type PendingTileSelectionQueue struct {
+	Items  []string `json:"items" ts:"string[]"` // Queue of tile types: ["city", "city", "ocean"]
+	Source string   `json:"source" ts:"string"`  // Card ID that triggered all placements
+}
+
 // TileQueueRepository manages pending tile selections for a player
 type TileQueueRepository interface {
 	// Get queue state
-	GetQueue(ctx context.Context) (*model.PendingTileSelectionQueue, error)
-	GetPendingSelection(ctx context.Context) (*model.PendingTileSelection, error)
+	GetQueue(ctx context.Context) (*PendingTileSelectionQueue, error)
+	GetPendingSelection(ctx context.Context) (*PendingTileSelection, error)
 
 	// Bulk queue operations
-	SetQueue(ctx context.Context, queue *model.PendingTileSelectionQueue) error
+	SetQueue(ctx context.Context, queue *PendingTileSelectionQueue) error
 
 	// Granular queue operations
 	AddToQueue(ctx context.Context, tileType string) error
@@ -23,27 +35,27 @@ type TileQueueRepository interface {
 	GetQueueLength(ctx context.Context) (int, error)
 
 	// Pending selection operations
-	SetPendingSelection(ctx context.Context, selection *model.PendingTileSelection) error
+	SetPendingSelection(ctx context.Context, selection *PendingTileSelection) error
 	ClearPendingSelection(ctx context.Context) error
 }
 
 // TileQueueRepositoryImpl implements independent in-memory storage for tile queue
 type TileQueueRepositoryImpl struct {
 	mu               sync.RWMutex
-	queue            *model.PendingTileSelectionQueue
-	pendingSelection *model.PendingTileSelection
+	queue            *PendingTileSelectionQueue
+	pendingSelection *PendingTileSelection
 }
 
 // NewTileQueueRepository creates a new independent tile queue repository with initial state
-func NewTileQueueRepository(initialQueue *model.PendingTileSelectionQueue, initialSelection *model.PendingTileSelection) TileQueueRepository {
-	var queueCopy *model.PendingTileSelectionQueue
+func NewTileQueueRepository(initialQueue *PendingTileSelectionQueue, initialSelection *PendingTileSelection) TileQueueRepository {
+	var queueCopy *PendingTileSelectionQueue
 	if initialQueue != nil {
 		copy := *initialQueue
 		copy.Items = append([]string{}, initialQueue.Items...)
 		queueCopy = &copy
 	}
 
-	var selectionCopy *model.PendingTileSelection
+	var selectionCopy *PendingTileSelection
 	if initialSelection != nil {
 		copy := *initialSelection
 		copy.AvailableHexes = append([]string{}, initialSelection.AvailableHexes...)
@@ -57,7 +69,7 @@ func NewTileQueueRepository(initialQueue *model.PendingTileSelectionQueue, initi
 }
 
 // GetQueue retrieves the current queue
-func (r *TileQueueRepositoryImpl) GetQueue(ctx context.Context) (*model.PendingTileSelectionQueue, error) {
+func (r *TileQueueRepositoryImpl) GetQueue(ctx context.Context) (*PendingTileSelectionQueue, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -72,7 +84,7 @@ func (r *TileQueueRepositoryImpl) GetQueue(ctx context.Context) (*model.PendingT
 }
 
 // SetQueue sets the queue to specific values (for bulk updates)
-func (r *TileQueueRepositoryImpl) SetQueue(ctx context.Context, queue *model.PendingTileSelectionQueue) error {
+func (r *TileQueueRepositoryImpl) SetQueue(ctx context.Context, queue *PendingTileSelectionQueue) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -90,7 +102,7 @@ func (r *TileQueueRepositoryImpl) SetQueue(ctx context.Context, queue *model.Pen
 }
 
 // GetPendingSelection retrieves the current pending selection
-func (r *TileQueueRepositoryImpl) GetPendingSelection(ctx context.Context) (*model.PendingTileSelection, error) {
+func (r *TileQueueRepositoryImpl) GetPendingSelection(ctx context.Context) (*PendingTileSelection, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -110,7 +122,7 @@ func (r *TileQueueRepositoryImpl) AddToQueue(ctx context.Context, tileType strin
 	defer r.mu.Unlock()
 
 	if r.queue == nil {
-		r.queue = &model.PendingTileSelectionQueue{
+		r.queue = &PendingTileSelectionQueue{
 			Items:  []string{tileType},
 			Source: "", // Source will be set when processing
 		}
@@ -163,7 +175,7 @@ func (r *TileQueueRepositoryImpl) GetQueueLength(ctx context.Context) (int, erro
 }
 
 // SetPendingSelection sets the current pending tile selection
-func (r *TileQueueRepositoryImpl) SetPendingSelection(ctx context.Context, selection *model.PendingTileSelection) error {
+func (r *TileQueueRepositoryImpl) SetPendingSelection(ctx context.Context, selection *PendingTileSelection) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -60,22 +59,22 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 	require.NoError(t, cardRepo.LoadCards(ctx))
 
 	// Create test game in starting card selection phase
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	require.NoError(t, err)
 
 	// Initialize board with default tiles (which includes steel and titanium bonuses)
 	board := boardService.GenerateDefaultBoard()
 	gameRepo.UpdateBoard(ctx, game.ID, board)
 
-	gameRepo.UpdateStatus(ctx, game.ID, model.GameStatusActive)
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseStartingCardSelection)
+	gameRepo.UpdateStatus(ctx, game.ID, game.GameStatusActive)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseStartingCardSelection)
 
 	// Create test player
-	player := model.Player{
+	player := player.Player{
 		ID:              "player1",
 		Name:            "Test Player",
-		Resources:       model.Resources{Credits: 100},
-		Production:      model.Production{Credits: 1},
+		Resources:       resources.Resources{Credits: 100},
+		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
 		IsConnected:     true,
 	}
@@ -122,7 +121,7 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 	assert.Equal(t, 1, playerAfterSelection.Production.Steel, "Mining Guild should start with +1 steel production")
 
 	// Transition to action phase to enable tile placement
-	gameRepo.UpdatePhase(ctx, game.ID, model.GamePhaseAction)
+	gameRepo.UpdatePhase(ctx, game.ID, game.GamePhaseAction)
 
 	// Find tiles with steel and titanium bonuses
 	game, _ = gameRepo.GetByID(ctx, game.ID)

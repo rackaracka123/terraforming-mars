@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -26,17 +25,17 @@ func TestCardTilePlacementEffects(t *testing.T) {
 	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo)
 
 	// Create a game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers: 2,
 	}
 	game, err := gameRepo.Create(ctx, gameSettings)
 	require.NoError(t, err)
 
 	// Create a player
-	player := model.Player{
+	player := player.Player{
 		ID:   "test-player",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 100,
 		},
 		TerraformRating: 20,
@@ -186,7 +185,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 		require.NoError(t, err)
 		err = playerRepo.ClearPendingTileSelectionQueue(ctx, game.ID, player.ID)
 		require.NoError(t, err)
-		err = playerRepo.UpdatePlayerActions(ctx, game.ID, player.ID, []model.PlayerAction{})
+		err = playerRepo.UpdatePlayerActions(ctx, game.ID, player.ID, []player.PlayerAction{})
 		require.NoError(t, err)
 	})
 

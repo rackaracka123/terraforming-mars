@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/game"
 	gamePkg "terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/player"
 	playerPkg "terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -30,7 +35,7 @@ type ResourceConversionService interface {
 	InitiatePlantConversion(ctx context.Context, gameID, playerID string) error
 
 	// CompletePlantConversion completes the plant conversion by placing the greenery tile
-	CompletePlantConversion(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error
+	CompletePlantConversion(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error
 
 	// ConvertHeatToTemperature converts heat to raise temperature (awards TR)
 	ConvertHeatToTemperature(ctx context.Context, gameID, playerID string) error
@@ -74,19 +79,26 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
+	// Get player's current resources
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
 	// Calculate required plants (considering discounts)
-	requiredPlants := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	requiredPlants := CalculateResourceConversionCost(&player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
 
 	// Validate player has enough plants
-	if player.Resources.Plants < requiredPlants {
+	if playerResources.Plants < requiredPlants {
 		log.Warn("Player cannot afford plants conversion",
 			zap.Int("required", requiredPlants),
-			zap.Int("available", player.Resources.Plants))
-		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, player.Resources.Plants)
+			zap.Int("available", playerResources.Plants))
+		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, playerResources.Plants)
 	}
 
 	// Deduct plants
-	updatedResources := player.Resources
+	updatedResources := playerResources
 	updatedResources.Plants -= requiredPlants
 
 	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
@@ -109,7 +121,7 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 	}
 
 	// Create pending tile selection
-	pendingSelection := &model.PendingTileSelection{
+	pendingSelection := &tiles.PendingTileSelection{
 		TileType:       "greenery",
 		AvailableHexes: availableHexes,
 		Source:         "convert-plants-to-greenery",
@@ -133,7 +145,7 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 }
 
 // CompletePlantConversion completes the plant conversion by placing the greenery tile and raising oxygen
-func (s *ResourceConversionServiceImpl) CompletePlantConversion(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+func (s *ResourceConversionServiceImpl) CompletePlantConversion(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🌱 Completing plant conversion",
 		zap.Int("q", coordinate.Q),
@@ -153,9 +165,15 @@ func (s *ResourceConversionServiceImpl) CompletePlantConversion(ctx context.Cont
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	globalParams, err := game.GetGlobalParameters()
+	if err != nil {
+		log.Error("Failed to get global parameters", zap.Error(err))
+		return fmt.Errorf("failed to get global parameters: %w", err)
+	}
+
 	oxygenRaised := false
-	if game.GlobalParameters.Oxygen < model.MaxOxygen {
-		newParams := game.GlobalParameters
+	if globalParams.Oxygen < parameters.MaxOxygen {
+		newParams := globalParams
 		newParams.Oxygen++
 
 		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
@@ -216,19 +234,26 @@ func (s *ResourceConversionServiceImpl) ConvertHeatToTemperature(ctx context.Con
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
+	// Get player's current resources
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
 	// Calculate required heat (considering discounts)
-	requiredHeat := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := CalculateResourceConversionCost(&player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 
 	// Validate player has enough heat
-	if player.Resources.Heat < requiredHeat {
+	if playerResources.Heat < requiredHeat {
 		log.Warn("Player cannot afford heat conversion",
 			zap.Int("required", requiredHeat),
-			zap.Int("available", player.Resources.Heat))
-		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, player.Resources.Heat)
+			zap.Int("available", playerResources.Heat))
+		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, playerResources.Heat)
 	}
 
 	// Deduct heat
-	updatedResources := player.Resources
+	updatedResources := playerResources
 	updatedResources.Heat -= requiredHeat
 
 	if err := s.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources); err != nil {
@@ -243,14 +268,20 @@ func (s *ResourceConversionServiceImpl) ConvertHeatToTemperature(ctx context.Con
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	globalParams, err := game.GetGlobalParameters()
+	if err != nil {
+		log.Error("Failed to get global parameters", zap.Error(err))
+		return fmt.Errorf("failed to get global parameters: %w", err)
+	}
+
 	temperatureRaised := false
-	if game.GlobalParameters.Temperature < model.MaxTemperature {
-		newParams := game.GlobalParameters
+	if globalParams.Temperature < parameters.MaxTemperature {
+		newParams := globalParams
 		newParams.Temperature += 2 // Each step is 2°C
 
 		// Ensure we don't exceed max temperature
-		if newParams.Temperature > model.MaxTemperature {
-			newParams.Temperature = model.MaxTemperature
+		if newParams.Temperature > parameters.MaxTemperature {
+			newParams.Temperature = parameters.MaxTemperature
 		}
 
 		if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
@@ -295,7 +326,7 @@ func (s *ResourceConversionServiceImpl) ConvertHeatToTemperature(ctx context.Con
 }
 
 // placeTile places a greenery tile at the specified coordinate and awards placement bonuses
-func (s *ResourceConversionServiceImpl) placeTile(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+func (s *ResourceConversionServiceImpl) placeTile(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🔧 Placing greenery tile",
 		zap.Int("q", coordinate.Q),
@@ -303,8 +334,8 @@ func (s *ResourceConversionServiceImpl) placeTile(ctx context.Context, gameID, p
 		zap.Int("s", coordinate.S))
 
 	// Create the greenery tile occupant
-	occupant := &model.TileOccupant{
-		Type: model.ResourceGreeneryTile,
+	occupant := &tiles.TileOccupant{
+		Type: tiles.ResourceGreeneryTile,
 		Tags: []string{},
 	}
 
@@ -330,7 +361,7 @@ func (s *ResourceConversionServiceImpl) placeTile(ctx context.Context, gameID, p
 }
 
 // awardTilePlacementBonuses awards bonuses to the player for placing a tile
-func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameID, playerID string, coordinate model.HexPosition) error {
+func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameID, playerID string, coordinate types.HexPosition) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get the game state to access the board
@@ -339,11 +370,17 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
+	// Get the board
+	board, err := game.GetBoard()
+	if err != nil {
+		return fmt.Errorf("failed to get board: %w", err)
+	}
+
 	// Find the placed tile in the board
-	var placedTile *model.Tile
-	for i, tile := range game.Board.Tiles {
+	var placedTile *tiles.Tile
+	for i, tile := range board.Tiles {
 		if tile.Coordinates.Equals(coordinate) {
-			placedTile = &game.Board.Tiles[i]
+			placedTile = &board.Tiles[i]
 			break
 		}
 	}
@@ -359,7 +396,12 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	newResources := player.Resources
+	playerResources, err := player.GetResources()
+	if err != nil {
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
+	newResources := playerResources
 	var totalCreditsBonus int
 	var bonusesAwarded []string
 
@@ -423,16 +465,22 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 
 // calculateOceanAdjacencyBonus calculates the bonus from adjacent ocean tiles
 // Base bonus is 2 MC per ocean
-func (s *ResourceConversionServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player model.Player, coordinate model.HexPosition) int {
+func (s *ResourceConversionServiceImpl) calculateOceanAdjacencyBonus(game game.Game, player player.Player, coordinate types.HexPosition) int {
 	adjacentOceanCount := 0
+
+	// Get the board
+	board, err := game.GetBoard()
+	if err != nil {
+		return 0 // Return no bonus if we can't get the board
+	}
 
 	// Check each adjacent position for ocean tiles
 	for _, adjacentCoord := range coordinate.GetNeighbors() {
 		// Find the adjacent tile in the board
-		for _, tile := range game.Board.Tiles {
+		for _, tile := range board.Tiles {
 			if tile.Coordinates.Equals(adjacentCoord) {
 				// Check if this tile has an ocean
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tiles.ResourceOceanTile {
 					adjacentOceanCount++
 				}
 				break
@@ -449,28 +497,29 @@ func (s *ResourceConversionServiceImpl) calculateOceanAdjacencyBonus(game model.
 
 // applyTileBonus applies a single tile bonus to player resources
 // Returns: description, applied (bool), resourceType, amount
-func (s *ResourceConversionServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool, string, int) {
+func (s *ResourceConversionServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate types.HexPosition, playerResources *resources.Resources, bonus tiles.TileBonus, log *zap.Logger) (string, bool, string, int) {
 	var resourceName string
 
-	switch bonus.Type {
-	case model.ResourceSteel:
-		resources.Steel += bonus.Amount
+	// Use string matching since bonus.Type is tiles.ResourceType (different from resources.ResourceType)
+	switch string(bonus.Type) {
+	case "steel":
+		playerResources.Steel += bonus.Amount
 		resourceName = "steel"
 
-	case model.ResourceTitanium:
-		resources.Titanium += bonus.Amount
+	case "titanium":
+		playerResources.Titanium += bonus.Amount
 		resourceName = "titanium"
 
-	case model.ResourcePlants:
-		resources.Plants += bonus.Amount
+	case "plants":
+		playerResources.Plants += bonus.Amount
 		resourceName = "plants"
 
-	case model.ResourceCardDraw:
+	case "card-draw":
 		// TODO: Implement card drawing bonus
 		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
 			zap.String("type", "card-draw"),
 			zap.Int("amount", bonus.Amount))
-		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(model.ResourceCardDraw), bonus.Amount
+		return fmt.Sprintf("+%d cards", bonus.Amount), true, "card-draw", bonus.Amount
 
 	default:
 		// Unknown bonus type, skip it

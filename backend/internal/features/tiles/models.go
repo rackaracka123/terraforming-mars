@@ -2,8 +2,12 @@ package tiles
 
 import (
 	"fmt"
-	"terraforming-mars-backend/internal/shared/model"
+
+	"terraforming-mars-backend/internal/shared/types"
 )
+
+// HexPosition is an alias to the shared types.HexPosition
+type HexPosition = types.HexPosition
 
 // Tile type string constants for placement operations
 const (
@@ -13,14 +17,14 @@ const (
 )
 
 // TileTypeToResourceType converts a tile type string to its corresponding ResourceType
-func TileTypeToResourceType(tileType string) (model.ResourceType, error) {
+func TileTypeToResourceType(tileType string) (ResourceType, error) {
 	switch tileType {
 	case TileTypeCity:
-		return model.ResourceCityTile, nil
+		return ResourceCityTile, nil
 	case TileTypeGreenery:
-		return model.ResourceGreeneryTile, nil
+		return ResourceGreeneryTile, nil
 	case TileTypeOcean:
-		return model.ResourceOceanTile, nil
+		return ResourceOceanTile, nil
 	default:
 		return "", fmt.Errorf("unknown tile type: %s", tileType)
 	}
@@ -29,7 +33,7 @@ func TileTypeToResourceType(tileType string) (model.ResourceType, error) {
 // TileBonus represents a resource bonus provided by a tile when occupied
 type TileBonus struct {
 	// Type specifies the resource type granted by this bonus
-	Type model.ResourceType `json:"type" ts:"ResourceType"`
+	Type ResourceType `json:"type" ts:"ResourceType"`
 	// Amount specifies the quantity of the bonus granted
 	Amount int `json:"amount" ts:"number"`
 }
@@ -37,7 +41,7 @@ type TileBonus struct {
 // TileOccupant represents what currently occupies a tile
 type TileOccupant struct {
 	// Type specifies the type of occupant (city-tile, ocean-tile, greenery-tile, etc.)
-	Type model.ResourceType `json:"type" ts:"ResourceType"`
+	Type ResourceType `json:"type" ts:"ResourceType"`
 	// Tags specifies special properties of the occupant (e.g., "capital" for cities)
 	Tags []string `json:"tags" ts:"string[]"`
 }
@@ -45,11 +49,11 @@ type TileOccupant struct {
 // Tile represents a single hexagonal tile on the game board
 type Tile struct {
 	// Coordinates specifies the hex position of this tile
-	Coordinates model.HexPosition `json:"coordinates" ts:"HexPosition"`
+	Coordinates HexPosition `json:"coordinates" ts:"HexPosition"`
 	// Tags specifies special properties for placement restrictions (e.g., "noctis-city")
 	Tags []string `json:"tags" ts:"string[]"`
 	// Type specifies the base type of tile (ocean-tile for ocean spaces, etc.)
-	Type model.ResourceType `json:"type" ts:"ResourceType"`
+	Type ResourceType `json:"type" ts:"ResourceType"`
 	// Location specifies which celestial body this tile is on
 	Location TileLocation `json:"location" ts:"TileLocation"`
 	// DisplayName specifies the optional display name shown on the tile
@@ -104,7 +108,7 @@ func NewStandardBoard() Board {
 			s := -(q + r)
 
 			tiles = append(tiles, Tile{
-				Coordinates: model.HexPosition{Q: q, R: r, S: s},
+				Coordinates: HexPosition{Q: q, R: r, S: s},
 				OccupiedBy:  nil,
 				OwnerID:     nil,
 				Bonuses:     []TileBonus{},
@@ -114,3 +118,14 @@ func NewStandardBoard() Board {
 
 	return Board{Tiles: tiles}
 }
+
+// ResourceType is a type alias to avoid circular imports
+// The actual definition is in internal/shared/model/resource_type.go
+type ResourceType string
+
+// Resource type constants for tiles
+const (
+	ResourceCityTile     ResourceType = "city-tile"
+	ResourceOceanTile    ResourceType = "ocean-tile"
+	ResourceGreeneryTile ResourceType = "greenery-tile"
+)

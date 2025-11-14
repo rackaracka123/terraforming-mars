@@ -11,7 +11,7 @@ import (
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -20,17 +20,17 @@ import (
 // GameRepository provides clean CRUD operations and granular updates for games
 type Repository interface {
 	// Basic CRUD operations
-	Create(ctx context.Context, settings model.GameSettings) (model.Game, error)
-	GetByID(ctx context.Context, gameID string) (model.Game, error)
+	Create(ctx context.Context, settings GameSettings) (Game, error)
+	GetByID(ctx context.Context, gameID string) (Game, error)
 	Delete(ctx context.Context, gameID string) error
-	List(ctx context.Context, status string) ([]model.Game, error)
+	List(ctx context.Context, status string) ([]Game, error)
 
 	// Granular update methods for specific fields
-	UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error
-	UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error
-	UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
+	UpdateStatus(ctx context.Context, gameID string, status GameStatus) error
+	UpdatePhase(ctx context.Context, gameID string, phase GamePhase) error
+	UpdateGlobalParameters(ctx context.Context, gameID string, params GlobalParameters) error
 	UpdateCurrentTurn(ctx context.Context, gameID string, playerID *string) error
-	UpdateBoard(ctx context.Context, gameID string, board model.Board) error
+	UpdateBoard(ctx context.Context, gameID string, board Board) error
 
 	SetCurrentPlayer(ctx context.Context, gameID string, playerID string) error
 	SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error
@@ -40,7 +40,7 @@ type Repository interface {
 	UpdateGeneration(ctx context.Context, gameID string, generation int) error
 
 	// Tile operations
-	UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error
+	UpdateTileOccupancy(ctx context.Context, gameID string, coord HexPosition, occupant *TileOccupant, ownerID *string) error
 	UpdateTemperature(ctx context.Context, gameID string, temperature int) error
 	UpdateOxygen(ctx context.Context, gameID string, oxygen int) error
 	UpdateOceans(ctx context.Context, gameID string, oceans int) error
@@ -48,8 +48,8 @@ type Repository interface {
 
 // GameRepositoryImpl implements GameRepository with in-memory storage
 type RepositoryImpl struct {
-	games map[string]*model.Game
-	mutex sync.RWMutex
+	games    map[string]*Game
+	mutex    sync.RWMutex
 	eventBus *events.EventBusImpl
 
 	// Feature repositories (scoped by gameID)
@@ -61,7 +61,7 @@ type RepositoryImpl struct {
 // NewRepository creates a new game repository
 func NewRepository(eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
-		games:           make(map[string]*model.Game),
+		games:           make(map[string]*Game),
 		eventBus:        eventBus,
 		parametersRepos: make(map[string]parameters.Repository),
 		boardRepos:      make(map[string]tiles.BoardRepository),
@@ -70,7 +70,7 @@ func NewRepository(eventBus *events.EventBusImpl) Repository {
 }
 
 // Create creates a new game with the given settings
-func (r *RepositoryImpl) Create(ctx context.Context, settings model.GameSettings) (model.Game, error) {
+func (r *RepositoryImpl) Create(ctx context.Context, settings GameSettings) (Game, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -81,7 +81,7 @@ func (r *RepositoryImpl) Create(ctx context.Context, settings model.GameSettings
 	gameID := uuid.New().String()
 
 	// Create the game metadata (without feature data)
-	game := model.NewGame(gameID, settings)
+	game := NewGame(gameID, settings)
 
 	// Create feature repositories with initial state
 	initialParams := parameters.GlobalParameters{
@@ -91,7 +91,7 @@ func (r *RepositoryImpl) Create(ctx context.Context, settings model.GameSettings
 	}
 	parametersRepo, err := parameters.NewRepository(gameID, initialParams, r.eventBus)
 	if err != nil {
-		return model.Game{}, fmt.Errorf("failed to create parameters repository: %w", err)
+		return Game{}, fmt.Errorf("failed to create parameters repository: %w", err)
 	}
 	r.parametersRepos[gameID] = parametersRepo
 
@@ -119,7 +119,7 @@ func (r *RepositoryImpl) Create(ctx context.Context, settings model.GameSettings
 }
 
 // injectServices creates a copy of the game with feature services injected
-func (r *RepositoryImpl) injectServices(gameID string, game *model.Game) model.Game {
+func (r *RepositoryImpl) injectServices(gameID string, game *Game) Game {
 	gameCopy := *game
 	gameCopy.PlayerIDs = make([]string, len(game.PlayerIDs))
 	copy(gameCopy.PlayerIDs, game.PlayerIDs)
@@ -139,9 +139,9 @@ func (r *RepositoryImpl) injectServices(gameID string, game *model.Game) model.G
 }
 
 // GetByID retrieves a game by ID
-func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string) (model.Game, error) {
+func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string) (Game, error) {
 	if gameID == "" {
-		return model.Game{}, fmt.Errorf("game ID cannot be empty")
+		return Game{}, fmt.Errorf("game ID cannot be empty")
 	}
 
 	r.mutex.RLock()
@@ -149,7 +149,7 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string) (model.Game
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return model.Game{}, &model.NotFoundError{Resource: "game", ID: gameID}
+		return Game{}, &NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	// Return a copy with services injected
@@ -180,11 +180,11 @@ func (r *RepositoryImpl) Delete(ctx context.Context, gameID string) error {
 }
 
 // List returns all games, optionally filtered by status
-func (r *RepositoryImpl) List(ctx context.Context, status string) ([]model.Game, error) {
+func (r *RepositoryImpl) List(ctx context.Context, status string) ([]Game, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	games := make([]model.Game, 0)
+	games := make([]Game, 0)
 
 	for gameID, game := range r.games {
 		if status == "" || string(game.Status) == status {
@@ -197,7 +197,7 @@ func (r *RepositoryImpl) List(ctx context.Context, status string) ([]model.Game,
 }
 
 // UpdateStatus updates a game's status
-func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status model.GameStatus) error {
+func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status GameStatus) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -218,9 +218,9 @@ func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status
 }
 
 // UpdatePhase updates a game's current phase
-func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase model.GamePhase) error {
+func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase GamePhase) error {
 	// Store old phase value before locking for event publishing
-	var oldPhase model.GamePhase
+	var oldPhase GamePhase
 	var shouldPublishEvent bool
 
 	func() {
@@ -245,7 +245,7 @@ func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase m
 
 	// Publish event AFTER releasing the lock to avoid deadlock
 	if shouldPublishEvent {
-		events.Publish(r.eventBus, events.GamePhaseChangedEvent{
+		events.Publish(r.eventBus, GamePhaseChangedEvent{
 			GameID:    gameID,
 			OldPhase:  string(oldPhase),
 			NewPhase:  string(phase),
@@ -257,7 +257,7 @@ func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase m
 }
 
 // UpdateGlobalParameters updates global parameters for a game
-func (r *RepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error {
+func (r *RepositoryImpl) UpdateGlobalParameters(ctx context.Context, gameID string, params GlobalParameters) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -523,7 +523,7 @@ func (r *RepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, ge
 
 // UpdateBoard updates the board state for a game
 // DEPRECATED: This method is kept for compatibility but should use individual tile operations
-func (r *RepositoryImpl) UpdateBoard(ctx context.Context, gameID string, board model.Board) error {
+func (r *RepositoryImpl) UpdateBoard(ctx context.Context, gameID string, board Board) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -544,9 +544,8 @@ func (r *RepositoryImpl) UpdateBoard(ctx context.Context, gameID string, board m
 	return nil
 }
 
-
 // UpdateTileOccupancy updates a tile's occupancy and ownership
-func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string, coord model.HexPosition, occupant *model.TileOccupant, ownerID *string) error {
+func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string, coord HexPosition, occupant *TileOccupant, ownerID *string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -565,7 +564,7 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 	}
 
 	// Convert model types to tiles types
-	tilesCoord := tiles.HexPosition{Q: coord.Q, R: coord.R, S: coord.S}
+	tilesCoord := types.HexPosition{Q: coord.Q, R: coord.R, S: coord.S}
 	var tilesOccupant tiles.TileOccupant
 	if occupant != nil {
 		tilesOccupant = tiles.TileOccupant{
@@ -715,7 +714,7 @@ func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans
 func (r *RepositoryImpl) Clear() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.games = make(map[string]*model.Game)
+	r.games = make(map[string]*Game)
 	r.parametersRepos = make(map[string]parameters.Repository)
 	r.boardRepos = make(map[string]tiles.BoardRepository)
 	r.turnOrderRepos = make(map[string]turn.TurnOrderRepository)

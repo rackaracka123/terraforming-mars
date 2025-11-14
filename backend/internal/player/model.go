@@ -1,11 +1,22 @@
 package player
 
 import (
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/production"
 	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/shared/types"
 )
+
+// Type aliases to avoid verbose references
+type Card = card.Card
+type CardType = card.CardType
+type PlayerEffect = card.PlayerEffect
+type PlayerAction = card.PlayerAction
+type PaymentSubstitute = types.PaymentSubstitute
+type Resources = resources.Resources
+type Production = resources.Production
 
 // ProductionPhase contains production phase state for display only
 // Actual card selection state is managed by production feature service
@@ -40,18 +51,13 @@ type SelectStartingCardsPhase struct {
 	SelectionComplete     bool     `json:"selectionComplete" ts:"boolean"`      // Whether player completed card selection
 }
 
-// PendingTileSelection represents a pending tile placement action
-type PendingTileSelection struct {
-	TileType       string   `json:"tileType" ts:"string"`         // "city", "greenery", "ocean"
-	AvailableHexes []string `json:"availableHexes" ts:"string[]"` // Backend-calculated valid hex coordinates
-	Source         string   `json:"source" ts:"string"`           // What triggered this selection (card ID, standard project, etc.)
-}
+// PendingTileSelection is a type alias to avoid circular imports
+// The actual definition is in internal/features/tiles/tile_queue_repository.go
+type PendingTileSelection = tiles.PendingTileSelection
 
-// PendingTileSelectionQueue represents a queue of tile placements to be made
-type PendingTileSelectionQueue struct {
-	Items  []string `json:"items" ts:"string[]"` // Queue of tile types: ["city", "city", "ocean"]
-	Source string   `json:"source" ts:"string"`  // Card ID that triggered all placements
-}
+// PendingTileSelectionQueue is a type alias to avoid circular imports
+// The actual definition is in internal/features/tiles/tile_queue_repository.go
+type PendingTileSelectionQueue = tiles.PendingTileSelectionQueue
 
 // PendingCardSelection represents a pending card selection action (e.g., sell patents, card effects)
 type PendingCardSelection struct {
@@ -84,14 +90,14 @@ type ForcedFirstAction struct {
 // Player represents a player in the game with service references to features
 type Player struct {
 	// Metadata
-	ID              string  `json:"id" ts:"string"`
-	Name            string  `json:"name" ts:"string"`
-	Corporation     *Card   `json:"corporation" ts:"CardDto | null"`
+	ID              string   `json:"id" ts:"string"`
+	Name            string   `json:"name" ts:"string"`
+	Corporation     *Card    `json:"corporation" ts:"CardDto | null"`
 	Cards           []string `json:"cards" ts:"string[]"`
 	PlayedCards     []string `json:"playedCards" ts:"string[]"`
-	TerraformRating int     `json:"terraformRating" ts:"number"` // Simple field, increases via events
-	VictoryPoints   int     `json:"victoryPoints" ts:"number"`
-	IsConnected     bool    `json:"isConnected" ts:"boolean"`
+	TerraformRating int      `json:"terraformRating" ts:"number"` // Simple field, increases via events
+	VictoryPoints   int      `json:"victoryPoints" ts:"number"`
+	IsConnected     bool     `json:"isConnected" ts:"boolean"`
 
 	// Card effects and actions
 	Effects []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
@@ -114,10 +120,10 @@ type Player struct {
 	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
 
 	// Feature Services (player-level state management)
-	ResourcesService   resources.Service          `json:"-"` // Resources + Production
-	ProductionService  production.Service         `json:"-"` // Production phase card selection state
-	TileQueueService   tiles.TileQueueService     `json:"-"` // Tile selection queue
-	PlayerTurnService  turn.PlayerTurnService     `json:"-"` // Passed status + available actions
+	ResourcesService  resources.Service      `json:"-"` // Resources + Production
+	ProductionService production.Service     `json:"-"` // Production phase card selection state
+	TileQueueService  tiles.TileQueueService `json:"-"` // Tile selection queue
+	PlayerTurnService turn.PlayerTurnService `json:"-"` // Passed status + available actions
 }
 
 // GetResources retrieves resources via service

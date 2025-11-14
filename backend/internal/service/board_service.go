@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"math"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/shared/types"
 )
 
 // BoardService interface defines board-related operations
 type BoardService interface {
-	GenerateDefaultBoard() model.Board
-	CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error)
-	CalculateAvailableHexesForTileTypeWithPlayer(game model.Game, tileType, playerID string) ([]string, error)
+	GenerateDefaultBoard() tiles.Board
+	CalculateAvailableHexesForTileType(g game.Game, tileType string) ([]string, error)
+	CalculateAvailableHexesForTileTypeWithPlayer(g game.Game, tileType, playerID string) ([]string, error)
 }
 
 // BoardServiceImpl handles board-related operations
@@ -24,16 +28,16 @@ func NewBoardService() BoardService {
 
 // GenerateDefaultBoard creates the default Mars board with 42 tiles
 // Uses the same grid pattern as the frontend: 5-6-7-8-9-8-7-6-5
-func (srv *BoardServiceImpl) GenerateDefaultBoard() model.Board {
-	tiles := srv.generateTiles()
-	return model.Board{
-		Tiles: tiles,
+func (srv *BoardServiceImpl) GenerateDefaultBoard() tiles.Board {
+	allTiles := srv.generateTiles()
+	return tiles.Board{
+		Tiles: allTiles,
 	}
 }
 
 // generateTiles creates the default tile layout matching the frontend pattern
-func (srv *BoardServiceImpl) generateTiles() []model.Tile {
-	var tiles []model.Tile
+func (srv *BoardServiceImpl) generateTiles() []tiles.Tile {
+	var allTiles []tiles.Tile
 
 	// Row pattern: 5, 6, 7, 8, 9, 8, 7, 6, 5 (matches frontend HexGrid2D)
 	rowPattern := []int{5, 6, 7, 8, 9, 8, 7, 6, 5}
@@ -55,7 +59,7 @@ func (srv *BoardServiceImpl) generateTiles() []model.Tile {
 			}
 			s := -q - r
 
-			coordinate := model.HexPosition{
+			coordinate := types.HexPosition{
 				Q: q,
 				R: r,
 				S: s,
@@ -63,9 +67,9 @@ func (srv *BoardServiceImpl) generateTiles() []model.Tile {
 
 			// Determine if this is an ocean space
 			isOceanSpace := srv.isOceanPosition(rowIdx, colIdx)
-			tileType := model.ResourceType("empty") // Default type
+			tileType := tiles.ResourceType("empty") // Default type
 			if isOceanSpace {
-				tileType = model.ResourceOceanTile
+				tileType = tiles.ResourceOceanTile
 			}
 
 			// Calculate resource bonuses for this tile
@@ -81,22 +85,22 @@ func (srv *BoardServiceImpl) generateTiles() []model.Tile {
 				displayName = &name
 			}
 
-			tile := model.Tile{
+			tile := tiles.Tile{
 				Coordinates: coordinate,
 				Tags:        tags,
 				Type:        tileType,
-				Location:    model.TileLocationMars,
+				Location:    tiles.TileLocationMars,
 				DisplayName: displayName,
 				Bonuses:     bonuses,
 				OccupiedBy:  nil, // All tiles start empty
 				OwnerID:     nil, // All tiles start unowned
 			}
 
-			tiles = append(tiles, tile)
+			allTiles = append(allTiles, tile)
 		}
 	}
 
-	return tiles
+	return allTiles
 }
 
 // isOceanPosition determines if a tile should be an ocean space (matches frontend logic)
@@ -115,32 +119,32 @@ func (srv *BoardServiceImpl) isOceanPosition(row, col int) bool {
 }
 
 // calculateBonuses generates resource bonuses for tiles (matches frontend logic)
-func (srv *BoardServiceImpl) calculateBonuses(row, col int) []model.TileBonus {
-	bonuses := make([]model.TileBonus, 0)
+func (srv *BoardServiceImpl) calculateBonuses(row, col int) []tiles.TileBonus {
+	bonuses := make([]tiles.TileBonus, 0)
 	tileIndex := row*10 + col
 
 	// Same bonus logic as frontend
 	if tileIndex%8 == 0 {
-		bonuses = append(bonuses, model.TileBonus{
-			Type:   model.ResourceSteel,
+		bonuses = append(bonuses, tiles.TileBonus{
+			Type:   tiles.ResourceType(resources.ResourceSteel),
 			Amount: 2,
 		})
 	}
 	if tileIndex%9 == 0 {
-		bonuses = append(bonuses, model.TileBonus{
-			Type:   model.ResourceTitanium,
+		bonuses = append(bonuses, tiles.TileBonus{
+			Type:   tiles.ResourceType(resources.ResourceTitanium),
 			Amount: 1,
 		})
 	}
 	if tileIndex%11 == 0 {
-		bonuses = append(bonuses, model.TileBonus{
-			Type:   model.ResourcePlants,
+		bonuses = append(bonuses, tiles.TileBonus{
+			Type:   tiles.ResourceType(resources.ResourcePlants),
 			Amount: 1,
 		})
 	}
 	if tileIndex%13 == 0 {
-		bonuses = append(bonuses, model.TileBonus{
-			Type:   model.ResourceCardDraw,
+		bonuses = append(bonuses, tiles.TileBonus{
+			Type:   tiles.ResourceType(resources.ResourceCardDraw),
 			Amount: 1,
 		})
 	}
@@ -149,7 +153,7 @@ func (srv *BoardServiceImpl) calculateBonuses(row, col int) []model.TileBonus {
 }
 
 // generateTileTags creates special tags for certain tiles
-func (srv *BoardServiceImpl) generateTileTags(coord model.HexPosition) []string {
+func (srv *BoardServiceImpl) generateTileTags(coord types.HexPosition) []string {
 	tags := make([]string, 0)
 
 	// Add Noctis City location (example special placement)
@@ -178,7 +182,7 @@ func (srv *BoardServiceImpl) getDisplayNameFromTags(tags []string) string {
 
 // hexToPixel converts hex coordinates to 2D position (for reference, not used in backend)
 // Kept for documentation of the coordinate system
-func (srv *BoardServiceImpl) hexToPixel(coord model.HexPosition) (float64, float64) {
+func (srv *BoardServiceImpl) hexToPixel(coord types.HexPosition) (float64, float64) {
 	size := 0.3 // Same as frontend HEX_SIZE
 
 	// Pointy-top hex positioning (same as frontend)
@@ -189,14 +193,14 @@ func (srv *BoardServiceImpl) hexToPixel(coord model.HexPosition) (float64, float
 }
 
 // CalculateAvailableHexesForTileType returns available hexes for a specific tile type
-func (srv *BoardServiceImpl) CalculateAvailableHexesForTileType(game model.Game, tileType string) ([]string, error) {
+func (srv *BoardServiceImpl) CalculateAvailableHexesForTileType(g game.Game, tileType string) ([]string, error) {
 	switch tileType {
 	case "ocean":
-		return srv.calculateAvailableOceanHexes(game)
+		return srv.calculateAvailableOceanHexes(g)
 	case "city":
-		return srv.calculateAvailableCityHexes(game)
+		return srv.calculateAvailableCityHexes(g)
 	case "greenery":
-		return srv.calculateAvailableGreeneryHexes(game)
+		return srv.calculateAvailableGreeneryHexes(g)
 	default:
 		// Unknown tile types return empty list
 		return []string{}, nil
@@ -205,25 +209,29 @@ func (srv *BoardServiceImpl) CalculateAvailableHexesForTileType(game model.Game,
 
 // CalculateAvailableHexesForTileTypeWithPlayer returns available hexes with player context
 // This is used for greenery placement which requires adjacency to player's tiles
-func (srv *BoardServiceImpl) CalculateAvailableHexesForTileTypeWithPlayer(game model.Game, tileType, playerID string) ([]string, error) {
+func (srv *BoardServiceImpl) CalculateAvailableHexesForTileTypeWithPlayer(g game.Game, tileType, playerID string) ([]string, error) {
 	switch tileType {
 	case "greenery":
-		return srv.calculateAvailableGreeneryHexesForPlayer(game, playerID)
+		return srv.calculateAvailableGreeneryHexesForPlayer(g, playerID)
 	default:
 		// For non-greenery tiles, use the standard method
-		return srv.CalculateAvailableHexesForTileType(game, tileType)
+		return srv.CalculateAvailableHexesForTileType(g, tileType)
 	}
 }
 
 // calculateAvailableOceanHexes returns available ocean hexes based on board state
-func (srv *BoardServiceImpl) calculateAvailableOceanHexes(game model.Game) ([]string, error) {
+func (srv *BoardServiceImpl) calculateAvailableOceanHexes(g game.Game) ([]string, error) {
 	// Count actual oceans placed on board (board is source of truth)
 	oceansPlaced := 0
 	availableHexes := make([]string, 0)
 
-	for _, tile := range game.Board.Tiles {
-		if tile.Type == model.ResourceOceanTile {
-			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceOceanTile {
+	board, err := g.GetBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board: %w", err)
+	}
+	for _, tile := range board.Tiles {
+		if tile.Type == tiles.ResourceOceanTile {
+			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tiles.ResourceOceanTile {
 				// This ocean space is occupied
 				oceansPlaced++
 			} else {
@@ -235,7 +243,7 @@ func (srv *BoardServiceImpl) calculateAvailableOceanHexes(game model.Game) ([]st
 	}
 
 	// Check if we've reached maximum oceans based on actual board state
-	if oceansPlaced >= model.MaxOceans {
+	if oceansPlaced >= parameters.MaxOceans {
 		return []string{}, nil
 	}
 
@@ -243,10 +251,14 @@ func (srv *BoardServiceImpl) calculateAvailableOceanHexes(game model.Game) ([]st
 }
 
 // calculateAvailableCityHexes returns available hexes for city placement
-func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]string, error) {
+func (srv *BoardServiceImpl) calculateAvailableCityHexes(g game.Game) ([]string, error) {
 	availableHexes := make([]string, 0)
 
-	fmt.Printf("🏙️ Calculating city placement hexes - Total board tiles: %d\n", len(game.Board.Tiles))
+	board, err := g.GetBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board: %w", err)
+	}
+	fmt.Printf("🏙️ Calculating city placement hexes - Total board tiles: %d\n", len(board.Tiles))
 
 	oceanCount := 0
 	occupiedCount := 0
@@ -255,16 +267,16 @@ func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]str
 
 	// Build a map of city positions for adjacency checks
 	cityPositions := make(map[string]bool)
-	for _, tile := range game.Board.Tiles {
-		if tile.OccupiedBy != nil && tile.OccupiedBy.Type == model.ResourceCityTile {
+	for _, tile := range board.Tiles {
+		if tile.OccupiedBy != nil && tile.OccupiedBy.Type == tiles.ResourceCityTile {
 			cityPositions[tile.Coordinates.String()] = true
 		}
 	}
 
 	// Check each tile for city placement eligibility
-	for _, tile := range game.Board.Tiles {
+	for _, tile := range board.Tiles {
 		// Skip ocean tiles
-		if tile.Type == model.ResourceOceanTile {
+		if tile.Type == tiles.ResourceOceanTile {
 			oceanCount++
 			continue
 		}
@@ -295,19 +307,23 @@ func (srv *BoardServiceImpl) calculateAvailableCityHexes(game model.Game) ([]str
 }
 
 // calculateAvailableGreeneryHexes returns available hexes for greenery placement
-func (srv *BoardServiceImpl) calculateAvailableGreeneryHexes(game model.Game) ([]string, error) {
+func (srv *BoardServiceImpl) calculateAvailableGreeneryHexes(g game.Game) ([]string, error) {
 	availableHexes := make([]string, 0)
 
-	fmt.Printf("🌿 Calculating greenery placement hexes - Total board tiles: %d\n", len(game.Board.Tiles))
+	board, err := g.GetBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board: %w", err)
+	}
+	fmt.Printf("🌿 Calculating greenery placement hexes - Total board tiles: %d\n", len(board.Tiles))
 
 	oceanCount := 0
 	occupiedCount := 0
 	availableCount := 0
 
 	// Greenery can be placed on any empty land tile (not ocean tiles)
-	for _, tile := range game.Board.Tiles {
+	for _, tile := range board.Tiles {
 		// Skip ocean tiles
-		if tile.Type == model.ResourceOceanTile {
+		if tile.Type == tiles.ResourceOceanTile {
 			oceanCount++
 			continue
 		}
@@ -330,12 +346,12 @@ func (srv *BoardServiceImpl) calculateAvailableGreeneryHexes(game model.Game) ([
 }
 
 // formatHexCoordinate converts hex coordinates to string format
-func (srv *BoardServiceImpl) formatHexCoordinate(coord model.HexPosition) string {
+func (srv *BoardServiceImpl) formatHexCoordinate(coord types.HexPosition) string {
 	return coord.String()
 }
 
 // isAdjacentToCity checks if a hex coordinate is adjacent to any city
-func (srv *BoardServiceImpl) isAdjacentToCity(coord model.HexPosition, cityPositions map[string]bool) bool {
+func (srv *BoardServiceImpl) isAdjacentToCity(coord types.HexPosition, cityPositions map[string]bool) bool {
 	// Check each adjacent position
 	for _, adjacentCoord := range coord.GetNeighbors() {
 		if cityPositions[adjacentCoord.String()] {
@@ -348,15 +364,19 @@ func (srv *BoardServiceImpl) isAdjacentToCity(coord model.HexPosition, cityPosit
 
 // calculateAvailableGreeneryHexesForPlayer returns available hexes for greenery placement
 // with preference for tiles adjacent to the player's existing tiles
-func (srv *BoardServiceImpl) calculateAvailableGreeneryHexesForPlayer(game model.Game, playerID string) ([]string, error) {
+func (srv *BoardServiceImpl) calculateAvailableGreeneryHexesForPlayer(g game.Game, playerID string) ([]string, error) {
 	adjacentHexes := make([]string, 0)
 	allAvailableHexes := make([]string, 0)
 
 	fmt.Printf("🌿 Calculating greenery placement hexes for player %s\n", playerID)
 
+	board, err := g.GetBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board: %w", err)
+	}
 	// Build a map of player's tile positions
 	playerTilePositions := make(map[string]bool)
-	for _, tile := range game.Board.Tiles {
+	for _, tile := range board.Tiles {
 		if tile.OwnerID != nil && *tile.OwnerID == playerID {
 			playerTilePositions[tile.Coordinates.String()] = true
 		}
@@ -365,9 +385,9 @@ func (srv *BoardServiceImpl) calculateAvailableGreeneryHexesForPlayer(game model
 	fmt.Printf("🌿 Player has %d tiles on the board\n", len(playerTilePositions))
 
 	// Check each tile for greenery placement eligibility
-	for _, tile := range game.Board.Tiles {
+	for _, tile := range board.Tiles {
 		// Skip ocean tiles
-		if tile.Type == model.ResourceOceanTile {
+		if tile.Type == tiles.ResourceOceanTile {
 			continue
 		}
 
@@ -398,7 +418,7 @@ func (srv *BoardServiceImpl) calculateAvailableGreeneryHexesForPlayer(game model
 }
 
 // isAdjacentToPlayerTile checks if a hex coordinate is adjacent to any of the player's tiles
-func (srv *BoardServiceImpl) isAdjacentToPlayerTile(coord model.HexPosition, playerTilePositions map[string]bool) bool {
+func (srv *BoardServiceImpl) isAdjacentToPlayerTile(coord types.HexPosition, playerTilePositions map[string]bool) bool {
 	// Check each adjacent position
 	for _, adjacentCoord := range coord.GetNeighbors() {
 		if playerTilePositions[adjacentCoord.String()] {

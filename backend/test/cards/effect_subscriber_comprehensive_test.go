@@ -4,9 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 )
@@ -22,15 +21,15 @@ func TestEffectSubscriberTemperatureRaise(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-456",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  10,
 			Steel:    0,
 			Titanium: 0,
@@ -101,15 +100,15 @@ func TestEffectSubscriberOxygenRaise(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-789",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  15,
 			Steel:    0,
 			Titanium: 0,
@@ -180,15 +179,15 @@ func TestEffectSubscriberOceanPlaced(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-123",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  20,
 			Steel:    1,
 			Titanium: 0,
@@ -259,15 +258,15 @@ func TestEffectSubscriberMultipleEffectsOnSameCard(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-multi",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  10,
 			Steel:    0,
 			Titanium: 0,
@@ -365,15 +364,15 @@ func TestEffectSubscriberUnsubscribeStopsTriggering(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-unsub",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  10,
 			Steel:    0,
 			Titanium: 0,
@@ -463,12 +462,12 @@ func TestEffectSubscriberNoAutoTriggerIgnored(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game and player
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:   "player-manual",
 		Name: "Test Player",
 	}
@@ -519,16 +518,16 @@ func TestEffectSubscriberMultiplePlayersIndependent(t *testing.T) {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 
 	// Create game
-	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
+	game, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 4})
 	if err != nil {
 		t.Fatalf("Failed to create game: %v", err)
 	}
 
 	// Create two players
-	player1 := model.Player{
+	player1 := player.Player{
 		ID:   "player-1",
 		Name: "Test Player 1",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  10,
 			Steel:    0,
 			Titanium: 0,
@@ -542,10 +541,10 @@ func TestEffectSubscriberMultiplePlayersIndependent(t *testing.T) {
 		t.Fatalf("Failed to create player1: %v", err)
 	}
 
-	player2 := model.Player{
+	player2 := player.Player{
 		ID:   "player-2",
 		Name: "Test Player 2",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  10,
 			Steel:    0,
 			Titanium: 0,

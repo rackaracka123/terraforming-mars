@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 

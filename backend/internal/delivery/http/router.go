@@ -2,9 +2,9 @@ package http
 
 import (
 	"net/http"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/lobby"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 

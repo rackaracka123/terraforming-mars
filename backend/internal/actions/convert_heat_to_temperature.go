@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/resources"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -69,7 +68,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID str
 	}
 
 	// Calculate required heat (considering discounts from cards)
-	requiredHeat := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := cards.CalculateResourceConversionCost(&player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 
 	// Validate player has enough heat
 	if player.Resources.Heat < requiredHeat {

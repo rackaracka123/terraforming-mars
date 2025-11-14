@@ -6,8 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/features/resources"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
@@ -58,11 +58,17 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, play
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	if player.Resources.Credits < PowerPlantCost {
+	playerResources, err := player.GetResources()
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get player resources: %w", err)
+	}
+
+	if playerResources.Credits < PowerPlantCost {
 		log.Warn("Player cannot afford power plant",
 			zap.Int("cost", PowerPlantCost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", PowerPlantCost, player.Resources.Credits)
+			zap.Int("available", playerResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", PowerPlantCost, playerResources.Credits)
 	}
 
 	// 2. Deduct credits via resources mechanic
@@ -70,7 +76,7 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, play
 		Credits: PowerPlantCost,
 	}
 
-	if err := a.resourcesMech.PayResourceCost(ctx, gameID, playerID, cost); err != nil {
+	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
@@ -82,7 +88,7 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, play
 		Energy: 1,
 	}
 
-	if err := a.resourcesMech.AddProduction(ctx, gameID, playerID, production); err != nil {
+	if err := player.ResourcesService.AddProduction(ctx, production); err != nil {
 		log.Error("Failed to increase energy production", zap.Error(err))
 		return fmt.Errorf("failed to increase energy production: %w", err)
 	}

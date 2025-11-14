@@ -3,7 +3,6 @@ package parameters
 import (
 	"context"
 	"fmt"
-"terraforming-mars-backend/internal/model"
 
 	"terraforming-mars-backend/internal/logger"
 
@@ -44,7 +43,7 @@ type Service interface {
 	IsOceansMaxed(ctx context.Context) (bool, error)
 
 	// Combined operations
-	GetGlobalParameters(ctx context.Context) (model.GlobalParameters, error)
+	GetGlobalParameters(ctx context.Context) (GlobalParameters, error)
 }
 
 // ServiceImpl implements the Global Parameters service
@@ -231,10 +230,10 @@ func (s *ServiceImpl) IsOceansMaxed(ctx context.Context) (bool, error) {
 }
 
 // GetGlobalParameters retrieves all global parameters
-func (s *ServiceImpl) GetGlobalParameters(ctx context.Context) (model.GlobalParameters, error) {
+func (s *ServiceImpl) GetGlobalParameters(ctx context.Context) (GlobalParameters, error) {
 	params, err := s.repo.Get(ctx)
 	if err != nil {
-		return model.GlobalParameters{}, fmt.Errorf("failed to get parameters: %w", err)
+		return GlobalParameters{}, fmt.Errorf("failed to get parameters: %w", err)
 	}
 	return params, nil
 }

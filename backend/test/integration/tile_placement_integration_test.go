@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,7 +68,7 @@ func TestFieldCappedCityTilePlacement(t *testing.T) {
 	// STEP 3: Set game to action phase using admin command
 	t.Log("📝 Setting game phase to action...")
 	err = client.SendAdminCommand(dto.AdminCommandTypeSetPhase, map[string]interface{}{
-		"phase": string(model.GamePhaseAction),
+		"phase": string(game.GamePhaseAction),
 	})
 	require.NoError(t, err, "Should be able to set phase")
 

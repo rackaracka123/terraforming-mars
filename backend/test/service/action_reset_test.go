@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -24,7 +23,7 @@ func TestActionResetFunctionality(t *testing.T) {
 	playerRepo := player.NewRepository(eventBus)
 
 	// Create a test game
-	gameSettings := model.GameSettings{
+	gameSettings := game.GameSettings{
 		MaxPlayers:      1,
 		DevelopmentMode: true,
 	}
@@ -34,7 +33,7 @@ func TestActionResetFunctionality(t *testing.T) {
 
 	// Create a player with an action that has been played
 	playerID := "player1"
-	testAction := model.PlayerAction{
+	testAction := player.PlayerAction{
 		CardID:        "space-elevator",
 		CardName:      "Space Elevator",
 		BehaviorIndex: 1,
@@ -52,12 +51,12 @@ func TestActionResetFunctionality(t *testing.T) {
 		},
 	}
 
-	player := model.Player{
+	player := player.Player{
 		ID:               playerID,
 		Name:             "Test Player",
-		Resources:        model.Resources{Steel: 5, Credits: 20},
+		Resources:        resources.Resources{Steel: 5, Credits: 20},
 		AvailableActions: 1,
-		Actions:          []model.PlayerAction{testAction},
+		Actions:          []player.PlayerAction{testAction},
 	}
 
 	err = playerRepo.Create(ctx, gameID, player)
@@ -69,7 +68,7 @@ func TestActionResetFunctionality(t *testing.T) {
 	assert.Equal(t, 1, initialPlayer.Actions[0].PlayCount)
 
 	// Manually reset the action play count (simulating what happens in phase transition)
-	resetActions := make([]model.PlayerAction, len(initialPlayer.Actions))
+	resetActions := make([]player.PlayerAction, len(initialPlayer.Actions))
 	for i, action := range initialPlayer.Actions {
 		resetActions[i] = *action.DeepCopy()
 		resetActions[i].PlayCount = 0 // Reset to 0

@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -42,7 +43,7 @@ type StandardProjectServiceImpl struct {
 	gameRepo       game.Repository
 	playerRepo     player.Repository
 	sessionManager session.SessionManager
-	tilesMech      tiles.Service
+	tilesMech      tiles.BoardService
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
@@ -50,7 +51,7 @@ func NewStandardProjectService(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	sessionManager session.SessionManager,
-	tilesMech tiles.Service,
+	tilesMech tiles.BoardService,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
 		gameRepo:       gameRepo,
@@ -216,7 +217,7 @@ func (s *StandardProjectServiceImpl) ProcessCardSelection(ctx context.Context, g
 func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectPowerPlant, func(player *model.Player) error {
+	return s.executeStandardProject(ctx, gameID, playerID, types.StandardProjectPowerPlant, func(player *player.Player) error {
 		// Increase energy production by 1
 		player.Production.Energy++
 
@@ -231,7 +232,7 @@ func (s *StandardProjectServiceImpl) BuildPowerPlant(ctx context.Context, gameID
 func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeStandardProject(ctx, gameID, playerID, model.StandardProjectAsteroid, func(player *model.Player) error {
+	return s.executeStandardProject(ctx, gameID, playerID, types.StandardProjectAsteroid, func(player *player.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -264,7 +265,7 @@ func (s *StandardProjectServiceImpl) LaunchAsteroid(ctx context.Context, gameID,
 func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeTileQueuedProject(ctx, gameID, playerID, model.StandardProjectAquifer, "ocean", func(player *model.Player) error {
+	return s.executeTileQueuedProject(ctx, gameID, playerID, types.StandardProjectAquifer, "ocean", func(player *player.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -295,7 +296,7 @@ func (s *StandardProjectServiceImpl) BuildAquifer(ctx context.Context, gameID, p
 func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeTileQueuedProject(ctx, gameID, playerID, model.StandardProjectGreenery, "greenery", func(player *model.Player) error {
+	return s.executeTileQueuedProject(ctx, gameID, playerID, types.StandardProjectGreenery, "greenery", func(player *player.Player) error {
 		// Increase terraform rating
 		player.TerraformRating++
 
@@ -326,7 +327,7 @@ func (s *StandardProjectServiceImpl) PlantGreenery(ctx context.Context, gameID, 
 func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	return s.executeTileQueuedProject(ctx, gameID, playerID, model.StandardProjectCity, "city", func(player *model.Player) error {
+	return s.executeTileQueuedProject(ctx, gameID, playerID, types.StandardProjectCity, "city", func(player *player.Player) error {
 		// Increase megacredit production by 1 (cities provide income)
 		player.Production.Credits++
 		log.Info("Player built city (queuing tile placement)", zap.Int("new_credit_production", player.Production.Credits))
@@ -335,7 +336,7 @@ func (s *StandardProjectServiceImpl) BuildCity(ctx context.Context, gameID, play
 }
 
 // executeTileQueuedProject executes a standard project that requires tile placement
-func (s *StandardProjectServiceImpl) executeTileQueuedProject(ctx context.Context, gameID, playerID string, project model.StandardProject, tileType string, projectAction func(*model.Player) error) error {
+func (s *StandardProjectServiceImpl) executeTileQueuedProject(ctx context.Context, gameID, playerID string, project types.StandardProject, tileType string, projectAction func(*player.Player) error) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Execute standard project (cost deduction, effects)
@@ -366,7 +367,7 @@ func (s *StandardProjectServiceImpl) executeTileQueuedProject(ctx context.Contex
 }
 
 // executeStandardProject executes a standard project with common validation and resource deduction
-func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context, gameID, playerID string, project model.StandardProject, projectAction func(*model.Player) error) error {
+func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context, gameID, playerID string, project types.StandardProject, projectAction func(*player.Player) error) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get player
@@ -377,7 +378,7 @@ func (s *StandardProjectServiceImpl) executeStandardProject(ctx context.Context,
 	}
 
 	// Validate player can afford the project
-	cost, exists := model.StandardProjectCost[project]
+	cost, exists := types.StandardProjectCost[project]
 	if !exists {
 		return fmt.Errorf("unknown standard project: %s", project)
 	}

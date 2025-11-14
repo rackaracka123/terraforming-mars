@@ -4,30 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
 )
 
 // SelectStartingCardsAction handles selection of starting cards and corporation
 // This action orchestrates:
-// - Card and corporation selection via cards.SelectionManager
+// - Card and corporation selection via service.SelectionManager
 // - Checking if all players are ready
 // - Game phase advancement to action phase when all players ready
 // - Clearing selection data
 type SelectStartingCardsAction struct {
-	selectionManager *cards.SelectionManager
+	selectionManager *service.SelectionManager
 	gameRepo         game.Repository
 	sessionManager   session.SessionManager
 }
 
 // NewSelectStartingCardsAction creates a new select starting cards action
 func NewSelectStartingCardsAction(
-	selectionManager *cards.SelectionManager,
+	selectionManager *service.SelectionManager,
 	gameRepo game.Repository,
 	sessionManager session.SessionManager,
 ) *SelectStartingCardsAction {

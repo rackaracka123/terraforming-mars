@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
@@ -46,23 +45,23 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 	testCardID := startingCards[0].ID
 
 	// Create test game
-	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	createdGame, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 2})
 	require.NoError(t, err)
 	gameID := createdGame.ID
 
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Create test player with the test card
-	player := model.Player{
+	player := player.Player{
 		ID:   "player1",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 50, // Enough for most starting cards
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits: 1,
 		},
 		TerraformRating:  20,
@@ -212,23 +211,23 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	require.NotNil(t, expensiveCard, "Need at least one card with cost > 30 without choices for testing")
 
 	// Create test game
-	createdGame, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
+	createdGame, err := gameRepo.Create(ctx, game.GameSettings{MaxPlayers: 2})
 	require.NoError(t, err)
 	gameID := createdGame.ID
 
-	err = gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive)
+	err = gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
 	require.NoError(t, err)
-	err = gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseAction)
+	err = gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
 	require.NoError(t, err)
 
 	// Create test player with limited credits
-	player := model.Player{
+	player := player.Player{
 		ID:   "player1",
 		Name: "Test Player",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits: 20, // Not enough for the expensive card
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits: 1,
 		},
 		TerraformRating:  20,

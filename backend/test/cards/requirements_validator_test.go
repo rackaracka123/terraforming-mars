@@ -4,8 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/player"
 
@@ -19,9 +18,9 @@ func TestRequirementsValidator_ProductionRequirements(t *testing.T) {
 	ctx := context.Background()
 
 	// Create test player with specific production levels
-	player := model.Player{
+	player := player.Player{
 		ID: "player1",
-		Production: model.Production{
+		Production: resources.Production{
 			Credits:  3,
 			Steel:    2,
 			Titanium: 0,
@@ -31,7 +30,7 @@ func TestRequirementsValidator_ProductionRequirements(t *testing.T) {
 		},
 	}
 
-	game := model.Game{}
+	game := game.Game{}
 
 	tests := []struct {
 		name          string
@@ -95,9 +94,9 @@ func TestRequirementsValidator_ResourceRequirements(t *testing.T) {
 	ctx := context.Background()
 
 	// Create test player with specific resource levels
-	player := model.Player{
+	player := player.Player{
 		ID: "player1",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  25,
 			Steel:    8,
 			Titanium: 3,
@@ -107,7 +106,7 @@ func TestRequirementsValidator_ResourceRequirements(t *testing.T) {
 		},
 	}
 
-	game := model.Game{}
+	game := game.Game{}
 
 	tests := []struct {
 		name          string
@@ -171,9 +170,9 @@ func TestRequirementsValidator_AffordabilityValidation(t *testing.T) {
 	ctx := context.Background()
 
 	// Create test player with limited resources
-	player := model.Player{
+	player := player.Player{
 		ID: "player1",
-		Resources: model.Resources{
+		Resources: resources.Resources{
 			Credits:  30,
 			Steel:    5,
 			Titanium: 2,
@@ -181,7 +180,7 @@ func TestRequirementsValidator_AffordabilityValidation(t *testing.T) {
 			Energy:   3,
 			Heat:     4,
 		},
-		Production: model.Production{
+		Production: resources.Production{
 			Credits:  2,
 			Steel:    1,
 			Titanium: 1,

@@ -4,12 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/features/card"
+	cardPkg "terraforming-mars-backend/internal/features/card"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
+	playerPkg "terraforming-mars-backend/internal/player"
+	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -20,16 +25,16 @@ type AdminService interface {
 	OnAdminGiveCard(ctx context.Context, gameID, playerID, cardID string) error
 
 	// OnAdminSetPhase sets the game phase
-	OnAdminSetPhase(ctx context.Context, gameID string, phase model.GamePhase) error
+	OnAdminSetPhase(ctx context.Context, gameID string, phase game.GamePhase) error
 
 	// OnAdminSetResources sets a player's resources
-	OnAdminSetResources(ctx context.Context, gameID, playerID string, resources model.Resources) error
+	OnAdminSetResources(ctx context.Context, gameID, playerID string, resources resources.Resources) error
 
 	// OnAdminSetProduction sets a player's production
-	OnAdminSetProduction(ctx context.Context, gameID, playerID string, production model.Production) error
+	OnAdminSetProduction(ctx context.Context, gameID, playerID string, production resources.Production) error
 
 	// OnAdminSetGlobalParameters sets the global terraforming parameters
-	OnAdminSetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error
+	OnAdminSetGlobalParameters(ctx context.Context, gameID string, params parameters.GlobalParameters) error
 
 	// OnAdminStartTileSelection starts tile selection for testing
 	OnAdminStartTileSelection(ctx context.Context, gameID, playerID, tileType string) error
@@ -45,22 +50,22 @@ type AdminService interface {
 type AdminServiceImpl struct {
 	gameRepo            game.Repository
 	playerRepo          player.Repository
-	cardRepo            game.CardRepository
-	cardDeckRepo        game.CardDeckRepository
+	cardRepo            card.CardRepository
+	cardDeckRepo        card.CardDeckRepository
 	sessionManager      session.SessionManager
-	effectSubscriber    cards.CardEffectSubscriber
-	forcedActionManager cards.ForcedActionManager
+	effectSubscriber    CardEffectSubscriber
+	forcedActionManager ForcedActionManager
 }
 
 // NewAdminService creates a new AdminService instance
 func NewAdminService(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	cardRepo game.CardRepository,
-	cardDeckRepo game.CardDeckRepository,
+	cardRepo card.CardRepository,
+	cardDeckRepo card.CardDeckRepository,
 	sessionManager session.SessionManager,
-	effectSubscriber cards.CardEffectSubscriber,
-	forcedActionManager cards.ForcedActionManager,
+	effectSubscriber CardEffectSubscriber,
+	forcedActionManager ForcedActionManager,
 ) AdminService {
 	return &AdminServiceImpl{
 		gameRepo:            gameRepo,
@@ -112,7 +117,7 @@ func (s *AdminServiceImpl) OnAdminGiveCard(ctx context.Context, gameID, playerID
 }
 
 // OnAdminSetPhase sets the game phase
-func (s *AdminServiceImpl) OnAdminSetPhase(ctx context.Context, gameID string, phase model.GamePhase) error {
+func (s *AdminServiceImpl) OnAdminSetPhase(ctx context.Context, gameID string, phase game.GamePhase) error {
 	log := logger.WithGameContext(gameID, "")
 	log.Info("🔄 Admin setting game phase", zap.String("phase", string(phase)))
 
@@ -141,7 +146,7 @@ func (s *AdminServiceImpl) OnAdminSetPhase(ctx context.Context, gameID string, p
 }
 
 // OnAdminSetResources sets a player's resources
-func (s *AdminServiceImpl) OnAdminSetResources(ctx context.Context, gameID, playerID string, resources model.Resources) error {
+func (s *AdminServiceImpl) OnAdminSetResources(ctx context.Context, gameID, playerID string, resources resources.Resources) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("💰 Admin setting player resources", zap.Any("resources", resources))
 
@@ -176,7 +181,7 @@ func (s *AdminServiceImpl) OnAdminSetResources(ctx context.Context, gameID, play
 }
 
 // OnAdminSetProduction sets a player's production
-func (s *AdminServiceImpl) OnAdminSetProduction(ctx context.Context, gameID, playerID string, production model.Production) error {
+func (s *AdminServiceImpl) OnAdminSetProduction(ctx context.Context, gameID, playerID string, production resources.Production) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🏭 Admin setting player production", zap.Any("production", production))
 
@@ -211,7 +216,7 @@ func (s *AdminServiceImpl) OnAdminSetProduction(ctx context.Context, gameID, pla
 }
 
 // OnAdminSetGlobalParameters sets the global terraforming parameters
-func (s *AdminServiceImpl) OnAdminSetGlobalParameters(ctx context.Context, gameID string, params model.GlobalParameters) error {
+func (s *AdminServiceImpl) OnAdminSetGlobalParameters(ctx context.Context, gameID string, params parameters.GlobalParameters) error {
 	log := logger.WithGameContext(gameID, "")
 	log.Info("🌍 Admin setting global parameters",
 		zap.Int("temperature", params.Temperature),
@@ -276,7 +281,10 @@ func (s *AdminServiceImpl) OnAdminStartTileSelection(ctx context.Context, gameID
 	}
 
 	// Calculate available hexes based on tile type (demo logic)
-	availableHexes := s.calculateDemoAvailableHexes(game, tileType)
+	availableHexes, err := s.calculateDemoAvailableHexes(game, tileType)
+	if err != nil {
+		return fmt.Errorf("failed to calculate available hexes: %w", err)
+	}
 
 	if len(availableHexes) == 0 {
 		log.Warn("No valid positions available for tile type", zap.String("tile_type", tileType))
@@ -284,7 +292,7 @@ func (s *AdminServiceImpl) OnAdminStartTileSelection(ctx context.Context, gameID
 	}
 
 	// Set pending tile selection
-	pendingSelection := &model.PendingTileSelection{
+	pendingSelection := &player.PendingTileSelection{
 		TileType:       tileType,
 		AvailableHexes: availableHexes,
 		Source:         "admin_demo",
@@ -338,11 +346,17 @@ func (s *AdminServiceImpl) OnAdminSetCurrentTurn(ctx context.Context, gameID, pl
 }
 
 // calculateDemoAvailableHexes calculates available positions for demo tile placement
-func (s *AdminServiceImpl) calculateDemoAvailableHexes(game model.Game, tileType string) []string {
+func (s *AdminServiceImpl) calculateDemoAvailableHexes(game game.Game, tileType string) ([]string, error) {
 	var availableHexes []string
 
+	// Get board from game
+	board, err := game.GetBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get board: %w", err)
+	}
+
 	// Demo logic: just find empty tiles based on type
-	for _, tile := range game.Board.Tiles {
+	for _, tile := range board.Tiles {
 		// Tile must be empty
 		if tile.OccupiedBy != nil {
 			continue
@@ -351,19 +365,19 @@ func (s *AdminServiceImpl) calculateDemoAvailableHexes(game model.Game, tileType
 		switch tileType {
 		case "ocean":
 			// Ocean tiles can only be placed on ocean-designated spaces
-			if tile.Type == model.ResourceOceanTile {
+			if tile.Type == tiles.ResourceOceanTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 
 		case "city", "greenery":
 			// Cities and greenery can be placed on any empty land space
-			if tile.Type != model.ResourceOceanTile {
+			if tile.Type != tiles.ResourceOceanTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 		}
 	}
 
-	return availableHexes
+	return availableHexes, nil
 }
 
 // OnAdminSetCorporation sets a player's corporation directly (bypassing selection validation)
@@ -413,7 +427,7 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 
 	// Apply starting resources and production from corporation
 	if corporationCard.StartingResources != nil {
-		resources := model.Resources{
+		resources := resources.Resources{
 			Credits:  corporationCard.StartingResources.Credits,
 			Steel:    corporationCard.StartingResources.Steel,
 			Titanium: corporationCard.StartingResources.Titanium,
@@ -430,7 +444,7 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	}
 
 	if corporationCard.StartingProduction != nil {
-		production := model.Production{
+		production := resources.Production{
 			Credits:  corporationCard.StartingProduction.Credits,
 			Steel:    corporationCard.StartingProduction.Steel,
 			Titanium: corporationCard.StartingProduction.Titanium,
@@ -447,13 +461,13 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	}
 
 	// Extract and apply payment substitutes from corporation behaviors
-	paymentSubstitutes := []model.PaymentSubstitute{}
+	paymentSubstitutes := []types.PaymentSubstitute{}
 	for _, behavior := range corporationCard.Behaviors {
 		// Look for auto-trigger behaviors without conditions (starting bonuses)
 		hasAutoTrigger := false
 		hasCondition := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto {
+			if trigger.Type == card.ResourceTriggerAuto {
 				hasAutoTrigger = true
 				if trigger.Condition != nil {
 					hasCondition = true
@@ -468,12 +482,12 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 
 		// Extract payment-substitute outputs
 		for _, output := range behavior.Outputs {
-			if output.Type == model.ResourcePaymentSubstitute {
+			if output.Type == "payment-substitute" {
 				// Extract the resource type from affectedResources
 				if len(output.AffectedResources) > 0 {
 					resourceTypeStr := output.AffectedResources[0]
-					substitute := model.PaymentSubstitute{
-						ResourceType:   model.ResourceType(resourceTypeStr),
+					substitute := types.PaymentSubstitute{
+						ResourceType:   types.ResourceType(resourceTypeStr),
 						ConversionRate: output.Amount,
 					}
 					paymentSubstitutes = append(paymentSubstitutes, substitute)
@@ -505,12 +519,12 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	}
 
 	// Extract and register corporation manual actions (manual triggers)
-	var manualActions []model.PlayerAction
+	var manualActions []card.PlayerAction
 	for behaviorIndex, behavior := range corporationCard.Behaviors {
 		// Check if this behavior has manual triggers
 		hasManualTrigger := false
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerManual {
+			if trigger.Type == card.ResourceTriggerManual {
 				hasManualTrigger = true
 				break
 			}
@@ -518,7 +532,7 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 
 		// If behavior has manual triggers, create a PlayerAction
 		if hasManualTrigger {
-			action := model.PlayerAction{
+			action := card.PlayerAction{
 				CardID:        corporationCard.ID,
 				CardName:      corporationCard.Name,
 				BehaviorIndex: behaviorIndex,
@@ -539,7 +553,7 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 		}
 
 		// Create new actions list with existing + new corporation actions
-		newActions := make([]model.PlayerAction, len(currentPlayer.Actions)+len(manualActions))
+		newActions := make([]card.PlayerAction, len(currentPlayer.Actions)+len(manualActions))
 		copy(newActions, currentPlayer.Actions)
 		copy(newActions[len(currentPlayer.Actions):], manualActions)
 
@@ -598,16 +612,16 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 
 // extractForcedFirstAction parses a corporation's forced first action from its behaviors
 // Forced first actions use auto-first-action trigger type (e.g., Inventrix: draw 3 cards, Tharsis: place city)
-func (s *AdminServiceImpl) extractForcedFirstAction(corporation *model.Card) *model.ForcedFirstAction {
+func (s *AdminServiceImpl) extractForcedFirstAction(corporation *cardPkg.Card) *playerPkg.ForcedFirstAction {
 	for _, behavior := range corporation.Behaviors {
 		// Check if this behavior has a forced first action trigger
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoFirstAction {
+			if trigger.Type == cardPkg.ResourceTriggerAutoFirstAction {
 				// Determine action type from outputs
 				actionType := s.determineActionType(behavior.Outputs)
 				description := s.generateForcedActionDescription(behavior.Outputs)
 
-				return &model.ForcedFirstAction{
+				return &playerPkg.ForcedFirstAction{
 					ActionType:    actionType,
 					CorporationID: corporation.ID,
 					Completed:     false,
@@ -620,7 +634,7 @@ func (s *AdminServiceImpl) extractForcedFirstAction(corporation *model.Card) *mo
 }
 
 // determineActionType extracts the primary action type from behavior outputs
-func (s *AdminServiceImpl) determineActionType(outputs []model.ResourceCondition) string {
+func (s *AdminServiceImpl) determineActionType(outputs []cardPkg.ResourceCondition) string {
 	if len(outputs) == 0 {
 		return "unknown"
 	}
@@ -641,7 +655,7 @@ func (s *AdminServiceImpl) determineActionType(outputs []model.ResourceCondition
 }
 
 // generateForcedActionDescription creates a human-readable description from outputs
-func (s *AdminServiceImpl) generateForcedActionDescription(outputs []model.ResourceCondition) string {
+func (s *AdminServiceImpl) generateForcedActionDescription(outputs []cardPkg.ResourceCondition) string {
 	if len(outputs) == 0 {
 		return "Complete forced action"
 	}

@@ -6,7 +6,14 @@ import (
 	"terraforming-mars-backend/internal/features/parameters"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/shared/types"
 )
+
+// Type aliases to avoid circular imports
+type HexPosition = types.HexPosition
+type TileOccupant = tiles.TileOccupant
+type Board = tiles.Board
+type GlobalParameters = parameters.GlobalParameters
 
 // GamePhase represents the current phase of the game
 type GamePhase string

@@ -1,14 +1,15 @@
 package model_test
 
 import (
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestResources_InitialState(t *testing.T) {
-	resources := model.Resources{}
+	resources := resources.Resources{}
 
 	// Test zero values
 	assert.Equal(t, 0, resources.Credits)
@@ -20,7 +21,7 @@ func TestResources_InitialState(t *testing.T) {
 }
 
 func TestProduction_InitialState(t *testing.T) {
-	production := model.Production{}
+	production := resources.Production{}
 
 	// Test zero values
 	assert.Equal(t, 0, production.Credits)
@@ -32,7 +33,7 @@ func TestProduction_InitialState(t *testing.T) {
 }
 
 func TestResources_AllFields(t *testing.T) {
-	resources := model.Resources{
+	resources := resources.Resources{
 		Credits:  100,
 		Steel:    25,
 		Titanium: 15,
@@ -51,7 +52,7 @@ func TestResources_AllFields(t *testing.T) {
 }
 
 func TestProduction_AllFields(t *testing.T) {
-	production := model.Production{
+	production := resources.Production{
 		Credits:  3,
 		Steel:    1,
 		Titanium: 2,
