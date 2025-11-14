@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/tiles"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/stretchr/testify/assert"
@@ -122,7 +123,7 @@ func toTilesTile(mt model.Tile) tiles.Tile {
 	}
 }
 
-func setupTest(t *testing.T) (tiles.Service, repository.GameRepository, repository.PlayerRepository, string, string) {
+func setupTest(t *testing.T) (tiles.Service, game.Repository, player.Repository, string, string) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 

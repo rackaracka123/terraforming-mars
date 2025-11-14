@@ -6,7 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 )
 
 // TestGameRepositoryPublishesTemperatureChangedEvent tests that UpdateTemperature publishes events
@@ -16,9 +17,9 @@ func TestGameRepositoryPublishesTemperatureChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent repository.TemperatureChangedEvent
+	var receivedEvent game.TemperatureChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event game.TemperatureChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -59,9 +60,9 @@ func TestGameRepositoryPublishesOxygenChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent repository.OxygenChangedEvent
+	var receivedEvent game.OxygenChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event repository.OxygenChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event game.OxygenChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -102,9 +103,9 @@ func TestGameRepositoryPublishesOceansChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent repository.OceansChangedEvent
+	var receivedEvent game.OceansChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event repository.OceansChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event game.OceansChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -144,9 +145,9 @@ func TestPlayerRepositoryPublishesResourcesChangedEvent(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	// Track events
-	var eventsReceived []repository.ResourcesChangedEvent
+	var eventsReceived []player.ResourcesChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event repository.ResourcesChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event player.ResourcesChangedEvent) {
 		eventsReceived = append(eventsReceived, event)
 	})
 
@@ -211,9 +212,9 @@ func TestPlayerRepositoryPublishesTerraformRatingChangedEvent(t *testing.T) {
 
 	// Track event
 	var eventReceived bool
-	var receivedEvent repository.TerraformRatingChangedEvent
+	var receivedEvent player.TerraformRatingChangedEvent
 
-	_ = events.Subscribe(eventBus, func(event repository.TerraformRatingChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event player.TerraformRatingChangedEvent) {
 		eventReceived = true
 		receivedEvent = event
 	})
@@ -264,7 +265,7 @@ func TestRepositoryDoesNotPublishWhenNoChange(t *testing.T) {
 	// Track events
 	var tempEventCount int
 
-	_ = events.Subscribe(eventBus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(eventBus, func(event game.TemperatureChangedEvent) {
 		tempEventCount++
 	})
 

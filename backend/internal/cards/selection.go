@@ -6,22 +6,23 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
 
 // SelectionManager handles all card selection operations
 type SelectionManager struct {
-	gameRepo         repository.GameRepository
-	playerRepo       repository.PlayerRepository
-	cardRepo         repository.CardRepository
-	cardDeckRepo     repository.CardDeckRepository
+	gameRepo         game.Repository
+	playerRepo       player.Repository
+	cardRepo         game.CardRepository
+	cardDeckRepo     game.CardDeckRepository
 	effectSubscriber CardEffectSubscriber
 }
 
 // NewSelectionManager creates a new card selection manager
-func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, effectSubscriber CardEffectSubscriber) *SelectionManager {
+func NewSelectionManager(gameRepo game.Repository, playerRepo player.Repository, cardRepo game.CardRepository, cardDeckRepo game.CardDeckRepository, effectSubscriber CardEffectSubscriber) *SelectionManager {
 	return &SelectionManager{
 		gameRepo:         gameRepo,
 		playerRepo:       playerRepo,

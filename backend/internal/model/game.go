@@ -1,25 +1,37 @@
 package model
 
-import "time"
+import (
+	"time"
 
-// Game represents a unified game entity containing both metadata and state
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
+)
+
+// Game represents a unified game entity with service references to features
 type Game struct {
-	ID               string           `json:"id" ts:"string"`
-	CreatedAt        time.Time        `json:"createdAt" ts:"string"`
-	UpdatedAt        time.Time        `json:"updatedAt" ts:"string"`
-	Status           GameStatus       `json:"status" ts:"GameStatus"`
-	Settings         GameSettings     `json:"settings" ts:"GameSettings"`
-	PlayerIDs        []string         `json:"playerIds" ts:"string[]"` // Player IDs in this game
-	HostPlayerID     string           `json:"hostPlayerId" ts:"string"`
-	CurrentPhase     GamePhase        `json:"currentPhase" ts:"GamePhase"`
-	GlobalParameters GlobalParameters `json:"globalParameters" ts:"GlobalParameters"`
-	ViewingPlayerID  string           `json:"viewingPlayerId" ts:"string"`  // The player viewing this game state
-	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
-	Generation       int              `json:"generation" ts:"number"`
-	Board            Board            `json:"board" ts:"Board"` // Game board with tiles and occupancy state
+	// Metadata
+	ID           string       `json:"id" ts:"string"`
+	CreatedAt    time.Time    `json:"createdAt" ts:"string"`
+	UpdatedAt    time.Time    `json:"updatedAt" ts:"string"`
+	Status       GameStatus   `json:"status" ts:"GameStatus"`
+	Settings     GameSettings `json:"settings" ts:"GameSettings"`
+	PlayerIDs    []string     `json:"playerIds" ts:"string[]"`
+	HostPlayerID string       `json:"hostPlayerId" ts:"string"`
+	CurrentPhase GamePhase    `json:"currentPhase" ts:"GamePhase"`
+	Generation   int          `json:"generation" ts:"number"`
+
+	// View context (not persisted, set per request)
+	ViewingPlayerID string `json:"viewingPlayerId" ts:"string"` // The player viewing this game state
+
+	// Feature Services (game-level state management)
+	ParametersService parameters.Service    `json:"-"` // Global parameters (temperature, oxygen, oceans)
+	BoardService      tiles.BoardService    `json:"-"` // Board with tile placement
+	TurnOrderService  turn.TurnOrderService `json:"-"` // Current turn and player rotation
 }
 
 // NewGame creates a new game with the given settings
+// Feature services must be injected after creation
 func NewGame(id string, settings GameSettings) *Game {
 	now := time.Now()
 
@@ -31,38 +43,46 @@ func NewGame(id string, settings GameSettings) *Game {
 		Settings:     settings,
 		PlayerIDs:    make([]string, 0),
 		CurrentPhase: GamePhaseWaitingForGameStart,
-		GlobalParameters: GlobalParameters{
-			Temperature: -30,
-			Oxygen:      0,
-			Oceans:      0,
-		},
-		Generation: 1,
-		Board:      Board{Tiles: []Tile{}}, // Initialize with empty board, service will populate
+		Generation:   1,
+		// Services will be injected during initialization
 	}
 }
 
-// Next returns the next player ID in turn order based on current turn
-// Returns nil if CurrentTurn is nil or no players exist
+// GetGlobalParameters retrieves global parameters via service
+func (g *Game) GetGlobalParameters() (parameters.GlobalParameters, error) {
+	if g.ParametersService == nil {
+		return parameters.GlobalParameters{}, nil
+	}
+	return g.ParametersService.GetGlobalParameters(nil)
+}
+
+// GetBoard retrieves board via service
+func (g *Game) GetBoard() (tiles.Board, error) {
+	if g.BoardService == nil {
+		return tiles.Board{}, nil
+	}
+	return g.BoardService.GetBoard(nil)
+}
+
+// GetCurrentTurn retrieves current turn via service
+func (g *Game) GetCurrentTurn() (*string, error) {
+	if g.TurnOrderService == nil {
+		return nil, nil
+	}
+	return g.TurnOrderService.GetCurrentTurn(nil)
+}
+
+// Next returns the next player ID in turn order
 func (g *Game) Next() *string {
-	if g.CurrentTurn == nil || len(g.PlayerIDs) == 0 {
+	if g.TurnOrderService == nil || len(g.PlayerIDs) == 0 {
 		return nil
 	}
 
-	// Find current player index
-	currentIndex := -1
-	for i, playerID := range g.PlayerIDs {
-		if playerID == *g.CurrentTurn {
-			currentIndex = i
-			break
-		}
+	// Use service to advance turn
+	nextPlayerID, err := g.TurnOrderService.AdvanceTurn(nil)
+	if err != nil {
+		return nil
 	}
 
-	if currentIndex == -1 {
-		// Current turn player not found, return first player
-		return &g.PlayerIDs[0]
-	}
-
-	// Calculate next player index (wrap around)
-	nextIndex := (currentIndex + 1) % len(g.PlayerIDs)
-	return &g.PlayerIDs[nextIndex]
+	return nextPlayerID
 }

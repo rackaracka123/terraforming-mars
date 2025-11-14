@@ -6,7 +6,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/game/actions"
+	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 

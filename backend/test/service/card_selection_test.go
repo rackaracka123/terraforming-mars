@@ -6,12 +6,13 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/production"
-	"terraforming-mars-backend/internal/game/tiles"
-	"terraforming-mars-backend/internal/game/turn"
+	"terraforming-mars-backend/internal/features/production"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -23,32 +24,32 @@ func TestCardSelectionFlow(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
 
 	// Load card data for testing
 	err := cardRepo.LoadCards(context.Background())
 	require.NoError(t, err, "Should load card data for testing")
 
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
-	// Initialize game mechanics
+	// Initialize game features
 	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
 	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
-	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
-	turnRepo := turn.NewRepository(gameRepo, playerRepo)
-	turnMechanic := turn.NewService(turnRepo)
-	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
-	productionMechanic := production.NewService(productionRepo)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 
-	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
+	turnRepo := turn.NewRepository(gameRepo, playerRepo)
+	turnFeature := turn.NewService(turnRepo)
+	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
+	productionFeature := production.NewService(productionRepo)
+
+	_ = service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager, turnFeature, productionFeature, tilesFeature)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	// EventBus tracking removed - using SessionManager for state updates

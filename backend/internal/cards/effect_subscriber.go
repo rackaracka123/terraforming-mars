@@ -7,7 +7,8 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -24,8 +25,8 @@ type CardEffectSubscriber interface {
 // CardEffectSubscriberImpl implements CardEffectSubscriber
 type CardEffectSubscriberImpl struct {
 	eventBus   *events.EventBusImpl
-	playerRepo repository.PlayerRepository
-	gameRepo   repository.GameRepository
+	playerRepo player.Repository
+	gameRepo   game.Repository
 
 	// Track subscription IDs for cleanup
 	subscriptions map[string][]events.SubscriptionID // cardID -> list of subscription IDs
@@ -34,8 +35,8 @@ type CardEffectSubscriberImpl struct {
 // NewCardEffectSubscriber creates a new card effect subscriber
 func NewCardEffectSubscriber(
 	eventBus *events.EventBusImpl,
-	playerRepo repository.PlayerRepository,
-	gameRepo repository.GameRepository,
+	playerRepo player.Repository,
+	gameRepo game.Repository,
 ) CardEffectSubscriber {
 	return &CardEffectSubscriberImpl{
 		eventBus:      eventBus,
@@ -158,7 +159,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 	switch triggerType {
 	case model.TriggerTemperatureRaise:
 		// Subscribe to TemperatureChangedEvent
-		subID := events.Subscribe(ces.eventBus, func(event repository.TemperatureChangedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.TemperatureChangedEvent) {
 			// Only trigger if temperature increased and it's this player's game
 			if event.GameID == gameID && event.NewValue > event.OldValue {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
@@ -168,7 +169,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerOxygenRaise:
 		// Subscribe to OxygenChangedEvent
-		subID := events.Subscribe(ces.eventBus, func(event repository.OxygenChangedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.OxygenChangedEvent) {
 			// Only trigger if oxygen increased and it's this player's game
 			if event.GameID == gameID && event.NewValue > event.OldValue {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
@@ -178,7 +179,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerOceanPlaced:
 		// Subscribe to OceansChangedEvent (oceans parameter increases when ocean placed)
-		subID := events.Subscribe(ces.eventBus, func(event repository.OceansChangedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.OceansChangedEvent) {
 			// Only trigger if oceans increased and it's this player's game
 			if event.GameID == gameID && event.NewValue > event.OldValue {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
@@ -189,7 +190,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 	case model.TriggerCityPlaced:
 		// Subscribe to TilePlacedEvent for city tiles
 		// Note: TilePlacedEvent.TileType uses ResourceType constants like "city-tile", not "city"
-		subID := events.Subscribe(ces.eventBus, func(event repository.TilePlacedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.TilePlacedEvent) {
 			// Only trigger if it's a city tile and it's this player's game
 			if event.GameID == gameID && (event.TileType == string(model.ResourceCityTile) || event.TileType == model.TileTypeCity) {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
@@ -200,7 +201,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 	case model.TriggerGreeneryPlaced:
 		// Subscribe to TilePlacedEvent for greenery tiles
 		// Note: TilePlacedEvent.TileType uses ResourceType constants like "greenery-tile", not "greenery"
-		subID := events.Subscribe(ces.eventBus, func(event repository.TilePlacedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.TilePlacedEvent) {
 			// Only trigger if it's a greenery tile and it's this player's game
 			if event.GameID == gameID && (event.TileType == string(model.ResourceGreeneryTile) || event.TileType == model.TileTypeGreenery) {
 				ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
@@ -210,7 +211,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerPlacementBonusGained:
 		// Subscribe to PlacementBonusGainedEvent for tile placement bonuses
-		subID := events.Subscribe(ces.eventBus, func(event repository.PlacementBonusGainedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.PlacementBonusGainedEvent) {
 			// Only trigger if it's this player's game
 			if event.GameID == gameID {
 				// Check if any resource type in the event matches AffectedResources filter
@@ -240,7 +241,7 @@ func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(
 
 	case model.TriggerCardPlayed:
 		// Subscribe to CardPlayedEvent for card-played triggers
-		subID := events.Subscribe(ces.eventBus, func(event repository.CardPlayedEvent) {
+		subID := events.Subscribe(ces.eventBus, func(event events.CardPlayedEvent) {
 			// Only trigger if it's this player's game
 			if event.GameID == gameID {
 				// Get trigger condition from behavior
@@ -291,11 +292,11 @@ func (ces *CardEffectSubscriberImpl) executePassiveEffect(
 	// Extract the player who triggered the event (if applicable)
 	var eventPlayerID string
 	switch e := event.(type) {
-	case repository.TilePlacedEvent:
+	case events.TilePlacedEvent:
 		eventPlayerID = e.PlayerID
-	case repository.PlacementBonusGainedEvent:
+	case events.PlacementBonusGainedEvent:
 		eventPlayerID = e.PlayerID
-	case repository.CardPlayedEvent:
+	case events.CardPlayedEvent:
 		eventPlayerID = e.PlayerID
 	default:
 		// For global events (temperature, oxygen, etc.) the event has no specific player

@@ -6,7 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -28,9 +29,9 @@ type CardManager interface {
 
 // CardManagerImpl implements the simplified card management interface
 type CardManagerImpl struct {
-	gameRepo              repository.GameRepository
-	playerRepo            repository.PlayerRepository
-	cardRepo              repository.CardRepository
+	gameRepo              game.Repository
+	playerRepo            player.Repository
+	cardRepo              game.CardRepository
 	requirementsValidator *RequirementsValidator
 	effectProcessor       *CardProcessor
 	effectSubscriber      CardEffectSubscriber
@@ -38,10 +39,10 @@ type CardManagerImpl struct {
 
 // NewCardManager creates a new simplified card manager
 func NewCardManager(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
-	cardDeckRepo repository.CardDeckRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo game.CardRepository,
+	cardDeckRepo game.CardDeckRepository,
 	effectSubscriber CardEffectSubscriber,
 ) CardManager {
 	return &CardManagerImpl{

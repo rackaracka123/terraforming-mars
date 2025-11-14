@@ -29,17 +29,37 @@ func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
 		corporationName = player.Corporation.Name
 	}
 
+	// Retrieve resources and production via service
+	resources, _ := player.GetResources()
+	production, _ := player.GetProduction()
+	passed, _ := player.GetPassed()
+	availableActions, _ := player.GetAvailableActions()
+
 	return &OtherPlayer{
 		ID:               player.ID,
 		Name:             player.Name,
 		Corporation:      corporationName,
 		HandCardCount:    len(player.Cards), // Convert hand cards to count
-		Resources:        player.Resources,
-		Production:       player.Production,
+		Resources:        Resources{
+			Credits:  resources.Credits,
+			Steel:    resources.Steel,
+			Titanium: resources.Titanium,
+			Plants:   resources.Plants,
+			Energy:   resources.Energy,
+			Heat:     resources.Heat,
+		},
+		Production:       Production{
+			Credits:  production.Credits,
+			Steel:    production.Steel,
+			Titanium: production.Titanium,
+			Plants:   production.Plants,
+			Energy:   production.Energy,
+			Heat:     production.Heat,
+		},
 		TerraformRating:  player.TerraformRating,
 		PlayedCards:      append([]string{}, player.PlayedCards...), // Copy played cards (public)
-		Passed:           player.Passed,
-		AvailableActions: player.AvailableActions,
+		Passed:           passed,
+		AvailableActions: availableActions,
 		VictoryPoints:    player.VictoryPoints,
 		IsConnected:      player.IsConnected,
 	}

@@ -1,6 +1,14 @@
 package model
 
-// ProductionPhase contains both card selection and production phase state for a player
+import (
+	"terraforming-mars-backend/internal/features/production"
+	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
+)
+
+// ProductionPhase contains production phase state for display only
+// Actual card selection state is managed by production feature service
 type ProductionPhase struct {
 	AvailableCards    []string  `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
 	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
@@ -73,36 +81,99 @@ type ForcedFirstAction struct {
 	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
 }
 
-// Player represents a player in the game
+// Player represents a player in the game with service references to features
 type Player struct {
-	ID                       string                    `json:"id" ts:"string"`
-	Name                     string                    `json:"name" ts:"string"`
-	Corporation              *Card                     `json:"corporation" ts:"CardDto | null"`
-	Cards                    []string                  `json:"cards" ts:"string[]"`
-	Resources                Resources                 `json:"resources" ts:"Resources"`
-	Production               Production                `json:"production" ts:"Production"`
-	TerraformRating          int                       `json:"terraformRating" ts:"number"`
-	PlayedCards              []string                  `json:"playedCards" ts:"string[]"`
-	Passed                   bool                      `json:"passed" ts:"boolean"`
-	AvailableActions         int                       `json:"availableActions" ts:"number"`
-	VictoryPoints            int                       `json:"victoryPoints" ts:"number"`
-	IsConnected              bool                      `json:"isConnected" ts:"boolean"`
-	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
-	Actions                  []PlayerAction            `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
-	ProductionPhase          *ProductionPhase          `json:"productionPhase" ts:"ProductionPhase | null"`
+	// Metadata
+	ID              string  `json:"id" ts:"string"`
+	Name            string  `json:"name" ts:"string"`
+	Corporation     *Card   `json:"corporation" ts:"CardDto | null"`
+	Cards           []string `json:"cards" ts:"string[]"`
+	PlayedCards     []string `json:"playedCards" ts:"string[]"`
+	TerraformRating int     `json:"terraformRating" ts:"number"` // Simple field, increases via events
+	VictoryPoints   int     `json:"victoryPoints" ts:"number"`
+	IsConnected     bool    `json:"isConnected" ts:"boolean"`
+
+	// Card effects and actions
+	Effects []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
+	Actions []PlayerAction `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
+
+	// Selection phases (non-feature state)
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
-	// Tile selection - nullable, exists only when player needs to place tiles
-	PendingTileSelection      *PendingTileSelection      `json:"pendingTileSelection" ts:"PendingTileSelection | null"`           // Current active tile placement, null when no tiles to place
-	PendingTileSelectionQueue *PendingTileSelectionQueue `json:"pendingTileSelectionQueue" ts:"PendingTileSelectionQueue | null"` // Queue of remaining tile placements from cards
+
 	// Card selection - nullable, exists only when player needs to select cards
 	PendingCardSelection     *PendingCardSelection     `json:"pendingCardSelection" ts:"PendingCardSelection | null"`         // Current active card selection (sell patents, etc.)
 	PendingCardDrawSelection *PendingCardDrawSelection `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelection | null"` // Current active card draw/peek selection
+
 	// Forced first action - nullable, exists only when corporation requires specific first turn action
 	ForcedFirstAction *ForcedFirstAction `json:"forcedFirstAction" ts:"ForcedFirstAction | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
+
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+
 	// Payment substitutes - alternative resources that can be used as payment for credits
 	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
+
+	// Feature Services (player-level state management)
+	ResourcesService   resources.Service          `json:"-"` // Resources + Production
+	ProductionService  production.Service         `json:"-"` // Production phase card selection state
+	TileQueueService   tiles.TileQueueService     `json:"-"` // Tile selection queue
+	PlayerTurnService  turn.PlayerTurnService     `json:"-"` // Passed status + available actions
+}
+
+// GetResources retrieves resources via service
+func (p *Player) GetResources() (resources.Resources, error) {
+	if p.ResourcesService == nil {
+		return resources.Resources{}, nil
+	}
+	return p.ResourcesService.Get(nil)
+}
+
+// GetProduction retrieves production via service
+func (p *Player) GetProduction() (resources.Production, error) {
+	if p.ResourcesService == nil {
+		return resources.Production{}, nil
+	}
+	return p.ResourcesService.GetProduction(nil)
+}
+
+// GetPassed retrieves passed status via service
+func (p *Player) GetPassed() (bool, error) {
+	if p.PlayerTurnService == nil {
+		return false, nil
+	}
+	return p.PlayerTurnService.GetPassed(nil)
+}
+
+// GetAvailableActions retrieves available actions via service
+func (p *Player) GetAvailableActions() (int, error) {
+	if p.PlayerTurnService == nil {
+		return 0, nil
+	}
+	return p.PlayerTurnService.GetAvailableActions(nil)
+}
+
+// GetPendingTileSelection retrieves pending tile selection via service
+func (p *Player) GetPendingTileSelection() (*tiles.PendingTileSelection, error) {
+	if p.TileQueueService == nil {
+		return nil, nil
+	}
+	return p.TileQueueService.GetPendingSelection(nil)
+}
+
+// GetPendingTileSelectionQueue retrieves tile selection queue via service
+func (p *Player) GetPendingTileSelectionQueue() (*tiles.PendingTileSelectionQueue, error) {
+	if p.TileQueueService == nil {
+		return nil, nil
+	}
+	return p.TileQueueService.GetQueue(nil)
+}
+
+// GetProductionPhaseState retrieves production phase state via service
+func (p *Player) GetProductionPhaseState() (*production.ProductionPhaseState, error) {
+	if p.ProductionService == nil {
+		return nil, nil
+	}
+	return p.ProductionService.Get(nil)
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -114,16 +185,22 @@ func (p *Player) GetStartingSelectionCards() []string {
 	return p.SelectStartingCardsPhase.AvailableCards
 }
 
-// GetProductionPhaseCards returns the player's production phase card selection, nil if not in that phase
+// GetProductionPhaseCards returns the player's production phase card selection via service
 func (p *Player) GetProductionPhaseCards() []string {
-	if p.ProductionPhase == nil {
+	if p.ProductionService == nil {
 		return nil
 	}
 
-	return p.ProductionPhase.AvailableCards
+	state, err := p.ProductionService.Get(nil)
+	if err != nil || state == nil {
+		return nil
+	}
+
+	return state.AvailableCards
 }
 
 // DeepCopy creates a deep copy of the Player
+// Note: Services are NOT copied - they should be references to the same instances
 func (p *Player) DeepCopy() *Player {
 	if p == nil {
 		return nil
@@ -136,24 +213,6 @@ func (p *Player) DeepCopy() *Player {
 	// Copy played cards slice
 	playedCardsCopy := make([]string, len(p.PlayedCards))
 	copy(playedCardsCopy, p.PlayedCards)
-
-	// Deep copy production selection if it exists
-	var productionSelectionCopy *ProductionPhase
-	if p.ProductionPhase != nil {
-		// Copy available cards slice
-		availableCardsCopy := make([]string, len(p.ProductionPhase.AvailableCards))
-		copy(availableCardsCopy, p.ProductionPhase.AvailableCards)
-
-		productionSelectionCopy = &ProductionPhase{
-			AvailableCards:    availableCardsCopy,
-			SelectionComplete: p.ProductionPhase.SelectionComplete,
-
-			BeforeResources: p.ProductionPhase.BeforeResources.DeepCopy(),
-			AfterResources:  p.ProductionPhase.AfterResources.DeepCopy(),
-			EnergyConverted: p.ProductionPhase.EnergyConverted,
-			CreditsIncome:   p.ProductionPhase.CreditsIncome,
-		}
-	}
 
 	// Copy starting selection slice
 	var startingSelectionCopy *SelectStartingCardsPhase
@@ -168,33 +227,6 @@ func (p *Player) DeepCopy() *Player {
 			AvailableCards:        availableCardsCopy,
 			AvailableCorporations: availableCorporationsCopy,
 			SelectionComplete:     p.SelectStartingCardsPhase.SelectionComplete,
-		}
-	}
-
-	// Deep copy pending tile selection if it exists
-	var pendingTileSelectionCopy *PendingTileSelection
-	if p.PendingTileSelection != nil {
-		// Copy available hexes slice
-		availableHexesCopy := make([]string, len(p.PendingTileSelection.AvailableHexes))
-		copy(availableHexesCopy, p.PendingTileSelection.AvailableHexes)
-
-		pendingTileSelectionCopy = &PendingTileSelection{
-			TileType:       p.PendingTileSelection.TileType,
-			AvailableHexes: availableHexesCopy,
-			Source:         p.PendingTileSelection.Source,
-		}
-	}
-
-	// Deep copy pending tile selection queue if it exists
-	var pendingTileSelectionQueueCopy *PendingTileSelectionQueue
-	if p.PendingTileSelectionQueue != nil {
-		// Copy items slice
-		itemsCopy := make([]string, len(p.PendingTileSelectionQueue.Items))
-		copy(itemsCopy, p.PendingTileSelectionQueue.Items)
-
-		pendingTileSelectionQueueCopy = &PendingTileSelectionQueue{
-			Items:  itemsCopy,
-			Source: p.PendingTileSelectionQueue.Source,
 		}
 	}
 
@@ -287,28 +319,26 @@ func (p *Player) DeepCopy() *Player {
 	}
 
 	return &Player{
-		ID:                        p.ID,
-		Name:                      p.Name,
-		Corporation:               corporationCopy,
-		Cards:                     cardsCopy,
-		Resources:                 p.Resources,  // Resources is a struct, so this is copied by value
-		Production:                p.Production, // Production is a struct, so this is copied by value
-		TerraformRating:           p.TerraformRating,
-		PlayedCards:               playedCardsCopy,
-		Passed:                    p.Passed,
-		AvailableActions:          p.AvailableActions,
-		VictoryPoints:             p.VictoryPoints,
-		IsConnected:               p.IsConnected,
-		Effects:                   effectsCopy,
-		Actions:                   actionsCopy,
-		ProductionPhase:           productionSelectionCopy,
-		SelectStartingCardsPhase:  startingSelectionCopy,
-		PendingTileSelection:      pendingTileSelectionCopy,
-		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
-		PendingCardSelection:      pendingCardSelectionCopy,
-		PendingCardDrawSelection:  pendingCardDrawSelectionCopy,
-		ForcedFirstAction:         forcedFirstActionCopy,
-		ResourceStorage:           resourceStorageCopy,
-		PaymentSubstitutes:        paymentSubstitutesCopy,
+		ID:                       p.ID,
+		Name:                     p.Name,
+		Corporation:              corporationCopy,
+		Cards:                    cardsCopy,
+		TerraformRating:          p.TerraformRating,
+		PlayedCards:              playedCardsCopy,
+		VictoryPoints:            p.VictoryPoints,
+		IsConnected:              p.IsConnected,
+		Effects:                  effectsCopy,
+		Actions:                  actionsCopy,
+		SelectStartingCardsPhase: startingSelectionCopy,
+		PendingCardSelection:     pendingCardSelectionCopy,
+		PendingCardDrawSelection: pendingCardDrawSelectionCopy,
+		ForcedFirstAction:        forcedFirstActionCopy,
+		ResourceStorage:          resourceStorageCopy,
+		PaymentSubstitutes:       paymentSubstitutesCopy,
+		// Services are NOT copied - they're references to the same instances
+		ResourcesService:  p.ResourcesService,
+		ProductionService: p.ProductionService,
+		TileQueueService:  p.TileQueueService,
+		PlayerTurnService: p.PlayerTurnService,
 	}
 }

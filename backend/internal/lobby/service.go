@@ -8,7 +8,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/google/uuid"
@@ -57,22 +58,22 @@ type Service interface {
 
 // ServiceImpl implements the lobby Service interface
 type ServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	cardRepo       repository.CardRepository
+	gameRepo       game.Repository
+	playerRepo     player.Repository
+	cardRepo       game.CardRepository
 	cardService    service.CardService
-	cardDeckRepo   repository.CardDeckRepository
+	cardDeckRepo   game.CardDeckRepository
 	boardService   service.BoardService
 	sessionManager session.SessionManager
 }
 
 // NewService creates a new lobby Service instance
 func NewService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo game.CardRepository,
 	cardService service.CardService,
-	cardDeckRepo repository.CardDeckRepository,
+	cardDeckRepo game.CardDeckRepository,
 	boardService service.BoardService,
 	sessionManager session.SessionManager,
 ) Service {

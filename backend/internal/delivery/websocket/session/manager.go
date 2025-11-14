@@ -9,7 +9,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -25,9 +26,9 @@ type SessionManager interface {
 // SessionManagerImpl implements the SessionManager interface
 type SessionManagerImpl struct {
 	// Dependencies for game state broadcasting
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
-	cardRepo   repository.CardRepository
+	gameRepo   game.Repository
+	playerRepo player.Repository
+	cardRepo   game.CardRepository
 	hub        *core.Hub
 
 	// Synchronization
@@ -36,9 +37,9 @@ type SessionManagerImpl struct {
 
 // NewSessionManager creates a new session manager
 func NewSessionManager(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo game.CardRepository,
 	hub *core.Hub,
 ) SessionManager {
 	return &SessionManagerImpl{

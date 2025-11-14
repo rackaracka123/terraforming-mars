@@ -6,10 +6,12 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/parameters"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -30,10 +32,12 @@ func setupTest(t *testing.T) (parameters.Service, string, string) {
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager).(*service.CardServiceImpl)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager).(*service.CardServiceImpl)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 
 	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)

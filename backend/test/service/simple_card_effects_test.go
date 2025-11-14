@@ -6,8 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -16,21 +18,23 @@ import (
 )
 
 // setupCardTest creates a basic game setup for card testing
-func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.GameRepository, repository.CardRepository) {
+func setupCardTest(t *testing.T) (context.Context, string, string, service.CardService, player.Repository, game.Repository, game.CardRepository) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))
@@ -238,16 +242,18 @@ func TestRoverConstruction_PassiveEffectTriggering(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))

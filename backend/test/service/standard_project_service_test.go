@@ -9,13 +9,15 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/production"
-	"terraforming-mars-backend/internal/game/tiles"
-	"terraforming-mars-backend/internal/game/turn"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/production"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -26,32 +28,41 @@ import (
 // Helper functions for creating test services
 func createTestStandardProjectService() service.StandardProjectService {
 	eventBus := events.NewEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	return service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	return service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tilesFeature)
 }
 
 func createTestPlayerService() service.PlayerService {
 	eventBus := events.NewEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
+
+	// Initialize game features
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersFeature := parameters.NewService(parametersRepo)
+
+	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, tilesFeature, parametersFeature, forcedActionManager)
 }
 
 func setupStandardProjectServiceTest(t *testing.T) (
 	service.StandardProjectService,
 	service.GameService,
 	service.PlayerService,
-	repository.PlayerRepository,
+	player.Repository,
 	model.Game,
 	string, // playerID
 ) {
@@ -61,36 +72,37 @@ func setupStandardProjectServiceTest(t *testing.T) (
 
 	// Initialize services
 	eventBus := events.NewEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 
-	cardRepo := repository.NewCardRepository()
+	cardRepo := game.NewCardRepository()
 	// Load card data for testing
 	err = cardRepo.LoadCards(context.Background())
 	if err != nil {
 		t.Fatal("Failed to load card data:", err)
 	}
 
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
-	// Initialize game mechanics
+	// Initialize game features
 	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
 	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
-	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	turnRepo := turn.NewRepository(gameRepo, playerRepo)
-	turnMechanic := turn.NewService(turnRepo)
+	turnFeature := turn.NewService(turnRepo)
 	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
-	productionMechanic := production.NewService(productionRepo)
+	productionFeature := production.NewService(productionRepo)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersFeature := parameters.NewService(parametersRepo)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager, turnFeature, productionFeature, tilesFeature)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, tilesFeature, parametersFeature, forcedActionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tilesFeature)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()

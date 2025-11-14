@@ -7,9 +7,11 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -47,10 +49,10 @@ type CardService interface {
 // CardServiceImpl implements CardService interface using specialized card managers
 type CardServiceImpl struct {
 	// Core repositories
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	cardRepo       repository.CardRepository
-	cardDeckRepo   repository.CardDeckRepository
+	gameRepo       game.Repository
+	playerRepo     player.Repository
+	cardRepo       game.CardRepository
+	cardDeckRepo   game.CardDeckRepository
 	sessionManager session.SessionManager
 
 	// Specialized managers from cards package
@@ -60,12 +62,12 @@ type CardServiceImpl struct {
 	cardManager           cards.CardManager
 	forcedActionManager   cards.ForcedActionManager
 
-	// Service dependencies
-	tileService TileService
+	// Mechanic dependencies
+	tilesMech tiles.Service
 }
 
 // NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+func NewCardService(gameRepo game.Repository, playerRepo player.Repository, cardRepo game.CardRepository, cardDeckRepo game.CardDeckRepository, sessionManager session.SessionManager, tilesMech tiles.Service, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
@@ -76,7 +78,7 @@ func NewCardService(gameRepo repository.GameRepository, playerRepo repository.Pl
 		requirementsValidator: cards.NewRequirementsValidator(cardRepo),
 		effectProcessor:       cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
 		cardManager:           cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
-		tileService:           tileService,
+		tilesMech:             tilesMech,
 		forcedActionManager:   forcedActionManager,
 	}
 }
@@ -385,7 +387,7 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 4: Process any tile queue created by the card
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("card played but failed to process tile queue: %w", err)
 	}
@@ -1073,7 +1075,7 @@ func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, 
 		zap.String("source", player.PendingTileSelectionQueue.Source))
 
 	// Delegate to TileService which handles validation, board service integration, etc.
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("failed to process tile queue: %w", err)
 	}

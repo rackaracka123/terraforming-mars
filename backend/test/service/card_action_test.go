@@ -6,8 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/stretchr/testify/assert"
@@ -20,20 +22,22 @@ func TestCardService_OnPlayCardAction_Success(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	// Setup repositories
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 
 	// Create a mock session manager that doesn't actually send messages
 	sessionManager := &MockSessionManager{}
 
 	// Create card service
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 	playerID := "player1"
 
 	// Create a test game
@@ -101,17 +105,19 @@ func TestCardService_OnPlayCardAction_InsufficientResources(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -177,17 +183,19 @@ func TestCardService_OnPlayCardAction_NoAvailableActions(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -244,17 +252,19 @@ func TestCardService_OnPlayCardAction_ActionNotFound(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -293,17 +303,19 @@ func TestCardService_OnPlayCardAction_AlreadyPlayed(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -360,17 +372,19 @@ func TestCardService_OnPlayCardAction_ProductionOutputs(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -440,17 +454,19 @@ func TestCardService_OnPlayCardAction_TerraformRating(t *testing.T) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := &MockSessionManager{}
 
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 

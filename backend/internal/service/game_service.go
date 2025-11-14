@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/game/production"
-	"terraforming-mars-backend/internal/game/tiles"
-	"terraforming-mars-backend/internal/game/turn"
+	"terraforming-mars-backend/internal/features/production"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -43,42 +44,42 @@ type GameService interface {
 
 // GameServiceImpl implements GameService interface
 type GameServiceImpl struct {
-	gameRepo           repository.GameRepository
-	playerRepo         repository.PlayerRepository
-	cardRepo           repository.CardRepository
-	cardService        CardService
-	cardDeckRepo       repository.CardDeckRepository
-	boardService       BoardService
-	sessionManager     session.SessionManager
-	turnMechanic       turn.Service
-	productionMechanic production.Service
-	tilesMechanic      tiles.Service
+	gameRepo          game.Repository
+	playerRepo        player.Repository
+	cardRepo          game.CardRepository
+	cardService       CardService
+	cardDeckRepo      game.CardDeckRepository
+	boardService      BoardService
+	sessionManager    session.SessionManager
+	turnFeature       turn.Service
+	productionFeature production.Service
+	tilesFeature      tiles.Service
 }
 
 // NewGameService creates a new GameService instance
 func NewGameService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo game.CardRepository,
 	cardService CardService,
-	cardDeckRepo repository.CardDeckRepository,
+	cardDeckRepo game.CardDeckRepository,
 	boardService BoardService,
 	sessionManager session.SessionManager,
-	turnMechanic turn.Service,
-	productionMechanic production.Service,
-	tilesMechanic tiles.Service,
+	turnFeature turn.Service,
+	productionFeature production.Service,
+	tilesFeature tiles.Service,
 ) GameService {
 	return &GameServiceImpl{
-		gameRepo:           gameRepo,
-		playerRepo:         playerRepo,
-		cardRepo:           cardRepo,
-		cardService:        cardService,
-		cardDeckRepo:       cardDeckRepo,
-		boardService:       boardService,
-		sessionManager:     sessionManager,
-		turnMechanic:       turnMechanic,
-		productionMechanic: productionMechanic,
-		tilesMechanic:      tilesMechanic,
+		gameRepo:          gameRepo,
+		playerRepo:        playerRepo,
+		cardRepo:          cardRepo,
+		cardService:       cardService,
+		cardDeckRepo:      cardDeckRepo,
+		boardService:      boardService,
+		sessionManager:    sessionManager,
+		turnFeature:       turnFeature,
+		productionFeature: productionFeature,
+		tilesFeature:      tilesFeature,
 	}
 }
 
@@ -130,7 +131,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	log.Debug("Skipping player turn via GameService")
 
 	// Delegate to turn mechanic
-	generationEnded, err := s.turnMechanic.SkipTurn(ctx, gameID, playerID)
+	generationEnded, err := s.turnFeature.SkipTurn(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to skip turn", zap.Error(err))
 		return fmt.Errorf("failed to skip turn: %w", err)
@@ -140,7 +141,7 @@ func (s *GameServiceImpl) SkipPlayerTurn(ctx context.Context, gameID string, pla
 	if generationEnded {
 		log.Info("🏭 Generation ended - executing production phase")
 
-		if err := s.productionMechanic.ExecuteProductionPhase(ctx, gameID); err != nil {
+		if err := s.productionFeature.ExecuteProductionPhase(ctx, gameID); err != nil {
 			log.Error("Failed to execute production phase", zap.Error(err))
 			return fmt.Errorf("failed to execute production phase: %w", err)
 		}
@@ -161,7 +162,7 @@ func (s *GameServiceImpl) ProcessProductionPhaseReady(ctx context.Context, gameI
 	log.Debug("Processing production phase ready via GameService")
 
 	// Delegate to production mechanic
-	allReady, err := s.productionMechanic.ProcessPlayerReady(ctx, gameID, playerID)
+	allReady, err := s.productionFeature.ProcessPlayerReady(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to process player ready", zap.Error(err))
 		return nil, fmt.Errorf("failed to process player ready: %w", err)
@@ -304,5 +305,5 @@ func (s *GameServiceImpl) resetPlayerActionPlayCounts(ctx context.Context, gameI
 // CalculateAvailableOceanHexes returns a list of hex coordinate strings that are available for ocean placement
 func (s *GameServiceImpl) CalculateAvailableOceanHexes(ctx context.Context, gameID string) ([]string, error) {
 	// Delegate to tiles mechanic
-	return s.tilesMechanic.CalculateAvailableHexes(ctx, gameID, "", "ocean")
+	return s.tilesFeature.CalculateAvailableHexes(ctx, gameID, "", "ocean")
 }

@@ -8,7 +8,8 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,7 +87,7 @@ func TestInterplanetaryCinematicsTriggersOnEventCards(t *testing.T) {
 
 	// Simulate playing an event card (should trigger +2 credits)
 	// We need to publish a CardPlayedEvent with type "event"
-	cardPlayedEvent := repository.CardPlayedEvent{
+	cardPlayedEvent := events.CardPlayedEvent{
 		GameID:   game.ID,
 		PlayerID: playerID,
 		CardID:   "event-card-1",
@@ -101,7 +102,7 @@ func TestInterplanetaryCinematicsTriggersOnEventCards(t *testing.T) {
 	assert.Equal(t, initialCredits+2, player.Resources.Credits, "Player should gain 2 credits when playing an event card")
 
 	// Simulate playing a non-event card (should NOT trigger +2 credits)
-	cardPlayedEvent2 := repository.CardPlayedEvent{
+	cardPlayedEvent2 := events.CardPlayedEvent{
 		GameID:   game.ID,
 		PlayerID: playerID,
 		CardID:   "automated-card-1",
@@ -177,7 +178,7 @@ func TestInterplanetaryCinematicsMultipleEventCards(t *testing.T) {
 
 	// Play 3 event cards
 	for i := 0; i < 3; i++ {
-		cardPlayedEvent := repository.CardPlayedEvent{
+		cardPlayedEvent := events.CardPlayedEvent{
 			GameID:   game.ID,
 			PlayerID: playerID,
 			CardID:   fmt.Sprintf("event-card-%d", i+1),

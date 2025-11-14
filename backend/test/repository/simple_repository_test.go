@@ -7,7 +7,8 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

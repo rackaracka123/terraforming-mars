@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -37,24 +39,24 @@ type StandardProjectService interface {
 
 // StandardProjectServiceImpl implements StandardProjectService interface
 type StandardProjectServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
+	gameRepo       game.Repository
+	playerRepo     player.Repository
 	sessionManager session.SessionManager
-	tileService    TileService
+	tilesMech      tiles.Service
 }
 
 // NewStandardProjectService creates a new StandardProjectService instance
 func NewStandardProjectService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
 	sessionManager session.SessionManager,
-	tileService TileService,
+	tilesMech tiles.Service,
 ) StandardProjectService {
 	return &StandardProjectServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		sessionManager: sessionManager,
-		tileService:    tileService,
+		tilesMech:      tilesMech,
 	}
 }
 
@@ -349,7 +351,7 @@ func (s *StandardProjectServiceImpl) executeTileQueuedProject(ctx context.Contex
 	}
 
 	// Process tile queue to set pendingTileSelection with available hexes
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	if err := s.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("failed to process tile queue: %w", err)
 	}

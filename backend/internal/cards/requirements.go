@@ -7,16 +7,16 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
 )
 
 // RequirementsValidator handles enhanced card requirement validation
 type RequirementsValidator struct {
-	cardRepo repository.CardRepository
+	cardRepo game.CardRepository
 }
 
 // NewRequirementsValidator creates a new enhanced requirements validator
-func NewRequirementsValidator(cardRepo repository.CardRepository) *RequirementsValidator {
+func NewRequirementsValidator(cardRepo game.CardRepository) *RequirementsValidator {
 	return &RequirementsValidator{
 		cardRepo: cardRepo,
 	}

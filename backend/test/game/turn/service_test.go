@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/turn"
+	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTest(t *testing.T) (turn.Service, repository.GameRepository, repository.PlayerRepository, string, []string) {
+func setupTest(t *testing.T) (turn.Service, game.Repository, player.Repository, string, []string) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 

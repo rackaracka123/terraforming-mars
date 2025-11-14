@@ -6,7 +6,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
@@ -18,12 +19,12 @@ type GameHandler struct {
 	*BaseHandler
 	gameService  service.GameService
 	lobbyService lobby.Service
-	playerRepo   repository.PlayerRepository
-	cardRepo     repository.CardRepository
+	playerRepo   player.Repository
+	cardRepo     game.CardRepository
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, lobbyService lobby.Service, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
+func NewGameHandler(gameService service.GameService, lobbyService lobby.Service, playerRepo player.Repository, cardRepo game.CardRepository) *GameHandler {
 	return &GameHandler{
 		BaseHandler:  NewBaseHandler(),
 		gameService:  gameService,

@@ -8,7 +8,8 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,11 +17,11 @@ import (
 
 // DemoGameService shows how a service would use the simplified repositories
 type DemoGameService struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	gameRepo   game.Repository
+	playerRepo player.Repository
 }
 
-func NewDemoGameService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) *DemoGameService {
+func NewDemoGameService(gameRepo game.Repository, playerRepo player.Repository) *DemoGameService {
 	return &DemoGameService{
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,

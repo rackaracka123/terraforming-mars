@@ -8,7 +8,8 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -42,10 +43,10 @@ type AdminService interface {
 
 // AdminServiceImpl implements AdminService interface
 type AdminServiceImpl struct {
-	gameRepo            repository.GameRepository
-	playerRepo          repository.PlayerRepository
-	cardRepo            repository.CardRepository
-	cardDeckRepo        repository.CardDeckRepository
+	gameRepo            game.Repository
+	playerRepo          player.Repository
+	cardRepo            game.CardRepository
+	cardDeckRepo        game.CardDeckRepository
 	sessionManager      session.SessionManager
 	effectSubscriber    cards.CardEffectSubscriber
 	forcedActionManager cards.ForcedActionManager
@@ -53,10 +54,10 @@ type AdminServiceImpl struct {
 
 // NewAdminService creates a new AdminService instance
 func NewAdminService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
-	cardDeckRepo repository.CardDeckRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo game.CardRepository,
+	cardDeckRepo game.CardDeckRepository,
 	sessionManager session.SessionManager,
 	effectSubscriber cards.CardEffectSubscriber,
 	forcedActionManager cards.ForcedActionManager,

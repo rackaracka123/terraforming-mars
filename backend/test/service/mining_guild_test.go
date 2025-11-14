@@ -7,8 +7,11 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -33,18 +36,25 @@ func TestMiningGuild_PlacementBonusTrigger(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+
+	// Initialize game features
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersFeature := parameters.NewService(parametersRepo)
+
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, tilesFeature, parametersFeature, forcedActionManager)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tilesFeature)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))

@@ -6,20 +6,21 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
 
 // CardProcessor handles the complete card processing including validation and effect application
 type CardProcessor struct {
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo     game.Repository
+	playerRepo   player.Repository
+	cardDeckRepo game.CardDeckRepository
 }
 
 // NewCardProcessor creates a new card processor
-func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDeckRepo repository.CardDeckRepository) *CardProcessor {
+func NewCardProcessor(gameRepo game.Repository, playerRepo player.Repository, cardDeckRepo game.CardDeckRepository) *CardProcessor {
 	return &CardProcessor{
 		gameRepo:     gameRepo,
 		playerRepo:   playerRepo,

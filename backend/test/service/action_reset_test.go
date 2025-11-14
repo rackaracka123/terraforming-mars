@@ -6,7 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,8 +20,8 @@ func TestActionResetFunctionality(t *testing.T) {
 	// Setup repositories
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 
 	// Create a test game
 	gameSettings := model.GameSettings{

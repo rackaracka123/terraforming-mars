@@ -7,7 +7,8 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -27,19 +28,19 @@ type ForcedActionManager interface {
 // ForcedActionManagerImpl implements ForcedActionManager
 type ForcedActionManagerImpl struct {
 	eventBus     *events.EventBusImpl
-	cardRepo     repository.CardRepository
-	playerRepo   repository.PlayerRepository
-	gameRepo     repository.GameRepository
-	cardDeckRepo repository.CardDeckRepository
+	cardRepo     game.CardRepository
+	playerRepo   player.Repository
+	gameRepo     game.Repository
+	cardDeckRepo game.CardDeckRepository
 }
 
 // NewForcedActionManager creates a new forced action manager
 func NewForcedActionManager(
 	eventBus *events.EventBusImpl,
-	cardRepo repository.CardRepository,
-	playerRepo repository.PlayerRepository,
-	gameRepo repository.GameRepository,
-	cardDeckRepo repository.CardDeckRepository,
+	cardRepo game.CardRepository,
+	playerRepo player.Repository,
+	gameRepo game.Repository,
+	cardDeckRepo game.CardDeckRepository,
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
 		eventBus:     eventBus,
@@ -52,7 +53,7 @@ func NewForcedActionManager(
 
 // SubscribeToPhaseChanges subscribes to game phase change events
 func (m *ForcedActionManagerImpl) SubscribeToPhaseChanges() {
-	events.Subscribe(m.eventBus, func(event repository.GamePhaseChangedEvent) {
+	events.Subscribe(m.eventBus, func(event events.GamePhaseChangedEvent) {
 		ctx := context.Background()
 		if err := m.onPhaseChanged(ctx, event); err != nil {
 			logger.Get().Error("Failed to handle phase change event",
@@ -65,7 +66,7 @@ func (m *ForcedActionManagerImpl) SubscribeToPhaseChanges() {
 }
 
 // onPhaseChanged handles game phase change events
-func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event repository.GamePhaseChangedEvent) error {
+func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event events.GamePhaseChangedEvent) error {
 	log := logger.WithGameContext(event.GameID, "")
 
 	// Only trigger forced actions when transitioning to Action phase

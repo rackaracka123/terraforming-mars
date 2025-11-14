@@ -6,8 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/stretchr/testify/assert"
@@ -20,20 +22,22 @@ func TestCardService_OnPlayCard_WithManualTriggers_AddsActions(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	// Setup repositories
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 
 	// Create a mock session manager that doesn't actually send messages
 	sessionManager := &MockSessionManager{}
 
 	// Create card service
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 	playerID := "player1"
 
 	// Create a test game
@@ -126,20 +130,22 @@ func TestCardService_OnPlayCard_WithoutManualTriggers_NoActions(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	// Setup repositories
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	cardRepo := NewMockCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 
 	// Create a mock session manager that doesn't actually send messages
 	sessionManager := &MockSessionManager{}
 
 	// Create card service
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	playerID := "player1"
 
@@ -215,7 +221,7 @@ func TestPlayerRepository_UpdatePlayerActions(t *testing.T) {
 	// Setup
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
-	playerRepo := repository.NewPlayerRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
 	gameID := "test-game"
 	playerID := "player1"
 
@@ -284,7 +290,7 @@ func (m *MockSessionManager) Send(gameID, playerID string) error {
 	return nil
 }
 
-// MockCardRepository implements repository.CardRepository for testing
+// MockCardRepository implements game.CardRepository for testing
 type MockCardRepository struct {
 	cards map[string]model.Card
 }

@@ -3,11 +3,13 @@ package fixtures
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game/production"
-	"terraforming-mars-backend/internal/game/tiles"
-	"terraforming-mars-backend/internal/game/turn"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/production"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 )
@@ -19,14 +21,13 @@ type ServiceContainer struct {
 	EventBus *events.EventBusImpl
 
 	// Repositories
-	GameRepo     repository.GameRepository
-	PlayerRepo   repository.PlayerRepository
-	CardRepo     repository.CardRepository
-	CardDeckRepo repository.CardDeckRepository
+	GameRepo     game.Repository
+	PlayerRepo   player.Repository
+	CardRepo     game.CardRepository
+	CardDeckRepo game.CardDeckRepository
 
 	// Services
 	BoardService           service.BoardService
-	TileService            service.TileService
 	CardService            service.CardService
 	PlayerService          service.PlayerService
 	GameService            service.GameService
@@ -47,35 +48,37 @@ func NewServiceContainer() *ServiceContainer {
 	eventBus := events.NewEventBus()
 
 	// Repositories
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 
 	// Mocks
 	sessionManager := test.NewMockSessionManager()
 
 	// Services (build dependency chain)
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
-	// Initialize game mechanics
+	// Initialize game features
 	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
 	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
-	tilesMechanic := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	turnRepo := turn.NewRepository(gameRepo, playerRepo)
-	turnMechanic := turn.NewService(turnRepo)
+	turnFeature := turn.NewService(turnRepo)
 	productionRepo := production.NewRepository(gameRepo, playerRepo, cardDeckRepo)
-	productionMechanic := production.NewService(productionRepo)
+	productionFeature := production.NewService(productionRepo)
+	parametersRepo := parameters.NewRepository(gameRepo, playerRepo)
+	parametersFeature := parameters.NewService(parametersRepo)
 
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnMechanic, productionMechanic, tilesMechanic)
+	// Create services that depend on mechanics
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, tilesFeature, parametersFeature, forcedActionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager, turnFeature, productionFeature, tilesFeature)
 	lobbyService := lobby.NewService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tilesFeature)
 
 	return &ServiceContainer{
 		EventBus:               eventBus,
@@ -84,7 +87,6 @@ func NewServiceContainer() *ServiceContainer {
 		CardRepo:               cardRepo,
 		CardDeckRepo:           cardDeckRepo,
 		BoardService:           boardService,
-		TileService:            tileService,
 		CardService:            cardService,
 		PlayerService:          playerService,
 		GameService:            gameService,

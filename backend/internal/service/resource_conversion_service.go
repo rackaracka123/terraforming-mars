@@ -10,7 +10,8 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	gamePkg "terraforming-mars-backend/internal/game"
+	playerPkg "terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -37,8 +38,8 @@ type ResourceConversionService interface {
 
 // ResourceConversionServiceImpl implements ResourceConversionService interface
 type ResourceConversionServiceImpl struct {
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
+	gameRepo       gamePkg.Repository
+	playerRepo     playerPkg.Repository
 	boardService   BoardService
 	sessionManager session.SessionManager
 	eventBus       *events.EventBusImpl
@@ -46,8 +47,8 @@ type ResourceConversionServiceImpl struct {
 
 // NewResourceConversionService creates a new ResourceConversionService instance
 func NewResourceConversionService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
+	gameRepo gamePkg.Repository,
+	playerRepo playerPkg.Repository,
 	boardService BoardService,
 	sessionManager session.SessionManager,
 	eventBus *events.EventBusImpl,
@@ -403,7 +404,7 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 
 	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
 	if len(placementBonuses) > 0 && s.eventBus != nil {
-		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+		events.Publish(s.eventBus, gamePkg.PlacementBonusGainedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			Resources: placementBonuses,

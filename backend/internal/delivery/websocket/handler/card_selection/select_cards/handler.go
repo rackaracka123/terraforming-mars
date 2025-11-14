@@ -7,9 +7,9 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/game/actions/card_selection"
+	"terraforming-mars-backend/internal/actions/card_selection"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ import (
 type Handler struct {
 	submitSellPatentsAction     *card_selection.SubmitSellPatentsAction
 	selectProductionCardsAction *card_selection.SelectProductionCardsAction
-	playerRepo                  repository.PlayerRepository
+	playerRepo                  player.Repository
 	parser                      *utils.MessageParser
 	errorHandler                *utils.ErrorHandler
 	logger                      *zap.Logger
@@ -28,7 +28,7 @@ type Handler struct {
 func NewHandler(
 	submitSellPatentsAction *card_selection.SubmitSellPatentsAction,
 	selectProductionCardsAction *card_selection.SelectProductionCardsAction,
-	playerRepo repository.PlayerRepository,
+	playerRepo player.Repository,
 	parser *utils.MessageParser,
 ) *Handler {
 	return &Handler{

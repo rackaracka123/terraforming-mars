@@ -6,8 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/player"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/test"
 
@@ -16,7 +18,7 @@ import (
 )
 
 // makePayment creates a credits-only payment for the given card cost
-func makePayment(ctx context.Context, cardRepo repository.CardRepository, cardID string) *model.CardPayment {
+func makePayment(ctx context.Context, cardRepo game.CardRepository, cardID string) *model.CardPayment {
 	card, err := cardRepo.GetCardByID(ctx, cardID)
 	if err != nil {
 		// If card not found, return zero payment (test will fail with proper error)
@@ -545,26 +547,28 @@ func TestCorporation_AllBaseGame(t *testing.T) {
 
 	// TODO: Add tests for starting resources and production for each corporation
 	// TODO: Add tests for passive/active corporation abilities
-	// TODO: Add tests for corporation-specific game mechanics (e.g., Ecoline greenery discount)
+	// TODO: Add tests for corporation-specific game features (e.g., Ecoline greenery discount)
 }
 
 // setupCorporationTest sets up a test environment for corporation testing
 // Note: This function provides ALL base game corporations (B01-B12) as available for testing purposes
-func setupCorporationTest(t *testing.T) (context.Context, string, string, service.CardService, repository.PlayerRepository, repository.CardRepository) {
+func setupCorporationTest(t *testing.T) (context.Context, string, string, service.CardService, player.Repository, game.CardRepository) {
 	ctx := context.Background()
 	eventBus := events.NewEventBus()
 
 	// Setup repositories and services
-	gameRepo := repository.NewGameRepository(eventBus)
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	cardRepo := repository.NewCardRepository()
-	cardDeckRepo := repository.NewCardDeckRepository()
+	gameRepo := game.NewRepository(eventBus)
+	playerRepo := player.NewRepository(eventBus)
+	cardRepo := game.NewCardRepository()
+	cardDeckRepo := game.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+	tilesRepo := tiles.NewRepository(gameRepo, playerRepo)
+	tilesBoardAdapter := tiles.NewBoardServiceAdapter(boardService)
+	tilesFeature := tiles.NewService(tilesRepo, tilesBoardAdapter, eventBus)
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tilesFeature, effectSubscriber, forcedActionManager)
 
 	// Load cards
 	require.NoError(t, cardRepo.LoadCards(ctx))
