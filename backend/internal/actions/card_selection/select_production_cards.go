@@ -7,68 +7,51 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
 
 // SelectProductionCardsAction handles card selection during production phase
 // This action orchestrates:
-// - Card selection via service.SelectionManager
-// - Multi-player production phase coordination via GameService
-// - Phase transition when all players ready
+// - Card selection and validation
+// - State broadcasting to all players
+//
+// TODO: Implement production phase card selection logic when production feature is implemented.
+// This is currently a stub that returns "not yet implemented".
 type SelectProductionCardsAction struct {
-	selectionManager *service.SelectionManager
-	gameService      service.GameService
-	sessionManager   session.SessionManager
+	playerRepo     player.Repository
+	cardRepo       card.CardRepository
+	sessionManager session.SessionManager
 }
 
 // NewSelectProductionCardsAction creates a new select production cards action
 func NewSelectProductionCardsAction(
-	selectionManager *service.SelectionManager,
-	gameService service.GameService,
+	playerRepo player.Repository,
+	cardRepo card.CardRepository,
 	sessionManager session.SessionManager,
 ) *SelectProductionCardsAction {
 	return &SelectProductionCardsAction{
-		selectionManager: selectionManager,
-		gameService:      gameService,
-		sessionManager:   sessionManager,
+		playerRepo:     playerRepo,
+		cardRepo:       cardRepo,
+		sessionManager: sessionManager,
 	}
 }
 
 // Execute performs the select production cards action
 // Steps:
-// 1. Process card selection via SelectionManager
-// 2. Process production phase ready (marks player ready, checks if all ready)
-// 3. If all ready: advance phase, reset action counts, clear production data
-// 4. Broadcast state (handled by GameService.ProcessProductionPhaseReady)
+// 1. Validate and process card selection
+// 2. Broadcast updated game state to all players
 //
-// Note: This action delegates to GameService.ProcessProductionPhaseReady for
-// multi-player coordination. This is temporary until production phase coordination
-// is refactored into its own action or mechanic.
+// TODO: Implement when production phase is defined. Needs:
+// - Production phase state management
+// - Multi-player coordination
+// - Phase advancement logic
 func (a *SelectProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, cardIDs []string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🃏 Executing select production cards action", zap.Int("card_count", len(cardIDs)))
 
-	// Process card selection via SelectionManager
-	if err := a.selectionManager.SelectProductionCards(ctx, gameID, playerID, cardIDs); err != nil {
-		log.Error("Failed to select production cards", zap.Error(err))
-		return fmt.Errorf("card selection failed: %w", err)
-	}
-
-	log.Debug("🃏 Production cards selected successfully", zap.Strings("card_ids", cardIDs))
-
-	// Process production phase ready (multi-player coordination)
-	// This marks player as ready and transitions phase if all players ready
-	updatedGame, err := a.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to process production phase ready", zap.Error(err))
-		return fmt.Errorf("failed to process production phase ready: %w", err)
-	}
-
-	log.Info("✅ Select production cards action completed successfully",
-		zap.Strings("selected_cards", cardIDs),
-		zap.String("game_phase", string(updatedGame.CurrentPhase)))
-
-	return nil
+	// TODO: Implement production phase card selection
+	// For now, return not implemented
+	return fmt.Errorf("SelectProductionCards not yet implemented")
 }

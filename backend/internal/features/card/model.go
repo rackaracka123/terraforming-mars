@@ -1,14 +1,54 @@
 package card
 
 import (
-	"terraforming-mars-backend/internal/features/resources"
-	"terraforming-mars-backend/internal/shared/types"
+	"terraforming-mars-backend/internal/domain"
 )
 
-// Type aliases
-type ResourceType = types.ResourceType
-type StandardProject = types.StandardProject
-type HexPosition = types.HexPosition
+// Type alias for ResourceType from domain package
+type ResourceType = domain.ResourceType
+
+// Resources represents a player's resources (duplicated to avoid circular dependency)
+type Resources struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// Production represents a player's production values (duplicated to avoid circular dependency)
+type Production struct {
+	Credits  int `json:"credits" ts:"number"`
+	Steel    int `json:"steel" ts:"number"`
+	Titanium int `json:"titanium" ts:"number"`
+	Plants   int `json:"plants" ts:"number"`
+	Energy   int `json:"energy" ts:"number"`
+	Heat     int `json:"heat" ts:"number"`
+}
+
+// PaymentSubstitute represents an alternative resource for payment (duplicated to avoid circular dependency)
+type PaymentSubstitute struct {
+	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"`
+	ConversionRate int          `json:"conversionRate" ts:"number"`
+}
+
+// StandardProject represents the different types of standard projects available to players
+// Defined here since card feature needs it for card effects (discounts, etc.)
+type StandardProject string
+
+const (
+	// Standard Projects (M€-based)
+	StandardProjectSellPatents StandardProject = "sell-patents"
+	StandardProjectPowerPlant  StandardProject = "power-plant"
+	StandardProjectAsteroid    StandardProject = "asteroid"
+	StandardProjectAquifer     StandardProject = "aquifer"
+	StandardProjectGreenery    StandardProject = "greenery"
+	StandardProjectCity        StandardProject = "city"
+	// Resource Conversion Actions (resource-based, not M€)
+	StandardProjectConvertPlantsToGreenery  StandardProject = "convert-plants-to-greenery"
+	StandardProjectConvertHeatToTemperature StandardProject = "convert-heat-to-temperature"
+)
 
 // CardType represents different types of cards in Terraforming Mars
 type CardType string
@@ -31,12 +71,39 @@ type ProductionEffects struct {
 	Heat     int `json:"heat" ts:"number"`
 }
 
+// CostModifier represents a modifier that affects a card's cost
+type CostModifier struct {
+	SourceCardID string `json:"sourceCardId" ts:"string"` // ID of the card that provides this modifier
+	Amount       int    `json:"amount" ts:"number"`       // Modifier amount (-2, +1, etc.)
+	Tag          string `json:"tag" ts:"string"`          // Tag that qualified for this modifier ("science", "building", etc.)
+}
+
+// EffectType represents different types of passive card effects
+type EffectType string
+
+const (
+	// EffectDiscountByTag provides cost reduction for cards with specific tags
+	EffectDiscountByTag EffectType = "DiscountEffectByTag"
+	// Future effect types can be added here:
+	// EffectProductionBonusByTag EffectType = "ProductionBonusByTag"
+	// EffectResourceOnTag EffectType = "ResourceOnTag"
+)
+
+// Effect represents a passive effect that a card provides
+type Effect struct {
+	Type   string `json:"type" ts:"string"`   // Effect type (DiscountEffectByTag, etc.)
+	Tag    string `json:"tag" ts:"string"`    // Tag affected ("science", "building", "space", etc.)
+	Amount int    `json:"amount" ts:"number"` // Effect amount (-2 for discounts, +1 for bonuses, etc.)
+	Scope  string `json:"scope" ts:"string"`  // "self" (only owner's cards) or "all_players" (everyone's cards)
+}
+
 // Card represents a game card
 type Card struct {
 	ID              string                  `json:"id" ts:"string"`
 	Name            string                  `json:"name" ts:"string"`
 	Type            CardType                `json:"type" ts:"CardType"`
-	Cost            int                     `json:"cost" ts:"number"`
+	BaseCost        int                     `json:"cost" ts:"number"`                                    // Base cost before modifiers
+	Modifiers       []CostModifier          `json:"modifiers,omitempty" ts:"CostModifier[] | undefined"` // Cost modifiers (empty for card definitions)
 	Description     string                  `json:"description" ts:"string"`
 	Pack            string                  `json:"pack" ts:"string"` // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
 	Tags            []CardTag               `json:"tags,omitempty" ts:"CardTag[] | undefined"`
@@ -48,6 +115,15 @@ type Card struct {
 	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
+}
+
+// GetFinalCost calculates the final cost including all modifiers
+func (c *Card) GetFinalCost() int {
+	cost := c.BaseCost
+	for _, mod := range c.Modifiers {
+		cost += mod.Amount
+	}
+	return cost
 }
 
 // DeepCopy creates a deep copy of the Card
@@ -66,6 +142,10 @@ func (c Card) DeepCopy() Card {
 
 	vpConditions := make([]VictoryPointCondition, len(c.VPConditions))
 	copy(vpConditions, c.VPConditions)
+
+	// Copy modifiers
+	modifiers := make([]CostModifier, len(c.Modifiers))
+	copy(modifiers, c.Modifiers)
 
 	// Copy resource storage
 	var resourceStorage *ResourceStorage
@@ -91,7 +171,8 @@ func (c Card) DeepCopy() Card {
 		ID:                 c.ID,
 		Name:               c.Name,
 		Type:               c.Type,
-		Cost:               c.Cost,
+		BaseCost:           c.BaseCost,
+		Modifiers:          modifiers,
 		Description:        c.Description,
 		Pack:               c.Pack,
 		Tags:               tags,
@@ -124,9 +205,9 @@ const (
 	TagWild     CardTag = "wild"
 )
 
-// ResourceSet is a type alias to avoid circular imports
-// The actual definition is in internal/features/resources/service.go
-type ResourceSet = resources.ResourceSet
+// ResourceSet represents a flexible set of resources with dynamic amounts
+// Used for starting resources/production on corporations and card requirements
+type ResourceSet map[ResourceType]int
 
 // CardRequirements defines what conditions must be met to play a card
 type CardRequirements struct {
@@ -168,7 +249,7 @@ const (
 	TriggerCardPlayed            TriggerType = "card-played"
 	TriggerStandardProjectPlayed TriggerType = "standard-project-played"
 	TriggerTagPlayed             TriggerType = "tag-played"
-	TriggerProductionIncreased   TriggerType = "production-increased"
+	TriggerProductionIncreased   TriggerType = "production-increasedmdoel"
 	TriggerPlacementBonusGained  TriggerType = "placement-bonus-gained"
 	TriggerAlwaysActive          TriggerType = "always-active"
 )
@@ -212,6 +293,7 @@ type CardBehavior struct {
 	Triggers []Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`          // When/how this action is activated
 	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
 	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
+	Effects  []Effect            `json:"effects,omitempty" ts:"Effect[] | undefined"`            // Passive effects (discounts, bonuses, etc.)
 	Choices  []Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`            // Player choices between different input/output combinations
 }
 
@@ -222,9 +304,7 @@ func (cb CardBehavior) DeepCopy() CardBehavior {
 	// Copy triggers slice
 	if cb.Triggers != nil {
 		result.Triggers = make([]Trigger, len(cb.Triggers))
-		for i, trigger := range cb.Triggers {
-			result.Triggers[i] = trigger // Trigger is a struct, copied by value
-		}
+		copy(result.Triggers, cb.Triggers)
 	}
 
 	// Copy inputs slice
@@ -335,9 +415,6 @@ type DiscountEffect struct {
 	Tags        []CardTag `json:"tags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for discount (empty = all cards)
 	Description string    `json:"description" ts:"string"`                   // Human readable description
 }
-
-// PaymentSubstitute is a type alias to avoid importing player package
-type PaymentSubstitute = types.PaymentSubstitute
 
 // PlayerEffect represents ongoing effects that a player has active, aligned with PlayerAction structure
 type PlayerEffect struct {
@@ -546,17 +623,6 @@ type ResourceExchange struct {
 	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
 }
 
-// EffectContext provides context about a game event that triggered passive effects
-// This allows effects to access information about what triggered them
-type EffectContext struct {
-	TriggeringPlayerID string        `json:"triggeringPlayerId" ts:"string"`         // Player who caused the event
-	TileCoordinate     *HexPosition  `json:"tileCoordinate" ts:"HexPosition | null"` // Coordinate for tile placement events
-	CardID             *string       `json:"cardId" ts:"string | null"`              // Card ID for card-played events
-	TagType            *CardTag      `json:"tagType" ts:"CardTag | null"`            // Tag type for tag-played events
-	TileType           *ResourceType `json:"tileType" ts:"ResourceType | null"`      // Type of tile placed (city, ocean, greenery)
-	ParameterChange    *int          `json:"parameterChange" ts:"number | null"`     // Amount of parameter change (temperature, oxygen)
-}
-
 // CardSelection represents the card selection phase data
 type CardSelection struct {
 	PlayerCardOptions            []PlayerCardOptions `json:"playerCardOptions" ts:"PlayerCardOptions[]"`
@@ -576,6 +642,7 @@ type PlayerAction struct {
 	BehaviorIndex int          `json:"behaviorIndex" ts:"number"`  // Which behavior on the card this action represents
 	Behavior      CardBehavior `json:"behavior" ts:"CardBehavior"` // The actual behavior definition with inputs/outputs
 	PlayCount     int          `json:"playCount" ts:"number"`      // Number of times this action has been played this generation
+	PlayLimit     int          `json:"playLimit" ts:"number"`      // Maximum times this action can be played per generation (0 = unlimited)
 }
 
 // DeepCopy creates a deep copy of the PlayerAction
@@ -699,5 +766,6 @@ func (pa *PlayerAction) DeepCopy() *PlayerAction {
 		BehaviorIndex: pa.BehaviorIndex,
 		Behavior:      behaviorCopy,
 		PlayCount:     pa.PlayCount,
+		PlayLimit:     pa.PlayLimit,
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/actions/card_selection"
 	"terraforming-mars-backend/internal/actions/standard_projects"
+	"terraforming-mars-backend/internal/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
@@ -26,49 +27,49 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/player"
-	"terraforming-mars-backend/internal/service"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
 func RegisterHandlers(
 	hub *core.Hub,
-	gameService service.GameService,
 	lobbyService lobby.Service,
-	playerService service.PlayerService,
-	standardProjectService service.StandardProjectService,
-	cardService service.CardService,
-	adminService service.AdminService,
+	adminService admin.AdminService,
 	gameRepo game.Repository,
-	playerRepo player.Repository,
-	cardRepo game.CardRepository,
+	cardRepo card.CardRepository,
+	// Connection management actions
+	connectPlayerAction *actions.ConnectPlayerAction,
+	disconnectPlayerAction *actions.DisconnectPlayerAction,
+	// Standard project actions
 	buildAquiferAction *standard_projects.BuildAquiferAction,
 	launchAsteroidAction *standard_projects.LaunchAsteroidAction,
 	buildPowerPlantAction *standard_projects.BuildPowerPlantAction,
 	plantGreeneryAction *standard_projects.PlantGreeneryAction,
 	buildCityAction *standard_projects.BuildCityAction,
+	sellPatentsAction *standard_projects.SellPatentsAction,
+	// Game actions
 	skipAction *actions.SkipAction,
 	convertHeatAction *actions.ConvertHeatToTemperatureAction,
 	convertPlantsAction *actions.ConvertPlantsToGreeneryAction,
-	sellPatentsAction *standard_projects.SellPatentsAction,
+	playCardAction *actions.PlayCardAction,
+	selectTileAction *actions.SelectTileAction,
+	playCardActionAction *actions.PlayCardActionAction,
+	// Card selection actions
 	submitSellPatentsAction *card_selection.SubmitSellPatentsAction,
 	selectStartingCardsAction *card_selection.SelectStartingCardsAction,
 	selectProductionCardsAction *card_selection.SelectProductionCardsAction,
 	confirmCardDrawAction *card_selection.ConfirmCardDrawAction,
-	playCardAction *actions.PlayCardAction,
-	selectTileAction *actions.SelectTileAction,
-	playCardActionAction *actions.PlayCardActionAction,
+	selectCardsAction *card_selection.SelectCardsAction,
 ) {
 	parser := utils.NewMessageParser()
 
-	// Register connection handler (uses lobby for joining, game for reconnection)
-	connectionHandler := connect.NewConnectionHandler(lobbyService, gameService, playerService)
+	// Register connection handlers
+	connectionHandler := connect.NewConnectionHandler(connectPlayerAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
-	// Register disconnect handler
-	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
+	disconnectHandler := disconnect.NewDisconnectHandler(disconnectPlayerAction)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
 	// Register standard project handlers
@@ -91,18 +92,16 @@ func RegisterHandlers(
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_service.NewHandler(submitSellPatentsAction, selectProductionCardsAction, playerRepo, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(selectCardsAction, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
 
-	// Register play card handler
+	// Register play card handlers
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, parser))
-
-	// Register play card action handler
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(playCardActionAction, parser))
 
-	// Register tile selection handlers
+	// Register tile selection handler
 	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
-	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService, adminService))
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameRepo, cardRepo, adminService))
 }

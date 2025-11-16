@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/features/card"
+	gameModel "terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/lobby"
 	"terraforming-mars-backend/internal/player"
-	"terraforming-mars-backend/internal/service"
+	sessionpkg "terraforming-mars-backend/internal/session"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -16,20 +17,22 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
-	gameService  service.GameService
+	gameRepo     gameModel.Repository
 	lobbyService lobby.Service
 	playerRepo   player.Repository
-	cardRepo     game.CardRepository
+	cardRepo     card.CardRepository
+	sessionRepo  sessionpkg.Repository
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, lobbyService lobby.Service, playerRepo player.Repository, cardRepo game.CardRepository) *GameHandler {
+func NewGameHandler(gameRepo gameModel.Repository, lobbyService lobby.Service, playerRepo player.Repository, cardRepo card.CardRepository, sessionRepo sessionpkg.Repository) *GameHandler {
 	return &GameHandler{
 		BaseHandler:  NewBaseHandler(),
-		gameService:  gameService,
+		gameRepo:     gameRepo,
 		lobbyService: lobbyService,
 		playerRepo:   playerRepo,
 		cardRepo:     cardRepo,
+		sessionRepo:  sessionRepo,
 	}
 }
 
@@ -42,7 +45,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delegate to service
-	gameSettings := model.GameSettings{
+	gameSettings := gameModel.GameSettings{
 		MaxPlayers:      req.MaxPlayers,
 		DevelopmentMode: req.DevelopmentMode,
 	}
@@ -54,8 +57,8 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
+	// Convert to DTO and respond (lobby view - no full game state needed)
+	gameDto := dto.ToGameDtoLobbyOnly(game, dto.GetPaymentConstants())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
@@ -75,8 +78,8 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	// Check for optional playerId query parameter for personalized view
 	playerID := r.URL.Query().Get("playerId")
 
-	// Delegate to service
-	game, err := h.gameService.GetGame(r.Context(), gameID)
+	// Get game from repository
+	game, err := h.gameRepo.GetByID(r.Context(), gameID)
 	if err != nil {
 		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
 		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
@@ -99,11 +102,12 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 			if player.Corporation != nil {
 				allCardIds[player.Corporation.ID] = struct{}{}
 			}
-			for _, cardID := range player.PlayedCards {
-				allCardIds[cardID] = struct{}{}
+			// Cards are now Card instances (Living Card Instance Pattern)
+			for _, card := range player.PlayedCards {
+				allCardIds[card.ID] = struct{}{}
 			}
-			for _, cardID := range player.Cards {
-				allCardIds[cardID] = struct{}{}
+			for _, card := range player.Cards {
+				allCardIds[card.ID] = struct{}{}
 			}
 		}
 
@@ -114,10 +118,41 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		gameDto = dto.ToGameDto(game, players, playerID, resolvedCards, dto.GetPaymentConstants())
+		// Get session if game is active (has feature services)
+		if game.Status == gameModel.GameStatusActive {
+			gameSession, err := h.sessionRepo.GetByID(r.Context(), gameID)
+			if err != nil {
+				h.logger.Error("Failed to get session", zap.Error(err), zap.String("game_id", gameID))
+				h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get game session")
+				return
+			}
+			gameDto, err = dto.ToGameDto(
+				game,
+				players,
+				playerID,
+				resolvedCards,
+				dto.GetPaymentConstants(),
+				gameSession.ParametersService,
+				gameSession.BoardService,
+			)
+			if err != nil {
+				h.logger.Error("Failed to convert game to DTO", zap.Error(err), zap.String("game_id", gameID))
+				h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to convert game")
+				return
+			}
+		} else {
+			// Game in lobby - no session/feature services yet
+			// Return DTO with nil/default values for runtime state
+			h.logger.Warn("Game is in lobby state, cannot provide full game data via HTTP", zap.String("game_id", gameID))
+			h.WriteErrorResponse(w, http.StatusBadRequest, "Game is not active yet")
+			return
+		}
 	} else {
 		// Return basic non-personalized view
-		gameDto = dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
+		// Game in lobby - no session/feature services yet
+		h.logger.Warn("Cannot provide basic game view - game needs to be active")
+		h.WriteErrorResponse(w, http.StatusBadRequest, "Game is not active yet")
+		return
 	}
 
 	response := dto.GetGameResponse{
@@ -137,7 +172,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(games, dto.GetPaymentConstants())
+	gameDtos := dto.ToGameDtoSliceLobbyOnly(games, dto.GetPaymentConstants())
 	response := dto.ListGamesResponse{
 		Games: gameDtos,
 	}

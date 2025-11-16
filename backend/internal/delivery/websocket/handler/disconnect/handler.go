@@ -3,30 +3,31 @@ package disconnect
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/actions"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // DisconnectHandler handles player disconnection events
+// Delegates all business logic to DisconnectPlayerAction
 type DisconnectHandler struct {
-	playerService service.PlayerService
-	parser        *utils.MessageParser
-	errorHandler  *utils.ErrorHandler
-	logger        *zap.Logger
+	disconnectAction *actions.DisconnectPlayerAction
+	parser           *utils.MessageParser
+	errorHandler     *utils.ErrorHandler
+	logger           *zap.Logger
 }
 
 // NewDisconnectHandler creates a new disconnect handler
-func NewDisconnectHandler(playerService service.PlayerService) *DisconnectHandler {
+func NewDisconnectHandler(disconnectAction *actions.DisconnectPlayerAction) *DisconnectHandler {
 	return &DisconnectHandler{
-		playerService: playerService,
-		parser:        utils.NewMessageParser(),
-		errorHandler:  utils.NewErrorHandler(),
-		logger:        logger.Get(),
+		disconnectAction: disconnectAction,
+		parser:           utils.NewMessageParser(),
+		errorHandler:     utils.NewErrorHandler(),
+		logger:           logger.Get(),
 	}
 }
 
@@ -46,10 +47,9 @@ func (dh *DisconnectHandler) HandleMessage(ctx context.Context, connection *core
 		zap.String("player_id", disconnectPayload.PlayerID),
 		zap.String("game_id", disconnectPayload.GameID))
 
-	// Call the player service to handle the disconnection
-	err := dh.playerService.PlayerDisconnected(ctx, disconnectPayload.GameID, disconnectPayload.PlayerID)
-	if err != nil {
-		log.Error("Failed to process player disconnection",
+	// Execute the disconnect action (handles all business logic)
+	if err := dh.disconnectAction.Execute(ctx, disconnectPayload.GameID, disconnectPayload.PlayerID); err != nil {
+		log.Error("Failed to execute disconnect player action",
 			zap.String("player_id", disconnectPayload.PlayerID),
 			zap.String("game_id", disconnectPayload.GameID),
 			zap.Error(err))

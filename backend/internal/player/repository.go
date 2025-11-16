@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/features/production"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/features/turn"
 	"terraforming-mars-backend/internal/game"
@@ -34,12 +34,22 @@ type Repository interface {
 	UpdateVictoryPoints(ctx context.Context, gameID, playerID string, points int) error
 	UpdatePlayerActions(ctx context.Context, gameID, playerID string, actions []PlayerAction) error
 	UpdatePlayerEffects(ctx context.Context, gameID, playerID string, effects []PlayerEffect) error
-	AddCard(ctx context.Context, gameID, playerID string, cardID string) error
+
+	// Card management methods (Living Card Instance Pattern)
+	AddCard(ctx context.Context, gameID, playerID string, card Card) error
+	AddCards(ctx context.Context, gameID, playerID string, cards []Card) error
 	RemoveCard(ctx context.Context, gameID, playerID string, cardID string) error
 	RemoveCardFromHand(ctx context.Context, gameID, playerID string, cardID, cardName string, cardType CardType) error
+	AddPlayedCard(ctx context.Context, gameID, playerID string, card Card) error
+	UpdateCards(ctx context.Context, gameID, playerID string, cards []Card) error
+	UpdatePlayedCards(ctx context.Context, gameID, playerID string, cards []Card) error
+
+	// Modifier application methods
+	ApplyModifiersToPlayerCards(ctx context.Context, gameID, playerID string, sourceCardID string, tag card.CardTag, amount int) error
 
 	UpdateSelectStartingCardsPhase(ctx context.Context, gameID, playerID string, selectStartingCardPhase *SelectStartingCardsPhase) error
 	SetStartingCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
+	ClearStartingCardsPhase(ctx context.Context, gameID, playerID string) error
 
 	UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *ProductionPhase) error
 	SetProductionCardsSelectionComplete(ctx context.Context, gameID, playerID string) error
@@ -79,6 +89,13 @@ type Repository interface {
 
 	// Payment substitute methods
 	UpdatePaymentSubstitutes(ctx context.Context, gameID, playerID string, substitutes []PaymentSubstitute) error
+
+	// Resource operation methods
+	DeductResources(ctx context.Context, gameID, playerID string, cost domain.ResourceSet) error
+	AddResources(ctx context.Context, gameID, playerID string, resources domain.ResourceSet) error
+	AddProduction(ctx context.Context, gameID, playerID string, production domain.ResourceSet) error
+	CanAfford(ctx context.Context, gameID, playerID string, cost domain.ResourceSet) (bool, error)
+	GetAvailableActions(ctx context.Context, gameID, playerID string) (int, error)
 }
 
 // RepositoryImpl implements Repository with in-memory storage
@@ -89,8 +106,9 @@ type RepositoryImpl struct {
 	eventBus *events.EventBusImpl
 
 	// Feature repositories (scoped by gameID_playerID key)
-	resourcesRepos  map[string]resources.Repository
-	productionRepos map[string]production.Repository
+	// TODO: Refactor resources management after feature cleanup
+	// resourcesRepos  map[string]resources.Repository
+	// productionRepos map[string]production.Repository
 	tileQueueRepos  map[string]tiles.TileQueueRepository
 	playerTurnRepos map[string]turn.PlayerTurnRepository
 }
@@ -98,10 +116,10 @@ type RepositoryImpl struct {
 // NewRepository creates a new player repository
 func NewRepository(eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
-		players:         make(map[string]map[string]*Player),
-		eventBus:        eventBus,
-		resourcesRepos:  make(map[string]resources.Repository),
-		productionRepos: make(map[string]production.Repository),
+		players:  make(map[string]map[string]*Player),
+		eventBus: eventBus,
+		// resourcesRepos:  make(map[string]resources.Repository),
+		// productionRepos: make(map[string]production.Repository),
 		tileQueueRepos:  make(map[string]tiles.TileQueueRepository),
 		playerTurnRepos: make(map[string]turn.PlayerTurnRepository),
 	}
@@ -141,16 +159,6 @@ func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player Playe
 	// Create feature repositories with initial state
 	playerKey := r.getPlayerKey(gameID, player.ID)
 
-	// Resources repository with zero resources initially
-	initialResources := resources.Resources{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0}
-	initialProduction := resources.Production{Credits: 0, Steel: 0, Titanium: 0, Plants: 0, Energy: 0, Heat: 0}
-	resourcesRepo := resources.NewRepository(gameID, player.ID, initialResources, initialProduction, r.eventBus)
-	r.resourcesRepos[playerKey] = resourcesRepo
-
-	// Production phase repository (no initial state)
-	productionRepo := production.NewRepository(nil)
-	r.productionRepos[playerKey] = productionRepo
-
 	// Tile queue repository (empty initially)
 	tileQueueRepo := tiles.NewTileQueueRepository(nil, nil)
 	r.tileQueueRepos[playerKey] = tileQueueRepo
@@ -161,41 +169,11 @@ func (r *RepositoryImpl) Create(ctx context.Context, gameID string, player Playe
 
 	// Store a copy to prevent external mutation
 	playerCopy := player.DeepCopy()
-
-	// Inject services into player
-	playerCopy.ResourcesService = resources.NewService(resourcesRepo)
-	playerCopy.ProductionService = production.NewService(productionRepo)
-	playerCopy.TileQueueService = tiles.NewTileQueueService(tileQueueRepo)
-	playerCopy.PlayerTurnService = turn.NewPlayerTurnService(playerTurnRepo)
-
 	r.players[gameID][player.ID] = playerCopy
 
 	log.Debug("Player added to game with feature services", zap.String("player_name", player.Name))
 
 	return nil
-}
-
-// injectServices creates a copy of the player with feature services injected
-func (r *RepositoryImpl) injectServices(gameID, playerID string, player *Player) Player {
-	playerCopy := *player.DeepCopy()
-
-	playerKey := r.getPlayerKey(gameID, playerID)
-
-	// Inject feature services
-	if resourcesRepo, exists := r.resourcesRepos[playerKey]; exists {
-		playerCopy.ResourcesService = resources.NewService(resourcesRepo)
-	}
-	if productionRepo, exists := r.productionRepos[playerKey]; exists {
-		playerCopy.ProductionService = production.NewService(productionRepo)
-	}
-	if tileQueueRepo, exists := r.tileQueueRepos[playerKey]; exists {
-		playerCopy.TileQueueService = tiles.NewTileQueueService(tileQueueRepo)
-	}
-	if playerTurnRepo, exists := r.playerTurnRepos[playerKey]; exists {
-		playerCopy.PlayerTurnService = turn.NewPlayerTurnService(playerTurnRepo)
-	}
-
-	return playerCopy
 }
 
 // GetByID retrieves a player by game and player ID
@@ -228,8 +206,8 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID, playerID string) (
 		return Player{}, &game.NotFoundError{Resource: "player", ID: playerID}
 	}
 
-	// Return a copy with services injected
-	return r.injectServices(gameID, playerID, player), nil
+	// Return a copy to prevent external mutation
+	return *player.DeepCopy(), nil
 }
 
 // Delete removes a player from a game
@@ -284,8 +262,8 @@ func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]Pla
 	}
 
 	players := make([]Player, 0, len(gamePlayers))
-	for playerID, player := range gamePlayers {
-		players = append(players, r.injectServices(gameID, playerID, player))
+	for _, player := range gamePlayers {
+		players = append(players, *player.DeepCopy())
 	}
 
 	return players, nil
@@ -304,27 +282,21 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID, playerID s
 		return err
 	}
 
-	// Update via feature repository
-	playerKey := r.getPlayerKey(gameID, playerID)
-	resourcesRepo, exists := r.resourcesRepos[playerKey]
-	if !exists {
-		return fmt.Errorf("resources repository not found for player %s in game %s", playerID, gameID)
+	// Update resources directly on player
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
 	}
 
-	// Update resources (this publishes events automatically)
-	newResources := resources.Resources{
-		Credits:  res.Credits,
-		Steel:    res.Steel,
-		Titanium: res.Titanium,
-		Plants:   res.Plants,
-		Energy:   res.Energy,
-		Heat:     res.Heat,
-	}
-	if err := resourcesRepo.Set(ctx, newResources); err != nil {
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	player.Resources = res
 
 	log.Info("Player resources updated")
+
+	// Publish ResourcesChangedEvent
+	events.Publish(r.eventBus, events.ResourcesChangedEvent{
+		GameID:   gameID,
+		PlayerID: playerID,
+	})
 
 	return nil
 }
@@ -336,33 +308,21 @@ func (r *RepositoryImpl) UpdateProduction(ctx context.Context, gameID, playerID 
 
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Verify player exists
-	_, err := r.getPlayerUnsafe(gameID, playerID)
+	// Update production directly on player
+	player, err := r.getPlayerUnsafe(gameID, playerID)
 	if err != nil {
 		return err
 	}
 
-	// Update via feature repository
-	playerKey := r.getPlayerKey(gameID, playerID)
-	resourcesRepo, exists := r.resourcesRepos[playerKey]
-	if !exists {
-		return fmt.Errorf("resources repository not found for player %s in game %s", playerID, gameID)
-	}
-
-	// Update production
-	newProduction := resources.Production{
-		Credits:  prod.Credits,
-		Steel:    prod.Steel,
-		Titanium: prod.Titanium,
-		Plants:   prod.Plants,
-		Energy:   prod.Energy,
-		Heat:     prod.Heat,
-	}
-	if err := resourcesRepo.SetProduction(ctx, newProduction); err != nil {
-		return fmt.Errorf("failed to update production: %w", err)
-	}
+	player.Production = prod
 
 	log.Info("Player production updated")
+
+	// Publish ProductionChangedEvent
+	events.Publish(r.eventBus, events.ProductionChangedEvent{
+		GameID:   gameID,
+		PlayerID: playerID,
+	})
 
 	return nil
 }
@@ -386,7 +346,7 @@ func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID, play
 
 	// Publish terraform rating changed event
 	if r.eventBus != nil && oldTR != rating {
-		events.Publish(r.eventBus, TerraformRatingChangedEvent{
+		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			OldRating: oldTR,
@@ -417,6 +377,13 @@ func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID, playerID
 	player.Corporation = &corporation
 
 	log.Info("Player corporation updated", zap.String("old_corp", oldCorporationName), zap.String("new_corp", corporation.Name))
+
+	// Publish CorporationSelectedEvent
+	events.Publish(r.eventBus, events.CorporationSelectedEvent{
+		GameID:        gameID,
+		PlayerID:      playerID,
+		CorporationID: corporation.ID,
+	})
 
 	return nil
 }
@@ -515,6 +482,14 @@ func (r *RepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID, player
 
 	log.Info("Player victory points updated", zap.Int("points", points))
 
+	// Publish VictoryPointsChangedEvent
+	events.Publish(r.eventBus, events.VictoryPointsChangedEvent{
+		GameID:    gameID,
+		PlayerID:  playerID,
+		NewPoints: points,
+		Source:    "direct_update",
+	})
+
 	return nil
 }
 
@@ -569,11 +544,19 @@ func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, player
 		zap.Int("old_effects_count", oldEffectsCount),
 		zap.Int("new_effects_count", len(effects)))
 
+	// Publish PlayerEffectAddedEvent (if effects were added)
+	if len(effects) > oldEffectsCount {
+		events.Publish(r.eventBus, events.PlayerEffectAddedEvent{
+			GameID:   gameID,
+			PlayerID: playerID,
+		})
+	}
+
 	return nil
 }
 
-// AddCard adds a card to a player's hand
-func (r *RepositoryImpl) AddCard(ctx context.Context, gameID, playerID string, cardID string) error {
+// AddCard adds a single card instance to player's hand
+func (r *RepositoryImpl) AddCard(ctx context.Context, gameID, playerID string, card Card) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -586,14 +569,124 @@ func (r *RepositoryImpl) AddCard(ctx context.Context, gameID, playerID string, c
 
 	// Check if card already exists in hand
 	for _, existingCard := range player.Cards {
-		if existingCard == cardID {
-			return fmt.Errorf("card %s already exists in player %s hand", cardID, playerID)
+		if existingCard.ID == card.ID {
+			return fmt.Errorf("card %s already exists in player %s hand", card.ID, playerID)
 		}
 	}
 
-	player.Cards = append(player.Cards, cardID)
+	player.Cards = append(player.Cards, card)
 
-	log.Info("Card added to player hand", zap.String("card_id", cardID))
+	log.Info("Card added to player hand", zap.String("card_id", card.ID))
+
+	// Publish CardAddedToHandEvent
+	events.Publish(r.eventBus, events.CardAddedToHandEvent{
+		GameID:   gameID,
+		PlayerID: playerID,
+		CardID:   card.ID,
+	})
+
+	return nil
+}
+
+// AddCards adds multiple card instances to player's hand
+func (r *RepositoryImpl) AddCards(ctx context.Context, gameID, playerID string, cards []Card) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.Cards = append(player.Cards, cards...)
+
+	log.Info("Cards added to player hand", zap.Int("count", len(cards)))
+
+	return nil
+}
+
+// UpdateCards replaces all cards in player's hand
+func (r *RepositoryImpl) UpdateCards(ctx context.Context, gameID, playerID string, cards []Card) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.Cards = cards
+
+	log.Info("Player hand cards updated", zap.Int("count", len(cards)))
+
+	return nil
+}
+
+// UpdatePlayedCards replaces all played cards for a player
+func (r *RepositoryImpl) UpdatePlayedCards(ctx context.Context, gameID, playerID string, cards []Card) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.PlayedCards = cards
+
+	log.Info("Player played cards updated", zap.Int("count", len(cards)))
+
+	return nil
+}
+
+// ApplyModifiersToPlayerCards applies cost modifiers to all matching cards in player's hand
+// This is used when a discount card is played
+func (r *RepositoryImpl) ApplyModifiersToPlayerCards(ctx context.Context, gameID, playerID string, sourceCardID string, tag card.CardTag, amount int) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Apply modifier to all cards in hand that have the matching tag
+	modifiedCount := 0
+	for i := range player.Cards {
+		// Check if card has the target tag
+		hasTag := false
+		for _, cardTag := range player.Cards[i].Tags {
+			if cardTag == tag {
+				hasTag = true
+				break
+			}
+		}
+
+		if hasTag {
+			// Add the modifier to this card
+			modifier := card.CostModifier{
+				SourceCardID: sourceCardID,
+				Amount:       amount,
+				Tag:          string(tag),
+			}
+			player.Cards[i].Modifiers = append(player.Cards[i].Modifiers, modifier)
+			modifiedCount++
+		}
+	}
+
+	log.Info("Applied cost modifiers to player cards",
+		zap.String("source_card_id", sourceCardID),
+		zap.String("tag", string(tag)),
+		zap.Int("amount", amount),
+		zap.Int("cards_modified", modifiedCount))
 
 	return nil
 }
@@ -612,7 +705,7 @@ func (r *RepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID string
 
 	// Find and remove card
 	for i, existingCard := range player.Cards {
-		if existingCard == cardID {
+		if existingCard.ID == cardID {
 			player.Cards = append(player.Cards[:i], player.Cards[i+1:]...)
 			log.Info("Card removed from player hand", zap.String("card_id", cardID))
 			return nil
@@ -635,25 +728,25 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerI
 	}
 
 	// Find and remove card from hand
-	cardFound := false
+	var removedCard *Card
 	for i, existingCard := range player.Cards {
-		if existingCard == cardID {
+		if existingCard.ID == cardID {
+			removedCard = &player.Cards[i]
 			player.Cards = append(player.Cards[:i], player.Cards[i+1:]...)
-			cardFound = true
 			break
 		}
 	}
 
-	if !cardFound {
+	if removedCard == nil {
 		return fmt.Errorf("card %s not found in player %s hand", cardID, playerID)
 	}
 
 	// Add to played cards
-	player.PlayedCards = append(player.PlayedCards, cardID)
+	player.PlayedCards = append(player.PlayedCards, *removedCard)
 
 	// Publish CardPlayedEvent
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, CardPlayedEvent{
+		events.Publish(r.eventBus, events.CardPlayedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			CardID:    cardID,
@@ -664,6 +757,26 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, playerI
 	}
 
 	log.Info("🃏 Card played", zap.String("card_id", cardID), zap.String("card_name", cardName), zap.String("card_type", string(cardType)))
+
+	return nil
+}
+
+// AddPlayedCard adds a card to a player's played cards
+func (r *RepositoryImpl) AddPlayedCard(ctx context.Context, gameID, playerID string, card Card) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Add to played cards
+	player.PlayedCards = append(player.PlayedCards, card)
+
+	log.Info("🃏 Card added to played cards", zap.String("card_id", card.ID))
 
 	return nil
 }
@@ -751,6 +864,25 @@ func (r *RepositoryImpl) SetStartingCardsSelectionComplete(ctx context.Context, 
 	return nil
 }
 
+// ClearStartingCardsPhase removes the starting cards selection phase from a player
+func (r *RepositoryImpl) ClearStartingCardsPhase(ctx context.Context, gameID, playerID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	player.SelectStartingCardsPhase = nil
+
+	log.Info("✅ Cleared starting card selection phase for player")
+
+	return nil
+}
+
 // UpdateProductionPhase updates the production phase for a player
 func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID, playerID string, productionPhase *ProductionPhase) error {
 	r.mutex.Lock()
@@ -764,36 +896,10 @@ func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID, play
 		return err
 	}
 
-	playerKey := r.getPlayerKey(gameID, playerID)
-	productionRepo, exists := r.productionRepos[playerKey]
-	if !exists {
-		return fmt.Errorf("production repository not found for player %s in game %s", playerID, gameID)
-	}
-
-	// Update via feature repository
-	if productionPhase != nil {
-		// Set available cards
-		if err := productionRepo.SetAvailableCards(ctx, productionPhase.AvailableCards); err != nil {
-			return fmt.Errorf("failed to set available cards: %w", err)
-		}
-
-		// Mark as complete if needed
-		if productionPhase.SelectionComplete {
-			if err := productionRepo.MarkSelectionComplete(ctx); err != nil {
-				return fmt.Errorf("failed to mark selection complete: %w", err)
-			}
-		}
-
-		log.Info("Production phase state updated for player", zap.Int("card_count", len(productionPhase.AvailableCards)), zap.Bool("complete", productionPhase.SelectionComplete))
-	} else {
-		// Clear state
-		if err := productionRepo.ClearState(ctx); err != nil {
-			return fmt.Errorf("failed to clear production state: %w", err)
-		}
-		log.Info("Production phase state cleared for player")
-	}
-
-	return nil
+	// TODO: Production phase state management needs refactoring after feature cleanup
+	// This was previously handled by the deleted production feature
+	log.Warn("UpdateProductionPhaseState not yet implemented after production feature removal")
+	return fmt.Errorf("production phase state management not implemented")
 }
 
 // SetProductionCardsSelectionComplete marks the production phase as complete for a player
@@ -808,29 +914,10 @@ func (r *RepositoryImpl) SetProductionCardsSelectionComplete(ctx context.Context
 		return err
 	}
 
-	playerKey := r.getPlayerKey(gameID, playerID)
-	productionRepo, exists := r.productionRepos[playerKey]
-	if !exists {
-		return fmt.Errorf("production repository not found for player %s in game %s", playerID, gameID)
-	}
-
-	// Verify production phase is initialized
-	state, err := productionRepo.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get production state: %w", err)
-	}
-	if state == nil {
-		return fmt.Errorf("production phase not initialized for player %s in game %s", playerID, gameID)
-	}
-
-	// Mark selection as complete
-	if err := productionRepo.MarkSelectionComplete(ctx); err != nil {
-		return fmt.Errorf("failed to mark selection complete: %w", err)
-	}
-
-	log.Info("Player completed production phase selection")
-
-	return nil
+	// TODO: Production phase state management needs refactoring after feature cleanup
+	// This was previously handled by the deleted production feature
+	log.Warn("SetProductionCardsSelectionComplete not yet implemented after production feature removal")
+	return fmt.Errorf("production phase state management not implemented")
 }
 
 // UpdatePendingTileSelection updates the pending tile selection for a player
@@ -1098,6 +1185,12 @@ func (r *RepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID, play
 	}
 
 	log.Debug("Player resource storage updated", zap.Int("storage_entries", len(player.ResourceStorage)))
+
+	// Publish ResourceStorageChangedEvent
+	events.Publish(r.eventBus, events.ResourceStorageChangedEvent{
+		GameID:   gameID,
+		PlayerID: playerID,
+	})
 
 	return nil
 }
@@ -1398,8 +1491,135 @@ func (r *RepositoryImpl) Clear() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.players = make(map[string]map[string]*Player)
-	r.resourcesRepos = make(map[string]resources.Repository)
-	r.productionRepos = make(map[string]production.Repository)
+	// r.resourcesRepos = make(map[string]resources.Repository)
+	// r.productionRepos = make(map[string]production.Repository)
 	r.tileQueueRepos = make(map[string]tiles.TileQueueRepository)
 	r.playerTurnRepos = make(map[string]turn.PlayerTurnRepository)
+}
+
+// ============================================================================
+// RESOURCE OPERATION METHODS
+// ============================================================================
+
+// DeductResources atomically deducts resources from a player
+// Returns error if player cannot afford the cost
+func (r *RepositoryImpl) DeductResources(ctx context.Context, gameID, playerID string, cost domain.ResourceSet) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Check affordability
+	if !player.Resources.CanAfford(cost) {
+		return fmt.Errorf("player cannot afford cost: need %+v, have %+v", cost, player.Resources)
+	}
+
+	// Deduct resources
+	player.Resources.Subtract(cost)
+
+	log.Info("💰 Resources deducted",
+		zap.Int("credits_spent", cost.Credits),
+		zap.Int("steel_spent", cost.Steel),
+		zap.Int("titanium_spent", cost.Titanium),
+		zap.Int("plants_spent", cost.Plants),
+		zap.Int("energy_spent", cost.Energy),
+		zap.Int("heat_spent", cost.Heat))
+
+	return nil
+}
+
+// AddResources adds resources to a player
+func (r *RepositoryImpl) AddResources(ctx context.Context, gameID, playerID string, resources domain.ResourceSet) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Add resources
+	player.Resources.Add(resources)
+
+	log.Info("💰 Resources added",
+		zap.Int("credits_gained", resources.Credits),
+		zap.Int("steel_gained", resources.Steel),
+		zap.Int("titanium_gained", resources.Titanium),
+		zap.Int("plants_gained", resources.Plants),
+		zap.Int("energy_gained", resources.Energy),
+		zap.Int("heat_gained", resources.Heat))
+
+	return nil
+}
+
+// AddProduction adds production to a player
+func (r *RepositoryImpl) AddProduction(ctx context.Context, gameID, playerID string, production domain.ResourceSet) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	log := logger.WithGameContext(gameID, playerID)
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return err
+	}
+
+	// Add production
+	player.Production.Add(production)
+
+	log.Info("🏭 Production added",
+		zap.Int("credits_production", production.Credits),
+		zap.Int("steel_production", production.Steel),
+		zap.Int("titanium_production", production.Titanium),
+		zap.Int("plants_production", production.Plants),
+		zap.Int("energy_production", production.Energy),
+		zap.Int("heat_production", production.Heat))
+
+	return nil
+}
+
+// CanAfford checks if a player can afford a cost
+func (r *RepositoryImpl) CanAfford(ctx context.Context, gameID, playerID string, cost domain.ResourceSet) (bool, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	player, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return false, err
+	}
+
+	return player.Resources.CanAfford(cost), nil
+}
+
+// GetAvailableActions retrieves a player's available action count
+func (r *RepositoryImpl) GetAvailableActions(ctx context.Context, gameID, playerID string) (int, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	// Verify player exists
+	_, err := r.getPlayerUnsafe(gameID, playerID)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get from feature repository
+	playerKey := r.getPlayerKey(gameID, playerID)
+	playerTurnRepo, exists := r.playerTurnRepos[playerKey]
+	if !exists {
+		return 0, fmt.Errorf("player turn repository not found for player %s in game %s", playerID, gameID)
+	}
+
+	actions, err := playerTurnRepo.GetAvailableActions(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get available actions: %w", err)
+	}
+
+	return actions, nil
 }

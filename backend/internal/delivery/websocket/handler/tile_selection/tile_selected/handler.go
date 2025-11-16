@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -32,7 +33,7 @@ func NewHandler(selectTileAction *actions.SelectTileAction, parser *utils.Messag
 
 // TileSelectedRequest represents the payload for tile selection
 type TileSelectedRequest struct {
-	Coordinate types.HexPosition `json:"coordinate" ts:"HexPosition"`
+	Coordinate tiles.HexPosition `json:"coordinate" ts:"HexPosition"`
 }
 
 // HandleMessage implements the MessageHandler interface
@@ -60,18 +61,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Validate hex coordinates (must satisfy q + r + s = 0)
-	if request.Coordinate.Q+request.Coordinate.R+request.Coordinate.S != 0 {
-		h.logger.Error("Invalid hex coordinates",
-			zap.String("player_id", playerID),
-			zap.Int("q", request.Coordinate.Q),
-			zap.Int("r", request.Coordinate.R),
-			zap.Int("s", request.Coordinate.S))
-		h.errorHandler.SendError(connection, "invalid hex coordinates: q+r+s must equal 0")
-		return
-	}
-
-	// Execute the tile selection via SelectTileAction
+	// Execute the tile selection via SelectTileAction (validates coordinates internally)
 	if err := h.selectTileAction.Execute(ctx, gameID, playerID, request.Coordinate); err != nil {
 		h.logger.Error("Failed to process tile selection via SelectTileAction",
 			zap.Error(err),

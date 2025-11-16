@@ -4,60 +4,82 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/production"
-	"terraforming-mars-backend/internal/features/turn"
-	"terraforming-mars-backend/internal/logger"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 )
 
 // SkipAction handles the player skip turn action
-// This action orchestrates the turn mechanic and production mechanic
+// This action advances the turn to the next player
 type SkipAction struct {
-	turnFeature       turn.Service
-	productionFeature production.Service
-	sessionManager    session.SessionManager
+	gameRepo       game.Repository
+	sessionManager session.SessionManager
 }
 
 // NewSkipAction creates a new skip action orchestrator
 func NewSkipAction(
-	turnFeature turn.Service,
-	productionFeature production.Service,
+	gameRepo game.Repository,
 	sessionManager session.SessionManager,
 ) *SkipAction {
 	return &SkipAction{
-		turnFeature:       turnFeature,
-		productionFeature: productionFeature,
-		sessionManager:    sessionManager,
+		gameRepo:       gameRepo,
+		sessionManager: sessionManager,
 	}
 }
 
 // Execute performs the skip turn action
-// This orchestrates:
-// 1. Turn mechanic to advance turn/check generation end
-// 2. Production mechanic if generation ended
-// 3. Session broadcasting to notify all players
+// This advances the turn to the next player in turn order
 func (a *SkipAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("⏭️ Executing skip turn action")
 
-	// Delegate to turn mechanic
-	generationEnded, err := a.turnFeature.SkipTurn(ctx, gameID, playerID)
+	// Get current game state
+	gameState, err := a.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to skip turn", zap.Error(err))
-		return fmt.Errorf("failed to skip turn: %w", err)
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
 	}
 
-	// If generation ended, execute production phase
-	if generationEnded {
-		log.Info("🏭 Generation ended - executing production phase")
+	// Verify it's the current player's turn
+	if gameState.CurrentPlayerID != playerID {
+		log.Warn("Player attempted to skip but it's not their turn",
+			zap.String("current_player", gameState.CurrentPlayerID))
+		return fmt.Errorf("it's not your turn")
+	}
 
-		if err := a.productionFeature.ExecuteProductionPhase(ctx, gameID); err != nil {
-			log.Error("Failed to execute production phase", zap.Error(err))
-			return fmt.Errorf("failed to execute production phase: %w", err)
+	// Find next player in turn order
+	playerIDs := gameState.PlayerIDs
+	if len(playerIDs) == 0 {
+		return fmt.Errorf("no players in game")
+	}
+
+	// Find current player index
+	currentIndex := -1
+	for i, pid := range playerIDs {
+		if pid == playerID {
+			currentIndex = i
+			break
 		}
 	}
+
+	if currentIndex == -1 {
+		return fmt.Errorf("current player not found in player list")
+	}
+
+	// Calculate next player index (wrap around)
+	nextIndex := (currentIndex + 1) % len(playerIDs)
+	nextPlayerID := playerIDs[nextIndex]
+
+	// Set next player as current
+	if err := a.gameRepo.SetCurrentPlayer(ctx, gameID, nextPlayerID); err != nil {
+		log.Error("Failed to set next player", zap.Error(err))
+		return fmt.Errorf("failed to set next player: %w", err)
+	}
+
+	log.Info("⏭️ Turn advanced to next player",
+		zap.String("previous_player", playerID),
+		zap.String("next_player", nextPlayerID))
 
 	// Broadcast updated game state to all players
 	if err := a.sessionManager.Broadcast(gameID); err != nil {

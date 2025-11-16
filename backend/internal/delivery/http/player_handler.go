@@ -5,7 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/lobby"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/player"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -14,16 +14,16 @@ import (
 // PlayerHandler handles HTTP requests related to player operations
 type PlayerHandler struct {
 	*BaseHandler
-	playerService service.PlayerService
-	lobbyService  lobby.Service
+	playerRepo   player.Repository
+	lobbyService lobby.Service
 }
 
 // NewPlayerHandler creates a new player handler
-func NewPlayerHandler(playerService service.PlayerService, lobbyService lobby.Service) *PlayerHandler {
+func NewPlayerHandler(playerRepo player.Repository, lobbyService lobby.Service) *PlayerHandler {
 	return &PlayerHandler{
-		BaseHandler:   NewBaseHandler(),
-		playerService: playerService,
-		lobbyService:  lobbyService,
+		BaseHandler:  NewBaseHandler(),
+		playerRepo:   playerRepo,
+		lobbyService: lobbyService,
 	}
 }
 
@@ -62,7 +62,7 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to DTO and respond
 	response := dto.JoinGameResponse{
-		Game:     dto.ToGameDtoBasic(game, dto.GetPaymentConstants()),
+		Game:     dto.ToGameDtoLobbyOnly(game, dto.GetPaymentConstants()),
 		PlayerID: playerID,
 	}
 
@@ -85,8 +85,8 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	player, err := h.playerService.GetPlayer(r.Context(), gameID, playerID)
+	// Get player from repository
+	player, err := h.playerRepo.GetByID(r.Context(), gameID, playerID)
 	if err != nil {
 		h.logger.Error("Failed to get player", zap.Error(err),
 			zap.String("game_id", gameID),
@@ -96,7 +96,15 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO and respond
-	playerDto := dto.ToPlayerDto(player, nil)
+	playerDto, err := dto.ToPlayerDto(player, nil)
+	if err != nil {
+		h.logger.Error("Failed to convert player to DTO", zap.Error(err),
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to convert player")
+		return
+	}
+
 	response := dto.GetPlayerResponse{
 		Player: playerDto,
 	}

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/shared/types"
 
 	"go.uber.org/zap"
 )
@@ -132,25 +132,27 @@ func (r *CardRepositoryImpl) LoadCards(ctx context.Context) error {
 	r.preludeCards = make([]Card, 0)
 
 	// Process all loaded cards
-	for _, card := range allLoadedCards {
+	for i := range allLoadedCards {
+		card := &allLoadedCards[i]
+
 		// Parse starting bonuses for corporation cards
 		if card.Type == CardTypeCorporation {
-			r.parseStartingBonuses(&card)
+			r.parseStartingBonuses(card)
 		}
 
 		// Categorize by card type
 		switch card.Type {
 		case CardTypeCorporation:
-			r.corporationCards = append(r.corporationCards, card)
+			r.corporationCards = append(r.corporationCards, *card)
 		case CardTypePrelude:
-			r.preludeCards = append(r.preludeCards, card)
+			r.preludeCards = append(r.preludeCards, *card)
 		default:
 			// All other types are project cards (automated, active, event)
-			r.projectCards = append(r.projectCards, card)
+			r.projectCards = append(r.projectCards, *card)
 		}
 
-		r.allCards = append(r.allCards, card)
-		r.cardLookup[card.ID] = &card
+		r.allCards = append(r.allCards, *card)
+		r.cardLookup[card.ID] = card
 	}
 
 	// Log final card counts by type
@@ -191,37 +193,37 @@ func (r *CardRepositoryImpl) parseStartingBonuses(card *Card) {
 		for _, output := range behavior.Outputs {
 			switch output.Type {
 			// Starting resources
-			case types.ResourceCredits:
-				startingResources.Credits += output.Amount
-			case types.ResourceSteel:
-				startingResources.Steel += output.Amount
-			case types.ResourceTitanium:
-				startingResources.Titanium += output.Amount
-			case types.ResourcePlants:
-				startingResources.Plants += output.Amount
-			case types.ResourceEnergy:
-				startingResources.Energy += output.Amount
-			case types.ResourceHeat:
-				startingResources.Heat += output.Amount
+			case domain.ResourceCredits:
+				startingResources[domain.ResourceCredits] += output.Amount
+			case domain.ResourceSteel:
+				startingResources[domain.ResourceSteel] += output.Amount
+			case domain.ResourceTitanium:
+				startingResources[domain.ResourceTitanium] += output.Amount
+			case domain.ResourcePlants:
+				startingResources[domain.ResourcePlants] += output.Amount
+			case domain.ResourceEnergy:
+				startingResources[domain.ResourceEnergy] += output.Amount
+			case domain.ResourceHeat:
+				startingResources[domain.ResourceHeat] += output.Amount
 
 			// Starting production
-			case types.ResourceCreditsProduction:
-				startingProduction.Credits += output.Amount
-			case types.ResourceSteelProduction:
-				startingProduction.Steel += output.Amount
-			case types.ResourceTitaniumProduction:
-				startingProduction.Titanium += output.Amount
-			case types.ResourcePlantsProduction:
-				startingProduction.Plants += output.Amount
-			case types.ResourceEnergyProduction:
-				startingProduction.Energy += output.Amount
-			case types.ResourceHeatProduction:
-				startingProduction.Heat += output.Amount
+			case domain.ResourceCreditsProduction:
+				startingProduction[domain.ResourceCreditsProduction] += output.Amount
+			case domain.ResourceSteelProduction:
+				startingProduction[domain.ResourceSteelProduction] += output.Amount
+			case domain.ResourceTitaniumProduction:
+				startingProduction[domain.ResourceTitaniumProduction] += output.Amount
+			case domain.ResourcePlantsProduction:
+				startingProduction[domain.ResourcePlantsProduction] += output.Amount
+			case domain.ResourceEnergyProduction:
+				startingProduction[domain.ResourceEnergyProduction] += output.Amount
+			case domain.ResourceHeatProduction:
+				startingProduction[domain.ResourceHeatProduction] += output.Amount
 			}
 		}
 	}
 
-	// Set the parsed values on the card (startingCredits is in startingResources.Credits)
+	// Set the parsed values on the card (startingCredits is in startingResources[domain.ResourceCredits])
 	card.StartingResources = &startingResources
 	card.StartingProduction = &startingProduction
 }
@@ -366,7 +368,7 @@ func (r *CardRepositoryImpl) GetStartingCardPool(ctx context.Context) ([]Card, e
 	// Include automated, active, and event cards with reasonable cost (up to 25 MC)
 	// This ensures we have enough cards for starting selection
 	for _, card := range r.projectCards {
-		if card.ID != "" && card.Cost <= 25 &&
+		if card.ID != "" && card.BaseCost <= 25 &&
 			(card.Type == CardTypeAutomated || card.Type == CardTypeActive || card.Type == CardTypeEvent) {
 			startingCards = append(startingCards, card)
 		}
@@ -386,7 +388,7 @@ func (r *CardRepositoryImpl) GetCardsByCostRange(ctx context.Context, minCost, m
 
 	var cards []Card
 	for _, card := range r.allCards {
-		if card.Cost >= minCost && card.Cost <= maxCost {
+		if card.BaseCost >= minCost && card.BaseCost <= maxCost {
 			cards = append(cards, card)
 		}
 	}

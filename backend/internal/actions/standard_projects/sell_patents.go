@@ -55,15 +55,18 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 
 	// Create pending card selection with all player's cards
 	// Each card costs 0 MC to "select" (sell) and rewards 1 MC
+	// Note: Cards are now Card instances (Living Card Instance Pattern), extract IDs
 	cardCosts := make(map[string]int)
 	cardRewards := make(map[string]int)
-	for _, cardID := range player.Cards {
-		cardCosts[cardID] = 0   // Free to select (selling)
-		cardRewards[cardID] = 1 // Gain 1 MC per card sold
+	availableCardIDs := make([]string, len(player.Cards))
+	for i, card := range player.Cards {
+		cardCosts[card.ID] = 0   // Free to select (selling)
+		cardRewards[card.ID] = 1 // Gain 1 MC per card sold
+		availableCardIDs[i] = card.ID
 	}
 
 	selection := &playerPkg.PendingCardSelection{
-		AvailableCards: player.Cards, // All cards in hand available
+		AvailableCards: availableCardIDs, // Card IDs available for selection
 		CardCosts:      cardCosts,
 		CardRewards:    cardRewards,
 		Source:         "sell-patents",

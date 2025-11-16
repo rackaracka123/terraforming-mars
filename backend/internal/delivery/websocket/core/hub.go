@@ -66,8 +66,8 @@ func (h *Hub) Run(ctx context.Context) {
 
 		case connection := <-h.Register:
 			h.manager.RegisterConnection(connection)
-			// Session registration will happen when first message is received
 
+			// Session registration will happen when first message is received
 		case connection := <-h.Unregister:
 			playerID, gameID, shouldBroadcast := h.manager.UnregisterConnection(connection)
 

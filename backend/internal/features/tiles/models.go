@@ -3,11 +3,48 @@ package tiles
 import (
 	"fmt"
 
-	"terraforming-mars-backend/internal/shared/types"
+	"terraforming-mars-backend/internal/domain"
 )
 
-// HexPosition is an alias to the shared types.HexPosition
-type HexPosition = types.HexPosition
+// HexPosition represents a position on the Mars board using cube coordinates
+type HexPosition struct {
+	Q int `json:"q" ts:"number"` // Column coordinate
+	R int `json:"r" ts:"number"` // Row coordinate
+	S int `json:"s" ts:"number"` // Third coordinate (Q + R + S = 0)
+}
+
+// GetNeighbors returns all 6 adjacent hex positions using cube coordinate system
+func (h HexPosition) GetNeighbors() []HexPosition {
+	// Six adjacent directions in cube coordinates (hexagonal grid)
+	directions := []HexPosition{
+		{Q: 1, R: -1, S: 0}, // East
+		{Q: 1, R: 0, S: -1}, // Southeast
+		{Q: 0, R: 1, S: -1}, // Southwest
+		{Q: -1, R: 1, S: 0}, // West
+		{Q: -1, R: 0, S: 1}, // Northwest
+		{Q: 0, R: -1, S: 1}, // Northeast
+	}
+
+	neighbors := make([]HexPosition, 6)
+	for i, dir := range directions {
+		neighbors[i] = HexPosition{
+			Q: h.Q + dir.Q,
+			R: h.R + dir.R,
+			S: h.S + dir.S,
+		}
+	}
+	return neighbors
+}
+
+// Equals checks if two hex positions are equal
+func (h HexPosition) Equals(other HexPosition) bool {
+	return h.Q == other.Q && h.R == other.R && h.S == other.S
+}
+
+// String returns the hex position as a formatted string "q,r,s"
+func (h HexPosition) String() string {
+	return fmt.Sprintf("%d,%d,%d", h.Q, h.R, h.S)
+}
 
 // Tile type string constants for placement operations
 const (
@@ -17,14 +54,14 @@ const (
 )
 
 // TileTypeToResourceType converts a tile type string to its corresponding ResourceType
-func TileTypeToResourceType(tileType string) (ResourceType, error) {
+func TileTypeToResourceType(tileType string) (domain.ResourceType, error) {
 	switch tileType {
 	case TileTypeCity:
-		return ResourceCityTile, nil
+		return domain.ResourceCityTile, nil
 	case TileTypeGreenery:
-		return ResourceGreeneryTile, nil
+		return domain.ResourceGreeneryTile, nil
 	case TileTypeOcean:
-		return ResourceOceanTile, nil
+		return domain.ResourceOceanTile, nil
 	default:
 		return "", fmt.Errorf("unknown tile type: %s", tileType)
 	}
@@ -33,7 +70,7 @@ func TileTypeToResourceType(tileType string) (ResourceType, error) {
 // TileBonus represents a resource bonus provided by a tile when occupied
 type TileBonus struct {
 	// Type specifies the resource type granted by this bonus
-	Type ResourceType `json:"type" ts:"ResourceType"`
+	Type domain.ResourceType `json:"type" ts:"ResourceType"`
 	// Amount specifies the quantity of the bonus granted
 	Amount int `json:"amount" ts:"number"`
 }
@@ -41,7 +78,7 @@ type TileBonus struct {
 // TileOccupant represents what currently occupies a tile
 type TileOccupant struct {
 	// Type specifies the type of occupant (city-tile, ocean-tile, greenery-tile, etc.)
-	Type ResourceType `json:"type" ts:"ResourceType"`
+	Type domain.ResourceType `json:"type" ts:"ResourceType"`
 	// Tags specifies special properties of the occupant (e.g., "capital" for cities)
 	Tags []string `json:"tags" ts:"string[]"`
 }
@@ -53,7 +90,7 @@ type Tile struct {
 	// Tags specifies special properties for placement restrictions (e.g., "noctis-city")
 	Tags []string `json:"tags" ts:"string[]"`
 	// Type specifies the base type of tile (ocean-tile for ocean spaces, etc.)
-	Type ResourceType `json:"type" ts:"ResourceType"`
+	Type domain.ResourceType `json:"type" ts:"ResourceType"`
 	// Location specifies which celestial body this tile is on
 	Location TileLocation `json:"location" ts:"TileLocation"`
 	// DisplayName specifies the optional display name shown on the tile
@@ -80,15 +117,10 @@ type Board struct {
 	Tiles []Tile `json:"tiles" ts:"Tile[]"`
 }
 
-// Constants
-const (
-	MaxOceans = 9 // Maximum number of ocean tiles
-)
-
 // NewStandardBoard creates the standard Mars board with 42 hexagonal tiles
 // Uses the same 5-6-7-8-9-8-7-6-5 row pattern as the frontend
 func NewStandardBoard() Board {
-	var tiles []Tile
+	var boardTiles []Tile
 
 	// Row pattern matches frontend HexGrid2D
 	rowPattern := []int{5, 6, 7, 8, 9, 8, 7, 6, 5}
@@ -107,7 +139,7 @@ func NewStandardBoard() Board {
 			}
 			s := -(q + r)
 
-			tiles = append(tiles, Tile{
+			boardTiles = append(boardTiles, Tile{
 				Coordinates: HexPosition{Q: q, R: r, S: s},
 				OccupiedBy:  nil,
 				OwnerID:     nil,
@@ -116,16 +148,10 @@ func NewStandardBoard() Board {
 		}
 	}
 
-	return Board{Tiles: tiles}
+	return Board{Tiles: boardTiles}
 }
 
-// ResourceType is a type alias to avoid circular imports
-// The actual definition is in internal/shared/model/resource_type.go
-type ResourceType string
-
-// Resource type constants for tiles
+// Constants
 const (
-	ResourceCityTile     ResourceType = "city-tile"
-	ResourceOceanTile    ResourceType = "ocean-tile"
-	ResourceGreeneryTile ResourceType = "greenery-tile"
+	MaxOceans = 9 // Maximum number of ocean tiles
 )

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
 
@@ -21,19 +21,16 @@ import (
 // - Clearing pending selection
 type SubmitSellPatentsAction struct {
 	playerRepo     player.Repository
-	resourcesMech  resources.Service
 	sessionManager session.SessionManager
 }
 
 // NewSubmitSellPatentsAction creates a new submit sell patents action
 func NewSubmitSellPatentsAction(
 	playerRepo player.Repository,
-	resourcesMech resources.Service,
 	sessionManager session.SessionManager,
 ) *SubmitSellPatentsAction {
 	return &SubmitSellPatentsAction{
 		playerRepo:     playerRepo,
-		resourcesMech:  resourcesMech,
 		sessionManager: sessionManager,
 	}
 }
@@ -95,13 +92,13 @@ func (a *SubmitSellPatentsAction) Execute(ctx context.Context, gameID string, pl
 	// Calculate total reward (1 MC per card for sell patents)
 	totalReward := len(cardIDs)
 
-	// Award credits via resources mechanic
+	// Award credits directly via repository
 	if totalReward > 0 {
-		reward := resources.ResourceSet{
+		credits := domain.ResourceSet{
 			Credits: totalReward,
 		}
 
-		if err := a.resourcesMech.AddResources(ctx, gameID, playerID, reward); err != nil {
+		if err := a.playerRepo.AddResources(ctx, gameID, playerID, credits); err != nil {
 			log.Error("Failed to award credits", zap.Error(err))
 			return fmt.Errorf("failed to award credits: %w", err)
 		}

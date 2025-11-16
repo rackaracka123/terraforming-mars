@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/features/card"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
@@ -14,14 +14,14 @@ import (
 // CardHandler handles card-related HTTP requests
 type CardHandler struct {
 	*BaseHandler
-	cardService service.CardService
+	cardRepo card.CardRepository
 }
 
 // NewCardHandler creates a new CardHandler
-func NewCardHandler(cardService service.CardService) *CardHandler {
+func NewCardHandler(cardRepo card.CardRepository) *CardHandler {
 	return &CardHandler{
 		BaseHandler: &BaseHandler{},
-		cardService: cardService,
+		cardRepo:    cardRepo,
 	}
 }
 
@@ -68,13 +68,25 @@ func (h *CardHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// List cards from service
-	cards, totalCount, err := h.cardService.ListCardsPaginated(r.Context(), offset, limit)
+	// List cards from repository
+	allCards, err := h.cardRepo.GetAllCards(r.Context())
 	if err != nil {
 		log.Error("Failed to get cards", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get cards")
 		return
 	}
+
+	// Manual pagination
+	totalCount := len(allCards)
+	start := offset
+	end := offset + limit
+	if start > totalCount {
+		start = totalCount
+	}
+	if end > totalCount {
+		end = totalCount
+	}
+	cards := allCards[start:end]
 
 	// Convert to DTOs
 	cardDtos := make([]dto.CardDto, len(cards))
@@ -113,7 +125,7 @@ func (h *CardHandler) GetCorporations(w http.ResponseWriter, r *http.Request) {
 	log.Debug("📡 Getting all corporations")
 
 	// Get corporations from service (they're just cards with type=corporation)
-	corporations, err := h.cardService.GetCorporations(r.Context())
+	corporations, err := h.cardRepo.GetCorporations(r.Context())
 	if err != nil {
 		log.Error("Failed to get corporations", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get corporations")

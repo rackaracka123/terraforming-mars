@@ -21,6 +21,9 @@ type CardDeckRepository interface {
 
 	// PlayedCardsSize returns the number of cards that have been played
 	PlayedCardsSize(ctx context.Context, gameID string) (int, error)
+
+	// ReturnToBottom returns a card to the bottom of the deck
+	ReturnToBottom(ctx context.Context, gameID, cardID string) error
 }
 
 // CardDeckRepositoryImpl implements CardDeckRepository
@@ -129,6 +132,22 @@ func (r *CardDeckRepositoryImpl) PlayedCardsSize(ctx context.Context, gameID str
 	}
 
 	return deck.PlayedCount, nil
+}
+
+// ReturnToBottom returns a card to the bottom of the deck
+func (r *CardDeckRepositoryImpl) ReturnToBottom(ctx context.Context, gameID, cardID string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	deck, exists := r.gameDecks[gameID]
+	if !exists {
+		return ErrDeckNotFound
+	}
+
+	// Add to the beginning of the slice (bottom of the deck, since top is end)
+	deck.Cards = append([]string{cardID}, deck.Cards...)
+
+	return nil
 }
 
 // Error types

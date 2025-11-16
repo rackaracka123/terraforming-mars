@@ -5,8 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/parameters"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
@@ -15,138 +14,96 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// GreeeneryCost is the credit cost to plant a greenery
-	GreeneryCost = 23
-)
-
 // PlantGreeneryAction handles the plant greenery standard project.
 // This action orchestrates:
 // 1. Validate player can afford 23 credits
-// 2. Deduct 23 credits via resources mechanic
-// 3. Raise oxygen by 1 step via parameters mechanic (awards TR automatically)
-// 4. Create tile queue for greenery placement via tiles mechanic
-// 5. Process tile queue to prepare tile selection
-// 6. Broadcast updated game state
+// 2. Deduct 23 credits
+// 3. Create pending tile selection for greenery placement
+// 4. Broadcast updated game state
 type PlantGreeneryAction struct {
-	playerRepo     player.Repository
-	gameRepo       game.Repository
-	resourcesMech  resources.Service
-	parametersMech parameters.Service
-	tilesMech      tiles.TileQueueService
-	sessionManager session.SessionManager
+	playerRepo       player.Repository
+	gameRepo         game.Repository
+	placementService tiles.PlacementService
+	sessionManager   session.SessionManager
 }
 
 // NewPlantGreeneryAction creates a new plant greenery action
 func NewPlantGreeneryAction(
 	playerRepo player.Repository,
 	gameRepo game.Repository,
-	resourcesMech resources.Service,
-	parametersMech parameters.Service,
-	tilesMech tiles.TileQueueService,
+	placementService tiles.PlacementService,
 	sessionManager session.SessionManager,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		playerRepo:     playerRepo,
-		gameRepo:       gameRepo,
-		resourcesMech:  resourcesMech,
-		parametersMech: parametersMech,
-		tilesMech:      tilesMech,
-		sessionManager: sessionManager,
+		playerRepo:       playerRepo,
+		gameRepo:         gameRepo,
+		placementService: placementService,
+		sessionManager:   sessionManager,
 	}
 }
 
 // Execute performs the plant greenery action
 func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Info("🌱 Executing plant greenery action")
+	log.Info("🌳 Executing plant greenery action")
 
-	// 1. Validate player can afford the cost
-	player, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get cost from domain
+	cost := domain.StandardProjectCosts.Greenery
+
+	// Validate player can afford the cost
+	canAfford, err := a.playerRepo.CanAfford(ctx, gameID, playerID, cost)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		log.Error("Failed to check affordability", zap.Error(err))
+		return fmt.Errorf("failed to check affordability: %w", err)
 	}
 
-	playerResources, err := player.GetResources()
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
-
-	if playerResources.Credits < GreeneryCost {
+	if !canAfford {
 		log.Warn("Player cannot afford greenery",
-			zap.Int("cost", GreeneryCost),
-			zap.Int("available", playerResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", GreeneryCost, playerResources.Credits)
+			zap.Int("cost", cost.Credits))
+		return fmt.Errorf("insufficient credits: need %d", cost.Credits)
 	}
 
-	// 2. Deduct credits via resources mechanic
-	cost := resources.ResourceSet{
-		Credits: GreeneryCost,
-	}
-
-	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
+	// Deduct credits
+	if err := a.playerRepo.DeductResources(ctx, gameID, playerID, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
-	log.Info("💰 Credits deducted", zap.Int("amount", GreeneryCost))
+	log.Info("💰 Credits deducted", zap.Int("amount", cost.Credits))
 
-	// 3. Get game for parameters service
-	game, err := a.gameRepo.GetByID(ctx, gameID)
+	// Calculate available hexes for greenery placement (player-specific)
+	availableHexes, err := a.placementService.CalculateAvailablePositionsForPlayer(ctx, playerID, "greenery")
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
+		log.Error("Failed to calculate available hexes", zap.Error(err))
+		return fmt.Errorf("failed to calculate available hexes: %w", err)
 	}
 
-	// 4. Check if oxygen can be raised
-	isMaxed, err := game.ParametersService.IsOxygenMaxed(ctx)
-	if err != nil {
-		log.Error("Failed to check oxygen max", zap.Error(err))
-		return fmt.Errorf("failed to check oxygen: %w", err)
+	// Convert HexPosition slice to string slice
+	availableHexStrings := make([]string, len(availableHexes))
+	for i, hex := range availableHexes {
+		availableHexStrings[i] = hex.String()
 	}
 
-	// 5. Raise oxygen by 1 step (awards TR automatically in parameters mechanic)
-	if !isMaxed {
-		stepsRaised, err := game.ParametersService.RaiseOxygen(ctx, 1)
-		if err != nil {
-			log.Error("Failed to raise oxygen", zap.Error(err))
-			return fmt.Errorf("failed to raise oxygen: %w", err)
-		}
-
-		if stepsRaised > 0 {
-			log.Info("🌿 Oxygen raised",
-				zap.Int("steps", stepsRaised),
-				zap.String("effect", "Greenery photosynthesis"))
-		} else {
-			log.Info("🌿 Oxygen already at maximum")
-		}
-	} else {
-		log.Info("🌿 Oxygen already at maximum, no increase")
+	// Create pending tile selection
+	pendingSelection := &tiles.PendingTileSelection{
+		TileType:       "greenery",
+		AvailableHexes: availableHexStrings,
+		Source:         "standard-project-greenery",
 	}
 
-	// 5. Create tile queue for greenery placement
-	queueSource := "standard-project-greenery"
-	if err := a.playerRepo.CreateTileQueue(ctx, gameID, playerID, queueSource, []string{"greenery"}); err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
+	if err := a.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingSelection); err != nil {
+		log.Error("Failed to create pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to create pending tile selection: %w", err)
 	}
 
-	log.Info("📋 Tile queue created for greenery placement")
-
-	// 6. TODO: Process tile queue to prepare tile selection
-	// ProcessTileQueue method was removed during refactoring
-	// Need to implement: pop from queue, calculate available hexes, set pending selection
-	// if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-	// 	log.Error("Failed to process tile queue", zap.Error(err))
-	// 	return fmt.Errorf("failed to process tile queue: %w", err)
-	// }
-
+	log.Info("🎯 Pending tile selection created", zap.Int("available_hexes", len(availableHexes)))
 	log.Info("✅ Plant greenery action completed successfully")
 
-	// 7. Broadcast updated game state
-	a.sessionManager.Broadcast(gameID)
+	// Broadcast updated game state
+	if err := a.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+		// Don't fail the operation, just log
+	}
 
 	return nil
 }

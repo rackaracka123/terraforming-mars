@@ -4,146 +4,113 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/card"
-	"terraforming-mars-backend/internal/features/parameters"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
-
-	"go.uber.org/zap"
 )
 
-const (
-	// BasePlantsForGreenery is the base cost in plants to place greenery (before discounts)
-	BasePlantsForGreenery = 8
-)
-
-// ConvertPlantsToGreeneryAction handles converting plants to place greenery
+// ConvertPlantsToGreeneryAction handles converting plants to place a greenery tile
 // This action orchestrates:
-// - Resources mechanic (deduct plants)
-// - Parameters mechanic (raise oxygen, award TR)
-// - Tiles mechanic (create tile queue, process placement)
+// 1. Validation and plant deduction
+// 2. Available hex calculation
+// 3. Pending tile selection creation
 type ConvertPlantsToGreeneryAction struct {
-	playerRepo     player.Repository
-	gameRepo       game.Repository
-	resourcesMech  resources.Service
-	parametersMech parameters.Service
-	tilesMech      tiles.Service
-	sessionManager session.SessionManager
+	playerRepo       player.Repository
+	placementService tiles.PlacementService
+	sessionManager   session.SessionManager
 }
 
-// NewConvertPlantsToGreeneryAction creates a new plants conversion action
+// NewConvertPlantsToGreeneryAction creates a new plant conversion action
 func NewConvertPlantsToGreeneryAction(
 	playerRepo player.Repository,
-	gameRepo game.Repository,
-	resourcesMech resources.Service,
-	parametersMech parameters.Service,
-	tilesMech tiles.Service,
+	placementService tiles.PlacementService,
 	sessionManager session.SessionManager,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
-		playerRepo:     playerRepo,
-		gameRepo:       gameRepo,
-		resourcesMech:  resourcesMech,
-		parametersMech: parametersMech,
-		tilesMech:      tilesMech,
-		sessionManager: sessionManager,
+		playerRepo:       playerRepo,
+		placementService: placementService,
+		sessionManager:   sessionManager,
 	}
 }
 
-// Execute performs the plants to greenery conversion
+// Execute performs the plant to greenery conversion
 // Steps:
-// 1. Validate player has enough plants (considering discounts)
-// 2. Deduct plants via resources mechanic
-// 3. Raise oxygen via parameters mechanic (if not maxed)
-// 4. Award TR via parameters mechanic (if oxygen was raised)
-// 5. Create tile queue for greenery placement
-// 6. Process tile queue to prepare tile selection
-// 7. Broadcast state
+// 1. Validate player has enough plants
+// 2. Deduct plants from player
+// 3. Calculate available hexes for greenery placement
+// 4. Create pending tile selection
+// 5. Broadcast game state
 func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := logger.WithGameContext(gameID, playerID)
-	log.Info("🌱 Executing convert plants to greenery action")
+	log.Info("🌱 Initiating plant conversion")
 
-	// Get player to calculate required plants
-	player, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Use the standard project cost from domain
+	cost := domain.StandardProjectCosts.ConvertPlantsToGreenery
+
+	// Validate player can afford the cost
+	canAfford, err := a.playerRepo.CanAfford(ctx, gameID, playerID, cost)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		log.Error("Failed to check affordability", zap.Error(err))
+		return fmt.Errorf("failed to check affordability: %w", err)
 	}
 
-	// Calculate required plants (considering discounts from cards)
-	requiredPlants := cards.CalculateResourceConversionCost(&player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
-
-	// Validate player has enough plants
-	if player.Resources.Plants < requiredPlants {
+	if !canAfford {
 		log.Warn("Player cannot afford plants conversion",
-			zap.Int("required", requiredPlants),
-			zap.Int("available", player.Resources.Plants))
-		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, player.Resources.Plants)
+			zap.Int("required_plants", cost.Plants))
+		return fmt.Errorf("insufficient plants: need %d", cost.Plants)
 	}
 
-	// Deduct plants via resources mechanic
-	cost := resources.ResourceSet{
-		Plants: requiredPlants,
-	}
-
-	if err := a.resourcesMech.PayResourceCost(ctx, gameID, playerID, cost); err != nil {
+	// Deduct plants
+	if err := a.playerRepo.DeductResources(ctx, gameID, playerID, cost); err != nil {
 		log.Error("Failed to deduct plants", zap.Error(err))
 		return fmt.Errorf("failed to deduct plants: %w", err)
 	}
 
-	log.Info("💰 Plants deducted", zap.Int("amount", requiredPlants))
-
-	// Check if oxygen can be raised
-	isMaxed, err := a.parametersMech.IsOxygenMaxed(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to check oxygen max", zap.Error(err))
-		return fmt.Errorf("failed to check oxygen: %w", err)
-	}
-
-	// Raise oxygen by 1 step (awards TR automatically in parameters mechanic)
-	if !isMaxed {
-		stepsRaised, err := a.parametersMech.RaiseOxygen(ctx, gameID, playerID, 1)
+	// Calculate available hexes using placement service
+	var availableHexes []tiles.HexPosition
+	if a.placementService != nil {
+		var err error
+		availableHexes, err = a.placementService.CalculateAvailablePositionsForPlayer(ctx, playerID, "greenery")
 		if err != nil {
-			log.Error("Failed to raise oxygen", zap.Error(err))
-			return fmt.Errorf("failed to raise oxygen: %w", err)
-		}
-
-		if stepsRaised > 0 {
-			log.Info("🌿 Oxygen raised",
-				zap.Int("steps", stepsRaised),
-				zap.String("effect", "Greenery photosynthesis"))
-		} else {
-			log.Info("🌿 Oxygen already at maximum")
+			log.Error("Failed to calculate available hexes", zap.Error(err))
+			return fmt.Errorf("failed to calculate available hexes: %w", err)
 		}
 	} else {
-		log.Info("🌿 Oxygen already at maximum, no increase")
+		// Fallback: return empty list (will cause an error when player tries to place)
+		log.Warn("PlacementService not available, using empty available hexes")
+		availableHexes = []tiles.HexPosition{}
 	}
 
-	// Create tile queue for greenery placement
-	queueSource := "convert-plants-to-greenery"
-	if err := a.playerRepo.CreateTileQueue(ctx, gameID, playerID, queueSource, []string{"greenery"}); err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
+	// Convert HexPosition slice to string slice
+	availableHexStrings := make([]string, len(availableHexes))
+	for i, hex := range availableHexes {
+		availableHexStrings[i] = hex.String()
 	}
 
-	// Process the tile queue to create pending tile selection
-	if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
+	// Create pending tile selection
+	pendingSelection := &tiles.PendingTileSelection{
+		TileType:       "greenery",
+		AvailableHexes: availableHexStrings,
+		Source:         "convert-plants-to-greenery",
+	}
+
+	if err := a.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingSelection); err != nil {
+		log.Error("Failed to create pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to create pending tile selection: %w", err)
 	}
 
 	// Broadcast updated game state
 	if err := a.sessionManager.Broadcast(gameID); err != nil {
 		log.Error("Failed to broadcast game state", zap.Error(err))
-		// Don't fail the action, just log
+		// Don't fail the conversion, just log
 	}
 
-	log.Info("✅ Plants converted to greenery successfully",
-		zap.Int("plants_spent", requiredPlants))
+	log.Info("✅ Plant conversion initiated, waiting for tile selection",
+		zap.Int("plants_spent", cost.Plants),
+		zap.Int("available_hexes", len(availableHexes)))
 
 	return nil
 }

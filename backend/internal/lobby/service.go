@@ -6,10 +6,15 @@ import (
 	"math/rand"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/features/card"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/features/tiles"
+	"terraforming-mars-backend/internal/features/turn"
+	gameModel "terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/player"
-	"terraforming-mars-backend/internal/service"
+	playerPkg "terraforming-mars-backend/internal/player"
+	sessionPkg "terraforming-mars-backend/internal/session"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -33,99 +38,92 @@ import (
 //   - Global parameter changes
 type Service interface {
 	// Create a new game with specified settings
-	CreateGame(ctx context.Context, settings model.GameSettings) (model.Game, error)
+	CreateGame(ctx context.Context, settings gameModel.GameSettings) (gameModel.Game, error)
 
 	// Get game by ID
-	GetGame(ctx context.Context, gameID string) (model.Game, error)
+	GetGame(ctx context.Context, gameID string) (gameModel.Game, error)
 
 	// List games by status
-	ListGames(ctx context.Context, status string) ([]model.Game, error)
+	ListGames(ctx context.Context, status string) ([]gameModel.Game, error)
 
 	// Start a game (transition from status "lobby" to "active")
 	StartGame(ctx context.Context, gameID string, playerID string) error
 
 	// Add player to game (join game flow)
-	JoinGame(ctx context.Context, gameID string, playerName string) (model.Game, error)
-	JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (model.Game, error)
+	JoinGame(ctx context.Context, gameID string, playerName string) (gameModel.Game, error)
+	JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (gameModel.Game, error)
 
 	// Helper methods
-	AddPlayerToGame(ctx context.Context, gameID string, player model.Player) error
-	GetPlayerFromGame(ctx context.Context, gameID, playerID string) (model.Player, error)
+	AddPlayerToGame(ctx context.Context, gameID string, player playerPkg.Player) error
+	GetPlayerFromGame(ctx context.Context, gameID, playerID string) (playerPkg.Player, error)
 	IsGameFull(ctx context.Context, gameID string) (bool, error)
-	IsHost(game *model.Game, playerID string) bool
+	IsHost(game *gameModel.Game, playerID string) bool
 }
 
 // ServiceImpl implements the lobby Service interface
 type ServiceImpl struct {
-	gameRepo       game.Repository
-	playerRepo     player.Repository
-	cardRepo       game.CardRepository
-	cardService    service.CardService
-	cardDeckRepo   game.CardDeckRepository
-	boardService   service.BoardService
+	gameRepo       gameModel.Repository
+	playerRepo     playerPkg.Repository
+	cardRepo       card.CardRepository
+	cardDeckRepo   card.CardDeckRepository
 	sessionManager session.SessionManager
+	sessionRepo    sessionPkg.Repository
+	eventBus       *events.EventBusImpl
 }
 
 // NewService creates a new lobby Service instance
 func NewService(
-	gameRepo game.Repository,
-	playerRepo player.Repository,
-	cardRepo game.CardRepository,
-	cardService service.CardService,
-	cardDeckRepo game.CardDeckRepository,
-	boardService service.BoardService,
+	gameRepo gameModel.Repository,
+	playerRepo playerPkg.Repository,
+	cardRepo card.CardRepository,
+	cardDeckRepo card.CardDeckRepository,
 	sessionManager session.SessionManager,
+	sessionRepo sessionPkg.Repository,
+	eventBus *events.EventBusImpl,
 ) Service {
 	return &ServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		cardRepo:       cardRepo,
-		cardService:    cardService,
 		cardDeckRepo:   cardDeckRepo,
-		boardService:   boardService,
 		sessionManager: sessionManager,
+		sessionRepo:    sessionRepo,
+		eventBus:       eventBus,
 	}
 }
 
 // CreateGame creates a new game with specified settings
-func (s *ServiceImpl) CreateGame(ctx context.Context, settings model.GameSettings) (model.Game, error) {
+func (s *ServiceImpl) CreateGame(ctx context.Context, settings gameModel.GameSettings) (gameModel.Game, error) {
 	log := logger.WithContext()
 
 	// Validate settings
 	if err := s.validateGameSettings(settings); err != nil {
 		log.Error("Invalid game settings", zap.Error(err))
-		return model.Game{}, fmt.Errorf("invalid game settings: %w", err)
+		return gameModel.Game{}, fmt.Errorf("invalid game settings: %w", err)
 	}
 
 	log.Debug("Creating game via LobbyService")
 
-	game, err := s.gameRepo.Create(ctx, settings)
+	newGame, err := s.gameRepo.Create(ctx, settings)
 	if err != nil {
 		log.Error("Failed to create game", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to create game: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to create game: %w", err)
 	}
 
-	// Initialize the board with default Mars tiles
-	board := s.boardService.GenerateDefaultBoard()
-	game.Board = board
-
-	// Update the game with the initialized board
-	if err := s.gameRepo.UpdateBoard(ctx, game.ID, board); err != nil {
-		log.Error("Failed to update game with board", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
-	}
+	// Board will be initialized when session is created (in StartGame)
+	// No need to store board in game metadata
 
 	// Initialize the card deck with project cards filtered by selected packs
 	allProjectCards, err := s.cardRepo.GetProjectCards(ctx)
 	if err != nil {
 		log.Error("Failed to get project cards for deck initialization", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to get project cards: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to get project cards: %w", err)
 	}
 
 	// Filter cards by selected packs
 	selectedPacks := settings.CardPacks
 	if len(selectedPacks) == 0 {
-		selectedPacks = model.DefaultCardPacks()
+		selectedPacks = gameModel.DefaultCardPacks()
 	}
 
 	// Create a set of selected packs for fast lookup
@@ -135,10 +133,10 @@ func (s *ServiceImpl) CreateGame(ctx context.Context, settings model.GameSetting
 	}
 
 	// Filter project cards by pack
-	projectCards := make([]model.Card, 0)
-	for _, card := range allProjectCards {
-		if packSet[card.Pack] {
-			projectCards = append(projectCards, card)
+	projectCards := make([]card.Card, 0)
+	for _, c := range allProjectCards {
+		if packSet[c.Pack] {
+			projectCards = append(projectCards, c)
 		}
 	}
 
@@ -147,25 +145,24 @@ func (s *ServiceImpl) CreateGame(ctx context.Context, settings model.GameSetting
 		zap.Int("total_available", len(allProjectCards)),
 		zap.Int("filtered_count", len(projectCards)))
 
-	if err := s.cardDeckRepo.InitializeDeck(ctx, game.ID, projectCards); err != nil {
+	if err := s.cardDeckRepo.InitializeDeck(ctx, newGame.ID, projectCards); err != nil {
 		log.Error("Failed to initialize card deck", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to initialize card deck: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to initialize card deck: %w", err)
 	}
 
 	log.Info("Game created via LobbyService",
-		zap.String("game_id", game.ID),
-		zap.Int("board_tiles", len(board.Tiles)),
+		zap.String("game_id", newGame.ID),
 		zap.Int("deck_size", len(projectCards)))
-	return game, nil
+	return newGame, nil
 }
 
 // GetGame retrieves a game by ID
-func (s *ServiceImpl) GetGame(ctx context.Context, gameID string) (model.Game, error) {
+func (s *ServiceImpl) GetGame(ctx context.Context, gameID string) (gameModel.Game, error) {
 	return s.gameRepo.GetByID(ctx, gameID)
 }
 
 // ListGames lists games by status
-func (s *ServiceImpl) ListGames(ctx context.Context, status string) ([]model.Game, error) {
+func (s *ServiceImpl) ListGames(ctx context.Context, status string) ([]gameModel.Game, error) {
 	return s.gameRepo.List(ctx, status)
 }
 
@@ -195,7 +192,7 @@ func (s *ServiceImpl) StartGame(ctx context.Context, gameID string, playerID str
 	}
 
 	// Validate game can be started
-	if game.Status != model.GameStatusLobby {
+	if game.Status != gameModel.GameStatusLobby {
 		log.Warn("Attempted to start game not in lobby state", zap.String("current_status", string(game.Status)))
 		return fmt.Errorf("game is not in lobby state")
 	}
@@ -205,25 +202,17 @@ func (s *ServiceImpl) StartGame(ctx context.Context, gameID string, playerID str
 	}
 
 	// Transition game status to active using granular updates
-	if err := s.gameRepo.UpdateStatus(ctx, gameID, model.GameStatusActive); err != nil {
+	if err := s.gameRepo.UpdateStatus(ctx, gameID, gameModel.GameStatusActive); err != nil {
 		log.Error("Failed to update game status to active", zap.Error(err))
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, model.GamePhaseStartingCardSelection); err != nil {
+	if err := s.gameRepo.UpdatePhase(ctx, gameID, gameModel.GamePhaseStartingCardSelection); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
 
-	// Set the first player's turn (typically the host)
-	if len(players) > 0 {
-		firstPlayerID := players[0].ID
-		if err := s.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID); err != nil {
-			log.Error("Failed to set initial current turn", zap.Error(err))
-			return fmt.Errorf("failed to set current turn: %w", err)
-		}
-		log.Info("Set initial current turn", zap.String("first_player_id", firstPlayerID))
-	}
+	// Feature repositories will be created below when setting up the session
 
 	// Distribute starting cards to all players
 	if err := s.distributeStartingCards(ctx, gameID, players); err != nil {
@@ -244,18 +233,110 @@ func (s *ServiceImpl) StartGame(ctx context.Context, gameID string, playerID str
 
 	log.Info("Game started", zap.String("game_id", gameID))
 
-	// Broadcast game state to all players after starting
-	err = s.sessionManager.Broadcast(gameID)
+	// Create runtime session for the active game
+	// Get updated game
+	game, err = s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
-		log.Error("Failed to broadcast game started", zap.Error(err))
-		// Don't fail the start operation, just log the error
+		log.Error("Failed to get game for session creation", zap.Error(err))
+		return fmt.Errorf("failed to get game for session: %w", err)
 	}
+
+	// Get updated players (now with starting cards distributed)
+	players, err = s.playerRepo.ListByGameID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get players for session creation", zap.Error(err))
+		return fmt.Errorf("failed to get players for session: %w", err)
+	}
+
+	// Convert player slice to map
+	playersMap := make(map[string]*playerPkg.Player)
+	for i := range players {
+		playersMap[players[i].ID] = &players[i]
+	}
+
+	// Create feature repositories for this game session
+	// These are created here (in StartGame) rather than in GameRepository.Create
+	// because they're runtime concerns, not persistent game metadata
+
+	// Parameters repository (temperature, oxygen, oceans)
+	// Apply defaults if not specified (Settings uses pointers)
+	temperature := gameModel.DefaultTemperature
+	if game.Settings.Temperature != nil {
+		temperature = *game.Settings.Temperature
+	}
+	oxygen := gameModel.DefaultOxygen
+	if game.Settings.Oxygen != nil {
+		oxygen = *game.Settings.Oxygen
+	}
+	oceans := gameModel.DefaultOceans
+	if game.Settings.Oceans != nil {
+		oceans = *game.Settings.Oceans
+	}
+
+	parametersRepo, err := parameters.NewRepository(gameID, parameters.GlobalParameters{
+		Temperature: temperature,
+		Oxygen:      oxygen,
+		Oceans:      oceans,
+	}, s.eventBus)
+	if err != nil {
+		log.Error("Failed to create parameters repository", zap.Error(err))
+		return fmt.Errorf("failed to create parameters repository: %w", err)
+	}
+	parametersService := parameters.NewService(parametersRepo)
+
+	// Board repository and service (created per-game when game starts)
+	// Generate default board using a temporary service, then create repository
+	tempBoardService := tiles.NewBoardService(nil)
+	defaultBoard := tempBoardService.GenerateDefaultBoard()
+	boardRepo := tiles.NewBoardRepository(gameID, defaultBoard, s.eventBus)
+	boardService := tiles.NewBoardService(boardRepo)
+
+	// Turn order repository and service
+	playerIDs := make([]string, len(players))
+	for i, p := range players {
+		playerIDs[i] = p.ID
+	}
+	var firstPlayerID *string
+	if len(playerIDs) > 0 {
+		firstPlayerID = &playerIDs[0]
+	}
+	turnOrderRepo := turn.NewTurnOrderRepository(playerIDs, firstPlayerID)
+	turnOrderService := turn.NewTurnOrderService(turnOrderRepo)
+
+	log.Info("Created feature repositories for game session",
+		zap.Int("temperature", temperature),
+		zap.Int("oxygen", oxygen),
+		zap.Int("oceans", oceans),
+		zap.Int("player_count", len(playerIDs)))
+
+	// Create session with feature services
+	gameSession := sessionPkg.NewSession(
+		gameID,
+		&game,
+		playersMap,
+		parametersService,
+		boardService,
+		nil, // CardService - will be injected later when needed
+		turnOrderService,
+		nil, // GreeneryRuleSubscriber removed - greenery logic handled directly in tile placement
+		game.HostPlayerID,
+	)
+
+	// Add session to repository
+	if err := s.sessionRepo.Add(ctx, gameSession); err != nil {
+		log.Error("Failed to add session to repository", zap.Error(err))
+		return fmt.Errorf("failed to create session: %w", err)
+	}
+
+	log.Info("✅ Runtime session created for active game",
+		zap.String("game_id", gameID),
+		zap.Int("player_count", len(playersMap)))
 
 	return nil
 }
 
 // JoinGame adds a player to a game using both GameState and Player repositories
-func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (model.Game, error) {
+func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName string) (gameModel.Game, error) {
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Player joining game via LobbyService", zap.String("player_name", playerName))
 
@@ -263,24 +344,24 @@ func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName st
 	game, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for join", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to get game: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Check if game is joinable
-	if game.Status == model.GameStatusCompleted {
+	if game.Status == gameModel.GameStatusCompleted {
 		log.Warn("Attempted to join completed game", zap.String("player_name", playerName))
-		return model.Game{}, fmt.Errorf("cannot join completed game")
+		return gameModel.Game{}, fmt.Errorf("cannot join completed game")
 	}
 
 	// Check if game is full
 	isFull, err := s.IsGameFull(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to check if game is full", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to check game capacity: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to check game capacity: %w", err)
 	}
 	if isFull {
 		log.Warn("Attempted to join full game", zap.String("player_name", playerName))
-		return model.Game{}, fmt.Errorf("game is full")
+		return gameModel.Game{}, fmt.Errorf("game is full")
 	}
 
 	// Check if player with this name already exists to prevent duplicates
@@ -302,27 +383,25 @@ func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName st
 
 	// Create new player
 	playerID := uuid.New().String()
-	player := model.Player{
-		ID:   playerID,
-		Name: playerName,
-		Resources: model.Resources{
-			Credits: 40, // Starting credits for standard projects
-		},
-		Production: model.Production{
-			Credits: 1, // Base production
-		},
-		TerraformRating:  20, // Starting terraform rating
-		PlayedCards:      make([]string, 0),
-		Passed:           false, // Player starts active, not passed
-		AvailableActions: 2,     // Standard actions per turn in action phase
-		VictoryPoints:    0,     // Starting victory points
-		IsConnected:      true,
+	player := playerPkg.Player{
+		ID:                 playerID,
+		Name:               playerName,
+		TerraformRating:    20,                        // Starting terraform rating
+		Cards:              make([]playerPkg.Card, 0), // Empty hand (Card instances)
+		PlayedCards:        make([]playerPkg.Card, 0), // No cards played yet (Card instances)
+		VictoryPoints:      0,                         // Starting victory points
+		IsConnected:        true,
+		Effects:            make([]playerPkg.PlayerEffect, 0),      // No effects initially
+		Actions:            make([]playerPkg.PlayerAction, 0),      // No actions initially
+		ResourceStorage:    make(map[string]int),                   // Empty resource storage
+		PaymentSubstitutes: make([]playerPkg.PaymentSubstitute, 0), // No substitutes initially
+		// Services will be injected after creation by repository
 	}
 
 	// Add player using clean architecture method
 	if err := s.AddPlayerToGame(ctx, gameID, player); err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to add player: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to add player: %w", err)
 	}
 
 	// Host setting is handled automatically by gameRepo.AddPlayerID
@@ -330,15 +409,15 @@ func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName st
 	updatedGame, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get updated game", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to get updated game: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to get updated game: %w", err)
 	}
 
 	// If game is in starting_card_selection phase, distribute starting cards to the new player
-	if updatedGame.Status == model.GameStatusActive && updatedGame.CurrentPhase == model.GamePhaseStartingCardSelection {
+	if updatedGame.Status == gameModel.GameStatusActive && updatedGame.CurrentPhase == gameModel.GamePhaseStartingCardSelection {
 		log.Debug("Game is in starting card selection phase, distributing cards to new player", zap.String("player_id", playerID))
 
 		// Create a slice with just the new player for card distribution
-		newPlayerSlice := []model.Player{player}
+		newPlayerSlice := []playerPkg.Player{player}
 
 		if err := s.distributeStartingCards(ctx, gameID, newPlayerSlice); err != nil {
 			log.Error("Failed to distribute starting cards to new player", zap.Error(err), zap.String("player_id", playerID))
@@ -363,7 +442,7 @@ func (s *ServiceImpl) JoinGame(ctx context.Context, gameID string, playerName st
 
 // JoinGameWithPlayerID allows a player to join with a pre-specified player ID
 // This is used by WebSocket connections to ensure consistent player ID before broadcasting
-func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (model.Game, error) {
+func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, playerName string, playerID string) (gameModel.Game, error) {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("Player joining game via LobbyService with pre-specified ID", zap.String("player_name", playerName))
 
@@ -371,24 +450,24 @@ func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, p
 	game, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for join", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to get game: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to get game: %w", err)
 	}
 
 	// Check if game is joinable
-	if game.Status == model.GameStatusCompleted {
+	if game.Status == gameModel.GameStatusCompleted {
 		log.Warn("Attempted to join completed game", zap.String("player_name", playerName))
-		return model.Game{}, fmt.Errorf("cannot join completed game")
+		return gameModel.Game{}, fmt.Errorf("cannot join completed game")
 	}
 
 	// Check if game is full
 	isFull, err := s.IsGameFull(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to check if game is full", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to check game capacity: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to check game capacity: %w", err)
 	}
 	if isFull {
 		log.Warn("Attempted to join full game", zap.String("player_name", playerName))
-		return model.Game{}, fmt.Errorf("game is full")
+		return gameModel.Game{}, fmt.Errorf("game is full")
 	}
 
 	// Check if player with this name already exists to prevent duplicates
@@ -409,27 +488,25 @@ func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, p
 	}
 
 	// Create new player with the provided ID
-	player := model.Player{
-		ID:   playerID,
-		Name: playerName,
-		Resources: model.Resources{
-			Credits: 40, // Starting credits for standard projects
-		},
-		Production: model.Production{
-			Credits: 1, // Base production
-		},
-		TerraformRating:  20, // Starting terraform rating
-		PlayedCards:      make([]string, 0),
-		Passed:           false, // Player starts active, not passed
-		AvailableActions: 2,     // Standard actions per turn in action phase
-		VictoryPoints:    0,     // Starting victory points
-		IsConnected:      true,
+	player := playerPkg.Player{
+		ID:                 playerID,
+		Name:               playerName,
+		TerraformRating:    20,                        // Starting terraform rating
+		Cards:              make([]playerPkg.Card, 0), // Empty hand (Card instances)
+		PlayedCards:        make([]playerPkg.Card, 0), // No cards played yet (Card instances)
+		VictoryPoints:      0,                         // Starting victory points
+		IsConnected:        true,
+		Effects:            make([]playerPkg.PlayerEffect, 0),      // No effects initially
+		Actions:            make([]playerPkg.PlayerAction, 0),      // No actions initially
+		ResourceStorage:    make(map[string]int),                   // Empty resource storage
+		PaymentSubstitutes: make([]playerPkg.PaymentSubstitute, 0), // No substitutes initially
+		// Services will be injected after creation by repository
 	}
 
 	// Add player using clean architecture method (same as in JoinGame)
 	if err := s.AddPlayerToGame(ctx, gameID, player); err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to add player: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to add player: %w", err)
 	}
 
 	// Host setting is handled automatically by gameRepo.AddPlayerID
@@ -438,15 +515,15 @@ func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, p
 	updatedGame, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get updated game", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to get updated game: %w", err)
+		return gameModel.Game{}, fmt.Errorf("failed to get updated game: %w", err)
 	}
 
 	// If game is in starting_card_selection phase, distribute starting cards to the new player
-	if updatedGame.Status == model.GameStatusActive && updatedGame.CurrentPhase == model.GamePhaseStartingCardSelection {
+	if updatedGame.Status == gameModel.GameStatusActive && updatedGame.CurrentPhase == gameModel.GamePhaseStartingCardSelection {
 		log.Debug("Game is in starting card selection phase, distributing cards to new player", zap.String("player_id", playerID))
 
 		// Create a slice with just the new player for card distribution
-		newPlayerSlice := []model.Player{player}
+		newPlayerSlice := []playerPkg.Player{player}
 
 		if err := s.distributeStartingCards(ctx, gameID, newPlayerSlice); err != nil {
 			log.Error("Failed to distribute starting cards to new player", zap.Error(err), zap.String("player_id", playerID))
@@ -470,7 +547,7 @@ func (s *ServiceImpl) JoinGameWithPlayerID(ctx context.Context, gameID string, p
 }
 
 // AddPlayerToGame adds a player to the game (clean architecture pattern)
-func (s *ServiceImpl) AddPlayerToGame(ctx context.Context, gameID string, player model.Player) error {
+func (s *ServiceImpl) AddPlayerToGame(ctx context.Context, gameID string, player playerPkg.Player) error {
 	// Get current game to check max players
 	game, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
@@ -497,7 +574,7 @@ func (s *ServiceImpl) AddPlayerToGame(ctx context.Context, gameID string, player
 }
 
 // GetPlayerFromGame returns a player by ID (clean architecture pattern)
-func (s *ServiceImpl) GetPlayerFromGame(ctx context.Context, gameID, playerID string) (model.Player, error) {
+func (s *ServiceImpl) GetPlayerFromGame(ctx context.Context, gameID, playerID string) (playerPkg.Player, error) {
 	return s.playerRepo.GetByID(ctx, gameID, playerID)
 }
 
@@ -517,12 +594,12 @@ func (s *ServiceImpl) IsGameFull(ctx context.Context, gameID string) (bool, erro
 }
 
 // IsHost returns true if the given player ID is the host of the game (business logic from Game model)
-func (s *ServiceImpl) IsHost(game *model.Game, playerID string) bool {
+func (s *ServiceImpl) IsHost(game *gameModel.Game, playerID string) bool {
 	return game.HostPlayerID == playerID
 }
 
 // distributeStartingCards gives each player 10 random cards and 2 corporations to choose from for starting selection
-func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []model.Player) error {
+func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string, players []playerPkg.Player) error {
 	log := logger.WithGameContext(gameID, "")
 	log.Debug("Distributing starting cards and corporations to players")
 
@@ -532,8 +609,8 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
-	// Get the starting card pool from card service
-	startingCards, err := s.cardService.GetStartingCards(ctx)
+	// Get the starting card pool from card repository
+	startingCards, err := s.cardRepo.GetStartingCardPool(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get starting card pool: %w", err)
 	}
@@ -551,7 +628,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 	// Filter corporations by selected packs
 	selectedPacks := game.Settings.CardPacks
 	if len(selectedPacks) == 0 {
-		selectedPacks = model.DefaultCardPacks()
+		selectedPacks = gameModel.DefaultCardPacks()
 	}
 
 	// Create a set of selected packs for fast lookup
@@ -561,7 +638,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 	}
 
 	// Filter corporations by pack
-	allCorporations := make([]model.Card, 0)
+	allCorporations := make([]card.Card, 0)
 	for _, corp := range allCorporationCards {
 		if packSet[corp.Pack] {
 			allCorporations = append(allCorporations, corp)
@@ -578,8 +655,8 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 	}
 
 	// Separate cards into groups: cards with requirements and without requirements
-	cardsWithRequirements := make([]model.Card, 0)
-	cardsWithoutRequirements := make([]model.Card, 0)
+	cardsWithRequirements := make([]card.Card, 0)
+	cardsWithoutRequirements := make([]card.Card, 0)
 
 	for _, card := range startingCards {
 		hasRequirements := len(card.Requirements) > 0
@@ -597,12 +674,12 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 
 	// For each player, select 10 cards: at least 1 with requirements, rest random
 	for _, player := range players {
-		playerStartingCards := make([]model.Card, 0, 10)
+		playerStartingCards := make([]card.Card, 0, 10)
 
 		// Always include at least one card with requirements (if available)
 		if len(cardsWithRequirements) > 0 {
 			// Shuffle cards with requirements and pick one
-			requirementCards := make([]model.Card, len(cardsWithRequirements))
+			requirementCards := make([]card.Card, len(cardsWithRequirements))
 			copy(requirementCards, cardsWithRequirements)
 			for i := len(requirementCards) - 1; i > 0; i-- {
 				j := rand.Intn(i + 1)
@@ -615,7 +692,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 		remainingSlots := 10 - len(playerStartingCards)
 		if remainingSlots > 0 {
 			// Create a pool of remaining cards (excluding already selected)
-			remainingPool := make([]model.Card, 0, len(startingCards)-len(playerStartingCards))
+			remainingPool := make([]card.Card, 0, len(startingCards)-len(playerStartingCards))
 			selectedIDs := make(map[string]bool)
 			for _, card := range playerStartingCards {
 				selectedIDs[card.ID] = true
@@ -648,7 +725,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 		}
 
 		// Select 2 random corporations for this player
-		corporationPool := make([]model.Card, len(allCorporations))
+		corporationPool := make([]card.Card, len(allCorporations))
 		copy(corporationPool, allCorporations)
 
 		// Shuffle corporations
@@ -663,7 +740,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 		playerCorporationIDs[1] = corporationPool[1].ID
 
 		// Update the player with starting card IDs and corporation options
-		startingCardsPhase := model.SelectStartingCardsPhase{
+		startingCardsPhase := playerPkg.SelectStartingCardsPhase{
 			AvailableCards:        playerStartingCardIDs,
 			AvailableCorporations: playerCorporationIDs,
 		}
@@ -687,7 +764,7 @@ func (s *ServiceImpl) distributeStartingCards(ctx context.Context, gameID string
 }
 
 // validateGameSettings validates game creation settings
-func (s *ServiceImpl) validateGameSettings(settings model.GameSettings) error {
+func (s *ServiceImpl) validateGameSettings(settings gameModel.GameSettings) error {
 	if settings.MaxPlayers < 1 || settings.MaxPlayers > 5 {
 		return fmt.Errorf("max players must be between 1 and 5, got %d", settings.MaxPlayers)
 	}

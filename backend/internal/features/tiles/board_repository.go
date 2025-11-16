@@ -30,17 +30,17 @@ type BoardRepositoryImpl struct {
 
 // NewBoardRepository creates a new independent board repository with initial board state
 func NewBoardRepository(gameID string, initialBoard Board, eventBus *events.EventBusImpl) BoardRepository {
-	tiles := make(map[string]*Tile)
+	tilesMap := make(map[string]*Tile)
 	for i := range initialBoard.Tiles {
 		tile := initialBoard.Tiles[i]
 		coordKey := tile.Coordinates.String()
 		tileCopy := tile
-		tiles[coordKey] = &tileCopy
+		tilesMap[coordKey] = &tileCopy
 	}
 
 	return &BoardRepositoryImpl{
 		gameID:   gameID,
-		tiles:    tiles,
+		tiles:    tilesMap,
 		eventBus: eventBus,
 	}
 }
@@ -50,12 +50,12 @@ func (r *BoardRepositoryImpl) GetBoard(ctx context.Context) (Board, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	tiles := make([]Tile, 0, len(r.tiles))
+	tilesList := make([]Tile, 0, len(r.tiles))
 	for _, tile := range r.tiles {
-		tiles = append(tiles, *tile)
+		tilesList = append(tilesList, *tile)
 	}
 
-	return Board{Tiles: tiles}, nil
+	return Board{Tiles: tilesList}, nil
 }
 
 // PlaceTile places a tile occupant at the given coordinates
@@ -78,7 +78,7 @@ func (r *BoardRepositoryImpl) PlaceTile(ctx context.Context, coordinate HexPosit
 
 	// Publish event if eventBus is available
 	if r.eventBus != nil && ownerID != nil {
-		events.Publish(r.eventBus, TilePlacedEvent{
+		events.Publish(r.eventBus, events.TilePlacedEvent{
 			GameID:    r.gameID,
 			PlayerID:  *ownerID,
 			TileType:  string(occupant.Type),

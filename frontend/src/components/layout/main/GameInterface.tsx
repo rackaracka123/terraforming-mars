@@ -1093,24 +1093,25 @@ export default function GameInterface() {
 
   // Show/hide starting card selection overlay based on backend state
   useEffect(() => {
-    const cards = game?.currentPlayer?.selectStartingCardsPhase?.availableCards;
-    const hasCardSelection = cards && cards.length > 0;
+    const selectionPhase = game?.currentPlayer?.selectStartingCardsPhase;
 
-    if (
+    // Show overlay if phase exists AND selection not complete
+    const shouldShow =
       game?.currentPhase === GamePhaseStartingCardSelection &&
       game?.status === GameStatusActive &&
-      hasCardSelection &&
-      !showCardSelection
-    ) {
-      extractCardDetails(cards);
+      selectionPhase != null &&
+      !selectionPhase.selectionComplete;
+
+    if (shouldShow && !showCardSelection) {
+      extractCardDetails(selectionPhase.availableCards || []);
       setShowCardSelection(true);
-    } else if (showCardSelection && !hasCardSelection) {
+    } else if (!shouldShow && showCardSelection) {
       setShowCardSelection(false);
     }
   }, [
     game?.currentPhase,
     game?.status,
-    game?.currentPlayer?.selectStartingCardsPhase?.availableCards,
+    game?.currentPlayer?.selectStartingCardsPhase,
     showCardSelection,
     extractCardDetails,
   ]);

@@ -1,88 +1,189 @@
 package fixtures
 
 import (
-	"context"
-	"testing"
-
-	"terraforming-mars-backend/internal/game"
+	"github.com/google/uuid"
 	"terraforming-mars-backend/internal/player"
-
-	"github.com/stretchr/testify/require"
 )
 
-// PlayerFixture holds player configuration for testing
-type PlayerFixture struct {
-	Player player.Player
-}
+// PlayerOption is a function that modifies a test player
+type PlayerOption func(*player.Player)
 
-// NewDefaultPlayer creates a player with standard starting resources
-func NewDefaultPlayer() player.Player {
-	return player.Player{
-		ID:              "player1",
+// NewTestPlayer creates a new player for testing with optional modifications
+func NewTestPlayer(options ...PlayerOption) *player.Player {
+	p := &player.Player{
+		ID:              uuid.New().String(),
 		Name:            "Test Player",
-		Resources:       resources.Resources{Credits: 40},
-		Production:      resources.Production{Credits: 1},
 		TerraformRating: 20,
-		IsConnected:     true,
+		VictoryPoints:   0,
+		Resources:       player.Resources{},
+		Production:      player.Production{},
+		Cards:           []player.Card{},
+		PlayedCards:     []player.Card{},
+		Corporation:     nil,
+		Effects:         []player.PlayerEffect{},
+		Actions:         []player.PlayerAction{},
+		ResourceStorage: map[string]int{},
+	}
+
+	for _, option := range options {
+		option(p)
+	}
+
+	return p
+}
+
+// WithID sets a specific player ID
+func WithID(id string) PlayerOption {
+	return func(p *player.Player) {
+		p.ID = id
 	}
 }
 
-// NewPlayerWithResources creates a player with custom resources
-func NewPlayerWithResources(resources resources.Resources) player.Player {
-	player := NewDefaultPlayer()
-	player.Resources = resources
-	return player
-}
-
-// NewPlayerWithProduction creates a player with custom production
-func NewPlayerWithProduction(production resources.Production) player.Player {
-	player := NewDefaultPlayer()
-	player.Production = production
-	return player
-}
-
-// NewPlayerWithCorporation creates a player with a specific corporation
-func NewPlayerWithCorporation(corporation *model.Card) player.Player {
-	player := NewDefaultPlayer()
-	player.Corporation = corporation
-	return player
-}
-
-// NewPlayerWithResourcesAndProduction creates a player with custom resources and production
-func NewPlayerWithResourcesAndProduction(resources resources.Resources, production resources.Production) player.Player {
-	player := NewDefaultPlayer()
-	player.Resources = resources
-	player.Production = production
-	return player
-}
-
-// AddPlayerToGame creates a player and adds them to an existing game
-func AddPlayerToGame(t *testing.T, container *ServiceContainer, gameID string, player player.Player) string {
-	ctx := context.Background()
-	err := container.PlayerRepo.Create(ctx, gameID, player)
-	require.NoError(t, err)
-	return player.ID
-}
-
-// NewPlayerInGame creates a default player and adds them to a game
-func NewPlayerInGame(t *testing.T, container *ServiceContainer, gameID string, playerID string) player.Player {
-	ctx := context.Background()
-	player := player.Player{
-		ID:              playerID,
-		Name:            "Test Player " + playerID,
-		Resources:       resources.Resources{Credits: 40},
-		Production:      resources.Production{Credits: 1},
-		TerraformRating: 20,
-		IsConnected:     true,
+// WithName sets the player name
+func WithName(name string) PlayerOption {
+	return func(p *player.Player) {
+		p.Name = name
 	}
-	err := container.PlayerRepo.Create(ctx, gameID, player)
-	require.NoError(t, err)
-	return player
 }
 
-// NewPlayerWithCards creates a player with played cards
-func NewPlayerWithCards(playedCards []string) player.Player {
-	player := NewDefaultPlayer()
-	player.PlayedCards = playedCards
-	return player
+// WithTR sets the terraform rating
+func WithTR(tr int) PlayerOption {
+	return func(p *player.Player) {
+		p.TerraformRating = tr
+	}
+}
+
+// WithVP sets the victory points
+func WithVP(vp int) PlayerOption {
+	return func(p *player.Player) {
+		p.VictoryPoints = vp
+	}
+}
+
+// WithResources sets specific resource amounts
+func WithResources(credits, steel, titanium, plants, energy, heat int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources = player.Resources{
+			Credits:  credits,
+			Steel:    steel,
+			Titanium: titanium,
+			Plants:   plants,
+			Energy:   energy,
+			Heat:     heat,
+		}
+	}
+}
+
+// WithCredits sets only credits
+func WithCredits(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Credits = amount
+	}
+}
+
+// WithSteel sets only steel
+func WithSteel(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Steel = amount
+	}
+}
+
+// WithTitanium sets only titanium
+func WithTitanium(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Titanium = amount
+	}
+}
+
+// WithPlants sets only plants
+func WithPlants(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Plants = amount
+	}
+}
+
+// WithEnergy sets only energy
+func WithEnergy(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Energy = amount
+	}
+}
+
+// WithHeat sets only heat
+func WithHeat(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Resources.Heat = amount
+	}
+}
+
+// WithProduction sets specific production amounts
+func WithProduction(credits, steel, titanium, plants, energy, heat int) PlayerOption {
+	return func(p *player.Player) {
+		p.Production = player.Production{
+			Credits:  credits,
+			Steel:    steel,
+			Titanium: titanium,
+			Plants:   plants,
+			Energy:   energy,
+			Heat:     heat,
+		}
+	}
+}
+
+// WithCreditsProduction sets only credits production
+func WithCreditsProduction(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Production.Credits = amount
+	}
+}
+
+// WithEnergyProduction sets only energy production
+func WithEnergyProduction(amount int) PlayerOption {
+	return func(p *player.Player) {
+		p.Production.Energy = amount
+	}
+}
+
+// WithCards adds cards to hand
+func WithCards(cardIDs ...string) PlayerOption {
+	return func(p *player.Player) {
+		for _, id := range cardIDs {
+			p.Cards = append(p.Cards, player.Card{
+				ID:   id,
+				Name: "Test Card " + id,
+			})
+		}
+	}
+}
+
+// WithPlayedCards adds played cards
+func WithPlayedCards(cardIDs ...string) PlayerOption {
+	return func(p *player.Player) {
+		for _, id := range cardIDs {
+			p.PlayedCards = append(p.PlayedCards, player.Card{
+				ID:   id,
+				Name: "Test Card " + id,
+			})
+		}
+	}
+}
+
+// WithCorporation sets the corporation
+func WithCorporation(corpID, corpName string) PlayerOption {
+	return func(p *player.Player) {
+		p.Corporation = &player.Card{
+			ID:   corpID,
+			Name: corpName,
+		}
+	}
+}
+
+// WithResourceStorage adds resource storage
+func WithResourceStorage(resourceType string, amount int) PlayerOption {
+	return func(p *player.Player) {
+		if p.ResourceStorage == nil {
+			p.ResourceStorage = make(map[string]int)
+		}
+		p.ResourceStorage[resourceType] = amount
+	}
 }

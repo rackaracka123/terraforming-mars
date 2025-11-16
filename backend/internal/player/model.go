@@ -2,31 +2,23 @@ package player
 
 import (
 	"terraforming-mars-backend/internal/features/card"
-	"terraforming-mars-backend/internal/features/production"
-	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/features/tiles"
-	"terraforming-mars-backend/internal/features/turn"
-	"terraforming-mars-backend/internal/shared/types"
 )
 
-// Type aliases to avoid verbose references
 type Card = card.Card
 type CardType = card.CardType
 type PlayerEffect = card.PlayerEffect
 type PlayerAction = card.PlayerAction
-type PaymentSubstitute = types.PaymentSubstitute
-type Resources = resources.Resources
-type Production = resources.Production
 
 // ProductionPhase contains production phase state for display only
 // Actual card selection state is managed by production feature service
 type ProductionPhase struct {
-	AvailableCards    []string            `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
-	SelectionComplete bool                `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
-	BeforeResources   resources.Resources `json:"beforeResources" ts:"ResourcesDto"`
-	AfterResources    resources.Resources `json:"afterResources" ts:"ResourcesDto"`
-	EnergyConverted   int                 `json:"energyConverted" ts:"number"`
-	CreditsIncome     int                 `json:"creditsIncome" ts:"number"`
+	AvailableCards    []string  `json:"availableCards" ts:"CardDto[]"`  // Card IDs available for selection
+	SelectionComplete bool      `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	BeforeResources   Resources `json:"beforeResources" ts:"ResourcesDto"`
+	AfterResources    Resources `json:"afterResources" ts:"ResourcesDto"`
+	EnergyConverted   int       `json:"energyConverted" ts:"number"`
+	CreditsIncome     int       `json:"creditsIncome" ts:"number"`
 }
 
 // DeepCopy creates a deep copy of the ProductionPhase
@@ -90,18 +82,22 @@ type ForcedFirstAction struct {
 // Player represents a player in the game with service references to features
 type Player struct {
 	// Metadata
-	ID              string   `json:"id" ts:"string"`
-	Name            string   `json:"name" ts:"string"`
-	Corporation     *Card    `json:"corporation" ts:"CardDto | null"`
-	Cards           []string `json:"cards" ts:"string[]"`
-	PlayedCards     []string `json:"playedCards" ts:"string[]"`
-	TerraformRating int      `json:"terraformRating" ts:"number"` // Simple field, increases via events
-	VictoryPoints   int      `json:"victoryPoints" ts:"number"`
-	IsConnected     bool     `json:"isConnected" ts:"boolean"`
+	ID              string `json:"id" ts:"string"`
+	Name            string `json:"name" ts:"string"`
+	Corporation     *Card  `json:"corporation" ts:"CardDto | null"`
+	Cards           []Card `json:"cards" ts:"CardDto[]"`        // Live card instances with modifiers
+	PlayedCards     []Card `json:"playedCards" ts:"CardDto[]"`  // Live card instances
+	TerraformRating int    `json:"terraformRating" ts:"number"` // Simple field, increases via events
+	VictoryPoints   int    `json:"victoryPoints" ts:"number"`
+	IsConnected     bool   `json:"isConnected" ts:"boolean"`
 
 	// Card effects and actions
 	Effects []PlayerEffect `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
 	Actions []PlayerAction `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
+
+	// Resources and Production (moved from deleted resources feature)
+	Resources  Resources  `json:"resources" ts:"Resources"`
+	Production Production `json:"production" ts:"Production"`
 
 	// Selection phases (non-feature state)
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
@@ -118,68 +114,11 @@ type Player struct {
 
 	// Payment substitutes - alternative resources that can be used as payment for credits
 	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
-
-	// Feature Services (player-level state management)
-	ResourcesService  resources.Service      `json:"-"` // Resources + Production
-	ProductionService production.Service     `json:"-"` // Production phase card selection state
-	TileQueueService  tiles.TileQueueService `json:"-"` // Tile selection queue
-	PlayerTurnService turn.PlayerTurnService `json:"-"` // Passed status + available actions
 }
 
-// GetResources retrieves resources via service
-func (p *Player) GetResources() (resources.Resources, error) {
-	if p.ResourcesService == nil {
-		return resources.Resources{}, nil
-	}
-	return p.ResourcesService.Get(nil)
-}
-
-// GetProduction retrieves production via service
-func (p *Player) GetProduction() (resources.Production, error) {
-	if p.ResourcesService == nil {
-		return resources.Production{}, nil
-	}
-	return p.ResourcesService.GetProduction(nil)
-}
-
-// GetPassed retrieves passed status via service
-func (p *Player) GetPassed() (bool, error) {
-	if p.PlayerTurnService == nil {
-		return false, nil
-	}
-	return p.PlayerTurnService.GetPassed(nil)
-}
-
-// GetAvailableActions retrieves available actions via service
-func (p *Player) GetAvailableActions() (int, error) {
-	if p.PlayerTurnService == nil {
-		return 0, nil
-	}
-	return p.PlayerTurnService.GetAvailableActions(nil)
-}
-
-// GetPendingTileSelection retrieves pending tile selection via service
-func (p *Player) GetPendingTileSelection() (*tiles.PendingTileSelection, error) {
-	if p.TileQueueService == nil {
-		return nil, nil
-	}
-	return p.TileQueueService.GetPendingSelection(nil)
-}
-
-// GetPendingTileSelectionQueue retrieves tile selection queue via service
-func (p *Player) GetPendingTileSelectionQueue() (*tiles.PendingTileSelectionQueue, error) {
-	if p.TileQueueService == nil {
-		return nil, nil
-	}
-	return p.TileQueueService.GetQueue(nil)
-}
-
-// GetProductionPhaseState retrieves production phase state via service
-func (p *Player) GetProductionPhaseState() (*production.ProductionPhaseState, error) {
-	if p.ProductionService == nil {
-		return nil, nil
-	}
-	return p.ProductionService.Get(nil)
+// GetTerraformRating returns the player's terraform rating
+func (p *Player) GetTerraformRating() int {
+	return p.TerraformRating
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -191,34 +130,23 @@ func (p *Player) GetStartingSelectionCards() []string {
 	return p.SelectStartingCardsPhase.AvailableCards
 }
 
-// GetProductionPhaseCards returns the player's production phase card selection via service
-func (p *Player) GetProductionPhaseCards() []string {
-	if p.ProductionService == nil {
-		return nil
-	}
-
-	state, err := p.ProductionService.Get(nil)
-	if err != nil || state == nil {
-		return nil
-	}
-
-	return state.AvailableCards
-}
-
 // DeepCopy creates a deep copy of the Player
-// Note: Services are NOT copied - they should be references to the same instances
 func (p *Player) DeepCopy() *Player {
 	if p == nil {
 		return nil
 	}
 
-	// Copy cards slice
-	cardsCopy := make([]string, len(p.Cards))
-	copy(cardsCopy, p.Cards)
+	// Deep copy cards slice (Card instances with modifiers)
+	cardsCopy := make([]Card, len(p.Cards))
+	for i, card := range p.Cards {
+		cardsCopy[i] = card.DeepCopy()
+	}
 
-	// Copy played cards slice
-	playedCardsCopy := make([]string, len(p.PlayedCards))
-	copy(playedCardsCopy, p.PlayedCards)
+	// Deep copy played cards slice (Card instances)
+	playedCardsCopy := make([]Card, len(p.PlayedCards))
+	for i, card := range p.PlayedCards {
+		playedCardsCopy[i] = card.DeepCopy()
+	}
 
 	// Copy starting selection slice
 	var startingSelectionCopy *SelectStartingCardsPhase
@@ -341,10 +269,70 @@ func (p *Player) DeepCopy() *Player {
 		ForcedFirstAction:        forcedFirstActionCopy,
 		ResourceStorage:          resourceStorageCopy,
 		PaymentSubstitutes:       paymentSubstitutesCopy,
-		// Services are NOT copied - they're references to the same instances
-		ResourcesService:  p.ResourcesService,
-		ProductionService: p.ProductionService,
-		TileQueueService:  p.TileQueueService,
-		PlayerTurnService: p.PlayerTurnService,
+		Resources:                p.Resources,
+		Production:               p.Production,
 	}
+}
+
+// FindCardInHand finds a card in the player's hand by ID
+func (p *Player) FindCardInHand(cardID string) *Card {
+	for i := range p.Cards {
+		if p.Cards[i].ID == cardID {
+			return &p.Cards[i]
+		}
+	}
+	return nil
+}
+
+// FindPlayedCard finds a card in the player's played cards by ID
+func (p *Player) FindPlayedCard(cardID string) *Card {
+	for i := range p.PlayedCards {
+		if p.PlayedCards[i].ID == cardID {
+			return &p.PlayedCards[i]
+		}
+	}
+	return nil
+}
+
+// GetAllTags returns all tags from played cards and corporation
+func (p *Player) GetAllTags() []card.CardTag {
+	var tags []card.CardTag
+
+	// Add corporation tags
+	if p.Corporation != nil {
+		tags = append(tags, p.Corporation.Tags...)
+	}
+
+	// Add tags from played cards
+	for _, playedCard := range p.PlayedCards {
+		tags = append(tags, playedCard.Tags...)
+	}
+
+	return tags
+}
+
+// CountTags returns a map of tag counts
+func (p *Player) CountTags() map[card.CardTag]int {
+	tagCounts := make(map[card.CardTag]int)
+
+	// Count corporation tags
+	if p.Corporation != nil {
+		for _, tag := range p.Corporation.Tags {
+			tagCounts[tag]++
+		}
+	}
+
+	// Count tags from played cards
+	for _, playedCard := range p.PlayedCards {
+		for _, tag := range playedCard.Tags {
+			tagCounts[tag]++
+		}
+	}
+
+	return tagCounts
+}
+
+// HasCardWithID checks if player has a card with given ID in hand
+func (p *Player) HasCardWithID(cardID string) bool {
+	return p.FindCardInHand(cardID) != nil
 }

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/features/parameters"
-	"terraforming-mars-backend/internal/features/resources"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
@@ -14,40 +14,32 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// AsteroidCost is the credit cost to launch an asteroid
-	AsteroidCost = 14
-)
-
 // LaunchAsteroidAction handles the launch asteroid standard project.
 // This action orchestrates:
 // 1. Validate player can afford 14 credits
-// 2. Deduct 14 credits via resources mechanic
-// 3. Raise temperature by 1 step via parameters mechanic
-// 4. Award TR via parameters mechanic
+// 2. Deduct 14 credits
+// 3. Raise temperature by 1 step
+// 4. Award TR if temperature was raised
 // 5. Broadcast updated game state
 type LaunchAsteroidAction struct {
-	playerRepo     player.Repository
-	gameRepo       game.Repository
-	resourcesMech  resources.Service
-	parametersMech parameters.Service
-	sessionManager session.SessionManager
+	playerRepo        player.Repository
+	gameRepo          game.Repository
+	parametersService parameters.Service
+	sessionManager    session.SessionManager
 }
 
 // NewLaunchAsteroidAction creates a new launch asteroid action
 func NewLaunchAsteroidAction(
 	playerRepo player.Repository,
 	gameRepo game.Repository,
-	resourcesMech resources.Service,
-	parametersMech parameters.Service,
+	parametersService parameters.Service,
 	sessionManager session.SessionManager,
 ) *LaunchAsteroidAction {
 	return &LaunchAsteroidAction{
-		playerRepo:     playerRepo,
-		gameRepo:       gameRepo,
-		resourcesMech:  resourcesMech,
-		parametersMech: parametersMech,
-		sessionManager: sessionManager,
+		playerRepo:        playerRepo,
+		gameRepo:          gameRepo,
+		parametersService: parametersService,
+		sessionManager:    sessionManager,
 	}
 }
 
@@ -56,75 +48,78 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🚀 Executing launch asteroid action")
 
-	// 1. Validate player can afford the cost
-	player, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get cost from domain
+	cost := domain.StandardProjectCosts.Asteroid
+
+	// Validate player can afford the cost
+	canAfford, err := a.playerRepo.CanAfford(ctx, gameID, playerID, cost)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		log.Error("Failed to check affordability", zap.Error(err))
+		return fmt.Errorf("failed to check affordability: %w", err)
 	}
 
-	playerResources, err := player.GetResources()
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
-
-	if playerResources.Credits < AsteroidCost {
+	if !canAfford {
 		log.Warn("Player cannot afford asteroid",
-			zap.Int("cost", AsteroidCost),
-			zap.Int("available", playerResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", AsteroidCost, playerResources.Credits)
+			zap.Int("cost", cost.Credits))
+		return fmt.Errorf("insufficient credits: need %d", cost.Credits)
 	}
 
-	// 2. Deduct credits via resources mechanic
-	cost := resources.ResourceSet{
-		Credits: AsteroidCost,
-	}
-
-	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
+	// Deduct credits
+	if err := a.playerRepo.DeductResources(ctx, gameID, playerID, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
-	log.Info("💰 Credits deducted", zap.Int("amount", AsteroidCost))
+	log.Info("💰 Credits deducted", zap.Int("amount", cost.Credits))
 
-	// 3. Get game for parameters service
-	game, err := a.gameRepo.GetByID(ctx, gameID)
+	// Raise temperature by 1 step (+2°C) if not already maxed
+	globalParams, err := a.parametersService.GetGlobalParameters(ctx)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
+		log.Error("Failed to get global parameters", zap.Error(err))
+		return fmt.Errorf("failed to get global parameters: %w", err)
 	}
 
-	// 4. Check if temperature can be raised
-	isMaxed, err := game.ParametersService.IsTemperatureMaxed(ctx)
-	if err != nil {
-		log.Error("Failed to check temperature max", zap.Error(err))
-		return fmt.Errorf("failed to check temperature: %w", err)
-	}
-
-	// 5. Raise temperature by 1 step (awards TR automatically in parameters mechanic)
-	if !isMaxed {
-		stepsRaised, err := game.ParametersService.RaiseTemperature(ctx, 1)
+	temperatureRaised := false
+	if globalParams.Temperature < parameters.MaxTemperature {
+		// Raise temperature by 1 step (service handles the 2°C increment and max checks)
+		newTemperature, err := a.parametersService.RaiseTemperature(ctx, 1)
 		if err != nil {
 			log.Error("Failed to raise temperature", zap.Error(err))
 			return fmt.Errorf("failed to raise temperature: %w", err)
 		}
 
-		if stepsRaised > 0 {
-			log.Info("🌡️ Temperature raised",
-				zap.Int("steps", stepsRaised),
-				zap.String("effect", "Asteroid impact"))
-		} else {
-			log.Info("🌡️ Temperature already at maximum")
-		}
+		temperatureRaised = true
+		log.Info("🌡️ Temperature raised by asteroid impact",
+			zap.Int("new_temperature", newTemperature))
 	} else {
-		log.Info("🌡️ Temperature already at maximum, no increase")
+		log.Info("🌡️ Temperature already at maximum, no TR awarded")
+	}
+
+	// Award TR if temperature was raised
+	if temperatureRaised {
+		currentPlayer, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+		if err != nil {
+			log.Error("Failed to get player for TR update", zap.Error(err))
+			return fmt.Errorf("failed to get player: %w", err)
+		}
+
+		newTR := currentPlayer.TerraformRating + 1
+		if err := a.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+			log.Error("Failed to update terraform rating", zap.Error(err))
+			return fmt.Errorf("failed to update terraform rating: %w", err)
+		}
+
+		log.Info("⭐ Terraform rating increased",
+			zap.Int("new_tr", newTR))
 	}
 
 	log.Info("✅ Launch asteroid action completed successfully")
 
-	// 5. Broadcast updated game state
-	a.sessionManager.Broadcast(gameID)
+	// Broadcast updated game state
+	if err := a.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+		// Don't fail the operation, just log
+	}
 
 	return nil
 }

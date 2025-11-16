@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/features/tiles"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
@@ -14,41 +14,32 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// CityCost is the credit cost to build a city
-	CityCost = 25
-)
-
 // BuildCityAction handles the build city standard project.
 // This action orchestrates:
 // 1. Validate player can afford 25 credits
-// 2. Deduct 25 credits via resources mechanic
-// 3. Increase credit production by 1 via resources mechanic
-// 4. Create tile queue for city placement via tiles mechanic
-// 5. Process tile queue to prepare tile selection
-// 6. Broadcast updated game state
+// 2. Deduct 25 credits
+// 3. Increase credit production by 1
+// 4. Create pending tile selection for city placement
+// 5. Broadcast updated game state
 type BuildCityAction struct {
-	playerRepo     player.Repository
-	gameRepo       game.Repository
-	resourcesMech  resources.Service
-	tilesMech      tiles.TileQueueService
-	sessionManager session.SessionManager
+	playerRepo       player.Repository
+	gameRepo         game.Repository
+	placementService tiles.PlacementService
+	sessionManager   session.SessionManager
 }
 
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
 	playerRepo player.Repository,
 	gameRepo game.Repository,
-	resourcesMech resources.Service,
-	tilesMech tiles.TileQueueService,
+	placementService tiles.PlacementService,
 	sessionManager session.SessionManager,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		playerRepo:     playerRepo,
-		gameRepo:       gameRepo,
-		resourcesMech:  resourcesMech,
-		tilesMech:      tilesMech,
-		sessionManager: sessionManager,
+		playerRepo:       playerRepo,
+		gameRepo:         gameRepo,
+		placementService: placementService,
+		sessionManager:   sessionManager,
 	}
 }
 
@@ -57,71 +48,75 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🏙️ Executing build city action")
 
-	// 1. Validate player can afford the cost
-	player, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get cost from domain
+	cost := domain.StandardProjectCosts.City
+
+	// Validate player can afford the cost
+	canAfford, err := a.playerRepo.CanAfford(ctx, gameID, playerID, cost)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		log.Error("Failed to check affordability", zap.Error(err))
+		return fmt.Errorf("failed to check affordability: %w", err)
 	}
 
-	playerResources, err := player.GetResources()
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
-
-	if playerResources.Credits < CityCost {
+	if !canAfford {
 		log.Warn("Player cannot afford city",
-			zap.Int("cost", CityCost),
-			zap.Int("available", playerResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", CityCost, playerResources.Credits)
+			zap.Int("cost", cost.Credits))
+		return fmt.Errorf("insufficient credits: need %d", cost.Credits)
 	}
 
-	// 2. Deduct credits via resources mechanic
-	cost := resources.ResourceSet{
-		Credits: CityCost,
-	}
-
-	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
+	// Deduct credits
+	if err := a.playerRepo.DeductResources(ctx, gameID, playerID, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
-	log.Info("💰 Credits deducted", zap.Int("amount", CityCost))
+	log.Info("💰 Credits deducted", zap.Int("amount", cost.Credits))
 
-	// 3. Increase credit production by 1 (cities provide income)
-	production := resources.ResourceSet{
+	// Increase credit production by 1
+	production := domain.ResourceSet{
 		Credits: 1,
 	}
 
-	if err := player.ResourcesService.AddProduction(ctx, production); err != nil {
+	if err := a.playerRepo.AddProduction(ctx, gameID, playerID, production); err != nil {
 		log.Error("Failed to increase credit production", zap.Error(err))
 		return fmt.Errorf("failed to increase credit production: %w", err)
 	}
 
 	log.Info("💰 Credit production increased", zap.Int("amount", 1))
 
-	// 4. Create tile queue for city placement
-	queueSource := "standard-project-city"
-	if err := a.playerRepo.CreateTileQueue(ctx, gameID, playerID, queueSource, []string{"city"}); err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
+	// Calculate available hexes for city placement
+	availableHexes, err := a.placementService.CalculateAvailablePositions(ctx, "city")
+	if err != nil {
+		log.Error("Failed to calculate available hexes", zap.Error(err))
+		return fmt.Errorf("failed to calculate available hexes: %w", err)
 	}
 
-	log.Info("📋 Tile queue created for city placement")
+	// Convert HexPosition slice to string slice
+	availableHexStrings := make([]string, len(availableHexes))
+	for i, hex := range availableHexes {
+		availableHexStrings[i] = hex.String()
+	}
 
-	// 5. TODO: Process tile queue to prepare tile selection
-	// ProcessTileQueue method was removed during refactoring
-	// Need to implement: pop from queue, calculate available hexes, set pending selection
-	// if err := a.tilesMech.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-	// 	log.Error("Failed to process tile queue", zap.Error(err))
-	// 	return fmt.Errorf("failed to process tile queue: %w", err)
-	// }
+	// Create pending tile selection
+	pendingSelection := &tiles.PendingTileSelection{
+		TileType:       "city",
+		AvailableHexes: availableHexStrings,
+		Source:         "standard-project-city",
+	}
 
+	if err := a.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingSelection); err != nil {
+		log.Error("Failed to create pending tile selection", zap.Error(err))
+		return fmt.Errorf("failed to create pending tile selection: %w", err)
+	}
+
+	log.Info("🎯 Pending tile selection created", zap.Int("available_hexes", len(availableHexes)))
 	log.Info("✅ Build city action completed successfully")
 
-	// 6. Broadcast updated game state
-	a.sessionManager.Broadcast(gameID)
+	// Broadcast updated game state
+	if err := a.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+		// Don't fail the operation, just log
+	}
 
 	return nil
 }

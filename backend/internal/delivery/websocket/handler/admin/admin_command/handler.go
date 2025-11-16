@@ -4,35 +4,37 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"terraforming-mars-backend/internal/features/card"
 
+	"terraforming-mars-backend/internal/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
+	"terraforming-mars-backend/internal/features/parameters"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/player"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles admin command requests (development mode only)
 type Handler struct {
-	gameService   service.GameService
-	playerService service.PlayerService
-	cardService   service.CardService
-	adminService  service.AdminService
-	errorHandler  *utils.ErrorHandler
-	logger        *zap.Logger
+	gameRepo     game.Repository
+	cardService  card.CardRepository
+	adminService admin.AdminService
+	errorHandler *utils.ErrorHandler
+	logger       *zap.Logger
 }
 
 // NewHandler creates a new admin command handler
-func NewHandler(gameService service.GameService, playerService service.PlayerService, cardService service.CardService, adminService service.AdminService) *Handler {
+func NewHandler(gameRepo game.Repository, cardService card.CardRepository, adminService admin.AdminService) *Handler {
 	return &Handler{
-		gameService:   gameService,
-		playerService: playerService,
-		cardService:   cardService,
-		adminService:  adminService,
-		errorHandler:  utils.NewErrorHandler(),
-		logger:        logger.Get(),
+		gameRepo:     gameRepo,
+		cardService:  cardService,
+		adminService: adminService,
+		errorHandler: utils.NewErrorHandler(),
+		logger:       logger.Get(),
 	}
 }
 
@@ -102,7 +104,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // validateDevelopmentMode ensures the game is in development mode
 func (h *Handler) validateDevelopmentMode(ctx context.Context, gameID string) error {
-	game, err := h.gameService.GetGame(ctx, gameID)
+	game, err := h.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		return fmt.Errorf("failed to get game state: %w", err)
 	}
@@ -166,7 +168,7 @@ func (h *Handler) handleSetPhase(ctx context.Context, gameID string, payload int
 		zap.String("phase", command.Phase))
 
 	// Use AdminService to set the phase
-	return h.adminService.OnAdminSetPhase(ctx, gameID, model.GamePhase(command.Phase))
+	return h.adminService.OnAdminSetPhase(ctx, gameID, game.GamePhase(command.Phase))
 }
 
 // handleSetResources sets a player's resources
@@ -182,7 +184,7 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		zap.Any("resources", command.Resources))
 
 	// Convert DTO to model
-	resources := model.Resources{
+	resourcesData := player.Resources{
 		Credits:  command.Resources.Credits,
 		Steel:    command.Resources.Steel,
 		Titanium: command.Resources.Titanium,
@@ -192,7 +194,7 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 	}
 
 	// Use AdminService to set resources
-	return h.adminService.OnAdminSetResources(ctx, gameID, command.PlayerID, resources)
+	return h.adminService.OnAdminSetResources(ctx, gameID, command.PlayerID, resourcesData)
 }
 
 // handleSetProduction sets a player's production
@@ -208,7 +210,7 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		zap.Any("production", command.Production))
 
 	// Convert DTO to model
-	production := model.Production{
+	productionData := player.Production{
 		Credits:  command.Production.Credits,
 		Steel:    command.Production.Steel,
 		Titanium: command.Production.Titanium,
@@ -218,7 +220,7 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 	}
 
 	// Use AdminService to set production
-	return h.adminService.OnAdminSetProduction(ctx, gameID, command.PlayerID, production)
+	return h.adminService.OnAdminSetProduction(ctx, gameID, command.PlayerID, productionData)
 }
 
 // handleSetGlobalParams sets the global parameters
@@ -233,7 +235,7 @@ func (h *Handler) handleSetGlobalParams(ctx context.Context, gameID string, payl
 		zap.Any("global_parameters", command.GlobalParameters))
 
 	// Convert DTO to model
-	globalParams := model.GlobalParameters{
+	globalParams := parameters.GlobalParameters{
 		Temperature: command.GlobalParameters.Temperature,
 		Oxygen:      command.GlobalParameters.Oxygen,
 		Oceans:      command.GlobalParameters.Oceans,

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/features/resources"
+	"terraforming-mars-backend/internal/domain"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/player"
@@ -13,21 +13,15 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// PowerPlantCost is the credit cost to build a power plant
-	PowerPlantCost = 11
-)
-
 // BuildPowerPlantAction handles the build power plant standard project.
 // This action orchestrates:
 // 1. Validate player can afford 11 credits
-// 2. Deduct 11 credits via resources mechanic
-// 3. Increase energy production by 1 via resources mechanic
+// 2. Deduct 11 credits
+// 3. Increase energy production by 1
 // 4. Broadcast updated game state
 type BuildPowerPlantAction struct {
 	playerRepo     player.Repository
 	gameRepo       game.Repository
-	resourcesMech  resources.Service
 	sessionManager session.SessionManager
 }
 
@@ -35,13 +29,11 @@ type BuildPowerPlantAction struct {
 func NewBuildPowerPlantAction(
 	playerRepo player.Repository,
 	gameRepo game.Repository,
-	resourcesMech resources.Service,
 	sessionManager session.SessionManager,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
 		playerRepo:     playerRepo,
 		gameRepo:       gameRepo,
-		resourcesMech:  resourcesMech,
 		sessionManager: sessionManager,
 	}
 }
@@ -51,44 +43,36 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, play
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("⚡ Executing build power plant action")
 
-	// 1. Validate player can afford the cost
-	player, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get cost from domain
+	cost := domain.StandardProjectCosts.PowerPlant
+
+	// Validate player can afford the cost
+	canAfford, err := a.playerRepo.CanAfford(ctx, gameID, playerID, cost)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		log.Error("Failed to check affordability", zap.Error(err))
+		return fmt.Errorf("failed to check affordability: %w", err)
 	}
 
-	playerResources, err := player.GetResources()
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
-
-	if playerResources.Credits < PowerPlantCost {
+	if !canAfford {
 		log.Warn("Player cannot afford power plant",
-			zap.Int("cost", PowerPlantCost),
-			zap.Int("available", playerResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", PowerPlantCost, playerResources.Credits)
+			zap.Int("cost", cost.Credits))
+		return fmt.Errorf("insufficient credits: need %d", cost.Credits)
 	}
 
-	// 2. Deduct credits via resources mechanic
-	cost := resources.ResourceSet{
-		Credits: PowerPlantCost,
-	}
-
-	if err := player.ResourcesService.PayCost(ctx, cost); err != nil {
+	// Deduct credits
+	if err := a.playerRepo.DeductResources(ctx, gameID, playerID, cost); err != nil {
 		log.Error("Failed to deduct credits", zap.Error(err))
 		return fmt.Errorf("failed to deduct credits: %w", err)
 	}
 
-	log.Info("💰 Credits deducted", zap.Int("amount", PowerPlantCost))
+	log.Info("💰 Credits deducted", zap.Int("amount", cost.Credits))
 
-	// 3. Increase energy production by 1
-	production := resources.ResourceSet{
+	// Increase energy production by 1
+	production := domain.ResourceSet{
 		Energy: 1,
 	}
 
-	if err := player.ResourcesService.AddProduction(ctx, production); err != nil {
+	if err := a.playerRepo.AddProduction(ctx, gameID, playerID, production); err != nil {
 		log.Error("Failed to increase energy production", zap.Error(err))
 		return fmt.Errorf("failed to increase energy production: %w", err)
 	}
@@ -96,8 +80,11 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID string, play
 	log.Info("⚡ Energy production increased", zap.Int("amount", 1))
 	log.Info("✅ Build power plant action completed successfully")
 
-	// 4. Broadcast updated game state
-	a.sessionManager.Broadcast(gameID)
+	// Broadcast updated game state
+	if err := a.sessionManager.Broadcast(gameID); err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+		// Don't fail the operation, just log
+	}
 
 	return nil
 }

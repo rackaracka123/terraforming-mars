@@ -3,322 +3,231 @@ package events_test
 import (
 	"sync"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/assert"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/player"
 )
 
-// TestEventBusSubscribeAndPublish tests basic subscribe and publish functionality
-func TestEventBusSubscribeAndPublish(t *testing.T) {
+// TestEvent is a simple event for testing
+type TestEvent struct {
+	Message string
+	Value   int
+}
+
+// AnotherTestEvent is another event type for testing
+type AnotherTestEvent struct {
+	Data string
+}
+
+func TestEventBus_Subscribe_Success(t *testing.T) {
 	bus := events.NewEventBus()
+	called := false
 
-	// Track if handler was called
-	var handlerCalled bool
-	var receivedEvent events.TemperatureChangedEvent
+	events.Subscribe(bus, func(event TestEvent) {
+		called = true
+	})
 
-	// Subscribe to TemperatureChangedEvent
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		handlerCalled = true
+	events.Publish(bus, TestEvent{Message: "test", Value: 42})
+
+	assert.True(t, called, "Handler should have been called")
+}
+
+func TestEventBus_Publish_SingleSubscriber(t *testing.T) {
+	bus := events.NewEventBus()
+	var receivedEvent TestEvent
+
+	events.Subscribe(bus, func(event TestEvent) {
 		receivedEvent = event
 	})
 
-	// Publish event
-	testEvent := events.TemperatureChangedEvent{
-		GameID:    "game-123",
-		OldValue:  -30,
-		NewValue:  -28,
-		ChangedBy: "player-456",
-		Timestamp: time.Now(),
-	}
-	events.Publish(bus, testEvent)
+	expectedEvent := TestEvent{Message: "hello", Value: 123}
+	events.Publish(bus, expectedEvent)
 
-	// Verify handler was called
-	if !handlerCalled {
-		t.Error("Expected handler to be called, but it wasn't")
-	}
-
-	// Verify event data
-	if receivedEvent.GameID != testEvent.GameID {
-		t.Errorf("Expected GameID %s, got %s", testEvent.GameID, receivedEvent.GameID)
-	}
-	if receivedEvent.OldValue != testEvent.OldValue {
-		t.Errorf("Expected OldValue %d, got %d", testEvent.OldValue, receivedEvent.OldValue)
-	}
-	if receivedEvent.NewValue != testEvent.NewValue {
-		t.Errorf("Expected NewValue %d, got %d", testEvent.NewValue, receivedEvent.NewValue)
-	}
+	assert.Equal(t, expectedEvent.Message, receivedEvent.Message)
+	assert.Equal(t, expectedEvent.Value, receivedEvent.Value)
 }
 
-// TestEventBusMultipleSubscribers tests that multiple subscribers receive the same event
-func TestEventBusMultipleSubscribers(t *testing.T) {
+func TestEventBus_Publish_MultipleSubscribers(t *testing.T) {
 	bus := events.NewEventBus()
-
-	// Track calls for each handler
-	var handler1Called, handler2Called, handler3Called bool
-
-	// Subscribe multiple handlers
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		handler1Called = true
-	})
-
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		handler2Called = true
-	})
-
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		handler3Called = true
-	})
-
-	// Publish event
-	testEvent := events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		OldValue: -30,
-		NewValue: -28,
-	}
-	events.Publish(bus, testEvent)
-
-	// Verify all handlers were called
-	if !handler1Called {
-		t.Error("Handler 1 was not called")
-	}
-	if !handler2Called {
-		t.Error("Handler 2 was not called")
-	}
-	if !handler3Called {
-		t.Error("Handler 3 was not called")
-	}
-}
-
-// TestEventBusTypeSafety tests that only matching event types trigger handlers
-func TestEventBusTypeSafety(t *testing.T) {
-	bus := events.NewEventBus()
-
-	var tempHandlerCalled bool
-	var oxygenHandlerCalled bool
-
-	// Subscribe to different event types
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		tempHandlerCalled = true
-	})
-
-	_ = events.Subscribe(bus, func(event events.OxygenChangedEvent) {
-		oxygenHandlerCalled = true
-	})
-
-	// Publish TemperatureChangedEvent
-	events.Publish(bus, events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		OldValue: -30,
-		NewValue: -28,
-	})
-
-	// Only temperature handler should be called
-	if !tempHandlerCalled {
-		t.Error("Temperature handler was not called")
-	}
-	if oxygenHandlerCalled {
-		t.Error("Oxygen handler should not have been called")
-	}
-
-	// Reset flags
-	tempHandlerCalled = false
-	oxygenHandlerCalled = false
-
-	// Publish OxygenChangedEvent
-	events.Publish(bus, events.OxygenChangedEvent{
-		GameID:   "game-123",
-		OldValue: 0,
-		NewValue: 2,
-	})
-
-	// Only oxygen handler should be called
-	if tempHandlerCalled {
-		t.Error("Temperature handler should not have been called")
-	}
-	if !oxygenHandlerCalled {
-		t.Error("Oxygen handler was not called")
-	}
-}
-
-// TestEventBusUnsubscribe tests that unsubscribed handlers don't receive events
-func TestEventBusUnsubscribe(t *testing.T) {
-	bus := events.NewEventBus()
-
-	var handlerCalled bool
-
-	// Subscribe and get subscription ID
-	subID := events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		handlerCalled = true
-	})
-
-	// Publish event - handler should be called
-	events.Publish(bus, events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		OldValue: -30,
-		NewValue: -28,
-	})
-
-	if !handlerCalled {
-		t.Error("Handler was not called before unsubscribe")
-	}
-
-	// Unsubscribe
-	bus.Unsubscribe(subID)
-
-	// Reset flag
-	handlerCalled = false
-
-	// Publish event again - handler should NOT be called
-	events.Publish(bus, events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		OldValue: -28,
-		NewValue: -26,
-	})
-
-	if handlerCalled {
-		t.Error("Handler was called after unsubscribe")
-	}
-}
-
-// TestEventBusConcurrentPublish tests thread-safety with concurrent publishers
-func TestEventBusConcurrentPublish(t *testing.T) {
-	bus := events.NewEventBus()
-
-	// Track received events
+	callCount := 0
 	var mu sync.Mutex
-	receivedEvents := make([]events.TemperatureChangedEvent, 0)
 
-	// Subscribe handler
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
+	// Subscribe three handlers
+	for i := 0; i < 3; i++ {
+		events.Subscribe(bus, func(event TestEvent) {
+			mu.Lock()
+			callCount++
+			mu.Unlock()
+		})
+	}
+
+	events.Publish(bus, TestEvent{Message: "broadcast", Value: 1})
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 3, callCount, "All three handlers should have been called")
+}
+
+func TestEventBus_Publish_NoSubscribers(t *testing.T) {
+	bus := events.NewEventBus()
+
+	// Publishing with no subscribers should not panic
+	assert.NotPanics(t, func() {
+		events.Publish(bus, TestEvent{Message: "orphan", Value: 0})
+	})
+}
+
+func TestEventBus_Publish_DifferentEventTypes(t *testing.T) {
+	bus := events.NewEventBus()
+	testEventCalled := false
+	anotherEventCalled := false
+
+	events.Subscribe(bus, func(event TestEvent) {
+		testEventCalled = true
+	})
+
+	events.Subscribe(bus, func(event AnotherTestEvent) {
+		anotherEventCalled = true
+	})
+
+	// Publish TestEvent - only TestEvent handler should be called
+	events.Publish(bus, TestEvent{Message: "test", Value: 1})
+	assert.True(t, testEventCalled)
+	assert.False(t, anotherEventCalled)
+
+	// Reset and publish AnotherTestEvent
+	testEventCalled = false
+	anotherEventCalled = false
+
+	events.Publish(bus, AnotherTestEvent{Data: "other"})
+	assert.False(t, testEventCalled)
+	assert.True(t, anotherEventCalled)
+}
+
+func TestEventBus_TypeSafety(t *testing.T) {
+	bus := events.NewEventBus()
+	var receivedValue int
+
+	events.Subscribe(bus, func(event TestEvent) {
+		receivedValue = event.Value
+	})
+
+	// This should work - correct type
+	events.Publish(bus, TestEvent{Message: "correct", Value: 100})
+	assert.Equal(t, 100, receivedValue)
+
+	// This should not call the TestEvent handler - different type
+	events.Publish(bus, AnotherTestEvent{Data: "wrong type"})
+	assert.Equal(t, 100, receivedValue, "Value should not change from different event type")
+}
+
+func TestEventBus_ThreadSafety_ConcurrentPublish(t *testing.T) {
+	bus := events.NewEventBus()
+	var mu sync.Mutex
+	callCount := 0
+
+	events.Subscribe(bus, func(event TestEvent) {
 		mu.Lock()
-		receivedEvents = append(receivedEvents, event)
+		callCount++
 		mu.Unlock()
 	})
 
-	// Publish events concurrently
-	const numGoroutines = 10
+	// Publish 100 events concurrently
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
-
-	for i := 0; i < numGoroutines; i++ {
-		go func(index int) {
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(value int) {
 			defer wg.Done()
-			events.Publish(bus, events.TemperatureChangedEvent{
-				GameID:   "game-123",
-				OldValue: index,
-				NewValue: index + 2,
-			})
+			events.Publish(bus, TestEvent{Message: "concurrent", Value: value})
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Verify all events were received
 	mu.Lock()
 	defer mu.Unlock()
-
-	if len(receivedEvents) != numGoroutines {
-		t.Errorf("Expected %d events, got %d", numGoroutines, len(receivedEvents))
-	}
+	assert.Equal(t, 100, callCount, "All 100 concurrent events should have been processed")
 }
 
-// TestEventBusConcurrentSubscribe tests thread-safety with concurrent subscriptions
-func TestEventBusConcurrentSubscribe(t *testing.T) {
+func TestEventBus_ThreadSafety_ConcurrentSubscribe(t *testing.T) {
 	bus := events.NewEventBus()
-
-	const numSubscribers = 10
-	var wg sync.WaitGroup
-	wg.Add(numSubscribers)
-
-	// Track calls
 	var mu sync.Mutex
-	callCounts := make(map[int]int)
+	callCount := 0
 
-	// Subscribe concurrently
-	for i := 0; i < numSubscribers; i++ {
-		go func(index int) {
+	// Subscribe 50 handlers concurrently
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
 			defer wg.Done()
-			_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
+			events.Subscribe(bus, func(event TestEvent) {
 				mu.Lock()
-				callCounts[index]++
+				callCount++
 				mu.Unlock()
 			})
-		}(i)
+		}()
 	}
 
 	wg.Wait()
 
-	// Publish event
-	events.Publish(bus, events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		OldValue: -30,
-		NewValue: -28,
-	})
+	// Publish one event - all 50 handlers should be called
+	events.Publish(bus, TestEvent{Message: "test", Value: 1})
 
-	// Verify all handlers were called
 	mu.Lock()
 	defer mu.Unlock()
-
-	if len(callCounts) != numSubscribers {
-		t.Errorf("Expected %d handlers to be called, got %d", numSubscribers, len(callCounts))
-	}
-
-	for i := 0; i < numSubscribers; i++ {
-		if callCounts[i] != 1 {
-			t.Errorf("Handler %d was called %d times, expected 1", i, callCounts[i])
-		}
-	}
+	assert.Equal(t, 50, callCount, "All 50 concurrently subscribed handlers should have been called")
 }
 
-// TestEventBusDifferentEventTypes tests multiple different event types
-func TestEventBusDifferentEventTypes(t *testing.T) {
+func TestEventBus_MultipleEventsInSequence(t *testing.T) {
 	bus := events.NewEventBus()
+	var receivedValues []int
 
-	var tempEventReceived events.TemperatureChangedEvent
-	var resourceEventReceived events.ResourcesChangedEvent
-	var trEventReceived events.TerraformRatingChangedEvent
-
-	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
-		tempEventReceived = event
+	events.Subscribe(bus, func(event TestEvent) {
+		receivedValues = append(receivedValues, event.Value)
 	})
 
-	_ = events.Subscribe(bus, func(event events.ResourcesChangedEvent) {
-		resourceEventReceived = event
-	})
-
-	_ = events.Subscribe(bus, func(event events.TerraformRatingChangedEvent) {
-		trEventReceived = event
-	})
-
-	// Publish different event types
-	events.Publish(bus, events.TemperatureChangedEvent{
-		GameID:   "game-123",
-		NewValue: -26,
-	})
-
-	events.Publish(bus, events.ResourcesChangedEvent{
-		GameID:       "game-123",
-		PlayerID:     "player-456",
-		ResourceType: "plants",
-		NewAmount:    5,
-	})
-
-	events.Publish(bus, events.TerraformRatingChangedEvent{
-		GameID:    "game-123",
-		PlayerID:  "player-456",
-		NewRating: 25,
-	})
-
-	// Verify all events were received correctly
-	if tempEventReceived.NewValue != -26 {
-		t.Errorf("Temperature event not received correctly")
+	// Publish multiple events in sequence
+	for i := 1; i <= 5; i++ {
+		events.Publish(bus, TestEvent{Message: "sequence", Value: i})
 	}
-	if resourceEventReceived.ResourceType != "plants" || resourceEventReceived.NewAmount != 5 {
-		t.Errorf("Resource event not received correctly")
-	}
-	if trEventReceived.NewRating != 25 {
-		t.Errorf("TR event not received correctly")
-	}
+
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, receivedValues, "Events should be received in order")
+}
+
+func TestEventBus_HandlerCanPublishNewEvent(t *testing.T) {
+	bus := events.NewEventBus()
+	testEventCalled := false
+	anotherEventCalled := false
+
+	// Handler that publishes another event
+	events.Subscribe(bus, func(event TestEvent) {
+		testEventCalled = true
+		events.Publish(bus, AnotherTestEvent{Data: "triggered"})
+	})
+
+	events.Subscribe(bus, func(event AnotherTestEvent) {
+		anotherEventCalled = true
+	})
+
+	events.Publish(bus, TestEvent{Message: "trigger", Value: 1})
+
+	assert.True(t, testEventCalled, "First handler should be called")
+	assert.True(t, anotherEventCalled, "Second event handler should be called")
+}
+
+func TestEventBus_Clear_RemovesAllSubscriptions(t *testing.T) {
+	bus := events.NewEventBus()
+	called := false
+
+	events.Subscribe(bus, func(event TestEvent) {
+		called = true
+	})
+
+	// Clear all subscriptions
+	bus.Clear()
+
+	// Publish event - handler should not be called
+	events.Publish(bus, TestEvent{Message: "cleared", Value: 1})
+
+	assert.False(t, called, "Handler should not be called after Clear()")
 }

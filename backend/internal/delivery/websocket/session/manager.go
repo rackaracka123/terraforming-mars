@@ -11,6 +11,7 @@ import (
 	gamepkg "terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	playerpkg "terraforming-mars-backend/internal/player"
+	sessionpkg "terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -26,10 +27,11 @@ type SessionManager interface {
 // SessionManagerImpl implements the SessionManager interface
 type SessionManagerImpl struct {
 	// Dependencies for game state broadcasting
-	gameRepo   gamepkg.Repository
-	playerRepo playerpkg.Repository
-	cardRepo   card.CardRepository
-	hub        *core.Hub
+	gameRepo    gamepkg.Repository
+	playerRepo  playerpkg.Repository
+	cardRepo    card.CardRepository
+	sessionRepo sessionpkg.Repository
+	hub         *core.Hub
 
 	// Synchronization
 	logger *zap.Logger
@@ -40,14 +42,16 @@ func NewSessionManager(
 	gameRepo gamepkg.Repository,
 	playerRepo playerpkg.Repository,
 	cardRepo card.CardRepository,
+	sessionRepo sessionpkg.Repository,
 	hub *core.Hub,
 ) SessionManager {
 	return &SessionManagerImpl{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
-		cardRepo:   cardRepo,
-		hub:        hub,
-		logger:     logger.Get(),
+		gameRepo:    gameRepo,
+		playerRepo:  playerRepo,
+		cardRepo:    cardRepo,
+		sessionRepo: sessionRepo,
+		hub:         hub,
+		logger:      logger.Get(),
 	}
 }
 
@@ -109,11 +113,12 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	allCardIds := make(map[string]struct{})
 	for _, player := range players {
-		for _, cardID := range player.Cards {
-			allCardIds[cardID] = struct{}{}
+		// Cards are now Card instances (Living Card Instance Pattern), not IDs
+		for _, card := range player.Cards {
+			allCardIds[card.ID] = struct{}{}
 		}
-		for _, cardID := range player.PlayedCards {
-			allCardIds[cardID] = struct{}{}
+		for _, card := range player.PlayedCards {
+			allCardIds[card.ID] = struct{}{}
 		}
 		if player.PendingCardSelection != nil {
 			for _, cardID := range player.PendingCardSelection.AvailableCards {
@@ -183,12 +188,53 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	// Get payment constants once for all players
 	paymentConstants := dto.GetPaymentConstants()
 
+	// Determine if this is a lobby game based on game status, not session existence
+	// Session is created during game start, so it might not exist yet even for active games
+	isLobbyGame := game.Status == gamepkg.GameStatusLobby
+
+	// Try to get session for active games (may not exist during transition)
+	var gameSession *sessionpkg.Session
+	if !isLobbyGame {
+		var err error
+		gameSession, err = sm.sessionRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Debug("Session not found for active game (transitioning), will use nil services", zap.Error(err))
+			gameSession = nil
+		}
+	}
+
 	// Send personalized game state to target player(s)
 	for _, player := range playersToSend {
-		personalizedGameDTO, err := dto.ToGameDto(game, players, player.ID, resolvedCards, paymentConstants)
-		if err != nil {
-			log.Error("Failed to convert game to DTO", zap.Error(err))
-			return fmt.Errorf("failed to convert game to DTO: %w", err)
+		var personalizedGameDTO dto.GameDto
+		var dtoErr error
+
+		if isLobbyGame || gameSession == nil {
+			// For lobby games or transitioning games, use DTO without feature services
+			personalizedGameDTO, dtoErr = dto.ToGameDto(
+				game,
+				players,
+				player.ID,
+				resolvedCards,
+				paymentConstants,
+				nil, // No parameters service
+				nil, // No board service
+			)
+		} else {
+			// For active games with session, use full DTO with feature services
+			personalizedGameDTO, dtoErr = dto.ToGameDto(
+				game,
+				players,
+				player.ID,
+				resolvedCards,
+				paymentConstants,
+				gameSession.ParametersService,
+				gameSession.BoardService,
+			)
+		}
+
+		if dtoErr != nil {
+			log.Error("Failed to convert game to DTO", zap.Error(dtoErr))
+			return fmt.Errorf("failed to convert game to DTO: %w", dtoErr)
 		}
 
 		// Send game state via direct session call

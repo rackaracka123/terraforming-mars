@@ -1,24 +1,20 @@
 package player
 
-import (
-	"terraforming-mars-backend/internal/features/resources"
-)
-
 // OtherPlayer represents a player from another player's perspective
 // Contains public information only - hand cards are hidden but played cards are visible
 type OtherPlayer struct {
-	ID               string               `json:"id" ts:"string"`
-	Name             string               `json:"name" ts:"string"`
-	Corporation      string               `json:"corporation" ts:"string"`
-	HandCardCount    int                  `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
-	Resources        resources.Resources  `json:"resources" ts:"Resources"`
-	Production       resources.Production `json:"production" ts:"Production"`
-	TerraformRating  int                  `json:"terraformRating" ts:"number"`
-	PlayedCards      []string             `json:"playedCards" ts:"string[]"` // Played cards are public
-	Passed           bool                 `json:"passed" ts:"boolean"`
-	AvailableActions int                  `json:"availableActions" ts:"number"`
-	VictoryPoints    int                  `json:"victoryPoints" ts:"number"`
-	IsConnected      bool                 `json:"isConnected" ts:"boolean"`
+	ID               string     `json:"id" ts:"string"`
+	Name             string     `json:"name" ts:"string"`
+	Corporation      string     `json:"corporation" ts:"string"`
+	HandCardCount    int        `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
+	Resources        Resources  `json:"resources" ts:"Resources"`
+	Production       Production `json:"production" ts:"Production"`
+	TerraformRating  int        `json:"terraformRating" ts:"number"`
+	PlayedCards      []Card     `json:"playedCards" ts:"CardDto[]"` // Played cards are public (Card instances)
+	Passed           bool       `json:"passed" ts:"boolean"`
+	AvailableActions int        `json:"availableActions" ts:"number"`
+	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
+	IsConnected      bool       `json:"isConnected" ts:"boolean"`
 }
 
 // NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player
@@ -33,35 +29,20 @@ func NewOtherPlayerFromPlayer(p *Player) *OtherPlayer {
 		corporationName = p.Corporation.Name
 	}
 
-	// Retrieve resources and production via service
-	res, _ := p.GetResources()
-	prod, _ := p.GetProduction()
-	passed, _ := p.GetPassed()
-	availableActions, _ := p.GetAvailableActions()
+	// TODO: Passed and AvailableActions need to be fetched from turn service via Session
+	// For now, use default values - these will be populated by the Session/DTO layer
+	passed := false
+	availableActions := 0
 
 	return &OtherPlayer{
-		ID:            p.ID,
-		Name:          p.Name,
-		Corporation:   corporationName,
-		HandCardCount: len(p.Cards), // Convert hand cards to count
-		Resources: resources.Resources{
-			Credits:  res.Credits,
-			Steel:    res.Steel,
-			Titanium: res.Titanium,
-			Plants:   res.Plants,
-			Energy:   res.Energy,
-			Heat:     res.Heat,
-		},
-		Production: resources.Production{
-			Credits:  prod.Credits,
-			Steel:    prod.Steel,
-			Titanium: prod.Titanium,
-			Plants:   prod.Plants,
-			Energy:   prod.Energy,
-			Heat:     prod.Heat,
-		},
+		ID:               p.ID,
+		Name:             p.Name,
+		Corporation:      corporationName,
+		HandCardCount:    len(p.Cards), // Convert hand cards to count
+		Resources:        p.Resources,
+		Production:       p.Production,
 		TerraformRating:  p.TerraformRating,
-		PlayedCards:      append([]string{}, p.PlayedCards...), // Copy played cards (public)
+		PlayedCards:      copyCards(p.PlayedCards), // Copy played card instances (public)
 		Passed:           passed,
 		AvailableActions: availableActions,
 		VictoryPoints:    p.VictoryPoints,
@@ -75,9 +56,8 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		return nil
 	}
 
-	// Copy played cards slice
-	playedCardsCopy := make([]string, len(op.PlayedCards))
-	copy(playedCardsCopy, op.PlayedCards)
+	// Deep copy played cards slice (Card instances)
+	playedCardsCopy := copyCards(op.PlayedCards)
 
 	return &OtherPlayer{
 		ID:               op.ID,
@@ -93,4 +73,16 @@ func (op *OtherPlayer) DeepCopy() *OtherPlayer {
 		VictoryPoints:    op.VictoryPoints,
 		IsConnected:      op.IsConnected,
 	}
+}
+
+// copyCards creates deep copies of Card instances
+func copyCards(cards []Card) []Card {
+	if cards == nil {
+		return nil
+	}
+	copied := make([]Card, len(cards))
+	for i, card := range cards {
+		copied[i] = card.DeepCopy()
+	}
+	return copied
 }
