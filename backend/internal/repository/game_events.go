@@ -77,3 +77,11 @@ type PlacementBonusGainedEvent struct {
 	S         int            // Hex coordinate S
 	Timestamp time.Time
 }
+
+// PlayerJoinedEvent is published when a player joins a game
+type PlayerJoinedEvent struct {
+	GameID     string
+	PlayerID   string
+	PlayerName string
+	Timestamp  time.Time
+}

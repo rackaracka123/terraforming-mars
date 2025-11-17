@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
@@ -18,6 +20,7 @@ type StartGameAction struct {
 	gameRepo   game.Repository
 	playerRepo player.Repository
 	cardRepo   card.Repository
+	deckRepo   deck.Repository
 	sessionMgr session.SessionManager
 	logger     *zap.Logger
 }
@@ -27,12 +30,14 @@ func NewStartGameAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo card.Repository,
+	deckRepo deck.Repository,
 	sessionMgr session.SessionManager,
 ) *StartGameAction {
 	return &StartGameAction{
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,
 		cardRepo:   cardRepo,
+		deckRepo:   deckRepo,
 		sessionMgr: sessionMgr,
 		logger:     logger.Get(),
 	}
@@ -71,10 +76,8 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		return fmt.Errorf("failed to get players: %w", err)
 	}
 
-	if len(players) < 1 {
-		log.Error("No players in game")
-		return fmt.Errorf("cannot start game with no players")
-	}
+	// No minimum player count validation - allow any number for development/testing
+	log.Info("🎮 Starting game with players", zap.Int("player_count", len(players)))
 
 	// 4. Update game status to Active (event-driven)
 	err = a.gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
@@ -105,7 +108,15 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		log.Info("✅ Set initial turn", zap.String("first_player_id", firstPlayerID))
 	}
 
-	// 7. Distribute starting cards to all players
+	// 7. Create game deck with shuffled cards
+	err = a.deckRepo.CreateDeck(ctx, gameID, g.Settings)
+	if err != nil {
+		log.Error("Failed to create game deck", zap.Error(err))
+		return fmt.Errorf("failed to create game deck: %w", err)
+	}
+	log.Info("🎴 Game deck created and shuffled")
+
+	// 8. Distribute starting cards to all players
 	err = a.distributeStartingCards(ctx, gameID, players)
 	if err != nil {
 		log.Error("Failed to distribute starting cards", zap.Error(err))
@@ -131,27 +142,16 @@ func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID st
 	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
 
 	for _, p := range players {
-		// Draw 10 project cards
-		projectCards, err := a.cardRepo.DrawProjectCards(ctx, 10)
+		// Draw 10 project cards from game deck
+		projectCardIDs, err := a.deckRepo.DrawProjectCards(ctx, gameID, 10)
 		if err != nil {
 			return fmt.Errorf("failed to draw project cards for player %s: %w", p.ID, err)
 		}
 
-		// Draw 2 corporation cards
-		corporations, err := a.cardRepo.DrawCorporations(ctx, 2)
+		// Draw 2 corporation cards from game deck
+		corporationIDs, err := a.deckRepo.DrawCorporations(ctx, gameID, 2)
 		if err != nil {
 			return fmt.Errorf("failed to draw corporations for player %s: %w", p.ID, err)
-		}
-
-		// Extract card IDs
-		projectCardIDs := make([]string, len(projectCards))
-		for i, c := range projectCards {
-			projectCardIDs[i] = c.ID
-		}
-
-		corporationIDs := make([]string, len(corporations))
-		for i, c := range corporations {
-			corporationIDs[i] = c.ID
 		}
 
 		// Set starting cards selection phase for player

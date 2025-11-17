@@ -4,11 +4,21 @@ import (
 	"context"
 	"math/rand"
 
+	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 )
 
+// DeckRepository interface for deck operations (to avoid circular dependency)
+type DeckRepository interface {
+	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
+	GetAllCards(ctx context.Context) ([]model.Card, error)
+	GetProjectCards(ctx context.Context) ([]model.Card, error)
+	GetStartingCardPool(ctx context.Context) ([]model.Card, error)
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error)
+}
+
 // Repository manages card data
-// For Phase 2-3, this wraps the old card repository
+// Wraps the deck repository for card operations
 type Repository interface {
 	// DrawProjectCards draws N random project cards
 	DrawProjectCards(ctx context.Context, count int) ([]Card, error)
@@ -18,16 +28,27 @@ type Repository interface {
 
 	// GetCardByID retrieves a specific card by ID
 	GetCardByID(ctx context.Context, cardID string) (*Card, error)
+
+	// ListCardsByIdMap retrieves multiple cards by their IDs
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]Card, error)
+
+	// GetStartingCardPool retrieves all starting cards
+	GetStartingCardPool(ctx context.Context) ([]Card, error)
+
+	// GetAllCards retrieves all cards
+	GetAllCards(ctx context.Context) ([]Card, error)
 }
 
-// RepositoryImpl implements the Repository interface by wrapping the old card repository
+// RepositoryImpl implements the Repository interface by wrapping repositories
 type RepositoryImpl struct {
-	oldCardRepo repository.CardRepository
+	deckRepo    DeckRepository            // NEW: Primary source for card definitions
+	oldCardRepo repository.CardRepository // OLD: Backup card repository
 }
 
-// NewRepository creates a new card repository
-func NewRepository(oldCardRepo repository.CardRepository) Repository {
+// NewRepository creates a new card repository with deck repository
+func NewRepository(deckRepo DeckRepository, oldCardRepo repository.CardRepository) Repository {
 	return &RepositoryImpl{
+		deckRepo:    deckRepo,
 		oldCardRepo: oldCardRepo,
 	}
 }
@@ -90,11 +111,53 @@ func (r *RepositoryImpl) DrawCorporations(ctx context.Context, count int) ([]Car
 
 // GetCardByID retrieves a specific card by ID
 func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*Card, error) {
-	mc, err := r.oldCardRepo.GetCardByID(ctx, cardID)
+	// Use NEW deck repository
+	mc, err := r.deckRepo.GetCardByID(ctx, cardID)
 	if err != nil {
 		return nil, err
 	}
 
 	card := FromModelCard(*mc)
 	return &card, nil
+}
+
+// ListCardsByIdMap retrieves multiple cards by their IDs
+func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]Card, error) {
+	// Use NEW deck repository
+	modelCards, err := r.deckRepo.ListCardsByIdMap(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert model cards to new card type
+	result := make(map[string]Card, len(modelCards))
+	for id, mc := range modelCards {
+		result[id] = FromModelCard(mc)
+	}
+
+	return result, nil
+}
+
+// GetStartingCardPool retrieves all starting cards
+func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]Card, error) {
+	// Use NEW deck repository
+	modelCards, err := r.deckRepo.GetStartingCardPool(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to session card type
+	return FromModelCards(modelCards), nil
+}
+
+// GetAllCards retrieves all cards
+func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]Card, error) {
+	// Use NEW deck repository
+	modelCards, err := r.deckRepo.GetAllCards(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to session card type
+	return FromModelCards(modelCards), nil
 }

@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 )
 
 // Repository manages game data with event-driven updates
@@ -81,23 +83,35 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string) (*Game, err
 // AddPlayer adds a player to a game (event-driven)
 func (r *RepositoryImpl) AddPlayer(ctx context.Context, gameID string, playerID string) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	// Check if player already in game
 	for _, pid := range game.PlayerIDs {
 		if pid == playerID {
+			r.mu.Unlock()
 			return fmt.Errorf("player %s already in game %s", playerID, gameID)
 		}
 	}
 
 	game.PlayerIDs = append(game.PlayerIDs, playerID)
 
-	// Event publishing can be added here if needed
+	// Release lock BEFORE publishing event to avoid deadlock
+	// Event subscribers may need to read from this repository
+	r.mu.Unlock()
+
+	// Publish PlayerJoinedEvent for event-driven broadcasting
+	// This is safe to do after unlocking because the event only contains IDs (not object references)
+	events.Publish(r.eventBus, repository.PlayerJoinedEvent{
+		GameID:     gameID,
+		PlayerID:   playerID,
+		PlayerName: "", // Name not available at repository level, subscribers can look up if needed
+		Timestamp:  time.Now(),
+	})
 
 	return nil
 }

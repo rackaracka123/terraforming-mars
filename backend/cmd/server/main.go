@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
@@ -18,6 +19,10 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -47,6 +52,13 @@ func main() {
 	eventBus := events.NewEventBus()
 	log.Info("🎆 Event bus initialized")
 
+	// Initialize NEW deck repository with card loading
+	newDeckRepo, err := deck.NewRepository(context.Background())
+	if err != nil {
+		log.Fatal("Failed to initialize deck repository", zap.Error(err))
+	}
+	log.Info("🎴 NEW deck repository initialized with card definitions")
+
 	// Initialize individual repositories with event bus
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	log.Info("Player repository initialized")
@@ -63,7 +75,7 @@ func main() {
 		projectCards, _ := cardRepo.GetProjectCards(context.Background())
 		corporationCards, _ := cardRepo.GetCorporationCards(context.Background())
 		preludeCards, _ := cardRepo.GetPreludeCards(context.Background())
-		log.Info("📚 Card data loaded successfully",
+		log.Info("📚 OLD card data loaded successfully (backup)",
 			zap.Int("project_cards", len(projectCards)),
 			zap.Int("corporation_cards", len(corporationCards)),
 			zap.Int("prelude_cards", len(preludeCards)),
@@ -76,8 +88,22 @@ func main() {
 	// Create Hub first (no dependencies)
 	hub := core.NewHub()
 
-	// Initialize SessionManager for WebSocket broadcasting with Hub
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+	// ========== NEW ARCHITECTURE: Initialize Action Pattern ==========
+	// Initialize new repositories BEFORE SessionManager to ensure state consistency
+	newGameRepo := game.NewRepository(eventBus)
+	newPlayerRepo := player.NewRepository(eventBus)
+	newCardRepo := card.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
+
+	// Initialize SessionManager for WebSocket broadcasting with Hub and event subscriptions
+	// CRITICAL: Uses NEW repositories to match action pattern storage
+	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, hub, eventBus)
+
+	// Initialize actions
+	startGameAction := action.NewStartGameAction(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager)
+	createGameAction := action.NewCreateGameAction(newGameRepo)
+	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
+	log.Info("🎯 New architecture initialized: start_game, create_game, join_game actions ready")
+	// ================================================================
 
 	// Initialize services in dependency order
 	boardService := service.NewBoardService()
@@ -93,7 +119,8 @@ func main() {
 	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
 
 	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo)
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
@@ -123,8 +150,8 @@ func main() {
 		log.Info("Test game created", zap.String("game_id", testGame.ID))
 	}
 
-	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	// Initialize WebSocket service with shared Hub and new actions
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, startGameAction, joinGameAction)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
@@ -136,7 +163,7 @@ func main() {
 	mainRouter := mux.NewRouter()
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
+	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo, createGameAction)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)

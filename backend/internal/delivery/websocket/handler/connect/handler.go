@@ -3,11 +3,11 @@ package connect
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/google/uuid"
@@ -16,11 +16,12 @@ import (
 
 // ConnectionHandler handles player connection and reconnection logic
 type ConnectionHandler struct {
-	gameService   service.GameService
-	playerService service.PlayerService
-	parser        *utils.MessageParser
-	errorHandler  *utils.ErrorHandler
-	logger        *zap.Logger
+	gameService    service.GameService
+	playerService  service.PlayerService
+	joinGameAction *action.JoinGameAction
+	parser         *utils.MessageParser
+	errorHandler   *utils.ErrorHandler
+	logger         *zap.Logger
 }
 
 // connectionContext holds the context for a connection operation
@@ -29,7 +30,6 @@ type connectionContext struct {
 	connection *core.Connection
 	payload    dto.PlayerConnectPayload
 	playerID   string
-	game       *model.Game
 	isNew      bool
 }
 
@@ -37,13 +37,15 @@ type connectionContext struct {
 func NewConnectionHandler(
 	gameService service.GameService,
 	playerService service.PlayerService,
+	joinGameAction *action.JoinGameAction,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
-		gameService:   gameService,
-		playerService: playerService,
-		parser:        utils.NewMessageParser(),
-		errorHandler:  utils.NewErrorHandler(),
-		logger:        logger.Get(),
+		gameService:    gameService,
+		playerService:  playerService,
+		joinGameAction: joinGameAction,
+		parser:         utils.NewMessageParser(),
+		errorHandler:   utils.NewErrorHandler(),
+		logger:         logger.Get(),
 	}
 }
 
@@ -94,33 +96,17 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 		zap.String("game_id", payload.GameID),
 		zap.String("player_name", payload.PlayerName))
 
-	// Validate game exists
-	game, err := ch.gameService.GetGame(ctx, payload.GameID)
-	if err != nil {
-		ch.logger.Error("Failed to get game for WebSocket connection",
-			zap.Error(err))
-		ch.errorHandler.SendError(connection, utils.ErrGameNotFound)
-		return nil, err
-	}
+	// Note: Game and player validation is handled by actions
+	// No need to check existence here - let the action layer handle business logic
 
-	// Check if player already exists - prioritize ID for reconnection
-	var playerID string
-	if payload.PlayerID != "" {
-		// Try to find by ID first (for reconnection)
-		playerID = ch.findExistingPlayerByID(ctx, payload.GameID, payload.PlayerID)
-		// If player found by ID, this is a reconnection
-		if playerID != "" {
-			ch.logger.Debug("🔄 Found player by ID - treating as reconnection",
-				zap.String("player_id", playerID),
-				zap.String("player_name", payload.PlayerName))
-		}
-	}
+	// Determine if this is a new connection or reconnection based on playerID presence
+	isNew := payload.PlayerID == ""
+	playerID := payload.PlayerID
 
-	// Only check by name if no playerID was provided or found
-	// This prevents creating duplicate players when reconnecting
-	if playerID == "" && payload.PlayerID == "" {
-		// Fall back to finding by name only for new connections
-		playerID = ch.findExistingPlayer(ctx, payload.GameID, payload.PlayerName)
+	if isNew {
+		ch.logger.Debug("🆕 New player connection detected")
+	} else {
+		ch.logger.Debug("🔄 Reconnection detected", zap.String("player_id", playerID))
 	}
 
 	return &connectionContext{
@@ -128,8 +114,7 @@ func (ch *ConnectionHandler) parseAndValidate(ctx context.Context, connection *c
 		connection: connection,
 		payload:    payload,
 		playerID:   playerID,
-		game:       &game,
-		isNew:      playerID == "",
+		isNew:      isNew,
 	}, nil
 }
 
@@ -150,32 +135,32 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 	ch.logger.Debug("✨ Handling new player connection",
 		zap.String("player_name", connCtx.payload.PlayerName))
 
-	// First, create a new player ID that will be used consistently
+	// CRITICAL: Generate playerID upfront and set up connection BEFORE calling action
+	// This ensures the connection is registered when PlayerJoinedEvent broadcasts
 	playerID := uuid.New().String()
 
-	// CRITICAL: Set up connection with real player ID BEFORE calling JoinGame
-	// This ensures the connection is properly registered when the service broadcasts
+	// Set up connection FIRST (before action triggers PlayerJoinedEvent)
 	connCtx.connection.SetPlayer(playerID, connCtx.payload.GameID)
 
 	ch.logger.Debug("🔗 Connection set up with pre-generated player ID",
 		zap.String("connection_id", connCtx.connection.ID),
 		zap.String("player_id", playerID))
 
-	// Join game using the pre-generated player ID
-	game, err := ch.gameService.JoinGameWithPlayerID(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
+	// Now join game - broadcasts will work because connection is already registered
+	returnedPlayerID, err := ch.joinGameAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
 	if err != nil {
-		ch.logger.Error("Failed to join game via WebSocket",
+		ch.logger.Error("Failed to join game via action",
 			zap.Error(err))
 		ch.errorHandler.SendError(connCtx.connection, utils.ErrConnectionFailed)
 		return err
 	}
 
-	ch.logger.Debug("✅ Player joined game with pre-registered connection",
-		zap.String("connection_id", connCtx.connection.ID),
-		zap.String("player_id", playerID))
+	ch.logger.Debug("✅ Player joined game via action",
+		zap.String("player_id", returnedPlayerID),
+		zap.String("player_name", connCtx.payload.PlayerName))
 
-	connCtx.game = &game
-	connCtx.playerID = playerID
+	connCtx.playerID = returnedPlayerID
+	// Note: Broadcasting handled automatically via PlayerJoinedEvent
 	return nil
 }
 
@@ -218,35 +203,7 @@ func (ch *ConnectionHandler) finalizeConnection(connCtx *connectionContext) {
 	ch.logger.Info("🎮 Player connected via WebSocket",
 		zap.String("connection_id", connCtx.connection.ID),
 		zap.String("player_id", connCtx.playerID),
-		zap.String("game_id", connCtx.game.ID),
+		zap.String("game_id", connCtx.payload.GameID),
 		zap.String("player_name", connCtx.payload.PlayerName),
 		zap.Bool("is_new_player", connCtx.isNew))
-}
-
-// Helper methods
-
-// findExistingPlayer checks if a player with the given name exists in the game
-func (ch *ConnectionHandler) findExistingPlayer(ctx context.Context, gameID, playerName string) string {
-	player, err := ch.playerService.GetPlayerByName(ctx, gameID, playerName)
-	if err != nil {
-		return ""
-	}
-	return player.ID
-}
-
-// findExistingPlayerByID checks if a player with the given ID exists in the game
-func (ch *ConnectionHandler) findExistingPlayerByID(ctx context.Context, gameID, playerID string) string {
-	player, err := ch.playerService.GetPlayer(ctx, gameID, playerID)
-	if err != nil {
-		ch.logger.Debug("Player not found by ID",
-			zap.String("game_id", gameID),
-			zap.String("player_id", playerID),
-			zap.Error(err))
-		return ""
-	}
-	ch.logger.Debug("Found existing player by ID",
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("player_name", player.Name))
-	return player.ID
 }

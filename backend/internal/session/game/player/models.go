@@ -13,17 +13,23 @@ type SelectStartingCardsPhase struct {
 }
 
 // Player represents a player in the game
-// For Phase 1-3, we expand to support card selection and corporation
+// Expanded to support full game logic including cards, actions, and effects
 type Player struct {
-	ID                       string                    `json:"id"`
-	Name                     string                    `json:"name"`
-	Resources                model.Resources           `json:"resources"`
-	Production               model.Production          `json:"production"`
-	TerraformRating          int                       `json:"terraformRating"`
-	IsConnected              bool                      `json:"isConnected"`
-	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase"`
-	Cards                    []string                  `json:"cards"`         // Card IDs in hand
-	CorporationID            string                    `json:"corporationId"` // Selected corporation
+	ID                       string                      `json:"id"`
+	Name                     string                      `json:"name"`
+	Resources                model.Resources             `json:"resources"`
+	Production               model.Production            `json:"production"`
+	TerraformRating          int                         `json:"terraformRating"`
+	IsConnected              bool                        `json:"isConnected"`
+	SelectStartingCardsPhase *SelectStartingCardsPhase   `json:"selectStartingCardsPhase"`
+	ProductionPhase          *model.ProductionPhase      `json:"productionPhase"`
+	Cards                    []string                    `json:"cards"`                // Card IDs in hand
+	CorporationID            string                      `json:"corporationId"`        // Selected corporation ID
+	Corporation              *model.Card                 `json:"corporation"`          // Full corporation card data
+	PaymentSubstitutes       []model.PaymentSubstitute   `json:"paymentSubstitutes"`   // Payment substitutes from cards
+	Actions                  []model.PlayerAction        `json:"actions"`              // Available actions from cards
+	ForcedFirstAction        *model.ForcedFirstAction    `json:"forcedFirstAction"`    // Forced first turn action
+	RequirementModifiers     []model.RequirementModifier `json:"requirementModifiers"` // Requirement modifiers from cards
 }
 
 // NewPlayer creates a new player with default starting values
@@ -47,9 +53,14 @@ func NewPlayer(name string) *Player {
 			Energy:   0,
 			Heat:     0,
 		},
-		TerraformRating: 20, // Starting TR
-		IsConnected:     true,
-		Cards:           make([]string, 0),
-		CorporationID:   "",
+		TerraformRating:      20, // Starting TR
+		IsConnected:          true,
+		Cards:                make([]string, 0),
+		CorporationID:        "",
+		Corporation:          nil,
+		PaymentSubstitutes:   make([]model.PaymentSubstitute, 0),
+		Actions:              make([]model.PlayerAction, 0),
+		ForcedFirstAction:    nil,
+		RequirementModifiers: make([]model.RequirementModifier, 0),
 	}
 }

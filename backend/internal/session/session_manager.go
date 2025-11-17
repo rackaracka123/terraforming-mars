@@ -7,9 +7,13 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -24,30 +28,49 @@ type SessionManager interface {
 
 // SessionManagerImpl implements the SessionManager interface
 type SessionManagerImpl struct {
-	// Dependencies for game state broadcasting
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
-	cardRepo   repository.CardRepository
+	// Dependencies for game state broadcasting (NEW repository types)
+	gameRepo   game.Repository
+	playerRepo player.Repository
+	cardRepo   card.Repository
 	hub        *core.Hub
 
 	// Synchronization
 	logger *zap.Logger
 }
 
-// NewSessionManager creates a new session manager
+// NewSessionManager creates a new session manager and subscribes to domain events
 func NewSessionManager(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	cardRepo card.Repository,
 	hub *core.Hub,
+	eventBus *events.EventBusImpl,
 ) SessionManager {
-	return &SessionManagerImpl{
+	sm := &SessionManagerImpl{
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,
 		cardRepo:   cardRepo,
 		hub:        hub,
 		logger:     logger.Get(),
 	}
+
+	// Subscribe to PlayerJoinedEvent for automatic game state broadcasting
+	events.Subscribe(eventBus, func(event repository.PlayerJoinedEvent) {
+		sm.logger.Info("📢 PlayerJoinedEvent received, broadcasting game state",
+			zap.String("game_id", event.GameID),
+			zap.String("player_id", event.PlayerID))
+
+		err := sm.Broadcast(event.GameID)
+		if err != nil {
+			sm.logger.Error("Failed to broadcast after player joined",
+				zap.Error(err),
+				zap.String("game_id", event.GameID))
+		}
+	})
+
+	sm.logger.Info("🎧 SessionManager subscribed to PlayerJoinedEvent")
+
+	return sm
 }
 
 // SessionManager no longer manages sessions directly - Hub handles all connections
@@ -74,8 +97,8 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		log.Info("🚀 Sending game state to specific player", zap.String("target_player_id", targetPlayerID))
 	}
 
-	// Get updated game state
-	game, err := sm.gameRepo.GetByID(ctx, gameID)
+	// Get updated game state from NEW repository
+	newGame, err := sm.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		// Handle missing game gracefully - this can happen during test cleanup or if game was deleted
 		var notFoundErr *model.NotFoundError
@@ -87,12 +110,18 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		return err
 	}
 
-	// Get all players for personalized game states
-	players, err := sm.playerRepo.ListByGameID(ctx, gameID)
+	// Convert NEW game type to OLD model type for DTO compatibility
+	game := gameToModel(newGame)
+
+	// Get all players for personalized game states from NEW repository
+	newPlayers, err := sm.playerRepo.ListByGameID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get players for broadcast", zap.Error(err))
 		return err
 	}
+
+	// Convert NEW player types to OLD model types for DTO compatibility
+	players := playersToModel(newPlayers)
 
 	// If no players exist, there's nothing to broadcast
 	if len(players) == 0 {
@@ -153,11 +182,14 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		}
 	}
 
-	resolvedCards, err := sm.cardRepo.ListCardsByIdMap(ctx, allCardIds)
+	newResolvedCards, err := sm.cardRepo.ListCardsByIdMap(ctx, allCardIds)
 	if err != nil {
 		log.Error("Failed to resolve card data for broadcast", zap.Error(err))
 		return err
 	}
+
+	// Convert NEW card types to OLD model types for DTO compatibility
+	resolvedCards := cardsToModel(newResolvedCards)
 
 	log.Debug("Resolved cards for broadcast",
 		zap.Int("total_card_ids", len(allCardIds)),
@@ -234,4 +266,112 @@ func (sm *SessionManagerImpl) sendToPlayerDirect(playerID, gameID string, messag
 		zap.String("message_type", string(messageType)))
 
 	return nil
+}
+
+// ========== Type Converters: NEW repositories → OLD model types ==========
+// These converters bridge the gap between NEW repository types (internal/session/game/*)
+// and OLD model types (internal/model/*) during the phased migration.
+
+// gameToModel converts a NEW game.Game pointer to an OLD model.Game value
+func gameToModel(g *game.Game) model.Game {
+	return model.Game{
+		ID:               g.ID,
+		CreatedAt:        g.CreatedAt,
+		UpdatedAt:        g.UpdatedAt,
+		Status:           model.GameStatus(g.Status),
+		Settings:         gameSettingsToModel(g.Settings),
+		PlayerIDs:        g.PlayerIDs,
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     model.GamePhase(g.CurrentPhase),
+		GlobalParameters: g.GlobalParameters, // Same type in both systems
+		ViewingPlayerID:  g.ViewingPlayerID,
+		CurrentTurn:      g.CurrentTurn,
+		Generation:       g.Generation,
+		Board:            g.Board, // Same type in both systems
+	}
+}
+
+// gameSettingsToModel converts game settings from NEW to OLD type
+func gameSettingsToModel(s game.GameSettings) model.GameSettings {
+	return model.GameSettings{
+		MaxPlayers: s.MaxPlayers,
+		CardPacks:  s.CardPacks,
+	}
+}
+
+// playersToModel converts a slice of NEW player.Player pointers to a slice of OLD model.Player values
+func playersToModel(players []*player.Player) []model.Player {
+	result := make([]model.Player, len(players))
+	for i, p := range players {
+		result[i] = playerToModel(p)
+	}
+	return result
+}
+
+// playerToModel converts a NEW player.Player pointer to an OLD model.Player value
+// Fields that don't exist in NEW player type are initialized with zero/empty values
+func playerToModel(p *player.Player) model.Player {
+	var corporation *model.Card
+	var selectStartingCards *model.SelectStartingCardsPhase
+
+	// Convert SelectStartingCardsPhase if it exists
+	if p.SelectStartingCardsPhase != nil {
+		selectStartingCards = &model.SelectStartingCardsPhase{
+			AvailableCards:        p.SelectStartingCardsPhase.AvailableCards,
+			AvailableCorporations: p.SelectStartingCardsPhase.AvailableCorporations,
+			SelectionComplete:     p.SelectStartingCardsPhase.SelectionComplete,
+		}
+	}
+
+	return model.Player{
+		ID:                        p.ID,
+		Name:                      p.Name,
+		Corporation:               corporation, // Will be resolved from CorporationID if needed
+		Cards:                     p.Cards,
+		Resources:                 p.Resources,
+		Production:                p.Production,
+		TerraformRating:           p.TerraformRating,
+		PlayedCards:               []string{}, // Not in NEW player type yet
+		Passed:                    false,      // Not in NEW player type yet
+		AvailableActions:          0,          // Not in NEW player type yet
+		VictoryPoints:             0,          // Not in NEW player type yet
+		IsConnected:               p.IsConnected,
+		Effects:                   []model.PlayerEffect{}, // Not in NEW player type yet
+		Actions:                   []model.PlayerAction{}, // Not in NEW player type yet
+		ProductionPhase:           nil,                    // Not in NEW player type yet
+		SelectStartingCardsPhase:  selectStartingCards,
+		PendingTileSelection:      nil,                           // Not in NEW player type yet
+		PendingTileSelectionQueue: nil,                           // Not in NEW player type yet
+		PendingCardSelection:      nil,                           // Not in NEW player type yet
+		PendingCardDrawSelection:  nil,                           // Not in NEW player type yet
+		ForcedFirstAction:         nil,                           // Not in NEW player type yet
+		ResourceStorage:           make(map[string]int),          // Not in NEW player type yet
+		PaymentSubstitutes:        []model.PaymentSubstitute{},   // Not in NEW player type yet
+		RequirementModifiers:      []model.RequirementModifier{}, // Not in NEW player type yet
+	}
+}
+
+// cardsToModel converts a map of NEW card.Card values to a map of OLD model.Card values
+// The session layer Card now contains complete card data, so we copy all fields
+func cardsToModel(cards map[string]card.Card) map[string]model.Card {
+	result := make(map[string]model.Card, len(cards))
+	for id, c := range cards {
+		// Convert session card (with all data) back to model.Card
+		result[id] = model.Card{
+			ID:                 c.ID,
+			Name:               c.Name,
+			Type:               model.CardType(c.Type),
+			Cost:               c.Cost,
+			Description:        c.Description,
+			Pack:               c.Pack,
+			Tags:               c.Tags,
+			Requirements:       c.Requirements,
+			Behaviors:          c.Behaviors,
+			ResourceStorage:    c.ResourceStorage,
+			VPConditions:       c.VPConditions,
+			StartingResources:  c.StartingResources,
+			StartingProduction: c.StartingProduction,
+		}
+	}
+	return result
 }

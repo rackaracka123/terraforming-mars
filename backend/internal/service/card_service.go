@@ -10,6 +10,9 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -46,10 +49,10 @@ type CardService interface {
 
 // CardServiceImpl implements CardService interface using specialized card managers
 type CardServiceImpl struct {
-	// Core repositories
-	gameRepo       repository.GameRepository
-	playerRepo     repository.PlayerRepository
-	cardRepo       repository.CardRepository
+	// Core repositories (session-based)
+	gameRepo       game.Repository
+	playerRepo     player.Repository
+	cardRepo       sessionCard.Repository
 	cardDeckRepo   repository.CardDeckRepository
 	sessionManager session.SessionManager
 
@@ -64,8 +67,8 @@ type CardServiceImpl struct {
 	tileService TileService
 }
 
-// NewCardService creates a new CardService instance
-func NewCardService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+// NewCardService creates a new CardService instance with session-based repositories
+func NewCardService(gameRepo game.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,

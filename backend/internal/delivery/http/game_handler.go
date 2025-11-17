@@ -3,10 +3,12 @@ package http
 import (
 	"net/http"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/session/game"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -15,18 +17,20 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
-	gameService service.GameService
-	playerRepo  repository.PlayerRepository
-	cardRepo    repository.CardRepository
+	gameService      service.GameService
+	playerRepo       repository.PlayerRepository
+	cardRepo         repository.CardRepository
+	createGameAction *action.CreateGameAction
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
+func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, createGameAction *action.CreateGameAction) *GameHandler {
 	return &GameHandler{
-		BaseHandler: NewBaseHandler(),
-		gameService: gameService,
-		playerRepo:  playerRepo,
-		cardRepo:    cardRepo,
+		BaseHandler:      NewBaseHandler(),
+		gameService:      gameService,
+		playerRepo:       playerRepo,
+		cardRepo:         cardRepo,
+		createGameAction: createGameAction,
 	}
 }
 
@@ -38,21 +42,25 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	gameSettings := model.GameSettings{
+	// Convert to subdomain settings
+	gameSettings := game.GameSettings{
 		MaxPlayers:      req.MaxPlayers,
 		DevelopmentMode: req.DevelopmentMode,
 	}
 
-	game, err := h.gameService.CreateGame(r.Context(), gameSettings)
+	// Use new action pattern
+	createdGame, err := h.createGameAction.Execute(r.Context(), gameSettings)
 	if err != nil {
 		h.logger.Error("Failed to create game", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
 		return
 	}
 
+	// Convert to model.Game for DTO
+	modelGame := convertToModelGame(createdGame)
+
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
+	gameDto := dto.ToGameDtoBasic(modelGame, dto.GetPaymentConstants())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
@@ -139,4 +147,30 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		Games: gameDtos,
 	}
 	h.WriteJSONResponse(w, http.StatusOK, response)
+}
+
+// convertToModelGame converts a game.Game to model.Game for DTO compatibility
+func convertToModelGame(g *game.Game) model.Game {
+	return model.Game{
+		ID:        g.ID,
+		CreatedAt: g.CreatedAt,
+		UpdatedAt: g.UpdatedAt,
+		Status:    model.GameStatus(g.Status),
+		Settings: model.GameSettings{
+			MaxPlayers:      g.Settings.MaxPlayers,
+			Temperature:     g.Settings.Temperature,
+			Oxygen:          g.Settings.Oxygen,
+			Oceans:          g.Settings.Oceans,
+			DevelopmentMode: g.Settings.DevelopmentMode,
+			CardPacks:       g.Settings.CardPacks,
+		},
+		PlayerIDs:        g.PlayerIDs,
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     model.GamePhase(g.CurrentPhase),
+		GlobalParameters: g.GlobalParameters,
+		ViewingPlayerID:  g.ViewingPlayerID,
+		CurrentTurn:      g.CurrentTurn,
+		Generation:       g.Generation,
+		Board:            g.Board,
+	}
 }

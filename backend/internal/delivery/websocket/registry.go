@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
@@ -28,11 +29,12 @@ import (
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) {
+func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
-	connectionHandler := connect.NewConnectionHandler(gameService, playerService)
+	// NEW ARCHITECTURE: Using action pattern for join_game
+	connectionHandler := connect.NewConnectionHandler(gameService, playerService, joinGameAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler
@@ -55,7 +57,8 @@ func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerServ
 	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(gameService))
 
 	// Register game management handlers
-	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(gameService))
+	// NEW ARCHITECTURE: Using action pattern for start_game
+	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandlerWithAction(startGameAction))
 
 	// Register card selection handlers
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))

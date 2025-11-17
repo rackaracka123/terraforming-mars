@@ -7,21 +7,24 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/game"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
 
 // SelectionManager handles all card selection operations
 type SelectionManager struct {
-	gameRepo         repository.GameRepository
-	playerRepo       repository.PlayerRepository
-	cardRepo         repository.CardRepository
+	gameRepo         game.Repository
+	playerRepo       player.Repository
+	cardRepo         sessionCard.Repository
 	cardDeckRepo     repository.CardDeckRepository
 	effectSubscriber CardEffectSubscriber
 }
 
 // NewSelectionManager creates a new card selection manager
-func NewSelectionManager(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, cardDeckRepo repository.CardDeckRepository, effectSubscriber CardEffectSubscriber) *SelectionManager {
+func NewSelectionManager(gameRepo game.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, effectSubscriber CardEffectSubscriber) *SelectionManager {
 	return &SelectionManager{
 		gameRepo:         gameRepo,
 		playerRepo:       playerRepo,
@@ -82,7 +85,7 @@ func (s *SelectionManager) SelectStartingCards(ctx context.Context, gameID, play
 	}
 
 	// Clear the starting selection (this hides the modal)
-	if err := s.playerRepo.SetStartingCardsSelectionComplete(ctx, gameID, playerID); err != nil {
+	if err := s.playerRepo.CompleteStartingSelection(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to clear starting selection", zap.Error(err))
 		return fmt.Errorf("failed to clear starting selection: %w", err)
 	}
@@ -137,7 +140,7 @@ func (s *SelectionManager) SelectProductionCards(ctx context.Context, gameID, pl
 	}
 
 	// Mark player as ready for production phase
-	err = s.playerRepo.SetProductionCardsSelectionComplete(ctx, gameID, playerID)
+	err = s.playerRepo.CompleteProductionSelection(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to mark production card selection complete", zap.Error(err))
 		return fmt.Errorf("failed to mark production card selection complete: %w", err)

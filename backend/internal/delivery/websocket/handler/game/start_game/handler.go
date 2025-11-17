@@ -58,3 +58,57 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 }
+
+// ========== NEW ARCHITECTURE: Action Pattern ==========
+
+// ActionHandler handles start game using the new action pattern
+type ActionHandler struct {
+	startGameAction StartGameAction
+	errorHandler    *utils.ErrorHandler
+	logger          *zap.Logger
+}
+
+// StartGameAction interface for dependency injection
+type StartGameAction interface {
+	Execute(ctx context.Context, gameID string, playerID string) error
+}
+
+// NewHandlerWithAction creates a new start game handler using action pattern
+func NewHandlerWithAction(startGameAction StartGameAction) *ActionHandler {
+	return &ActionHandler{
+		startGameAction: startGameAction,
+		errorHandler:    utils.NewErrorHandler(),
+		logger:          logger.Get(),
+	}
+}
+
+// HandleMessage implements the MessageHandler interface
+func (h *ActionHandler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
+	playerID, gameID := connection.GetPlayer()
+	if playerID == "" || gameID == "" {
+		h.logger.Warn("Start game action received from unassigned connection",
+			zap.String("connection_id", connection.ID))
+		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
+		return
+	}
+
+	h.logger.Debug("🚀 Processing start game action [NEW ARCHITECTURE]",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
+
+	// Use action pattern - direct orchestration
+	if err := h.startGameAction.Execute(ctx, gameID, playerID); err != nil {
+		h.logger.Error("Failed to start game via action",
+			zap.Error(err),
+			zap.String("player_id", playerID),
+			zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
+		return
+	}
+
+	h.logger.Info("✅ Start game action completed successfully [NEW ARCHITECTURE]",
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", playerID),
+		zap.String("game_id", gameID))
+}
