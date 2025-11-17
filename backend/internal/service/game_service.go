@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
-	"terraforming-mars-backend/internal/delivery/websocket/session"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
