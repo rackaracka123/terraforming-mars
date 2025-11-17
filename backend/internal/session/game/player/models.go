@@ -9,7 +9,6 @@ import (
 type SelectStartingCardsPhase struct {
 	AvailableCards        []string `json:"availableCards"`
 	AvailableCorporations []string `json:"availableCorporations"`
-	SelectionComplete     bool     `json:"selectionComplete"`
 }
 
 // Player represents a player in the game

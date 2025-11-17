@@ -13,6 +13,10 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	sessionDeck "terraforming-mars-backend/internal/session/game/deck"
+	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -44,11 +48,9 @@ func NewTestServer(port int) (*TestServer, error) {
 	// Initialize event bus
 	eventBus := events.NewEventBus()
 
-	// Initialize repositories
+	// Initialize OLD repositories (still used by some services during migration)
 	playerRepo := repository.NewPlayerRepository(eventBus).(*repository.PlayerRepositoryImpl)
 	gameRepo := repository.NewGameRepository(eventBus).(*repository.GameRepositoryImpl)
-
-	// Initialize services with proper event bus wiring
 	cardRepo := repository.NewCardRepository()
 
 	// Load card data for integration testing
@@ -58,11 +60,20 @@ func NewTestServer(port int) (*TestServer, error) {
 
 	cardDeckRepo := repository.NewCardDeckRepository().(*repository.CardDeckRepositoryImpl)
 
+	// Initialize NEW session repositories
+	newDeckRepo, err := sessionDeck.NewRepository(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize deck repository: %w", err)
+	}
+	newGameRepo := sessionGame.NewRepository(eventBus)
+	newPlayerRepo := sessionPlayer.NewRepository(eventBus)
+	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo)
+
 	// Create Hub first
 	hub := core.NewHub()
 
-	// Create SessionManager with Hub
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
+	// Create SessionManager with NEW repositories
+	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, hub, eventBus)
 
 	// Create services with proper SessionManager dependency
 	boardService := service.NewBoardService()
@@ -71,7 +82,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
@@ -83,7 +94,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub (use nil for actions in tests for now)
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil, nil, nil)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

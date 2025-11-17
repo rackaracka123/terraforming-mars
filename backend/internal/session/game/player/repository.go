@@ -195,7 +195,6 @@ func (r *RepositoryImpl) SetStartingCardsSelection(ctx context.Context, gameID s
 	player.SelectStartingCardsPhase = &SelectStartingCardsPhase{
 		AvailableCards:        cardIDs,
 		AvailableCorporations: corpIDs,
-		SelectionComplete:     false,
 	}
 
 	return nil
@@ -241,7 +240,7 @@ func (r *RepositoryImpl) SetCorporation(ctx context.Context, gameID string, play
 	return nil
 }
 
-// CompleteStartingSelection marks the starting selection as complete
+// CompleteStartingSelection marks the starting selection as complete and clears the phase
 func (r *RepositoryImpl) CompleteStartingSelection(ctx context.Context, gameID string, playerID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -256,9 +255,8 @@ func (r *RepositoryImpl) CompleteStartingSelection(ctx context.Context, gameID s
 		return &model.NotFoundError{Resource: "player", ID: playerID}
 	}
 
-	if player.SelectStartingCardsPhase != nil {
-		player.SelectStartingCardsPhase.SelectionComplete = true
-	}
+	// Clear the phase entirely - selection is complete and modal should close
+	player.SelectStartingCardsPhase = nil
 
 	return nil
 }

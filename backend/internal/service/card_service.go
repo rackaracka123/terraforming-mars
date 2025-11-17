@@ -488,8 +488,19 @@ func (s *CardServiceImpl) ListCardsPaginated(ctx context.Context, offset, limit 
 }
 
 func (s *CardServiceImpl) GetCorporations(ctx context.Context) ([]model.Card, error) {
-	// TODO: Implement during migration - GetCorporations method not in NEW card repository yet
-	return nil, fmt.Errorf("GetCorporations not implemented during migration")
+	// Get corporations from NEW card repository
+	newCorporations, err := s.cardRepo.GetCorporations(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert NEW card types to OLD model types
+	modelCorporations := make([]model.Card, len(newCorporations))
+	for i, c := range newCorporations {
+		modelCorporations[i] = cardToModel(c)
+	}
+
+	return modelCorporations, nil
 }
 
 // OnPlayCardAction plays a card action from the player's action list
@@ -726,22 +737,22 @@ func (s *CardServiceImpl) applyActionInputs(ctx context.Context, gameID, playerI
 				return fmt.Errorf("insufficient heat: need %d, have %d", input.Amount, newResources.Heat)
 			}
 
-		// TODO: Re-enable card storage resource validation during migration
-		// Card storage resources (animals, microbes, floaters, science, asteroid)
-		// case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
-		// 	// Validate card storage resource inputs
-		// 	if input.Target == model.TargetSelfCard {
-		// 		// Initialize resource storage map if nil (for checking)
-		// 		if player.ResourceStorage == nil {
-		// 			player.ResourceStorage = make(map[string]int)
-		// 		}
+			// TODO: Re-enable card storage resource validation during migration
+			// Card storage resources (animals, microbes, floaters, science, asteroid)
+			// case model.ResourceAnimals, model.ResourceMicrobes, model.ResourceFloaters, model.ResourceScience, model.ResourceAsteroid:
+			// 	// Validate card storage resource inputs
+			// 	if input.Target == model.TargetSelfCard {
+			// 		// Initialize resource storage map if nil (for checking)
+			// 		if player.ResourceStorage == nil {
+			// 			player.ResourceStorage = make(map[string]int)
+			// 		}
 
-		// 		currentStorage := player.ResourceStorage[action.CardID]
-		// 		if currentStorage < input.Amount {
-		// 			return fmt.Errorf("insufficient %s storage on card %s: need %d, have %d",
-		// 				input.Type, action.CardID, input.Amount, currentStorage)
-		// 		}
-		// 	}
+			// 		currentStorage := player.ResourceStorage[action.CardID]
+			// 		if currentStorage < input.Amount {
+			// 			return fmt.Errorf("insufficient %s storage on card %s: need %d, have %d",
+			// 				input.Type, action.CardID, input.Amount, currentStorage)
+			// 		}
+			// 	}
 		}
 	}
 

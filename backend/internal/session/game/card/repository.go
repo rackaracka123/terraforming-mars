@@ -37,6 +37,9 @@ type Repository interface {
 
 	// GetAllCards retrieves all cards
 	GetAllCards(ctx context.Context) ([]Card, error)
+
+	// GetCorporations retrieves all corporation cards
+	GetCorporations(ctx context.Context) ([]Card, error)
 }
 
 // RepositoryImpl implements the Repository interface by wrapping repositories
@@ -160,4 +163,16 @@ func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]Card, error) {
 
 	// Convert to session card type
 	return FromModelCards(modelCards), nil
+}
+
+// GetCorporations retrieves all corporation cards
+func (r *RepositoryImpl) GetCorporations(ctx context.Context) ([]Card, error) {
+	// Get all corporation cards from old repository
+	corpCards, err := r.oldCardRepo.GetCorporationCards(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to session card type
+	return FromModelCards(corpCards), nil
 }

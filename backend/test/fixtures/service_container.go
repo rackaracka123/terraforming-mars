@@ -1,10 +1,16 @@
 package fixtures
 
 import (
+	"context"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	sessionDeck "terraforming-mars-backend/internal/session/game/deck"
+	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/test"
 )
 
@@ -41,11 +47,20 @@ func NewServiceContainer() *ServiceContainer {
 	// Core infrastructure
 	eventBus := events.NewEventBus()
 
-	// Repositories
+	// OLD Repositories (still used by some services during migration)
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
+
+	// NEW session repositories
+	newDeckRepo, err := sessionDeck.NewRepository(context.Background())
+	if err != nil {
+		panic("Failed to initialize deck repository: " + err.Error())
+	}
+	newGameRepo := sessionGame.NewRepository(eventBus)
+	newPlayerRepo := sessionPlayer.NewRepository(eventBus)
+	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo)
 
 	// Mocks
 	sessionManager := test.NewMockSessionManager()
@@ -56,7 +71,7 @@ func NewServiceContainer() *ServiceContainer {
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)

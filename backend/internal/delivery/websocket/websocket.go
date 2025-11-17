@@ -32,11 +32,12 @@ func NewWebSocketService(
 	sessionManager session.SessionManager,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
+	selectStartingCardsAction *action.SelectStartingCardsAction,
 ) *WebSocketService {
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, sessionManager, gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, startGameAction, joinGameAction)
+	RegisterHandlers(hub, sessionManager, gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, startGameAction, joinGameAction, selectStartingCardsAction)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

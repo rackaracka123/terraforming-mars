@@ -761,8 +761,8 @@ func (r *PlayerRepositoryImpl) SetStartingCardsSelectionComplete(ctx context.Con
 		return fmt.Errorf("select starting cards phase not initialized for player %s in game %s", playerID, gameID)
 	}
 
-	// Mark selection as complete
-	player.SelectStartingCardsPhase.SelectionComplete = true
+	// Clear the phase - selection is complete
+	player.SelectStartingCardsPhase = nil
 
 	log.Info("Player completed starting card selection phase")
 

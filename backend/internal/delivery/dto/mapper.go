@@ -103,11 +103,8 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 	if player.Passed {
 		status = PlayerStatusWaiting
 	} else if player.SelectStartingCardsPhase != nil {
-		if player.SelectStartingCardsPhase.SelectionComplete {
-			status = PlayerStatusActive
-		} else {
-			status = PlayerStatusSelectingStartingCards
-		}
+		// Phase exists means selection is in progress (phase is set to nil when complete)
+		status = PlayerStatusSelectingStartingCards
 	} else if player.ProductionPhase != nil {
 		if player.ProductionPhase.SelectionComplete {
 			status = PlayerStatusActive
@@ -173,11 +170,8 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 	if player.Passed {
 		status = PlayerStatusWaiting
 	} else if player.SelectStartingCardsPhase != nil {
-		if player.SelectStartingCardsPhase.SelectionComplete {
-			status = PlayerStatusActive
-		} else {
-			status = PlayerStatusSelectingStartingCards
-		}
+		// Phase exists means selection is in progress (phase is set to nil when complete)
+		status = PlayerStatusSelectingStartingCards
 	} else if player.ProductionPhase != nil {
 		if player.ProductionPhase.SelectionComplete {
 			status = PlayerStatusActive
@@ -462,7 +456,6 @@ func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolv
 	return &SelectStartingCardsPhaseDto{
 		AvailableCards:        resolveCards(phase.AvailableCards, resolvedCards),
 		AvailableCorporations: phase.AvailableCorporations,
-		SelectionComplete:     phase.SelectionComplete,
 	}
 }
 
@@ -471,9 +464,8 @@ func ToSelectStartingCardsOtherPlayerDto(phase *model.SelectStartingCardsPhase) 
 		return nil
 	}
 
-	return &SelectStartingCardsOtherPlayerDto{
-		SelectionComplete: phase.SelectionComplete,
-	}
+	// Empty struct - other players don't see selection details
+	return &SelectStartingCardsOtherPlayerDto{}
 }
 
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto

@@ -61,7 +61,8 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		return fmt.Errorf("not in starting card selection phase")
 	}
 
-	if p.SelectStartingCardsPhase.SelectionComplete {
+	// Check if player already has a corporation (selection already complete)
+	if p.CorporationID != "" {
 		log.Error("Starting selection already complete")
 		return fmt.Errorf("starting selection already complete")
 	}
@@ -196,7 +197,9 @@ func (a *SelectStartingCardsAction) checkAllPlayersComplete(ctx context.Context,
 	}
 
 	for _, p := range players {
-		if p.SelectStartingCardsPhase == nil || !p.SelectStartingCardsPhase.SelectionComplete {
+		// Selection is complete when player has chosen a corporation
+		// (phase is set to nil after completion, but we check corporation instead)
+		if p.CorporationID == "" {
 			return false, nil
 		}
 	}

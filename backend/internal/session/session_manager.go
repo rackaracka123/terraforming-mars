@@ -316,7 +316,6 @@ func playerToModel(p *player.Player) model.Player {
 		selectStartingCards = &model.SelectStartingCardsPhase{
 			AvailableCards:        p.SelectStartingCardsPhase.AvailableCards,
 			AvailableCorporations: p.SelectStartingCardsPhase.AvailableCorporations,
-			SelectionComplete:     p.SelectStartingCardsPhase.SelectionComplete,
 		}
 	}
 

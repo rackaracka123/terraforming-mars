@@ -30,7 +30,7 @@ import (
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction) {
+func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction, selectStartingCardsAction *action.SelectStartingCardsAction) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -63,7 +63,8 @@ func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, game
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandlerWithAction(startGameAction))
 
 	// Register card selection handlers
-	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(cardService, gameService, parser))
+	// NEW ARCHITECTURE: Using action pattern for select_starting_card
+	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, standardProjectService, playerRepo, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(cardService, parser))
 

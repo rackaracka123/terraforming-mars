@@ -2,34 +2,31 @@ package select_starting_card
 
 import (
 	"context"
-	"fmt"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles select starting card action requests
 type Handler struct {
-	cardService  service.CardService
-	gameService  service.GameService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	selectStartingCardsAction *action.SelectStartingCardsAction
+	parser                    *utils.MessageParser
+	errorHandler              *utils.ErrorHandler
+	logger                    *zap.Logger
 }
 
 // NewHandler creates a new select starting card handler
-func NewHandler(cardService service.CardService, gameService service.GameService, parser *utils.MessageParser) *Handler {
+func NewHandler(selectStartingCardsAction *action.SelectStartingCardsAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		gameService:  gameService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		selectStartingCardsAction: selectStartingCardsAction,
+		parser:                    parser,
+		errorHandler:              utils.NewErrorHandler(),
+		logger:                    logger.Get(),
 	}
 }
 
@@ -92,17 +89,8 @@ func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string, co
 		zap.String("corporation_id", corporationID))
 }
 
-// selectCards processes the card and corporation selection through the service
+// selectCards processes the card and corporation selection through the action
 func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	if err := h.cardService.OnSelectStartingCards(ctx, gameID, playerID, cardIDs, corporationID); err != nil {
-		log.Error("Failed to select starting cards", zap.Error(err))
-		return fmt.Errorf("card selection failed: %w", err)
-	}
-
-	log.Info("Player selected starting cards (pending confirmation)",
-		zap.Strings("selected_cards", cardIDs))
-
-	return nil
+	// Execute the action directly - actions are orchestrators
+	return h.selectStartingCardsAction.Execute(ctx, gameID, playerID, cardIDs, corporationID)
 }
