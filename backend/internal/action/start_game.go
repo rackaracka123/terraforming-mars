@@ -15,6 +15,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// convertGameSettings converts NEW game.GameSettings to OLD model.GameSettings
+// Temporary helper during migration - to be removed when deckRepo uses NEW types
+func convertGameSettings(newSettings game.GameSettings) model.GameSettings {
+	return model.GameSettings{
+		MaxPlayers:      newSettings.MaxPlayers,
+		Temperature:     newSettings.Temperature,
+		Oxygen:          newSettings.Oxygen,
+		Oceans:          newSettings.Oceans,
+		DevelopmentMode: newSettings.DevelopmentMode,
+		CardPacks:       newSettings.CardPacks,
+	}
+}
+
 // StartGameAction handles the business logic for starting games
 type StartGameAction struct {
 	gameRepo   game.Repository
@@ -109,7 +122,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	// 7. Create game deck with shuffled cards
-	err = a.deckRepo.CreateDeck(ctx, gameID, g.Settings)
+	err = a.deckRepo.CreateDeck(ctx, gameID, convertGameSettings(g.Settings))
 	if err != nil {
 		log.Error("Failed to create game deck", zap.Error(err))
 		return fmt.Errorf("failed to create game deck: %w", err)

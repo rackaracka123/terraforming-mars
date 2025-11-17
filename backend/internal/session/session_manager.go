@@ -10,7 +10,6 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
@@ -54,21 +53,8 @@ func NewSessionManager(
 		logger:     logger.Get(),
 	}
 
-	// Subscribe to PlayerJoinedEvent for automatic game state broadcasting
-	events.Subscribe(eventBus, func(event repository.PlayerJoinedEvent) {
-		sm.logger.Info("📢 PlayerJoinedEvent received, broadcasting game state",
-			zap.String("game_id", event.GameID),
-			zap.String("player_id", event.PlayerID))
-
-		err := sm.Broadcast(event.GameID)
-		if err != nil {
-			sm.logger.Error("Failed to broadcast after player joined",
-				zap.Error(err),
-				zap.String("game_id", event.GameID))
-		}
-	})
-
-	sm.logger.Info("🎧 SessionManager subscribed to PlayerJoinedEvent")
+	// NOTE: PlayerJoinedEvent subscription removed - connection handler now controls broadcast timing
+	// This prevents race condition where broadcast happens before player setup is complete
 
 	return sm
 }
@@ -216,6 +202,18 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	// Send personalized game state to target player(s)
 	for _, player := range playersToSend {
+		log.Debug("🎯 Creating personalized DTO",
+			zap.String("viewing_player_id", player.ID),
+			zap.String("viewing_player_name", player.Name),
+			zap.Int("total_players", len(players)))
+
+		for i, p := range players {
+			log.Debug("🔍 Player in array",
+				zap.Int("index", i),
+				zap.String("player_id", p.ID),
+				zap.String("player_name", p.Name))
+		}
+
 		personalizedGameDTO := dto.ToGameDto(game, players, player.ID, resolvedCards, paymentConstants)
 
 		// Send game state via direct session call
@@ -311,7 +309,6 @@ func playersToModel(players []*player.Player) []model.Player {
 // playerToModel converts a NEW player.Player pointer to an OLD model.Player value
 // Fields that don't exist in NEW player type are initialized with zero/empty values
 func playerToModel(p *player.Player) model.Player {
-	var corporation *model.Card
 	var selectStartingCards *model.SelectStartingCardsPhase
 
 	// Convert SelectStartingCardsPhase if it exists
@@ -326,7 +323,7 @@ func playerToModel(p *player.Player) model.Player {
 	return model.Player{
 		ID:                        p.ID,
 		Name:                      p.Name,
-		Corporation:               corporation, // Will be resolved from CorporationID if needed
+		Corporation:               p.Corporation, // Now exists in NEW player type
 		Cards:                     p.Cards,
 		Resources:                 p.Resources,
 		Production:                p.Production,
@@ -337,17 +334,17 @@ func playerToModel(p *player.Player) model.Player {
 		VictoryPoints:             0,          // Not in NEW player type yet
 		IsConnected:               p.IsConnected,
 		Effects:                   []model.PlayerEffect{}, // Not in NEW player type yet
-		Actions:                   []model.PlayerAction{}, // Not in NEW player type yet
-		ProductionPhase:           nil,                    // Not in NEW player type yet
+		Actions:                   p.Actions,              // Now exists in NEW player type
+		ProductionPhase:           p.ProductionPhase,      // Now exists in NEW player type
 		SelectStartingCardsPhase:  selectStartingCards,
-		PendingTileSelection:      nil,                           // Not in NEW player type yet
-		PendingTileSelectionQueue: nil,                           // Not in NEW player type yet
-		PendingCardSelection:      nil,                           // Not in NEW player type yet
-		PendingCardDrawSelection:  nil,                           // Not in NEW player type yet
-		ForcedFirstAction:         nil,                           // Not in NEW player type yet
-		ResourceStorage:           make(map[string]int),          // Not in NEW player type yet
-		PaymentSubstitutes:        []model.PaymentSubstitute{},   // Not in NEW player type yet
-		RequirementModifiers:      []model.RequirementModifier{}, // Not in NEW player type yet
+		PendingTileSelection:      nil,                    // Not in NEW player type yet
+		PendingTileSelectionQueue: nil,                    // Not in NEW player type yet
+		PendingCardSelection:      nil,                    // Not in NEW player type yet
+		PendingCardDrawSelection:  nil,                    // Not in NEW player type yet
+		ForcedFirstAction:         p.ForcedFirstAction,    // Now exists in NEW player type
+		ResourceStorage:           make(map[string]int),   // Not in NEW player type yet
+		PaymentSubstitutes:        p.PaymentSubstitutes,   // Now exists in NEW player type
+		RequirementModifiers:      p.RequirementModifiers, // Now exists in NEW player type
 	}
 }
 
