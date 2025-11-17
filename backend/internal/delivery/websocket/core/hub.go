@@ -172,6 +172,11 @@ func (h *Hub) sendError(connection *Connection, errorMessage string) {
 
 // Hub no longer provides SessionManager - they're now separate components
 
+// ClearConnections closes all active connections and clears the connection state
+func (h *Hub) ClearConnections() {
+	h.manager.CloseAllConnections()
+}
+
 // Standard error messages for hub operations
 const (
 	ErrHandlerNotAvailable = "Handler not available"

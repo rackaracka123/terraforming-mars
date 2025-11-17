@@ -7,11 +7,14 @@ import EffectsModal from "../../ui/modals/EffectsModal.tsx";
 import ActionsModal from "../../ui/modals/ActionsModal.tsx";
 import StandardProjectPopover from "../../ui/popover/StandardProjectPopover.tsx";
 import ProductionPhaseModal from "../../ui/modals/ProductionPhaseModal.tsx";
+import PaymentSelectionPopover from "../../ui/popover/PaymentSelectionPopover.tsx";
 import DebugDropdown from "../../ui/debug/DebugDropdown.tsx";
+import DevModeChip from "../../ui/debug/DevModeChip.tsx";
 import WaitingRoomOverlay from "../../ui/overlay/WaitingRoomOverlay.tsx";
 import TabConflictOverlay from "../../ui/overlay/TabConflictOverlay.tsx";
 import StartingCardSelectionOverlay from "../../ui/overlay/StartingCardSelectionOverlay.tsx";
 import PendingCardSelectionOverlay from "../../ui/overlay/PendingCardSelectionOverlay.tsx";
+import CardDrawSelectionOverlay from "../../ui/overlay/CardDrawSelectionOverlay.tsx";
 import CardFanOverlay from "../../ui/overlay/CardFanOverlay.tsx";
 import LoadingSpinner from "../../game/view/LoadingSpinner.tsx";
 import HexagonalShieldOverlay from "../../ui/overlay/HexagonalShieldOverlay.tsx";
@@ -23,6 +26,7 @@ import audioService from "../../../services/audioService.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import {
   CardDto,
+  CardPaymentDto,
   FullStatePayload,
   GameDto,
   GamePhaseStartingCardSelection,
@@ -37,6 +41,10 @@ import {
   UnplayableReason,
   fetchAllCards,
 } from "@/utils/cardPlayabilityUtils.ts";
+import {
+  shouldShowPaymentModal,
+  createDefaultPayment,
+} from "@/utils/paymentUtils.ts";
 import { deepClone, findChangedPaths } from "@/utils/deepCompare.ts";
 import { StandardProject } from "@/types/cards.tsx";
 
@@ -124,6 +132,9 @@ export default function GameInterface() {
   const [showPendingCardSelection, setShowPendingCardSelection] =
     useState(false);
 
+  // Card draw selection state (for card-draw/peek/take/buy effects)
+  const [showCardDrawSelection, setShowCardDrawSelection] = useState(false);
+
   // Unplayable card feedback state
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
   const [unplayableReason, setUnplayableReason] =
@@ -142,11 +153,19 @@ export default function GameInterface() {
   const [actionPendingChoice, setActionPendingChoice] =
     useState<PlayerActionDto | null>(null);
 
+  // Payment selection state
+  const [showPaymentSelection, setShowPaymentSelection] = useState(false);
+  const [pendingCardPayment, setPendingCardPayment] = useState<{
+    card: CardDto;
+    choiceIndex?: number;
+  } | null>(null);
+
   // Card storage selection state
   const [showCardStorageSelection, setShowCardStorageSelection] =
     useState(false);
   const [pendingCardStorage, setPendingCardStorage] = useState<{
     cardId: string;
+    payment: CardPaymentDto;
     choiceIndex?: number;
     resourceType: ResourceType;
     amount: number;
@@ -325,6 +344,19 @@ export default function GameInterface() {
     [],
   );
 
+  // Handle card draw selection confirmation
+  const handleCardDrawConfirm = useCallback(
+    async (cardsToTake: string[], cardsToBuy: string[]) => {
+      try {
+        await globalWebSocketManager.confirmCardDraw(cardsToTake, cardsToBuy);
+        // Overlay closes automatically when backend clears pendingCardDrawSelection
+      } catch (error) {
+        console.error("Failed to confirm card draw:", error);
+      }
+    },
+    [],
+  );
+
   // Helper function to check if outputs need card storage selection
   const needsCardStorageSelection = useCallback(
     (
@@ -361,6 +393,20 @@ export default function GameInterface() {
   const handlePlayCard = useCallback(
     async (cardId: string) => {
       try {
+        // Block card plays when tile selection is pending
+        if (currentPlayer?.pendingTileSelection) {
+          const card = currentPlayer?.cards.find((c) => c.id === cardId);
+          if (card) {
+            setUnplayableCard(card);
+            setUnplayableReason({
+              type: "phase",
+              requirement: null,
+              message: "Complete tile placement first",
+            });
+          }
+          return;
+        }
+
         // Find the card to check if it has choices
         const card = currentPlayer?.cards.find((c) => c.id === cardId);
         if (!card) {
@@ -387,32 +433,52 @@ export default function GameInterface() {
           setPendingCardBehaviorIndex(behaviorWithChoices);
           setShowChoiceSelection(true);
         } else {
-          // No auto-triggered choices, check if card needs storage selection
-          // Check all auto-triggered behaviors for storage needs
-          const autoTriggerBehaviors = card.behaviors?.filter((b) =>
-            b.triggers?.some((t) => t.type === "auto"),
-          );
-
-          let storageNeeded: {
-            resourceType: ResourceType;
-            amount: number;
-          } | null = null;
-          for (const behavior of autoTriggerBehaviors || []) {
-            storageNeeded = needsCardStorageSelection(behavior.outputs);
-            if (storageNeeded) break;
-          }
-
-          if (storageNeeded) {
-            // Show storage selection popover
-            setPendingCardStorage({
-              cardId: card.id,
-              resourceType: storageNeeded.resourceType,
-              amount: storageNeeded.amount,
+          // No auto-triggered choices, check if we need payment modal
+          if (
+            currentPlayer &&
+            shouldShowPaymentModal(
+              card,
+              currentPlayer.resources,
+              currentPlayer.paymentSubstitutes,
+            )
+          ) {
+            // Show payment selection modal
+            setPendingCardPayment({
+              card: card,
+              choiceIndex: undefined,
             });
-            setShowCardStorageSelection(true);
+            setShowPaymentSelection(true);
           } else {
-            // No storage needed, play the card directly
-            await globalWebSocketManager.playCard(cardId);
+            // No payment modal needed, use default all-credits payment
+            const payment = createDefaultPayment(card.cost);
+
+            // Check if card needs storage selection
+            const autoTriggerBehaviors = card.behaviors?.filter((b) =>
+              b.triggers?.some((t) => t.type === "auto"),
+            );
+
+            let storageNeeded: {
+              resourceType: ResourceType;
+              amount: number;
+            } | null = null;
+            for (const behavior of autoTriggerBehaviors || []) {
+              storageNeeded = needsCardStorageSelection(behavior.outputs);
+              if (storageNeeded) break;
+            }
+
+            if (storageNeeded) {
+              // Show storage selection popover
+              setPendingCardStorage({
+                cardId: card.id,
+                payment: payment,
+                resourceType: storageNeeded.resourceType,
+                amount: storageNeeded.amount,
+              });
+              setShowCardStorageSelection(true);
+            } else {
+              // No storage needed, play the card directly
+              await globalWebSocketManager.playCard(cardId, payment);
+            }
           }
         }
       } catch (error) {
@@ -425,38 +491,63 @@ export default function GameInterface() {
 
   const handleChoiceSelect = useCallback(
     async (choiceIndex: number) => {
-      if (!cardPendingChoice) return;
+      if (!cardPendingChoice || !currentPlayer) return;
 
       try {
         setShowChoiceSelection(false);
 
-        // Get the selected choice
-        const behavior =
-          cardPendingChoice.behaviors?.[pendingCardBehaviorIndex];
-        const selectedChoice = behavior?.choices?.[choiceIndex];
-
-        // Check if the selected choice outputs need card storage selection
-        const storageInfo = needsCardStorageSelection(selectedChoice?.outputs);
-
-        if (storageInfo) {
-          // Show card storage selection popover
-          setPendingCardStorage({
-            cardId: cardPendingChoice.id,
+        // Check if we need payment modal
+        if (
+          shouldShowPaymentModal(
+            cardPendingChoice,
+            currentPlayer.resources,
+            currentPlayer.paymentSubstitutes,
+          )
+        ) {
+          // Show payment selection modal
+          setPendingCardPayment({
+            card: cardPendingChoice,
             choiceIndex: choiceIndex,
-            resourceType: storageInfo.resourceType,
-            amount: storageInfo.amount,
           });
-          setShowCardStorageSelection(true);
+          setShowPaymentSelection(true);
           setCardPendingChoice(null);
           setPendingCardBehaviorIndex(0);
         } else {
-          // No card storage needed, play the card directly
-          await globalWebSocketManager.playCard(
-            cardPendingChoice.id,
-            choiceIndex,
+          // No payment modal needed, use default all-credits payment
+          const payment = createDefaultPayment(cardPendingChoice.cost);
+
+          // Get the selected choice
+          const behavior =
+            cardPendingChoice.behaviors?.[pendingCardBehaviorIndex];
+          const selectedChoice = behavior?.choices?.[choiceIndex];
+
+          // Check if the selected choice outputs need card storage selection
+          const storageInfo = needsCardStorageSelection(
+            selectedChoice?.outputs,
           );
-          setCardPendingChoice(null);
-          setPendingCardBehaviorIndex(0);
+
+          if (storageInfo) {
+            // Show card storage selection popover
+            setPendingCardStorage({
+              cardId: cardPendingChoice.id,
+              payment: payment,
+              choiceIndex: choiceIndex,
+              resourceType: storageInfo.resourceType,
+              amount: storageInfo.amount,
+            });
+            setShowCardStorageSelection(true);
+            setCardPendingChoice(null);
+            setPendingCardBehaviorIndex(0);
+          } else {
+            // No card storage needed, play the card directly
+            await globalWebSocketManager.playCard(
+              cardPendingChoice.id,
+              payment,
+              choiceIndex,
+            );
+            setCardPendingChoice(null);
+            setPendingCardBehaviorIndex(0);
+          }
         }
       } catch (error) {
         console.error(
@@ -467,7 +558,12 @@ export default function GameInterface() {
         setPendingCardBehaviorIndex(0);
       }
     },
-    [cardPendingChoice, pendingCardBehaviorIndex, needsCardStorageSelection],
+    [
+      cardPendingChoice,
+      currentPlayer,
+      pendingCardBehaviorIndex,
+      needsCardStorageSelection,
+    ],
   );
 
   const handleChoiceCancel = useCallback(() => {
@@ -526,6 +622,64 @@ export default function GameInterface() {
     setActionPendingChoice(null);
   }, []);
 
+  // Payment selection callbacks
+  const handlePaymentConfirm = useCallback(
+    async (payment: CardPaymentDto) => {
+      if (!pendingCardPayment || !currentPlayer) return;
+
+      try {
+        setShowPaymentSelection(false);
+
+        // Check if card storage selection is still needed
+        const autoTriggerBehaviors = pendingCardPayment.card.behaviors?.filter(
+          (b) =>
+            b.triggers &&
+            b.triggers.length > 0 &&
+            b.triggers.some((t) => t.type === "auto"),
+        );
+
+        let storageNeeded: {
+          resourceType: ResourceType;
+          amount: number;
+        } | null = null;
+        for (const behavior of autoTriggerBehaviors || []) {
+          storageNeeded = needsCardStorageSelection(behavior.outputs);
+          if (storageNeeded) break;
+        }
+
+        if (storageNeeded) {
+          // Show storage selection popover
+          setPendingCardStorage({
+            cardId: pendingCardPayment.card.id,
+            payment: payment,
+            choiceIndex: pendingCardPayment.choiceIndex,
+            resourceType: storageNeeded.resourceType,
+            amount: storageNeeded.amount,
+          });
+          setShowCardStorageSelection(true);
+        } else {
+          // No storage needed, play the card directly
+          await globalWebSocketManager.playCard(
+            pendingCardPayment.card.id,
+            payment,
+            pendingCardPayment.choiceIndex,
+          );
+        }
+
+        setPendingCardPayment(null);
+      } catch (error) {
+        console.error(`❌ Failed to play card with payment:`, error);
+        setPendingCardPayment(null);
+      }
+    },
+    [pendingCardPayment, currentPlayer, needsCardStorageSelection],
+  );
+
+  const handlePaymentCancel = useCallback(() => {
+    setShowPaymentSelection(false);
+    setPendingCardPayment(null);
+  }, []);
+
   const handleCardStorageSelect = useCallback(
     async (targetCardId: string) => {
       if (!pendingCardStorage) return;
@@ -534,6 +688,7 @@ export default function GameInterface() {
         setShowCardStorageSelection(false);
         await globalWebSocketManager.playCard(
           pendingCardStorage.cardId,
+          pendingCardStorage.payment,
           pendingCardStorage.choiceIndex,
           targetCardId,
         );
@@ -606,9 +761,9 @@ export default function GameInterface() {
       // Step 1: Reconnect to game
       setReconnectionStep("game");
 
-      // Fetch current game state from server first
+      // Fetch current game state from server first (with playerId for personalized view)
       const response = await fetch(
-        `http://localhost:3001/api/v1/games/${gameId}`,
+        `http://localhost:3001/api/v1/games/${gameId}?playerId=${playerId}`,
       );
       if (!response.ok) {
         throw new Error(`Game not found: ${response.status}`);
@@ -683,6 +838,11 @@ export default function GameInterface() {
   // Handle action selection from card actions
   const handleActionSelect = useCallback(
     (action: PlayerActionDto) => {
+      // Block actions when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Check if this action has choices
       if (action.behavior.choices && action.behavior.choices.length > 0) {
         // Action has choices, show the choice selection popover
@@ -710,12 +870,17 @@ export default function GameInterface() {
         }
       }
     },
-    [needsCardStorageSelection],
+    [currentPlayer?.pendingTileSelection, needsCardStorageSelection],
   );
 
   // Standard project selection handler
   const handleStandardProjectSelect = useCallback(
     (project: StandardProject) => {
+      // Block standard projects when tile selection is pending
+      if (currentPlayer?.pendingTileSelection) {
+        return;
+      }
+
       // Close dropdown first
       setShowStandardProjectsPopover(false);
 
@@ -743,8 +908,24 @@ export default function GameInterface() {
           break;
       }
     },
-    [],
+    [currentPlayer?.pendingTileSelection],
   );
+
+  // Resource conversion handlers
+  const handleConvertPlantsToGreenery = useCallback(() => {
+    // Block if tile selection is already pending
+    if (currentPlayer?.pendingTileSelection) {
+      return;
+    }
+
+    // Initiate plant conversion (backend creates pending tile selection)
+    void globalWebSocketManager.convertPlantsToGreenery();
+  }, [currentPlayer?.pendingTileSelection]);
+
+  const handleConvertHeatToTemperature = useCallback(() => {
+    // Convert heat to temperature directly (no tile selection needed)
+    void globalWebSocketManager.convertHeatToTemperature();
+  }, []);
 
   // Tab conflict handlers
   const handleTabTakeOver = () => {
@@ -945,6 +1126,17 @@ export default function GameInterface() {
     }
   }, [game?.currentPlayer?.pendingCardSelection, showPendingCardSelection]);
 
+  // Show/hide card draw selection overlay
+  useEffect(() => {
+    const pendingDrawSelection = game?.currentPlayer?.pendingCardDrawSelection;
+
+    if (pendingDrawSelection && !showCardDrawSelection) {
+      setShowCardDrawSelection(true);
+    } else if (!pendingDrawSelection && showCardDrawSelection) {
+      setShowCardDrawSelection(false);
+    }
+  }, [game?.currentPlayer?.pendingCardDrawSelection, showCardDrawSelection]);
+
   // Demo keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -1019,8 +1211,30 @@ export default function GameInterface() {
   // Check if game is in lobby phase
   const isLobbyPhase = game?.status === GameStatusLobby;
 
+  // Check if we need the persistent backdrop (during overlay transitions)
+  const shouldShowBackdrop = isLobbyPhase || showCardSelection;
+
   return (
     <>
+      {/* Dev Mode Chip - Always visible in dev mode */}
+      {game?.settings?.developmentMode && <DevModeChip />}
+
+      {/* Persistent backdrop for overlays to prevent blink during transitions */}
+      {shouldShowBackdrop && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] animate-[backdropFadeIn_0.3s_ease-out]">
+          <style>{`
+            @keyframes backdropFadeIn {
+              0% {
+                opacity: 0;
+              }
+              100% {
+                opacity: 1;
+              }
+            }
+          `}</style>
+        </div>
+      )}
+
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
@@ -1028,23 +1242,21 @@ export default function GameInterface() {
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
+        showCardSelection={showCardSelection}
+        changedPaths={changedPaths}
         onOpenCardEffectsModal={() => setShowCardEffectsModal(true)}
         onOpenCardsPlayedModal={() => setShowCardsPlayedModal(true)}
         onOpenVictoryPointsModal={() => setShowVictoryPointsModal(true)}
         onOpenActionsModal={() => setShowActionsModal(true)}
         onActionSelect={handleActionSelect}
+        onConvertPlantsToGreenery={handleConvertPlantsToGreenery}
+        onConvertHeatToTemperature={handleConvertHeatToTemperature}
         showStandardProjectsPopover={showStandardProjectsPopover}
         onToggleStandardProjectsPopover={() =>
           setShowStandardProjectsPopover(!showStandardProjectsPopover)
         }
         standardProjectsButtonRef={standardProjectsButtonRef}
       />
-
-      {/*<CorporationSelectionModal*/}
-      {/*  corporations={availableCorporations}*/}
-      {/*  onSelectCorporation={handleCorporationSelection}*/}
-      {/*  isVisible={showCorporationModal}*/}
-      {/*/>*/}
 
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
@@ -1133,7 +1345,19 @@ export default function GameInterface() {
           isOpen={showPendingCardSelection}
           selection={game.currentPlayer.pendingCardSelection}
           playerCredits={currentPlayer?.resources?.credits || 0}
+          requirementModifiers={currentPlayer?.requirementModifiers || []}
           onSelectCards={handlePendingCardSelection}
+        />
+      )}
+
+      {/* Card draw selection overlay (card-draw/peek/take/buy effects) */}
+      {game?.currentPlayer?.pendingCardDrawSelection && (
+        <CardDrawSelectionOverlay
+          isOpen={showCardDrawSelection}
+          selection={game.currentPlayer.pendingCardDrawSelection}
+          playerCredits={currentPlayer?.resources?.credits || 0}
+          requirementModifiers={currentPlayer?.requirementModifiers || []}
+          onConfirm={handleCardDrawConfirm}
         />
       )}
 
@@ -1144,7 +1368,10 @@ export default function GameInterface() {
           game={game}
           player={currentPlayer}
           hideWhenModalOpen={
-            showCardSelection || showPendingCardSelection || isLobbyPhase
+            showCardSelection ||
+            showPendingCardSelection ||
+            showCardDrawSelection ||
+            isLobbyPhase
           }
           onCardSelect={(_cardId) => {
             // TODO: Implement card selection logic (view details, etc.)
@@ -1202,6 +1429,20 @@ export default function GameInterface() {
           onCardSelect={handleCardStorageSelect}
           onCancel={handleCardStorageCancel}
           isVisible={showCardStorageSelection}
+        />
+      )}
+
+      {/* Payment selection popover */}
+      {pendingCardPayment && game && currentPlayer && (
+        <PaymentSelectionPopover
+          cardId={pendingCardPayment.card.id}
+          card={pendingCardPayment.card}
+          playerResources={currentPlayer.resources}
+          paymentConstants={game.paymentConstants}
+          playerPaymentSubstitutes={currentPlayer.paymentSubstitutes}
+          onConfirm={handlePaymentConfirm}
+          onCancel={handlePaymentCancel}
+          isVisible={showPaymentSelection}
         />
       )}
 

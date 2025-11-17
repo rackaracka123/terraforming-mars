@@ -5,6 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
@@ -15,13 +16,17 @@ import (
 type GameHandler struct {
 	*BaseHandler
 	gameService service.GameService
+	playerRepo  repository.PlayerRepository
+	cardRepo    repository.CardRepository
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService) *GameHandler {
+func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
 	return &GameHandler{
 		BaseHandler: NewBaseHandler(),
 		gameService: gameService,
+		playerRepo:  playerRepo,
+		cardRepo:    cardRepo,
 	}
 }
 
@@ -47,7 +52,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
@@ -64,6 +69,9 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check for optional playerId query parameter for personalized view
+	playerID := r.URL.Query().Get("playerId")
+
 	// Delegate to service
 	game, err := h.gameService.GetGame(r.Context(), gameID)
 	if err != nil {
@@ -72,8 +80,43 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game)
+	var gameDto dto.GameDto
+	if playerID != "" {
+		// Return personalized view with full player data
+		players, err := h.playerRepo.ListByGameID(r.Context(), gameID)
+		if err != nil {
+			h.logger.Error("Failed to get players", zap.Error(err), zap.String("game_id", gameID))
+			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get players")
+			return
+		}
+
+		// Collect all card IDs that need resolution
+		allCardIds := make(map[string]struct{})
+		for _, player := range players {
+			if player.Corporation != nil {
+				allCardIds[player.Corporation.ID] = struct{}{}
+			}
+			for _, cardID := range player.PlayedCards {
+				allCardIds[cardID] = struct{}{}
+			}
+			for _, cardID := range player.Cards {
+				allCardIds[cardID] = struct{}{}
+			}
+		}
+
+		resolvedCards, err := h.cardRepo.ListCardsByIdMap(r.Context(), allCardIds)
+		if err != nil {
+			h.logger.Error("Failed to resolve cards", zap.Error(err), zap.String("game_id", gameID))
+			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to resolve cards")
+			return
+		}
+
+		gameDto = dto.ToGameDto(game, players, playerID, resolvedCards, dto.GetPaymentConstants())
+	} else {
+		// Return basic non-personalized view
+		gameDto = dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
+	}
+
 	response := dto.GetGameResponse{
 		Game: gameDto,
 	}
@@ -91,7 +134,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(games)
+	gameDtos := dto.ToGameDtoSlice(games, dto.GetPaymentConstants())
 	response := dto.ListGamesResponse{
 		Games: gameDtos,
 	}

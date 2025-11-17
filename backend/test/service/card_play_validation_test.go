@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -15,16 +17,18 @@ import (
 
 func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 	// Setup
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
-
-	ctx := context.Background()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
 	// Load real cards
 	err := cardRepo.LoadCards(ctx)
@@ -130,7 +134,7 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute
-			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID, nil, nil)
+			err = cardService.OnPlayCard(ctx, gameID, player.ID, tt.cardID, makePayment(ctx, cardRepo, tt.cardID), nil, nil)
 
 			// Cleanup
 			cleanupErr := tt.cleanupFunc()
@@ -160,16 +164,18 @@ func TestCardService_PlayCard_BasicValidationFlow(t *testing.T) {
 
 func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	// Setup
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	ctx := context.Background()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 	cardDeckRepo := repository.NewCardDeckRepository()
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
-
-	ctx := context.Background()
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 
 	// Load real cards
 	err := cardRepo.LoadCards(ctx)
@@ -234,7 +240,7 @@ func TestCardService_PlayCard_AffordabilityValidation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Execute
-	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID, nil, nil)
+	err = cardService.OnPlayCard(ctx, gameID, player.ID, expensiveCard.ID, makePayment(ctx, cardRepo, expensiveCard.ID), nil, nil)
 
 	// Assert - should fail due to insufficient credits
 	assert.Error(t, err)

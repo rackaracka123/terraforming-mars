@@ -17,7 +17,7 @@ const CardsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 100 });
   const [sortBy, setSortBy] = useState<
     "unsorted" | "name-asc" | "name-desc" | "type-asc" | "type-desc"
   >("unsorted");
@@ -26,6 +26,9 @@ const CardsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [isFadedIn, setIsFadedIn] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1300,
+  );
 
   // Get card type colors matching the CSS
   const getCardTypeColor = (type: string) => {
@@ -111,7 +114,7 @@ const CardsPage: React.FC = () => {
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
     allCards.forEach((card) => {
-      card.tags.forEach((tag) => tags.add(tag));
+      card.tags?.forEach((tag) => tags.add(tag));
     });
     return Array.from(tags).sort();
   }, [allCards]);
@@ -141,14 +144,14 @@ const CardsPage: React.FC = () => {
             card.id.toLowerCase().includes(query) ||
             card.name.toLowerCase().includes(query) ||
             card.description.toLowerCase().includes(query) ||
-            card.tags.some((tag) => tag.toLowerCase().includes(query)),
+            card.tags?.some((tag) => tag.toLowerCase().includes(query)),
         );
       }
 
       // Apply tag filter (if any tags selected, show cards with ANY of the selected tags)
       if (selectedTags.size > 0) {
         filtered = filtered.filter((card) =>
-          card.tags.some((tag) => selectedTags.has(tag)),
+          card.tags?.some((tag) => selectedTags.has(tag)),
         );
       }
 
@@ -250,53 +253,74 @@ const CardsPage: React.FC = () => {
   }, [sortBy]);
 
   // Constants for virtual scrolling
-  const CARD_HEIGHT = 420; // Approximate height of a row including gap (corp cards are 380px + padding)
+  const REGULAR_CARD_HEIGHT = 360; // Height of a row with regular cards
+  const CORP_CARD_HEIGHT = 480; // Height of a row with corporation cards (taller)
   const ROW_BUFFER = 10; // Rows to render above and below viewport
 
-  // Calculate grid dimensions based on screen size
-  const getCardsPerRow = useCallback(() => {
-    const width = window.innerWidth;
-    if (width <= 480) return 1;
-    if (width <= 768) return 2;
-    if (width <= 1100) return 3;
-    if (width <= 1400) return 4;
-    return 5;
-  }, []);
+  // Calculate visible range of cards based on their actual positions
+  const calculateVisibleRange = useCallback(
+    (positions: Array<{ cardIndex: number; top: number; height: number }>) => {
+      if (positions.length === 0) {
+        return { start: 0, end: 100 };
+      }
 
-  // Calculate visible range of cards
-  const calculateVisibleRange = useCallback(() => {
-    const scrollTop = window.scrollY;
-    const viewportHeight = window.innerHeight;
-    const headerOffset = showFilters ? 310 : 190; // Account for sticky header and spacer (expanded when filters visible)
+      const scrollTop = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      const width = window.innerWidth;
 
-    const cardsPerRow = getCardsPerRow();
-    const adjustedScrollTop = Math.max(0, scrollTop - headerOffset);
+      // Responsive header offset calculation
+      let headerOffset = 120;
+      if (width <= 480) {
+        headerOffset = showFilters ? 470 : 180;
+      } else if (width <= 768) {
+        headerOffset = showFilters ? 440 : 160;
+      } else {
+        headerOffset = showFilters ? 320 : 120;
+      }
 
-    // Calculate which rows are visible
-    const startRow = Math.floor(adjustedScrollTop / CARD_HEIGHT);
-    const endRow = Math.ceil(
-      (adjustedScrollTop + viewportHeight) / CARD_HEIGHT,
-    );
+      const adjustedScrollTop = Math.max(0, scrollTop - headerOffset);
+      const viewportBottom = adjustedScrollTop + viewportHeight;
 
-    // Add buffer rows
-    const bufferedStartRow = Math.max(0, startRow - ROW_BUFFER);
-    const bufferedEndRow = endRow + ROW_BUFFER;
+      // Use average card height to estimate buffer distance
+      const bufferDistance = REGULAR_CARD_HEIGHT * ROW_BUFFER;
 
-    // Convert to card indices
-    const startIndex = bufferedStartRow * cardsPerRow;
-    const endIndex = bufferedEndRow * cardsPerRow;
+      // Find first and last visible cards
+      let startIndex = 0;
+      let endIndex = positions.length;
 
-    return { start: startIndex, end: endIndex };
-  }, [getCardsPerRow, showFilters]);
+      // Find start index - first card whose bottom is after viewport top (with buffer)
+      for (let i = 0; i < positions.length; i++) {
+        const cardBottom = positions[i].top + positions[i].height;
+        if (cardBottom >= adjustedScrollTop - bufferDistance) {
+          startIndex = i;
+          break;
+        }
+      }
+
+      // Find end index - first card whose top is after viewport bottom (with buffer)
+      for (let i = startIndex; i < positions.length; i++) {
+        const cardTop = positions[i].top;
+        if (cardTop > viewportBottom + bufferDistance) {
+          endIndex = i;
+          break;
+        }
+      }
+
+      return { start: startIndex, end: endIndex };
+    },
+    [showFilters],
+  );
 
   // Scroll handler for sticky header and virtual scrolling
   const handleScroll = useCallback(() => {
     const scrollTop = window.scrollY;
     setIsScrolled(scrollTop > 50);
+  }, []);
 
-    const newRange = calculateVisibleRange();
-    setVisibleRange(newRange);
-  }, [calculateVisibleRange]);
+  // Resize handler to update window width
+  const handleResize = useCallback(() => {
+    setWindowWidth(window.innerWidth);
+  }, []);
 
   useEffect(() => {
     void loadAllCards();
@@ -322,17 +346,6 @@ const CardsPage: React.FC = () => {
       applyFiltersAndSort();
     }
   }, [selectedTags, selectedTypes, sortBy, searchQuery, applyFiltersAndSort]);
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleScroll);
-    // Initialize visible range
-    handleScroll();
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, [handleScroll]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -386,41 +399,107 @@ const CardsPage: React.FC = () => {
     return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   }, [selectedCards]);
 
-  // Calculate total height for the container based on smart layout
-  const totalHeight = useMemo(() => {
+  // Get responsive container width
+  const getContainerWidth = useCallback(() => {
+    if (windowWidth <= 480) return windowWidth - 16; // Account for padding
+    if (windowWidth <= 768) return windowWidth - 20;
+    if (windowWidth <= 1100) return windowWidth - 40;
+    return Math.min(1300, windowWidth - 40);
+  }, [windowWidth]);
+
+  // Calculate card positions for ALL cards (used for both height and rendering)
+  const cardPositions = useMemo(() => {
     const REGULAR_CARD_WIDTH = 220;
     const CORP_CARD_WIDTH = 420;
-    const containerWidth = 1300;
+    const containerWidth = getContainerWidth();
 
-    let rows = 0;
-    let currentX = 0;
+    const positions: Array<{
+      cardIndex: number;
+      row: number;
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+    }> = [];
 
-    cards.forEach((card) => {
+    let currentRow = 0;
+    let currentRowCards: Array<{ index: number; left: number; width: number }> =
+      [];
+    let currentRowWidth = 0;
+    let currentRowHasCorp = false;
+    let cumulativeTop = 0;
+
+    cards.forEach((card, index) => {
       const cardWidth =
         card.type === CardTypeCorporation
           ? CORP_CARD_WIDTH
           : REGULAR_CARD_WIDTH;
 
-      if (currentX + cardWidth > containerWidth && currentX > 0) {
-        rows++;
-        currentX = 0;
+      // Force new row for corporation cards
+      const isCorporation = card.type === CardTypeCorporation;
+
+      // Check if card fits in current row or is a corporation card
+      if (
+        (currentRowWidth + cardWidth > containerWidth && currentRowWidth > 0) ||
+        (isCorporation && currentRowWidth > 0)
+      ) {
+        // Finalize current row - center the cards
+        const rowOffset = (containerWidth - currentRowWidth) / 2;
+        const rowHeight = currentRowHasCorp
+          ? CORP_CARD_HEIGHT
+          : REGULAR_CARD_HEIGHT;
+
+        currentRowCards.forEach((cardInfo) => {
+          positions[cardInfo.index].left = cardInfo.left + rowOffset;
+        });
+
+        // Move to next row
+        cumulativeTop += rowHeight;
+        currentRow++;
+        currentRowCards = [];
+        currentRowWidth = 0;
+        currentRowHasCorp = false;
       }
 
-      currentX += cardWidth;
+      const cardLeft = currentRowWidth;
+      const rowHeight = isCorporation ? CORP_CARD_HEIGHT : REGULAR_CARD_HEIGHT;
+
+      // Add position for this card
+      positions[index] = {
+        cardIndex: index,
+        row: currentRow,
+        top: cumulativeTop,
+        left: cardLeft,
+        width: cardWidth,
+        height: rowHeight,
+      };
+
+      currentRowCards.push({ index, left: cardLeft, width: cardWidth });
+      currentRowWidth += cardWidth;
+      if (isCorporation) currentRowHasCorp = true;
     });
 
-    // Add 1 for the last row
-    const totalRows = rows + 1;
-    return totalRows * CARD_HEIGHT;
-  }, [cards]);
+    // Center the last row
+    if (currentRowCards.length > 0) {
+      const rowOffset = (containerWidth - currentRowWidth) / 2;
+      currentRowCards.forEach((cardInfo) => {
+        positions[cardInfo.index].left = cardInfo.left + rowOffset;
+      });
+    }
 
-  // Get only visible cards with smart layout for mixed card sizes
+    return positions;
+  }, [cards, getContainerWidth]);
+
+  // Calculate total height based on card positions
+  const totalHeight = useMemo(() => {
+    if (cardPositions.length === 0) return 0;
+    // Get the highest top position and add that card's height
+    const lastCard = cardPositions[cardPositions.length - 1];
+    return lastCard.top + lastCard.height;
+  }, [cardPositions]);
+
+  // Get only visible cards using pre-calculated positions
   const visibleCards = useMemo(() => {
-    const REGULAR_CARD_WIDTH = 220; // 200px + 20px padding
-    const CORP_CARD_WIDTH = 420; // 400px + 20px padding
-    const containerWidth = 1300; // max-width from .cards-virtual-container
-
-    const visibleSlice = cards.slice(visibleRange.start, visibleRange.end);
     const result: Array<{
       card: CardDto;
       position: {
@@ -429,41 +508,58 @@ const CardsPage: React.FC = () => {
         top: number;
         left: number;
         width: number;
+        height: number;
       };
     }> = [];
 
-    let currentRow = 0;
-    let currentX = 0;
-
-    visibleSlice.forEach((card) => {
-      const cardWidth =
-        card.type === CardTypeCorporation
-          ? CORP_CARD_WIDTH
-          : REGULAR_CARD_WIDTH;
-
-      // Check if card fits in current row
-      if (currentX + cardWidth > containerWidth && currentX > 0) {
-        // Move to next row
-        currentRow++;
-        currentX = 0;
+    cardPositions.forEach((pos) => {
+      if (
+        pos.cardIndex >= visibleRange.start &&
+        pos.cardIndex < visibleRange.end
+      ) {
+        result.push({
+          card: cards[pos.cardIndex],
+          position: {
+            row: pos.row,
+            col: 0,
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            height: pos.height,
+          },
+        });
       }
-
-      result.push({
-        card,
-        position: {
-          row: currentRow,
-          col: 0, // Not used anymore
-          top: currentRow * CARD_HEIGHT,
-          left: currentX,
-          width: cardWidth,
-        },
-      });
-
-      currentX += cardWidth;
     });
 
     return result;
-  }, [cards, visibleRange]);
+  }, [cards, cardPositions, visibleRange]);
+
+  // Update visible range when card positions or scroll changes
+  useEffect(() => {
+    if (cardPositions.length > 0) {
+      const newRange = calculateVisibleRange(cardPositions);
+      setVisibleRange(newRange);
+    }
+  }, [cardPositions, calculateVisibleRange, windowWidth, showFilters]);
+
+  useEffect(() => {
+    const handleScrollUpdate = () => {
+      handleScroll();
+      if (cardPositions.length > 0) {
+        const newRange = calculateVisibleRange(cardPositions);
+        setVisibleRange(newRange);
+      }
+    };
+
+    window.addEventListener("scroll", handleScrollUpdate);
+    window.addEventListener("resize", handleResize);
+    // Initialize visible range
+    handleScrollUpdate();
+    return () => {
+      window.removeEventListener("scroll", handleScrollUpdate);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [handleScroll, handleResize, cardPositions, calculateVisibleRange]);
 
   // Convert CardDto to Corporation interface for corporation cards
   const convertCardToCorporation = (card: CardDto) => ({
@@ -635,15 +731,15 @@ const CardsPage: React.FC = () => {
       <div className="container">
         <div className={`header-spacer ${showFilters ? "expanded" : ""}`}></div>
 
-        <div className="content-header">
-          {error && <div className="error-message">{error}</div>}
-          <div className="divider"></div>
-        </div>
+        {error && <div className="error-message">{error}</div>}
 
         <div
           className="cards-virtual-container"
-          style={{ height: `${totalHeight}px`, position: "relative" }}
+          style={{ position: "relative" }}
         >
+          {/* Spacer to create scrollable area */}
+          <div style={{ height: `${totalHeight}px`, pointerEvents: "none" }} />
+
           {visibleCards.map(({ card, position }) => (
             <div
               key={card.id}
@@ -654,7 +750,7 @@ const CardsPage: React.FC = () => {
                 left: `${position.left}px`,
                 width: `${position.width}px`,
                 padding: "0 10px",
-                height: `${CARD_HEIGHT}px`,
+                height: `${position.height}px`,
               }}
             >
               {card.type === CardTypeCorporation ? (
@@ -708,7 +804,6 @@ const CardsPage: React.FC = () => {
         .sticky-header.scrolled {
           background: rgba(5, 5, 10, 0.98);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
           box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
         }
 
@@ -721,6 +816,36 @@ const CardsPage: React.FC = () => {
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 20px;
+          position: relative;
+        }
+
+        .sticky-content::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 20%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0.1) 80%,
+            transparent 100%
+          );
+          transition: opacity 0.3s ease;
+        }
+
+        .sticky-header.scrolled .sticky-content::after {
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(30, 60, 150, 0.15) 20%,
+            rgba(30, 60, 150, 0.25) 50%,
+            rgba(30, 60, 150, 0.15) 80%,
+            transparent 100%
+          );
         }
 
         .container {
@@ -730,12 +855,12 @@ const CardsPage: React.FC = () => {
         }
 
         .header-spacer {
-          height: 100px;
+          height: 120px;
           transition: height 0.3s ease;
         }
 
         .header-spacer.expanded {
-          height: 220px;
+          height: 320px;
         }
 
         .content-header {
@@ -829,8 +954,6 @@ const CardsPage: React.FC = () => {
           margin: 0;
           text-shadow: 0 0 30px rgba(30, 60, 150, 0.6);
           font-weight: bold;
-          flex: 1;
-          text-align: center;
           letter-spacing: 2px;
         }
 
@@ -949,13 +1072,13 @@ const CardsPage: React.FC = () => {
           top: 100%;
           left: 0;
           right: 0;
-          background: rgba(5, 5, 10, 0.98);
-          border: 2px solid rgba(30, 60, 150, 0.4);
+          background: rgba(0, 0, 0, 0.98);
+          border: 2px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           backdrop-filter: blur(10px);
           z-index: 1000;
           margin-top: 4px;
-          box-shadow: 0 4px 20px rgba(30, 60, 150, 0.3);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
         .sort-option {
@@ -988,25 +1111,39 @@ const CardsPage: React.FC = () => {
         }
 
         .filters-panel {
-          background: rgba(5, 5, 10, 0.98);
+          background: rgba(0, 0, 0, 0.85);
           backdrop-filter: blur(10px);
-          border-bottom: 1px solid rgba(30, 60, 150, 0.2);
           padding: 20px;
-          max-width: 1400px;
-          margin: 0 auto;
-          animation: slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          width: 100%;
+          position: relative;
+          animation: slideDown 0.3s ease-out forwards;
           transform-origin: top;
         }
 
         @keyframes slideDown {
           from {
-            opacity: 0;
-            transform: translateY(-20px) scaleY(0.8);
+            transform: translateY(-20px);
           }
           to {
-            opacity: 1;
-            transform: translateY(0) scaleY(1);
+            transform: translateY(0);
           }
+        }
+
+        .filters-panel::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.1) 20%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0.1) 80%,
+            transparent 100%
+          );
         }
 
         .filter-section {
@@ -1123,6 +1260,7 @@ const CardsPage: React.FC = () => {
           max-width: 1300px;
           margin: 0 auto 40px auto;
           position: relative;
+          width: 100%;
         }
 
         .card-wrapper {
@@ -1152,53 +1290,136 @@ const CardsPage: React.FC = () => {
         }
 
 
+        @media (max-width: 1200px) {
+          .sticky-content {
+            padding: 15px;
+          }
+
+          .right-section {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .search-input {
+            width: 250px;
+          }
+        }
+
         @media (max-width: 768px) {
           .sticky-content {
             flex-direction: column;
             text-align: center;
             gap: 15px;
+            padding: 15px 10px;
           }
 
           .right-section {
             flex-direction: column;
             width: 100%;
-            gap: 15px;
+            gap: 10px;
           }
 
-          h1 {
-            font-size: 28px;
-          }
-
-          .search-input {
+          .back-button {
             width: 100%;
             max-width: 300px;
           }
 
+          h1 {
+            font-size: 20px;
+            order: -1;
+          }
+
+          .cards-info-header {
+            order: 1;
+          }
+
+          .search-input {
+            width: 100%;
+            max-width: none;
+          }
+
+          .filter-toggle-button,
+          .sort-dropdown-button,
+          .link-button,
+          .clear-view-button {
+            width: 100%;
+            justify-content: center;
+          }
+
           .container {
-            padding: 20px 15px;
+            padding: 20px 10px;
+          }
+
+          .header-spacer {
+            height: 160px;
           }
 
           .header-spacer.expanded {
-            height: 360px;
+            height: 440px;
           }
 
           .filters-panel {
-            padding: 15px;
+            padding: 15px 10px;
           }
 
           .filter-chips {
             gap: 6px;
+            justify-content: flex-start;
           }
 
           .filter-chip {
             font-size: 11px;
             padding: 5px 10px;
           }
+
+          .cards-virtual-container {
+            padding: 0 5px;
+          }
         }
 
         @media (max-width: 480px) {
+          .sticky-content {
+            padding: 12px 8px;
+            gap: 12px;
+          }
+
           h1 {
-            font-size: 24px;
+            font-size: 18px;
+            letter-spacing: 1px;
+          }
+
+          .back-button {
+            padding: 10px 16px;
+            font-size: 13px;
+          }
+
+          .filter-toggle-button,
+          .sort-dropdown-button,
+          .link-button,
+          .clear-view-button {
+            padding: 10px 16px;
+            font-size: 13px;
+          }
+
+          .search-input {
+            padding: 10px 14px;
+            font-size: 13px;
+          }
+
+          .header-spacer {
+            height: 180px;
+          }
+
+          .header-spacer.expanded {
+            height: 470px;
+          }
+
+          .container {
+            padding: 15px 8px;
+          }
+
+          .cards-info-header {
+            font-size: 13px;
           }
         }
       `}</style>

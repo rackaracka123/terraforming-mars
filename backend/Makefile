@@ -6,21 +6,21 @@
 # Main test command
 test:
 	@echo "🧪 Running all backend tests..."
-	go test ./test/...
+	go test -p=1 -parallel=1 ./test/...
 
 test-backend:
 	@echo "🧪 Running all backend tests..."
-	go test ./test/...
+	go test -p=1 -parallel=1 ./test/...
 
 # Test with verbose output
 test-verbose:
 	@echo "🧪 Running backend tests (verbose)..."
-	go test -v ./test/...
+	go test -v -p=1 -parallel=1 ./test/...
 
 # Test with coverage report
 test-coverage:
 	@echo "🧪 Running backend tests with coverage..."
-	go test -v -coverprofile=coverage.out ./test/...
+	go test -v -p=1 -parallel=1 -coverprofile=coverage.out ./test/...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "📊 Coverage report: coverage.html"
 
@@ -39,7 +39,7 @@ test-service:
 
 test-integration:
 	@echo "🔗 Running integration tests..."
-	go test ./test/integration/...
+	go test -p=1 -parallel=1 ./test/integration/...
 
 test-websocket:
 	@echo "🌐 Running WebSocket tests..."
@@ -71,7 +71,7 @@ test-file:
 # Run tests with race detection
 test-race:
 	@echo "🏁 Running tests with race detection..."
-	go test -race ./test/...
+	go test -race -p=1 -parallel=1 ./test/...
 
 # Watch for changes and run tests (requires entr: apt install entr)
 test-watch:

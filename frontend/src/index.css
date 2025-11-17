@@ -97,7 +97,8 @@ body {
   padding: 0;
   overflow-x: hidden;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
+  background-color: #000000;
 }
 
 body {
@@ -465,6 +466,77 @@ code {
   }
 }
 
+/* Value update shine animation for text/numbers */
+@keyframes valueUpdateShine {
+  0% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 8px rgba(255, 235, 59, 0.8),
+      0 0 12px rgba(255, 235, 59, 0.6),
+      0 0 16px rgba(255, 235, 59, 0.4);
+    filter: brightness(1.3);
+  }
+  100% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+}
+
+/* Icon update shine animation for icons (like credits) */
+@keyframes iconUpdateShine {
+  0% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1);
+  }
+  50% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8))
+      drop-shadow(0 0 8px rgba(255, 235, 59, 0.8))
+      drop-shadow(0 0 12px rgba(255, 235, 59, 0.6)) brightness(1.3);
+  }
+  100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)) brightness(1);
+  }
+}
+
+/* Production number glow animation */
+@keyframes productionShine {
+  0% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+  50% {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.8),
+      0 0 8px rgba(255, 235, 59, 0.8),
+      0 0 12px rgba(255, 235, 59, 0.6),
+      0 0 16px rgba(255, 235, 59, 0.4);
+    filter: brightness(1.3);
+  }
+  100% {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    filter: brightness(1);
+  }
+}
+
+/* Button glow enhancement for value changes */
+@keyframes buttonGlowEnhance {
+  0% {
+    box-shadow: inherit;
+  }
+  50% {
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.4),
+      0 0 20px currentColor,
+      0 0 25px currentColor;
+  }
+  100% {
+    box-shadow: inherit;
+  }
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -533,5 +605,32 @@ code {
     box-shadow:
       0 6px 20px rgba(74, 144, 226, 0.5),
       0 0 30px rgba(91, 160, 242, 0.4);
+  }
+}
+
+/* Resource conversion button animations */
+@keyframes foldOut {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  100% {
+    max-height: 50px;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes foldBack {
+  0% {
+    max-height: 50px;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    transform: scaleY(0);
   }
 }

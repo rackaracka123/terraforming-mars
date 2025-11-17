@@ -32,7 +32,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
   return (
     <div
-      className={`absolute top-0 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-space flex items-center justify-center z-[9999] transition-all duration-300 ${
+      className={`absolute top-0 left-0 right-0 bottom-0 bg-black/70 backdrop-blur-space flex items-end justify-center pb-[200px] z-[9999] transition-all duration-300 ${
         isFadingOut
           ? "opacity-0 backdrop-blur-none pointer-events-none"
           : "opacity-100 pointer-events-auto"

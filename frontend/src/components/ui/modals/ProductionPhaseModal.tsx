@@ -626,6 +626,9 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             gameState?.currentPlayer?.productionPhase?.availableCards || []
           }
           playerCredits={gameState?.currentPlayer?.resources.credits || 0}
+          requirementModifiers={
+            gameState?.currentPlayer?.requirementModifiers || []
+          }
           onSelectCards={handleCardSelection}
           onReturn={handleReturnFromCardSelection}
         />

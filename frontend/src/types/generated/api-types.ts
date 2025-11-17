@@ -14,7 +14,7 @@ export const ActionTypeSkipAction: ActionType = "skip-action";
 export const ActionTypePlayCard: ActionType = "play-card";
 export const ActionTypeCardAction: ActionType = "card-action";
 /**
- * Standard Projects
+ * Standard Projects (M€-based)
  */
 export const ActionTypeSellPatents: ActionType = "sell-patents";
 export const ActionTypeBuildPowerPlant: ActionType = "build-power-plant";
@@ -22,6 +22,13 @@ export const ActionTypeLaunchAsteroid: ActionType = "launch-asteroid";
 export const ActionTypeBuildAquifer: ActionType = "build-aquifer";
 export const ActionTypePlantGreenery: ActionType = "plant-greenery";
 export const ActionTypeBuildCity: ActionType = "build-city";
+/**
+ * Resource Conversion Actions
+ */
+export const ActionTypeConvertPlantsToGreenery: ActionType =
+  "convert-plants-to-greenery";
+export const ActionTypeConvertHeatToTemperature: ActionType =
+  "convert-heat-to-temperature";
 /**
  * SelectStartingCardAction represents selecting starting cards and corporation
  */
@@ -47,6 +54,7 @@ export interface SkipAction {
  */
 export interface PlayCardAction {
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -139,6 +147,7 @@ export interface ActionSkipActionRequest {
 export interface ActionPlayCardRequest {
   type: ActionType;
   cardId: string;
+  payment: CardPaymentDto; // Required: payment breakdown (credits, steel, titanium)
   choiceIndex?: number /* int */; // Optional: index of choice to play (for cards with choices)
   cardStorageTarget?: string; // Optional: target card ID for resource storage (for outputs with target "any-card")
 }
@@ -192,6 +201,30 @@ export interface ActionBuildCityRequest {
   hexPosition: HexPositionDto;
 }
 /**
+ * ActionConvertPlantsToGreeneryRequest contains the action data for initiating plant conversion
+ */
+export interface ActionConvertPlantsToGreeneryRequest {
+  type: ActionType;
+}
+/**
+ * ActionConvertHeatToTemperatureRequest contains the action data for converting heat to temperature
+ */
+export interface ActionConvertHeatToTemperatureRequest {
+  type: ActionType;
+}
+/**
+ * ConvertPlantsToGreeneryAction represents converting 8 plants to a greenery tile
+ */
+export interface ConvertPlantsToGreeneryAction {
+  type: ActionType;
+}
+/**
+ * ConvertHeatToTemperatureAction represents converting 8 heat to raise temperature
+ */
+export interface ConvertHeatToTemperatureAction {
+  type: ActionType;
+}
+/**
  * AdminCommandType represents different types of admin commands
  */
 export type AdminCommandType = string;
@@ -205,6 +238,8 @@ export const AdminCommandTypeStartTileSelection: AdminCommandType =
   "start-tile-selection";
 export const AdminCommandTypeSetCurrentTurn: AdminCommandType =
   "set-current-turn";
+export const AdminCommandTypeSetCorporation: AdminCommandType =
+  "set-corporation";
 /**
  * AdminCommandRequest contains the admin command data
  */
@@ -252,6 +287,22 @@ export interface StartTileSelectionAdminCommand {
   playerId: string;
   tileType: string;
 }
+/**
+ * SetCorporationAdminCommand represents setting a player's corporation
+ */
+export interface SetCorporationAdminCommand {
+  playerId: string;
+  corporationId: string;
+}
+/**
+ * CardPaymentDto represents how a player is paying for a card
+ */
+export interface CardPaymentDto {
+  credits: number /* int */; // MC spent
+  steel: number /* int */; // Steel resources used (2 MC value each)
+  titanium: number /* int */; // Titanium resources used (3 MC value each)
+  substitutes?: { [key: string]: number /* int */ }; // Payment substitutes (e.g., heat for Helion)
+}
 
 //////////
 // source: game_dto.go
@@ -284,6 +335,26 @@ export const CardTypeActive: CardType = "active";
 export const CardTypeEvent: CardType = "event";
 export const CardTypeCorporation: CardType = "corporation";
 export const CardTypePrelude: CardType = "prelude";
+/**
+ * StandardProject represents the different types of standard projects
+ */
+export type StandardProject = string;
+/**
+ * Standard Projects (M€-based)
+ */
+export const StandardProjectSellPatents: StandardProject = "sell-patents";
+export const StandardProjectPowerPlant: StandardProject = "power-plant";
+export const StandardProjectAsteroid: StandardProject = "asteroid";
+export const StandardProjectAquifer: StandardProject = "aquifer";
+export const StandardProjectGreenery: StandardProject = "greenery";
+export const StandardProjectCity: StandardProject = "city";
+/**
+ * Resource Conversion Actions (resource-based, not M€)
+ */
+export const StandardProjectConvertPlantsToGreenery: StandardProject =
+  "convert-plants-to-greenery";
+export const StandardProjectConvertHeatToTemperature: StandardProject =
+  "convert-heat-to-temperature";
 /**
  * CardTag represents different card categories and attributes
  */
@@ -373,19 +444,6 @@ export const ResourceTypeDefense: ResourceType = "defense";
 export const ResourceTypeDiscount: ResourceType = "discount";
 export const ResourceTypeValueModifier: ResourceType = "value-modifier";
 /**
- * Legacy/deprecated (kept for backwards compatibility)
- */
-export const ResourceTypeFighters: ResourceType = "fighters";
-export const ResourceTypeCamps: ResourceType = "camps";
-export const ResourceTypePreservation: ResourceType = "preservation";
-export const ResourceTypeData: ResourceType = "data";
-export const ResourceTypeSpecialized: ResourceType = "specialized";
-export const ResourceTypeDelegate: ResourceType = "delegate";
-export const ResourceTypeInfluence: ResourceType = "influence";
-export const ResourceTypeSpecialTile: ResourceType = "special-tile";
-export const ResourceTypeTerraformRating: ResourceType = "terraform-rating"; // Use ResourceTypeTR instead
-export const ResourceTypeOceans: ResourceType = "oceans";
-/**
  * TargetType represents different targeting scopes for resource conditions for client consumption
  */
 export type TargetType = string;
@@ -418,6 +476,10 @@ export const TriggerTilePlaced: TriggerType = "tile-placed";
 export type ResourceTriggerType = string;
 export const ResourceTriggerManual: ResourceTriggerType = "manual";
 export const ResourceTriggerAuto: ResourceTriggerType = "auto";
+export const ResourceTriggerAutoCorporationFirstAction: ResourceTriggerType =
+  "auto-corporation-first-action";
+export const ResourceTriggerAutoCorporationStart: ResourceTriggerType =
+  "auto-corporation-start";
 /**
  * ResourceSet represents a collection of resources and their amounts
  */
@@ -438,6 +500,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
+  affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
 }
@@ -466,12 +529,24 @@ export interface TriggerDto {
   condition?: ResourceTriggerConditionDto;
 }
 /**
+ * MinMaxValueDto represents a minimum and/or maximum value constraint for client consumption
+ */
+export interface MinMaxValueDto {
+  min?: number /* int */;
+  max?: number /* int */;
+}
+/**
  * ResourceTriggerConditionDto represents a resource trigger condition for client consumption
  */
 export interface ResourceTriggerConditionDto {
   type: TriggerType;
   location?: CardApplyLocation;
   affectedTags?: CardTag[];
+  affectedResources?: string[]; // Resource types that trigger this effect (for placement-bonus-gained)
+  affectedCardTypes?: CardType[]; // Card types that trigger this effect (for card-played)
+  target?: TargetType;
+  requiredOriginalCost?: MinMaxValueDto;
+  requiredResourceChange?: { [key: ResourceType]: MinMaxValueDto };
 }
 /**
  * CardBehaviorDto represents a card behavior for client consumption
@@ -500,7 +575,7 @@ export interface CardDto {
   cost: number /* int */;
   description: string;
   pack: string;
-  tags: CardTag[];
+  tags?: CardTag[];
   requirements?: any /* model.Requirement */[];
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
@@ -578,6 +653,23 @@ export interface ProductionDto {
   heat: number /* int */;
 }
 /**
+ * PaymentSubstituteDto represents an alternative resource that can be used as payment for credits
+ */
+export interface PaymentSubstituteDto {
+  resourceType: ResourceType;
+  conversionRate: number /* int */;
+}
+/**
+ * RequirementModifierDto represents a discount or lenience that modifies card/standard project requirements
+ * These are calculated from player effects and automatically updated when card hand or effects change
+ */
+export interface RequirementModifierDto {
+  amount: number /* int */; // Modifier amount (discount/lenience value)
+  affectedResources: ResourceType[]; // Resources affected (e.g., ["credits"] for price discount)
+  cardTarget?: string; // Optional: specific card ID this applies to
+  standardProjectTarget?: StandardProject; // Optional: specific standard project this applies to
+}
+/**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
  * Aligned with PlayerActionDto structure for consistent behavior handling
  */
@@ -598,6 +690,15 @@ export interface PlayerActionDto {
   playCount: number /* int */; // Number of times this action has been played this generation
 }
 /**
+ * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
+ */
+export interface ForcedFirstActionDto {
+  actionType: string; // Type of action: "city_placement", "card_draw", etc.
+  corporationId: string; // Corporation that requires this action
+  completed: boolean; // Whether the forced action has been completed
+  description: string; // Human-readable description for UI
+}
+/**
  * PendingTileSelectionDto represents a pending tile placement action for client consumption
  */
 export interface PendingTileSelectionDto {
@@ -615,6 +716,16 @@ export interface PendingCardSelectionDto {
   source: string; // What triggered this selection ("sell-patents", card ID, etc.)
   minCards: number /* int */; // Minimum cards to select (0 for sell patents)
   maxCards: number /* int */; // Maximum cards to select (hand size for sell patents)
+}
+/**
+ * PendingCardDrawSelectionDto represents a pending card draw/peek/take/buy action from card effects
+ */
+export interface PendingCardDrawSelectionDto {
+  availableCards: CardDto[]; // Cards shown to player (drawn or peeked)
+  freeTakeCount: number /* int */; // Number of cards to take for free (mandatory for card-draw, 0 = optional)
+  maxBuyCount: number /* int */; // Maximum cards to buy (optional, 0 = no buying allowed)
+  cardBuyCost: number /* int */; // Cost per card when buying (typically 3 MC, 0 if no buying)
+  source: string; // Card ID or action that triggered this
 }
 /**
  * PlayerStatus represents the current status of a player in the game
@@ -657,9 +768,25 @@ export interface PlayerDto {
    */
   pendingCardSelection?: PendingCardSelectionDto; // Pending card selection (sell patents, card effects, etc.)
   /**
+   * Card draw/peek/take/buy selection - nullable, exists only when player needs to confirm card draw selection
+   */
+  pendingCardDrawSelection?: PendingCardDrawSelectionDto; // Pending card draw/peek/take/buy selection from card effects
+  /**
+   * Forced first action - nullable, exists only when corporation requires specific first turn action
+   */
+  forcedFirstAction?: ForcedFirstActionDto; // Action that must be taken on first turn (Tharsis city placement, etc.)
+  /**
    * Resource storage - maps card IDs to resource counts stored on those cards
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
+  /**
+   * Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
+   */
+  requirementModifiers: RequirementModifierDto[]; // Calculated discounts/leniences for cards and standard projects
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)
@@ -686,6 +813,10 @@ export interface OtherPlayerDto {
    * Resource storage - maps card IDs to resource counts stored on those cards (public information)
    */
   resourceStorage: { [key: string]: number /* int */ }; // Card ID -> resource count
+  /**
+   * Payment substitutes - alternative resources usable as payment for credits (public information)
+   */
+  paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
 }
 /**
  * GameDto represents a game for client consumption (clean architecture)
@@ -704,6 +835,7 @@ export interface GameDto {
   generation: number /* int */;
   turnOrder: string[]; // Turn order of all players in game
   board: BoardDto; // Game board with tiles and occupancy state
+  paymentConstants: PaymentConstantsDto; // Conversion rates for alternative payments
 }
 /**
  * TileBonusDto represents a resource bonus provided by a tile when occupied
@@ -866,7 +998,6 @@ export const MessageTypeFullState: MessageType = "full-state";
 export const MessageTypeProductionPhaseStarted: MessageType =
   "production-phase-started";
 /**
- * New action-specific message types using composed constants
  * Standard project message types
  */
 export const MessageTypeActionSellPatents: MessageType =
@@ -881,6 +1012,13 @@ export const MessageTypeActionPlantGreenery: MessageType =
   "action.standard-project.plant-greenery";
 export const MessageTypeActionBuildCity: MessageType =
   "action.standard-project.build-city";
+/**
+ * Resource conversion message types
+ */
+export const MessageTypeActionConvertPlantsToGreenery: MessageType =
+  "action.resource-conversion.convert-plants-to-greenery";
+export const MessageTypeActionConvertHeatToTemperature: MessageType =
+  "action.resource-conversion.convert-heat-to-temperature";
 /**
  * Game management message types
  */
@@ -903,10 +1041,24 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+export const MessageTypeActionCardDrawConfirmed: MessageType =
+  "action.card.card-draw-confirmed";
 /**
  * Admin message types (development mode only)
  */
 export const MessageTypeAdminCommand: MessageType = "admin-command";
+
+//////////
+// source: payment_constants_dto.go
+
+/**
+ * PaymentConstantsDto contains the conversion rates for alternative payment methods
+ * These values are sent to the frontend so it knows how much each resource is worth
+ */
+export interface PaymentConstantsDto {
+  steelValue: number /* int */; // How many MC each steel is worth (2)
+  titaniumValue: number /* int */; // How many MC each titanium is worth (3)
+}
 
 //////////
 // source: websocket_dto.go

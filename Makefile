@@ -1,7 +1,7 @@
 # Terraforming Mars - Unified Development Makefile
 # Run from project root directory
 
-.PHONY: help run frontend backend kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format install-cli generate
+.PHONY: help run frontend backend kill lint typecheck test test-backend test-frontend test-verbose test-coverage clean build format format-backend format-frontend format-json install-cli generate parse-cards
 
 # Default target - show help
 help:
@@ -22,8 +22,9 @@ help:
 	@echo "🔧 Code Quality:"
 	@echo "  make lint         - Run all linters (backend + frontend)"
 	@echo "  make typecheck    - Run TypeScript type checking"
-	@echo "  make format       - Format all code (Go + TypeScript)"
+	@echo "  make format       - Format all code (Go + TypeScript + JSON)"
 	@echo "  make generate     - Generate TypeScript types from Go structs"
+	@echo "  make parse-cards  - Parse card data from CSV to JSON"
 	@echo ""
 	@echo "🏗️  Build & Deploy:"
 	@echo "  make build        - Build production binaries"
@@ -100,11 +101,11 @@ lint-backend:
 	@echo "✅ Backend formatting complete"
 
 lint-frontend:
-	@echo "🔍 Running frontend linting (ESLint)..."
+	@echo "🔍 Running frontend linting (oxlint)..."
 	cd frontend && npm run lint
 	@echo "✅ Frontend linting complete"
 
-format: format-backend format-frontend
+format: format-backend format-frontend format-json
 
 format-backend:
 	@echo "🎨 Formatting backend Go code..."
@@ -115,6 +116,11 @@ format-frontend:
 	@echo "🎨 Formatting frontend TypeScript code..."
 	cd frontend && npm run format:write
 	@echo "✅ Frontend formatting complete"
+
+format-json:
+	@echo "🎨 Formatting all JSON files..."
+	cd frontend && npx prettier --write "../**/*.json"
+	@echo "✅ JSON formatting complete"
 
 # Build and deployment
 build: build-backend build-frontend
@@ -149,6 +155,12 @@ generate:
 	@echo "🔄 Generating TypeScript types from Go structs..."
 	cd backend && tygo generate
 	@echo "✅ TypeScript types generated"
+
+# Card data parsing
+parse-cards:
+	@echo "🃏 Parsing card data from CSV files..."
+	cd backend && go run tools/parse_cards.go assets/terraforming_mars_cards.json
+	@echo "✅ Card data parsed to backend/assets/terraforming_mars_cards.json"
 
 # Watch for changes (requires entr: apt install entr)
 test-watch:

@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/websocket/session"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -43,23 +46,25 @@ type PlayerService interface {
 
 // PlayerServiceImpl implements PlayerService interface
 type PlayerServiceImpl struct {
-	gameRepo        repository.GameRepository
-	playerRepo      repository.PlayerRepository
-	sessionManager  session.SessionManager
-	boardService    BoardService
-	tileService     TileService
-	effectProcessor EffectProcessor
+	gameRepo            repository.GameRepository
+	playerRepo          repository.PlayerRepository
+	sessionManager      session.SessionManager
+	boardService        BoardService
+	tileService         TileService
+	forcedActionManager cards.ForcedActionManager
+	eventBus            *events.EventBusImpl
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, effectProcessor EffectProcessor) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, forcedActionManager cards.ForcedActionManager, eventBus *events.EventBusImpl) PlayerService {
 	return &PlayerServiceImpl{
-		gameRepo:        gameRepo,
-		playerRepo:      playerRepo,
-		sessionManager:  sessionManager,
-		boardService:    boardService,
-		tileService:     tileService,
-		effectProcessor: effectProcessor,
+		gameRepo:            gameRepo,
+		playerRepo:          playerRepo,
+		sessionManager:      sessionManager,
+		boardService:        boardService,
+		tileService:         tileService,
+		forcedActionManager: forcedActionManager,
+		eventBus:            eventBus,
 	}
 }
 
@@ -317,10 +322,77 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("selected coordinate %s is not in available positions", coordinateKey)
 	}
 
+	// Check if this is a plant conversion (special handling for raising oxygen and TR)
+	isPlantConversion := pendingSelection.Source == "convert-plants-to-greenery"
+
 	// Place the tile using the private method
 	if err := s.placeTile(ctx, gameID, playerID, pendingSelection.TileType, coordinate); err != nil {
 		log.Error("Failed to place tile", zap.Error(err))
 		return fmt.Errorf("failed to place tile: %w", err)
+	}
+
+	// Check if this tile placement was triggered by a forced action
+	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player for forced action check", zap.Error(err))
+	} else {
+		isForcedAction := player.ForcedFirstAction != nil &&
+			player.ForcedFirstAction.CorporationID == pendingSelection.Source
+
+		if isForcedAction {
+			if err := s.forcedActionManager.MarkComplete(ctx, gameID, playerID); err != nil {
+				log.Error("Failed to mark forced action complete", zap.Error(err))
+				// Don't fail the operation, just log the error
+			} else {
+				log.Info("🎯 Forced action marked as complete", zap.String("source", pendingSelection.Source))
+			}
+		}
+	}
+
+	// Handle plant conversion completion (raise oxygen and TR)
+	if isPlantConversion {
+		log.Info("🌱 Completing plant conversion - raising oxygen")
+
+		// Get game for oxygen check
+		game, err := s.gameRepo.GetByID(ctx, gameID)
+		if err != nil {
+			log.Error("Failed to get game for oxygen update", zap.Error(err))
+			return fmt.Errorf("failed to get game: %w", err)
+		}
+
+		// Raise oxygen if not already maxed
+		oxygenRaised := false
+		if game.GlobalParameters.Oxygen < model.MaxOxygen {
+			newParams := game.GlobalParameters
+			newParams.Oxygen++
+
+			if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, newParams); err != nil {
+				log.Error("Failed to raise oxygen", zap.Error(err))
+				return fmt.Errorf("failed to raise oxygen: %w", err)
+			}
+
+			oxygenRaised = true
+			log.Info("🌍 Oxygen raised", zap.Int("new_oxygen", newParams.Oxygen))
+		}
+
+		// Award TR if oxygen was raised
+		if oxygenRaised {
+			player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+			if err != nil {
+				log.Error("Failed to get player for TR update", zap.Error(err))
+				return fmt.Errorf("failed to get player: %w", err)
+			}
+
+			newTR := player.TerraformRating + 1
+			if err := s.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+				log.Error("Failed to update terraform rating", zap.Error(err))
+				return fmt.Errorf("failed to update terraform rating: %w", err)
+			}
+
+			log.Info("⭐ Terraform rating increased", zap.Int("new_tr", newTR))
+		}
+
+		log.Info("✅ Plant conversion completed successfully")
 	}
 
 	// Clear the current pending tile selection
@@ -374,23 +446,20 @@ func (s *PlayerServiceImpl) placeTile(ctx context.Context, gameID, playerID, til
 		Tags: []string{},
 	}
 
-	// Update the tile occupancy in the game board
-	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
-		log.Error("Failed to update tile occupancy", zap.Error(err))
-		return fmt.Errorf("failed to update tile occupancy: %w", err)
-	}
-
 	// Award placement bonuses to the player
 	if err := s.awardTilePlacementBonuses(ctx, gameID, playerID, coordinate); err != nil {
 		log.Error("Failed to award tile placement bonuses", zap.Error(err))
 		return fmt.Errorf("failed to award tile placement bonuses: %w", err)
 	}
 
-	// Trigger passive effects based on tile type
-	if err := s.triggerTilePlacementEffects(ctx, gameID, playerID, tileType, resourceType, coordinate); err != nil {
-		log.Error("Failed to trigger tile placement effects", zap.Error(err))
-		return fmt.Errorf("failed to trigger tile placement effects: %w", err)
+	// Update the tile occupancy in the game board
+	if err := s.gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID); err != nil {
+		log.Error("Failed to update tile occupancy", zap.Error(err))
+		return fmt.Errorf("failed to update tile occupancy: %w", err)
 	}
+
+	// Passive effects are now triggered automatically via TilePlacedEvent from the repository
+	// No manual triggering needed here - event system handles it
 
 	log.Info("✅ Tile placed successfully",
 		zap.String("tile_type", tileType),
@@ -433,10 +502,18 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 	var totalCreditsBonus int
 	var bonusesAwarded []string
 
+	// Collect all placement bonuses for event publishing
+	placementBonuses := make(map[string]int)
+
 	// Award tile bonuses (steel, titanium, plants, card draw)
 	for _, bonus := range placedTile.Bonuses {
-		if description, applied := s.applyTileBonus(&newResources, bonus, log); applied {
+		description, applied, resourceType, amount := s.applyTileBonus(ctx, gameID, playerID, coordinate, &newResources, bonus, log)
+		if applied {
 			bonusesAwarded = append(bonusesAwarded, description)
+			// Collect bonus for event
+			if resourceType != "" {
+				placementBonuses[resourceType] += amount
+			}
 		}
 	}
 
@@ -464,6 +541,22 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 			zap.Strings("bonuses", bonusesAwarded))
 	}
 
+	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
+	if len(placementBonuses) > 0 && s.eventBus != nil {
+		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			Resources: placementBonuses,
+			Q:         coordinate.Q,
+			R:         coordinate.R,
+			S:         coordinate.S,
+			Timestamp: time.Now(),
+		})
+
+		log.Debug("📢 Published PlacementBonusGainedEvent",
+			zap.Any("resources", placementBonuses))
+	}
+
 	return nil
 }
 
@@ -489,23 +582,16 @@ func (s *PlayerServiceImpl) calculateOceanAdjacencyBonus(game model.Game, player
 	// Base ocean adjacency bonus is 2 MC per ocean
 	baseBonus := 2
 
-	// Check player effects for ocean adjacency bonus modifiers (e.g., Lakefront Resorts)
-	bonusModifier := 0
-	for _, effect := range player.Effects {
-		for _, output := range effect.Behavior.Outputs {
-			if output.Type == model.ResourceOceanAdjacencyBonus {
-				bonusModifier += output.Amount
-			}
-		}
-	}
+	// TODO: Support ocean adjacency bonus modifiers from cards (e.g., Lakefront Resorts)
+	// This will require checking card effects via CardEffectSubscriber or similar mechanism
 
-	// Calculate total bonus: adjacent oceans * (base bonus + modifier)
-	return adjacentOceanCount * (baseBonus + bonusModifier)
+	// Calculate total bonus: adjacent oceans * base bonus
+	return adjacentOceanCount * baseBonus
 }
 
 // applyTileBonus applies a single tile bonus to player resources
-// Returns a description of the bonus and whether it was successfully applied
-func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool) {
+// Returns: description, applied (bool), resourceType, amount
+func (s *PlayerServiceImpl) applyTileBonus(ctx context.Context, gameID, playerID string, coordinate model.HexPosition, resources *model.Resources, bonus model.TileBonus, log *zap.Logger) (string, bool, string, int) {
 	var resourceName string
 
 	switch bonus.Type {
@@ -526,54 +612,16 @@ func (s *PlayerServiceImpl) applyTileBonus(resources *model.Resources, bonus mod
 		log.Info("🎁 Tile bonus awarded (card draw not yet implemented)",
 			zap.String("type", "card-draw"),
 			zap.Int("amount", bonus.Amount))
-		return fmt.Sprintf("+%d cards", bonus.Amount), true
+		return fmt.Sprintf("+%d cards", bonus.Amount), true, string(model.ResourceCardDraw), bonus.Amount
 
 	default:
 		// Unknown bonus type, skip it
-		return "", false
+		return "", false, "", 0
 	}
 
 	log.Info("🎁 Tile bonus awarded",
 		zap.String("type", resourceName),
 		zap.Int("amount", bonus.Amount))
 
-	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true
-}
-
-// triggerTilePlacementEffects triggers passive effects based on tile placement
-func (s *PlayerServiceImpl) triggerTilePlacementEffects(ctx context.Context, gameID, playerID, tileType string, resourceType model.ResourceType, coordinate model.HexPosition) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Determine which trigger type to use based on tile type
-	var triggerType model.TriggerType
-	switch tileType {
-	case "city":
-		triggerType = model.TriggerCityPlaced
-	case "ocean":
-		triggerType = model.TriggerOceanPlaced
-	case "greenery":
-		// For now, greenery doesn't have a specific trigger, could use TriggerTilePlaced
-		log.Debug("🌿 Greenery placement (no specific passive effects yet)")
-		return nil
-	default:
-		log.Debug("Unknown tile type for effect triggering", zap.String("tile_type", tileType))
-		return nil
-	}
-
-	// Create effect context
-	effectContext := model.EffectContext{
-		TriggeringPlayerID: playerID,
-		TileCoordinate:     &coordinate,
-		TileType:           &resourceType,
-	}
-
-	// Trigger all matching passive effects
-	log.Debug("🎆 Triggering passive effects for tile placement",
-		zap.String("trigger_type", string(triggerType)))
-
-	if err := s.effectProcessor.TriggerEffects(ctx, gameID, triggerType, effectContext); err != nil {
-		return fmt.Errorf("failed to trigger passive effects: %w", err)
-	}
-
-	return nil
+	return fmt.Sprintf("+%d %s", bonus.Amount, resourceName), true, string(bonus.Type), bonus.Amount
 }

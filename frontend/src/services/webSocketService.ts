@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
+  CardPaymentDto,
   ErrorPayload,
   FullStatePayload,
   GameUpdatedPayload,
@@ -22,7 +23,10 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
+  MessageTypeActionConvertPlantsToGreenery,
+  MessageTypeActionConvertHeatToTemperature,
   // Payload types
   PlayerDisconnectedPayload,
   WebSocketMessage,
@@ -271,6 +275,19 @@ export class WebSocketService {
     return this.send(MessageTypeActionBuildCity, {});
   }
 
+  // Resource conversion actions
+  convertPlantsToGreenery(): string {
+    return this.send(MessageTypeActionConvertPlantsToGreenery, {
+      type: "convert-plants-to-greenery",
+    });
+  }
+
+  convertHeatToTemperature(): string {
+    return this.send(MessageTypeActionConvertHeatToTemperature, {
+      type: "convert-heat-to-temperature",
+    });
+  }
+
   // Game management actions
   startGame(): string {
     return this.send(MessageTypeActionStartGame, {});
@@ -283,12 +300,14 @@ export class WebSocketService {
   // Card actions
   playCard(
     cardId: string,
+    payment: CardPaymentDto,
     choiceIndex?: number,
     cardStorageTarget?: string,
   ): string {
     return this.send(MessageTypeActionPlayCard, {
       type: "play-card",
       cardId,
+      payment,
       ...(choiceIndex !== undefined && { choiceIndex }),
       ...(cardStorageTarget !== undefined && { cardStorageTarget }),
     });
@@ -318,6 +337,13 @@ export class WebSocketService {
 
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
+  }
+
+  confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): string {
+    return this.send(MessageTypeActionCardDrawConfirmed, {
+      cardsToTake,
+      cardsToBuy,
+    });
   }
 
   // Tile selection actions

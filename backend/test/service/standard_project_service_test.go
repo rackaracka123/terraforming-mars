@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
@@ -19,9 +21,9 @@ import (
 
 // Helper functions for creating test services
 func createTestStandardProjectService() service.StandardProjectService {
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
@@ -29,14 +31,16 @@ func createTestStandardProjectService() service.StandardProjectService {
 }
 
 func createTestPlayerService() service.PlayerService {
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
-	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
+	cardRepo := repository.NewCardRepository()
+	cardDeckRepo := repository.NewCardDeckRepository()
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	return service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 }
 
 func setupStandardProjectServiceTest(t *testing.T) (
@@ -52,9 +56,9 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	require.NoError(t, err)
 
 	// Initialize services
-	// EventBus no longer needed
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
+	eventBus := events.NewEventBus()
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -67,10 +71,11 @@ func setupStandardProjectServiceTest(t *testing.T) (
 	sessionManager := test.NewMockSessionManager()
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 
 	ctx := context.Background()
@@ -182,7 +187,7 @@ func TestStandardProjectService_SellPatents(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, cardID := range player.Cards {
-			err = playerRepo.RemoveCardFromHand(ctx, game.ID, playerID, cardID)
+			err = playerRepo.RemoveCard(ctx, game.ID, playerID, cardID)
 			require.NoError(t, err)
 		}
 

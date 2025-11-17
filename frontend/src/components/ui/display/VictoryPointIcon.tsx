@@ -16,7 +16,7 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
 
   const sizeClasses = {
     small: "w-8 h-8 text-[calc(32px*0.7)]",
-    medium: "w-10 h-10 text-[calc(40px*0.7)]",
+    medium: "w-10 h-10 text-[calc(40px*0.5)]",
     large: "w-12 h-12 text-[calc(48px*0.7)]",
   };
 
@@ -48,36 +48,51 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
       } else if (condition.condition === "per" && condition.per) {
         // Per condition - display as fraction with icon
         const perCondition = condition.per;
-        let tagIcon = null;
+        let resourceIcon = null;
         let displayText = "";
 
-        if (perCondition.tag) {
-          tagIcon = getIconPath(perCondition.tag);
-          displayText = `${condition.amount}/${perCondition.amount || 1}`;
-        } else if (perCondition.type) {
-          // Handle other per types (city-tile, ocean-tile, etc.)
-          displayText = `${condition.amount}/${perCondition.amount || 1}`;
+        // Get the resource icon - check tag first, then type
+        const resourceType = perCondition.tag || perCondition.type;
+        if (resourceType) {
+          resourceIcon = getIconPath(resourceType);
+          // If per.amount is 1, show slash but omit the number (e.g., "1/" instead of "1/1")
+          if ((perCondition.amount || 1) === 1) {
+            displayText = `${condition.amount}/`;
+          } else {
+            displayText = `${condition.amount}/${perCondition.amount}`;
+          }
         }
+
+        // Calculate text size based on content length
+        const textLength = displayText.length;
+        const textSizeClass =
+          textLength <= 3
+            ? "text-[calc(100%*0.6)]" // Smaller size for single row layout
+            : "text-[calc(100%*0.45)]"; // Even smaller for longer text
 
         return (
           <div
-            className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
+            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
           >
             <img
               src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
-            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] text-[calc(100%*1.8)] tracking-[-0.5px]">
-              {displayText}
-            </span>
-            {tagIcon && (
-              <img
-                src={tagIcon}
-                alt={perCondition.tag}
-                className="w-4/5 h-4/5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.4))]"
-              />
-            )}
+            <div className="absolute inset-0 flex flex-row items-center justify-center gap-0.5 p-1">
+              <span
+                className={`text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] ${textSizeClass} tracking-[-0.5px]`}
+              >
+                {displayText}
+              </span>
+              {resourceIcon && (
+                <img
+                  src={resourceIcon}
+                  alt={resourceType}
+                  className="w-[40%] h-[40%] object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))_drop-shadow(0_0_2px_rgba(0,0,0,0.6))]"
+                />
+              )}
+            </div>
           </div>
         );
       } else if (condition.condition === "once") {
@@ -114,33 +129,51 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
       // For now, just show the total fixed VP or the first per condition
       if (firstPerCondition && firstPerCondition.per) {
         const perCondition = firstPerCondition.per;
-        let tagIcon = null;
+        let resourceIcon = null;
         let displayText = "";
 
-        if (perCondition.tag) {
-          tagIcon = getIconPath(perCondition.tag);
-          displayText = `${firstPerCondition.amount}/${perCondition.amount || 1}`;
+        // Get the resource icon - check tag first, then type
+        const resourceType = perCondition.tag || perCondition.type;
+        if (resourceType) {
+          resourceIcon = getIconPath(resourceType);
+          // If per.amount is 1, show slash but omit the number (e.g., "1/" instead of "1/1")
+          if ((perCondition.amount || 1) === 1) {
+            displayText = `${firstPerCondition.amount}/`;
+          } else {
+            displayText = `${firstPerCondition.amount}/${perCondition.amount}`;
+          }
         }
+
+        // Calculate text size based on content length
+        const textLength = displayText.length;
+        const textSizeClass =
+          textLength <= 3
+            ? "text-[calc(100%*0.6)]" // Smaller size for single row layout
+            : "text-[calc(100%*0.45)]"; // Even smaller for longer text
 
         return (
           <div
-            className={`relative inline-flex items-center justify-center gap-0.5 ${sizeClasses[size]}`}
+            className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
           >
             <img
               src={vpIconPath || ""}
               alt="VP"
               className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
             />
-            <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] text-[calc(100%*1.8)] tracking-[-0.5px]">
-              {displayText}
-            </span>
-            {tagIcon && (
-              <img
-                src={tagIcon}
-                alt={perCondition.tag}
-                className="w-4/5 h-4/5 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.4))]"
-              />
-            )}
+            <div className="absolute inset-0 flex flex-row items-center justify-center gap-0.5 p-1">
+              <span
+                className={`text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] ${textSizeClass} tracking-[-0.5px]`}
+              >
+                {displayText}
+              </span>
+              {resourceIcon && (
+                <img
+                  src={resourceIcon}
+                  alt={resourceType}
+                  className="w-[40%] h-[40%] object-contain [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.8))_drop-shadow(0_0_2px_rgba(0,0,0,0.6))]"
+                />
+              )}
+            </div>
           </div>
         );
       } else if (totalFixed > 0) {
@@ -169,28 +202,6 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
     return null;
   }
 
-  // Helper function to format victory point text
-  const formatVictoryPoints = (val: number | string): string => {
-    if (typeof val === "number") {
-      return val.toString();
-    }
-
-    // Handle special Terraforming Mars syntax
-    return val
-      .replace(/1 point per animal/gi, "1/🐾")
-      .replace(/1 point per jupiter card/gi, "1/♃")
-      .replace(/1 point per jovian/gi, "1/♃")
-      .replace(/1 point per science/gi, "1/🧪")
-      .replace(/1 point per space/gi, "1/🚀")
-      .replace(/1 point per microbe/gi, "1/🦠")
-      .replace(/1 point per plant/gi, "1/🌱")
-      .replace(/1 point per city/gi, "1/🏙️")
-      .replace(/1 point per earth/gi, "1/🌍")
-      .replace(/1 point per energy/gi, "1/⚡")
-      .replace(/1 point per building/gi, "1/🏢")
-      .replace(/1 point per venus/gi, "1/♀");
-  };
-
   return (
     <div
       className={`relative inline-flex items-center justify-center ${sizeClasses[size]}`}
@@ -200,9 +211,6 @@ const VictoryPointIcon: React.FC<VictoryPointIconProps> = ({
         alt="VP"
         className="w-full h-full object-contain brightness-[0.7] [filter:drop-shadow(0_2px_4px_rgba(0,0,0,0.6))]"
       />
-      <span className="absolute top-0 left-0 right-0 bottom-0 text-black font-bold font-[Prototype,Arial_Black,Arial,sans-serif] flex items-center justify-center text-center leading-none [text-shadow:-1px_-1px_0_#d2691e,1px_-1px_0_#d2691e,-1px_1px_0_#d2691e,1px_1px_0_#d2691e,0_0_3px_rgba(210,105,30,0.5)] tracking-[0.3px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility]">
-        {formatVictoryPoints(value)}
-      </span>
     </div>
   );
 };

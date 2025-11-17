@@ -13,15 +13,17 @@ import (
 
 // CardProcessor handles the complete card processing including validation and effect application
 type CardProcessor struct {
-	gameRepo   repository.GameRepository
-	playerRepo repository.PlayerRepository
+	gameRepo     repository.GameRepository
+	playerRepo   repository.PlayerRepository
+	cardDeckRepo repository.CardDeckRepository
 }
 
 // NewCardProcessor creates a new card processor
-func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository) *CardProcessor {
+func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDeckRepo repository.CardDeckRepository) *CardProcessor {
 	return &CardProcessor{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		gameRepo:     gameRepo,
+		playerRepo:   playerRepo,
+		cardDeckRepo: cardDeckRepo,
 	}
 }
 
@@ -53,11 +55,6 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 		return fmt.Errorf("failed to extract manual actions: %w", err)
 	}
 
-	// Extract and add passive effects from card behaviors
-	if err := cp.extractAndAddEffects(ctx, gameID, playerID, card); err != nil {
-		return fmt.Errorf("failed to extract effects: %w", err)
-	}
-
 	// Apply victory point conditions
 	if err := cp.applyVictoryPointConditions(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply victory point conditions: %w", err)
@@ -71,6 +68,11 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 	// Apply tile placement effects
 	if err := cp.applyTileEffects(ctx, gameID, playerID, card); err != nil {
 		return fmt.Errorf("failed to apply tile effects: %w", err)
+	}
+
+	// Apply card draw/peek/take/buy effects
+	if err := cp.applyCardDrawPeekEffects(ctx, gameID, playerID, card); err != nil {
+		return fmt.Errorf("failed to apply card draw/peek effects: %w", err)
 	}
 
 	// Apply global parameter effects (temperature, oxygen, oceans)
@@ -220,70 +222,6 @@ func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID,
 
 		log.Debug("⚡ Manual actions added",
 			zap.Int("actions_count", len(manualActions)),
-			zap.String("card_name", card.Name))
-	}
-
-	return nil
-}
-
-// extractAndAddEffects extracts passive effects (auto-triggered with conditions) from card behaviors and adds them to the player
-// These are effects like "when a city is placed, gain 2 MC" that trigger automatically on game events
-func (cp *CardProcessor) extractAndAddEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	// Track passive effects found
-	var passiveEffects []model.PlayerEffect
-
-	// Process all behaviors to find auto triggers with conditions
-	for behaviorIndex, behavior := range card.Behaviors {
-		// Check if this behavior has auto triggers WITH a condition
-		// (auto triggers without conditions are immediate effects, not passive effects)
-		hasConditionalAutoTrigger := false
-		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAuto && trigger.Condition != nil {
-				hasConditionalAutoTrigger = true
-				break
-			}
-		}
-
-		// If behavior has conditional auto triggers, create a PlayerEffect
-		if hasConditionalAutoTrigger {
-			effect := model.PlayerEffect{
-				CardID:        card.ID,
-				CardName:      card.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-			}
-			passiveEffects = append(passiveEffects, effect)
-
-			log.Debug("✨ Found passive effect",
-				zap.String("card_name", card.Name),
-				zap.Int("behavior_index", behaviorIndex),
-				zap.String("trigger_type", string(behavior.Triggers[0].Condition.Type)))
-		}
-	}
-
-	// If passive effects were found, add them to the player
-	if len(passiveEffects) > 0 {
-		// Get current player to read current effects
-		player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)
-		if err != nil {
-			return fmt.Errorf("failed to get player for effects update: %w", err)
-		}
-
-		// Create new effects slice with existing effects plus new passive effects
-		newEffects := make([]model.PlayerEffect, len(player.Effects)+len(passiveEffects))
-		copy(newEffects, player.Effects)
-		copy(newEffects[len(player.Effects):], passiveEffects)
-
-		// Update player effects via repository
-		if err := cp.playerRepo.UpdateEffects(ctx, gameID, playerID, newEffects); err != nil {
-			log.Error("Failed to update player passive effects", zap.Error(err))
-			return fmt.Errorf("failed to update player passive effects: %w", err)
-		}
-
-		log.Debug("🎆 Passive effects added",
-			zap.Int("effects_count", len(passiveEffects)),
 			zap.String("card_name", card.Name))
 	}
 
@@ -502,6 +440,122 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 
 	// Delegate to PlayerRepository to handle the queue creation and processing
 	return cp.playerRepo.CreateTileQueue(ctx, gameID, playerID, card.ID, tilePlacementQueue)
+}
+
+// applyCardDrawPeekEffects handles card draw/peek/take/buy effects from card behaviors
+func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Scan for card-draw, card-peek, card-take, card-buy outputs
+	var cardDrawAmount, cardPeekAmount, cardTakeAmount, cardBuyAmount int
+	var cardBuyCost int = 3 // Default cost for buying cards in Terraforming Mars
+
+	// Process all behaviors to find card draw/peek effects
+	for _, behavior := range card.Behaviors {
+		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
+			for _, output := range behavior.Outputs {
+				switch output.Type {
+				case model.ResourceCardDraw:
+					cardDrawAmount += output.Amount
+				case model.ResourceCardPeek:
+					cardPeekAmount += output.Amount
+				case model.ResourceCardTake:
+					cardTakeAmount += output.Amount
+				case model.ResourceCardBuy:
+					cardBuyAmount += output.Amount
+				}
+			}
+		}
+	}
+
+	// If no card effects found, return early
+	if cardDrawAmount == 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
+		return nil
+	}
+
+	// Determine the scenario and create appropriate PendingCardDrawSelection
+	var cardsToShow []string
+	var freeTakeCount, maxBuyCount int
+
+	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
+		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
+		// Pop cards from deck and auto-select all
+		for i := 0; i < cardDrawAmount; i++ {
+			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
+			if err != nil {
+				log.Error("Failed to pop card from deck", zap.Error(err))
+				return fmt.Errorf("failed to draw card: %w", err)
+			}
+			cardsToShow = append(cardsToShow, cardID)
+		}
+
+		// For card-draw, player must take all cards (freeTakeCount = number of cards)
+		freeTakeCount = cardDrawAmount
+		maxBuyCount = 0
+
+		log.Info("🃏 Card draw effect detected",
+			zap.String("card_name", card.Name),
+			zap.Int("cards_to_draw", cardDrawAmount))
+
+	} else if cardPeekAmount > 0 {
+		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
+		// Pop cards from deck (they won't be returned)
+		for i := 0; i < cardPeekAmount; i++ {
+			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
+			if err != nil {
+				log.Error("Failed to pop card from deck for peek", zap.Error(err))
+				return fmt.Errorf("failed to peek card: %w", err)
+			}
+			cardsToShow = append(cardsToShow, cardID)
+		}
+
+		// If card-draw is combined with card-peek, the draw amount becomes mandatory takes
+		// card-take adds optional takes on top
+		freeTakeCount = cardDrawAmount + cardTakeAmount
+		maxBuyCount = cardBuyAmount
+
+		log.Info("🃏 Card peek effect detected",
+			zap.String("card_name", card.Name),
+			zap.Int("cards_to_peek", cardPeekAmount),
+			zap.Int("card_draw_amount", cardDrawAmount),
+			zap.Int("card_take_amount", cardTakeAmount),
+			zap.Int("free_take_count", freeTakeCount),
+			zap.Int("max_buy_count", cardBuyAmount))
+	} else {
+		// Invalid combination (e.g., card-take without card-peek, or card-buy without card-peek)
+		log.Warn("⚠️ Invalid card effect combination",
+			zap.String("card_name", card.Name),
+			zap.Int("card_draw", cardDrawAmount),
+			zap.Int("card_peek", cardPeekAmount),
+			zap.Int("card_take", cardTakeAmount),
+			zap.Int("card_buy", cardBuyAmount))
+		return fmt.Errorf("invalid card effect combination: must have either card-draw or card-peek")
+	}
+
+	// Create PendingCardDrawSelection
+	selection := &model.PendingCardDrawSelection{
+		AvailableCards: cardsToShow,
+		FreeTakeCount:  freeTakeCount,
+		MaxBuyCount:    maxBuyCount,
+		CardBuyCost:    cardBuyCost,
+		Source:         card.ID,
+	}
+
+	// Store in player repository
+	if err := cp.playerRepo.UpdatePendingCardDrawSelection(ctx, gameID, playerID, selection); err != nil {
+		log.Error("Failed to create pending card draw selection", zap.Error(err))
+		return fmt.Errorf("failed to create pending card draw selection: %w", err)
+	}
+
+	log.Info("✅ Pending card draw selection created",
+		zap.String("card_name", card.Name),
+		zap.Int("available_cards", len(cardsToShow)),
+		zap.Int("free_take_count", freeTakeCount),
+		zap.Int("max_buy_count", maxBuyCount),
+		zap.Int("card_buy_cost", cardBuyCost))
+
+	return nil
 }
 
 // ApplyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)

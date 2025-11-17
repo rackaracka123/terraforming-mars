@@ -41,6 +41,8 @@ const (
 	ResourceCardTake ResourceType = "card-take"
 	// ResourceCardPeek represents looking at cards (peek without taking all)
 	ResourceCardPeek ResourceType = "card-peek"
+	// ResourceCardBuy represents buying cards from peeked cards (buy for standard price)
+	ResourceCardBuy ResourceType = "card-buy"
 
 	// Terraforming actions
 
@@ -74,6 +76,8 @@ const (
 	ResourceVenus ResourceType = "venus"
 	// ResourceTR represents terraform Rating change
 	ResourceTR ResourceType = "tr"
+	// ResourceGlobalParameter represents any global parameter (for leniences/requirements)
+	ResourceGlobalParameter ResourceType = "global-parameter"
 
 	// Production resources (for spending production)
 
@@ -114,6 +118,8 @@ const (
 	ResourceDiscount ResourceType = "discount"
 	// ResourceValueModifier represents increases resource values (e.g., steel/titanium worth more)
 	ResourceValueModifier ResourceType = "value-modifier"
+	// ResourcePaymentSubstitute represents using one resource type as payment for another (e.g., heat as credits)
+	ResourcePaymentSubstitute ResourceType = "payment-substitute"
 	// ResourceOceanAdjacencyBonus represents additional bonus for placing tiles adjacent to oceans
 	ResourceOceanAdjacencyBonus ResourceType = "ocean-adjacency-bonus"
 )

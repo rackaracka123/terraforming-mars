@@ -16,7 +16,6 @@ const (
 	MessageTypeFullState              MessageType = "full-state"
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
-	// New action-specific message types using composed constants
 	// Standard project message types
 	MessageTypeActionSellPatents     MessageType = "action.standard-project.sell-patents"
 	MessageTypeActionLaunchAsteroid  MessageType = "action.standard-project.launch-asteroid"
@@ -24,6 +23,10 @@ const (
 	MessageTypeActionBuildAquifer    MessageType = "action.standard-project.build-aquifer"
 	MessageTypeActionPlantGreenery   MessageType = "action.standard-project.plant-greenery"
 	MessageTypeActionBuildCity       MessageType = "action.standard-project.build-city"
+
+	// Resource conversion message types
+	MessageTypeActionConvertPlantsToGreenery  MessageType = "action.resource-conversion.convert-plants-to-greenery"
+	MessageTypeActionConvertHeatToTemperature MessageType = "action.resource-conversion.convert-heat-to-temperature"
 
 	// Game management message types
 	MessageTypeActionStartGame  MessageType = "action.game-management.start-game"
@@ -37,6 +40,7 @@ const (
 	MessageTypeActionCardAction         MessageType = "action.card.card-action"
 	MessageTypeActionSelectStartingCard MessageType = "action.card.select-starting-card"
 	MessageTypeActionSelectCards        MessageType = "action.card.select-cards"
+	MessageTypeActionCardDrawConfirmed  MessageType = "action.card.card-draw-confirmed"
 
 	// Admin message types (development mode only)
 	MessageTypeAdminCommand MessageType = "admin-command"

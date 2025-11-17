@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
+import {
+  CardDto,
+  ResourceTypeCredits,
+  ResourceTypeCreditsProduction,
+} from "@/types/generated/api-types.ts";
 import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
@@ -20,13 +24,18 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   const [lastValidCard, setLastValidCard] = useState<CardDto | null>(null);
   const [lastValidReason, setLastValidReason] =
     useState<UnplayableReason | null>(null);
+  const [isPendingTileSelection, setIsPendingTileSelection] = useState(false);
 
   useEffect(() => {
     if (isVisible && card && reason) {
+      // Check if this is a pending tile selection message
+      const isTileSelection = reason.message === "Pending tile selection";
+
       // Mount first
       setShouldRender(true);
       setLastValidCard(card);
       setLastValidReason(reason);
+      setIsPendingTileSelection(isTileSelection);
 
       // Next tick → trigger fade-in
       requestAnimationFrame(() => {
@@ -44,6 +53,7 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         setIsAnimatingOut(false);
         setLastValidCard(null);
         setLastValidReason(null);
+        setIsPendingTileSelection(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -81,7 +91,25 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
     return null;
   };
 
+  // Get the amount to display inside the icon (for credits)
+  const getRequirementAmount = (
+    reason: UnplayableReason,
+  ): number | undefined => {
+    if (reason.type === "cost" && typeof reason.requiredValue === "number") {
+      return reason.requiredValue;
+    }
+    if (
+      reason.requirement?.resource === ResourceTypeCreditsProduction &&
+      typeof reason.requiredValue === "number"
+    ) {
+      return reason.requiredValue;
+    }
+
+    return undefined;
+  };
+
   const iconType = getRequirementIconType(displayReason);
+  const iconAmount = getRequirementAmount(displayReason);
 
   // Determine which global parameters are affected
   const getAffectedParameters = (reason: UnplayableReason): string[] => {
@@ -222,22 +250,39 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           <div
             className={`text-center max-w-[80%] transition-all duration-300 ${overlayClass === "visible" ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}
           >
-            {displayReason.type === "multiple" &&
-            displayReason.failedRequirements ? (
+            {/* If pending tile selection, ONLY show that message - ignore all other requirements */}
+            {isPendingTileSelection ? (
+              <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
+                <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                  {displayReason.message}
+                </span>
+              </div>
+            ) : displayReason.type === "multiple" &&
+              displayReason.failedRequirements ? (
               <div className="flex flex-col gap-4 items-center">
                 {displayReason.failedRequirements.map((req, index) => {
                   const reqIconType = getRequirementIconType(req);
+                  const reqIconAmount = getRequirementAmount(req);
+                  const showMessage =
+                    req.type !== "cost" &&
+                    req.requirement?.resource !== ResourceTypeCreditsProduction;
                   return (
                     <div
                       key={index}
                       className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]"
                     >
-                      <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
-                        {req.message}
-                      </span>
+                      {showMessage && (
+                        <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                          {req.message}
+                        </span>
+                      )}
                       {reqIconType && (
                         <div className="flex-shrink-0">
-                          <GameIcon iconType={reqIconType} size="medium" />
+                          <GameIcon
+                            iconType={reqIconType}
+                            size="medium"
+                            amount={reqIconAmount}
+                          />
                         </div>
                       )}
                     </div>
@@ -246,12 +291,18 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
               </div>
             ) : (
               <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
-                <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
-                  {displayReason.message}
-                </span>
+                {displayReason.type !== "cost" && (
+                  <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
+                    {displayReason.message}
+                  </span>
+                )}
                 {iconType && (
                   <div className="flex-shrink-0">
-                    <GameIcon iconType={iconType} size="medium" />
+                    <GameIcon
+                      iconType={iconType}
+                      size="medium"
+                      amount={iconAmount}
+                    />
                   </div>
                 )}
               </div>

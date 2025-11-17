@@ -5,6 +5,8 @@ import {
   PlayerDto,
   ResourceTriggerAuto,
   ResourceTriggerManual,
+  TagBuilding,
+  TagSpace,
 } from "../types/generated/api-types.ts";
 
 // Cache for all cards fetched from the backend
@@ -588,7 +590,21 @@ export async function checkCardPlayability(
 ): Promise<{ playable: boolean; reason?: UnplayableReason }> {
   const failedRequirements: UnplayableReason[] = [];
 
-  // First check: Game phase (must be action phase to play cards)
+  // First check: Pending tile selection (highest priority - blocks everything)
+  if (player.pendingTileSelection) {
+    return {
+      playable: false,
+      reason: {
+        type: "phase",
+        requirement: { pendingTileSelection: true },
+        message: "Pending tile selection",
+        currentValue: "tile_selection_pending",
+        requiredValue: "no_pending_tiles",
+      },
+    };
+  }
+
+  // Second check: Game phase (must be action phase to play cards)
   if (game.currentPhase !== GamePhaseAction) {
     return {
       playable: false,
@@ -602,8 +618,12 @@ export async function checkCardPlayability(
     };
   }
 
-  // Second check: Cost (highest priority after phase)
-  if (player.resources.credits < card.cost) {
+  // Third check: Cost (highest priority after phase)
+  // Skip cost check for cards with Building or Space tags - they can use alternative payment
+  const hasAlternativePayment =
+    card.tags?.includes(TagBuilding) || card.tags?.includes(TagSpace);
+
+  if (!hasAlternativePayment && player.resources.credits < card.cost) {
     failedRequirements.push({
       type: "cost",
       requirement: { cost: card.cost },
@@ -613,7 +633,7 @@ export async function checkCardPlayability(
     });
   }
 
-  // Third check: Behavior costs (negative resource/production costs)
+  // Fourth check: Behavior costs (negative resource/production costs)
   const behaviorCostFailures = checkBehaviorCosts(card, player, game);
   failedRequirements.push(...behaviorCostFailures);
 

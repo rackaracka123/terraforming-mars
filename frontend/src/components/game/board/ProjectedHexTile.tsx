@@ -1,8 +1,14 @@
 import { useRef, useState, useMemo } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { HexTile2D } from "../../../utils/hex-grid-2d";
+import { SkeletonUtils } from "three-stdlib";
+
+// Preload 3D models for better performance
+useGLTF.preload("/assets/models/city.glb");
+useGLTF.preload("/assets/models/forrest.glb");
+useGLTF.preload("/assets/models/water.glb");
 
 interface ProjectedHexTileData extends HexTile2D {
   spherePosition: THREE.Vector3;
@@ -323,8 +329,18 @@ export default function ProjectedHexTile({
         />
       )}
 
-      {/* Tile type icon */}
-      {tileType !== "empty" && (
+      {/* Tile type 3D model (city, greenery, ocean) */}
+      {(tileType === "city" ||
+        tileType === "greenery" ||
+        tileType === "ocean") && (
+        <TileModel
+          tileType={tileType}
+          position={[0, 0, tileType === "ocean" ? 0.00001 : 0.03]}
+        />
+      )}
+
+      {/* Special tile fallback emoji (no 3D model available) */}
+      {tileType === "special" && (
         <Text
           position={[0, 0, 0.01]}
           fontSize={0.08}
@@ -332,68 +348,68 @@ export default function ProjectedHexTile({
           anchorX="center"
           anchorY="middle"
         >
-          {tileType === "ocean"
-            ? "🌊"
-            : tileType === "greenery"
-              ? "🌲"
-              : tileType === "city"
-                ? "🏙️"
-                : tileType === "special"
-                  ? "⭐"
-                  : ""}
+          ⭐
         </Text>
       )}
 
       {/* Display name and bonus icons layout */}
-      {displayName && bonusIcons.length > 0 ? (
-        // Two-row layout when both displayName and bonuses exist
+      {tileType !== "greenery" && (
         <>
-          {/* Display name in upper row */}
-          <Text
-            position={[0, 0.03, 0.01]}
-            fontSize={0.035}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={0.25}
-          >
-            {displayName}
-          </Text>
+          {displayName && bonusIcons.length > 0 ? (
+            // Two-row layout when both displayName and bonuses exist
+            <>
+              {/* Display name in upper row */}
+              <Text
+                position={[0, 0.03, 0.01]}
+                fontSize={0.035}
+                color="white"
+                anchorX="center"
+                anchorY="middle"
+                maxWidth={0.25}
+              >
+                {displayName}
+              </Text>
 
-          {/* Bonus icons in lower row */}
-          {bonusIcons.map((iconPath, index) => (
-            <BonusIcon
-              key={index}
-              iconPath={iconPath}
-              position={[
-                index * 0.05 - (bonusIcons.length - 1) * 0.025,
-                -0.03,
-                0.01,
-              ]}
-            />
-          ))}
+              {/* Bonus icons in lower row */}
+              {bonusIcons.map((iconPath, index) => (
+                <BonusIcon
+                  key={index}
+                  iconPath={iconPath}
+                  position={[
+                    index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                    -0.03,
+                    0.01,
+                  ]}
+                />
+              ))}
+            </>
+          ) : displayName ? (
+            // Display name centered when no bonuses
+            <Text
+              position={[0, 0, 0.01]}
+              fontSize={0.04}
+              color="white"
+              anchorX="center"
+              anchorY="middle"
+              maxWidth={0.25}
+            >
+              {displayName}
+            </Text>
+          ) : (
+            // Only bonus icons when no display name
+            bonusIcons.map((iconPath, index) => (
+              <BonusIcon
+                key={index}
+                iconPath={iconPath}
+                position={[
+                  index * 0.05 - (bonusIcons.length - 1) * 0.025,
+                  0,
+                  0.01,
+                ]}
+              />
+            ))
+          )}
         </>
-      ) : displayName ? (
-        // Display name centered when no bonuses
-        <Text
-          position={[0, 0, 0.01]}
-          fontSize={0.04}
-          color="white"
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={0.25}
-        >
-          {displayName}
-        </Text>
-      ) : (
-        // Only bonus icons when no display name
-        bonusIcons.map((iconPath, index) => (
-          <BonusIcon
-            key={index}
-            iconPath={iconPath}
-            position={[index * 0.05 - (bonusIcons.length - 1) * 0.025, 0, 0.01]}
-          />
-        ))
       )}
 
       {/* Owner indicator */}
@@ -405,6 +421,92 @@ export default function ProjectedHexTile({
           />
         </mesh>
       )}
+    </group>
+  );
+}
+
+// Component for rendering 3D tile models (city, greenery, ocean)
+interface TileModelProps {
+  tileType: "city" | "greenery" | "ocean";
+  position: [number, number, number];
+}
+
+function TileModel({ tileType, position }: TileModelProps) {
+  // Load appropriate model based on tile type
+  const modelPath =
+    tileType === "city"
+      ? "/assets/models/city.glb"
+      : tileType === "greenery"
+        ? "/assets/models/forrest.glb"
+        : "/assets/models/water.glb";
+
+  const { scene } = useGLTF(modelPath);
+
+  // Clone and configure the model with proper transformations
+  const configuredModel = useMemo(() => {
+    // Clone the scene properly
+    const clonedScene = SkeletonUtils.clone(scene);
+
+    // Calculate bounding box and scale - larger size for greenery and ocean to fill hex
+    const targetSize =
+      tileType === "greenery" ? 0.3 : tileType === "ocean" ? 0.33 : 0.28;
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDimension = Math.max(size.x, size.y, size.z);
+    const scaleFactor = targetSize / maxDimension;
+
+    // Apply scale to the scene
+    clonedScene.scale.setScalar(scaleFactor);
+
+    // Recalculate center after scaling
+    const scaledBox = new THREE.Box3().setFromObject(clonedScene);
+    const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+
+    // Position to center the model at origin
+    clonedScene.position.set(-scaledCenter.x, -scaledCenter.y, -scaledCenter.z);
+
+    // Enable shadows and apply material modifications
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        // Apply water-specific material properties for ocean tiles
+        if (tileType === "ocean" && child.material) {
+          const material = child.material as THREE.MeshStandardMaterial;
+          if (material.isMeshStandardMaterial) {
+            // Make water more transparent and reflective
+            material.transparent = true;
+            material.opacity = 0.7;
+            material.metalness = 0.3;
+            material.roughness = 0.2;
+            // Tint with blue color
+            material.color = new THREE.Color(0.2, 0.5, 0.8);
+          }
+        }
+      }
+    });
+
+    return clonedScene;
+  }, [scene, tileType]);
+
+  // Rotation for specific tile types
+  const rotation: [number, number, number] = useMemo(() => {
+    if (tileType === "city") {
+      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip city buildings right-side up
+    }
+    if (tileType === "greenery") {
+      return [Math.PI / 2, 0, 0]; // +90° rotation on x-axis to flip trees right-side up
+    }
+    if (tileType === "ocean") {
+      return [-Math.PI / 2, 0, 0]; // -90° rotation to lay water flat on surface
+    }
+    return [0, 0, 0];
+  }, [tileType]);
+
+  return (
+    <group position={position} rotation={rotation}>
+      <primitive object={configuredModel} />
     </group>
   );
 }

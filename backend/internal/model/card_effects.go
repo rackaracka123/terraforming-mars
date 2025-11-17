@@ -4,15 +4,20 @@ package model
 type TriggerType string
 
 const (
-	TriggerOceanPlaced         TriggerType = "ocean-placed"
-	TriggerTemperatureRaise    TriggerType = "temperature-raise"
-	TriggerOxygenRaise         TriggerType = "oxygen-raise"
-	TriggerCityPlaced          TriggerType = "city-placed"
-	TriggerCardPlayed          TriggerType = "card-played"
-	TriggerTagPlayed           TriggerType = "tag-played"
-	TriggerTilePlaced          TriggerType = "tile-placed"
-	TriggerProductionIncreased TriggerType = "production-increased"
-	TriggerAlwaysActive        TriggerType = "always-active"
+	TriggerOceanPlaced           TriggerType = "ocean-placed"
+	TriggerTemperatureRaise      TriggerType = "temperature-raise"
+	TriggerOxygenRaise           TriggerType = "oxygen-raise"
+	TriggerCityPlaced            TriggerType = "city-placed"
+	TriggerGreeneryPlaced        TriggerType = "greenery-placed"
+	TriggerTilePlaced            TriggerType = "tile-placed"
+	TriggerCardPlayed            TriggerType = "card-played"
+	TriggerStandardProjectPlayed TriggerType = "standard-project-played"
+	TriggerTagPlayed             TriggerType = "tag-played"
+	TriggerProductionIncreased   TriggerType = "production-increased"
+	TriggerPlacementBonusGained  TriggerType = "placement-bonus-gained"
+	TriggerAlwaysActive          TriggerType = "always-active"
+	TriggerCardHandUpdated       TriggerType = "card-hand-updated"      // When player's card hand changes (cards added/removed)
+	TriggerPlayerEffectsChanged  TriggerType = "player-effects-changed" // When player's effects list changes
 )
 
 // TerraformingActions represents tile placement actions
@@ -59,35 +64,35 @@ type CardBehavior struct {
 
 // DeepCopy creates a deep copy of the CardBehavior
 func (cb CardBehavior) DeepCopy() CardBehavior {
-	var copy CardBehavior
+	var result CardBehavior
 
 	// Copy triggers slice
 	if cb.Triggers != nil {
-		copy.Triggers = make([]Trigger, len(cb.Triggers))
+		result.Triggers = make([]Trigger, len(cb.Triggers))
 		for i, trigger := range cb.Triggers {
-			copy.Triggers[i] = trigger // Trigger is a struct, copied by value
+			result.Triggers[i] = trigger // Trigger is a struct, copied by value
 		}
 	}
 
 	// Copy inputs slice
 	if cb.Inputs != nil {
-		copy.Inputs = make([]ResourceCondition, len(cb.Inputs))
+		result.Inputs = make([]ResourceCondition, len(cb.Inputs))
 		for i, input := range cb.Inputs {
-			copy.Inputs[i] = deepCopyResourceCondition(input)
+			result.Inputs[i] = deepCopyResourceCondition(input)
 		}
 	}
 
 	// Copy outputs slice
 	if cb.Outputs != nil {
-		copy.Outputs = make([]ResourceCondition, len(cb.Outputs))
+		result.Outputs = make([]ResourceCondition, len(cb.Outputs))
 		for i, output := range cb.Outputs {
-			copy.Outputs[i] = deepCopyResourceCondition(output)
+			result.Outputs[i] = deepCopyResourceCondition(output)
 		}
 	}
 
 	// Copy choices slice
 	if cb.Choices != nil {
-		copy.Choices = make([]Choice, len(cb.Choices))
+		result.Choices = make([]Choice, len(cb.Choices))
 		for i, choice := range cb.Choices {
 			choiceCopy := Choice{}
 
@@ -107,11 +112,11 @@ func (cb CardBehavior) DeepCopy() CardBehavior {
 				}
 			}
 
-			copy.Choices[i] = choiceCopy
+			result.Choices[i] = choiceCopy
 		}
 	}
 
-	return copy
+	return result
 }
 
 // deepCopyResourceCondition creates a deep copy of a ResourceCondition
@@ -127,6 +132,11 @@ func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 	if rc.AffectedTags != nil {
 		result.AffectedTags = make([]CardTag, len(rc.AffectedTags))
 		copy(result.AffectedTags, rc.AffectedTags)
+	}
+
+	if rc.AffectedStandardProjects != nil {
+		result.AffectedStandardProjects = make([]StandardProject, len(rc.AffectedStandardProjects))
+		copy(result.AffectedStandardProjects, rc.AffectedStandardProjects)
 	}
 
 	return result
@@ -171,6 +181,13 @@ type DiscountEffect struct {
 	Amount      int       `json:"amount" ts:"number"`                        // M€ discount per qualifying tag
 	Tags        []CardTag `json:"tags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for discount (empty = all cards)
 	Description string    `json:"description" ts:"string"`                   // Human readable description
+}
+
+// PaymentSubstitute represents an alternative resource that can be used as payment for credits
+// Example: Helion allows using heat as M€ with 1:1 conversion
+type PaymentSubstitute struct {
+	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"` // The resource that can be used (e.g., heat)
+	ConversionRate int          `json:"conversionRate" ts:"number"`     // How many credits each resource is worth (1 = 1:1)
 }
 
 // PlayerEffect represents ongoing effects that a player has active, aligned with PlayerAction structure
@@ -330,35 +347,49 @@ type Choice struct {
 
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
-	Type              ResourceType  `json:"type" ts:"ResourceType"`                                // Type of resource
-	Amount            int           `json:"amount" ts:"number"`                                    // Amount of resource
-	Target            TargetType    `json:"target" ts:"TargetType"`                                // Target for this resource condition
-	AffectedResources []string      `json:"affectedResources,omitempty" ts:"string[] | undefined"` // For defense: resources being protected
-	AffectedTags      []CardTag     `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // For discount: tags qualifying for discount
-	MaxTrigger        *int          `json:"maxTrigger,omitempty" ts:"number | undefined"`          // Max times it can trigger (-1 = unlimited), only for "per" conditions
-	Per               *PerCondition `json:"per,omitempty" ts:"PerCondition | undefined"`           // For conditional gains: what to count
+	Type                     ResourceType      `json:"type" ts:"ResourceType"`                                                // Type of resource
+	Amount                   int               `json:"amount" ts:"number"`                                                    // Amount of resource
+	Target                   TargetType        `json:"target" ts:"TargetType"`                                                // Target for this resource condition
+	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`                 // For defense: resources being protected
+	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                     // For discount: tags qualifying for discount
+	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`               // For discount/effects: card types qualifying
+	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"` // For discount: standard projects affected
+	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`                          // Max times it can trigger (-1 = unlimited), only for "per" conditions
+	Per                      *PerCondition     `json:"per,omitempty" ts:"PerCondition | undefined"`                           // For conditional gains: what to count
 }
 
 // ResourceTriggerType represents different trigger types for resource exchanges
 type ResourceTriggerType string
 
 const (
-	ResourceTriggerManual ResourceTriggerType = "manual" // Manual activation (actions)
-	ResourceTriggerAuto   ResourceTriggerType = "auto"   // Automatic activation (effects, immediate)
+	ResourceTriggerManual                     ResourceTriggerType = "manual"                        // Manual activation (actions)
+	ResourceTriggerAuto                       ResourceTriggerType = "auto"                          // Automatic activation (effects, immediate)
+	ResourceTriggerAutoCorporationFirstAction ResourceTriggerType = "auto-corporation-first-action" // Automatic forced first action (corporations only)
+	ResourceTriggerAutoCorporationStart       ResourceTriggerType = "auto-corporation-start"        // Starting bonuses for corporations (not an effect)
 )
+
+// MinMaxValue represents a minimum and/or maximum value constraint
+type MinMaxValue struct {
+	Min *int `json:"min,omitempty" ts:"number | undefined"` // Minimum value (e.g., at least 20)
+	Max *int `json:"max,omitempty" ts:"number | undefined"` // Maximum value (e.g., at most 10)
+}
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type         TriggerType        `json:"type" ts:"TriggerType"`                                 // What triggers this (onCityPlaced, etc.)
-	Location     *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Where the trigger applies (mars, anywhere)
-	AffectedTags []CardTag          `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`     // Tags that trigger this effect
+	Type                   TriggerType                  `json:"type" ts:"TriggerType"`                                                               // What triggers this (onCityPlaced, etc.)
+	Location               *CardApplyLocation           `json:"location,omitempty" ts:"CardApplyLocation | undefined"`                               // Where the trigger applies (mars, anywhere)
+	AffectedTags           []CardTag                    `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                                   // Tags that trigger this effect
+	AffectedResources      []string                     `json:"affectedResources,omitempty" ts:"string[] | undefined"`                               // Resource types that trigger this effect (for placement-bonus-gained)
+	AffectedCardTypes      []CardType                   `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`                             // Card types that trigger this effect (for card-played triggers: event, automated, active, etc.)
+	Target                 *TargetType                  `json:"target,omitempty" ts:"TargetType | undefined"`                                        // Whose actions trigger this (self-player, any-player, etc.)
+	RequiredOriginalCost   *MinMaxValue                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValue | undefined"`                         // Original credit cost requirement (only for card-played/standard-project-played triggers)
+	RequiredResourceChange map[ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValue> | undefined"` // Min/max requirements for actual resources spent
 }
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type            ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
-	Condition       *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
-	IsInitialAction bool                      `json:"isInitialAction,omitempty" ts:"boolean | undefined"`            // If true, action is only available as first action in the game
+	Type      ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
+	Condition *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
 }
 
 // ResourceExchange represents a directional resource trade (input → output)

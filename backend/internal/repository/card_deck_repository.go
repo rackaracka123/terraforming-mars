@@ -146,3 +146,10 @@ type DeckError struct {
 func (e *DeckError) Error() string {
 	return e.Message
 }
+
+// Clear removes all game decks from the repository
+func (r *CardDeckRepositoryImpl) Clear() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.gameDecks = make(map[string]*DeckState)
+}

@@ -55,6 +55,33 @@ type PendingCardSelection struct {
 	MaxCards       int            `json:"maxCards" ts:"number"`                    // Maximum cards to select (hand size for sell patents)
 }
 
+// PendingCardDrawSelection represents a pending card draw/peek/take/buy action from card effects
+type PendingCardDrawSelection struct {
+	AvailableCards []string `json:"availableCards" ts:"CardDto[]"` // Card IDs shown to player (drawn or peeked)
+	FreeTakeCount  int      `json:"freeTakeCount" ts:"number"`     // Number of cards to take for free (mandatory, 0 = optional)
+	MaxBuyCount    int      `json:"maxBuyCount" ts:"number"`       // Maximum cards to buy (optional, 0 = no buying allowed)
+	CardBuyCost    int      `json:"cardBuyCost" ts:"number"`       // Cost per card when buying (typically 3 MC, 0 if no buying)
+	Source         string   `json:"source" ts:"string"`            // Card ID or action that triggered this
+}
+
+// ForcedFirstAction represents an action that must be completed as the player's first turn action
+// Examples: Tharsis Republic must place a city as their first action
+type ForcedFirstAction struct {
+	ActionType    string `json:"actionType" ts:"string"`    // Type of action: "city_placement", "card_draw", etc.
+	CorporationID string `json:"corporationId" ts:"string"` // Corporation that requires this action
+	Completed     bool   `json:"completed" ts:"boolean"`    // Whether the forced action has been completed
+	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
+}
+
+// RequirementModifier represents a discount or lenience that modifies card/standard project requirements
+// These are calculated from player effects and automatically updated when card hand or effects change
+type RequirementModifier struct {
+	Amount                int              `json:"amount"`                          // Modifier amount (discount/lenience value)
+	AffectedResources     []ResourceType   `json:"affectedResources"`               // Resources affected (e.g., ["credits"] for price discount, ["temperature"] for global param)
+	CardTarget            *string          `json:"cardTarget,omitempty"`            // Optional: specific card ID this applies to
+	StandardProjectTarget *StandardProject `json:"standardProjectTarget,omitempty"` // Optional: specific standard project this applies to
+}
+
 // Player represents a player in the game
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
@@ -69,7 +96,7 @@ type Player struct {
 	AvailableActions         int                       `json:"availableActions" ts:"number"`
 	VictoryPoints            int                       `json:"victoryPoints" ts:"number"`
 	IsConnected              bool                      `json:"isConnected" ts:"boolean"`
-	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing effects (discounts, special abilities, etc.)
+	Effects                  []PlayerEffect            `json:"effects" ts:"PlayerEffect[]"` // Active ongoing passive effects from played cards
 	Actions                  []PlayerAction            `json:"actions" ts:"PlayerAction[]"` // Available actions from played cards with manual triggers
 	ProductionPhase          *ProductionPhase          `json:"productionPhase" ts:"ProductionPhase | null"`
 	SelectStartingCardsPhase *SelectStartingCardsPhase `json:"selectStartingCardsPhase" ts:"selectStartingCardsPhase | null"`
@@ -77,9 +104,16 @@ type Player struct {
 	PendingTileSelection      *PendingTileSelection      `json:"pendingTileSelection" ts:"PendingTileSelection | null"`           // Current active tile placement, null when no tiles to place
 	PendingTileSelectionQueue *PendingTileSelectionQueue `json:"pendingTileSelectionQueue" ts:"PendingTileSelectionQueue | null"` // Queue of remaining tile placements from cards
 	// Card selection - nullable, exists only when player needs to select cards
-	PendingCardSelection *PendingCardSelection `json:"pendingCardSelection" ts:"PendingCardSelection | null"` // Current active card selection (sell patents, card effects, etc.)
+	PendingCardSelection     *PendingCardSelection     `json:"pendingCardSelection" ts:"PendingCardSelection | null"`         // Current active card selection (sell patents, etc.)
+	PendingCardDrawSelection *PendingCardDrawSelection `json:"pendingCardDrawSelection" ts:"PendingCardDrawSelection | null"` // Current active card draw/peek selection
+	// Forced first action - nullable, exists only when corporation requires specific first turn action
+	ForcedFirstAction *ForcedFirstAction `json:"forcedFirstAction" ts:"ForcedFirstAction | null"` // Action that must be taken on first turn (Tharsis city placement, etc.)
 	// Resource storage - maps card IDs to resource counts stored on those cards
 	ResourceStorage map[string]int `json:"resourceStorage" ts:"Record<string, number>"` // Card ID -> resource count
+	// Payment substitutes - alternative resources that can be used as payment for credits
+	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
+	// Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
+	RequirementModifiers []RequirementModifier `json:"requirementModifiers" ts:"RequirementModifier[]"` // Calculated discounts/leniences for cards and standard projects
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase
@@ -193,6 +227,45 @@ func (p *Player) DeepCopy() *Player {
 		resourceStorageCopy[cardID] = count
 	}
 
+	// Deep copy payment substitutes slice
+	var paymentSubstitutesCopy []PaymentSubstitute
+	if p.PaymentSubstitutes != nil {
+		paymentSubstitutesCopy = make([]PaymentSubstitute, len(p.PaymentSubstitutes))
+		copy(paymentSubstitutesCopy, p.PaymentSubstitutes)
+	}
+
+	// Deep copy requirement modifiers slice
+	var requirementModifiersCopy []RequirementModifier
+	if p.RequirementModifiers != nil {
+		requirementModifiersCopy = make([]RequirementModifier, len(p.RequirementModifiers))
+		for i, modifier := range p.RequirementModifiers {
+			// Copy affected resources slice
+			affectedResourcesCopy := make([]ResourceType, len(modifier.AffectedResources))
+			copy(affectedResourcesCopy, modifier.AffectedResources)
+
+			// Copy card target pointer if exists
+			var cardTargetCopy *string
+			if modifier.CardTarget != nil {
+				val := *modifier.CardTarget
+				cardTargetCopy = &val
+			}
+
+			// Copy standard project target pointer if exists
+			var standardProjectTargetCopy *StandardProject
+			if modifier.StandardProjectTarget != nil {
+				val := *modifier.StandardProjectTarget
+				standardProjectTargetCopy = &val
+			}
+
+			requirementModifiersCopy[i] = RequirementModifier{
+				Amount:                modifier.Amount,
+				AffectedResources:     affectedResourcesCopy,
+				CardTarget:            cardTargetCopy,
+				StandardProjectTarget: standardProjectTargetCopy,
+			}
+		}
+	}
+
 	// Deep copy pending card selection if it exists
 	var pendingCardSelectionCopy *PendingCardSelection
 	if p.PendingCardSelection != nil {
@@ -219,6 +292,33 @@ func (p *Player) DeepCopy() *Player {
 			Source:         p.PendingCardSelection.Source,
 			MinCards:       p.PendingCardSelection.MinCards,
 			MaxCards:       p.PendingCardSelection.MaxCards,
+		}
+	}
+
+	// Deep copy pending card draw selection if it exists
+	var pendingCardDrawSelectionCopy *PendingCardDrawSelection
+	if p.PendingCardDrawSelection != nil {
+		// Copy available cards slice
+		availableCardsCopy := make([]string, len(p.PendingCardDrawSelection.AvailableCards))
+		copy(availableCardsCopy, p.PendingCardDrawSelection.AvailableCards)
+
+		pendingCardDrawSelectionCopy = &PendingCardDrawSelection{
+			AvailableCards: availableCardsCopy,
+			FreeTakeCount:  p.PendingCardDrawSelection.FreeTakeCount,
+			MaxBuyCount:    p.PendingCardDrawSelection.MaxBuyCount,
+			CardBuyCost:    p.PendingCardDrawSelection.CardBuyCost,
+			Source:         p.PendingCardDrawSelection.Source,
+		}
+	}
+
+	// Deep copy forced first action if it exists
+	var forcedFirstActionCopy *ForcedFirstAction
+	if p.ForcedFirstAction != nil {
+		forcedFirstActionCopy = &ForcedFirstAction{
+			ActionType:    p.ForcedFirstAction.ActionType,
+			CorporationID: p.ForcedFirstAction.CorporationID,
+			Completed:     p.ForcedFirstAction.Completed,
+			Description:   p.ForcedFirstAction.Description,
 		}
 	}
 
@@ -249,6 +349,10 @@ func (p *Player) DeepCopy() *Player {
 		PendingTileSelection:      pendingTileSelectionCopy,
 		PendingTileSelectionQueue: pendingTileSelectionQueueCopy,
 		PendingCardSelection:      pendingCardSelectionCopy,
+		PendingCardDrawSelection:  pendingCardDrawSelectionCopy,
+		ForcedFirstAction:         forcedFirstActionCopy,
 		ResourceStorage:           resourceStorageCopy,
+		PaymentSubstitutes:        paymentSubstitutesCopy,
+		RequirementModifiers:      requirementModifiersCopy,
 	}
 }

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -19,14 +21,12 @@ func setupPlayerServiceTest(t *testing.T) (
 	repository.PlayerRepository,
 	model.Game,
 ) {
-	// EventBus no longer needed
-	playerRepo := repository.NewPlayerRepository()
-	gameRepo := repository.NewGameRepository()
+	eventBus := events.NewEventBus()
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	gameRepo := repository.NewGameRepository(eventBus)
 	boardService := service.NewBoardService()
 	sessionManager := test.NewMockSessionManager()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-	effectProcessor := service.NewEffectProcessor(gameRepo, playerRepo)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, effectProcessor)
 
 	cardRepo := repository.NewCardRepository()
 	// Load card data for testing
@@ -35,8 +35,12 @@ func setupPlayerServiceTest(t *testing.T) (
 		t.Fatal("Failed to load card data:", err)
 	}
 
+	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
+	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService.(*service.CardServiceImpl), cardDeckRepo, boardService, sessionManager)
 
 	ctx := context.Background()

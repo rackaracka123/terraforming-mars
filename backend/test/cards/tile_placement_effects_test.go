@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 
@@ -15,11 +16,13 @@ import (
 // TestCardTilePlacementEffects tests that cards with tile placement effects correctly create tile queues
 func TestCardTilePlacementEffects(t *testing.T) {
 	ctx := context.Background()
+	eventBus := events.NewEventBus()
 
 	// Setup repositories
-	gameRepo := repository.NewGameRepository()
-	playerRepo := repository.NewPlayerRepository()
-	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo)
+	gameRepo := repository.NewGameRepository(eventBus)
+	playerRepo := repository.NewPlayerRepository(eventBus)
+	cardDeckRepo := repository.NewCardDeckRepository()
+	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo)
 
 	// Create a game
 	gameSettings := model.GameSettings{

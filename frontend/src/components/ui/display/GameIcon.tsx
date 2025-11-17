@@ -86,6 +86,11 @@ const GameIcon: React.FC<GameIconProps> = ({
   const baseType =
     isProduction && iconType ? iconType.replace("-production", "") : iconType;
   const isCredits = baseType === ResourceTypeCredits;
+  const isCardType =
+    baseType === "card-draw" ||
+    baseType === "card-take" ||
+    baseType === "card-peek" ||
+    baseType === "card";
 
   const iconUrl = baseType ? getIconPath(baseType) : null;
   const displayType = baseType || "";
@@ -110,11 +115,17 @@ const GameIcon: React.FC<GameIconProps> = ({
     ? "[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))_drop-shadow(0_0_1px_rgba(244,67,54,0.9))_drop-shadow(0_0_2px_rgba(244,67,54,0.7))] animate-[attackPulse_2s_ease-in-out_infinite]"
     : "";
 
+  const cardOutline = isCardType
+    ? "[filter:drop-shadow(0_0_1px_rgba(255,248,220,0.6))_drop-shadow(0_0_2px_rgba(255,248,220,0.4))]"
+    : "";
+
   const renderCoreIcon = () => {
+    const glowEffect = attackGlow || cardOutline;
+
     if (isCredits && amount !== undefined) {
       return (
         <div
-          className={`relative inline-flex items-center justify-center ${attackGlow}`}
+          className={`relative inline-flex items-center justify-center ${glowEffect}`}
           style={{
             width: `${dimensions.icon}px`,
             height: `${dimensions.icon}px`,
@@ -137,7 +148,7 @@ const GameIcon: React.FC<GameIconProps> = ({
 
     return (
       <div
-        className={`relative inline-flex items-center justify-center ${attackGlow}`}
+        className={`relative inline-flex items-center justify-center ${glowEffect}`}
         style={{
           width: `${dimensions.icon}px`,
           height: `${dimensions.icon}px`,

@@ -1,6 +1,7 @@
 import { webSocketService } from "./webSocketService.ts";
 import { WebSocketConnection } from "../types/webSocketTypes.ts";
 import type {
+  CardPaymentDto,
   GameDto,
   PlayerDisconnectedPayload,
   FullStatePayload,
@@ -196,6 +197,17 @@ class GlobalWebSocketManager implements WebSocketConnection {
     return webSocketService.buildCity();
   }
 
+  // Resource conversion actions
+  async convertPlantsToGreenery(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.convertPlantsToGreenery();
+  }
+
+  async convertHeatToTemperature(): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.convertHeatToTemperature();
+  }
+
   // Game management actions
   async startGame(): Promise<string> {
     await this.ensureConnected();
@@ -210,11 +222,17 @@ class GlobalWebSocketManager implements WebSocketConnection {
   // Card actions
   async playCard(
     cardId: string,
+    payment: CardPaymentDto,
     choiceIndex?: number,
     cardStorageTarget?: string,
   ): Promise<string> {
     await this.ensureConnected();
-    return webSocketService.playCard(cardId, choiceIndex, cardStorageTarget);
+    return webSocketService.playCard(
+      cardId,
+      payment,
+      choiceIndex,
+      cardStorageTarget,
+    );
   }
 
   async playCardAction(
@@ -243,6 +261,14 @@ class GlobalWebSocketManager implements WebSocketConnection {
   async selectCards(cardIds: string[]): Promise<string> {
     await this.ensureConnected();
     return webSocketService.selectCards(cardIds);
+  }
+
+  async confirmCardDraw(
+    cardsToTake: string[],
+    cardsToBuy: string[],
+  ): Promise<string> {
+    await this.ensureConnected();
+    return webSocketService.confirmCardDraw(cardsToTake, cardsToBuy);
   }
 
   // Tile selection actions

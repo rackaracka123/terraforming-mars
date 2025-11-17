@@ -4,13 +4,33 @@ import GameIcon from "../display/GameIcon.tsx";
 import {
   CardDto,
   PendingCardSelectionDto,
+  RequirementModifierDto,
+  ResourceType,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
+
+/**
+ * Calculate the total discount applicable to a specific card from player's requirement modifiers
+ */
+function calculateCardDiscount(
+  cardId: string,
+  requirementModifiers: RequirementModifierDto[],
+): number {
+  return requirementModifiers
+    .filter(
+      (mod) =>
+        mod.affectedResources.includes("credits" as ResourceType) &&
+        (!mod.cardTarget || mod.cardTarget === cardId) &&
+        !mod.standardProjectTarget,
+    )
+    .reduce((total, mod) => total + mod.amount, 0);
+}
 
 interface PendingCardSelectionOverlayProps {
   isOpen: boolean;
   selection: PendingCardSelectionDto;
   playerCredits: number;
+  requirementModifiers?: RequirementModifierDto[];
   onSelectCards: (selectedCardIds: string[]) => void;
   onCancel?: () => void;
 }
@@ -22,7 +42,14 @@ interface TitleInfo {
 
 const PendingCardSelectionOverlay: React.FC<
   PendingCardSelectionOverlayProps
-> = ({ isOpen, selection, playerCredits, onSelectCards, onCancel }) => {
+> = ({
+  isOpen,
+  selection,
+  playerCredits,
+  requirementModifiers = [],
+  onSelectCards,
+  onCancel,
+}) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [totalReward, setTotalReward] = useState(0);
@@ -196,6 +223,10 @@ const PendingCardSelectionOverlay: React.FC<
                     onSelect={handleCardSelect}
                     animationDelay={index * 100}
                     showCheckbox={true}
+                    discountAmount={calculateCardDiscount(
+                      card.id,
+                      requirementModifiers,
+                    )}
                   />
                   {/* Cost/Reward Badge */}
                   {badge && (
