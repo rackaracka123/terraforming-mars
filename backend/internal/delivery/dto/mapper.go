@@ -1,7 +1,10 @@
 package dto
 
 import (
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+
+	"go.uber.org/zap"
 )
 
 // ToCardPayment converts a CardPaymentDto to domain model CardPayment
@@ -47,16 +50,34 @@ func resolveCards(cardIDs []string, resolvedMap map[string]model.Card) []CardDto
 
 // ToGameDto converts a model Game to personalized GameDto
 func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, resolvedCards map[string]model.Card, paymentConstants PaymentConstantsDto) GameDto {
+	log := logger.Get().With(
+		zap.String("game_id", game.ID),
+		zap.String("viewing_player_id", viewingPlayerID),
+		zap.Int("total_players", len(players)))
+
+	log.Debug("🎯 ToGameDto called")
+
 	var currentPlayer PlayerDto
 	otherPlayers := make([]OtherPlayerDto, 0)
 
 	for _, player := range players {
+		log.Debug("🔍 Comparing player ID",
+			zap.String("player_id", player.ID),
+			zap.String("player_name", player.Name),
+			zap.Bool("matches", player.ID == viewingPlayerID))
+
 		if player.ID == viewingPlayerID {
+			log.Debug("✅ Match found - setting as currentPlayer")
 			currentPlayer = ToPlayerDto(player, resolvedCards)
 		} else {
 			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
 		}
 	}
+
+	log.Debug("🎯 ToGameDto result",
+		zap.String("current_player_id", currentPlayer.ID),
+		zap.String("current_player_name", currentPlayer.Name),
+		zap.Int("other_players_count", len(otherPlayers)))
 
 	return GameDto{
 		ID:               game.ID,

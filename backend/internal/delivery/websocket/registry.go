@@ -26,15 +26,17 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/session"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction) {
+func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
-	// NEW ARCHITECTURE: Using action pattern for join_game
-	connectionHandler := connect.NewConnectionHandler(gameService, playerService, joinGameAction)
+	// NEW ARCHITECTURE: Using action pattern for join_game + explicit broadcast timing
+	// SessionManager injected so handler can control broadcast timing after join completes
+	connectionHandler := connect.NewConnectionHandler(hub, sessionManager, gameService, playerService, joinGameAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler

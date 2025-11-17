@@ -175,40 +175,59 @@ const JoinGamePage: React.FC = () => {
     setLoadingStep("game");
 
     try {
-      // Step 1: Connect player to the game
-      const playerConnectedResult = await globalWebSocketManager.playerConnect(
-        playerName.trim(),
-        validatedGame.id,
-      );
+      // Step 1: Load 3D environment if not already loaded
+      if (!skyboxReady) {
+        setLoadingStep("environment");
+        await skyboxCache.preload();
+      }
 
-      if (playerConnectedResult.game) {
-        // Step 2: Load 3D environment if not already loaded
-        if (!skyboxReady) {
-          setLoadingStep("environment");
-          await skyboxCache.preload();
-        }
+      // Step 2: Ensure WebSocket is connected BEFORE setting up listener
+      setLoadingStep("game");
+      await globalWebSocketManager.initialize();
 
-        const gameData = {
-          gameId: validatedGame.id,
-          playerId: playerConnectedResult.playerId,
-          playerName: playerName.trim(),
-          joinedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(
-          "terraforming-mars-game",
-          JSON.stringify(gameData),
+      // Step 3: Set up one-time listener for game-updated event
+      const handleGameUpdated = (gameData: any) => {
+        // Extract player info from game data
+        const allPlayers = [
+          gameData.currentPlayer,
+          ...(gameData.otherPlayers || []),
+        ].filter(Boolean);
+        const connectedPlayer = allPlayers.find(
+          (p: any) => p.name === playerName.trim(),
         );
 
-        navigate("/game", {
-          state: {
-            game: playerConnectedResult.game,
-            playerId: playerConnectedResult.playerId,
+        if (connectedPlayer) {
+          // Store game data
+          const storedData = {
+            gameId: validatedGame.id,
+            playerId: connectedPlayer.id,
             playerName: playerName.trim(),
-          },
-        });
-      } else {
-        setError("Failed to join the game. Please try again.");
-      }
+            joinedAt: new Date().toISOString(),
+          };
+          localStorage.setItem(
+            "terraforming-mars-game",
+            JSON.stringify(storedData),
+          );
+
+          // Navigate to game
+          navigate("/game", {
+            state: {
+              game: gameData,
+              playerId: connectedPlayer.id,
+              playerName: playerName.trim(),
+            },
+          });
+
+          // Clean up listener
+          globalWebSocketManager.off("game-updated", handleGameUpdated);
+        }
+      };
+
+      // Register listener BEFORE sending connect message
+      globalWebSocketManager.on("game-updated", handleGameUpdated);
+
+      // Step 4: Send connect message (non-blocking)
+      globalWebSocketManager.playerConnect(playerName.trim(), validatedGame.id);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes("WebSocket")) {

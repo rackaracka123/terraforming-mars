@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/session"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -16,6 +17,8 @@ import (
 
 // ConnectionHandler handles player connection and reconnection logic
 type ConnectionHandler struct {
+	hub            *core.Hub
+	sessionManager session.SessionManager
 	gameService    service.GameService
 	playerService  service.PlayerService
 	joinGameAction *action.JoinGameAction
@@ -35,11 +38,15 @@ type connectionContext struct {
 
 // NewConnectionHandler creates a new connection handler
 func NewConnectionHandler(
+	hub *core.Hub,
+	sessionManager session.SessionManager,
 	gameService service.GameService,
 	playerService service.PlayerService,
 	joinGameAction *action.JoinGameAction,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
+		hub:            hub,
+		sessionManager: sessionManager,
 		gameService:    gameService,
 		playerService:  playerService,
 		joinGameAction: joinGameAction,
@@ -142,9 +149,14 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 	// Set up connection FIRST (before action triggers PlayerJoinedEvent)
 	connCtx.connection.SetPlayer(playerID, connCtx.payload.GameID)
 
-	ch.logger.Debug("🔗 Connection set up with pre-generated player ID",
+	// CRITICAL: Register connection with Hub's Manager so broadcasts can find it
+	// This MUST happen before JoinGameAction executes, which publishes PlayerJoinedEvent
+	ch.hub.RegisterConnectionWithGame(connCtx.connection, connCtx.payload.GameID)
+
+	ch.logger.Debug("🔗 Connection set up and registered with game",
 		zap.String("connection_id", connCtx.connection.ID),
-		zap.String("player_id", playerID))
+		zap.String("player_id", playerID),
+		zap.String("game_id", connCtx.payload.GameID))
 
 	// Now join game - broadcasts will work because connection is already registered
 	returnedPlayerID, err := ch.joinGameAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
@@ -160,7 +172,22 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		zap.String("player_name", connCtx.payload.PlayerName))
 
 	connCtx.playerID = returnedPlayerID
-	// Note: Broadcasting handled automatically via PlayerJoinedEvent
+
+	// Broadcast game state to all players now that join is complete
+	// NOTE: PlayerJoinedEvent subscription removed from SessionManager to prevent race condition
+	// Connection handler now controls broadcast timing after all setup is complete
+	ch.logger.Debug("📡 Broadcasting game state after player join",
+		zap.String("game_id", connCtx.payload.GameID),
+		zap.String("player_id", returnedPlayerID))
+
+	err = ch.sessionManager.Broadcast(connCtx.payload.GameID)
+	if err != nil {
+		ch.logger.Error("Failed to broadcast game state after join",
+			zap.Error(err),
+			zap.String("game_id", connCtx.payload.GameID))
+		// Non-fatal - player joined successfully, broadcast can be retried
+	}
+
 	return nil
 }
 
@@ -173,9 +200,13 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 	// Set up the current connection with the real player ID (not temporary)
 	connCtx.connection.SetPlayer(connCtx.playerID, connCtx.payload.GameID)
 
-	ch.logger.Debug("🔗 Connection set up for reconnecting player",
+	// Register connection with Hub's Manager for reconnections as well
+	ch.hub.RegisterConnectionWithGame(connCtx.connection, connCtx.payload.GameID)
+
+	ch.logger.Debug("🔗 Connection set up and registered for reconnecting player",
 		zap.String("connection_id", connCtx.connection.ID),
-		zap.String("player_id", connCtx.playerID))
+		zap.String("player_id", connCtx.playerID),
+		zap.String("game_id", connCtx.payload.GameID))
 
 	// Let the service handle the complete reconnection process including:
 	// - Updating connection status

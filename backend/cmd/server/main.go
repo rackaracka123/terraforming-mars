@@ -15,6 +15,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
+	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
@@ -151,7 +152,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub and new actions
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, startGameAction, joinGameAction)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
@@ -159,8 +160,9 @@ func main() {
 	go webSocketService.Run(wsCtx)
 	log.Info("WebSocket hub started")
 
-	// Setup main router without middleware for WebSocket
+	// Setup main router with CORS middleware
 	mainRouter := mux.NewRouter()
+	mainRouter.Use(httpmiddleware.CORS) // Apply CORS to all routes (API + WebSocket)
 
 	// Setup API router with middleware
 	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo, createGameAction)
@@ -168,7 +170,7 @@ func main() {
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 
-	// Add WebSocket endpoint directly to main router (no middleware)
+	// Add WebSocket endpoint to main router (inherits CORS from mainRouter)
 	mainRouter.HandleFunc("/ws", webSocketService.ServeWS)
 
 	// Setup HTTP server

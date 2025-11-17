@@ -788,8 +788,8 @@ export default function GameInterface() {
         await skyboxCache.preload();
       }
 
-      // Now establish WebSocket connection
-      await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+      // Now establish WebSocket connection (non-blocking)
+      globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);

@@ -7,8 +7,11 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+
+	"go.uber.org/zap"
 )
 
 // Repository manages game data with event-driven updates
@@ -106,12 +109,19 @@ func (r *RepositoryImpl) AddPlayer(ctx context.Context, gameID string, playerID 
 
 	// Publish PlayerJoinedEvent for event-driven broadcasting
 	// This is safe to do after unlocking because the event only contains IDs (not object references)
+	log := logger.Get().With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
+	log.Info("📡 Publishing PlayerJoinedEvent")
+
 	events.Publish(r.eventBus, repository.PlayerJoinedEvent{
 		GameID:     gameID,
 		PlayerID:   playerID,
 		PlayerName: "", // Name not available at repository level, subscribers can look up if needed
 		Timestamp:  time.Now(),
 	})
+
+	log.Info("✅ PlayerJoinedEvent published")
 
 	return nil
 }
