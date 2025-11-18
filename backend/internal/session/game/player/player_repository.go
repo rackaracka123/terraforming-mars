@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"sync"
 
+	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 )
+
+var log = logger.Get()
 
 // Repository manages player data with event-driven updates
 type Repository interface {
@@ -61,6 +65,48 @@ type Repository interface {
 
 	// UpdateForcedFirstAction updates player forced first action
 	UpdateForcedFirstAction(ctx context.Context, gameID string, playerID string, action *model.ForcedFirstAction) error
+
+	// UpdateRequirementModifiers updates player requirement modifiers
+	UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []model.RequirementModifier) error
+
+	// UpdatePlayerEffects updates player active effects
+	UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []model.PlayerEffect) error
+
+	// UpdateTerraformRating updates player terraform rating
+	UpdateTerraformRating(ctx context.Context, gameID string, playerID string, rating int) error
+
+	// UpdateVictoryPoints updates player victory points
+	UpdateVictoryPoints(ctx context.Context, gameID string, playerID string, victoryPoints int) error
+
+	// CreateTileQueue creates a tile placement queue for the player
+	CreateTileQueue(ctx context.Context, gameID string, playerID string, cardID string, tileTypes []string) error
+
+	// GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
+	GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*model.PendingTileSelectionQueue, error)
+
+	// ProcessNextTileInQueue pops the next tile type from the queue and returns it
+	ProcessNextTileInQueue(ctx context.Context, gameID string, playerID string) (string, error)
+
+	// UpdatePendingTileSelection updates the pending tile selection for a player
+	UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingTileSelection) error
+
+	// ClearPendingTileSelection clears the pending tile selection for a player
+	ClearPendingTileSelection(ctx context.Context, gameID string, playerID string) error
+
+	// UpdatePendingTileSelectionQueue updates the pending tile selection queue
+	UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *model.PendingTileSelectionQueue) error
+
+	// ClearPendingTileSelectionQueue clears the pending tile selection queue
+	ClearPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) error
+
+	// UpdatePendingCardDrawSelection updates player pending card draw selection
+	UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingCardDrawSelection) error
+
+	// UpdateResourceStorage updates player resource storage
+	UpdateResourceStorage(ctx context.Context, gameID string, playerID string, storage map[string]int) error
+
+	// RemoveCardFromHand removes a card from the player's hand
+	RemoveCardFromHand(ctx context.Context, gameID string, playerID string, cardID string) error
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
@@ -215,7 +261,21 @@ func (r *RepositoryImpl) AddCard(ctx context.Context, gameID string, playerID st
 		return &model.NotFoundError{Resource: "player", ID: playerID}
 	}
 
+	log.Debug("🃏 BEFORE AddCard",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("card_to_add", cardID),
+		zap.Strings("current_cards", player.Cards),
+		zap.Int("card_count", len(player.Cards)))
+
 	player.Cards = append(player.Cards, cardID)
+
+	log.Debug("🃏 AFTER AddCard",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("card_added", cardID),
+		zap.Strings("current_cards", player.Cards),
+		zap.Int("card_count", len(player.Cards)))
 
 	return nil
 }
@@ -422,4 +482,310 @@ func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID str
 	player.ForcedFirstAction = action
 
 	return nil
+}
+
+// UpdateRequirementModifiers updates player requirement modifiers
+func (r *RepositoryImpl) UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []model.RequirementModifier) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.RequirementModifiers = modifiers
+
+	return nil
+}
+
+// UpdatePlayerEffects updates player active effects
+func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []model.PlayerEffect) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.Effects = effects
+
+	return nil
+}
+
+// UpdateTerraformRating updates player terraform rating
+func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID string, playerID string, rating int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.TerraformRating = rating
+
+	return nil
+}
+
+// UpdateVictoryPoints updates player victory points
+func (r *RepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID string, playerID string, victoryPoints int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.VictoryPoints = victoryPoints
+
+	return nil
+}
+
+// CreateTileQueue creates a tile placement queue for the player
+func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID string, playerID string, cardID string, tileTypes []string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	// Create tile queue
+	if len(tileTypes) > 0 {
+		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+			Items:  tileTypes,
+			Source: cardID,
+		}
+	}
+
+	return nil
+}
+
+// GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
+func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*model.PendingTileSelectionQueue, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return nil, &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return nil, &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	if player.PendingTileSelectionQueue == nil {
+		return nil, nil
+	}
+
+	// Return a copy to prevent external mutation
+	itemsCopy := make([]string, len(player.PendingTileSelectionQueue.Items))
+	copy(itemsCopy, player.PendingTileSelectionQueue.Items)
+
+	return &model.PendingTileSelectionQueue{
+		Items:  itemsCopy,
+		Source: player.PendingTileSelectionQueue.Source,
+	}, nil
+}
+
+// ProcessNextTileInQueue pops the next tile type from the queue and returns it
+func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID string, playerID string) (string, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return "", &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return "", &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	// If no queue exists or queue is empty, nothing to process
+	if player.PendingTileSelectionQueue == nil || len(player.PendingTileSelectionQueue.Items) == 0 {
+		log.Debug("No tile placements in queue",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID))
+		return "", nil
+	}
+
+	// Pop the first item from the queue
+	nextTileType := player.PendingTileSelectionQueue.Items[0]
+	remainingItems := player.PendingTileSelectionQueue.Items[1:]
+
+	log.Info("🎯 Popping next tile from queue",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("tile_type", nextTileType),
+		zap.String("source", player.PendingTileSelectionQueue.Source),
+		zap.Int("remaining_in_queue", len(remainingItems)))
+
+	// Update queue with remaining items or clear if empty
+	if len(remainingItems) > 0 {
+		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+			Items:  remainingItems,
+			Source: player.PendingTileSelectionQueue.Source,
+		}
+	} else {
+		// This is the last item, clear the queue
+		player.PendingTileSelectionQueue = nil
+	}
+
+	log.Debug("✅ Tile popped from queue",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("tile_type", nextTileType))
+
+	return nextTileType, nil
+}
+
+// UpdatePendingTileSelection updates the pending tile selection for a player
+func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingTileSelection) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.PendingTileSelection = selection
+
+	return nil
+}
+
+// ClearPendingTileSelection clears the pending tile selection for a player
+func (r *RepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID string, playerID string) error {
+	return r.UpdatePendingTileSelection(ctx, gameID, playerID, nil)
+}
+
+// UpdatePendingTileSelectionQueue updates the pending tile selection queue
+func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *model.PendingTileSelectionQueue) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.PendingTileSelectionQueue = queue
+
+	return nil
+}
+
+// ClearPendingTileSelectionQueue clears the pending tile selection queue
+func (r *RepositoryImpl) ClearPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) error {
+	return r.UpdatePendingTileSelectionQueue(ctx, gameID, playerID, nil)
+}
+
+// UpdatePendingCardDrawSelection updates player pending card draw selection
+func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingCardDrawSelection) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.PendingCardDrawSelection = selection
+
+	return nil
+}
+
+// UpdateResourceStorage updates player resource storage
+func (r *RepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID string, playerID string, storage map[string]int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.ResourceStorage = storage
+
+	return nil
+}
+
+// RemoveCardFromHand removes a card from the player's hand
+func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID string, playerID string, cardID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	// Find and remove the card from the player's hand
+	for i, id := range player.Cards {
+		if id == cardID {
+			player.Cards = append(player.Cards[:i], player.Cards[i+1:]...)
+			// Add to played cards
+			player.PlayedCards = append(player.PlayedCards, cardID)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("card %s not found in player's hand", cardID)
 }

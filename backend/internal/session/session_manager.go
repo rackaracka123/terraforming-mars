@@ -115,10 +115,18 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		return nil
 	}
 
+	log.Debug("📢 Broadcasting game state",
+		zap.String("game_id", gameID),
+		zap.Int("player_count", len(players)))
+
 	for _, player := range players {
-		log.Debug("🔍 Player data from repository",
+		log.Debug("🔍 Player state in broadcast",
 			zap.String("player_id", player.ID),
-			zap.String("player_name", player.Name))
+			zap.String("player_name", player.Name),
+			zap.Strings("cards_in_hand", player.Cards),
+			zap.Int("hand_size", len(player.Cards)),
+			zap.Strings("played_cards", player.PlayedCards),
+			zap.Int("played_count", len(player.PlayedCards)))
 	}
 
 	allCardIds := make(map[string]struct{})
@@ -327,23 +335,23 @@ func playerToModel(p *player.Player) model.Player {
 		Resources:                 p.Resources,
 		Production:                p.Production,
 		TerraformRating:           p.TerraformRating,
-		PlayedCards:               []string{}, // Not in NEW player type yet
-		Passed:                    false,      // Not in NEW player type yet
-		AvailableActions:          0,          // Not in NEW player type yet
-		VictoryPoints:             0,          // Not in NEW player type yet
+		PlayedCards:               p.PlayedCards,   // Now exists in NEW player type
+		Passed:                    false,           // Not in NEW player type yet
+		AvailableActions:          0,               // Not in NEW player type yet
+		VictoryPoints:             p.VictoryPoints, // Now exists in NEW player type
 		IsConnected:               p.IsConnected,
 		Effects:                   []model.PlayerEffect{}, // Not in NEW player type yet
 		Actions:                   p.Actions,              // Now exists in NEW player type
 		ProductionPhase:           p.ProductionPhase,      // Now exists in NEW player type
 		SelectStartingCardsPhase:  selectStartingCards,
-		PendingTileSelection:      nil,                    // Not in NEW player type yet
-		PendingTileSelectionQueue: nil,                    // Not in NEW player type yet
-		PendingCardSelection:      nil,                    // Not in NEW player type yet
-		PendingCardDrawSelection:  nil,                    // Not in NEW player type yet
-		ForcedFirstAction:         p.ForcedFirstAction,    // Now exists in NEW player type
-		ResourceStorage:           make(map[string]int),   // Not in NEW player type yet
-		PaymentSubstitutes:        p.PaymentSubstitutes,   // Now exists in NEW player type
-		RequirementModifiers:      p.RequirementModifiers, // Now exists in NEW player type
+		PendingTileSelection:      p.PendingTileSelection,      // Now exists in NEW player type
+		PendingTileSelectionQueue: p.PendingTileSelectionQueue, // Now exists in NEW player type
+		PendingCardSelection:      nil,                         // Not in NEW player type yet
+		PendingCardDrawSelection:  p.PendingCardDrawSelection,  // Now exists in NEW player type
+		ForcedFirstAction:         p.ForcedFirstAction,         // Now exists in NEW player type
+		ResourceStorage:           p.ResourceStorage,           // Now exists in NEW player type
+		PaymentSubstitutes:        p.PaymentSubstitutes,        // Now exists in NEW player type
+		RequirementModifiers:      p.RequirementModifiers,      // Now exists in NEW player type
 	}
 }
 

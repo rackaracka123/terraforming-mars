@@ -141,6 +141,12 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Int("remaining_credits", startingResources.Credits))
 
 	// 10. Add selected cards to player's hand
+	log.Debug("🃏 Adding cards to player hand",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Strings("card_ids", cardIDs),
+		zap.Int("count", len(cardIDs)))
+
 	for _, cardID := range cardIDs {
 		err = a.playerRepo.AddCard(ctx, gameID, playerID, cardID)
 		if err != nil {
@@ -149,7 +155,11 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		}
 	}
 
-	log.Info("✅ Cards added to hand", zap.Int("card_count", len(cardIDs)))
+	log.Info("✅ Cards added to hand",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Strings("card_ids_added", cardIDs),
+		zap.Int("card_count", len(cardIDs)))
 
 	// 11. Mark selection as complete
 	err = a.playerRepo.CompleteStartingSelection(ctx, gameID, playerID)

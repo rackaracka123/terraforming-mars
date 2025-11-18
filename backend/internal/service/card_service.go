@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
@@ -13,8 +14,7 @@ import (
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
-
-	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/session/game/tile"
 )
 
 // CardService handles card-related operations
@@ -56,30 +56,28 @@ type CardServiceImpl struct {
 	cardDeckRepo   repository.CardDeckRepository
 	sessionManager session.SessionManager
 
-	// Specialized managers from cards package
-	// selectionManager      *cards.SelectionManager  // DISABLED during migration
-	requirementsValidator *cards.RequirementsValidator
-	effectProcessor       *cards.CardProcessor
-	cardManager           cards.CardManager
+	// Specialized managers from session-scoped card package
+	requirementsValidator *sessionCard.RequirementsValidator
+	effectProcessor       *sessionCard.CardProcessor
+	cardManager           sessionCard.CardManager
 	forcedActionManager   cards.ForcedActionManager
 
-	// Service dependencies
-	tileService TileService
+	// NEW session-based tile processor
+	tileProcessor *tile.Processor
 }
 
 // NewCardService creates a new CardService instance with session-based repositories
 func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
-		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
-		cardRepo:       cardRepo,
-		cardDeckRepo:   cardDeckRepo,
-		sessionManager: sessionManager,
-		// selectionManager:      cards.NewSelectionManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),  // DISABLED during migration
-		requirementsValidator: nil, // cards.NewRequirementsValidator(cardRepo),  // DISABLED - type mismatch during migration
-		effectProcessor:       nil, // cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),  // DISABLED - type mismatch during migration
-		cardManager:           nil, // cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),  // DISABLED - type mismatch during migration
-		tileService:           tileService,
+		gameRepo:              gameRepo,
+		playerRepo:            playerRepo,
+		cardRepo:              cardRepo,
+		cardDeckRepo:          cardDeckRepo,
+		sessionManager:        sessionManager,
+		requirementsValidator: sessionCard.NewRequirementsValidator(cardRepo),
+		effectProcessor:       sessionCard.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
+		cardManager:           sessionCard.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
+		tileProcessor:         tile.NewProcessor(playerRepo),
 		forcedActionManager:   forcedActionManager,
 	}
 }
@@ -364,6 +362,14 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
+	log.Debug("🔍 Validating card in hand",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("requested_card", cardID),
+		zap.Strings("player_cards", player.Cards),
+		zap.Int("card_count", len(player.Cards)),
+		zap.Bool("has_card", slices.Contains(player.Cards, cardID)))
+
 	// TODO: Re-enable action count validation during migration
 	// -1 Available actions means we have infinite (solo game)
 	// if player.AvailableActions <= 0 && player.AvailableActions != -1 {
@@ -371,6 +377,11 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	// }
 
 	if !slices.Contains(player.Cards, cardID) {
+		log.Warn("❌ Card NOT found in player's hand",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.String("requested_card", cardID),
+			zap.Strings("player_cards", player.Cards))
 		return fmt.Errorf("player does not have card %s", cardID)
 	}
 
@@ -422,7 +433,7 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 	}
 
 	// STEP 4: Process any tile queue created by the card
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	if err := s.tileProcessor.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("card played but failed to process tile queue: %w", err)
 	}
@@ -1142,8 +1153,8 @@ func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, 
 	log.Debug("🏗️ Tile queue processing disabled during migration")
 	return nil
 
-	// Delegate to TileService which handles validation, board service integration, etc.
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
+	// Delegate to tile processor which handles tile queue management
+	if err := s.tileProcessor.ProcessTileQueue(ctx, gameID, playerID); err != nil {
 		log.Error("Failed to process tile queue", zap.Error(err))
 		return fmt.Errorf("failed to process tile queue: %w", err)
 	}

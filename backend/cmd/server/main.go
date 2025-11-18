@@ -21,7 +21,7 @@ import (
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/card"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 
@@ -93,7 +93,7 @@ func main() {
 	// Initialize new repositories BEFORE SessionManager to ensure state consistency
 	newGameRepo := game.NewRepository(eventBus)
 	newPlayerRepo := player.NewRepository(eventBus)
-	newCardRepo := card.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
+	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
 
 	// Initialize SessionManager for WebSocket broadcasting with Hub and event subscriptions
 	// CRITICAL: Uses NEW repositories to match action pattern storage
@@ -111,9 +111,9 @@ func main() {
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
 
-	// Initialize card effect subscriber for passive effects
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
-	log.Info("🎆 Card effect subscriber initialized")
+	// Initialize card effect subscriber for passive effects (session-scoped)
+	effectSubscriber := sessionCard.NewCardEffectSubscriber(eventBus, newPlayerRepo, newGameRepo, newCardRepo)
+	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
 
 	// Initialize forced action manager for corporation forced first actions
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)

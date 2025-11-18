@@ -36,6 +36,15 @@ type Repository interface {
 
 	// SetCurrentTurn sets the current turn player
 	SetCurrentTurn(ctx context.Context, gameID string, playerID *string) error
+
+	// UpdateTemperature updates the game temperature
+	UpdateTemperature(ctx context.Context, gameID string, temperature int) error
+
+	// UpdateOxygen updates the game oxygen level
+	UpdateOxygen(ctx context.Context, gameID string, oxygen int) error
+
+	// UpdateOceans updates the game ocean count
+	UpdateOceans(ctx context.Context, gameID string, oceans int) error
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
@@ -190,6 +199,51 @@ func (r *RepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, play
 	}
 
 	game.CurrentTurn = playerID
+
+	return nil
+}
+
+// UpdateTemperature updates the game temperature
+func (r *RepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, temperature int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	game.GlobalParameters.Temperature = temperature
+
+	return nil
+}
+
+// UpdateOxygen updates the game oxygen level
+func (r *RepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	game.GlobalParameters.Oxygen = oxygen
+
+	return nil
+}
+
+// UpdateOceans updates the game ocean count
+func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	game.GlobalParameters.Oceans = oceans
 
 	return nil
 }

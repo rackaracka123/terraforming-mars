@@ -48,3 +48,22 @@ func FromModelCards(mcs []model.Card) []Card {
 	}
 	return cards
 }
+
+// ToModelCard converts a card subdomain Card to model.Card
+func (c *Card) ToModelCard() *model.Card {
+	return &model.Card{
+		ID:                 c.ID,
+		Name:               c.Name,
+		Type:               model.CardType(c.Type),
+		Cost:               c.Cost,
+		Description:        c.Description,
+		Pack:               c.Pack,
+		Tags:               c.Tags,
+		Requirements:       c.Requirements,
+		Behaviors:          c.Behaviors,
+		ResourceStorage:    c.ResourceStorage,
+		VPConditions:       c.VPConditions,
+		StartingResources:  c.StartingResources,
+		StartingProduction: c.StartingProduction,
+	}
+}
