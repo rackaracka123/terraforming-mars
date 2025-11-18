@@ -107,6 +107,12 @@ type Repository interface {
 
 	// RemoveCardFromHand removes a card from the player's hand
 	RemoveCardFromHand(ctx context.Context, gameID string, playerID string, cardID string) error
+
+	// UpdatePassed updates player passed status for generation
+	UpdatePassed(ctx context.Context, gameID string, playerID string, passed bool) error
+
+	// UpdateAvailableActions updates player available actions count
+	UpdateAvailableActions(ctx context.Context, gameID string, playerID string, actions int) error
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
@@ -788,4 +794,54 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID string, 
 	}
 
 	return fmt.Errorf("card %s not found in player's hand", cardID)
+}
+
+// UpdatePassed updates player passed status for generation
+func (r *RepositoryImpl) UpdatePassed(ctx context.Context, gameID string, playerID string, passed bool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.Passed = passed
+
+	log.Debug("✅ Player passed status updated",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Bool("passed", passed))
+
+	return nil
+}
+
+// UpdateAvailableActions updates player available actions count
+func (r *RepositoryImpl) UpdateAvailableActions(ctx context.Context, gameID string, playerID string, actions int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.AvailableActions = actions
+
+	log.Debug("✅ Player available actions updated",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.Int("available_actions", actions))
+
+	return nil
 }

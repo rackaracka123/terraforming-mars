@@ -94,7 +94,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub (use nil for actions in tests for now)
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil, nil, nil)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil, nil, nil, nil)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

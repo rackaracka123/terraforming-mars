@@ -20,6 +20,8 @@ type Player struct {
 	Production                model.Production                 `json:"production"`
 	TerraformRating           int                              `json:"terraformRating"`
 	IsConnected               bool                             `json:"isConnected"`
+	Passed                    bool                             `json:"passed"`           // Whether player has passed for the generation
+	AvailableActions          int                              `json:"availableActions"` // Number of actions available (-1 = unlimited, 0 = none, 1-2 = limited)
 	SelectStartingCardsPhase  *SelectStartingCardsPhase        `json:"selectStartingCardsPhase"`
 	ProductionPhase           *model.ProductionPhase           `json:"productionPhase"`
 	Cards                     []string                         `json:"cards"`                     // Card IDs in hand
@@ -61,6 +63,8 @@ func NewPlayer(name string) *Player {
 		},
 		TerraformRating:           20, // Starting TR
 		IsConnected:               true,
+		Passed:                    false, // Not passed by default
+		AvailableActions:          2,     // Standard 2 actions per generation
 		Cards:                     make([]string, 0),
 		PlayedCards:               make([]string, 0),
 		CorporationID:             "",

@@ -21,6 +21,7 @@ import (
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/board"
 	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
@@ -94,17 +95,21 @@ func main() {
 	newGameRepo := game.NewRepository(eventBus)
 	newPlayerRepo := player.NewRepository(eventBus)
 	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
+	newBoardRepo := board.NewRepository()
+	log.Info("🗺️  Board repository initialized")
 
 	// Initialize SessionManager for WebSocket broadcasting with Hub and event subscriptions
 	// CRITICAL: Uses NEW repositories to match action pattern storage
-	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, hub, eventBus)
+	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, newBoardRepo, hub, eventBus)
 
 	// Initialize actions
 	startGameAction := action.NewStartGameAction(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager)
-	createGameAction := action.NewCreateGameAction(newGameRepo)
+	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
 	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
-	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards actions ready")
+	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManager)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
+	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards, skip_action, confirm_production_cards actions ready")
 	// ================================================================
 
 	// Initialize services in dependency order
@@ -153,7 +158,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub and new actions
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

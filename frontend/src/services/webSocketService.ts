@@ -23,6 +23,7 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionConfirmProductionCards,
   MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
   MessageTypeActionConvertPlantsToGreenery,
@@ -279,6 +280,10 @@ export class WebSocketService {
 
   selectCards(cardIds: string[]): string {
     return this.send(MessageTypeActionSelectCards, { cardIds });
+  }
+
+  confirmProductionCards(cardIds: string[]): string {
+    return this.send(MessageTypeActionConfirmProductionCards, { cardIds });
   }
 
   confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): string {

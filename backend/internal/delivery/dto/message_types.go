@@ -36,11 +36,12 @@ const (
 	MessageTypeActionTileSelected MessageType = "action.tile-selection.tile-selected"
 
 	// Card message types
-	MessageTypeActionPlayCard           MessageType = "action.card.play-card"
-	MessageTypeActionCardAction         MessageType = "action.card.card-action"
-	MessageTypeActionSelectStartingCard MessageType = "action.card.select-starting-card"
-	MessageTypeActionSelectCards        MessageType = "action.card.select-cards"
-	MessageTypeActionCardDrawConfirmed  MessageType = "action.card.card-draw-confirmed"
+	MessageTypeActionPlayCard               MessageType = "action.card.play-card"
+	MessageTypeActionCardAction             MessageType = "action.card.card-action"
+	MessageTypeActionSelectStartingCard     MessageType = "action.card.select-starting-card"
+	MessageTypeActionSelectCards            MessageType = "action.card.select-cards"
+	MessageTypeActionConfirmProductionCards MessageType = "action.card.confirm-production-cards"
+	MessageTypeActionCardDrawConfirmed      MessageType = "action.card.card-draw-confirmed"
 
 	// Admin message types (development mode only)
 	MessageTypeAdminCommand MessageType = "admin-command"

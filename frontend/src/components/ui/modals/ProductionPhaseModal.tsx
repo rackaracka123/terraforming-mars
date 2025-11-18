@@ -48,7 +48,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
   const handleCardSelection = useCallback(
     async (selectedCardIds: string[]) => {
       try {
-        await globalWebSocketManager.selectCards(selectedCardIds);
+        await globalWebSocketManager.confirmProductionCards(selectedCardIds);
         setHasSubmittedCardSelection(true);
         setShowCardSelection(false);
         // Don't call onClose here - let the game state update handle closing the modal

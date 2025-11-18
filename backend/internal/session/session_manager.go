@@ -11,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
 
@@ -31,6 +32,7 @@ type SessionManagerImpl struct {
 	gameRepo   game.Repository
 	playerRepo player.Repository
 	cardRepo   card.Repository
+	boardRepo  board.Repository
 	hub        *core.Hub
 
 	// Synchronization
@@ -42,6 +44,7 @@ func NewSessionManager(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo card.Repository,
+	boardRepo board.Repository,
 	hub *core.Hub,
 	eventBus *events.EventBusImpl,
 ) SessionManager {
@@ -49,6 +52,7 @@ func NewSessionManager(
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,
 		cardRepo:   cardRepo,
+		boardRepo:  boardRepo,
 		hub:        hub,
 		logger:     logger.Get(),
 	}
@@ -98,6 +102,18 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 
 	// Convert NEW game type to OLD model type for DTO compatibility
 	game := gameToModel(newGame)
+
+	// Get board from NEW board repository and attach to game
+	sessionBoard, err := sm.boardRepo.GetByGameID(ctx, gameID)
+	if err != nil {
+		// Board may not exist for games created before board migration
+		// Log warning but continue with empty board
+		log.Warn("⚠️  Failed to get board for game, using empty board", zap.Error(err))
+	} else {
+		// Convert session board to model board and attach to game
+		game.Board = boardToModel(sessionBoard)
+		log.Debug("🗺️  Fetched board for game", zap.Int("tile_count", len(game.Board.Tiles)))
+	}
 
 	// Get all players for personalized game states from NEW repository
 	newPlayers, err := sm.playerRepo.ListByGameID(ctx, gameID)
@@ -335,14 +351,14 @@ func playerToModel(p *player.Player) model.Player {
 		Resources:                 p.Resources,
 		Production:                p.Production,
 		TerraformRating:           p.TerraformRating,
-		PlayedCards:               p.PlayedCards,   // Now exists in NEW player type
-		Passed:                    false,           // Not in NEW player type yet
-		AvailableActions:          0,               // Not in NEW player type yet
-		VictoryPoints:             p.VictoryPoints, // Now exists in NEW player type
+		PlayedCards:               p.PlayedCards,      // Now exists in NEW player type
+		Passed:                    p.Passed,           // Now exists in NEW player type
+		AvailableActions:          p.AvailableActions, // Now exists in NEW player type
+		VictoryPoints:             p.VictoryPoints,    // Now exists in NEW player type
 		IsConnected:               p.IsConnected,
-		Effects:                   []model.PlayerEffect{}, // Not in NEW player type yet
-		Actions:                   p.Actions,              // Now exists in NEW player type
-		ProductionPhase:           p.ProductionPhase,      // Now exists in NEW player type
+		Effects:                   p.Effects,         // Now exists in NEW player type
+		Actions:                   p.Actions,         // Now exists in NEW player type
+		ProductionPhase:           p.ProductionPhase, // Now exists in NEW player type
 		SelectStartingCardsPhase:  selectStartingCards,
 		PendingTileSelection:      p.PendingTileSelection,      // Now exists in NEW player type
 		PendingTileSelectionQueue: p.PendingTileSelectionQueue, // Now exists in NEW player type
@@ -378,4 +394,52 @@ func cardsToModel(cards map[string]card.Card) map[string]model.Card {
 		}
 	}
 	return result
+}
+
+// boardToModel converts a NEW board.Board pointer to an OLD model.Board value
+func boardToModel(b *board.Board) model.Board {
+	if b == nil {
+		return model.Board{Tiles: []model.Tile{}}
+	}
+
+	tiles := make([]model.Tile, len(b.Tiles))
+	for i, tile := range b.Tiles {
+		// Convert bonuses
+		bonuses := make([]model.TileBonus, len(tile.Bonuses))
+		for j, bonus := range tile.Bonuses {
+			bonuses[j] = model.TileBonus{
+				Type:   model.ResourceType(bonus.Type),
+				Amount: bonus.Amount,
+			}
+		}
+
+		// Convert occupant if exists
+		var occupant *model.TileOccupant
+		if tile.OccupiedBy != nil {
+			tags := make([]string, len(tile.OccupiedBy.Tags))
+			copy(tags, tile.OccupiedBy.Tags)
+			occupant = &model.TileOccupant{
+				Type: model.ResourceType(tile.OccupiedBy.Type),
+				Tags: tags,
+			}
+		}
+
+		// Convert tile
+		tiles[i] = model.Tile{
+			Coordinates: model.HexPosition{
+				Q: tile.Coordinates.Q,
+				R: tile.Coordinates.R,
+				S: tile.Coordinates.S,
+			},
+			Tags:        tile.Tags,
+			Type:        model.ResourceType(tile.Type),
+			Location:    model.TileLocation(tile.Location),
+			DisplayName: tile.DisplayName,
+			Bonuses:     bonuses,
+			OccupiedBy:  occupant,
+			OwnerID:     tile.OwnerID,
+		}
+	}
+
+	return model.Board{Tiles: tiles}
 }

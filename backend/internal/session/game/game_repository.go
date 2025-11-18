@@ -45,6 +45,9 @@ type Repository interface {
 
 	// UpdateOceans updates the game ocean count
 	UpdateOceans(ctx context.Context, gameID string, oceans int) error
+
+	// UpdateGeneration updates the game generation counter
+	UpdateGeneration(ctx context.Context, gameID string, generation int) error
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
@@ -244,6 +247,21 @@ func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans
 	}
 
 	game.GlobalParameters.Oceans = oceans
+
+	return nil
+}
+
+// UpdateGeneration updates the game generation counter
+func (r *RepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, generation int) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	game, exists := r.games[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	game.Generation = generation
 
 	return nil
 }

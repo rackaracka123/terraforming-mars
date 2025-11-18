@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/board"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -13,15 +14,17 @@ import (
 
 // CreateGameAction handles the business logic for creating new games
 type CreateGameAction struct {
-	gameRepo game.Repository
-	logger   *zap.Logger
+	gameRepo  game.Repository
+	boardRepo board.Repository
+	logger    *zap.Logger
 }
 
 // NewCreateGameAction creates a new create game action
-func NewCreateGameAction(gameRepo game.Repository) *CreateGameAction {
+func NewCreateGameAction(gameRepo game.Repository, boardRepo board.Repository) *CreateGameAction {
 	return &CreateGameAction{
-		gameRepo: gameRepo,
-		logger:   logger.Get(),
+		gameRepo:  gameRepo,
+		boardRepo: boardRepo,
+		logger:    logger.Get(),
 	}
 }
 
@@ -47,8 +50,7 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	// 3. Create game entity
 	newGame := game.NewGame(gameID, settings)
 
-	// 4. Initialize board (simplified - just create empty board)
-	// In full implementation, we'd populate tiles here
+	// 4. Initialize empty board on game entity (actual board stored in board repository)
 	newGame.Board = model.Board{Tiles: []model.Tile{}}
 
 	// 5. Store game in repository
@@ -58,6 +60,15 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 		return nil, err
 	}
 
-	log.Info("✅ Game created successfully", zap.String("game_id", gameID))
+	// 6. Generate board with 42 tiles via board repository
+	err = a.boardRepo.GenerateBoard(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to generate board", zap.Error(err))
+		// Rollback: remove game from repository
+		// TODO: Add rollback logic if needed
+		return nil, err
+	}
+
+	log.Info("✅ Game created successfully with board", zap.String("game_id", gameID))
 	return newGame, nil
 }

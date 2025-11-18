@@ -1038,6 +1038,8 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+export const MessageTypeActionConfirmProductionCards: MessageType =
+  "action.card.confirm-production-cards";
 export const MessageTypeActionCardDrawConfirmed: MessageType =
   "action.card.card-draw-confirmed";
 /**
