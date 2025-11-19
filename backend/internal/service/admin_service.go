@@ -7,9 +7,11 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
+	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -43,9 +45,9 @@ type AdminService interface {
 
 // AdminServiceImpl implements AdminService interface
 type AdminServiceImpl struct {
-	gameRepo            repository.GameRepository
-	playerRepo          repository.PlayerRepository
-	cardRepo            repository.CardRepository
+	gameRepo            sessionGame.Repository
+	playerRepo          sessionPlayer.Repository
+	cardRepo            sessionCard.Repository
 	deckRepo            deck.Repository
 	sessionManager      session.SessionManager
 	effectSubscriber    cards.CardEffectSubscriber
@@ -54,9 +56,9 @@ type AdminServiceImpl struct {
 
 // NewAdminService creates a new AdminService instance
 func NewAdminService(
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	gameRepo sessionGame.Repository,
+	playerRepo sessionPlayer.Repository,
+	cardRepo sessionCard.Repository,
 	deckRepo deck.Repository,
 	sessionManager session.SessionManager,
 	effectSubscriber cards.CardEffectSubscriber,
@@ -78,7 +80,7 @@ func (s *AdminServiceImpl) OnAdminGiveCard(ctx context.Context, gameID, playerID
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🎴 Admin giving card to player", zap.String("card_id", cardID))
 
-	// Verify card exists
+	// Verify card exists (returns session card type)
 	card, err := s.cardRepo.GetCardByID(ctx, cardID)
 	if err != nil || card == nil {
 		log.Error("Card not found", zap.String("card_id", cardID), zap.Error(err))
@@ -123,8 +125,8 @@ func (s *AdminServiceImpl) OnAdminSetPhase(ctx context.Context, gameID string, p
 		return fmt.Errorf("game not found: %w", err)
 	}
 
-	// Update game phase
-	if err := s.gameRepo.UpdatePhase(ctx, gameID, phase); err != nil {
+	// Update game phase (convert model.GamePhase to sessionGame.GamePhase)
+	if err := s.gameRepo.UpdatePhase(ctx, gameID, sessionGame.GamePhase(phase)); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
@@ -236,10 +238,20 @@ func (s *AdminServiceImpl) OnAdminSetGlobalParameters(ctx context.Context, gameI
 		return fmt.Errorf("oceans must be between 0 and 9, got %d", params.Oceans)
 	}
 
-	// Update global parameters
-	if err := s.gameRepo.UpdateGlobalParameters(ctx, gameID, params); err != nil {
-		log.Error("Failed to update global parameters", zap.Error(err))
-		return fmt.Errorf("failed to update global parameters: %w", err)
+	// Update global parameters individually (NEW repository pattern)
+	if err := s.gameRepo.UpdateTemperature(ctx, gameID, params.Temperature); err != nil {
+		log.Error("Failed to update temperature", zap.Error(err))
+		return fmt.Errorf("failed to update temperature: %w", err)
+	}
+
+	if err := s.gameRepo.UpdateOxygen(ctx, gameID, params.Oxygen); err != nil {
+		log.Error("Failed to update oxygen", zap.Error(err))
+		return fmt.Errorf("failed to update oxygen: %w", err)
+	}
+
+	if err := s.gameRepo.UpdateOceans(ctx, gameID, params.Oceans); err != nil {
+		log.Error("Failed to update oceans", zap.Error(err))
+		return fmt.Errorf("failed to update oceans: %w", err)
 	}
 
 	log.Info("✅ Global parameters set successfully",
@@ -269,14 +281,19 @@ func (s *AdminServiceImpl) OnAdminStartTileSelection(ctx context.Context, gameID
 	}
 
 	// Get game to access the board
-	game, err := s.gameRepo.GetByID(ctx, gameID)
+	sessionGameData, err := s.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Game not found", zap.Error(err))
 		return fmt.Errorf("game not found: %w", err)
 	}
 
+	// Convert session game to model game for helper function compatibility
+	modelGame := model.Game{
+		Board: sessionGameData.Board,
+	}
+
 	// Calculate available hexes based on tile type (demo logic)
-	availableHexes := s.calculateDemoAvailableHexes(game, tileType)
+	availableHexes := s.calculateDemoAvailableHexes(modelGame, tileType)
 
 	if len(availableHexes) == 0 {
 		log.Warn("No valid positions available for tile type", zap.String("tile_type", tileType))
@@ -371,12 +388,15 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🏢 Admin setting player corporation", zap.String("corporation_id", corporationID))
 
-	// Get corporation card from card repository
-	corporationCard, err := s.cardRepo.GetCardByID(ctx, corporationID)
+	// Get corporation card from card repository (returns sessionCard.Card)
+	sessionCorpCard, err := s.cardRepo.GetCardByID(ctx, corporationID)
 	if err != nil {
 		log.Error("Corporation card not found", zap.String("corporation_id", corporationID), zap.Error(err))
 		return fmt.Errorf("corporation card not found: %s", corporationID)
 	}
+
+	// Convert session card to model card for compatibility with player repository
+	corporationCard := sessionCorpCard.ToModelCard()
 
 	// Verify player exists
 	player, err := s.playerRepo.GetByID(ctx, gameID, playerID)
@@ -577,14 +597,54 @@ func (s *AdminServiceImpl) OnAdminSetCorporation(ctx context.Context, gameID, pl
 
 		// Trigger the forced action immediately (admin tools don't wait for phase changes)
 		// Get updated player with forced action set
-		updatedPlayer, err := s.playerRepo.GetByID(ctx, gameID, playerID)
+		sessionPlayerData, err := s.playerRepo.GetByID(ctx, gameID, playerID)
 		if err != nil {
 			log.Error("Failed to get player for triggering forced action", zap.Error(err))
 			return fmt.Errorf("failed to get player for triggering forced action: %w", err)
 		}
 
+		// Convert session player to model player for ForcedActionManager
+		var modelPendingCardSelection *model.PendingCardSelection
+		if sessionPlayerData.PendingCardSelection != nil {
+			modelPendingCardSelection = &model.PendingCardSelection{
+				Source:         sessionPlayerData.PendingCardSelection.Source,
+				AvailableCards: sessionPlayerData.PendingCardSelection.AvailableCards,
+				CardCosts:      sessionPlayerData.PendingCardSelection.CardCosts,
+				CardRewards:    sessionPlayerData.PendingCardSelection.CardRewards,
+				MinCards:       sessionPlayerData.PendingCardSelection.MinCards,
+				MaxCards:       sessionPlayerData.PendingCardSelection.MaxCards,
+			}
+		}
+
+		modelPlayer := model.Player{
+			ID:                        sessionPlayerData.ID,
+			Name:                      sessionPlayerData.Name,
+			Resources:                 sessionPlayerData.Resources,
+			Production:                sessionPlayerData.Production,
+			TerraformRating:           sessionPlayerData.TerraformRating,
+			IsConnected:               sessionPlayerData.IsConnected,
+			Passed:                    sessionPlayerData.Passed,
+			AvailableActions:          sessionPlayerData.AvailableActions,
+			SelectStartingCardsPhase:  nil, // Not needed for forced action
+			ProductionPhase:           sessionPlayerData.ProductionPhase,
+			Cards:                     sessionPlayerData.Cards,
+			PlayedCards:               sessionPlayerData.PlayedCards,
+			Corporation:               sessionPlayerData.Corporation,
+			PaymentSubstitutes:        sessionPlayerData.PaymentSubstitutes,
+			Actions:                   sessionPlayerData.Actions,
+			ForcedFirstAction:         sessionPlayerData.ForcedFirstAction,
+			RequirementModifiers:      sessionPlayerData.RequirementModifiers,
+			Effects:                   sessionPlayerData.Effects,
+			VictoryPoints:             sessionPlayerData.VictoryPoints,
+			PendingTileSelection:      sessionPlayerData.PendingTileSelection,
+			PendingTileSelectionQueue: sessionPlayerData.PendingTileSelectionQueue,
+			PendingCardDrawSelection:  sessionPlayerData.PendingCardDrawSelection,
+			PendingCardSelection:      modelPendingCardSelection,
+			ResourceStorage:           sessionPlayerData.ResourceStorage,
+		}
+
 		// Trigger the forced action via ForcedActionManager
-		if err := s.forcedActionManager.TriggerForcedFirstAction(ctx, gameID, playerID, updatedPlayer); err != nil {
+		if err := s.forcedActionManager.TriggerForcedFirstAction(ctx, gameID, playerID, modelPlayer); err != nil {
 			log.Error("Failed to trigger forced first action", zap.Error(err))
 			return fmt.Errorf("failed to trigger forced first action: %w", err)
 		}

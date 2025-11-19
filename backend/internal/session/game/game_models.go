@@ -72,7 +72,7 @@ type GameSettings struct {
 	Temperature     *int     `json:"temperature,omitempty"`
 	Oxygen          *int     `json:"oxygen,omitempty"`
 	Oceans          *int     `json:"oceans,omitempty"`
-	DevelopmentMode bool     `json:"developmentMode,omitempty"`
+	DevelopmentMode bool     `json:"developmentMode"`
 	CardPacks       []string `json:"cardPacks,omitempty"`
 }
 

@@ -316,8 +316,12 @@ func gameToModel(g *game.Game) model.Game {
 // gameSettingsToModel converts game settings from NEW to OLD type
 func gameSettingsToModel(s game.GameSettings) model.GameSettings {
 	return model.GameSettings{
-		MaxPlayers: s.MaxPlayers,
-		CardPacks:  s.CardPacks,
+		MaxPlayers:      s.MaxPlayers,
+		Temperature:     s.Temperature,
+		Oxygen:          s.Oxygen,
+		Oceans:          s.Oceans,
+		DevelopmentMode: s.DevelopmentMode,
+		CardPacks:       s.CardPacks,
 	}
 }
 

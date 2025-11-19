@@ -27,7 +27,7 @@ type GameSettings struct {
 	Temperature     *int     `json:"temperature,omitempty" ts:"number | undefined"` // Default: -30°C
 	Oxygen          *int     `json:"oxygen,omitempty" ts:"number | undefined"`      // Default: 0%
 	Oceans          *int     `json:"oceans,omitempty" ts:"number | undefined"`      // Default: 0
-	DevelopmentMode bool     `json:"developmentMode,omitempty" ts:"boolean"`        // Default: false
+	DevelopmentMode bool     `json:"developmentMode" ts:"boolean"`                  // Default: false
 	CardPacks       []string `json:"cardPacks,omitempty" ts:"string[] | undefined"` // Default: ["base-game"]
 }
 
