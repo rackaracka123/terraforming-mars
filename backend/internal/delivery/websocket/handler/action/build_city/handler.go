@@ -3,27 +3,47 @@ package build_city
 import (
 	"context"
 
+	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/logger"
 )
 
 // Handler handles build city standard project action requests
 type Handler struct {
-	standardProjectService service.StandardProjectService
-	baseHandler            *utils.StandardProjectHandler
+	buildCityAction *action.BuildCityAction
 }
 
 // NewHandler creates a new build city handler
-func NewHandler(standardProjectService service.StandardProjectService, parser *utils.MessageParser) *Handler {
+func NewHandler(buildCityAction *action.BuildCityAction) *Handler {
 	return &Handler{
-		standardProjectService: standardProjectService,
-		baseHandler:            utils.NewStandardProjectHandler(parser),
+		buildCityAction: buildCityAction,
 	}
 }
 
 // HandleMessage implements the MessageHandler interface
 func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
-	h.baseHandler.HandleStandardProject(ctx, connection, "build city", "🏢", h.standardProjectService.BuildCity)
+	log := logger.Get().With(
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", connection.PlayerID),
+		zap.String("game_id", connection.GameID),
+	)
+	log.Debug("🏢 Processing build city action")
+
+	// Execute the build city action
+	err := h.buildCityAction.Execute(ctx, connection.GameID, connection.PlayerID)
+	if err != nil {
+		log.Error("Failed to build city", zap.Error(err))
+		// Send error message via channel
+		connection.Send <- dto.WebSocketMessage{
+			Type: dto.MessageTypeError,
+			Payload: map[string]interface{}{
+				"message": err.Error(),
+			},
+		}
+		return
+	}
+
+	log.Info("✅ City built successfully")
 }

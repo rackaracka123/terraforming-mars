@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -30,14 +33,16 @@ type RepositoryImpl struct {
 	mu        sync.RWMutex
 	boards    map[string]*Board // gameID -> Board
 	processor *BoardProcessor
+	eventBus  *events.EventBusImpl
 	logger    *zap.Logger
 }
 
 // NewRepository creates a new board repository
-func NewRepository() Repository {
+func NewRepository(eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
 		boards:    make(map[string]*Board),
 		processor: NewBoardProcessor(),
+		eventBus:  eventBus,
 		logger:    logger.Get(),
 	}
 }
@@ -122,11 +127,26 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 			zap.String("occupant_type", string(occupant.Type)),
 			zap.Strings("occupant_tags", occupant.Tags),
 		)
+
+		// Publish TilePlacedEvent for passive card effects
+		if ownerID != nil {
+			event := repository.TilePlacedEvent{
+				GameID:    gameID,
+				PlayerID:  *ownerID,
+				TileType:  string(occupant.Type),
+				Q:         coord.Q,
+				R:         coord.R,
+				S:         coord.S,
+				Timestamp: time.Now(),
+			}
+			events.Publish(r.eventBus, event)
+			log.Debug("📢 Published TilePlacedEvent",
+				zap.String("player_id", *ownerID),
+				zap.String("tile_type", string(occupant.Type)))
+		}
 	} else {
 		log.Info("🧹 Cleared tile occupancy")
 	}
-
-	// TODO: Publish TilePlaced event via EventBus when integrated
 
 	return nil
 }

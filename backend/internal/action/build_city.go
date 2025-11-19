@@ -1,0 +1,135 @@
+package action
+
+import (
+	"context"
+	"fmt"
+
+	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/tile"
+)
+
+const (
+	// BuildCityCost is the megacredit cost to build a city via standard project
+	BuildCityCost = 25
+)
+
+// BuildCityAction handles the business logic for building a city standard project
+type BuildCityAction struct {
+	gameRepo      game.Repository
+	playerRepo    player.Repository
+	tileProcessor *tile.Processor
+	sessionMgr    session.SessionManager
+	logger        *zap.Logger
+}
+
+// NewBuildCityAction creates a new build city action
+func NewBuildCityAction(
+	gameRepo game.Repository,
+	playerRepo player.Repository,
+	tileProcessor *tile.Processor,
+	sessionMgr session.SessionManager,
+) *BuildCityAction {
+	return &BuildCityAction{
+		gameRepo:      gameRepo,
+		playerRepo:    playerRepo,
+		tileProcessor: tileProcessor,
+		sessionMgr:    sessionMgr,
+		logger:        logger.Get(),
+	}
+}
+
+// Execute performs the build city action
+func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+	)
+	log.Info("🏢 Building city")
+
+	// 1. Validate game is active
+	g, err := a.gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("failed to get game: %w", err)
+	}
+
+	if g.Status != game.GameStatusActive {
+		log.Warn("Game is not active",
+			zap.String("status", string(g.Status)))
+		return fmt.Errorf("game is not active")
+	}
+
+	// 2. Get player
+	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to get player", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// 3. Validate cost (25 M€)
+	if p.Resources.Credits < BuildCityCost {
+		log.Warn("Insufficient credits for city",
+			zap.Int("cost", BuildCityCost),
+			zap.Int("player_credits", p.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, p.Resources.Credits)
+	}
+
+	// 4. Deduct cost
+	newResources := p.Resources
+	newResources.Credits -= BuildCityCost
+	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+	if err != nil {
+		log.Error("Failed to deduct city cost", zap.Error(err))
+		return fmt.Errorf("failed to update resources: %w", err)
+	}
+
+	log.Info("💰 Deducted city cost",
+		zap.Int("cost", BuildCityCost),
+		zap.Int("remaining_credits", newResources.Credits))
+
+	// 5. Increase credit production by 1
+	newProduction := p.Production
+	newProduction.Credits++
+	err = a.playerRepo.UpdateProduction(ctx, gameID, playerID, newProduction)
+	if err != nil {
+		log.Error("Failed to update production", zap.Error(err))
+		return fmt.Errorf("failed to update production: %w", err)
+	}
+
+	log.Info("📈 Increased credit production",
+		zap.Int("new_credit_production", newProduction.Credits))
+
+	// 6. Create tile queue with "city" type
+	err = a.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-city", []string{"city"})
+	if err != nil {
+		log.Error("Failed to create tile queue", zap.Error(err))
+		return fmt.Errorf("failed to create tile queue: %w", err)
+	}
+
+	log.Info("📋 Created tile queue for city placement")
+
+	// 7. Process tile queue (validates, calculates hexes, sets pendingTileSelection)
+	err = a.tileProcessor.ProcessTileQueue(ctx, gameID, playerID)
+	if err != nil {
+		log.Error("Failed to process tile queue", zap.Error(err))
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	log.Info("🎯 Tile queue processed, pending selection set")
+
+	// 8. Broadcast state
+	err = a.sessionMgr.Broadcast(gameID)
+	if err != nil {
+		log.Error("Failed to broadcast game state", zap.Error(err))
+		// Non-fatal, continue
+	}
+
+	log.Info("✅ City built successfully, tile queued for placement",
+		zap.Int("new_credit_production", newProduction.Credits),
+		zap.Int("remaining_credits", newResources.Credits))
+	return nil
+}

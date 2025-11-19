@@ -4,12 +4,14 @@ import (
 	"context"
 	"testing"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session/game/board"
 )
 
 func TestBoardRepository_GenerateBoard(t *testing.T) {
 	// Create repository
-	repo := board.NewRepository()
+	eventBus := events.NewEventBus()
+	repo := board.NewRepository(eventBus)
 	ctx := context.Background()
 	gameID := "test-game-1"
 
@@ -44,7 +46,8 @@ func TestBoardRepository_GenerateBoard(t *testing.T) {
 }
 
 func TestBoardRepository_GetByGameID_NotFound(t *testing.T) {
-	repo := board.NewRepository()
+	eventBus := events.NewEventBus()
+	repo := board.NewRepository(eventBus)
 	ctx := context.Background()
 
 	_, err := repo.GetByGameID(ctx, "nonexistent-game")
@@ -54,7 +57,8 @@ func TestBoardRepository_GetByGameID_NotFound(t *testing.T) {
 }
 
 func TestBoardRepository_UpdateTileOccupancy(t *testing.T) {
-	repo := board.NewRepository()
+	eventBus := events.NewEventBus()
+	repo := board.NewRepository(eventBus)
 	ctx := context.Background()
 	gameID := "test-game-2"
 

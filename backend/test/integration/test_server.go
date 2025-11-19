@@ -14,9 +14,11 @@ import (
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/board"
 	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	sessionDeck "terraforming-mars-backend/internal/session/game/deck"
 	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/tile"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -68,21 +70,27 @@ func NewTestServer(port int) (*TestServer, error) {
 	newGameRepo := sessionGame.NewRepository(eventBus)
 	newPlayerRepo := sessionPlayer.NewRepository(eventBus)
 	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo)
+	newBoardRepo := board.NewRepository(eventBus)
 
 	// Create Hub first
 	hub := core.NewHub()
 
 	// Create SessionManager with NEW repositories
-	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, hub, eventBus)
+	sessionManager := session.NewSessionManager(newGameRepo, newPlayerRepo, newCardRepo, newBoardRepo, hub, eventBus)
 
 	// Create services with proper SessionManager dependency
 	boardService := service.NewBoardService()
 	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
+
+	// NEW session-based tile processor
+	boardProcessor := board.NewBoardProcessor()
+	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor)
+
 	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
 	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
@@ -94,7 +102,7 @@ func NewTestServer(port int) (*TestServer, error) {
 	// }
 
 	// Initialize WebSocket service with Hub (use nil for actions in tests for now)
-	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil, nil, nil, nil)
+	wsService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	// Setup router
 	mainRouter := mux.NewRouter()

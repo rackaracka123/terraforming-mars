@@ -25,6 +25,7 @@ import (
 	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/tile"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -95,8 +96,16 @@ func main() {
 	newGameRepo := game.NewRepository(eventBus)
 	newPlayerRepo := player.NewRepository(eventBus)
 	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
-	newBoardRepo := board.NewRepository()
+	newBoardRepo := board.NewRepository(eventBus)
 	log.Info("🗺️  Board repository initialized")
+
+	// Initialize BoardProcessor for hex calculations
+	boardProcessor := board.NewBoardProcessor()
+	log.Info("🎲 Board processor initialized")
+
+	// Initialize TileProcessor for tile queue processing
+	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor)
+	log.Info("🎯 Tile processor initialized")
 
 	// Initialize SessionManager for WebSocket broadcasting with Hub and event subscriptions
 	// CRITICAL: Uses NEW repositories to match action pattern storage
@@ -109,7 +118,15 @@ func main() {
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
 	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManager)
 	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
-	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards, skip_action, confirm_production_cards actions ready")
+	buildCityAction := action.NewBuildCityAction(newGameRepo, newPlayerRepo, tileProcessor, sessionManager)
+
+	// Initialize BonusCalculator for tile placement bonuses
+	bonusCalculator := tile.NewBonusCalculator(newGameRepo, newPlayerRepo, newBoardRepo)
+	log.Info("🎁 Bonus calculator initialized")
+
+	// Initialize SelectTileAction for tile placement
+	selectTileAction := action.NewSelectTileAction(newGameRepo, newPlayerRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManager)
+	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
 	// ================================================================
 
 	// Initialize services in dependency order
@@ -125,9 +142,9 @@ func main() {
 	forcedActionManager.SubscribeToPhaseChanges()
 	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
 
-	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
-	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo)
-	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
+	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
+	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW tileProcessor
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
@@ -158,7 +175,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub and new actions
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

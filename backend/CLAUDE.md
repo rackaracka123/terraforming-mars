@@ -1,3 +1,5 @@
+Read backend/go.instructions.md
+
 # Backend - Terraforming Mars API Server
 
 This document provides guidance for working with the backend API server.
@@ -24,6 +26,7 @@ The user's development environment handles all server lifecycle management. Your
 The backend follows clean architecture principles with strict separation of concerns:
 
 **Domain Layer** (`internal/model/`)
+
 - Core business entities with identity (Game, Player, GlobalParameters, Card)
 - Value objects defined by values (Resources, Production)
 - Domain events for significant business occurrences
@@ -31,6 +34,7 @@ The backend follows clean architecture principles with strict separation of conc
 - Zero external dependencies
 
 **Application Layer** (`internal/service/`)
+
 - Use cases orchestrating business operations
 - Domain services for complex multi-entity logic
 - Event handlers reacting to domain events
@@ -38,6 +42,7 @@ The backend follows clean architecture principles with strict separation of conc
 - Depends only on domain layer
 
 **Infrastructure Layer** (`internal/repository/`)
+
 - In-memory storage of domain models
 - Immutable getters returning values, not pointers
 - Granular update methods for targeted state changes
@@ -45,6 +50,7 @@ The backend follows clean architecture principles with strict separation of conc
 - Clean relationships using ID references
 
 **Presentation Layer** (`internal/delivery/`)
+
 - HTTP endpoints with routing and middleware (`http/`)
 - WebSocket real-time communication (`websocket/`)
 - DTOs for external communication (`dto/`)
@@ -52,18 +58,21 @@ The backend follows clean architecture principles with strict separation of conc
 - Depends on application layer only
 
 **Card System** (`internal/cards/`)
+
 - Centralized card registry and lookup
 - Card validation for requirements and plays
 - Card effect implementations
 - Modular effect handlers
 
 **Event System** (`internal/events/`)
+
 - Type-safe event bus for pub/sub
 - Domain event definitions
 - CardEffectSubscriber for passive card effects
 - Event-driven architecture decoupling services from effects
 
 **Session Management** (`internal/delivery/websocket/session/`)
+
 - SessionManager interface for broadcasting game state
 - Broadcast(gameID) sends to all players in game
 - Send(gameID, playerID) sends to specific player
@@ -150,6 +159,7 @@ tygo generate             # Direct tygo command
 ```
 
 Add `ts:` tags to structs for type generation:
+
 ```go
 type Player struct {
     ID       string `json:"id" ts:"string"`

@@ -67,7 +67,7 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance with session-based repositories
-func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileService TileService, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileProcessor *tile.Processor, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
@@ -77,7 +77,7 @@ func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repositor
 		requirementsValidator: sessionCard.NewRequirementsValidator(cardRepo),
 		effectProcessor:       sessionCard.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
 		cardManager:           sessionCard.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
-		tileProcessor:         tile.NewProcessor(playerRepo),
+		tileProcessor:         tileProcessor,
 		forcedActionManager:   forcedActionManager,
 	}
 }

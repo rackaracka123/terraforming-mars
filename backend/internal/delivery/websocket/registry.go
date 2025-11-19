@@ -31,7 +31,7 @@ import (
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction, selectStartingCardsAction *action.SelectStartingCardsAction, skipActionAction *action.SkipActionAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction) {
+func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction, selectStartingCardsAction *action.SelectStartingCardsAction, skipActionAction *action.SkipActionAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, buildCityAction *action.BuildCityAction, selectTileAction *action.SelectTileAction) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -50,7 +50,8 @@ func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, game
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(standardProjectService))
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(standardProjectService, parser))
 	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(standardProjectService, parser))
-	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(standardProjectService, parser))
+	// NEW ARCHITECTURE: Using action pattern for build_city
+	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(buildCityAction))
 
 	// Register resource conversion handlers
 	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convert_plants_to_greenery.NewHandler(resourceConversionService))
@@ -78,7 +79,8 @@ func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, game
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))
 
 	// Register tile selection handlers
-	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(playerService, parser))
+	// NEW ARCHITECTURE: Using action pattern for tile_selected
+	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService, adminService))
