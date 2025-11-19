@@ -141,18 +141,34 @@ func (r *RepositoryImpl) AddPlayer(ctx context.Context, gameID string, playerID 
 // UpdateStatus updates game status (event-driven)
 func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status GameStatus) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldStatus := game.Status
 	game.Status = status
 
-	// Event publishing can be added here if needed
-	_ = oldStatus // Use oldStatus if needed for event payload
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish GameStatusChangedEvent
+	if oldStatus != status {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.String("old_status", string(oldStatus)),
+			zap.String("new_status", string(status)))
+		log.Debug("📡 Publishing GameStatusChangedEvent")
+
+		events.Publish(r.eventBus, repository.GameStatusChangedEvent{
+			GameID:    gameID,
+			OldStatus: string(oldStatus),
+			NewStatus: string(status),
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -160,18 +176,34 @@ func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status
 // UpdatePhase updates game phase (event-driven)
 func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase GamePhase) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldPhase := game.CurrentPhase
 	game.CurrentPhase = phase
 
-	// Event publishing can be added here if needed
-	_ = oldPhase // Use oldPhase if needed for event payload
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish GamePhaseChangedEvent
+	if oldPhase != phase {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.String("old_phase", string(oldPhase)),
+			zap.String("new_phase", string(phase)))
+		log.Debug("📡 Publishing GamePhaseChangedEvent")
+
+		events.Publish(r.eventBus, repository.GamePhaseChangedEvent{
+			GameID:    gameID,
+			OldPhase:  string(oldPhase),
+			NewPhase:  string(phase),
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -209,14 +241,35 @@ func (r *RepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, play
 // UpdateTemperature updates the game temperature
 func (r *RepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, temperature int) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
+	oldTemp := game.GlobalParameters.Temperature
 	game.GlobalParameters.Temperature = temperature
+
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish TemperatureChangedEvent
+	if oldTemp != temperature {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.Int("old_temperature", oldTemp),
+			zap.Int("new_temperature", temperature))
+		log.Debug("📡 Publishing TemperatureChangedEvent")
+
+		events.Publish(r.eventBus, repository.TemperatureChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldTemp,
+			NewValue:  temperature,
+			ChangedBy: "", // Can be enhanced to track player who triggered this
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -224,14 +277,35 @@ func (r *RepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, t
 // UpdateOxygen updates the game oxygen level
 func (r *RepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen int) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
+	oldOxygen := game.GlobalParameters.Oxygen
 	game.GlobalParameters.Oxygen = oxygen
+
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish OxygenChangedEvent
+	if oldOxygen != oxygen {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.Int("old_oxygen", oldOxygen),
+			zap.Int("new_oxygen", oxygen))
+		log.Debug("📡 Publishing OxygenChangedEvent")
+
+		events.Publish(r.eventBus, repository.OxygenChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldOxygen,
+			NewValue:  oxygen,
+			ChangedBy: "", // Can be enhanced to track player who triggered this
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -239,14 +313,35 @@ func (r *RepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen
 // UpdateOceans updates the game ocean count
 func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans int) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
+	oldOceans := game.GlobalParameters.Oceans
 	game.GlobalParameters.Oceans = oceans
+
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish OceansChangedEvent
+	if oldOceans != oceans {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.Int("old_oceans", oldOceans),
+			zap.Int("new_oceans", oceans))
+		log.Debug("📡 Publishing OceansChangedEvent")
+
+		events.Publish(r.eventBus, repository.OceansChangedEvent{
+			GameID:    gameID,
+			OldValue:  oldOceans,
+			NewValue:  oceans,
+			ChangedBy: "", // Can be enhanced to track player who triggered this
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -254,14 +349,34 @@ func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans
 // UpdateGeneration updates the game generation counter
 func (r *RepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, generation int) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	game, exists := r.games[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
+	oldGeneration := game.Generation
 	game.Generation = generation
+
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish GenerationAdvancedEvent
+	if oldGeneration != generation {
+		log := logger.Get().With(
+			zap.String("game_id", gameID),
+			zap.Int("old_generation", oldGeneration),
+			zap.Int("new_generation", generation))
+		log.Debug("📡 Publishing GenerationAdvancedEvent")
+
+		events.Publish(r.eventBus, repository.GenerationAdvancedEvent{
+			GameID:        gameID,
+			OldGeneration: oldGeneration,
+			NewGeneration: generation,
+			Timestamp:     time.Now(),
+		})
+	}
 
 	return nil
 }

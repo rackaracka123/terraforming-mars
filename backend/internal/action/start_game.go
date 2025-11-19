@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
@@ -30,12 +29,9 @@ func convertGameSettings(newSettings game.GameSettings) model.GameSettings {
 
 // StartGameAction handles the business logic for starting games
 type StartGameAction struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
+	BaseAction // Embed base for common dependencies and utilities
 	cardRepo   card.Repository
 	deckRepo   deck.Repository
-	sessionMgr session.SessionManager
-	logger     *zap.Logger
 }
 
 // NewStartGameAction creates a new start game action
@@ -47,81 +43,56 @@ func NewStartGameAction(
 	sessionMgr session.SessionManager,
 ) *StartGameAction {
 	return &StartGameAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		cardRepo:   cardRepo,
 		deckRepo:   deckRepo,
-		sessionMgr: sessionMgr,
-		logger:     logger.Get(),
 	}
 }
 
 // Execute performs the start game action
 func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-	)
+	log := a.InitLogger(gameID, playerID)
 	log.Info("🎮 Starting game")
 
-	// 1. Validate business rules: player must be host
-	g, err := a.gameRepo.GetByID(ctx, gameID)
+	// 1. Validate game is in lobby and player is host
+	g, err := ValidateLobbyGame(ctx, a.gameRepo, gameID, log)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
-		return fmt.Errorf("game not found: %w", err)
+		return err
 	}
 
-	if g.HostPlayerID != playerID {
-		log.Error("Non-host attempted to start game")
-		return fmt.Errorf("only the host can start the game")
+	if err := ValidateHostPermission(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 2. Validate game status
-	if g.Status != game.GameStatusLobby {
-		log.Error("Game not in lobby status", zap.String("status", string(g.Status)))
-		return fmt.Errorf("game not in lobby status")
-	}
-
-	// 3. Get players
-	players, err := a.playerRepo.ListByGameID(ctx, gameID)
+	// 2. Get all players
+	players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
 	if err != nil {
-		log.Error("Failed to get players", zap.Error(err))
-		return fmt.Errorf("failed to get players: %w", err)
+		return err
 	}
 
 	// No minimum player count validation - allow any number for development/testing
 	log.Info("🎮 Starting game with players", zap.Int("player_count", len(players)))
 
-	// 4. Update game status to Active (event-driven)
-	err = a.gameRepo.UpdateStatus(ctx, gameID, game.GameStatusActive)
-	if err != nil {
-		log.Error("Failed to update game status", zap.Error(err))
-		return fmt.Errorf("failed to update game status: %w", err)
+	// 3. Update game status to Active
+	if err := TransitionGameStatus(ctx, a.gameRepo, gameID, game.GameStatusActive, log); err != nil {
+		return err
 	}
 
-	log.Info("✅ Game status updated to Active")
-
-	// 5. Update game phase to StartingCardSelection (event-driven)
-	err = a.gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseStartingCardSelection)
-	if err != nil {
-		log.Error("Failed to update game phase", zap.Error(err))
-		return fmt.Errorf("failed to update game phase: %w", err)
+	// 4. Update game phase to StartingCardSelection
+	if err := TransitionGamePhase(ctx, a.gameRepo, gameID, game.GamePhaseStartingCardSelection, log); err != nil {
+		return err
 	}
 
-	log.Info("✅ Game phase updated to StartingCardSelection")
-
-	// 6. Set first player's turn
+	// 5. Set first player's turn
 	if len(players) > 0 {
 		firstPlayerID := players[0].ID
-		err = a.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID)
-		if err != nil {
-			log.Error("Failed to set current turn", zap.Error(err))
-			return fmt.Errorf("failed to set current turn: %w", err)
+		if err := SetCurrentTurn(ctx, a.gameRepo, gameID, &firstPlayerID, log); err != nil {
+			return err
 		}
 		log.Info("✅ Set initial turn", zap.String("first_player_id", firstPlayerID))
 	}
 
-	// 7. Create game deck with shuffled cards
+	// 6. Create game deck with shuffled cards
 	err = a.deckRepo.CreateDeck(ctx, gameID, convertGameSettings(g.Settings))
 	if err != nil {
 		log.Error("Failed to create game deck", zap.Error(err))
@@ -129,21 +100,16 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 	log.Info("🎴 Game deck created and shuffled")
 
-	// 8. Distribute starting cards to all players
-	err = a.distributeStartingCards(ctx, gameID, players)
-	if err != nil {
+	// 7. Distribute starting cards to all players
+	if err := a.distributeStartingCards(ctx, gameID, players); err != nil {
 		log.Error("Failed to distribute starting cards", zap.Error(err))
 		return fmt.Errorf("failed to distribute starting cards: %w", err)
 	}
 
 	log.Info("✅ Starting cards distributed to all players")
 
-	// 8. Broadcast state via session manager
-	err = a.sessionMgr.Broadcast(gameID)
-	if err != nil {
-		log.Error("Failed to broadcast game state", zap.Error(err))
-		// Non-fatal, continue
-	}
+	// 8. Broadcast state to all players
+	a.BroadcastGameState(gameID, log)
 
 	log.Info("🎉 Game started successfully")
 	return nil

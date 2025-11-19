@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/board"
@@ -16,13 +15,10 @@ import (
 
 // SelectTileAction handles tile selection and placement
 type SelectTileAction struct {
-	gameRepo        game.Repository
-	playerRepo      player.Repository
+	BaseAction
 	boardRepo       board.Repository
 	tileProcessor   *tile.Processor
 	bonusCalculator *tile.BonusCalculator
-	sessionMgr      session.SessionManager
-	logger          *zap.Logger
 }
 
 // NewSelectTileAction creates a new select tile action
@@ -35,21 +31,16 @@ func NewSelectTileAction(
 	sessionMgr session.SessionManager,
 ) *SelectTileAction {
 	return &SelectTileAction{
-		gameRepo:        gameRepo,
-		playerRepo:      playerRepo,
+		BaseAction:      NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		boardRepo:       boardRepo,
 		tileProcessor:   tileProcessor,
 		bonusCalculator: bonusCalculator,
-		sessionMgr:      sessionMgr,
-		logger:          logger.Get(),
 	}
 }
 
 // Execute places a tile at the selected coordinate
 func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string, q, r, s int) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.Int("q", q),
 		zap.Int("r", r),
 		zap.Int("s", s),
@@ -57,10 +48,10 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 
 	log.Info("🎯 Executing select tile action")
 
-	// Get player to check pending selection
-	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// Validate player exists
+	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
 	if err != nil {
-		return fmt.Errorf("failed to get player: %w", err)
+		return err
 	}
 
 	// Validate player has pending tile selection
@@ -131,7 +122,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 	}
 
 	// Broadcast updated game state
-	a.sessionMgr.Broadcast(gameID)
+	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Select tile action completed successfully")
 	return nil

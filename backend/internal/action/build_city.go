@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/player"
@@ -19,11 +18,8 @@ const (
 
 // BuildCityAction handles the business logic for building a city standard project
 type BuildCityAction struct {
-	gameRepo      game.Repository
-	playerRepo    player.Repository
+	BaseAction
 	tileProcessor *tile.Processor
-	sessionMgr    session.SessionManager
-	logger        *zap.Logger
 }
 
 // NewBuildCityAction creates a new build city action
@@ -34,40 +30,26 @@ func NewBuildCityAction(
 	sessionMgr session.SessionManager,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		gameRepo:      gameRepo,
-		playerRepo:    playerRepo,
+		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		tileProcessor: tileProcessor,
-		sessionMgr:    sessionMgr,
-		logger:        logger.Get(),
 	}
 }
 
 // Execute performs the build city action
 func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-	)
+	log := a.InitLogger(gameID, playerID)
 	log.Info("🏢 Building city")
 
 	// 1. Validate game is active
-	g, err := a.gameRepo.GetByID(ctx, gameID)
+	_, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
+		return err
 	}
 
-	if g.Status != game.GameStatusActive {
-		log.Warn("Game is not active",
-			zap.String("status", string(g.Status)))
-		return fmt.Errorf("game is not active")
-	}
-
-	// 2. Get player
-	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// 2. Validate player exists
+	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
 	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+		return err
 	}
 
 	// 3. Validate cost (25 M€)
@@ -122,11 +104,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	log.Info("🎯 Tile queue processed, pending selection set")
 
 	// 8. Broadcast state
-	err = a.sessionMgr.Broadcast(gameID)
-	if err != nil {
-		log.Error("Failed to broadcast game state", zap.Error(err))
-		// Non-fatal, continue
-	}
+	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ City built successfully, tile queued for placement",
 		zap.Int("new_credit_production", newProduction.Credits),

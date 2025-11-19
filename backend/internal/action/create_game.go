@@ -3,7 +3,6 @@ package action
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/board"
@@ -14,17 +13,15 @@ import (
 
 // CreateGameAction handles the business logic for creating new games
 type CreateGameAction struct {
-	gameRepo  game.Repository
-	boardRepo board.Repository
-	logger    *zap.Logger
+	BaseAction // Embed base (no sessionMgr needed for creation)
+	boardRepo  board.Repository
 }
 
 // NewCreateGameAction creates a new create game action
 func NewCreateGameAction(gameRepo game.Repository, boardRepo board.Repository) *CreateGameAction {
 	return &CreateGameAction{
-		gameRepo:  gameRepo,
-		boardRepo: boardRepo,
-		logger:    logger.Get(),
+		BaseAction: NewBaseAction(gameRepo, nil, nil), // No player repo or session mgr needed
+		boardRepo:  boardRepo,
 	}
 }
 

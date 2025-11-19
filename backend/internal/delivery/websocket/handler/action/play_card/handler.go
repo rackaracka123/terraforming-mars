@@ -3,30 +3,30 @@ package play_card
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles play card action requests
 type Handler struct {
-	cardService  service.CardService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	playCardAction *action.PlayCardAction
+	parser         *utils.MessageParser
+	errorHandler   *utils.ErrorHandler
+	logger         *zap.Logger
 }
 
 // NewHandler creates a new play card handler
-func NewHandler(cardService service.CardService, parser *utils.MessageParser) *Handler {
+func NewHandler(playCardAction *action.PlayCardAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		playCardAction: playCardAction,
+		parser:         parser,
+		errorHandler:   utils.NewErrorHandler(),
+		logger:         logger.Get(),
 	}
 }
 
@@ -81,7 +81,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.Int("titanium", payment.Titanium))
 
 	// Execute the play card action with payment, optional choice index, and card storage target
-	err := h.cardService.OnPlayCard(ctx, gameID, playerID, request.CardID, &payment, request.ChoiceIndex, request.CardStorageTarget)
+	err := h.playCardAction.Execute(ctx, gameID, playerID, request.CardID, &payment, request.ChoiceIndex, request.CardStorageTarget)
 	if err != nil {
 		h.logger.Warn("Failed to play card",
 			zap.String("connection_id", connection.ID),
@@ -97,6 +97,6 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("card_id", request.CardID))
 
-	// The CardService will publish game updated events, so we don't need to send a response here
+	// The action broadcasts game state automatically via SessionManager
 	// The client will receive the updated game state via the game-updated event
 }

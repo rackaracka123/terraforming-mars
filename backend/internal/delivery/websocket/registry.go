@@ -31,7 +31,7 @@ import (
 )
 
 // RegisterHandlers registers all message type handlers with the hub
-func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction, selectStartingCardsAction *action.SelectStartingCardsAction, skipActionAction *action.SkipActionAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, buildCityAction *action.BuildCityAction, selectTileAction *action.SelectTileAction) {
+func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, gameService service.GameService, playerService service.PlayerService, standardProjectService service.StandardProjectService, cardService service.CardService, adminService service.AdminService, resourceConversionService service.ResourceConversionService, gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, startGameAction *action.StartGameAction, joinGameAction *action.JoinGameAction, selectStartingCardsAction *action.SelectStartingCardsAction, skipActionAction *action.SkipActionAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, buildCityAction *action.BuildCityAction, selectTileAction *action.SelectTileAction, playCardAction *action.PlayCardAction) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
@@ -73,7 +73,8 @@ func RegisterHandlers(hub *core.Hub, sessionManager session.SessionManager, game
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(cardService, parser))
 
 	// Register play card handler
-	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(cardService, parser))
+	// NEW ARCHITECTURE: Using action pattern for play_card
+	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, parser))
 
 	// Register play card action handler
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))

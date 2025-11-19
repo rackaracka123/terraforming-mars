@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
@@ -16,11 +15,8 @@ import (
 
 // SkipActionAction handles the business logic for skipping/passing player turns
 type SkipActionAction struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	deckRepo   deck.Repository
-	sessionMgr session.SessionManager
-	logger     *zap.Logger
+	BaseAction
+	deckRepo deck.Repository
 }
 
 // NewSkipActionAction creates a new skip action action
@@ -31,52 +27,31 @@ func NewSkipActionAction(
 	sessionMgr session.SessionManager,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		deckRepo:   deckRepo,
-		sessionMgr: sessionMgr,
-		logger:     logger.Get(),
 	}
 }
 
 // Execute performs the skip action
 func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-	)
+	log := a.InitLogger(gameID, playerID)
 	log.Info("⏭️ Skipping player turn")
 
-	// 1. Validate game exists and is active
-	g, err := a.gameRepo.GetByID(ctx, gameID)
+	// 1. Validate game is active
+	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
+		return err
 	}
 
-	if g.Status != game.GameStatusActive {
-		log.Error("Game not active", zap.String("status", string(g.Status)))
-		return fmt.Errorf("game is not active")
-	}
-
-	if g.CurrentTurn == nil {
-		log.Error("Current turn not set")
-		return fmt.Errorf("current turn is not set")
-	}
-
-	// 2. Validate requesting player is the current player
-	if *g.CurrentTurn != playerID {
-		log.Error("Non-current player attempted to skip turn",
-			zap.String("current_player", *g.CurrentTurn),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("only the current player can skip their turn")
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
 	// 3. Get all players
-	players, err := a.playerRepo.ListByGameID(ctx, gameID)
+	players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
 	if err != nil {
-		log.Error("Failed to list players", zap.Error(err))
-		return fmt.Errorf("failed to list players: %w", err)
+		return err
 	}
 
 	// 4. Find current player and their index

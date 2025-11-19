@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/player"
 
@@ -14,9 +13,7 @@ import (
 // JoinGameAction handles the business logic for players joining games
 // Broadcasting is handled automatically via PlayerJoinedEvent (event-driven architecture)
 type JoinGameAction struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	logger     *zap.Logger
+	BaseAction // Embed base (note: no sessionMgr needed, event-driven)
 }
 
 // NewJoinGameAction creates a new join game action
@@ -25,9 +22,8 @@ func NewJoinGameAction(
 	playerRepo player.Repository,
 ) *JoinGameAction {
 	return &JoinGameAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
-		logger:     logger.Get(),
+		// Pass nil for sessionMgr since this action uses event-driven broadcasting
+		BaseAction: NewBaseAction(gameRepo, playerRepo, nil),
 	}
 }
 
@@ -40,23 +36,16 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	)
 	log.Info("🎮 Player joining game")
 
-	// 1. Validate business rules: game must exist and be in lobby status
-	g, err := a.gameRepo.GetByID(ctx, gameID)
+	// 1. Validate game is in lobby status
+	g, err := ValidateLobbyGame(ctx, a.gameRepo, gameID, log)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
-		return "", fmt.Errorf("game not found: %w", err)
-	}
-
-	if g.Status != game.GameStatusLobby {
-		log.Error("Game not in lobby status", zap.String("status", string(g.Status)))
-		return "", fmt.Errorf("game not in lobby status, cannot join")
+		return "", err
 	}
 
 	// 2. Check if player with same name already exists (for reconnection/idempotent join)
-	existingPlayers, err := a.playerRepo.ListByGameID(ctx, gameID)
+	existingPlayers, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
 	if err != nil {
-		log.Error("Failed to list existing players", zap.Error(err))
-		return "", fmt.Errorf("failed to check existing players: %w", err)
+		return "", err
 	}
 
 	// If player with same name exists, return existing playerID (idempotent operation)

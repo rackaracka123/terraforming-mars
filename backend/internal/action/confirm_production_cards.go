@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/card"
@@ -15,11 +14,8 @@ import (
 
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
 type ConfirmProductionCardsAction struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	cardRepo   card.Repository
-	sessionMgr session.SessionManager
-	logger     *zap.Logger
+	BaseAction
+	cardRepo card.Repository
 }
 
 // NewConfirmProductionCardsAction creates a new confirm production cards action
@@ -30,42 +26,31 @@ func NewConfirmProductionCardsAction(
 	sessionMgr session.SessionManager,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		cardRepo:   cardRepo,
-		sessionMgr: sessionMgr,
-		logger:     logger.Get(),
 	}
 }
 
 // Execute performs the confirm production cards action
 func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.Strings("selected_card_ids", selectedCardIDs),
-	)
+	log := a.InitLogger(gameID, playerID).With(zap.Strings("selected_card_ids", selectedCardIDs))
 	log.Info("🃏 Player confirming production card selection")
 
-	// 1. Get game to validate phase
+	// 1. Get game and validate phase
 	g, err := a.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Game not found", zap.Error(err))
 		return fmt.Errorf("game not found: %w", err)
 	}
 
-	// 2. Validate game is in production phase
-	if g.CurrentPhase != game.GamePhaseProductionAndCardDraw {
-		log.Error("Game not in production phase",
-			zap.String("current_phase", string(g.CurrentPhase)))
-		return fmt.Errorf("game not in production phase, current phase: %s", g.CurrentPhase)
+	if err := ValidateGamePhase(g, game.GamePhaseProductionAndCardDraw, log); err != nil {
+		return err
 	}
 
-	// 3. Get player to validate and access state
-	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// 2. Validate player exists
+	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
 	if err != nil {
-		log.Error("Player not found", zap.Error(err))
-		return fmt.Errorf("player not found: %w", err)
+		return err
 	}
 
 	// 4. Validate production phase exists
@@ -149,7 +134,9 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	log.Info("✅ Production selection marked complete")
 
 	// 12. Check if all players completed selection
-	allComplete, err := a.checkAllPlayersComplete(ctx, gameID)
+	allComplete, err := CheckAllPlayersComplete(ctx, a.playerRepo, gameID, func(p *player.Player) bool {
+		return p.ProductionPhase != nil && p.ProductionPhase.SelectionComplete
+	})
 	if err != nil {
 		log.Error("Failed to check completion status", zap.Error(err))
 		// Non-fatal, continue
@@ -157,25 +144,21 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		log.Info("🎉 All players completed production selection, advancing to action phase")
 
 		// Advance game phase to Action
-		err = a.gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
-		if err != nil {
-			log.Error("Failed to update game phase", zap.Error(err))
+		if err := TransitionGamePhase(ctx, a.gameRepo, gameID, game.GamePhaseAction, log); err != nil {
+			log.Error("Failed to transition game phase", zap.Error(err))
 			// Non-fatal
 		} else {
-			log.Info("✅ Game phase advanced to Action")
-
 			// Set current turn to first player
 			if len(g.PlayerIDs) > 0 {
 				firstPlayer := g.PlayerIDs[0]
-				err = a.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayer)
-				if err != nil {
+				if err := SetCurrentTurn(ctx, a.gameRepo, gameID, &firstPlayer, log); err != nil {
 					log.Error("Failed to set current turn", zap.Error(err))
 					// Non-fatal
 				}
 			}
 
 			// Clear production phase data for all players (triggers frontend modal to close)
-			players, err := a.playerRepo.ListByGameID(ctx, gameID)
+			players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
 			if err == nil {
 				for _, p := range players {
 					err = a.playerRepo.UpdateProductionPhase(ctx, gameID, p.ID, nil)
@@ -195,29 +178,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	}
 
 	// 13. Broadcast state
-	err = a.sessionMgr.Broadcast(gameID)
-	if err != nil {
-		log.Error("Failed to broadcast", zap.Error(err))
-		// Non-fatal
-	}
+	a.BroadcastGameState(gameID, log)
 
 	log.Info("🎉 Production card selection completed successfully")
 	return nil
-}
-
-// checkAllPlayersComplete checks if all players have completed their production selection
-func (a *ConfirmProductionCardsAction) checkAllPlayersComplete(ctx context.Context, gameID string) (bool, error) {
-	players, err := a.playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		return false, err
-	}
-
-	for _, p := range players {
-		// Selection is complete when ProductionPhase.SelectionComplete is true
-		if p.ProductionPhase == nil || !p.ProductionPhase.SelectionComplete {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }

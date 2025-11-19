@@ -8,6 +8,8 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -28,8 +30,8 @@ type ForcedActionManager interface {
 type ForcedActionManagerImpl struct {
 	eventBus     *events.EventBusImpl
 	cardRepo     repository.CardRepository
-	playerRepo   repository.PlayerRepository
-	gameRepo     repository.GameRepository
+	playerRepo   player.Repository      // NEW: Session player repository
+	gameRepo     sessionGame.Repository // NEW: Session game repository
 	cardDeckRepo repository.CardDeckRepository
 }
 
@@ -37,8 +39,8 @@ type ForcedActionManagerImpl struct {
 func NewForcedActionManager(
 	eventBus *events.EventBusImpl,
 	cardRepo repository.CardRepository,
-	playerRepo repository.PlayerRepository,
-	gameRepo repository.GameRepository,
+	playerRepo player.Repository, // NEW: Session player repository
+	gameRepo sessionGame.Repository, // NEW: Session game repository
 	cardDeckRepo repository.CardDeckRepository,
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
@@ -90,27 +92,48 @@ func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event repo
 	playerID := *game.CurrentTurn
 
 	// Get player to check for forced action
-	player, err := m.playerRepo.GetByID(ctx, event.GameID, playerID)
+	sessionPlayer, err := m.playerRepo.GetByID(ctx, event.GameID, playerID)
 	if err != nil {
 		return fmt.Errorf("failed to get player: %w", err)
 	}
 
 	// Check if player has an uncompleted forced action
-	if player.ForcedFirstAction == nil || player.ForcedFirstAction.Completed {
+	if sessionPlayer.ForcedFirstAction == nil || sessionPlayer.ForcedFirstAction.Completed {
 		log.Debug("No uncompleted forced action for current player", zap.String("player_id", playerID))
 		return nil
 	}
 
 	log.Info("🎯 Triggering forced first action",
 		zap.String("player_id", playerID),
-		zap.String("corporation_id", player.ForcedFirstAction.CorporationID))
+		zap.String("corporation_id", sessionPlayer.ForcedFirstAction.CorporationID))
+
+	// Convert session Player to model.Player for TriggerForcedFirstAction
+	modelPlayer := convertSessionPlayerToModel(sessionPlayer)
 
 	// Trigger the forced action
-	if err := m.TriggerForcedFirstAction(ctx, event.GameID, playerID, player); err != nil {
+	if err := m.TriggerForcedFirstAction(ctx, event.GameID, playerID, modelPlayer); err != nil {
 		return fmt.Errorf("failed to trigger forced action: %w", err)
 	}
 
 	return nil
+}
+
+// convertSessionPlayerToModel converts a session player to model player
+// This is a temporary helper during migration - only copies fields needed by forced actions
+func convertSessionPlayerToModel(sp *player.Player) model.Player {
+	return model.Player{
+		ID:                       sp.ID,
+		Name:                     sp.Name,
+		Resources:                sp.Resources,
+		Production:               sp.Production,
+		TerraformRating:          sp.TerraformRating,
+		IsConnected:              sp.IsConnected,
+		ForcedFirstAction:        sp.ForcedFirstAction,
+		PendingCardDrawSelection: sp.PendingCardDrawSelection,
+		PendingTileSelection:     sp.PendingTileSelection,
+		Cards:                    sp.Cards,
+		ResourceStorage:          sp.ResourceStorage,
+	}
 }
 
 // TriggerForcedFirstAction triggers the forced action for a player
@@ -228,7 +251,7 @@ func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context
 }
 
 // getAvailableHexesForTileType returns available hexes for the given tile type
-func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game model.Game, tileType model.ResourceType, playerID string) []string {
+func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame.Game, tileType model.ResourceType, playerID string) []string {
 	var availableHexes []string
 
 	for _, tile := range game.Board.Tiles {
@@ -264,7 +287,7 @@ func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game model.Game, 
 }
 
 // isAdjacentToPlayerTile checks if a hex is adjacent to any of the player's tiles
-func (m *ForcedActionManagerImpl) isAdjacentToPlayerTile(game model.Game, coord model.HexPosition, playerID string) bool {
+func (m *ForcedActionManagerImpl) isAdjacentToPlayerTile(game *sessionGame.Game, coord model.HexPosition, playerID string) bool {
 	// For first action, if player has no tiles yet, any empty hex is valid
 	hasPlayerTile := false
 	for _, tile := range game.Board.Tiles {

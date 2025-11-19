@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/repository"
 )
 
 var log = logger.Get()
@@ -189,22 +191,87 @@ func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]*Pl
 // UpdateResources updates player resources (event-driven)
 func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, playerID string, resources model.Resources) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "player", ID: playerID}
 	}
 
+	oldResources := player.Resources
 	player.Resources = resources
 
-	// Event publishing can be added here if needed
-	// For now, simplified for proof of concept
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish ResourcesChangedEvent for each resource type that changed
+	// This allows card effects to subscribe to specific resource changes
+	if oldResources.Credits != resources.Credits {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "credits",
+			OldAmount:    oldResources.Credits,
+			NewAmount:    resources.Credits,
+			Timestamp:    time.Now(),
+		})
+	}
+	if oldResources.Steel != resources.Steel {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "steel",
+			OldAmount:    oldResources.Steel,
+			NewAmount:    resources.Steel,
+			Timestamp:    time.Now(),
+		})
+	}
+	if oldResources.Titanium != resources.Titanium {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "titanium",
+			OldAmount:    oldResources.Titanium,
+			NewAmount:    resources.Titanium,
+			Timestamp:    time.Now(),
+		})
+	}
+	if oldResources.Plants != resources.Plants {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "plants",
+			OldAmount:    oldResources.Plants,
+			NewAmount:    resources.Plants,
+			Timestamp:    time.Now(),
+		})
+	}
+	if oldResources.Energy != resources.Energy {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "energy",
+			OldAmount:    oldResources.Energy,
+			NewAmount:    resources.Energy,
+			Timestamp:    time.Now(),
+		})
+	}
+	if oldResources.Heat != resources.Heat {
+		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+			GameID:       gameID,
+			PlayerID:     playerID,
+			ResourceType: "heat",
+			OldAmount:    oldResources.Heat,
+			NewAmount:    resources.Heat,
+			Timestamp:    time.Now(),
+		})
+	}
 
 	return nil
 }
@@ -533,19 +600,41 @@ func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID string,
 // UpdateTerraformRating updates player terraform rating
 func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID string, playerID string, rating int) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "player", ID: playerID}
 	}
 
+	oldRating := player.TerraformRating
 	player.TerraformRating = rating
+
+	// Release lock before publishing event to avoid deadlock
+	r.mu.Unlock()
+
+	// Publish TerraformRatingChangedEvent
+	if oldRating != rating {
+		log.Debug("📡 Publishing TerraformRatingChangedEvent",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Int("old_rating", oldRating),
+			zap.Int("new_rating", rating))
+
+		events.Publish(r.eventBus, repository.TerraformRatingChangedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			OldRating: oldRating,
+			NewRating: rating,
+			Timestamp: time.Now(),
+		})
+	}
 
 	return nil
 }

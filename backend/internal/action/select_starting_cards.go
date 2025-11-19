@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/card"
@@ -15,11 +14,8 @@ import (
 
 // SelectStartingCardsAction handles the business logic for selecting starting cards and corporation
 type SelectStartingCardsAction struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	cardRepo   card.Repository
-	sessionMgr session.SessionManager
-	logger     *zap.Logger
+	BaseAction
+	cardRepo card.Repository
 }
 
 // NewSelectStartingCardsAction creates a new select starting cards action
@@ -30,29 +26,23 @@ func NewSelectStartingCardsAction(
 	sessionMgr session.SessionManager,
 ) *SelectStartingCardsAction {
 	return &SelectStartingCardsAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
 		cardRepo:   cardRepo,
-		sessionMgr: sessionMgr,
-		logger:     logger.Get(),
 	}
 }
 
 // Execute performs the select starting cards action
 func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, playerID string, cardIDs []string, corporationID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.Strings("card_ids", cardIDs),
 		zap.String("corporation_id", corporationID),
 	)
 	log.Info("🃏 Player selecting starting cards and corporation")
 
-	// 1. Get player to validate and access state
-	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
+	// 1. Validate player exists
+	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
 	if err != nil {
-		log.Error("Player not found", zap.Error(err))
-		return fmt.Errorf("player not found: %w", err)
+		return err
 	}
 
 	// 2. Validate selection phase exists
@@ -171,7 +161,9 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	log.Info("✅ Starting selection marked complete")
 
 	// 12. Check if all players completed selection
-	allComplete, err := a.checkAllPlayersComplete(ctx, gameID)
+	allComplete, err := CheckAllPlayersComplete(ctx, a.playerRepo, gameID, func(p *player.Player) bool {
+		return p.CorporationID != "" // Selection complete when corporation chosen
+	})
 	if err != nil {
 		log.Error("Failed to check completion status", zap.Error(err))
 		// Non-fatal, continue
@@ -179,40 +171,15 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		log.Info("🎉 All players completed starting selection, advancing to action phase")
 
 		// Advance game phase to Action
-		err = a.gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseAction)
-		if err != nil {
-			log.Error("Failed to update game phase", zap.Error(err))
+		if err := TransitionGamePhase(ctx, a.gameRepo, gameID, game.GamePhaseAction, log); err != nil {
+			log.Error("Failed to transition game phase", zap.Error(err))
 			// Non-fatal
-		} else {
-			log.Info("✅ Game phase advanced to Action")
 		}
 	}
 
 	// 13. Broadcast state
-	err = a.sessionMgr.Broadcast(gameID)
-	if err != nil {
-		log.Error("Failed to broadcast", zap.Error(err))
-		// Non-fatal
-	}
+	a.BroadcastGameState(gameID, log)
 
 	log.Info("🎉 Starting card selection completed successfully")
 	return nil
-}
-
-// checkAllPlayersComplete checks if all players have completed their starting selection
-func (a *SelectStartingCardsAction) checkAllPlayersComplete(ctx context.Context, gameID string) (bool, error) {
-	players, err := a.playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		return false, err
-	}
-
-	for _, p := range players {
-		// Selection is complete when player has chosen a corporation
-		// (phase is set to nil after completion, but we check corporation instead)
-		if p.CorporationID == "" {
-			return false, nil
-		}
-	}
-
-	return true, nil
 }

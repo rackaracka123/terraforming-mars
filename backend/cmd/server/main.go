@@ -126,6 +126,7 @@ func main() {
 
 	// Initialize SelectTileAction for tile placement
 	selectTileAction := action.NewSelectTileAction(newGameRepo, newPlayerRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManager)
+
 	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
 	// ================================================================
 
@@ -137,10 +138,19 @@ func main() {
 	effectSubscriber := sessionCard.NewCardEffectSubscriber(eventBus, newPlayerRepo, newGameRepo, newCardRepo)
 	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
 
+	// Initialize CardManager for card playing logic (session-based)
+	cardManager := sessionCard.NewCardManager(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, effectSubscriber)
+	log.Info("🎴 Card manager initialized")
+
+	// Initialize PlayCardAction for playing cards from hand
+	playCardAction := action.NewPlayCardAction(newGameRepo, newPlayerRepo, cardManager, tileProcessor, sessionManager)
+	log.Info("✅ PlayCardAction initialized")
+
 	// Initialize forced action manager for corporation forced first actions
-	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	// UPDATED: Now uses NEW session repositories (newPlayerRepo, newGameRepo) to match event sources
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
+	log.Info("🎯 Forced action manager initialized and subscribed to phase changes (using session repos)")
 
 	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
 	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW tileProcessor
@@ -175,7 +185,7 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub and new actions
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction)
+	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)
