@@ -5,35 +5,41 @@ import (
 	"encoding/json"
 	"fmt"
 
+	adminaction "terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/service"
+	sessionGame "terraforming-mars-backend/internal/session/game"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles admin command requests (development mode only)
 type Handler struct {
-	gameService   service.GameService
-	playerService service.PlayerService
-	cardService   service.CardService
-	adminService  service.AdminService
-	errorHandler  *utils.ErrorHandler
-	logger        *zap.Logger
+	gameRepo                      sessionGame.Repository
+	gameService                   service.GameService
+	playerService                 service.PlayerService
+	cardService                   service.CardService
+	adminService                  service.AdminService
+	startTileSelectionAdminAction *adminaction.StartTileSelectionAction
+	errorHandler                  *utils.ErrorHandler
+	logger                        *zap.Logger
 }
 
 // NewHandler creates a new admin command handler
-func NewHandler(gameService service.GameService, playerService service.PlayerService, cardService service.CardService, adminService service.AdminService) *Handler {
+func NewHandler(gameRepo sessionGame.Repository, gameService service.GameService, playerService service.PlayerService, cardService service.CardService, adminService service.AdminService, startTileSelectionAdminAction *adminaction.StartTileSelectionAction) *Handler {
 	return &Handler{
-		gameService:   gameService,
-		playerService: playerService,
-		cardService:   cardService,
-		adminService:  adminService,
-		errorHandler:  utils.NewErrorHandler(),
-		logger:        logger.Get(),
+		gameRepo:                      gameRepo,
+		gameService:                   gameService,
+		playerService:                 playerService,
+		cardService:                   cardService,
+		adminService:                  adminService,
+		startTileSelectionAdminAction: startTileSelectionAdminAction,
+		errorHandler:                  utils.NewErrorHandler(),
+		logger:                        logger.Get(),
 	}
 }
 
@@ -103,7 +109,8 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // validateDevelopmentMode ensures the game is in development mode
 func (h *Handler) validateDevelopmentMode(ctx context.Context, gameID string) error {
-	game, err := h.gameService.GetGame(ctx, gameID)
+	// Use NEW session repository directly instead of old GameService
+	game, err := h.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		return fmt.Errorf("failed to get game state: %w", err)
 	}
@@ -256,8 +263,8 @@ func (h *Handler) handleStartTileSelection(ctx context.Context, gameID string, p
 		zap.String("player_id", command.PlayerID),
 		zap.String("tile_type", command.TileType))
 
-	// Use AdminService to start tile selection
-	return h.adminService.OnAdminStartTileSelection(ctx, gameID, command.PlayerID, command.TileType)
+	// Use admin action to start tile selection
+	return h.startTileSelectionAdminAction.Execute(ctx, gameID, command.PlayerID, command.TileType)
 }
 
 // handleSetCurrentTurn sets the current player turn

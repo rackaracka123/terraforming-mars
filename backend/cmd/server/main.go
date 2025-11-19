@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/action"
+	adminaction "terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
@@ -173,6 +174,10 @@ func main() {
 	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, newPlayerRepo, sessionManager, eventBus)
 	log.Info("✅ Card selection confirmation actions initialized")
 
+	// Initialize admin actions
+	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, sessionManager)
+	log.Info("✅ Admin actions initialized")
+
 	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
 	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW deckRepo
 	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
@@ -208,13 +213,14 @@ func main() {
 	// Initialize WebSocket service with shared Hub and new actions
 	webSocketService := wsHandler.NewWebSocketService(
 		gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService,
-		gameRepo, playerRepo, cardRepo, hub, sessionManager, eventBus,
+		gameRepo, playerRepo, cardRepo, newGameRepo, hub, sessionManager, eventBus,
 		startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
 		buildCityAction, selectTileAction, playCardAction,
 		launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction,
 		sellPatentsAction, confirmSellPatentsAction,
 		convertHeatAction, convertPlantsAction,
 		confirmCardDrawAction,
+		startTileSelectionAdminAction,
 	)
 
 	// Start WebSocket service in background

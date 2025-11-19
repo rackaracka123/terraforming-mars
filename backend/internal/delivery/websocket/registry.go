@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"terraforming-mars-backend/internal/action"
+	adminaction "terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
@@ -30,6 +31,7 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
+	sessionGame "terraforming-mars-backend/internal/session/game"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
@@ -45,6 +47,7 @@ func RegisterHandlers(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
+	newGameRepo sessionGame.Repository,
 	eventBus *events.EventBusImpl,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
@@ -63,6 +66,7 @@ func RegisterHandlers(
 	convertHeatAction *action.ConvertHeatToTemperatureAction,
 	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
 	confirmCardDrawAction *action.ConfirmCardDrawAction,
+	startTileSelectionAdminAction *adminaction.StartTileSelectionAction,
 ) {
 	parser := utils.NewMessageParser()
 
@@ -118,5 +122,5 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
-	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(gameService, playerService, cardService, adminService))
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(newGameRepo, gameService, playerService, cardService, adminService, startTileSelectionAdminAction))
 }
