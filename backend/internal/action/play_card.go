@@ -96,25 +96,19 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card played and effects applied")
 
-	// 7. Process tile queue (if card created tiles to be placed)
-	err = a.tileProcessor.ProcessTileQueue(ctx, gameID, playerID)
-	if err != nil {
-		log.Warn("⚠️  Failed to process tile queue", zap.Error(err))
-		// Non-fatal - don't fail the action if tile processing fails
-	}
+	// 7. Tile queue processing (now automatic via TileQueueCreatedEvent)
+	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
-	// 8. TODO: Consume action (when AvailableActions is re-enabled after migration)
-	// Currently disabled during service → action migration
-	// Future implementation:
-	// if p.AvailableActions > 0 {
-	//     newActions := p.AvailableActions - 1
-	//     err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
-	//     if err != nil {
-	//         log.Error("Failed to consume action", zap.Error(err))
-	//         return fmt.Errorf("failed to consume action: %w", err)
-	//     }
-	//     log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
-	// }
+	// 8. Consume action (only if not unlimited actions)
+	if p.AvailableActions > 0 {
+		newActions := p.AvailableActions - 1
+		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+		if err != nil {
+			log.Error("Failed to consume action", zap.Error(err))
+			return fmt.Errorf("failed to consume action: %w", err)
+		}
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	}
 
 	// 9. Broadcast state to all players
 	a.BroadcastGameState(gameID, log)

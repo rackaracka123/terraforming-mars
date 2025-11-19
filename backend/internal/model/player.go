@@ -68,6 +68,7 @@ type PendingCardDrawSelection struct {
 type ForcedFirstAction struct {
 	ActionType    string `json:"actionType" ts:"string"`    // Type of action: "city_placement", "card_draw", etc.
 	CorporationID string `json:"corporationId" ts:"string"` // Corporation that requires this action
+	Source        string `json:"source" ts:"string"`        // Source to match for completion (corporation ID)
 	Completed     bool   `json:"completed" ts:"boolean"`    // Whether the forced action has been completed
 	Description   string `json:"description" ts:"string"`   // Human-readable description for UI
 }

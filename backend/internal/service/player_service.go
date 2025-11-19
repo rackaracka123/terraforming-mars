@@ -401,13 +401,12 @@ func (s *PlayerServiceImpl) OnTileSelected(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to clear pending tile selection: %w", err)
 	}
 
-	// Process the next tile in the queue with validation using TileService
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process next tile in queue", zap.Error(err))
-		return fmt.Errorf("failed to process next tile in queue: %w", err)
-	}
+	// Next tile processing (now automatic via TileQueueCreatedEvent)
+	// When ProcessNextTileInQueue was called during tile placement validation,
+	// it published an event if more tiles remain in the queue
+	// No manual call needed - TileProcessor will automatically process the next tile
 
-	log.Info("🎯 Tile placed and queue processed")
+	log.Info("🎯 Tile placed, next tile will be processed automatically via events")
 
 	// Broadcast updated game state
 	if s.sessionManager != nil {

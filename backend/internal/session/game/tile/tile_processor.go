@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/game"
@@ -18,6 +19,7 @@ type Processor struct {
 	playerRepo     player.Repository
 	boardRepo      board.Repository
 	boardProcessor *board.BoardProcessor
+	eventBus       *events.EventBusImpl
 }
 
 // NewProcessor creates a new TileProcessor instance
@@ -26,13 +28,42 @@ func NewProcessor(
 	playerRepo player.Repository,
 	boardRepo board.Repository,
 	boardProcessor *board.BoardProcessor,
+	eventBus *events.EventBusImpl,
 ) *Processor {
 	return &Processor{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
 		boardRepo:      boardRepo,
 		boardProcessor: boardProcessor,
+		eventBus:       eventBus,
 	}
+}
+
+// SubscribeToEvents sets up event subscriptions for automatic tile queue processing
+func (p *Processor) SubscribeToEvents() {
+	log := logger.Get()
+
+	// Subscribe to TileQueueCreatedEvent for automatic processing
+	events.Subscribe(p.eventBus, func(event player.TileQueueCreatedEvent) {
+		log.Info("🎯 TileQueueCreatedEvent received, processing queue automatically",
+			zap.String("game_id", event.GameID),
+			zap.String("player_id", event.PlayerID),
+			zap.Int("queue_size", event.QueueSize),
+			zap.String("source", event.Source))
+
+		// Process tile queue immediately and synchronously
+		ctx := context.Background()
+		err := p.ProcessTileQueue(ctx, event.GameID, event.PlayerID)
+		if err != nil {
+			log.Warn("⚠️ Failed to process tile queue from event",
+				zap.String("game_id", event.GameID),
+				zap.String("player_id", event.PlayerID),
+				zap.Error(err))
+			// Non-fatal - don't crash if tile processing fails
+		}
+	})
+
+	log.Info("✅ TileProcessor event subscriptions initialized")
 }
 
 // ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection

@@ -7,8 +7,8 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
@@ -44,7 +44,7 @@ func NewCardManager(
 	gameRepo sessionGame.Repository,
 	playerRepo player.Repository,
 	cardRepo Repository,
-	cardDeckRepo repository.CardDeckRepository,
+	deckRepo deck.Repository,
 	effectSubscriber cards.CardEffectSubscriber,
 ) CardManager {
 	return &CardManagerImpl{
@@ -52,7 +52,7 @@ func NewCardManager(
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		requirementsValidator: NewRequirementsValidator(cardRepo),
-		effectProcessor:       NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
+		effectProcessor:       NewCardProcessor(gameRepo, playerRepo, deckRepo),
 		effectSubscriber:      effectSubscriber,
 	}
 }

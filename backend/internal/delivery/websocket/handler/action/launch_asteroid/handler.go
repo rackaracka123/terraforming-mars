@@ -3,61 +3,45 @@ package launch_asteroid
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles launch asteroid standard project action requests
 type Handler struct {
-	standardProjectService service.StandardProjectService
-	parser                 *utils.MessageParser
-	errorHandler           *utils.ErrorHandler
-	logger                 *zap.Logger
+	launchAsteroidAction *action.LaunchAsteroidAction
 }
 
 // NewHandler creates a new launch asteroid handler
-func NewHandler(standardProjectService service.StandardProjectService, parser *utils.MessageParser) *Handler {
+func NewHandler(launchAsteroidAction *action.LaunchAsteroidAction) *Handler {
 	return &Handler{
-		standardProjectService: standardProjectService,
-		parser:                 parser,
-		errorHandler:           utils.NewErrorHandler(),
-		logger:                 logger.Get(),
+		launchAsteroidAction: launchAsteroidAction,
 	}
 }
 
 // HandleMessage implements the MessageHandler interface
 func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
-	playerID, gameID := connection.GetPlayer()
-	if playerID == "" || gameID == "" {
-		h.logger.Warn("Launch asteroid action received from unassigned connection",
-			zap.String("connection_id", connection.ID))
-		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
-		return
-	}
-
-	h.logger.Debug("🚀 Processing launch asteroid action",
+	log := logger.Get().With(
 		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+		zap.String("player_id", connection.PlayerID),
+		zap.String("game_id", connection.GameID))
 
-	// Execute the asteroid standard project
-	err := h.standardProjectService.LaunchAsteroid(ctx, gameID, playerID)
+	log.Debug("🚀 Processing launch asteroid action")
+
+	// Execute the asteroid standard project action
+	err := h.launchAsteroidAction.Execute(ctx, connection.GameID, connection.PlayerID)
 	if err != nil {
-		h.logger.Error("Failed to execute asteroid use case",
-			zap.Error(err),
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID))
-		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
+		log.Error("Failed to execute launch asteroid action", zap.Error(err))
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": err.Error()},
+		}
 		return
 	}
 
-	h.logger.Info("✅ Launch asteroid action completed successfully",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+	log.Info("✅ Launch asteroid action completed successfully")
 }

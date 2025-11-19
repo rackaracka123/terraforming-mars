@@ -115,6 +115,12 @@ type Repository interface {
 
 	// UpdateAvailableActions updates player available actions count
 	UpdateAvailableActions(ctx context.Context, gameID string, playerID string, actions int) error
+
+	// UpdatePendingCardSelection updates player pending card selection
+	UpdatePendingCardSelection(ctx context.Context, gameID string, playerID string, selection *PendingCardSelection) error
+
+	// ClearPendingCardSelection clears the pending card selection
+	ClearPendingCardSelection(ctx context.Context, gameID string, playerID string) error
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
@@ -662,15 +668,16 @@ func (r *RepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID string,
 // CreateTileQueue creates a tile placement queue for the player
 func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID string, playerID string, cardID string, tileTypes []string) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
+		r.mu.Unlock()
 		return &model.NotFoundError{Resource: "player", ID: playerID}
 	}
 
@@ -680,6 +687,26 @@ func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID string, pla
 			Items:  tileTypes,
 			Source: cardID,
 		}
+
+		// Release lock before publishing event to avoid deadlock
+		r.mu.Unlock()
+
+		// Publish TileQueueCreatedEvent
+		log.Debug("📡 Publishing TileQueueCreatedEvent",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Int("queue_size", len(tileTypes)),
+			zap.String("source", cardID))
+
+		events.Publish(r.eventBus, TileQueueCreatedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			QueueSize: len(tileTypes),
+			Source:    cardID,
+			Timestamp: time.Now(),
+		})
+	} else {
+		r.mu.Unlock()
 	}
 
 	return nil
@@ -748,6 +775,8 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID stri
 		zap.String("source", player.PendingTileSelectionQueue.Source),
 		zap.Int("remaining_in_queue", len(remainingItems)))
 
+	source := player.PendingTileSelectionQueue.Source
+
 	// Update queue with remaining items or clear if empty
 	if len(remainingItems) > 0 {
 		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
@@ -763,6 +792,30 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID stri
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID),
 		zap.String("tile_type", nextTileType))
+
+	// If there are more tiles in queue after popping, publish event to trigger processing
+	// This ensures the next tile is automatically processed after the current one is placed
+	if len(remainingItems) > 0 {
+		// Release lock before publishing event to avoid deadlock
+		r.mu.Unlock()
+
+		log.Debug("📡 Publishing TileQueueCreatedEvent for remaining tiles",
+			zap.String("game_id", gameID),
+			zap.String("player_id", playerID),
+			zap.Int("remaining_count", len(remainingItems)),
+			zap.String("source", source))
+
+		events.Publish(r.eventBus, TileQueueCreatedEvent{
+			GameID:    gameID,
+			PlayerID:  playerID,
+			QueueSize: len(remainingItems),
+			Source:    source,
+			Timestamp: time.Now(),
+		})
+
+		// Lock already released, return without defer
+		return nextTileType, nil
+	}
 
 	return nextTileType, nil
 }
@@ -931,6 +984,56 @@ func (r *RepositoryImpl) UpdateAvailableActions(ctx context.Context, gameID stri
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID),
 		zap.Int("available_actions", actions))
+
+	return nil
+}
+
+// UpdatePendingCardSelection updates player pending card selection
+func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID string, playerID string, selection *PendingCardSelection) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.PendingCardSelection = selection
+
+	log.Debug("✅ Player pending card selection updated",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("source", selection.Source),
+		zap.Int("available_cards", len(selection.AvailableCards)))
+
+	return nil
+}
+
+// ClearPendingCardSelection clears the pending card selection
+func (r *RepositoryImpl) ClearPendingCardSelection(ctx context.Context, gameID string, playerID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gamePlayers, exists := r.players[gameID]
+	if !exists {
+		return &model.NotFoundError{Resource: "game", ID: gameID}
+	}
+
+	player, exists := gamePlayers[playerID]
+	if !exists {
+		return &model.NotFoundError{Resource: "player", ID: playerID}
+	}
+
+	player.PendingCardSelection = nil
+
+	log.Debug("✅ Player pending card selection cleared",
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID))
 
 	return nil
 }

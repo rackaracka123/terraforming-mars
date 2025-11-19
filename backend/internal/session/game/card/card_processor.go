@@ -6,8 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
@@ -15,17 +15,17 @@ import (
 
 // CardProcessor handles the complete card processing including validation and effect application in session-scoped architecture
 type CardProcessor struct {
-	gameRepo     sessionGame.Repository
-	playerRepo   player.Repository
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo   sessionGame.Repository
+	playerRepo player.Repository
+	deckRepo   deck.Repository
 }
 
 // NewCardProcessor creates a new card processor with session-scoped repositories
-func NewCardProcessor(gameRepo sessionGame.Repository, playerRepo player.Repository, cardDeckRepo repository.CardDeckRepository) *CardProcessor {
+func NewCardProcessor(gameRepo sessionGame.Repository, playerRepo player.Repository, deckRepo deck.Repository) *CardProcessor {
 	return &CardProcessor{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
-		cardDeckRepo: cardDeckRepo,
+		gameRepo:   gameRepo,
+		playerRepo: playerRepo,
+		deckRepo:   deckRepo,
 	}
 }
 
@@ -482,35 +482,31 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, p
 
 	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
 		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
-		// Pop cards from deck and auto-select all
-		for i := 0; i < cardDrawAmount; i++ {
-			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck", zap.Error(err))
-				return fmt.Errorf("failed to draw card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck and auto-select all
+		drawnCards, err := cp.deckRepo.DrawProjectCards(ctx, gameID, cardDrawAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck", zap.Error(err))
+			return fmt.Errorf("failed to draw card: %w", err)
 		}
+		cardsToShow = drawnCards
 
 		// For card-draw, player must take all cards (freeTakeCount = number of cards)
-		freeTakeCount = cardDrawAmount
+		freeTakeCount = len(drawnCards)
 		maxBuyCount = 0
 
 		log.Info("🃏 Card draw effect detected",
 			zap.String("card_name", card.Name),
-			zap.Int("cards_to_draw", cardDrawAmount))
+			zap.Int("cards_to_draw", len(drawnCards)))
 
 	} else if cardPeekAmount > 0 {
 		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
-		// Pop cards from deck (they won't be returned)
-		for i := 0; i < cardPeekAmount; i++ {
-			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck for peek", zap.Error(err))
-				return fmt.Errorf("failed to peek card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck to peek at them (they won't be returned)
+		peekedCards, err := cp.deckRepo.DrawProjectCards(ctx, gameID, cardPeekAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck for peek", zap.Error(err))
+			return fmt.Errorf("failed to peek card: %w", err)
 		}
+		cardsToShow = peekedCards
 
 		// If card-draw is combined with card-peek, the draw amount becomes mandatory takes
 		// card-take adds optional takes on top
@@ -519,7 +515,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, p
 
 		log.Info("🃏 Card peek effect detected",
 			zap.String("card_name", card.Name),
-			zap.Int("cards_to_peek", cardPeekAmount),
+			zap.Int("cards_to_peek", len(peekedCards)),
 			zap.Int("card_draw_amount", cardDrawAmount),
 			zap.Int("card_take_amount", cardTakeAmount),
 			zap.Int("free_take_count", freeTakeCount),

@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
@@ -19,6 +20,9 @@ type ForcedActionManager interface {
 	// SubscribeToPhaseChanges subscribes to game phase change events
 	SubscribeToPhaseChanges()
 
+	// SubscribeToCardDrawEvents subscribes to card draw confirmation events
+	SubscribeToCardDrawEvents()
+
 	// MarkComplete marks a player's forced action as complete
 	MarkComplete(ctx context.Context, gameID, playerID string) error
 
@@ -28,11 +32,11 @@ type ForcedActionManager interface {
 
 // ForcedActionManagerImpl implements ForcedActionManager
 type ForcedActionManagerImpl struct {
-	eventBus     *events.EventBusImpl
-	cardRepo     repository.CardRepository
-	playerRepo   player.Repository      // NEW: Session player repository
-	gameRepo     sessionGame.Repository // NEW: Session game repository
-	cardDeckRepo repository.CardDeckRepository
+	eventBus   *events.EventBusImpl
+	cardRepo   repository.CardRepository
+	playerRepo player.Repository      // NEW: Session player repository
+	gameRepo   sessionGame.Repository // NEW: Session game repository
+	deckRepo   deck.Repository        // NEW: Session deck repository
 }
 
 // NewForcedActionManager creates a new forced action manager
@@ -41,14 +45,14 @@ func NewForcedActionManager(
 	cardRepo repository.CardRepository,
 	playerRepo player.Repository, // NEW: Session player repository
 	gameRepo sessionGame.Repository, // NEW: Session game repository
-	cardDeckRepo repository.CardDeckRepository,
+	deckRepo deck.Repository, // NEW: Session deck repository
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
-		eventBus:     eventBus,
-		cardRepo:     cardRepo,
-		playerRepo:   playerRepo,
-		gameRepo:     gameRepo,
-		cardDeckRepo: cardDeckRepo,
+		eventBus:   eventBus,
+		cardRepo:   cardRepo,
+		playerRepo: playerRepo,
+		gameRepo:   gameRepo,
+		deckRepo:   deckRepo,
 	}
 }
 
@@ -62,6 +66,20 @@ func (m *ForcedActionManagerImpl) SubscribeToPhaseChanges() {
 				zap.String("game_id", event.GameID),
 				zap.String("old_phase", event.OldPhase),
 				zap.String("new_phase", event.NewPhase))
+		}
+	})
+}
+
+// SubscribeToCardDrawEvents subscribes to card draw confirmation events
+func (m *ForcedActionManagerImpl) SubscribeToCardDrawEvents() {
+	events.Subscribe(m.eventBus, func(event player.CardDrawConfirmedEvent) {
+		ctx := context.Background()
+		if err := m.onCardDrawConfirmed(ctx, event); err != nil {
+			logger.Get().Error("Failed to handle card draw confirmation event",
+				zap.Error(err),
+				zap.String("game_id", event.GameID),
+				zap.String("player_id", event.PlayerID),
+				zap.String("source", event.Source))
 		}
 	})
 }
@@ -136,6 +154,42 @@ func convertSessionPlayerToModel(sp *player.Player) model.Player {
 	}
 }
 
+// onCardDrawConfirmed handles card draw confirmation events
+func (m *ForcedActionManagerImpl) onCardDrawConfirmed(ctx context.Context, event player.CardDrawConfirmedEvent) error {
+	log := logger.WithGameContext(event.GameID, event.PlayerID)
+
+	// Get player to check if this was a forced action
+	sessionPlayer, err := m.playerRepo.GetByID(ctx, event.GameID, event.PlayerID)
+	if err != nil {
+		return fmt.Errorf("failed to get player: %w", err)
+	}
+
+	// Check if player has a forced action and if the source matches
+	if sessionPlayer.ForcedFirstAction == nil {
+		log.Debug("🎯 Card draw confirmed, but no forced action present")
+		return nil
+	}
+
+	if sessionPlayer.ForcedFirstAction.Source != event.Source {
+		log.Debug("🎯 Card draw confirmed, but source doesn't match forced action",
+			zap.String("event_source", event.Source),
+			zap.String("forced_action_source", sessionPlayer.ForcedFirstAction.Source))
+		return nil
+	}
+
+	// This was a forced action - mark it complete
+	log.Info("🎯 Card draw confirmed from forced action, marking complete",
+		zap.String("corporation_id", sessionPlayer.ForcedFirstAction.CorporationID),
+		zap.String("source", sessionPlayer.ForcedFirstAction.Source),
+		zap.Int("cards_confirmed", len(event.Cards)))
+
+	if err := m.MarkComplete(ctx, event.GameID, event.PlayerID); err != nil {
+		return fmt.Errorf("failed to mark forced action complete: %w", err)
+	}
+
+	return nil
+}
+
 // TriggerForcedFirstAction triggers the forced action for a player
 func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player model.Player) error {
 	// Look up the corporation card to get the behavior details
@@ -187,14 +241,10 @@ func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gam
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("📚 Triggering card draw forced action", zap.Int("amount", amount))
 
-	// Draw cards from the deck using CardDeckRepository
-	drawnCards := make([]string, 0, amount)
-	for i := 0; i < amount; i++ {
-		cardID, err := m.cardDeckRepo.Pop(ctx, gameID)
-		if err != nil {
-			return fmt.Errorf("failed to draw card %d: %w", i+1, err)
-		}
-		drawnCards = append(drawnCards, cardID)
+	// Draw cards from the deck using deck repository
+	drawnCards, err := m.deckRepo.DrawProjectCards(ctx, gameID, amount)
+	if err != nil {
+		return fmt.Errorf("failed to draw cards: %w", err)
 	}
 
 	// Create pending card draw selection
@@ -209,6 +259,13 @@ func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gam
 	// Update player with pending selection
 	if err := m.playerRepo.UpdatePendingCardDrawSelection(ctx, gameID, playerID, pendingCardDrawSelection); err != nil {
 		return fmt.Errorf("failed to update pending card draw selection: %w", err)
+	}
+
+	// Set Source on ForcedFirstAction so we can track completion
+	updatedForcedAction := *player.ForcedFirstAction
+	updatedForcedAction.Source = player.ForcedFirstAction.CorporationID
+	if err := m.playerRepo.UpdateForcedFirstAction(ctx, gameID, playerID, &updatedForcedAction); err != nil {
+		return fmt.Errorf("failed to update forced action source: %w", err)
 	}
 
 	log.Info("✅ Card draw forced action triggered", zap.Strings("cards", drawnCards))
@@ -244,6 +301,13 @@ func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context
 	// Update player with pending selection
 	if err := m.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingTileSelection); err != nil {
 		return fmt.Errorf("failed to update pending tile selection: %w", err)
+	}
+
+	// Set Source on ForcedFirstAction so we can track completion
+	updatedForcedAction := *player.ForcedFirstAction
+	updatedForcedAction.Source = player.ForcedFirstAction.CorporationID
+	if err := m.playerRepo.UpdateForcedFirstAction(ctx, gameID, playerID, &updatedForcedAction); err != nil {
+		return fmt.Errorf("failed to update forced action source: %w", err)
 	}
 
 	log.Info("✅ Tile placement forced action triggered", zap.String("tileType", tileTypeStr))

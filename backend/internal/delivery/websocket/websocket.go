@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
@@ -30,6 +31,7 @@ func NewWebSocketService(
 	cardRepo repository.CardRepository,
 	hub *core.Hub,
 	sessionManager session.SessionManager,
+	eventBus *events.EventBusImpl,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
 	selectStartingCardsAction *action.SelectStartingCardsAction,
@@ -38,11 +40,20 @@ func NewWebSocketService(
 	buildCityAction *action.BuildCityAction,
 	selectTileAction *action.SelectTileAction,
 	playCardAction *action.PlayCardAction,
+	launchAsteroidAction *action.LaunchAsteroidAction,
+	buildPowerPlantAction *action.BuildPowerPlantAction,
+	buildAquiferAction *action.BuildAquiferAction,
+	plantGreeneryAction *action.PlantGreeneryAction,
+	sellPatentsAction *action.SellPatentsAction,
+	confirmSellPatentsAction *action.ConfirmSellPatentsAction,
+	convertHeatAction *action.ConvertHeatToTemperatureAction,
+	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
+	confirmCardDrawAction *action.ConfirmCardDrawAction,
 ) *WebSocketService {
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, sessionManager, gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction)
+	RegisterHandlers(hub, sessionManager, gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, eventBus, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction, launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction, sellPatentsAction, confirmSellPatentsAction, convertHeatAction, convertPlantsAction, confirmCardDrawAction)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

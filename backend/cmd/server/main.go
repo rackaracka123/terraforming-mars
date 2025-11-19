@@ -85,9 +85,6 @@ func main() {
 			zap.Int("total_cards", len(allCards)))
 	}
 
-	// Initialize new service architecture
-	cardDeckRepo := repository.NewCardDeckRepository()
-
 	// Create Hub first (no dependencies)
 	hub := core.NewHub()
 
@@ -104,8 +101,12 @@ func main() {
 	log.Info("🎲 Board processor initialized")
 
 	// Initialize TileProcessor for tile queue processing
-	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor)
+	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, eventBus)
 	log.Info("🎯 Tile processor initialized")
+
+	// Subscribe TileProcessor to events for automatic queue processing
+	tileProcessor.SubscribeToEvents()
+	log.Info("🎆 TileProcessor subscribed to TileQueueCreatedEvent")
 
 	// Initialize SessionManager for WebSocket broadcasting with Hub and event subscriptions
 	// CRITICAL: Uses NEW repositories to match action pattern storage
@@ -139,32 +140,52 @@ func main() {
 	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
 
 	// Initialize CardManager for card playing logic (session-based)
-	cardManager := sessionCard.NewCardManager(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, effectSubscriber)
+	// UPDATED: Now uses NEW deck repository instead of OLD CardDeckRepository
+	cardManager := sessionCard.NewCardManager(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, effectSubscriber)
 	log.Info("🎴 Card manager initialized")
 
 	// Initialize PlayCardAction for playing cards from hand
 	playCardAction := action.NewPlayCardAction(newGameRepo, newPlayerRepo, cardManager, tileProcessor, sessionManager)
 	log.Info("✅ PlayCardAction initialized")
 
+	// Initialize standard project actions
+	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, newPlayerRepo, sessionManager)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, newPlayerRepo, sessionManager)
+	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, newPlayerRepo, sessionManager)
+	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, newPlayerRepo, sessionManager)
+	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, newPlayerRepo, sessionManager)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, newPlayerRepo, sessionManager)
+	log.Info("✅ Standard project actions initialized")
+
+	// Initialize resource conversion actions
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, newPlayerRepo, sessionManager)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, newPlayerRepo, sessionManager)
+	log.Info("✅ Resource conversion actions initialized")
+
 	// Initialize forced action manager for corporation forced first actions
 	// UPDATED: Now uses NEW session repositories (newPlayerRepo, newGameRepo) to match event sources
-	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, cardDeckRepo)
+	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	log.Info("🎯 Forced action manager initialized and subscribed to phase changes (using session repos)")
+	forcedActionManager.SubscribeToCardDrawEvents()
+	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
+
+	// Initialize card selection confirmation actions
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, newPlayerRepo, sessionManager, eventBus)
+	log.Info("✅ Card selection confirmation actions initialized")
 
 	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
-	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW tileProcessor
-	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
+	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW deckRepo
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
 	// PlayerService needs TileService for processing queues after tile placement
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, newDeckRepo, boardService, sessionManager)
 
 	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
 	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
+	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, newDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
 
 	log.Info("Services initialized with new architecture and reconnection system")
 
@@ -185,7 +206,16 @@ func main() {
 	}
 
 	// Initialize WebSocket service with shared Hub and new actions
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub, sessionManager, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction)
+	webSocketService := wsHandler.NewWebSocketService(
+		gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService,
+		gameRepo, playerRepo, cardRepo, hub, sessionManager, eventBus,
+		startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
+		buildCityAction, selectTileAction, playCardAction,
+		launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction,
+		sellPatentsAction, confirmSellPatentsAction,
+		convertHeatAction, convertPlantsAction,
+		confirmCardDrawAction,
+	)
 
 	// Start WebSocket service in background
 	wsCtx, wsCancel := context.WithCancel(ctx)

@@ -115,11 +115,10 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 
 	log.Info("🧹 Cleared pending tile selection")
 
-	// Process next tile in queue (if any)
-	if err := a.tileProcessor.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Warn("⚠️  Failed to process next tile in queue", zap.Error(err))
-		// Don't fail the action if queue processing fails
-	}
+	// Next tile processing (now automatic via TileQueueCreatedEvent)
+	// When ProcessNextTileInQueue was called during tile placement validation,
+	// it published an event if more tiles remain in the queue
+	// No manual call needed - TileProcessor will automatically process the next tile
 
 	// Broadcast updated game state
 	a.BroadcastGameState(gameID, log)

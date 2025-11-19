@@ -17,12 +17,13 @@ const (
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
 	// Standard project message types
-	MessageTypeActionSellPatents     MessageType = "action.standard-project.sell-patents"
-	MessageTypeActionLaunchAsteroid  MessageType = "action.standard-project.launch-asteroid"
-	MessageTypeActionBuildPowerPlant MessageType = "action.standard-project.build-power-plant"
-	MessageTypeActionBuildAquifer    MessageType = "action.standard-project.build-aquifer"
-	MessageTypeActionPlantGreenery   MessageType = "action.standard-project.plant-greenery"
-	MessageTypeActionBuildCity       MessageType = "action.standard-project.build-city"
+	MessageTypeActionSellPatents        MessageType = "action.standard-project.sell-patents"
+	MessageTypeActionConfirmSellPatents MessageType = "action.standard-project.confirm-sell-patents"
+	MessageTypeActionLaunchAsteroid     MessageType = "action.standard-project.launch-asteroid"
+	MessageTypeActionBuildPowerPlant    MessageType = "action.standard-project.build-power-plant"
+	MessageTypeActionBuildAquifer       MessageType = "action.standard-project.build-aquifer"
+	MessageTypeActionPlantGreenery      MessageType = "action.standard-project.plant-greenery"
+	MessageTypeActionBuildCity          MessageType = "action.standard-project.build-city"
 
 	// Resource conversion message types
 	MessageTypeActionConvertPlantsToGreenery  MessageType = "action.resource-conversion.convert-plants-to-greenery"

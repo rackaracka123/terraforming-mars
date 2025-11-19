@@ -3,58 +3,45 @@ package convert_plants_to_greenery
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles convert plants to greenery action requests
 type Handler struct {
-	resourceConversionService service.ResourceConversionService
-	errorHandler              *utils.ErrorHandler
-	logger                    *zap.Logger
+	convertPlantsAction *action.ConvertPlantsToGreeneryAction
 }
 
 // NewHandler creates a new convert plants to greenery handler
-func NewHandler(resourceConversionService service.ResourceConversionService) *Handler {
+func NewHandler(convertPlantsAction *action.ConvertPlantsToGreeneryAction) *Handler {
 	return &Handler{
-		resourceConversionService: resourceConversionService,
-		errorHandler:              utils.NewErrorHandler(),
-		logger:                    logger.Get(),
+		convertPlantsAction: convertPlantsAction,
 	}
 }
 
 // HandleMessage implements the MessageHandler interface
 func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
-	playerID, gameID := connection.GetPlayer()
-	if playerID == "" || gameID == "" {
-		h.logger.Warn("Convert plants to greenery action received from unassigned connection",
-			zap.String("connection_id", connection.ID))
-		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
+	log := logger.Get().With(
+		zap.String("connection_id", connection.ID),
+		zap.String("player_id", connection.PlayerID),
+		zap.String("game_id", connection.GameID))
+
+	log.Debug("🌱 Processing convert plants to greenery action")
+
+	// Execute the convert plants to greenery action
+	err := h.convertPlantsAction.Execute(ctx, connection.GameID, connection.PlayerID)
+	if err != nil {
+		log.Error("Failed to execute convert plants to greenery action", zap.Error(err))
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": err.Error()},
+		}
 		return
 	}
 
-	h.logger.Debug("🌱 client→server: initiate plant conversion",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
-
-	// Initiate plant conversion (deducts plants, creates pending tile selection)
-	if err := h.resourceConversionService.InitiatePlantConversion(ctx, gameID, playerID); err != nil {
-		h.logger.Error("Failed to initiate plant conversion",
-			zap.Error(err),
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID))
-		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
-		return
-	}
-
-	h.logger.Info("✅ Plant conversion initiated successfully",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+	log.Info("✅ Convert plants to greenery action completed successfully")
 }

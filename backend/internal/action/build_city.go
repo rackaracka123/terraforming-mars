@@ -94,16 +94,27 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 
 	log.Info("📋 Created tile queue for city placement")
 
-	// 7. Process tile queue (validates, calculates hexes, sets pendingTileSelection)
-	err = a.tileProcessor.ProcessTileQueue(ctx, gameID, playerID)
+	// 7. Tile queue processing (now automatic via TileQueueCreatedEvent)
+	// No manual call needed - TileProcessor subscribes to events and processes automatically
+
+	// 8. Consume action (only if not unlimited actions)
+	// Refresh player data after tile queue creation
+	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
 	if err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
+		return err
 	}
 
-	log.Info("🎯 Tile queue processed, pending selection set")
+	if p.AvailableActions > 0 {
+		newActions := p.AvailableActions - 1
+		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+		if err != nil {
+			log.Error("Failed to consume action", zap.Error(err))
+			return fmt.Errorf("failed to consume action: %w", err)
+		}
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	}
 
-	// 8. Broadcast state
+	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ City built successfully, tile queued for placement",

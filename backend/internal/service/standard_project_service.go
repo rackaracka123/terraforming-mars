@@ -348,11 +348,8 @@ func (s *StandardProjectServiceImpl) executeTileQueuedProject(ctx context.Contex
 		return fmt.Errorf("failed to create tile queue: %w", err)
 	}
 
-	// Process tile queue to set pendingTileSelection with available hexes
-	if err := s.tileService.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
+	// Tile queue processing (now automatic via TileQueueCreatedEvent)
+	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
 	// Broadcast game state (includes pendingTileSelection)
 	if err := s.sessionManager.Broadcast(gameID); err != nil {

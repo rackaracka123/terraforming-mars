@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game/deck"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -51,7 +52,7 @@ type GameServiceImpl struct {
 	playerRepo     repository.PlayerRepository
 	cardRepo       repository.CardRepository
 	cardService    CardService
-	cardDeckRepo   repository.CardDeckRepository
+	deckRepo       deck.Repository
 	boardService   BoardService
 	sessionManager session.SessionManager
 }
@@ -62,7 +63,7 @@ func NewGameService(
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
 	cardService CardService,
-	cardDeckRepo repository.CardDeckRepository,
+	deckRepo deck.Repository,
 	boardService BoardService,
 	sessionManager session.SessionManager,
 ) GameService {
@@ -71,7 +72,7 @@ func NewGameService(
 		playerRepo:     playerRepo,
 		cardRepo:       cardRepo,
 		cardService:    cardService,
-		cardDeckRepo:   cardDeckRepo,
+		deckRepo:       deckRepo,
 		boardService:   boardService,
 		sessionManager: sessionManager,
 	}
@@ -137,7 +138,8 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 		zap.Int("total_available", len(allProjectCards)),
 		zap.Int("filtered_count", len(projectCards)))
 
-	if err := s.cardDeckRepo.InitializeDeck(ctx, game.ID, projectCards); err != nil {
+	// Create deck using NEW deck repository
+	if err := s.deckRepo.CreateDeck(ctx, game.ID, settings); err != nil {
 		log.Error("Failed to initialize card deck", zap.Error(err))
 		return model.Game{}, fmt.Errorf("failed to initialize card deck: %w", err)
 	}
@@ -968,18 +970,13 @@ func (s *GameServiceImpl) executeProductionPhase(ctx context.Context, gameID str
 		}
 
 		// Draw 4 cards from deck for production phase card selection
-		drawnCards := []string{}
-		for i := 0; i < 4; i++ {
-			cardID, err := s.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Warn("Failed to draw card from deck for production phase",
-					zap.String("player_id", player.ID),
-					zap.Int("drawn_so_far", i),
-					zap.Error(err))
-				// If we can't draw more cards, continue with whatever we have
-				break
-			}
-			drawnCards = append(drawnCards, cardID)
+		drawnCards, err := s.deckRepo.DrawProjectCards(ctx, gameID, 4)
+		if err != nil {
+			log.Warn("Failed to draw cards from deck for production phase",
+				zap.String("player_id", player.ID),
+				zap.Error(err))
+			// If we can't draw cards, use empty slice
+			drawnCards = []string{}
 		}
 
 		log.Debug("Drew cards for production phase",

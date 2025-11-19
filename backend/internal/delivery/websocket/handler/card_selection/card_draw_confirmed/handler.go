@@ -3,30 +3,26 @@ package card_draw_confirmed
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles card draw confirmation requests
 type Handler struct {
-	cardService  service.CardService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	confirmCardDrawAction *action.ConfirmCardDrawAction
+	parser                *utils.MessageParser
 }
 
 // NewHandler creates a new card draw confirmation handler
-func NewHandler(cardService service.CardService, parser *utils.MessageParser) *Handler {
+func NewHandler(confirmCardDrawAction *action.ConfirmCardDrawAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		confirmCardDrawAction: confirmCardDrawAction,
+		parser:                parser,
 	}
 }
 
@@ -38,45 +34,36 @@ type CardDrawConfirmedRequest struct {
 
 // HandleMessage implements the MessageHandler interface
 func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection, message dto.WebSocketMessage) {
-	playerID, gameID := connection.GetPlayer()
-	if playerID == "" || gameID == "" {
-		h.logger.Warn("Card draw confirmation received from unassigned connection",
-			zap.String("connection_id", connection.ID))
-		h.errorHandler.SendError(connection, utils.ErrMustConnectFirst)
-		return
-	}
-
-	h.logger.Debug("🃏 Processing card draw confirmation",
+	log := logger.Get().With(
 		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID))
+		zap.String("player_id", connection.PlayerID),
+		zap.String("game_id", connection.GameID))
+
+	log.Debug("🃏 Processing card draw confirmation")
 
 	// Parse the action payload
 	var request CardDrawConfirmedRequest
 	if err := h.parser.ParsePayload(message.Payload, &request); err != nil {
-		h.logger.Error("Failed to parse card draw confirmation payload",
-			zap.Error(err),
-			zap.String("player_id", playerID))
-		h.errorHandler.SendError(connection, utils.ErrInvalidPayload)
+		log.Error("Failed to parse card draw confirmation payload", zap.Error(err))
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": "invalid payload format"},
+		}
 		return
 	}
 
-	// Execute the card draw confirmation
-	if err := h.cardService.OnConfirmCardDraw(ctx, gameID, playerID, request.CardsToTake, request.CardsToBuy); err != nil {
-		h.logger.Error("Failed to process card draw confirmation",
-			zap.Error(err),
-			zap.String("player_id", playerID),
-			zap.String("game_id", gameID),
-			zap.Int("cards_to_take_count", len(request.CardsToTake)),
-			zap.Int("cards_to_buy_count", len(request.CardsToBuy)))
-		h.errorHandler.SendError(connection, utils.ErrActionFailed+": "+err.Error())
+	// Execute the confirm card draw action
+	err := h.confirmCardDrawAction.Execute(ctx, connection.GameID, connection.PlayerID, request.CardsToTake, request.CardsToBuy)
+	if err != nil {
+		log.Error("Failed to execute confirm card draw action", zap.Error(err))
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": err.Error()},
+		}
 		return
 	}
 
-	h.logger.Info("✅ Card draw confirmation completed successfully",
-		zap.String("connection_id", connection.ID),
-		zap.String("player_id", playerID),
-		zap.String("game_id", gameID),
+	log.Info("✅ Card draw confirmation completed successfully",
 		zap.Int("cards_taken", len(request.CardsToTake)),
 		zap.Int("cards_bought", len(request.CardsToBuy)))
 }

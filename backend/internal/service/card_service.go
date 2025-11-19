@@ -9,10 +9,10 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/game/tile"
 )
@@ -53,7 +53,7 @@ type CardServiceImpl struct {
 	gameRepo       sessionGame.Repository
 	playerRepo     player.Repository
 	cardRepo       sessionCard.Repository
-	cardDeckRepo   repository.CardDeckRepository
+	deckRepo       deck.Repository
 	sessionManager session.SessionManager
 
 	// Specialized managers from session-scoped card package
@@ -67,16 +67,16 @@ type CardServiceImpl struct {
 }
 
 // NewCardService creates a new CardService instance with session-based repositories
-func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, cardDeckRepo repository.CardDeckRepository, sessionManager session.SessionManager, tileProcessor *tile.Processor, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, deckRepo deck.Repository, sessionManager session.SessionManager, tileProcessor *tile.Processor, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
-		cardDeckRepo:          cardDeckRepo,
+		deckRepo:              deckRepo,
 		sessionManager:        sessionManager,
 		requirementsValidator: sessionCard.NewRequirementsValidator(cardRepo),
-		effectProcessor:       sessionCard.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo),
-		cardManager:           sessionCard.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber),
+		effectProcessor:       sessionCard.NewCardProcessor(gameRepo, playerRepo, deckRepo),
+		cardManager:           sessionCard.NewCardManager(gameRepo, playerRepo, cardRepo, deckRepo, effectSubscriber),
 		tileProcessor:         tileProcessor,
 		forcedActionManager:   forcedActionManager,
 	}
@@ -432,12 +432,8 @@ func (s *CardServiceImpl) OnPlayCard(ctx context.Context, gameID, playerID, card
 		return fmt.Errorf("failed to play card: %w", err)
 	}
 
-	// STEP 4: Process any tile queue created by the card
-	if err := s.tileProcessor.ProcessTileQueue(ctx, gameID, playerID); err != nil {
-		log.Error("Failed to process tile queue", zap.Error(err))
-		return fmt.Errorf("card played but failed to process tile queue: %w", err)
-	}
-	log.Debug("🎯 Tile queue processed (if any existed)")
+	// STEP 4: Tile queue processing (now automatic via TileQueueCreatedEvent)
+	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
 	// TODO: Re-enable action consumption during migration
 	// STEP 5: Service-level post-play actions (consume action, broadcast)
@@ -605,20 +601,19 @@ func (s *CardServiceImpl) OnPlayCardAction(ctx context.Context, gameID, playerID
 		return fmt.Errorf("failed to increment action play count: %w", err)
 	}
 
-	// TODO: Re-enable action consumption during migration
 	// Consume one action now that all steps have succeeded
-	// if player.AvailableActions > 0 {
-	// 	newActions := player.AvailableActions - 1
-	// 	if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
-	// 		log.Error("Failed to consume player action", zap.Error(err))
-	// 		// Note: Action has already been applied, but we couldn't consume the action
-	// 		// This is a critical error but we don't rollback the entire action
-	// 		return fmt.Errorf("action applied but failed to consume available action: %w", err)
-	// 	}
-	// 	log.Debug("🎯 Action consumed", zap.Int("remaining_actions", newActions))
-	// } else {
-	// 	log.Debug("🎯 Action consumed (unlimited actions)", zap.Int("available_actions", -1))
-	// }
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		if err := s.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
+			log.Error("Failed to consume player action", zap.Error(err))
+			// Note: Action has already been applied, but we couldn't consume the action
+			// This is a critical error but we don't rollback the entire action
+			return fmt.Errorf("action applied but failed to consume available action: %w", err)
+		}
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	} else {
+		log.Debug("✅ Action consumed (unlimited actions)", zap.Int("available_actions", -1))
+	}
 
 	// Broadcast game state update
 	if err := s.sessionManager.Broadcast(gameID); err != nil {
@@ -1014,35 +1009,31 @@ func (s *CardServiceImpl) applyActionCardDrawPeekEffects(ctx context.Context, ga
 
 	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
 		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
-		// Pop cards from deck and auto-select all
-		for i := 0; i < cardDrawAmount; i++ {
-			cardID, err := s.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck", zap.Error(err))
-				return fmt.Errorf("failed to draw card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck and auto-select all
+		drawnCards, err := s.deckRepo.DrawProjectCards(ctx, gameID, cardDrawAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck", zap.Error(err))
+			return fmt.Errorf("failed to draw card: %w", err)
 		}
+		cardsToShow = drawnCards
 
 		// For card-draw, player must take all cards (freeTakeCount = number of cards)
-		freeTakeCount = cardDrawAmount
+		freeTakeCount = len(drawnCards)
 		maxBuyCount = 0
 
 		log.Info("🃏 Card draw effect detected (from action)",
 			zap.String("source_card_id", sourceCardID),
-			zap.Int("cards_to_draw", cardDrawAmount))
+			zap.Int("cards_to_draw", len(drawnCards)))
 
 	} else if cardPeekAmount > 0 {
 		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
-		// Pop cards from deck (they won't be returned)
-		for i := 0; i < cardPeekAmount; i++ {
-			cardID, err := s.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck for peek", zap.Error(err))
-				return fmt.Errorf("failed to peek card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck to peek at them (they won't be returned)
+		peekedCards, err := s.deckRepo.DrawProjectCards(ctx, gameID, cardPeekAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck for peek", zap.Error(err))
+			return fmt.Errorf("failed to peek card: %w", err)
 		}
+		cardsToShow = peekedCards
 
 		// If card-draw is combined with card-peek, the draw amount becomes mandatory takes
 		// card-take adds optional takes on top
@@ -1051,7 +1042,7 @@ func (s *CardServiceImpl) applyActionCardDrawPeekEffects(ctx context.Context, ga
 
 		log.Info("🃏 Card peek effect detected (from action)",
 			zap.String("source_card_id", sourceCardID),
-			zap.Int("cards_to_peek", cardPeekAmount),
+			zap.Int("cards_to_peek", len(peekedCards)),
 			zap.Int("card_draw_amount", cardDrawAmount),
 			zap.Int("card_take_amount", cardTakeAmount),
 			zap.Int("free_take_count", freeTakeCount),

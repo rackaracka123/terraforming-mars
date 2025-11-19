@@ -11,6 +11,16 @@ type SelectStartingCardsPhase struct {
 	AvailableCorporations []string `json:"availableCorporations"`
 }
 
+// PendingCardSelection represents a pending card selection action (e.g., sell patents)
+type PendingCardSelection struct {
+	Source         string         `json:"source"`         // Action source (e.g., "sell-patents")
+	AvailableCards []string       `json:"availableCards"` // Card IDs that can be selected
+	CardCosts      map[string]int `json:"cardCosts"`      // Cost per card (M€)
+	CardRewards    map[string]int `json:"cardRewards"`    // Reward per card (M€)
+	MinCards       int            `json:"minCards"`       // Minimum cards to select
+	MaxCards       int            `json:"maxCards"`       // Maximum cards to select
+}
+
 // Player represents a player in the game
 // Expanded to support full game logic including cards, actions, and effects
 type Player struct {
@@ -37,6 +47,7 @@ type Player struct {
 	PendingTileSelection      *model.PendingTileSelection      `json:"pendingTileSelection"`      // Pending tile selection
 	PendingTileSelectionQueue *model.PendingTileSelectionQueue `json:"pendingTileSelectionQueue"` // Pending tile selection queue
 	PendingCardDrawSelection  *model.PendingCardDrawSelection  `json:"pendingCardDrawSelection"`  // Pending card draw selection
+	PendingCardSelection      *PendingCardSelection            `json:"pendingCardSelection"`      // Pending card selection (e.g., sell patents)
 	ResourceStorage           map[string]int                   `json:"resourceStorage"`           // Card resource storage (animals, microbes, etc.)
 }
 
@@ -77,6 +88,7 @@ func NewPlayer(name string) *Player {
 		PendingTileSelection:      nil,
 		PendingTileSelectionQueue: nil,
 		PendingCardDrawSelection:  nil,
+		PendingCardSelection:      nil,
 		ResourceStorage:           make(map[string]int),
 	}
 }

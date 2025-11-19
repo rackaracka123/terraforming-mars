@@ -79,7 +79,8 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	// 6. Determine PASS vs SKIP behavior
-	isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1
+	// Solo games: skip always means pass (player is done with generation)
+	isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1 || len(players) == 1
 	if isPassing {
 		// PASS: Player hasn't done any actions or has unlimited actions
 		err = a.playerRepo.UpdatePassed(ctx, gameID, playerID, true)
@@ -129,6 +130,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	for _, p := range players {
 		if p.Passed {
 			passedCount++
+			continue // Skip remaining checks - this player is done
 		} else if p.AvailableActions == 0 {
 			playersWithNoActions++
 		} else if p.AvailableActions > 0 || p.AvailableActions == -1 {
