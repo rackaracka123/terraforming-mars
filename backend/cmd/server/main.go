@@ -17,9 +17,6 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/card"
@@ -64,29 +61,6 @@ func main() {
 	}
 	log.Info("🎴 NEW deck repository initialized with card definitions")
 
-	// Initialize individual repositories with event bus
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	log.Info("Player repository initialized")
-
-	gameRepo := repository.NewGameRepository(eventBus)
-	log.Info("Game repository initialized")
-
-	// Initialize card repository and load cards
-	cardRepo := repository.NewCardRepository()
-	if err := cardRepo.LoadCards(context.Background()); err != nil {
-		log.Warn("Failed to load card data, using fallback cards", zap.Error(err))
-	} else {
-		allCards, _ := cardRepo.GetAllCards(context.Background())
-		projectCards, _ := cardRepo.GetProjectCards(context.Background())
-		corporationCards, _ := cardRepo.GetCorporationCards(context.Background())
-		preludeCards, _ := cardRepo.GetPreludeCards(context.Background())
-		log.Info("📚 OLD card data loaded successfully (backup)",
-			zap.Int("project_cards", len(projectCards)),
-			zap.Int("corporation_cards", len(corporationCards)),
-			zap.Int("prelude_cards", len(preludeCards)),
-			zap.Int("total_cards", len(allCards)))
-	}
-
 	// Create Hub first (no dependencies)
 	hub := core.NewHub()
 
@@ -94,7 +68,7 @@ func main() {
 	// Initialize new repositories BEFORE SessionManager to ensure state consistency
 	newGameRepo := game.NewRepository(eventBus)
 	newPlayerRepo := player.NewRepository(eventBus)
-	newCardRepo := sessionCard.NewRepository(newDeckRepo, cardRepo) // Use NEW deck repo + OLD as backup
+	newCardRepo := sessionCard.NewRepository(newDeckRepo) // Use NEW deck repository
 	newBoardRepo := board.NewRepository(eventBus)
 	log.Info("🗺️  Board repository initialized")
 
@@ -118,19 +92,21 @@ func main() {
 	startGameAction := action.NewStartGameAction(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager)
 	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
 	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
+	playerReconnectedAction := action.NewPlayerReconnectedAction(newGameRepo, newPlayerRepo, sessionManager)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(newGameRepo, newPlayerRepo, sessionManager)
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
 	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManager)
 	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
 	buildCityAction := action.NewBuildCityAction(newGameRepo, newPlayerRepo, tileProcessor, sessionManager)
 
 	// Initialize BonusCalculator for tile placement bonuses
-	bonusCalculator := tile.NewBonusCalculator(newGameRepo, newPlayerRepo, newBoardRepo)
+	bonusCalculator := tile.NewBonusCalculator(newGameRepo, newPlayerRepo, newBoardRepo, newDeckRepo)
 	log.Info("🎁 Bonus calculator initialized")
 
 	// Initialize SelectTileAction for tile placement
 	selectTileAction := action.NewSelectTileAction(newGameRepo, newPlayerRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManager)
 
-	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
+	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, player_reconnected, player_disconnected, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
 	// ================================================================
 
 	// Initialize services in dependency order
@@ -162,8 +138,8 @@ func main() {
 	log.Info("✅ Resource conversion actions initialized")
 
 	// Initialize forced action manager for corporation forced first actions
-	// UPDATED: Now uses NEW session repositories (newPlayerRepo, newGameRepo) to match event sources
-	forcedActionManager := card.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
+	// UPDATED: Now uses NEW session repositories (newPlayerRepo, newGameRepo, newCardRepo) to match event sources
+	forcedActionManager := card.NewForcedActionManager(eventBus, newCardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	forcedActionManager.SubscribeToCardDrawEvents()
 	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
@@ -173,59 +149,44 @@ func main() {
 	log.Info("✅ Card selection confirmation actions initialized")
 
 	// Initialize admin actions
+	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
+	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, newPlayerRepo, sessionManager)
+	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, newPlayerRepo, sessionManager)
+	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, newPlayerRepo, sessionManager)
+	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, newPlayerRepo, sessionManager)
 	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, sessionManager)
+	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, newPlayerRepo, sessionManager)
+	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, newPlayerRepo, sessionManager)
 	log.Info("✅ Admin actions initialized")
 
 	// Initialize query actions for HTTP handlers
-	getGameAction := queryaction.NewGetGameAction(newGameRepo, newPlayerRepo, playerRepo, cardRepo, sessionManager)
-	listGamesAction := queryaction.NewListGamesAction(newGameRepo, newPlayerRepo, gameRepo, sessionManager)
-	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo, newPlayerRepo, playerRepo, sessionManager)
-	listCardsAction := queryaction.NewListCardsAction(newGameRepo, newPlayerRepo, cardRepo, sessionManager)
-	getCorporationsAction := queryaction.NewGetCorporationsAction(newGameRepo, newPlayerRepo, cardRepo, sessionManager)
+	getGameAction := queryaction.NewGetGameAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
+	listGamesAction := queryaction.NewListGamesAction(newGameRepo, newPlayerRepo, sessionManager)
+	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo, newPlayerRepo, sessionManager)
+	listCardsAction := queryaction.NewListCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
+	getCorporationsAction := queryaction.NewGetCorporationsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManager)
 	log.Info("✅ Query actions initialized for HTTP handlers")
 
-	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
-	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW deckRepo
-	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
-	log.Info("SessionManager initialized for service-level broadcasting")
+	// Initialize CardProcessor for card action execution
+	cardProcessor := sessionCard.NewCardProcessor(newGameRepo, newPlayerRepo, newDeckRepo)
+	log.Info("🎴 Card processor initialized")
 
-	// PlayerService
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, forcedActionManager, eventBus)
-
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, newDeckRepo, sessionManager)
-
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, sessionManager, eventBus)
-	adminService := service.NewAdminService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
-
-	log.Info("Services initialized with new architecture and reconnection system")
-
-	// Log service initialization
-	log.Info("Player service ready", zap.Any("service", playerService != nil))
-	log.Info("Game service ready", zap.Any("service", gameService != nil))
-
-	log.Info("Game management service initialized and ready")
-	log.Info("Consolidated repositories working correctly")
-
-	// Show that the service is working by testing it
-	ctx := context.Background()
-	testGame, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
-	if err != nil {
-		log.Error("Failed to create test game", zap.Error(err))
-	} else {
-		log.Info("Test game created", zap.String("game_id", testGame.ID))
-	}
+	// Initialize card action execution action (fully migrated to session-based architecture)
+	executeCardActionAction := action.NewExecuteCardActionAction(newGameRepo, newPlayerRepo, sessionManager, cardProcessor, newDeckRepo)
+	log.Info("✅ Execute card action action fully migrated to session-based architecture")
 
 	// Initialize WebSocket service with shared Hub and new actions
+	ctx := context.Background()
 	webSocketService := wsHandler.NewWebSocketService(
-		gameService, playerService, cardService, adminService, resourceConversionService,
-		gameRepo, playerRepo, cardRepo, newGameRepo, newPlayerRepo, hub, sessionManager, eventBus,
-		startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
-		buildCityAction, selectTileAction, playCardAction,
+		newGameRepo, newPlayerRepo, hub, sessionManager,
+		startGameAction, joinGameAction, playerReconnectedAction, playerDisconnectedAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
+		buildCityAction, selectTileAction, playCardAction, executeCardActionAction,
 		launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction,
 		sellPatentsAction, confirmSellPatentsAction,
 		convertHeatAction, convertPlantsAction,
 		confirmCardDrawAction,
-		startTileSelectionAdminAction,
+		giveCardAdminAction, setPhaseAdminAction, setResourcesAdminAction, setProductionAdminAction,
+		setGlobalParametersAdminAction, startTileSelectionAdminAction, setCurrentTurnAdminAction, setCorporationAdminAction,
 	)
 
 	// Start WebSocket service in background

@@ -1,7 +1,7 @@
 package card
 
 import (
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 //   - baseCost: The base cost before discounts (typically 8)
 //
 // Returns the final cost after applying all applicable discounts (minimum 1).
-func CalculateResourceConversionCost(player *model.Player, conversionType model.StandardProject, baseCost int) int {
+func CalculateResourceConversionCost(player *types.Player, conversionType types.StandardProject, baseCost int) int {
 	if player == nil || player.Effects == nil {
 		return baseCost
 	}
@@ -30,7 +30,7 @@ func CalculateResourceConversionCost(player *model.Player, conversionType model.
 		// Check each output in the effect's behavior
 		for _, output := range effect.Behavior.Outputs {
 			// Check if this is a discount effect
-			if output.Type != model.ResourceDiscount {
+			if output.Type != types.ResourceDiscount {
 				continue
 			}
 
@@ -54,7 +54,7 @@ func CalculateResourceConversionCost(player *model.Player, conversionType model.
 }
 
 // containsStandardProject checks if a slice contains a specific standard project
-func containsStandardProject(projects []model.StandardProject, target model.StandardProject) bool {
+func containsStandardProject(projects []types.StandardProject, target types.StandardProject) bool {
 	for _, project := range projects {
 		if project == target {
 			return true

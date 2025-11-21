@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -55,9 +56,11 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 		return err
 	}
 
-	// 4. Calculate required heat
-	// TODO: Implement card discount calculation when player model conversion is available
-	requiredHeat := BaseHeatForTemperature
+	// 4. Calculate required heat (with card discount effects)
+	requiredHeat := card.CalculateResourceConversionCost(p, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	log.Debug("💰 Calculated heat cost",
+		zap.Int("base_cost", BaseHeatForTemperature),
+		zap.Int("final_cost", requiredHeat))
 
 	// 5. Validate player has enough heat
 	if p.Resources.Heat < requiredHeat {
@@ -82,10 +85,10 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 
 	// 7. Raise temperature by 1 step (+2°C) if not already maxed
 	temperatureRaised := false
-	if g.GlobalParameters.Temperature < model.MaxTemperature {
+	if g.GlobalParameters.Temperature < types.MaxTemperature {
 		newTemperature := g.GlobalParameters.Temperature + 2 // Each step is 2°C
-		if newTemperature > model.MaxTemperature {
-			newTemperature = model.MaxTemperature
+		if newTemperature > types.MaxTemperature {
+			newTemperature = types.MaxTemperature
 		}
 
 		err = a.gameRepo.UpdateTemperature(ctx, gameID, newTemperature)

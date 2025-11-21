@@ -10,36 +10,51 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/service"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles admin command requests (development mode only)
 type Handler struct {
-	gameRepo                      sessionGame.Repository
-	gameService                   service.GameService
-	playerService                 service.PlayerService
-	cardService                   service.CardService
-	adminService                  service.AdminService
-	startTileSelectionAdminAction *adminaction.StartTileSelectionAction
-	errorHandler                  *utils.ErrorHandler
-	logger                        *zap.Logger
+	gameRepo                  sessionGame.Repository
+	giveCardAction            *adminaction.GiveCardAction
+	setPhaseAction            *adminaction.SetPhaseAction
+	setResourcesAction        *adminaction.SetResourcesAction
+	setProductionAction       *adminaction.SetProductionAction
+	setGlobalParametersAction *adminaction.SetGlobalParametersAction
+	startTileSelectionAction  *adminaction.StartTileSelectionAction
+	setCurrentTurnAction      *adminaction.SetCurrentTurnAction
+	setCorporationAction      *adminaction.SetCorporationAction
+	errorHandler              *utils.ErrorHandler
+	logger                    *zap.Logger
 }
 
 // NewHandler creates a new admin command handler
-func NewHandler(gameRepo sessionGame.Repository, gameService service.GameService, playerService service.PlayerService, cardService service.CardService, adminService service.AdminService, startTileSelectionAdminAction *adminaction.StartTileSelectionAction) *Handler {
+func NewHandler(
+	gameRepo sessionGame.Repository,
+	giveCardAction *adminaction.GiveCardAction,
+	setPhaseAction *adminaction.SetPhaseAction,
+	setResourcesAction *adminaction.SetResourcesAction,
+	setProductionAction *adminaction.SetProductionAction,
+	setGlobalParametersAction *adminaction.SetGlobalParametersAction,
+	startTileSelectionAction *adminaction.StartTileSelectionAction,
+	setCurrentTurnAction *adminaction.SetCurrentTurnAction,
+	setCorporationAction *adminaction.SetCorporationAction,
+) *Handler {
 	return &Handler{
-		gameRepo:                      gameRepo,
-		gameService:                   gameService,
-		playerService:                 playerService,
-		cardService:                   cardService,
-		adminService:                  adminService,
-		startTileSelectionAdminAction: startTileSelectionAdminAction,
-		errorHandler:                  utils.NewErrorHandler(),
-		logger:                        logger.Get(),
+		gameRepo:                  gameRepo,
+		giveCardAction:            giveCardAction,
+		setPhaseAction:            setPhaseAction,
+		setResourcesAction:        setResourcesAction,
+		setProductionAction:       setProductionAction,
+		setGlobalParametersAction: setGlobalParametersAction,
+		startTileSelectionAction:  startTileSelectionAction,
+		setCurrentTurnAction:      setCurrentTurnAction,
+		setCorporationAction:      setCorporationAction,
+		errorHandler:              utils.NewErrorHandler(),
+		logger:                    logger.Get(),
 	}
 }
 
@@ -158,8 +173,8 @@ func (h *Handler) handleGiveCard(ctx context.Context, gameID string, payload int
 		zap.String("player_id", command.PlayerID),
 		zap.String("card_id", command.CardID))
 
-	// Use AdminService to give the card
-	return h.adminService.OnAdminGiveCard(ctx, gameID, command.PlayerID, command.CardID)
+	// Use admin action to give the card
+	return h.giveCardAction.Execute(ctx, gameID, command.PlayerID, command.CardID)
 }
 
 // handleSetPhase sets the game phase
@@ -173,8 +188,8 @@ func (h *Handler) handleSetPhase(ctx context.Context, gameID string, payload int
 		zap.String("game_id", gameID),
 		zap.String("phase", command.Phase))
 
-	// Use AdminService to set the phase
-	return h.adminService.OnAdminSetPhase(ctx, gameID, model.GamePhase(command.Phase))
+	// Use admin action to set the phase
+	return h.setPhaseAction.Execute(ctx, gameID, types.GamePhase(command.Phase))
 }
 
 // handleSetResources sets a player's resources
@@ -190,7 +205,7 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		zap.Any("resources", command.Resources))
 
 	// Convert DTO to model
-	resources := model.Resources{
+	resources := types.Resources{
 		Credits:  command.Resources.Credits,
 		Steel:    command.Resources.Steel,
 		Titanium: command.Resources.Titanium,
@@ -199,8 +214,8 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		Heat:     command.Resources.Heat,
 	}
 
-	// Use AdminService to set resources
-	return h.adminService.OnAdminSetResources(ctx, gameID, command.PlayerID, resources)
+	// Use admin action to set resources
+	return h.setResourcesAction.Execute(ctx, gameID, command.PlayerID, resources)
 }
 
 // handleSetProduction sets a player's production
@@ -216,7 +231,7 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		zap.Any("production", command.Production))
 
 	// Convert DTO to model
-	production := model.Production{
+	production := types.Production{
 		Credits:  command.Production.Credits,
 		Steel:    command.Production.Steel,
 		Titanium: command.Production.Titanium,
@@ -225,8 +240,8 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		Heat:     command.Production.Heat,
 	}
 
-	// Use AdminService to set production
-	return h.adminService.OnAdminSetProduction(ctx, gameID, command.PlayerID, production)
+	// Use admin action to set production
+	return h.setProductionAction.Execute(ctx, gameID, command.PlayerID, production)
 }
 
 // handleSetGlobalParams sets the global parameters
@@ -241,14 +256,14 @@ func (h *Handler) handleSetGlobalParams(ctx context.Context, gameID string, payl
 		zap.Any("global_parameters", command.GlobalParameters))
 
 	// Convert DTO to model
-	globalParams := model.GlobalParameters{
+	globalParams := types.GlobalParameters{
 		Temperature: command.GlobalParameters.Temperature,
 		Oxygen:      command.GlobalParameters.Oxygen,
 		Oceans:      command.GlobalParameters.Oceans,
 	}
 
-	// Use AdminService to set global parameters
-	return h.adminService.OnAdminSetGlobalParameters(ctx, gameID, globalParams)
+	// Use admin action to set global parameters
+	return h.setGlobalParametersAction.Execute(ctx, gameID, globalParams)
 }
 
 // handleStartTileSelection starts tile selection for testing
@@ -264,7 +279,7 @@ func (h *Handler) handleStartTileSelection(ctx context.Context, gameID string, p
 		zap.String("tile_type", command.TileType))
 
 	// Use admin action to start tile selection
-	return h.startTileSelectionAdminAction.Execute(ctx, gameID, command.PlayerID, command.TileType)
+	return h.startTileSelectionAction.Execute(ctx, gameID, command.PlayerID, command.TileType)
 }
 
 // handleSetCurrentTurn sets the current player turn
@@ -283,8 +298,8 @@ func (h *Handler) handleSetCurrentTurn(ctx context.Context, gameID string, paylo
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID))
 
-	// Use AdminService to set current turn
-	return h.adminService.OnAdminSetCurrentTurn(ctx, gameID, playerID)
+	// Use admin action to set current turn
+	return h.setCurrentTurnAction.Execute(ctx, gameID, playerID)
 }
 
 // handleSetCorporation sets a player's corporation
@@ -299,8 +314,8 @@ func (h *Handler) handleSetCorporation(ctx context.Context, gameID string, paylo
 		zap.String("player_id", command.PlayerID),
 		zap.String("corporation_id", command.CorporationID))
 
-	// Use AdminService to set corporation
-	return h.adminService.OnAdminSetCorporation(ctx, gameID, command.PlayerID, command.CorporationID)
+	// Use admin action to set corporation
+	return h.setCorporationAction.Execute(ctx, gameID, command.PlayerID, command.CorporationID)
 }
 
 // parsePayload parses the payload interface{} into the target struct

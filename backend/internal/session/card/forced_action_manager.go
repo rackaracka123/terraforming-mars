@@ -6,11 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository" // OLD: Still used for CardRepository
 	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -27,25 +26,25 @@ type ForcedActionManager interface {
 	MarkComplete(ctx context.Context, gameID, playerID string) error
 
 	// TriggerForcedFirstAction manually triggers a player's forced first action
-	TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player model.Player) error
+	TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player types.Player) error
 }
 
 // ForcedActionManagerImpl implements ForcedActionManager
 type ForcedActionManagerImpl struct {
 	eventBus   *events.EventBusImpl
-	cardRepo   repository.CardRepository
-	playerRepo player.Repository      // NEW: Session player repository
-	gameRepo   sessionGame.Repository // NEW: Session game repository
-	deckRepo   deck.Repository        // NEW: Session deck repository
+	cardRepo   Repository             // Session card repository
+	playerRepo player.Repository      // Session player repository
+	gameRepo   sessionGame.Repository // Session game repository
+	deckRepo   deck.Repository        // Session deck repository
 }
 
 // NewForcedActionManager creates a new forced action manager
 func NewForcedActionManager(
 	eventBus *events.EventBusImpl,
-	cardRepo repository.CardRepository,
-	playerRepo player.Repository, // NEW: Session player repository
-	gameRepo sessionGame.Repository, // NEW: Session game repository
-	deckRepo deck.Repository, // NEW: Session deck repository
+	cardRepo Repository,               // Session card repository
+	playerRepo player.Repository,      // Session player repository
+	gameRepo sessionGame.Repository,   // Session game repository
+	deckRepo deck.Repository,          // Session deck repository
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
 		eventBus:   eventBus,
@@ -89,7 +88,7 @@ func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event even
 	log := logger.WithGameContext(event.GameID, "")
 
 	// Only trigger forced actions when transitioning to Action phase
-	if event.NewPhase != string(model.GamePhaseAction) {
+	if event.NewPhase != string(types.GamePhaseAction) {
 		return nil
 	}
 
@@ -125,7 +124,7 @@ func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event even
 		zap.String("player_id", playerID),
 		zap.String("corporation_id", sessionPlayer.ForcedFirstAction.CorporationID))
 
-	// Convert session Player to model.Player for TriggerForcedFirstAction
+	// Convert session Player to types.Player for TriggerForcedFirstAction
 	modelPlayer := convertSessionPlayerToModel(sessionPlayer)
 
 	// Trigger the forced action
@@ -138,8 +137,8 @@ func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event even
 
 // convertSessionPlayerToModel converts a session player to model player
 // This is a temporary helper during migration - only copies fields needed by forced actions
-func convertSessionPlayerToModel(sp *player.Player) model.Player {
-	return model.Player{
+func convertSessionPlayerToModel(sp *player.Player) types.Player {
+	return types.Player{
 		ID:                       sp.ID,
 		Name:                     sp.Name,
 		Resources:                sp.Resources,
@@ -191,7 +190,7 @@ func (m *ForcedActionManagerImpl) onCardDrawConfirmed(ctx context.Context, event
 }
 
 // TriggerForcedFirstAction triggers the forced action for a player
-func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player model.Player) error {
+func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player types.Player) error {
 	// Look up the corporation card to get the behavior details
 	corporation, err := m.cardRepo.GetCardByID(ctx, player.ForcedFirstAction.CorporationID)
 	if err != nil {
@@ -202,10 +201,10 @@ func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, 
 	}
 
 	// Find the forced action behavior (auto-first-action trigger)
-	var forcedBehavior *model.CardBehavior
+	var forcedBehavior *types.CardBehavior
 	for _, behavior := range corporation.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
+			if trigger.Type == types.ResourceTriggerAutoCorporationFirstAction {
 				forcedBehavior = &behavior
 				break
 			}
@@ -227,9 +226,9 @@ func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, 
 
 	// Trigger the appropriate action based on output type
 	switch output.Type {
-	case model.ResourceCardDraw:
+	case types.ResourceCardDraw:
 		return m.triggerCardDrawAction(ctx, gameID, playerID, player, output.Amount)
-	case model.ResourceCityPlacement, model.ResourceGreeneryPlacement, model.ResourceOceanPlacement:
+	case types.ResourceCityPlacement, types.ResourceGreeneryPlacement, types.ResourceOceanPlacement:
 		return m.triggerTilePlacementAction(ctx, gameID, playerID, player, output.Type)
 	default:
 		return fmt.Errorf("unsupported forced action type: %s", output.Type)
@@ -237,7 +236,7 @@ func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, 
 }
 
 // triggerCardDrawAction creates a PendingCardDrawSelection for the player
-func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gameID, playerID string, player model.Player, amount int) error {
+func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gameID, playerID string, player types.Player, amount int) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("📚 Triggering card draw forced action", zap.Int("amount", amount))
 
@@ -248,7 +247,7 @@ func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gam
 	}
 
 	// Create pending card draw selection
-	pendingCardDrawSelection := &model.PendingCardDrawSelection{
+	pendingCardDrawSelection := &types.PendingCardDrawSelection{
 		AvailableCards: drawnCards,
 		FreeTakeCount:  amount, // All cards are free for forced actions
 		MaxBuyCount:    0,      // Cannot buy additional cards
@@ -273,7 +272,7 @@ func (m *ForcedActionManagerImpl) triggerCardDrawAction(ctx context.Context, gam
 }
 
 // triggerTilePlacementAction creates a PendingTileSelection for the player
-func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context, gameID, playerID string, player model.Player, tileType model.ResourceType) error {
+func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context, gameID, playerID string, player types.Player, tileType types.ResourceType) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🏙️ Triggering tile placement forced action", zap.String("tileType", string(tileType)))
 
@@ -292,7 +291,7 @@ func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context
 	tileTypeStr := m.mapResourceTypeToTileType(tileType)
 
 	// Create pending tile selection
-	pendingTileSelection := &model.PendingTileSelection{
+	pendingTileSelection := &types.PendingTileSelection{
 		TileType:       tileTypeStr,
 		AvailableHexes: availableHexes,
 		Source:         player.ForcedFirstAction.CorporationID,
@@ -315,7 +314,7 @@ func (m *ForcedActionManagerImpl) triggerTilePlacementAction(ctx context.Context
 }
 
 // getAvailableHexesForTileType returns available hexes for the given tile type
-func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame.Game, tileType model.ResourceType, playerID string) []string {
+func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame.Game, tileType types.ResourceType, playerID string) []string {
 	var availableHexes []string
 
 	for _, tile := range game.Board.Tiles {
@@ -325,13 +324,13 @@ func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame
 		}
 
 		// For city placement, any empty hex is valid
-		if tileType == model.ResourceCityPlacement {
+		if tileType == types.ResourceCityPlacement {
 			availableHexes = append(availableHexes, tile.Coordinates.String())
 			continue
 		}
 
 		// For greenery, check if adjacent to player's tile
-		if tileType == model.ResourceGreeneryPlacement {
+		if tileType == types.ResourceGreeneryPlacement {
 			if m.isAdjacentToPlayerTile(game, tile.Coordinates, playerID) {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
@@ -339,8 +338,8 @@ func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame
 		}
 
 		// For ocean, check if it's marked as ocean-compatible (tile.Type == "ocean-tile")
-		if tileType == model.ResourceOceanPlacement {
-			if tile.Type == model.ResourceOceanTile {
+		if tileType == types.ResourceOceanPlacement {
+			if tile.Type == types.ResourceOceanTile {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
 			}
 			continue
@@ -351,7 +350,7 @@ func (m *ForcedActionManagerImpl) getAvailableHexesForTileType(game *sessionGame
 }
 
 // isAdjacentToPlayerTile checks if a hex is adjacent to any of the player's tiles
-func (m *ForcedActionManagerImpl) isAdjacentToPlayerTile(game *sessionGame.Game, coord model.HexPosition, playerID string) bool {
+func (m *ForcedActionManagerImpl) isAdjacentToPlayerTile(game *sessionGame.Game, coord types.HexPosition, playerID string) bool {
 	// For first action, if player has no tiles yet, any empty hex is valid
 	hasPlayerTile := false
 	for _, tile := range game.Board.Tiles {
@@ -365,20 +364,52 @@ func (m *ForcedActionManagerImpl) isAdjacentToPlayerTile(game *sessionGame.Game,
 		return true // Any hex is valid for first tile
 	}
 
-	// Check adjacency to player tiles
-	// TODO: Implement proper hex adjacency checking
-	// For now, return true to allow placement
-	return true
+	// Check adjacency to player tiles using cube coordinate distance
+	for _, tile := range game.Board.Tiles {
+		// Skip non-player tiles
+		if tile.OwnerID == nil || *tile.OwnerID != playerID {
+			continue
+		}
+
+		// Check if target coord is adjacent using cube coordinate distance
+		// In cube coordinates, adjacent hexes have Manhattan distance = 1
+		dq := abs(tile.Coordinates.Q - coord.Q)
+		dr := abs(tile.Coordinates.R - coord.R)
+		ds := abs(tile.Coordinates.S - coord.S)
+
+		// Cube coordinate distance is max(|dq|, |dr|, |ds|)
+		if max(dq, max(dr, ds)) == 1 {
+			return true // Found an adjacent player tile
+		}
+	}
+
+	return false // No adjacent player tiles found
+}
+
+// Helper function for absolute value
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+// Helper function for maximum of two integers
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // mapResourceTypeToTileType converts ResourceType to tile type string
-func (m *ForcedActionManagerImpl) mapResourceTypeToTileType(resourceType model.ResourceType) string {
+func (m *ForcedActionManagerImpl) mapResourceTypeToTileType(resourceType types.ResourceType) string {
 	switch resourceType {
-	case model.ResourceCityPlacement:
+	case types.ResourceCityPlacement:
 		return "city"
-	case model.ResourceGreeneryPlacement:
+	case types.ResourceGreeneryPlacement:
 		return "greenery"
-	case model.ResourceOceanPlacement:
+	case types.ResourceOceanPlacement:
 		return "ocean"
 	default:
 		return string(resourceType)

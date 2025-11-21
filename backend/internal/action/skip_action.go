@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/deck"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -205,7 +205,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 		energyConverted := p.Resources.Energy
 
 		// B. Calculate new resources with production
-		newResources := model.Resources{
+		newResources := types.Resources{
 			Credits:  p.Resources.Credits + p.Production.Credits + p.TerraformRating,
 			Steel:    p.Resources.Steel + p.Production.Steel,
 			Titanium: p.Resources.Titanium + p.Production.Titanium,
@@ -251,7 +251,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 		}
 
 		// F. Set production phase data
-		productionPhaseData := &model.ProductionPhase{
+		productionPhaseData := &types.ProductionPhase{
 			AvailableCards:    drawnCards,
 			SelectionComplete: false,
 			BeforeResources:   p.Resources,  // Before production

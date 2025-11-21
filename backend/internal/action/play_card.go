@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"slices"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
 	"terraforming-mars-backend/internal/session/tile"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -41,7 +41,7 @@ func NewPlayCardAction(
 func (a *PlayCardAction) Execute(
 	ctx context.Context,
 	gameID, playerID, cardID string,
-	payment *model.CardPayment,
+	payment *types.CardPayment,
 	choiceIndex *int,
 	cardStorageTarget *string,
 ) error {

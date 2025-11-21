@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -29,7 +29,7 @@ func NewSetResourcesAction(
 }
 
 // Execute performs the set resources admin action
-func (a *SetResourcesAction) Execute(ctx context.Context, gameID, playerID string, resources model.Resources) error {
+func (a *SetResourcesAction) Execute(ctx context.Context, gameID, playerID string, resources types.Resources) error {
 	log := a.InitLogger(gameID, playerID)
 	log.Info("💰 Admin: Setting player resources",
 		zap.Int("credits", resources.Credits),

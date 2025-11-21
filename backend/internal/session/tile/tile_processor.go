@@ -7,10 +7,10 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // Processor handles tile queue processing and tile placement logic
@@ -136,7 +136,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, ga
 			}
 
 			// Create and set the pending tile selection with available hexes
-			selection := &model.PendingTileSelection{
+			selection := &types.PendingTileSelection{
 				TileType:       nextTileType,
 				AvailableHexes: availableHexes,
 				Source:         source,

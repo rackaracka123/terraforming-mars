@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -77,10 +77,10 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID, playerID str
 		zap.Int("remaining_credits", newResources.Credits))
 
 	// 6. Increase temperature by 1 step (2°C)
-	if g.GlobalParameters.Temperature < model.MaxTemperature {
+	if g.GlobalParameters.Temperature < types.MaxTemperature {
 		newTemperature := g.GlobalParameters.Temperature + 2 // Each step is 2°C
-		if newTemperature > model.MaxTemperature {
-			newTemperature = model.MaxTemperature
+		if newTemperature > types.MaxTemperature {
+			newTemperature = types.MaxTemperature
 		}
 
 		err = a.gameRepo.UpdateTemperature(ctx, gameID, newTemperature)

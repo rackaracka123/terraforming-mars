@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -16,34 +15,36 @@ import (
 // ListGamesAction handles the query for listing all games
 type ListGamesAction struct {
 	action.BaseAction
-	oldGameRepo repository.GameRepository
 }
 
 // NewListGamesAction creates a new list games query action
 func NewListGamesAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	oldGameRepo repository.GameRepository,
 	sessionMgr session.SessionManager,
 ) *ListGamesAction {
 	return &ListGamesAction{
-		BaseAction:  action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
-		oldGameRepo: oldGameRepo,
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
 	}
 }
 
 // Execute performs the list games query
-func (a *ListGamesAction) Execute(ctx context.Context, status string) ([]model.Game, error) {
+func (a *ListGamesAction) Execute(ctx context.Context, status string) ([]types.Game, error) {
 	log := a.GetLogger()
 	log.Info("🔍 Querying all games",
 		zap.String("status_filter", status))
 
-	// Use old game repository to list games
-	// status parameter is ignored for now as List() returns all games
-	games, err := a.oldGameRepo.List(ctx, status)
+	// List games from repository
+	gamePointers, err := a.GetGameRepo().List(ctx, status)
 	if err != nil {
 		log.Error("Failed to list games", zap.Error(err))
 		return nil, err
+	}
+
+	// Convert game pointers to values
+	games := make([]types.Game, len(gamePointers))
+	for i, gamePtr := range gamePointers {
+		games[i] = types.Game(*gamePtr)
 	}
 
 	log.Info("✅ Games query completed",

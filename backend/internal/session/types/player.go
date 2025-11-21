@@ -1,4 +1,4 @@
-package model
+package types
 
 // ProductionPhase contains both card selection and production phase state for a player
 type ProductionPhase struct {
@@ -87,6 +87,7 @@ type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
 	Name                     string                    `json:"name" ts:"string"`
 	Corporation              *Card                     `json:"corporation" ts:"CardDto | null"`
+	CorporationID            string                    `json:"corporationId" ts:"string"` // Corporation ID (separate from full card data)
 	Cards                    []string                  `json:"cards" ts:"string[]"`
 	Resources                Resources                 `json:"resources" ts:"Resources"`
 	Production               Production                `json:"production" ts:"Production"`
@@ -332,6 +333,7 @@ func (p *Player) DeepCopy() *Player {
 		ID:                        p.ID,
 		Name:                      p.Name,
 		Corporation:               corporationCopy,
+		CorporationID:             p.CorporationID,
 		Cards:                     cardsCopy,
 		Resources:                 p.Resources,  // Resources is a struct, so this is copied by value
 		Production:                p.Production, // Production is a struct, so this is copied by value

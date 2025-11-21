@@ -6,8 +6,8 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/types"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -57,7 +57,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to model.Game for DTO
+	// Convert to types.Game for DTO
 	modelGame := convertToModelGame(createdGame)
 
 	// Convert to DTO and respond
@@ -89,7 +89,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to model.Game for DTO compatibility
+	// Convert to types.Game for DTO compatibility
 	game := convertToModelGame(result.Game)
 
 	var gameDto dto.GameDto
@@ -125,14 +125,14 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	h.WriteJSONResponse(w, http.StatusOK, response)
 }
 
-// convertToModelGame converts a game.Game to model.Game for DTO compatibility
-func convertToModelGame(g *game.Game) model.Game {
-	return model.Game{
+// convertToModelGame converts a game.Game to types.Game for DTO compatibility
+func convertToModelGame(g *game.Game) types.Game {
+	return types.Game{
 		ID:        g.ID,
 		CreatedAt: g.CreatedAt,
 		UpdatedAt: g.UpdatedAt,
-		Status:    model.GameStatus(g.Status),
-		Settings: model.GameSettings{
+		Status:    types.GameStatus(g.Status),
+		Settings: types.GameSettings{
 			MaxPlayers:      g.Settings.MaxPlayers,
 			Temperature:     g.Settings.Temperature,
 			Oxygen:          g.Settings.Oxygen,
@@ -142,7 +142,7 @@ func convertToModelGame(g *game.Game) model.Game {
 		},
 		PlayerIDs:        g.PlayerIDs,
 		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     model.GamePhase(g.CurrentPhase),
+		CurrentPhase:     types.GamePhase(g.CurrentPhase),
 		GlobalParameters: g.GlobalParameters,
 		ViewingPlayerID:  g.ViewingPlayerID,
 		CurrentTurn:      g.CurrentTurn,

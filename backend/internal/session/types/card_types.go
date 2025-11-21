@@ -1,4 +1,4 @@
-package model
+package types
 
 // CardTag represents different card categories and attributes
 type CardTag string

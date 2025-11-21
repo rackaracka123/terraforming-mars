@@ -4,20 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/deck"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
 
-// convertGameSettings converts NEW game.GameSettings to OLD model.GameSettings
+// convertGameSettings converts NEW game.GameSettings to OLD types.GameSettings
 // Temporary helper during migration - to be removed when deckRepo uses NEW types
-func convertGameSettings(newSettings game.GameSettings) model.GameSettings {
-	return model.GameSettings{
+func convertGameSettings(newSettings game.GameSettings) types.GameSettings {
+	return types.GameSettings{
 		MaxPlayers:      newSettings.MaxPlayers,
 		Temperature:     newSettings.Temperature,
 		Oxygen:          newSettings.Oxygen,

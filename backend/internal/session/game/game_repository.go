@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -20,6 +20,9 @@ type Repository interface {
 
 	// GetByID retrieves a game by ID
 	GetByID(ctx context.Context, gameID string) (*Game, error)
+
+	// List retrieves all games, optionally filtered by status
+	List(ctx context.Context, status string) ([]*Game, error)
 
 	// AddPlayer adds a player to a game (event-driven)
 	AddPlayer(ctx context.Context, gameID string, playerID string) error
@@ -88,10 +91,26 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string) (*Game, err
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return nil, &model.NotFoundError{Resource: "game", ID: gameID}
+		return nil, &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	return game, nil
+}
+
+// List retrieves all games, optionally filtered by status
+func (r *RepositoryImpl) List(ctx context.Context, status string) ([]*Game, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	games := make([]*Game, 0, len(r.games))
+	for _, game := range r.games {
+		// If status filter is empty or matches, include the game
+		if status == "" || string(game.Status) == status {
+			games = append(games, game)
+		}
+	}
+
+	return games, nil
 }
 
 // AddPlayer adds a player to a game (event-driven)
@@ -101,7 +120,7 @@ func (r *RepositoryImpl) AddPlayer(ctx context.Context, gameID string, playerID 
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	// Check if player already in game
@@ -144,7 +163,7 @@ func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldStatus := game.Status
@@ -179,7 +198,7 @@ func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase G
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldPhase := game.CurrentPhase
@@ -214,7 +233,7 @@ func (r *RepositoryImpl) SetHostPlayer(ctx context.Context, gameID string, playe
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	game.HostPlayerID = playerID
@@ -229,7 +248,7 @@ func (r *RepositoryImpl) SetCurrentTurn(ctx context.Context, gameID string, play
 
 	game, exists := r.games[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	game.CurrentTurn = playerID
@@ -244,7 +263,7 @@ func (r *RepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, t
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldTemp := game.GlobalParameters.Temperature
@@ -280,7 +299,7 @@ func (r *RepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldOxygen := game.GlobalParameters.Oxygen
@@ -316,7 +335,7 @@ func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldOceans := game.GlobalParameters.Oceans
@@ -352,7 +371,7 @@ func (r *RepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, ge
 	game, exists := r.games[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	oldGeneration := game.Generation

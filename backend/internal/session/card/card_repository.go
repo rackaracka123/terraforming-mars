@@ -4,17 +4,17 @@ import (
 	"context"
 	"math/rand"
 
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // DeckRepository interface for deck operations (to avoid circular dependency)
 type DeckRepository interface {
-	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
-	GetAllCards(ctx context.Context) ([]model.Card, error)
-	GetProjectCards(ctx context.Context) ([]model.Card, error)
-	GetStartingCardPool(ctx context.Context) ([]model.Card, error)
-	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error)
+	GetCardByID(ctx context.Context, cardID string) (*types.Card, error)
+	GetAllCards(ctx context.Context) ([]types.Card, error)
+	GetProjectCards(ctx context.Context) ([]types.Card, error)
+	GetCorporationCards(ctx context.Context) ([]types.Card, error)
+	GetStartingCardPool(ctx context.Context) ([]types.Card, error)
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error)
 }
 
 // Repository manages card data
@@ -42,24 +42,22 @@ type Repository interface {
 	GetCorporations(ctx context.Context) ([]Card, error)
 }
 
-// RepositoryImpl implements the Repository interface by wrapping repositories
+// RepositoryImpl implements the Repository interface by wrapping deck repository
 type RepositoryImpl struct {
-	deckRepo    DeckRepository            // NEW: Primary source for card definitions
-	oldCardRepo repository.CardRepository // OLD: Backup card repository
+	deckRepo DeckRepository // Primary source for card definitions
 }
 
 // NewRepository creates a new card repository with deck repository
-func NewRepository(deckRepo DeckRepository, oldCardRepo repository.CardRepository) Repository {
+func NewRepository(deckRepo DeckRepository) Repository {
 	return &RepositoryImpl{
-		deckRepo:    deckRepo,
-		oldCardRepo: oldCardRepo,
+		deckRepo: deckRepo,
 	}
 }
 
 // DrawProjectCards draws N random project cards
 func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, count int) ([]Card, error) {
-	// Get all project cards from old repository
-	projectCards, err := r.oldCardRepo.GetProjectCards(ctx)
+	// Get all project cards from deck repository
+	projectCards, err := r.deckRepo.GetProjectCards(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +65,7 @@ func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, count int) ([]Car
 	// Shuffle and take N cards
 	shuffled := make([]Card, len(projectCards))
 	for i, mc := range projectCards {
-		shuffled[i] = FromModelCard(mc)
+		shuffled[i] = mc
 	}
 
 	// Fisher-Yates shuffle
@@ -86,8 +84,8 @@ func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, count int) ([]Car
 
 // DrawCorporations draws N random corporation cards
 func (r *RepositoryImpl) DrawCorporations(ctx context.Context, count int) ([]Card, error) {
-	// Get all corporation cards from old repository
-	corpCards, err := r.oldCardRepo.GetCorporationCards(ctx)
+	// Get all corporation cards from deck repository
+	corpCards, err := r.deckRepo.GetCorporationCards(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +93,7 @@ func (r *RepositoryImpl) DrawCorporations(ctx context.Context, count int) ([]Car
 	// Shuffle and take N cards
 	shuffled := make([]Card, len(corpCards))
 	for i, mc := range corpCards {
-		shuffled[i] = FromModelCard(mc)
+		shuffled[i] = mc
 	}
 
 	// Fisher-Yates shuffle
@@ -120,7 +118,7 @@ func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*Card,
 		return nil, err
 	}
 
-	card := FromModelCard(*mc)
+	card := *mc
 	return &card, nil
 }
 
@@ -135,7 +133,7 @@ func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]st
 	// Convert model cards to new card type
 	result := make(map[string]Card, len(modelCards))
 	for id, mc := range modelCards {
-		result[id] = FromModelCard(mc)
+		result[id] = mc
 	}
 
 	return result, nil
@@ -150,7 +148,7 @@ func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]Card, error
 	}
 
 	// Convert to session card type
-	return FromModelCards(modelCards), nil
+	return modelCards, nil
 }
 
 // GetAllCards retrieves all cards
@@ -162,17 +160,17 @@ func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]Card, error) {
 	}
 
 	// Convert to session card type
-	return FromModelCards(modelCards), nil
+	return modelCards, nil
 }
 
 // GetCorporations retrieves all corporation cards
 func (r *RepositoryImpl) GetCorporations(ctx context.Context) ([]Card, error) {
-	// Get all corporation cards from old repository
-	corpCards, err := r.oldCardRepo.GetCorporationCards(ctx)
+	// Get all corporation cards from deck repository
+	corpCards, err := r.deckRepo.GetCorporationCards(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert to session card type
-	return FromModelCards(corpCards), nil
+	// Return corporation cards
+	return corpCards, nil
 }

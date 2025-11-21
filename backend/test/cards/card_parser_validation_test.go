@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"testing"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // loadCards loads the parsed card JSON for testing
-func loadCards(t *testing.T) []model.Card {
+func loadCards(t *testing.T) []types.Card {
 	t.Helper()
 
 	// Read the generated JSON file
@@ -21,7 +21,7 @@ func loadCards(t *testing.T) []model.Card {
 		t.Fatalf("Failed to read cards JSON: %v", err)
 	}
 
-	var cards []model.Card
+	var cards []types.Card
 	if err := json.Unmarshal(data, &cards); err != nil {
 		t.Fatalf("Failed to unmarshal cards JSON: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestAutoTriggerValidation(t *testing.T) {
 	for _, card := range cards {
 		for behaviorIdx, behavior := range card.Behaviors {
 			for triggerIdx, trigger := range behavior.Triggers {
-				if trigger.Type == model.ResourceTriggerAuto {
+				if trigger.Type == types.ResourceTriggerAuto {
 					if len(behavior.Inputs) > 0 {
 						violations = append(violations,
 							fmt.Sprintf("Card %s behavior[%d] trigger[%d]: auto trigger has %d inputs defined",
@@ -117,7 +117,7 @@ func TestVPConditionPerValidation(t *testing.T) {
 
 	for _, card := range cards {
 		for vpIdx, vpCondition := range card.VPConditions {
-			if vpCondition.Per != nil && vpCondition.Condition != model.VPConditionPer {
+			if vpCondition.Per != nil && vpCondition.Condition != types.VPConditionPer {
 				violations = append(violations,
 					fmt.Sprintf("Card %s vpCondition[%d]: 'per' field is set but condition is '%s' (not 'per')",
 						card.ID, vpIdx, string(vpCondition.Condition)))
@@ -502,20 +502,20 @@ func TestSelfTargetingResourceOutputRequiresStorage(t *testing.T) {
 }
 
 // requiresResourceStorage checks if a resource output targets the card itself and needs storage
-func requiresResourceStorage(output model.ResourceCondition) bool {
+func requiresResourceStorage(output types.ResourceCondition) bool {
 	// Check if this is a resource type that can be stored on cards
-	resourceTypes := []model.ResourceType{
-		model.ResourceMicrobes,
-		model.ResourceAnimals,
-		model.ResourceFloaters,
-		model.ResourceScience,
-		model.ResourceAsteroid,
-		model.ResourceDisease,
+	resourceTypes := []types.ResourceType{
+		types.ResourceMicrobes,
+		types.ResourceAnimals,
+		types.ResourceFloaters,
+		types.ResourceScience,
+		types.ResourceAsteroid,
+		types.ResourceDisease,
 	}
 
 	// Check if the output type matches a storable resource
 	for _, resType := range resourceTypes {
-		if output.Type == resType && output.Target == model.TargetSelfCard {
+		if output.Type == resType && output.Target == types.TargetSelfCard {
 			return true
 		}
 	}
@@ -528,14 +528,14 @@ func TestGlobalParameterRequirementLimits(t *testing.T) {
 	cards := loadCards(t)
 
 	// Define global parameter limits (inclusive ranges)
-	limits := map[model.RequirementType]struct {
+	limits := map[types.RequirementType]struct {
 		min int
 		max int
 	}{
-		model.RequirementOxygen:      {min: 0, max: 14},
-		model.RequirementTemperature: {min: -30, max: 8},
-		model.RequirementOceans:      {min: 0, max: 9},
-		model.RequirementVenus:       {min: 0, max: 30},
+		types.RequirementOxygen:      {min: 0, max: 14},
+		types.RequirementTemperature: {min: -30, max: 8},
+		types.RequirementOceans:      {min: 0, max: 9},
+		types.RequirementVenus:       {min: 0, max: 30},
 	}
 
 	var violations []string
@@ -614,7 +614,7 @@ func TestCardDrawingLogicValidation(t *testing.T) {
 }
 
 // validateCardDrawingOutputs checks if card drawing outputs are valid
-func validateCardDrawingOutputs(cardID, cardName string, behaviorIdx, choiceIdx int, outputs []model.ResourceCondition) []string {
+func validateCardDrawingOutputs(cardID, cardName string, behaviorIdx, choiceIdx int, outputs []types.ResourceCondition) []string {
 	var violations []string
 
 	hasCardPeek := false
@@ -690,11 +690,11 @@ func TestCardOperationsNotInputs(t *testing.T) {
 	var violations []string
 
 	// Define card operation types that should never be inputs
-	cardOperationTypes := []model.ResourceType{
-		model.ResourceCardDraw,
-		model.ResourceCardTake,
-		model.ResourceCardPeek,
-		model.ResourceCardBuy,
+	cardOperationTypes := []types.ResourceType{
+		types.ResourceCardDraw,
+		types.ResourceCardTake,
+		types.ResourceCardPeek,
+		types.ResourceCardBuy,
 	}
 
 	for _, card := range cards {
@@ -743,9 +743,9 @@ func TestAutoFirstActionOnlyOnCorporations(t *testing.T) {
 	for _, card := range cards {
 		for behaviorIdx, behavior := range card.Behaviors {
 			for triggerIdx, trigger := range behavior.Triggers {
-				if trigger.Type == model.ResourceTriggerAutoCorporationFirstAction {
+				if trigger.Type == types.ResourceTriggerAutoCorporationFirstAction {
 					// Check if this card is a corporation
-					if card.Type != model.CardTypeCorporation {
+					if card.Type != types.CardTypeCorporation {
 						violations = append(violations,
 							fmt.Sprintf("Card %s (%s) behavior[%d] trigger[%d]: auto-first-action trigger can only be used on corporation cards, but this card is type '%s'",
 								card.ID, card.Name, behaviorIdx, triggerIdx, card.Type))

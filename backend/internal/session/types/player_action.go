@@ -1,4 +1,4 @@
-package model
+package types
 
 // PlayerAction represents an action that a player can take, typically from a card with manual triggers
 type PlayerAction struct {

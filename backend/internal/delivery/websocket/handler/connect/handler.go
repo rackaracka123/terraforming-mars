@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 
 	"github.com/google/uuid"
@@ -17,14 +16,13 @@ import (
 
 // ConnectionHandler handles player connection and reconnection logic
 type ConnectionHandler struct {
-	hub            *core.Hub
-	sessionManager session.SessionManager
-	gameService    service.GameService
-	playerService  service.PlayerService
-	joinGameAction *action.JoinGameAction
-	parser         *utils.MessageParser
-	errorHandler   *utils.ErrorHandler
-	logger         *zap.Logger
+	hub                     *core.Hub
+	sessionManager          session.SessionManager
+	joinGameAction          *action.JoinGameAction
+	playerReconnectedAction *action.PlayerReconnectedAction
+	parser                  *utils.MessageParser
+	errorHandler            *utils.ErrorHandler
+	logger                  *zap.Logger
 }
 
 // connectionContext holds the context for a connection operation
@@ -40,19 +38,17 @@ type connectionContext struct {
 func NewConnectionHandler(
 	hub *core.Hub,
 	sessionManager session.SessionManager,
-	gameService service.GameService,
-	playerService service.PlayerService,
 	joinGameAction *action.JoinGameAction,
+	playerReconnectedAction *action.PlayerReconnectedAction,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
-		hub:            hub,
-		sessionManager: sessionManager,
-		gameService:    gameService,
-		playerService:  playerService,
-		joinGameAction: joinGameAction,
-		parser:         utils.NewMessageParser(),
-		errorHandler:   utils.NewErrorHandler(),
-		logger:         logger.Get(),
+		hub:                     hub,
+		sessionManager:          sessionManager,
+		joinGameAction:          joinGameAction,
+		playerReconnectedAction: playerReconnectedAction,
+		parser:                  utils.NewMessageParser(),
+		errorHandler:            utils.NewErrorHandler(),
+		logger:                  logger.Get(),
 	}
 }
 
@@ -208,18 +204,18 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 		zap.String("player_id", connCtx.playerID),
 		zap.String("game_id", connCtx.payload.GameID))
 
-	// Let the service handle the complete reconnection process including:
+	// Let the action handle the complete reconnection process including:
 	// - Updating connection status
 	// - Retrieving complete game state
 	// - Sending personalized state to the player
-	err := ch.gameService.PlayerReconnected(connCtx.ctx, connCtx.payload.GameID, connCtx.playerID)
+	err := ch.playerReconnectedAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.playerID)
 	if err != nil {
-		ch.logger.Error("Failed to process player reconnection via service",
+		ch.logger.Error("Failed to process player reconnection via action",
 			zap.Error(err))
 		return err
 	}
 
-	ch.logger.Info("✅ Player reconnection completed via service",
+	ch.logger.Info("✅ Player reconnection completed via action",
 		zap.String("player_id", connCtx.playerID),
 		zap.String("player_name", connCtx.payload.PlayerName),
 		zap.String("game_id", connCtx.payload.GameID))

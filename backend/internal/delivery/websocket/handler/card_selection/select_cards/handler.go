@@ -9,7 +9,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
@@ -17,25 +16,23 @@ import (
 
 // Handler handles select production cards action requests
 type Handler struct {
-	cardService              service.CardService
-	gameService              service.GameService
-	confirmSellPatentsAction *action.ConfirmSellPatentsAction
-	newPlayerRepo            player.Repository
-	parser                   *utils.MessageParser
-	errorHandler             *utils.ErrorHandler
-	logger                   *zap.Logger
+	confirmSellPatentsAction     *action.ConfirmSellPatentsAction
+	confirmProductionCardsAction *action.ConfirmProductionCardsAction
+	newPlayerRepo                player.Repository
+	parser                       *utils.MessageParser
+	errorHandler                 *utils.ErrorHandler
+	logger                       *zap.Logger
 }
 
 // NewHandler creates a new select cards handler
-func NewHandler(cardService service.CardService, gameService service.GameService, confirmSellPatentsAction *action.ConfirmSellPatentsAction, newPlayerRepo player.Repository, parser *utils.MessageParser) *Handler {
+func NewHandler(confirmSellPatentsAction *action.ConfirmSellPatentsAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, newPlayerRepo player.Repository, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:              cardService,
-		gameService:              gameService,
-		confirmSellPatentsAction: confirmSellPatentsAction,
-		newPlayerRepo:            newPlayerRepo,
-		parser:                   parser,
-		errorHandler:             utils.NewErrorHandler(),
-		logger:                   logger.Get(),
+		confirmSellPatentsAction:     confirmSellPatentsAction,
+		confirmProductionCardsAction: confirmProductionCardsAction,
+		newPlayerRepo:                newPlayerRepo,
+		parser:                       parser,
+		errorHandler:                 utils.NewErrorHandler(),
+		logger:                       logger.Get(),
 	}
 }
 
@@ -113,33 +110,14 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		return nil
 	}
 
-	// Otherwise, handle as production card selection
+	// Otherwise, handle as production card selection using ConfirmProductionCardsAction
 	log.Debug("Processing production card selection")
-	if err := h.selectCards(ctx, gameID, playerID, cardIDs); err != nil {
+	if err := h.confirmProductionCardsAction.Execute(ctx, gameID, playerID, cardIDs); err != nil {
 		return err
 	}
 
-	updatedGame, err := h.gameService.ProcessProductionPhaseReady(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to process production phase ready", zap.Error(err))
-		return fmt.Errorf("failed to process production phase ready: %w", err)
-	}
-
 	log.Info("✅ Production card selection completed",
-		zap.Strings("selected_cards", cardIDs),
-		zap.String("game_phase", string(updatedGame.CurrentPhase)))
-
-	return nil
-}
-
-// selectCards processes the card selection through the service
-func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string) error {
-	log := logger.WithGameContext(gameID, playerID)
-
-	if err := h.cardService.OnSelectProductionCards(ctx, gameID, playerID, cardIDs); err != nil {
-		log.Error("Failed to select production cards", zap.Error(err))
-		return fmt.Errorf("card selection failed: %w", err)
-	}
+		zap.Strings("selected_cards", cardIDs))
 
 	return nil
 }

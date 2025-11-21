@@ -1,4 +1,4 @@
-package model
+package types
 
 // OtherPlayer represents a player from another player's perspective
 // Contains public information only - hand cards are hidden but played cards are visible

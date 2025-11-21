@@ -1,4 +1,4 @@
-package model
+package types
 
 // TriggerType represents different trigger conditions
 type TriggerType string

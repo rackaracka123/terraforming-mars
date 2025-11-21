@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -29,7 +29,7 @@ func NewSetProductionAction(
 }
 
 // Execute performs the set production admin action
-func (a *SetProductionAction) Execute(ctx context.Context, gameID, playerID string, production model.Production) error {
+func (a *SetProductionAction) Execute(ctx context.Context, gameID, playerID string, production types.Production) error {
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🏭 Admin: Setting player production",
 		zap.Int("credits", production.Credits),

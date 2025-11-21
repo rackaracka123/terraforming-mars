@@ -8,7 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -33,7 +33,7 @@ func NewHandler(selectTileAction *action.SelectTileAction, parser *utils.Message
 
 // TileSelectedRequest represents the payload for tile selection
 type TileSelectedRequest struct {
-	Coordinate model.HexPosition `json:"coordinate" ts:"HexPosition"`
+	Coordinate types.HexPosition `json:"coordinate" ts:"HexPosition"`
 }
 
 // HandleMessage implements the MessageHandler interface

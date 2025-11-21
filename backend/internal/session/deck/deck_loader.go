@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -25,18 +25,18 @@ func LoadCardsFromJSON(ctx context.Context) (*CardDefinitions, error) {
 	}
 
 	// Parse JSON into card array
-	var cards []model.Card
+	var cards []types.Card
 	if err := json.Unmarshal(data, &cards); err != nil {
 		return nil, fmt.Errorf("failed to parse card data: %w", err)
 	}
 
 	// Organize cards by type
 	defs := &CardDefinitions{
-		AllCards:         make(map[string]model.Card),
-		ProjectCards:     make([]model.Card, 0),
-		CorporationCards: make([]model.Card, 0),
-		PreludeCards:     make([]model.Card, 0),
-		StartingCards:    make([]model.Card, 0),
+		AllCards:         make(map[string]types.Card),
+		ProjectCards:     make([]types.Card, 0),
+		CorporationCards: make([]types.Card, 0),
+		PreludeCards:     make([]types.Card, 0),
+		StartingCards:    make([]types.Card, 0),
 	}
 
 	// Categorize cards
@@ -46,11 +46,11 @@ func LoadCardsFromJSON(ctx context.Context) (*CardDefinitions, error) {
 
 		// Categorize by type
 		switch card.Type {
-		case model.CardTypeCorporation:
+		case types.CardTypeCorporation:
 			defs.CorporationCards = append(defs.CorporationCards, card)
-		case model.CardTypePrelude:
+		case types.CardTypePrelude:
 			defs.PreludeCards = append(defs.PreludeCards, card)
-		case model.CardTypeAutomated, model.CardTypeActive, model.CardTypeEvent:
+		case types.CardTypeAutomated, types.CardTypeActive, types.CardTypeEvent:
 			defs.ProjectCards = append(defs.ProjectCards, card)
 
 			// Check if it's a starting card (cost <= 10 and in base-game pack)
@@ -71,7 +71,7 @@ func LoadCardsFromJSON(ctx context.Context) (*CardDefinitions, error) {
 }
 
 // extractCardIDs extracts card IDs from a slice of cards
-func extractCardIDs(cards []model.Card) []string {
+func extractCardIDs(cards []types.Card) []string {
 	ids := make([]string, len(cards))
 	for i, card := range cards {
 		ids[i] = card.ID

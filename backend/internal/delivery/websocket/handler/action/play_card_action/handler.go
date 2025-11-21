@@ -3,30 +3,30 @@ package play_card_action
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles play card action requests
 type Handler struct {
-	cardService  service.CardService
-	parser       *utils.MessageParser
-	errorHandler *utils.ErrorHandler
-	logger       *zap.Logger
+	executeCardActionAction *action.ExecuteCardActionAction
+	parser                  *utils.MessageParser
+	errorHandler            *utils.ErrorHandler
+	logger                  *zap.Logger
 }
 
 // NewHandler creates a new play card action handler
-func NewHandler(cardService service.CardService, parser *utils.MessageParser) *Handler {
+func NewHandler(executeCardActionAction *action.ExecuteCardActionAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:  cardService,
-		parser:       parser,
-		errorHandler: utils.NewErrorHandler(),
-		logger:       logger.Get(),
+		executeCardActionAction: executeCardActionAction,
+		parser:                  parser,
+		errorHandler:            utils.NewErrorHandler(),
+		logger:                  logger.Get(),
 	}
 }
 
@@ -81,7 +81,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 	}
 
 	// Execute the play card action with optional choice index and card storage target
-	err := h.cardService.OnPlayCardAction(ctx, gameID, playerID, request.CardID, request.BehaviorIndex, request.ChoiceIndex, request.CardStorageTarget)
+	err := h.executeCardActionAction.Execute(ctx, gameID, playerID, request.CardID, request.BehaviorIndex, request.ChoiceIndex, request.CardStorageTarget)
 	if err != nil {
 		h.logger.Warn("Failed to play card action",
 			zap.String("connection_id", connection.ID),

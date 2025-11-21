@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	sessionCard "terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -16,30 +16,27 @@ import (
 // GetGameAction handles the query for getting a single game
 type GetGameAction struct {
 	action.BaseAction
-	oldPlayerRepo repository.PlayerRepository
-	cardRepo      repository.CardRepository
+	cardRepo sessionCard.Repository
 }
 
 // NewGetGameAction creates a new get game query action
 func NewGetGameAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	oldPlayerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
+	cardRepo sessionCard.Repository,
 	sessionMgr session.SessionManager,
 ) *GetGameAction {
 	return &GetGameAction{
-		BaseAction:    action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
-		oldPlayerRepo: oldPlayerRepo,
-		cardRepo:      cardRepo,
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		cardRepo:   cardRepo,
 	}
 }
 
 // GameQueryResult contains the full game data for queries
 type GameQueryResult struct {
 	Game          *game.Game
-	Players       []model.Player
-	ResolvedCards map[string]model.Card
+	Players       []types.Player
+	ResolvedCards map[string]types.Card
 }
 
 // Execute performs the get game query
@@ -64,10 +61,16 @@ func (a *GetGameAction) Execute(ctx context.Context, gameID, playerID string) (*
 	}
 
 	// 2. Get all players
-	players, err := a.oldPlayerRepo.ListByGameID(ctx, gameID)
+	playerPointers, err := a.GetPlayerRepo().ListByGameID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get players", zap.Error(err))
 		return nil, err
+	}
+
+	// Convert player pointers to values
+	players := make([]types.Player, len(playerPointers))
+	for i, playerPtr := range playerPointers {
+		players[i] = *playerPtr
 	}
 
 	// 3. Collect all card IDs that need resolution

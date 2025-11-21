@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -29,7 +29,7 @@ func NewSetGlobalParametersAction(
 }
 
 // Execute performs the set global parameters admin action
-func (a *SetGlobalParametersAction) Execute(ctx context.Context, gameID string, params model.GlobalParameters) error {
+func (a *SetGlobalParametersAction) Execute(ctx context.Context, gameID string, params types.GlobalParameters) error {
 	log := a.InitLogger(gameID, "")
 	log.Info("🌍 Admin: Setting global parameters",
 		zap.Int("temperature", params.Temperature),

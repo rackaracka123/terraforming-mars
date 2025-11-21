@@ -1,4 +1,4 @@
-package model
+package types
 
 // GamePhase represents the current phase of the game
 type GamePhase string

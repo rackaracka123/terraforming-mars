@@ -7,11 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 	"terraforming-mars-backend/test"
 )
 
@@ -23,13 +21,11 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	// Initialize card repository with nil deck repo (we don't need actual cards for this test)
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
+	// Initialize mock session manager
 	sessionMgr := test.NewMockSessionManager()
 
-	// Create action
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	// Create action (cardRepo not needed for these tests)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup: Create game
 	currentTurn := "player1"
@@ -48,10 +44,10 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	// Setup: Create player with production phase
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 50, // Enough for 3 cards (9 MC)
 	}
-	testPlayer.ProductionPhase = &model.ProductionPhase{
+	testPlayer.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: false,
 		BeforeResources:   testPlayer.Resources,
@@ -92,11 +88,9 @@ func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game
 	currentTurn := "player1"
@@ -115,10 +109,10 @@ func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
 	// Setup player with insufficient credits
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 5, // Not enough for 3 cards (9 MC needed)
 	}
-	testPlayer.ProductionPhase = &model.ProductionPhase{
+	testPlayer.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: false,
 	}
@@ -149,11 +143,9 @@ func TestConfirmProductionCardsAction_InvalidCardSelection(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game
 	currentTurn := "player1"
@@ -172,10 +164,10 @@ func TestConfirmProductionCardsAction_InvalidCardSelection(t *testing.T) {
 	// Setup player
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 50,
 	}
-	testPlayer.ProductionPhase = &model.ProductionPhase{
+	testPlayer.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: false,
 	}
@@ -199,11 +191,9 @@ func TestConfirmProductionCardsAction_AlreadyComplete(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game
 	currentTurn := "player1"
@@ -222,10 +212,10 @@ func TestConfirmProductionCardsAction_AlreadyComplete(t *testing.T) {
 	// Setup player with already completed selection
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 50,
 	}
-	testPlayer.ProductionPhase = &model.ProductionPhase{
+	testPlayer.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: true, // Already complete
 	}
@@ -249,11 +239,9 @@ func TestConfirmProductionCardsAction_WrongPhase(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game in wrong phase
 	currentTurn := "player1"
@@ -272,7 +260,7 @@ func TestConfirmProductionCardsAction_WrongPhase(t *testing.T) {
 	// Setup player
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 50,
 	}
 
@@ -295,11 +283,9 @@ func TestConfirmProductionCardsAction_MultiplePlayersSync(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game with 2 players
 	currentTurn := "player1"
@@ -318,8 +304,8 @@ func TestConfirmProductionCardsAction_MultiplePlayersSync(t *testing.T) {
 	// Setup player 1
 	player1 := player.NewPlayer("Player1")
 	player1.ID = "player1"
-	player1.Resources = model.Resources{Credits: 50}
-	player1.ProductionPhase = &model.ProductionPhase{
+	player1.Resources = types.Resources{Credits: 50}
+	player1.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: false,
 	}
@@ -329,8 +315,8 @@ func TestConfirmProductionCardsAction_MultiplePlayersSync(t *testing.T) {
 	// Setup player 2
 	player2 := player.NewPlayer("Player2")
 	player2.ID = "player2"
-	player2.Resources = model.Resources{Credits: 50}
-	player2.ProductionPhase = &model.ProductionPhase{
+	player2.Resources = types.Resources{Credits: 50}
+	player2.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card5", "card6", "card7", "card8"},
 		SelectionComplete: false,
 	}
@@ -372,11 +358,9 @@ func TestConfirmProductionCardsAction_SelectZeroCards(t *testing.T) {
 	gameRepo := game.NewRepository(eventBus)
 	playerRepo := player.NewRepository(eventBus)
 
-	oldCardRepo := repository.NewCardRepository()
-	cardRepo := card.NewRepository(nil, oldCardRepo)
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, cardRepo, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
 
 	// Setup game
 	currentTurn := "player1"
@@ -395,10 +379,10 @@ func TestConfirmProductionCardsAction_SelectZeroCards(t *testing.T) {
 	// Setup player
 	testPlayer := player.NewPlayer("TestPlayer")
 	testPlayer.ID = "player1"
-	testPlayer.Resources = model.Resources{
+	testPlayer.Resources = types.Resources{
 		Credits: 50,
 	}
-	testPlayer.ProductionPhase = &model.ProductionPhase{
+	testPlayer.ProductionPhase = &types.ProductionPhase{
 		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
 		SelectionComplete: false,
 	}

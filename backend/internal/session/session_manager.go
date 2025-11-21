@@ -9,11 +9,11 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -91,7 +91,7 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	newGame, err := sm.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		// Handle missing game gracefully - this can happen during test cleanup or if game was deleted
-		var notFoundErr *model.NotFoundError
+		var notFoundErr *types.NotFoundError
 		if errors.As(err, &notFoundErr) {
 			log.Debug("Game no longer exists, skipping broadcast", zap.Error(err))
 			return nil // No error, just skip the broadcast
@@ -209,10 +209,10 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 	playersToSend := players
 	if targetPlayerID != "" {
 		// Find specific player
-		playersToSend = []model.Player{}
+		playersToSend = []types.Player{}
 		for _, player := range players {
 			if player.ID == targetPlayerID {
-				playersToSend = []model.Player{player}
+				playersToSend = []types.Player{player}
 				break
 			}
 		}
@@ -246,8 +246,8 @@ func (sm *SessionManagerImpl) broadcastGameStateInternal(ctx context.Context, ga
 		})
 		if err != nil {
 			// Handle missing sessions gracefully - this can happen during test cleanup
-			var notFoundErr *model.NotFoundError
-			var sessionErr *model.SessionNotFoundError
+			var notFoundErr *types.NotFoundError
+			var sessionErr *types.SessionNotFoundError
 			if errors.As(err, &notFoundErr) || errors.As(err, &sessionErr) {
 				log.Debug("Player session no longer exists, skipping broadcast",
 					zap.Error(err),
@@ -294,163 +294,69 @@ func (sm *SessionManagerImpl) sendToPlayerDirect(playerID, gameID string, messag
 // These converters bridge the gap between NEW repository types (internal/session/game/*)
 // and OLD model types (internal/model/*) during the phased migration.
 
-// gameToModel converts a NEW game.Game pointer to an OLD model.Game value
-func gameToModel(g *game.Game) model.Game {
-	return model.Game{
-		ID:               g.ID,
-		CreatedAt:        g.CreatedAt,
-		UpdatedAt:        g.UpdatedAt,
-		Status:           model.GameStatus(g.Status),
-		Settings:         gameSettingsToModel(g.Settings),
-		PlayerIDs:        g.PlayerIDs,
-		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     model.GamePhase(g.CurrentPhase),
-		GlobalParameters: g.GlobalParameters, // Same type in both systems
-		ViewingPlayerID:  g.ViewingPlayerID,
-		CurrentTurn:      g.CurrentTurn,
-		Generation:       g.Generation,
-		Board:            g.Board, // Same type in both systems
-	}
+// gameToModel converts a NEW game.Game pointer to an OLD types.Game value
+func gameToModel(g *game.Game) types.Game {
+	return *g
 }
 
 // gameSettingsToModel converts game settings from NEW to OLD type
-func gameSettingsToModel(s game.GameSettings) model.GameSettings {
-	return model.GameSettings{
-		MaxPlayers:      s.MaxPlayers,
-		Temperature:     s.Temperature,
-		Oxygen:          s.Oxygen,
-		Oceans:          s.Oceans,
-		DevelopmentMode: s.DevelopmentMode,
-		CardPacks:       s.CardPacks,
-	}
-}
 
-// playersToModel converts a slice of NEW player.Player pointers to a slice of OLD model.Player values
-func playersToModel(players []*player.Player) []model.Player {
-	result := make([]model.Player, len(players))
+// playersToModel converts a slice of NEW player.Player pointers to a slice of OLD types.Player values
+func playersToModel(players []*player.Player) []types.Player {
+	result := make([]types.Player, len(players))
 	for i, p := range players {
-		result[i] = playerToModel(p)
+		result[i] = *p
 	}
 	return result
 }
 
-// playerToModel converts a NEW player.Player pointer to an OLD model.Player value
+// playerToModel converts a NEW player.Player pointer to an OLD types.Player value
 // Fields that don't exist in NEW player type are initialized with zero/empty values
-func playerToModel(p *player.Player) model.Player {
-	var selectStartingCards *model.SelectStartingCardsPhase
 
-	// Convert SelectStartingCardsPhase if it exists
-	if p.SelectStartingCardsPhase != nil {
-		selectStartingCards = &model.SelectStartingCardsPhase{
-			AvailableCards:        p.SelectStartingCardsPhase.AvailableCards,
-			AvailableCorporations: p.SelectStartingCardsPhase.AvailableCorporations,
-		}
-	}
-
-	// Convert PendingCardSelection if it exists
-	var pendingCardSelection *model.PendingCardSelection
-	if p.PendingCardSelection != nil {
-		pendingCardSelection = &model.PendingCardSelection{
-			Source:         p.PendingCardSelection.Source,
-			AvailableCards: p.PendingCardSelection.AvailableCards,
-			CardCosts:      p.PendingCardSelection.CardCosts,
-			CardRewards:    p.PendingCardSelection.CardRewards,
-			MinCards:       p.PendingCardSelection.MinCards,
-			MaxCards:       p.PendingCardSelection.MaxCards,
-		}
-	}
-
-	return model.Player{
-		ID:                        p.ID,
-		Name:                      p.Name,
-		Corporation:               p.Corporation, // Now exists in NEW player type
-		Cards:                     p.Cards,
-		Resources:                 p.Resources,
-		Production:                p.Production,
-		TerraformRating:           p.TerraformRating,
-		PlayedCards:               p.PlayedCards,      // Now exists in NEW player type
-		Passed:                    p.Passed,           // Now exists in NEW player type
-		AvailableActions:          p.AvailableActions, // Now exists in NEW player type
-		VictoryPoints:             p.VictoryPoints,    // Now exists in NEW player type
-		IsConnected:               p.IsConnected,
-		Effects:                   p.Effects,         // Now exists in NEW player type
-		Actions:                   p.Actions,         // Now exists in NEW player type
-		ProductionPhase:           p.ProductionPhase, // Now exists in NEW player type
-		SelectStartingCardsPhase:  selectStartingCards,
-		PendingTileSelection:      p.PendingTileSelection,      // Now exists in NEW player type
-		PendingTileSelectionQueue: p.PendingTileSelectionQueue, // Now exists in NEW player type
-		PendingCardSelection:      pendingCardSelection,        // Now converted from NEW player type
-		PendingCardDrawSelection:  p.PendingCardDrawSelection,  // Now exists in NEW player type
-		ForcedFirstAction:         p.ForcedFirstAction,         // Now exists in NEW player type
-		ResourceStorage:           p.ResourceStorage,           // Now exists in NEW player type
-		PaymentSubstitutes:        p.PaymentSubstitutes,        // Now exists in NEW player type
-		RequirementModifiers:      p.RequirementModifiers,      // Now exists in NEW player type
-	}
-}
-
-// cardsToModel converts a map of NEW card.Card values to a map of OLD model.Card values
+// cardsToModel converts a map of NEW card.Card values to a map of OLD types.Card values
 // The session layer Card now contains complete card data, so we copy all fields
-func cardsToModel(cards map[string]card.Card) map[string]model.Card {
-	result := make(map[string]model.Card, len(cards))
-	for id, c := range cards {
-		// Convert session card (with all data) back to model.Card
-		result[id] = model.Card{
-			ID:                 c.ID,
-			Name:               c.Name,
-			Type:               model.CardType(c.Type),
-			Cost:               c.Cost,
-			Description:        c.Description,
-			Pack:               c.Pack,
-			Tags:               c.Tags,
-			Requirements:       c.Requirements,
-			Behaviors:          c.Behaviors,
-			ResourceStorage:    c.ResourceStorage,
-			VPConditions:       c.VPConditions,
-			StartingResources:  c.StartingResources,
-			StartingProduction: c.StartingProduction,
-		}
-	}
-	return result
+func cardsToModel(cards map[string]card.Card) map[string]types.Card {
+	return cards
 }
 
-// boardToModel converts a NEW board.Board pointer to an OLD model.Board value
-func boardToModel(b *board.Board) model.Board {
+// boardToModel converts a NEW board.Board pointer to an OLD types.Board value
+func boardToModel(b *board.Board) types.Board {
 	if b == nil {
-		return model.Board{Tiles: []model.Tile{}}
+		return types.Board{Tiles: []types.Tile{}}
 	}
 
-	tiles := make([]model.Tile, len(b.Tiles))
+	tiles := make([]types.Tile, len(b.Tiles))
 	for i, tile := range b.Tiles {
 		// Convert bonuses
-		bonuses := make([]model.TileBonus, len(tile.Bonuses))
+		bonuses := make([]types.TileBonus, len(tile.Bonuses))
 		for j, bonus := range tile.Bonuses {
-			bonuses[j] = model.TileBonus{
-				Type:   model.ResourceType(bonus.Type),
+			bonuses[j] = types.TileBonus{
+				Type:   types.ResourceType(bonus.Type),
 				Amount: bonus.Amount,
 			}
 		}
 
 		// Convert occupant if exists
-		var occupant *model.TileOccupant
+		var occupant *types.TileOccupant
 		if tile.OccupiedBy != nil {
 			tags := make([]string, len(tile.OccupiedBy.Tags))
 			copy(tags, tile.OccupiedBy.Tags)
-			occupant = &model.TileOccupant{
-				Type: model.ResourceType(tile.OccupiedBy.Type),
+			occupant = &types.TileOccupant{
+				Type: types.ResourceType(tile.OccupiedBy.Type),
 				Tags: tags,
 			}
 		}
 
 		// Convert tile
-		tiles[i] = model.Tile{
-			Coordinates: model.HexPosition{
+		tiles[i] = types.Tile{
+			Coordinates: types.HexPosition{
 				Q: tile.Coordinates.Q,
 				R: tile.Coordinates.R,
 				S: tile.Coordinates.S,
 			},
 			Tags:        tile.Tags,
-			Type:        model.ResourceType(tile.Type),
-			Location:    model.TileLocation(tile.Location),
+			Type:        types.ResourceType(tile.Type),
+			Location:    types.TileLocation(tile.Location),
 			DisplayName: tile.DisplayName,
 			Bonuses:     bonuses,
 			OccupiedBy:  occupant,
@@ -458,5 +364,5 @@ func boardToModel(b *board.Board) model.Board {
 		}
 	}
 
-	return model.Board{Tiles: tiles}
+	return types.Board{Tiles: tiles}
 }

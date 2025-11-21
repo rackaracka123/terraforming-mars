@@ -1,4 +1,4 @@
-package model
+package types
 
 // ResourceType represents different types of resources in the game.
 // This includes basic resources, production resources, global parameters,

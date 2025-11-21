@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -19,13 +19,13 @@ type CardManager interface {
 	// payment is the proposed payment method (credits, steel, titanium) for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
+	CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 
 	// PlayCard plays a card (assumes CanPlay validation has passed)
 	// payment is the payment method to use for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error
+	PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 }
 
 // CardManagerImpl implements the simplified card management interface with session-scoped repositories
@@ -60,7 +60,7 @@ func NewCardManager(
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🔍 Validating card requirements and affordability", zap.String("card_id", cardID))
 
@@ -105,7 +105,7 @@ func (cm *CardManagerImpl) CanPlay(ctx context.Context, gameID, playerID, cardID
 // payment is the payment method to use for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *model.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎮 Playing card", zap.String("card_id", cardID))
 
@@ -136,11 +136,11 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 		if payment.Substitutes != nil {
 			for resourceType, amount := range payment.Substitutes {
 				switch resourceType {
-				case model.ResourceHeat:
+				case types.ResourceHeat:
 					updatedResources.Heat -= amount
-				case model.ResourceEnergy:
+				case types.ResourceEnergy:
 					updatedResources.Energy -= amount
-				case model.ResourcePlants:
+				case types.ResourcePlants:
 					updatedResources.Plants -= amount
 				// Add other resource types as needed
 				default:
@@ -209,7 +209,7 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, gameID, playerID, cardI
 
 	// STEP 5: Subscribe passive effects to event bus
 	if cm.effectSubscriber != nil {
-		if err := cm.effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, cardID, card.ToModelCard()); err != nil {
+		if err := cm.effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, cardID, card); err != nil {
 			return fmt.Errorf("failed to subscribe card effects: %w", err)
 		}
 		log.Debug("🎆 Passive effects subscribed to event bus")

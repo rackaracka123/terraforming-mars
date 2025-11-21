@@ -3,9 +3,9 @@ package action
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/types"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -48,7 +48,7 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	newGame := game.NewGame(gameID, settings)
 
 	// 4. Initialize empty board on game entity (actual board stored in board repository)
-	newGame.Board = model.Board{Tiles: []model.Tile{}}
+	newGame.Board = types.Board{Tiles: []types.Tile{}}
 
 	// 5. Store game in repository
 	err := a.gameRepo.Create(ctx, newGame)
@@ -61,8 +61,10 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	err = a.boardRepo.GenerateBoard(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to generate board", zap.Error(err))
-		// Rollback: remove game from repository
-		// TODO: Add rollback logic if needed
+		// Note: Rollback not implemented - game repository doesn't support deletion
+		// In practice, board generation failures are rare and indicate system issues
+		// Failed games will remain in repository but won't be playable without a board
+		// Future improvement: Add game status field to mark as "failed" or implement cleanup
 		return nil, err
 	}
 

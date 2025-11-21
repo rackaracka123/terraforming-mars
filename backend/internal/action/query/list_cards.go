@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	sessionCard "terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -16,14 +16,14 @@ import (
 // ListCardsAction handles the query for listing cards with pagination
 type ListCardsAction struct {
 	action.BaseAction
-	cardRepo repository.CardRepository
+	cardRepo sessionCard.Repository
 }
 
 // NewListCardsAction creates a new list cards query action
 func NewListCardsAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	cardRepo repository.CardRepository,
+	cardRepo sessionCard.Repository,
 	sessionMgr session.SessionManager,
 ) *ListCardsAction {
 	return &ListCardsAction{
@@ -33,7 +33,7 @@ func NewListCardsAction(
 }
 
 // Execute performs the list cards query
-func (a *ListCardsAction) Execute(ctx context.Context, offset, limit int) ([]model.Card, int, error) {
+func (a *ListCardsAction) Execute(ctx context.Context, offset, limit int) ([]types.Card, int, error) {
 	log := a.GetLogger()
 	log.Info("🔍 Querying cards",
 		zap.Int("offset", offset),

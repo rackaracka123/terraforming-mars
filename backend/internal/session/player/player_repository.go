@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 var log = logger.Get()
@@ -26,7 +26,7 @@ type Repository interface {
 	ListByGameID(ctx context.Context, gameID string) ([]*Player, error)
 
 	// UpdateResources updates player resources (event-driven)
-	UpdateResources(ctx context.Context, gameID string, playerID string, resources model.Resources) error
+	UpdateResources(ctx context.Context, gameID string, playerID string, resources types.Resources) error
 
 	// UpdateConnectionStatus updates player connection status
 	UpdateConnectionStatus(ctx context.Context, gameID string, playerID string, isConnected bool) error
@@ -47,31 +47,31 @@ type Repository interface {
 	CompleteProductionSelection(ctx context.Context, gameID string, playerID string) error
 
 	// UpdateProduction updates player production
-	UpdateProduction(ctx context.Context, gameID string, playerID string, production model.Production) error
+	UpdateProduction(ctx context.Context, gameID string, playerID string, production types.Production) error
 
 	// UpdateSelectStartingCardsPhase updates the starting cards selection phase
 	UpdateSelectStartingCardsPhase(ctx context.Context, gameID string, playerID string, phase *SelectStartingCardsPhase) error
 
 	// UpdateProductionPhase updates the production phase
-	UpdateProductionPhase(ctx context.Context, gameID string, playerID string, phase *model.ProductionPhase) error
+	UpdateProductionPhase(ctx context.Context, gameID string, playerID string, phase *types.ProductionPhase) error
 
 	// UpdateCorporation updates the player's corporation with full card data
-	UpdateCorporation(ctx context.Context, gameID string, playerID string, corporation model.Card) error
+	UpdateCorporation(ctx context.Context, gameID string, playerID string, corporation types.Card) error
 
 	// UpdatePaymentSubstitutes updates player payment substitutes
-	UpdatePaymentSubstitutes(ctx context.Context, gameID string, playerID string, substitutes []model.PaymentSubstitute) error
+	UpdatePaymentSubstitutes(ctx context.Context, gameID string, playerID string, substitutes []types.PaymentSubstitute) error
 
 	// UpdatePlayerActions updates player actions
-	UpdatePlayerActions(ctx context.Context, gameID string, playerID string, actions []model.PlayerAction) error
+	UpdatePlayerActions(ctx context.Context, gameID string, playerID string, actions []types.PlayerAction) error
 
 	// UpdateForcedFirstAction updates player forced first action
-	UpdateForcedFirstAction(ctx context.Context, gameID string, playerID string, action *model.ForcedFirstAction) error
+	UpdateForcedFirstAction(ctx context.Context, gameID string, playerID string, action *types.ForcedFirstAction) error
 
 	// UpdateRequirementModifiers updates player requirement modifiers
-	UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []model.RequirementModifier) error
+	UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []types.RequirementModifier) error
 
 	// UpdatePlayerEffects updates player active effects
-	UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []model.PlayerEffect) error
+	UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []types.PlayerEffect) error
 
 	// UpdateTerraformRating updates player terraform rating
 	UpdateTerraformRating(ctx context.Context, gameID string, playerID string, rating int) error
@@ -83,25 +83,25 @@ type Repository interface {
 	CreateTileQueue(ctx context.Context, gameID string, playerID string, cardID string, tileTypes []string) error
 
 	// GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
-	GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*model.PendingTileSelectionQueue, error)
+	GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*types.PendingTileSelectionQueue, error)
 
 	// ProcessNextTileInQueue pops the next tile type from the queue and returns it
 	ProcessNextTileInQueue(ctx context.Context, gameID string, playerID string) (string, error)
 
 	// UpdatePendingTileSelection updates the pending tile selection for a player
-	UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingTileSelection) error
+	UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *types.PendingTileSelection) error
 
 	// ClearPendingTileSelection clears the pending tile selection for a player
 	ClearPendingTileSelection(ctx context.Context, gameID string, playerID string) error
 
 	// UpdatePendingTileSelectionQueue updates the pending tile selection queue
-	UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *model.PendingTileSelectionQueue) error
+	UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *types.PendingTileSelectionQueue) error
 
 	// ClearPendingTileSelectionQueue clears the pending tile selection queue
 	ClearPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) error
 
 	// UpdatePendingCardDrawSelection updates player pending card draw selection
-	UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingCardDrawSelection) error
+	UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *types.PendingCardDrawSelection) error
 
 	// UpdateResourceStorage updates player resource storage
 	UpdateResourceStorage(ctx context.Context, gameID string, playerID string, storage map[string]int) error
@@ -164,12 +164,12 @@ func (r *RepositoryImpl) GetByID(ctx context.Context, gameID string, playerID st
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return nil, &model.NotFoundError{Resource: "game", ID: gameID}
+		return nil, &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return nil, &model.NotFoundError{Resource: "player", ID: playerID}
+		return nil, &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	return player, nil
@@ -194,19 +194,19 @@ func (r *RepositoryImpl) ListByGameID(ctx context.Context, gameID string) ([]*Pl
 }
 
 // UpdateResources updates player resources (event-driven)
-func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, playerID string, resources model.Resources) error {
+func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, playerID string, resources types.Resources) error {
 	r.mu.Lock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	oldResources := player.Resources
@@ -288,12 +288,12 @@ func (r *RepositoryImpl) UpdateConnectionStatus(ctx context.Context, gameID stri
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.IsConnected = isConnected
@@ -308,12 +308,12 @@ func (r *RepositoryImpl) SetStartingCardsSelection(ctx context.Context, gameID s
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.SelectStartingCardsPhase = &SelectStartingCardsPhase{
@@ -331,12 +331,12 @@ func (r *RepositoryImpl) AddCard(ctx context.Context, gameID string, playerID st
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	log.Debug("🃏 BEFORE AddCard",
@@ -365,12 +365,12 @@ func (r *RepositoryImpl) SetCorporation(ctx context.Context, gameID string, play
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.CorporationID = corporationID
@@ -385,12 +385,12 @@ func (r *RepositoryImpl) CompleteStartingSelection(ctx context.Context, gameID s
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// Clear the phase entirely - selection is complete and modal should close
@@ -406,12 +406,12 @@ func (r *RepositoryImpl) CompleteProductionSelection(ctx context.Context, gameID
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	if player.ProductionPhase != nil {
@@ -422,18 +422,18 @@ func (r *RepositoryImpl) CompleteProductionSelection(ctx context.Context, gameID
 }
 
 // UpdateProduction updates player production
-func (r *RepositoryImpl) UpdateProduction(ctx context.Context, gameID string, playerID string, production model.Production) error {
+func (r *RepositoryImpl) UpdateProduction(ctx context.Context, gameID string, playerID string, production types.Production) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.Production = production
@@ -448,12 +448,12 @@ func (r *RepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Context, gam
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.SelectStartingCardsPhase = phase
@@ -462,18 +462,18 @@ func (r *RepositoryImpl) UpdateSelectStartingCardsPhase(ctx context.Context, gam
 }
 
 // UpdateProductionPhase updates the production phase
-func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID string, playerID string, phase *model.ProductionPhase) error {
+func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID string, playerID string, phase *types.ProductionPhase) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.ProductionPhase = phase
@@ -482,18 +482,18 @@ func (r *RepositoryImpl) UpdateProductionPhase(ctx context.Context, gameID strin
 }
 
 // UpdateCorporation updates the player's corporation with full card data
-func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID string, playerID string, corporation model.Card) error {
+func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID string, playerID string, corporation types.Card) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.Corporation = &corporation
@@ -503,18 +503,18 @@ func (r *RepositoryImpl) UpdateCorporation(ctx context.Context, gameID string, p
 }
 
 // UpdatePaymentSubstitutes updates player payment substitutes
-func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID string, playerID string, substitutes []model.PaymentSubstitute) error {
+func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID string, playerID string, substitutes []types.PaymentSubstitute) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PaymentSubstitutes = substitutes
@@ -523,18 +523,18 @@ func (r *RepositoryImpl) UpdatePaymentSubstitutes(ctx context.Context, gameID st
 }
 
 // UpdatePlayerActions updates player actions
-func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID string, playerID string, actions []model.PlayerAction) error {
+func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID string, playerID string, actions []types.PlayerAction) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.Actions = actions
@@ -543,18 +543,18 @@ func (r *RepositoryImpl) UpdatePlayerActions(ctx context.Context, gameID string,
 }
 
 // UpdateForcedFirstAction updates player forced first action
-func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID string, playerID string, action *model.ForcedFirstAction) error {
+func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID string, playerID string, action *types.ForcedFirstAction) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.ForcedFirstAction = action
@@ -563,18 +563,18 @@ func (r *RepositoryImpl) UpdateForcedFirstAction(ctx context.Context, gameID str
 }
 
 // UpdateRequirementModifiers updates player requirement modifiers
-func (r *RepositoryImpl) UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []model.RequirementModifier) error {
+func (r *RepositoryImpl) UpdateRequirementModifiers(ctx context.Context, gameID string, playerID string, modifiers []types.RequirementModifier) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.RequirementModifiers = modifiers
@@ -583,18 +583,18 @@ func (r *RepositoryImpl) UpdateRequirementModifiers(ctx context.Context, gameID 
 }
 
 // UpdatePlayerEffects updates player active effects
-func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []model.PlayerEffect) error {
+func (r *RepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID string, playerID string, effects []types.PlayerEffect) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.Effects = effects
@@ -609,13 +609,13 @@ func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID strin
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	oldRating := player.TerraformRating
@@ -651,12 +651,12 @@ func (r *RepositoryImpl) UpdateVictoryPoints(ctx context.Context, gameID string,
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.VictoryPoints = victoryPoints
@@ -671,18 +671,18 @@ func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID string, pla
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
 		r.mu.Unlock()
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// Create tile queue
 	if len(tileTypes) > 0 {
-		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+		player.PendingTileSelectionQueue = &types.PendingTileSelectionQueue{
 			Items:  tileTypes,
 			Source: cardID,
 		}
@@ -712,18 +712,18 @@ func (r *RepositoryImpl) CreateTileQueue(ctx context.Context, gameID string, pla
 }
 
 // GetPendingTileSelectionQueue retrieves the pending tile selection queue for a player
-func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*model.PendingTileSelectionQueue, error) {
+func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameID string, playerID string) (*types.PendingTileSelectionQueue, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return nil, &model.NotFoundError{Resource: "game", ID: gameID}
+		return nil, &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return nil, &model.NotFoundError{Resource: "player", ID: playerID}
+		return nil, &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	if player.PendingTileSelectionQueue == nil {
@@ -734,7 +734,7 @@ func (r *RepositoryImpl) GetPendingTileSelectionQueue(ctx context.Context, gameI
 	itemsCopy := make([]string, len(player.PendingTileSelectionQueue.Items))
 	copy(itemsCopy, player.PendingTileSelectionQueue.Items)
 
-	return &model.PendingTileSelectionQueue{
+	return &types.PendingTileSelectionQueue{
 		Items:  itemsCopy,
 		Source: player.PendingTileSelectionQueue.Source,
 	}, nil
@@ -747,12 +747,12 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID stri
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return "", &model.NotFoundError{Resource: "game", ID: gameID}
+		return "", &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return "", &model.NotFoundError{Resource: "player", ID: playerID}
+		return "", &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// If no queue exists or queue is empty, nothing to process
@@ -778,7 +778,7 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID stri
 
 	// Update queue with remaining items or clear if empty
 	if len(remainingItems) > 0 {
-		player.PendingTileSelectionQueue = &model.PendingTileSelectionQueue{
+		player.PendingTileSelectionQueue = &types.PendingTileSelectionQueue{
 			Items:  remainingItems,
 			Source: player.PendingTileSelectionQueue.Source,
 		}
@@ -820,18 +820,18 @@ func (r *RepositoryImpl) ProcessNextTileInQueue(ctx context.Context, gameID stri
 }
 
 // UpdatePendingTileSelection updates the pending tile selection for a player
-func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingTileSelection) error {
+func (r *RepositoryImpl) UpdatePendingTileSelection(ctx context.Context, gameID string, playerID string, selection *types.PendingTileSelection) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PendingTileSelection = selection
@@ -845,18 +845,18 @@ func (r *RepositoryImpl) ClearPendingTileSelection(ctx context.Context, gameID s
 }
 
 // UpdatePendingTileSelectionQueue updates the pending tile selection queue
-func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *model.PendingTileSelectionQueue) error {
+func (r *RepositoryImpl) UpdatePendingTileSelectionQueue(ctx context.Context, gameID string, playerID string, queue *types.PendingTileSelectionQueue) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PendingTileSelectionQueue = queue
@@ -870,18 +870,18 @@ func (r *RepositoryImpl) ClearPendingTileSelectionQueue(ctx context.Context, gam
 }
 
 // UpdatePendingCardDrawSelection updates player pending card draw selection
-func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *model.PendingCardDrawSelection) error {
+func (r *RepositoryImpl) UpdatePendingCardDrawSelection(ctx context.Context, gameID string, playerID string, selection *types.PendingCardDrawSelection) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PendingCardDrawSelection = selection
@@ -896,12 +896,12 @@ func (r *RepositoryImpl) UpdateResourceStorage(ctx context.Context, gameID strin
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.ResourceStorage = storage
@@ -916,12 +916,12 @@ func (r *RepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID string, 
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	// Find and remove the card from the player's hand
@@ -944,12 +944,12 @@ func (r *RepositoryImpl) UpdatePassed(ctx context.Context, gameID string, player
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.Passed = passed
@@ -969,12 +969,12 @@ func (r *RepositoryImpl) UpdateAvailableActions(ctx context.Context, gameID stri
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.AvailableActions = actions
@@ -994,12 +994,12 @@ func (r *RepositoryImpl) UpdatePendingCardSelection(ctx context.Context, gameID 
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PendingCardSelection = selection
@@ -1020,12 +1020,12 @@ func (r *RepositoryImpl) ClearPendingCardSelection(ctx context.Context, gameID s
 
 	gamePlayers, exists := r.players[gameID]
 	if !exists {
-		return &model.NotFoundError{Resource: "game", ID: gameID}
+		return &types.NotFoundError{Resource: "game", ID: gameID}
 	}
 
 	player, exists := gamePlayers[playerID]
 	if !exists {
-		return &model.NotFoundError{Resource: "player", ID: playerID}
+		return &types.NotFoundError{Resource: "player", ID: playerID}
 	}
 
 	player.PendingCardSelection = nil

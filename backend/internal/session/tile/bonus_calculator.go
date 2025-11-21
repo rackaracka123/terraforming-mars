@@ -6,8 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session/board"
+	"terraforming-mars-backend/internal/session/deck"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -17,15 +19,17 @@ type BonusCalculator struct {
 	gameRepo   game.Repository
 	playerRepo player.Repository
 	boardRepo  board.Repository
+	deckRepo   deck.Repository
 	logger     *zap.Logger
 }
 
 // NewBonusCalculator creates a new bonus calculator
-func NewBonusCalculator(gameRepo game.Repository, playerRepo player.Repository, boardRepo board.Repository) *BonusCalculator {
+func NewBonusCalculator(gameRepo game.Repository, playerRepo player.Repository, boardRepo board.Repository, deckRepo deck.Repository) *BonusCalculator {
 	return &BonusCalculator{
 		gameRepo:   gameRepo,
 		playerRepo: playerRepo,
 		boardRepo:  boardRepo,
+		deckRepo:   deckRepo,
 		logger:     logger.Get(),
 	}
 }
@@ -89,10 +93,29 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, gameID, playerI
 				zap.Int("new_total", p.Resources.Plants))
 
 		case board.ResourceCardDraw:
-			// Card draw bonus will be handled separately via card system
-			log.Info("🎁 Card draw bonus available",
-				zap.Int("amount", bonus.Amount))
-			// TODO: Implement card draw via deck/card system
+			// Draw cards from deck
+			drawnCards, err := bc.deckRepo.DrawProjectCards(ctx, gameID, bonus.Amount)
+			if err != nil {
+				return fmt.Errorf("failed to draw cards for tile bonus: %w", err)
+			}
+
+			// Create pending card draw selection (all cards are free from tile bonus)
+			selection := &types.PendingCardDrawSelection{
+				AvailableCards: drawnCards,
+				FreeTakeCount:  bonus.Amount, // All cards must be taken (free from tile bonus)
+				MaxBuyCount:    0,            // Cannot buy additional cards from tile bonus
+				CardBuyCost:    0,
+				Source:         "tile-bonus",
+			}
+
+			// Store pending selection for player to confirm
+			if err := bc.playerRepo.UpdatePendingCardDrawSelection(ctx, gameID, playerID, selection); err != nil {
+				return fmt.Errorf("failed to create pending card draw selection: %w", err)
+			}
+
+			log.Info("🎁 Awarded card draw bonus from tile",
+				zap.Int("amount", bonus.Amount),
+				zap.Strings("cards", drawnCards))
 
 		default:
 			log.Warn("⚠️  Unknown bonus type encountered",

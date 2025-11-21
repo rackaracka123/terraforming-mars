@@ -375,7 +375,7 @@ export const TagWildlife: CardTag = "wildlife";
 export const TagWild: CardTag = "wild";
 /**
  * ResourceType represents different types of resources for client consumption
- * This is a 1:1 mapping from model.ResourceType
+ * This is a 1:1 mapping from types.ResourceType
  */
 export type ResourceType = string;
 /**
@@ -561,7 +561,7 @@ export interface CardBehaviorDto {
  * ResourceStorageDto represents a card's resource storage capability for client consumption
  */
 export interface ResourceStorageDto {
-  type: any /* model.ResourceType */;
+  type: any /* types.ResourceType */;
   capacity?: number /* int */;
   starting: number /* int */;
 }
@@ -576,10 +576,10 @@ export interface CardDto {
   description: string;
   pack: string;
   tags?: CardTag[];
-  requirements?: any /* model.Requirement */[];
+  requirements?: any /* types.Requirement */[];
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
-  vpConditions?: any /* model.VictoryPointCondition */[];
+  vpConditions?: any /* types.VictoryPointCondition */[];
   /**
    * Corporation-specific fields (nil for non-corporation cards)
    */

@@ -1,6 +1,6 @@
 package deck
 
-import "terraforming-mars-backend/internal/model"
+import "terraforming-mars-backend/internal/session/types"
 
 // GameDeck represents the deck state for a specific game
 type GameDeck struct {
@@ -16,11 +16,11 @@ type GameDeck struct {
 
 // CardDefinitions stores all loaded card definitions
 type CardDefinitions struct {
-	AllCards         map[string]model.Card // All cards indexed by ID
-	ProjectCards     []model.Card          // Project cards only
-	CorporationCards []model.Card          // Corporation cards only
-	PreludeCards     []model.Card          // Prelude cards only
-	StartingCards    []model.Card          // Starting cards (subset of project cards)
+	AllCards         map[string]types.Card // All cards indexed by ID
+	ProjectCards     []types.Card          // Project cards only
+	CorporationCards []types.Card          // Corporation cards only
+	PreludeCards     []types.Card          // Prelude cards only
+	StartingCards    []types.Card          // Starting cards (subset of project cards)
 }
 
 // NewGameDeck creates a new game deck with all cards available

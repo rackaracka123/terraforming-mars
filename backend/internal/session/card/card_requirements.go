@@ -6,9 +6,9 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // RequirementsValidator handles card requirement validation in session-scoped architecture
@@ -45,21 +45,21 @@ func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, g
 }
 
 // validateSingleRequirement validates a single requirement
-func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
 	switch requirement.Type {
-	case model.RequirementTemperature:
+	case types.RequirementTemperature:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Temperature, "temperature")
-	case model.RequirementOxygen:
+	case types.RequirementOxygen:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Oxygen, "oxygen")
-	case model.RequirementOceans:
+	case types.RequirementOceans:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Oceans, "oceans")
-	case model.RequirementTR:
+	case types.RequirementTR:
 		return rv.validateParameterRequirement(requirement, player.TerraformRating, "terraform rating")
-	case model.RequirementTags:
+	case types.RequirementTags:
 		return rv.validateTagRequirement(ctx, requirement, game, player)
-	case model.RequirementProduction:
+	case types.RequirementProduction:
 		return rv.validateProductionRequirement(ctx, requirement, game, player)
-	case model.RequirementResource:
+	case types.RequirementResource:
 		return rv.validateResourceRequirement(ctx, requirement, game, player)
 	default:
 		// Unknown requirement type, pass for now
@@ -68,7 +68,7 @@ func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, 
 }
 
 // validateParameterRequirement validates min/max parameter requirements
-func (rv *RequirementsValidator) validateParameterRequirement(requirement model.Requirement, currentValue int, paramName string) error {
+func (rv *RequirementsValidator) validateParameterRequirement(requirement types.Requirement, currentValue int, paramName string) error {
 	if requirement.Min != nil && currentValue < *requirement.Min {
 		return fmt.Errorf("%s requirement not met: need at least %d, current is %d", paramName, *requirement.Min, currentValue)
 	}
@@ -79,7 +79,7 @@ func (rv *RequirementsValidator) validateParameterRequirement(requirement model.
 }
 
 // validateTagRequirement validates tag-based requirements
-func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Tag == nil {
 		return fmt.Errorf("tag requirement missing tag specification")
 	}
@@ -101,7 +101,7 @@ func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, req
 }
 
 // validateProductionRequirement validates production-based requirements
-func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("production requirement missing resource specification")
 	}
@@ -111,17 +111,17 @@ func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Conte
 
 	// Get current production value based on resource type
 	switch *requirement.Resource {
-	case model.ResourceCredits:
+	case types.ResourceCredits:
 		currentProduction = player.Production.Credits
-	case model.ResourceSteel:
+	case types.ResourceSteel:
 		currentProduction = player.Production.Steel
-	case model.ResourceTitanium:
+	case types.ResourceTitanium:
 		currentProduction = player.Production.Titanium
-	case model.ResourcePlants:
+	case types.ResourcePlants:
 		currentProduction = player.Production.Plants
-	case model.ResourceEnergy:
+	case types.ResourceEnergy:
 		currentProduction = player.Production.Energy
-	case model.ResourceHeat:
+	case types.ResourceHeat:
 		currentProduction = player.Production.Heat
 	default:
 		return fmt.Errorf("unsupported production resource type: %s", *requirement.Resource)
@@ -141,7 +141,7 @@ func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Conte
 }
 
 // validateResourceRequirement validates resource-based requirements
-func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("resource requirement missing resource specification")
 	}
@@ -151,17 +151,17 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 
 	// Get current resource value based on resource type
 	switch *requirement.Resource {
-	case model.ResourceCredits:
+	case types.ResourceCredits:
 		currentResources = player.Resources.Credits
-	case model.ResourceSteel:
+	case types.ResourceSteel:
 		currentResources = player.Resources.Steel
-	case model.ResourceTitanium:
+	case types.ResourceTitanium:
 		currentResources = player.Resources.Titanium
-	case model.ResourcePlants:
+	case types.ResourcePlants:
 		currentResources = player.Resources.Plants
-	case model.ResourceEnergy:
+	case types.ResourceEnergy:
 		currentResources = player.Resources.Energy
-	case model.ResourceHeat:
+	case types.ResourceHeat:
 		currentResources = player.Resources.Heat
 	default:
 		return fmt.Errorf("unsupported resource type: %s", *requirement.Resource)
@@ -181,8 +181,8 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 }
 
 // countPlayerTags counts the occurrence of each tag in player's played cards and corporation
-func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *player.Player) map[model.CardTag]int {
-	tagCounts := make(map[model.CardTag]int)
+func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *player.Player) map[types.CardTag]int {
+	tagCounts := make(map[types.CardTag]int)
 
 	// Count tags from played cards
 	for _, cardID := range player.PlayedCards {
@@ -212,7 +212,7 @@ func (rv *RequirementsValidator) HasRequirements(card *Card) bool {
 }
 
 // GetPlayerTagCounts returns the tag counts for a player (public method for external use)
-func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, player *player.Player) map[model.CardTag]int {
+func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, player *player.Player) map[types.CardTag]int {
 	return rv.countPlayerTags(ctx, player)
 }
 
@@ -226,7 +226,7 @@ func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, player *play
 		if modifier.CardTarget != nil && *modifier.CardTarget == card.ID {
 			// Check if this modifier affects credits (cost discounts)
 			for _, affectedResource := range modifier.AffectedResources {
-				if affectedResource == model.ResourceCredits {
+				if affectedResource == types.ResourceCredits {
 					// Discount modifiers have negative amounts (e.g., -2 for 2 MC discount)
 					// But the stored amount can be positive representing the discount value
 					// So we subtract the absolute value
@@ -252,7 +252,7 @@ func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, player *play
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *Card, player *player.Player, payment *model.CardPayment, choiceIndex *int) error {
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *Card, player *player.Player, payment *types.CardPayment, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Calculate total costs from card behaviors (excluding card cost which is paid separately)
@@ -264,13 +264,13 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		effectiveCost := rv.calculateEffectiveCost(card, player)
 
 		// Check if card allows steel (has building tag) or titanium (has space tag)
-		allowSteel := rv.cardHasTag(card, model.TagBuilding)
-		allowTitanium := rv.cardHasTag(card, model.TagSpace)
+		allowSteel := rv.cardHasTag(card, types.TagBuilding)
+		allowTitanium := rv.cardHasTag(card, types.TagSpace)
 
 		// Validate payment format and coverage (including payment substitutes)
 		if err := payment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, player.PaymentSubstitutes); err != nil {
 			// Calculate minimum alternative resources for better error messages
-			minSteel, minTitanium := model.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
+			minSteel, minTitanium := types.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
 
 			if minSteel > 0 && minTitanium > 0 {
 				return fmt.Errorf("cannot afford card: %w (hint: need minSteel:%d or minTitanium:%d)", err, minSteel, minTitanium)
@@ -311,13 +311,13 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 			var available int
 
 			switch resourceType {
-			case model.ResourceHeat:
+			case types.ResourceHeat:
 				totalUsed = paymentAmount + totalCosts.Heat
 				available = player.Resources.Heat
-			case model.ResourceEnergy:
+			case types.ResourceEnergy:
 				totalUsed = paymentAmount + totalCosts.Energy
 				available = player.Resources.Energy
-			case model.ResourcePlants:
+			case types.ResourcePlants:
 				totalUsed = paymentAmount + totalCosts.Plants
 				available = player.Resources.Plants
 			}
@@ -332,7 +332,7 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	if totalCosts.Heat > 0 {
 		heatUsedForPayment := 0
 		if payment.Substitutes != nil {
-			heatUsedForPayment = payment.Substitutes[model.ResourceHeat]
+			heatUsedForPayment = payment.Substitutes[types.ResourceHeat]
 		}
 		if player.Resources.Heat-heatUsedForPayment < totalCosts.Heat {
 			return fmt.Errorf("insufficient heat for card effects: need %d after payment, have %d total (payment uses %d)",
@@ -374,7 +374,7 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 }
 
 // cardHasTag checks if a card has a specific tag
-func (rv *RequirementsValidator) cardHasTag(card *Card, tag model.CardTag) bool {
+func (rv *RequirementsValidator) cardHasTag(card *Card, tag types.CardTag) bool {
 	for _, cardTag := range card.Tags {
 		if cardTag == tag {
 			return true
@@ -385,13 +385,13 @@ func (rv *RequirementsValidator) cardHasTag(card *Card, tag model.CardTag) bool 
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs
 // choiceIndex is optional and used when the card has choices between different effects
-func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) model.Resources {
-	totalCosts := model.Resources{}
+func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) types.Resources {
+	totalCosts := types.Resources{}
 
 	// Process all behaviors to find immediate resource costs (auto triggers)
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == types.ResourceTriggerAuto {
 			// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
 			allInputs := behavior.Inputs
 
@@ -404,17 +404,17 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 			// Check all aggregated inputs (explicit costs)
 			for _, input := range allInputs {
 				switch input.Type {
-				case model.ResourceCredits:
+				case types.ResourceCredits:
 					totalCosts.Credits += input.Amount
-				case model.ResourceSteel:
+				case types.ResourceSteel:
 					totalCosts.Steel += input.Amount
-				case model.ResourceTitanium:
+				case types.ResourceTitanium:
 					totalCosts.Titanium += input.Amount
-				case model.ResourcePlants:
+				case types.ResourcePlants:
 					totalCosts.Plants += input.Amount
-				case model.ResourceEnergy:
+				case types.ResourceEnergy:
 					totalCosts.Energy += input.Amount
-				case model.ResourceHeat:
+				case types.ResourceHeat:
 					totalCosts.Heat += input.Amount
 				}
 			}
@@ -432,17 +432,17 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 			for _, output := range allOutputs {
 				if output.Amount < 0 {
 					switch output.Type {
-					case model.ResourceCredits:
+					case types.ResourceCredits:
 						totalCosts.Credits += -output.Amount
-					case model.ResourceSteel:
+					case types.ResourceSteel:
 						totalCosts.Steel += -output.Amount
-					case model.ResourceTitanium:
+					case types.ResourceTitanium:
 						totalCosts.Titanium += -output.Amount
-					case model.ResourcePlants:
+					case types.ResourcePlants:
 						totalCosts.Plants += -output.Amount
-					case model.ResourceEnergy:
+					case types.ResourceEnergy:
 						totalCosts.Energy += -output.Amount
-					case model.ResourceHeat:
+					case types.ResourceHeat:
 						totalCosts.Heat += -output.Amount
 					}
 				}
@@ -456,12 +456,12 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 // validateProductionDeductions validates that the player can afford any negative production effects
 func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) error {
 	// Calculate total production changes from card behaviors
-	productionChanges := model.Production{}
+	productionChanges := types.Production{}
 
 	// Process all behaviors to find production effects
 	for _, behavior := range card.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
-		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == model.ResourceTriggerAuto {
+		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == types.ResourceTriggerAuto {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
 			allOutputs := behavior.Outputs
 
@@ -474,17 +474,17 @@ func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Contex
 			// Process all aggregated outputs
 			for _, output := range allOutputs {
 				switch output.Type {
-				case model.ResourceCreditsProduction:
+				case types.ResourceCreditsProduction:
 					productionChanges.Credits += output.Amount
-				case model.ResourceSteelProduction:
+				case types.ResourceSteelProduction:
 					productionChanges.Steel += output.Amount
-				case model.ResourceTitaniumProduction:
+				case types.ResourceTitaniumProduction:
 					productionChanges.Titanium += output.Amount
-				case model.ResourcePlantsProduction:
+				case types.ResourcePlantsProduction:
 					productionChanges.Plants += output.Amount
-				case model.ResourceEnergyProduction:
+				case types.ResourceEnergyProduction:
 					productionChanges.Energy += output.Amount
-				case model.ResourceHeatProduction:
+				case types.ResourceHeatProduction:
 					productionChanges.Heat += output.Amount
 				}
 			}

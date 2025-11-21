@@ -2,14 +2,14 @@ package dto
 
 import (
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
 
 // ToCardPayment converts a CardPaymentDto to domain model CardPayment
-func ToCardPayment(dto CardPaymentDto) model.CardPayment {
-	payment := model.CardPayment{
+func ToCardPayment(dto CardPaymentDto) types.CardPayment {
+	payment := types.CardPayment{
 		Credits:  dto.Credits,
 		Steel:    dto.Steel,
 		Titanium: dto.Titanium,
@@ -17,9 +17,9 @@ func ToCardPayment(dto CardPaymentDto) model.CardPayment {
 
 	// Convert substitutes map from string keys to ResourceType keys
 	if dto.Substitutes != nil && len(dto.Substitutes) > 0 {
-		payment.Substitutes = make(map[model.ResourceType]int, len(dto.Substitutes))
+		payment.Substitutes = make(map[types.ResourceType]int, len(dto.Substitutes))
 		for resourceStr, amount := range dto.Substitutes {
-			payment.Substitutes[model.ResourceType(resourceStr)] = amount
+			payment.Substitutes[types.ResourceType(resourceStr)] = amount
 		}
 	}
 
@@ -27,7 +27,7 @@ func ToCardPayment(dto CardPaymentDto) model.CardPayment {
 }
 
 // resolveCards is a helper function to resolve card IDs to Card objects for multiple players
-func resolveCards(cardIDs []string, resolvedMap map[string]model.Card) []CardDto {
+func resolveCards(cardIDs []string, resolvedMap map[string]types.Card) []CardDto {
 	if resolvedMap == nil {
 		return nil
 	}
@@ -49,7 +49,7 @@ func resolveCards(cardIDs []string, resolvedMap map[string]model.Card) []CardDto
 }
 
 // ToGameDto converts a model Game to personalized GameDto
-func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, resolvedCards map[string]model.Card, paymentConstants PaymentConstantsDto) GameDto {
+func ToGameDto(game types.Game, players []types.Player, viewingPlayerID string, resolvedCards map[string]types.Card, paymentConstants PaymentConstantsDto) GameDto {
 	log := logger.Get().With(
 		zap.String("game_id", game.ID),
 		zap.String("viewing_player_id", viewingPlayerID),
@@ -98,7 +98,7 @@ func ToGameDto(game model.Game, players []model.Player, viewingPlayerID string, 
 }
 
 // ToPlayerDto converts a model Player to PlayerDto with resolved cards
-func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) PlayerDto {
+func ToPlayerDto(player types.Player, resolvedCards map[string]types.Card) PlayerDto {
 	status := PlayerStatusActive
 	if player.Passed {
 		status = PlayerStatusWaiting
@@ -157,8 +157,8 @@ func ToPlayerDto(player model.Player, resolvedCards map[string]model.Card) Playe
 	}
 }
 
-// PlayerToOtherPlayerDto converts a model.Player to OtherPlayerDto (limited view)
-func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
+// PlayerToOtherPlayerDto converts a types.Player to OtherPlayerDto (limited view)
+func PlayerToOtherPlayerDto(player types.Player) OtherPlayerDto {
 	// Convert corporation to CardDto if present
 	var corporationDto *CardDto
 	if player.Corporation != nil {
@@ -204,7 +204,7 @@ func PlayerToOtherPlayerDto(player model.Player) OtherPlayerDto {
 }
 
 // ToResourcesDto converts model Resources to ResourcesDto
-func ToResourcesDto(resources model.Resources) ResourcesDto {
+func ToResourcesDto(resources types.Resources) ResourcesDto {
 	return ResourcesDto{
 		Credits:  resources.Credits,
 		Steel:    resources.Steel,
@@ -216,7 +216,7 @@ func ToResourcesDto(resources model.Resources) ResourcesDto {
 }
 
 // ToProductionDto converts model Production to ProductionDto
-func ToProductionDto(production model.Production) ProductionDto {
+func ToProductionDto(production types.Production) ProductionDto {
 	return ProductionDto{
 		Credits:  production.Credits,
 		Steel:    production.Steel,
@@ -228,7 +228,7 @@ func ToProductionDto(production model.Production) ProductionDto {
 }
 
 // ToPaymentSubstituteDto converts model PaymentSubstitute to PaymentSubstituteDto
-func ToPaymentSubstituteDto(substitute model.PaymentSubstitute) PaymentSubstituteDto {
+func ToPaymentSubstituteDto(substitute types.PaymentSubstitute) PaymentSubstituteDto {
 	return PaymentSubstituteDto{
 		ResourceType:   ResourceType(substitute.ResourceType),
 		ConversionRate: substitute.ConversionRate,
@@ -236,7 +236,7 @@ func ToPaymentSubstituteDto(substitute model.PaymentSubstitute) PaymentSubstitut
 }
 
 // ToPaymentSubstituteDtoSlice converts a slice of model PaymentSubstitute to PaymentSubstituteDto slice
-func ToPaymentSubstituteDtoSlice(substitutes []model.PaymentSubstitute) []PaymentSubstituteDto {
+func ToPaymentSubstituteDtoSlice(substitutes []types.PaymentSubstitute) []PaymentSubstituteDto {
 	if substitutes == nil {
 		return []PaymentSubstituteDto{}
 	}
@@ -249,7 +249,7 @@ func ToPaymentSubstituteDtoSlice(substitutes []model.PaymentSubstitute) []Paymen
 }
 
 // ToRequirementModifierDto converts model RequirementModifier to RequirementModifierDto
-func ToRequirementModifierDto(modifier model.RequirementModifier) RequirementModifierDto {
+func ToRequirementModifierDto(modifier types.RequirementModifier) RequirementModifierDto {
 	// Convert affected resources slice
 	affectedResources := make([]ResourceType, len(modifier.AffectedResources))
 	for i, res := range modifier.AffectedResources {
@@ -279,7 +279,7 @@ func ToRequirementModifierDto(modifier model.RequirementModifier) RequirementMod
 }
 
 // ToRequirementModifierDtoSlice converts a slice of model RequirementModifier to RequirementModifierDto slice
-func ToRequirementModifierDtoSlice(modifiers []model.RequirementModifier) []RequirementModifierDto {
+func ToRequirementModifierDtoSlice(modifiers []types.RequirementModifier) []RequirementModifierDto {
 	if modifiers == nil {
 		return []RequirementModifierDto{}
 	}
@@ -292,7 +292,7 @@ func ToRequirementModifierDtoSlice(modifiers []model.RequirementModifier) []Requ
 }
 
 // ToGlobalParametersDto converts model GlobalParameters to GlobalParametersDto
-func ToGlobalParametersDto(params model.GlobalParameters) GlobalParametersDto {
+func ToGlobalParametersDto(params types.GlobalParameters) GlobalParametersDto {
 	return GlobalParametersDto{
 		Temperature: params.Temperature,
 		Oxygen:      params.Oxygen,
@@ -301,7 +301,7 @@ func ToGlobalParametersDto(params model.GlobalParameters) GlobalParametersDto {
 }
 
 // ToGameSettingsDto converts model GameSettings to GameSettingsDto
-func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
+func ToGameSettingsDto(settings types.GameSettings) GameSettingsDto {
 	return GameSettingsDto{
 		MaxPlayers:      settings.MaxPlayers,
 		DevelopmentMode: settings.DevelopmentMode,
@@ -311,8 +311,11 @@ func ToGameSettingsDto(settings model.GameSettings) GameSettingsDto {
 
 // ToGameDtoBasic provides a basic non-personalized game view (temporary compatibility)
 // This is used for cases where personalization isn't needed (like game listings)
-// TODO: Create a new model for this usecase. Or rename the other "Game" that contains player data,
-func ToGameDtoBasic(game model.Game, paymentConstants PaymentConstantsDto) GameDto {
+// TODO: Architectural cleanup needed:
+// Option 1: Create separate DTOs - GameListingDto (basic) and GameDetailDto (personalized)
+// Option 2: Rename existing PersonalizedGameDto and use GameDto only for basic views
+// Current approach reuses GameDto with empty player fields, which is suboptimal
+func ToGameDtoBasic(game types.Game, paymentConstants PaymentConstantsDto) GameDto {
 	return GameDto{
 		ID:               game.ID,
 		Status:           GameStatus(game.Status),
@@ -332,7 +335,7 @@ func ToGameDtoBasic(game model.Game, paymentConstants PaymentConstantsDto) GameD
 }
 
 // ToGameDtoSlice provides basic non-personalized game views (temporary compatibility)
-func ToGameDtoSlice(games []model.Game, paymentConstants PaymentConstantsDto) []GameDto {
+func ToGameDtoSlice(games []types.Game, paymentConstants PaymentConstantsDto) []GameDto {
 	dtos := make([]GameDto, len(games))
 	for i, game := range games {
 		dtos[i] = ToGameDtoBasic(game, paymentConstants)
@@ -341,7 +344,7 @@ func ToGameDtoSlice(games []model.Game, paymentConstants PaymentConstantsDto) []
 }
 
 // ToPlayerDtoSlice converts a slice of model Players to PlayerDto slice with empty cards
-func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
+func ToPlayerDtoSlice(players []types.Player) []PlayerDto {
 	dtos := make([]PlayerDto, len(players))
 	for i, player := range players {
 		dtos[i] = ToPlayerDto(player, nil) // Empty cards for basic conversion
@@ -350,7 +353,7 @@ func ToPlayerDtoSlice(players []model.Player) []PlayerDto {
 }
 
 // ToCardDto converts a model Card to CardDto
-func ToCardDto(card model.Card) CardDto {
+func ToCardDto(card types.Card) CardDto {
 
 	// Convert behaviors to DTO format
 	behaviors := ToCardBehaviorDtoSlice(card.Behaviors)
@@ -396,7 +399,7 @@ func ToCardDto(card model.Card) CardDto {
 }
 
 // ToCardDtoSlice converts a slice of model Cards to CardDto slice
-func ToCardDtoSlice(cards []model.Card) []CardDto {
+func ToCardDtoSlice(cards []types.Card) []CardDto {
 	if cards == nil {
 		return nil
 	}
@@ -409,7 +412,7 @@ func ToCardDtoSlice(cards []model.Card) []CardDto {
 }
 
 // ToCardTagDtoSlice converts a slice of model CardTags to CardTag slice
-func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
+func ToCardTagDtoSlice(tags []types.CardTag) []CardTag {
 	if tags == nil || len(tags) == 0 {
 		return nil
 	}
@@ -422,7 +425,7 @@ func ToCardTagDtoSlice(tags []model.CardTag) []CardTag {
 }
 
 // ToCardTypeDtoSlice converts a slice of model CardType to CardType slice
-func ToCardTypeDtoSlice(cardTypes []model.CardType) []CardType {
+func ToCardTypeDtoSlice(cardTypes []types.CardType) []CardType {
 	if cardTypes == nil || len(cardTypes) == 0 {
 		return nil
 	}
@@ -435,7 +438,7 @@ func ToCardTypeDtoSlice(cardTypes []model.CardType) []CardType {
 }
 
 // ToStandardProjectDtoSlice converts a slice of model StandardProjects to StandardProject slice
-func ToStandardProjectDtoSlice(projects []model.StandardProject) []StandardProject {
+func ToStandardProjectDtoSlice(projects []types.StandardProject) []StandardProject {
 	if projects == nil || len(projects) == 0 {
 		return nil
 	}
@@ -448,7 +451,7 @@ func ToStandardProjectDtoSlice(projects []model.StandardProject) []StandardProje
 }
 
 // ToSelectStartingCardsPhaseDto converts model SelectStartingCardsPhase to SelectStartingCardsPhaseDto
-func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolvedCards map[string]model.Card) *SelectStartingCardsPhaseDto {
+func ToSelectStartingCardsPhaseDto(phase *types.SelectStartingCardsPhase, resolvedCards map[string]types.Card) *SelectStartingCardsPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -459,7 +462,7 @@ func ToSelectStartingCardsPhaseDto(phase *model.SelectStartingCardsPhase, resolv
 	}
 }
 
-func ToSelectStartingCardsOtherPlayerDto(phase *model.SelectStartingCardsPhase) *SelectStartingCardsOtherPlayerDto {
+func ToSelectStartingCardsOtherPlayerDto(phase *types.SelectStartingCardsPhase) *SelectStartingCardsOtherPlayerDto {
 	if phase == nil {
 		return nil
 	}
@@ -469,12 +472,12 @@ func ToSelectStartingCardsOtherPlayerDto(phase *model.SelectStartingCardsPhase) 
 }
 
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto
-func ToProductionPhaseDto(phase *model.ProductionPhase, resolvedCards map[string]model.Card) *ProductionPhaseDto {
+func ToProductionPhaseDto(phase *types.ProductionPhase, resolvedCards map[string]types.Card) *ProductionPhaseDto {
 	if phase == nil {
 		return nil
 	}
 
-	delta := model.Resources{
+	delta := types.Resources{
 		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
 		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
 		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
@@ -494,12 +497,12 @@ func ToProductionPhaseDto(phase *model.ProductionPhase, resolvedCards map[string
 	}
 }
 
-func ToProductionPhaseOtherPlayerDto(phase *model.ProductionPhase) *ProductionPhaseOtherPlayerDto {
+func ToProductionPhaseOtherPlayerDto(phase *types.ProductionPhase) *ProductionPhaseOtherPlayerDto {
 	if phase == nil {
 		return nil
 	}
 
-	delta := model.Resources{
+	delta := types.Resources{
 		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
 		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
 		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
@@ -519,7 +522,7 @@ func ToProductionPhaseOtherPlayerDto(phase *model.ProductionPhase) *ProductionPh
 }
 
 // ToResourceConditionDto converts a model ResourceCondition to ResourceConditionDto
-func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
+func ToResourceConditionDto(rc types.ResourceCondition) ResourceConditionDto {
 	return ResourceConditionDto{
 		Type:                     ResourceType(rc.Type),
 		Amount:                   rc.Amount,
@@ -533,7 +536,7 @@ func ToResourceConditionDto(rc model.ResourceCondition) ResourceConditionDto {
 }
 
 // ToResourceConditionDtoSlice converts a slice of model ResourceCondition to ResourceConditionDto slice
-func ToResourceConditionDtoSlice(conditions []model.ResourceCondition) []ResourceConditionDto {
+func ToResourceConditionDtoSlice(conditions []types.ResourceCondition) []ResourceConditionDto {
 	if conditions == nil {
 		return nil
 	}
@@ -546,7 +549,7 @@ func ToResourceConditionDtoSlice(conditions []model.ResourceCondition) []Resourc
 }
 
 // ToPerConditionDto converts a model PerCondition pointer to PerConditionDto pointer
-func ToPerConditionDto(per *model.PerCondition) *PerConditionDto {
+func ToPerConditionDto(per *types.PerCondition) *PerConditionDto {
 	if per == nil {
 		return nil
 	}
@@ -561,7 +564,7 @@ func ToPerConditionDto(per *model.PerCondition) *PerConditionDto {
 }
 
 // ToChoiceDto converts a model Choice to ChoiceDto
-func ToChoiceDto(choice model.Choice) ChoiceDto {
+func ToChoiceDto(choice types.Choice) ChoiceDto {
 	return ChoiceDto{
 		Inputs:  ToResourceConditionDtoSlice(choice.Inputs),
 		Outputs: ToResourceConditionDtoSlice(choice.Outputs),
@@ -569,7 +572,7 @@ func ToChoiceDto(choice model.Choice) ChoiceDto {
 }
 
 // ToChoiceDtoSlice converts a slice of model Choice to ChoiceDto slice
-func ToChoiceDtoSlice(choices []model.Choice) []ChoiceDto {
+func ToChoiceDtoSlice(choices []types.Choice) []ChoiceDto {
 	if choices == nil {
 		return nil
 	}
@@ -582,7 +585,7 @@ func ToChoiceDtoSlice(choices []model.Choice) []ChoiceDto {
 }
 
 // ToTriggerDto converts a model Trigger to TriggerDto
-func ToTriggerDto(trigger model.Trigger) TriggerDto {
+func ToTriggerDto(trigger types.Trigger) TriggerDto {
 	return TriggerDto{
 		Type:      ResourceTriggerType(trigger.Type),
 		Condition: ToResourceTriggerConditionDto(trigger.Condition),
@@ -590,7 +593,7 @@ func ToTriggerDto(trigger model.Trigger) TriggerDto {
 }
 
 // ToTriggerDtoSlice converts a slice of model Trigger to TriggerDto slice
-func ToTriggerDtoSlice(triggers []model.Trigger) []TriggerDto {
+func ToTriggerDtoSlice(triggers []types.Trigger) []TriggerDto {
 	if triggers == nil {
 		return nil
 	}
@@ -603,7 +606,7 @@ func ToTriggerDtoSlice(triggers []model.Trigger) []TriggerDto {
 }
 
 // ToMinMaxValueDto converts a model MinMaxValue pointer to MinMaxValueDto pointer
-func ToMinMaxValueDto(value *model.MinMaxValue) *MinMaxValueDto {
+func ToMinMaxValueDto(value *types.MinMaxValue) *MinMaxValueDto {
 	if value == nil {
 		return nil
 	}
@@ -614,7 +617,7 @@ func ToMinMaxValueDto(value *model.MinMaxValue) *MinMaxValueDto {
 }
 
 // ToResourceChangeMapDto converts a model RequiredResourceChange map to DTO map
-func ToResourceChangeMapDto(changeMap map[model.ResourceType]model.MinMaxValue) map[ResourceType]MinMaxValueDto {
+func ToResourceChangeMapDto(changeMap map[types.ResourceType]types.MinMaxValue) map[ResourceType]MinMaxValueDto {
 	if changeMap == nil {
 		return nil
 	}
@@ -630,7 +633,7 @@ func ToResourceChangeMapDto(changeMap map[model.ResourceType]model.MinMaxValue) 
 }
 
 // ToResourceTriggerConditionDto converts a model ResourceTriggerCondition pointer to ResourceTriggerConditionDto pointer
-func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *ResourceTriggerConditionDto {
+func ToResourceTriggerConditionDto(condition *types.ResourceTriggerCondition) *ResourceTriggerConditionDto {
 	if condition == nil {
 		return nil
 	}
@@ -648,7 +651,7 @@ func ToResourceTriggerConditionDto(condition *model.ResourceTriggerCondition) *R
 }
 
 // ToCardBehaviorDto converts a model CardBehavior to CardBehaviorDto
-func ToCardBehaviorDto(behavior model.CardBehavior) CardBehaviorDto {
+func ToCardBehaviorDto(behavior types.CardBehavior) CardBehaviorDto {
 	return CardBehaviorDto{
 		Triggers: ToTriggerDtoSlice(behavior.Triggers),
 		Inputs:   ToResourceConditionDtoSlice(behavior.Inputs),
@@ -658,7 +661,7 @@ func ToCardBehaviorDto(behavior model.CardBehavior) CardBehaviorDto {
 }
 
 // ToCardBehaviorDtoSlice converts a slice of model CardBehaviors to CardBehaviorDto slice
-func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
+func ToCardBehaviorDtoSlice(behaviors []types.CardBehavior) []CardBehaviorDto {
 	if behaviors == nil {
 		return nil
 	}
@@ -673,7 +676,7 @@ func ToCardBehaviorDtoSlice(behaviors []model.CardBehavior) []CardBehaviorDto {
 // Helper functions for type conversions
 
 // ToCardApplyLocationPointer converts model CardApplyLocation pointer to DTO CardApplyLocation pointer
-func ToCardApplyLocationPointer(ptr *model.CardApplyLocation) *CardApplyLocation {
+func ToCardApplyLocationPointer(ptr *types.CardApplyLocation) *CardApplyLocation {
 	if ptr == nil {
 		return nil
 	}
@@ -682,7 +685,7 @@ func ToCardApplyLocationPointer(ptr *model.CardApplyLocation) *CardApplyLocation
 }
 
 // ToTargetTypePointer converts model TargetType pointer to DTO TargetType pointer
-func ToTargetTypePointer(ptr *model.TargetType) *TargetType {
+func ToTargetTypePointer(ptr *types.TargetType) *TargetType {
 	if ptr == nil {
 		return nil
 	}
@@ -691,7 +694,7 @@ func ToTargetTypePointer(ptr *model.TargetType) *TargetType {
 }
 
 // ToCardTagPointer converts model CardTag pointer to DTO CardTag pointer
-func ToCardTagPointer(ptr *model.CardTag) *CardTag {
+func ToCardTagPointer(ptr *types.CardTag) *CardTag {
 	if ptr == nil {
 		return nil
 	}
@@ -700,7 +703,7 @@ func ToCardTagPointer(ptr *model.CardTag) *CardTag {
 }
 
 // ToPlayerEffectDto converts a model PlayerEffect to PlayerEffectDto
-func ToPlayerEffectDto(effect model.PlayerEffect) PlayerEffectDto {
+func ToPlayerEffectDto(effect types.PlayerEffect) PlayerEffectDto {
 	return PlayerEffectDto{
 		CardID:        effect.CardID,
 		CardName:      effect.CardName,
@@ -710,7 +713,7 @@ func ToPlayerEffectDto(effect model.PlayerEffect) PlayerEffectDto {
 }
 
 // ToPlayerEffectDtoSlice converts a slice of model PlayerEffects to PlayerEffectDto slice
-func ToPlayerEffectDtoSlice(effects []model.PlayerEffect) []PlayerEffectDto {
+func ToPlayerEffectDtoSlice(effects []types.PlayerEffect) []PlayerEffectDto {
 	if effects == nil {
 		return []PlayerEffectDto{}
 	}
@@ -723,7 +726,7 @@ func ToPlayerEffectDtoSlice(effects []model.PlayerEffect) []PlayerEffectDto {
 }
 
 // ToPlayerActionDto converts a model PlayerAction to PlayerActionDto
-func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
+func ToPlayerActionDto(action types.PlayerAction) PlayerActionDto {
 	return PlayerActionDto{
 		CardID:        action.CardID,
 		CardName:      action.CardName,
@@ -735,7 +738,7 @@ func ToPlayerActionDto(action model.PlayerAction) PlayerActionDto {
 
 // ToPlayerActionDtoSlice converts a slice of model PlayerActions to PlayerActionDto slice
 // Filters out auto-first-action triggers that have already been used (PlayCount > 0)
-func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
+func ToPlayerActionDtoSlice(actions []types.PlayerAction) []PlayerActionDto {
 	if actions == nil {
 		return []PlayerActionDto{}
 	}
@@ -744,7 +747,7 @@ func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 		// Check if this is an auto-first-action that has already been played
 		isAutoFirstAction := false
 		if len(action.Behavior.Triggers) > 0 {
-			isAutoFirstAction = action.Behavior.Triggers[0].Type == model.ResourceTriggerAutoCorporationFirstAction
+			isAutoFirstAction = action.Behavior.Triggers[0].Type == types.ResourceTriggerAutoCorporationFirstAction
 		}
 
 		// Skip auto-first-actions that have been used
@@ -760,14 +763,14 @@ func ToPlayerActionDtoSlice(actions []model.PlayerAction) []PlayerActionDto {
 // Board conversion functions
 
 // ToBoardDto converts a model Board to BoardDto
-func ToBoardDto(board model.Board) BoardDto {
+func ToBoardDto(board types.Board) BoardDto {
 	return BoardDto{
 		Tiles: ToTileDtoSlice(board.Tiles),
 	}
 }
 
 // ToTileDto converts a model Tile to TileDto
-func ToTileDto(tile model.Tile) TileDto {
+func ToTileDto(tile types.Tile) TileDto {
 	return TileDto{
 		Coordinates: HexPositionDto{
 			Q: tile.Coordinates.Q,
@@ -785,7 +788,7 @@ func ToTileDto(tile model.Tile) TileDto {
 }
 
 // ToTileDtoSlice converts a slice of model Tiles to TileDto slice
-func ToTileDtoSlice(tiles []model.Tile) []TileDto {
+func ToTileDtoSlice(tiles []types.Tile) []TileDto {
 	if tiles == nil {
 		return nil
 	}
@@ -798,7 +801,7 @@ func ToTileDtoSlice(tiles []model.Tile) []TileDto {
 }
 
 // ToTileBonusDto converts a model TileBonus to TileBonusDto
-func ToTileBonusDto(bonus model.TileBonus) TileBonusDto {
+func ToTileBonusDto(bonus types.TileBonus) TileBonusDto {
 	return TileBonusDto{
 		Type:   string(bonus.Type),
 		Amount: bonus.Amount,
@@ -806,7 +809,7 @@ func ToTileBonusDto(bonus model.TileBonus) TileBonusDto {
 }
 
 // ToTileBonusDtoSlice converts a slice of model TileBonus to TileBonusDto slice
-func ToTileBonusDtoSlice(bonuses []model.TileBonus) []TileBonusDto {
+func ToTileBonusDtoSlice(bonuses []types.TileBonus) []TileBonusDto {
 	if bonuses == nil {
 		return []TileBonusDto{}
 	}
@@ -819,7 +822,7 @@ func ToTileBonusDtoSlice(bonuses []model.TileBonus) []TileBonusDto {
 }
 
 // ToTileOccupantDto converts a model TileOccupant pointer to TileOccupantDto pointer
-func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
+func ToTileOccupantDto(occupant *types.TileOccupant) *TileOccupantDto {
 	if occupant == nil {
 		return nil
 	}
@@ -832,7 +835,7 @@ func ToTileOccupantDto(occupant *model.TileOccupant) *TileOccupantDto {
 
 // ToPendingTileSelectionDto converts a model PendingTileSelection pointer to PendingTileSelectionDto pointer
 // ToForcedFirstActionDto converts a model ForcedFirstAction to ForcedFirstActionDto
-func ToForcedFirstActionDto(action *model.ForcedFirstAction) *ForcedFirstActionDto {
+func ToForcedFirstActionDto(action *types.ForcedFirstAction) *ForcedFirstActionDto {
 	if action == nil {
 		return nil
 	}
@@ -845,7 +848,7 @@ func ToForcedFirstActionDto(action *model.ForcedFirstAction) *ForcedFirstActionD
 	}
 }
 
-func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTileSelectionDto {
+func ToPendingTileSelectionDto(selection *types.PendingTileSelection) *PendingTileSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -858,7 +861,7 @@ func ToPendingTileSelectionDto(selection *model.PendingTileSelection) *PendingTi
 }
 
 // ToPendingCardSelectionDto converts a model PendingCardSelection to PendingCardSelectionDto
-func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCards map[string]model.Card) *PendingCardSelectionDto {
+func ToPendingCardSelectionDto(selection *types.PendingCardSelection, resolvedCards map[string]types.Card) *PendingCardSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -877,7 +880,7 @@ func ToPendingCardSelectionDto(selection *model.PendingCardSelection, resolvedCa
 }
 
 // ToPendingCardDrawSelectionDto converts a model PendingCardDrawSelection to PendingCardDrawSelectionDto
-func ToPendingCardDrawSelectionDto(selection *model.PendingCardDrawSelection, resolvedCards map[string]model.Card) *PendingCardDrawSelectionDto {
+func ToPendingCardDrawSelectionDto(selection *types.PendingCardDrawSelection, resolvedCards map[string]types.Card) *PendingCardDrawSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -895,7 +898,7 @@ func ToPendingCardDrawSelectionDto(selection *model.PendingCardDrawSelection, re
 }
 
 // ToResourceSetDto converts a model ResourceSet to ResourceSet
-func ToResourceSetDto(rs model.ResourceSet) ResourceSet {
+func ToResourceSetDto(rs types.ResourceSet) ResourceSet {
 	return ResourceSet{
 		Credits:  rs.Credits,
 		Steel:    rs.Steel,

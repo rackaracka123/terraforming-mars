@@ -7,9 +7,6 @@ import (
 	"terraforming-mars-backend/internal/action"
 	adminaction "terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	sessionPlayer "terraforming-mars-backend/internal/session/player"
@@ -23,27 +20,21 @@ type WebSocketService struct {
 
 // NewWebSocketService creates a new WebSocket service with clean architecture
 func NewWebSocketService(
-	gameService service.GameService,
-	playerService service.PlayerService,
-	cardService service.CardService,
-	adminService service.AdminService,
-	resourceConversionService service.ResourceConversionService,
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
 	newGameRepo sessionGame.Repository,
 	newPlayerRepo sessionPlayer.Repository,
 	hub *core.Hub,
 	sessionManager session.SessionManager,
-	eventBus *events.EventBusImpl,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
+	playerReconnectedAction *action.PlayerReconnectedAction,
+	playerDisconnectedAction *action.PlayerDisconnectedAction,
 	selectStartingCardsAction *action.SelectStartingCardsAction,
 	skipActionAction *action.SkipActionAction,
 	confirmProductionCardsAction *action.ConfirmProductionCardsAction,
 	buildCityAction *action.BuildCityAction,
 	selectTileAction *action.SelectTileAction,
 	playCardAction *action.PlayCardAction,
+	executeCardActionAction *action.ExecuteCardActionAction,
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
 	buildAquiferAction *action.BuildAquiferAction,
@@ -53,12 +44,19 @@ func NewWebSocketService(
 	convertHeatAction *action.ConvertHeatToTemperatureAction,
 	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
 	confirmCardDrawAction *action.ConfirmCardDrawAction,
+	giveCardAdminAction *adminaction.GiveCardAction,
+	setPhaseAdminAction *adminaction.SetPhaseAction,
+	setResourcesAdminAction *adminaction.SetResourcesAction,
+	setProductionAdminAction *adminaction.SetProductionAction,
+	setGlobalParametersAdminAction *adminaction.SetGlobalParametersAction,
 	startTileSelectionAdminAction *adminaction.StartTileSelectionAction,
+	setCurrentTurnAdminAction *adminaction.SetCurrentTurnAction,
+	setCorporationAdminAction *adminaction.SetCorporationAction,
 ) *WebSocketService {
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, sessionManager, gameService, playerService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, newGameRepo, newPlayerRepo, eventBus, startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction, launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction, sellPatentsAction, confirmSellPatentsAction, convertHeatAction, convertPlantsAction, confirmCardDrawAction, startTileSelectionAdminAction)
+	RegisterHandlers(hub, sessionManager, newGameRepo, newPlayerRepo, startGameAction, joinGameAction, playerReconnectedAction, playerDisconnectedAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction, executeCardActionAction, launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction, sellPatentsAction, confirmSellPatentsAction, convertHeatAction, convertPlantsAction, confirmCardDrawAction, giveCardAdminAction, setPhaseAdminAction, setResourcesAdminAction, setProductionAdminAction, setGlobalParametersAdminAction, startTileSelectionAdminAction, setCurrentTurnAdminAction, setCorporationAdminAction)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

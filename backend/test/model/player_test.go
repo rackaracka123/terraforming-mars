@@ -1,14 +1,14 @@
 package model_test
 
 import (
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPlayer_InitialState(t *testing.T) {
-	player := &model.Player{
+	player := &types.Player{
 		ID:   "player1",
 		Name: "Test Player",
 	}
@@ -28,8 +28,8 @@ func TestPlayer_InitialState(t *testing.T) {
 }
 
 func TestPlayer_ResourcesAndProduction(t *testing.T) {
-	player := &model.Player{
-		Resources: model.Resources{
+	player := &types.Player{
+		Resources: types.Resources{
 			Credits:  40,
 			Steel:    8,
 			Titanium: 3,
@@ -37,7 +37,7 @@ func TestPlayer_ResourcesAndProduction(t *testing.T) {
 			Energy:   6,
 			Heat:     15,
 		},
-		Production: model.Production{
+		Production: types.Production{
 			Credits:  1,
 			Steel:    2,
 			Titanium: 1,

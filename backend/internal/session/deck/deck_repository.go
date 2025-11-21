@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -15,7 +15,7 @@ import (
 // Repository manages card decks and definitions
 type Repository interface {
 	// CreateDeck initializes a new game deck
-	CreateDeck(ctx context.Context, gameID string, settings model.GameSettings) error
+	CreateDeck(ctx context.Context, gameID string, settings types.GameSettings) error
 
 	// DrawProjectCards draws N random project cards from the deck
 	DrawProjectCards(ctx context.Context, gameID string, count int) ([]string, error)
@@ -30,12 +30,12 @@ type Repository interface {
 	GetAvailableCardCount(ctx context.Context, gameID string) (int, error)
 
 	// Card definition queries
-	GetCardByID(ctx context.Context, cardID string) (*model.Card, error)
-	GetAllCards(ctx context.Context) ([]model.Card, error)
-	GetProjectCards(ctx context.Context) ([]model.Card, error)
-	GetCorporationCards(ctx context.Context) ([]model.Card, error)
-	GetStartingCardPool(ctx context.Context) ([]model.Card, error)
-	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error)
+	GetCardByID(ctx context.Context, cardID string) (*types.Card, error)
+	GetAllCards(ctx context.Context) ([]types.Card, error)
+	GetProjectCards(ctx context.Context) ([]types.Card, error)
+	GetCorporationCards(ctx context.Context) ([]types.Card, error)
+	GetStartingCardPool(ctx context.Context) ([]types.Card, error)
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error)
 }
 
 // RepositoryImpl implements the Repository interface
@@ -60,7 +60,7 @@ func NewRepository(ctx context.Context) (Repository, error) {
 }
 
 // CreateDeck initializes a new game deck
-func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings model.GameSettings) error {
+func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings types.GameSettings) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -73,6 +73,8 @@ func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings
 
 	// Filter cards based on game settings (card packs)
 	// TODO: Implement pack filtering when settings include card pack selection
+	// Game settings should specify which expansions/card packs are enabled (Base, Corporate Era, Venus Next, etc.)
+	// Cards should be filtered to only include those from enabled packs before shuffling
 
 	// Shuffle the decks
 	projectCardIDs = shuffleStrings(projectCardIDs)
@@ -189,7 +191,7 @@ func (r *RepositoryImpl) GetAvailableCardCount(ctx context.Context, gameID strin
 }
 
 // GetCardByID retrieves a specific card by ID
-func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model.Card, error) {
+func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -202,11 +204,11 @@ func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*model
 }
 
 // GetAllCards retrieves all card definitions
-func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]model.Card, error) {
+func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	cards := make([]model.Card, 0, len(r.definitions.AllCards))
+	cards := make([]types.Card, 0, len(r.definitions.AllCards))
 	for _, card := range r.definitions.AllCards {
 		cards = append(cards, card)
 	}
@@ -215,7 +217,7 @@ func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]model.Card, error) 
 }
 
 // GetProjectCards retrieves all project card definitions
-func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]model.Card, error) {
+func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -223,7 +225,7 @@ func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]model.Card, err
 }
 
 // GetCorporationCards retrieves all corporation card definitions
-func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]model.Card, error) {
+func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -231,7 +233,7 @@ func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]model.Card,
 }
 
 // GetStartingCardPool retrieves all starting card definitions
-func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.Card, error) {
+func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -239,11 +241,11 @@ func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]model.Card,
 }
 
 // ListCardsByIdMap retrieves multiple cards by their IDs
-func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]model.Card, error) {
+func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	result := make(map[string]model.Card, len(ids))
+	result := make(map[string]types.Card, len(ids))
 	for id := range ids {
 		if card, exists := r.definitions.AllCards[id]; exists {
 			result[id] = card

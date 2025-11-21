@@ -27,9 +27,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/production/confirm_cards"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	sessionPlayer "terraforming-mars-backend/internal/session/player"
@@ -39,25 +36,19 @@ import (
 func RegisterHandlers(
 	hub *core.Hub,
 	sessionManager session.SessionManager,
-	gameService service.GameService,
-	playerService service.PlayerService,
-	cardService service.CardService,
-	adminService service.AdminService,
-	resourceConversionService service.ResourceConversionService,
-	gameRepo repository.GameRepository,
-	playerRepo repository.PlayerRepository,
-	cardRepo repository.CardRepository,
 	newGameRepo sessionGame.Repository,
 	newPlayerRepo sessionPlayer.Repository,
-	eventBus *events.EventBusImpl,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
+	playerReconnectedAction *action.PlayerReconnectedAction,
+	playerDisconnectedAction *action.PlayerDisconnectedAction,
 	selectStartingCardsAction *action.SelectStartingCardsAction,
 	skipActionAction *action.SkipActionAction,
 	confirmProductionCardsAction *action.ConfirmProductionCardsAction,
 	buildCityAction *action.BuildCityAction,
 	selectTileAction *action.SelectTileAction,
 	playCardAction *action.PlayCardAction,
+	executeCardActionAction *action.ExecuteCardActionAction,
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
 	buildAquiferAction *action.BuildAquiferAction,
@@ -67,18 +58,26 @@ func RegisterHandlers(
 	convertHeatAction *action.ConvertHeatToTemperatureAction,
 	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
 	confirmCardDrawAction *action.ConfirmCardDrawAction,
+	giveCardAdminAction *adminaction.GiveCardAction,
+	setPhaseAdminAction *adminaction.SetPhaseAction,
+	setResourcesAdminAction *adminaction.SetResourcesAction,
+	setProductionAdminAction *adminaction.SetProductionAction,
+	setGlobalParametersAdminAction *adminaction.SetGlobalParametersAction,
 	startTileSelectionAdminAction *adminaction.StartTileSelectionAction,
+	setCurrentTurnAdminAction *adminaction.SetCurrentTurnAction,
+	setCorporationAdminAction *adminaction.SetCorporationAction,
 ) {
 	parser := utils.NewMessageParser()
 
 	// Register connection handler
-	// NEW ARCHITECTURE: Using action pattern for join_game + explicit broadcast timing
+	// NEW ARCHITECTURE: Using action pattern for join_game + reconnection + explicit broadcast timing
 	// SessionManager injected so handler can control broadcast timing after join completes
-	connectionHandler := connect.NewConnectionHandler(hub, sessionManager, gameService, playerService, joinGameAction)
+	connectionHandler := connect.NewConnectionHandler(hub, sessionManager, joinGameAction, playerReconnectedAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler
-	disconnectHandler := disconnect.NewDisconnectHandler(playerService)
+	// NEW ARCHITECTURE: Using action pattern for disconnect
+	disconnectHandler := disconnect.NewDisconnectHandler(playerDisconnectedAction)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
 	// Register standard project handlers
@@ -103,9 +102,9 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(startGameAction))
 
 	// Register card selection handlers
-	// NEW ARCHITECTURE: Using action pattern for select_starting_card
+	// NEW ARCHITECTURE: Using action pattern for select_starting_card and select_cards
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, confirmSellPatentsAction, newPlayerRepo, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(confirmSellPatentsAction, confirmProductionCardsAction, newPlayerRepo, parser))
 	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
 
@@ -114,12 +113,24 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, parser))
 
 	// Register play card action handler
-	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(cardService, parser))
+	// NEW ARCHITECTURE: Using action pattern for card action execution
+	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(executeCardActionAction, parser))
 
 	// Register tile selection handlers
 	// NEW ARCHITECTURE: Using action pattern for tile_selected
 	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
-	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(newGameRepo, gameService, playerService, cardService, adminService, startTileSelectionAdminAction))
+	// NEW ARCHITECTURE: Using admin action pattern for all admin commands
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(
+		newGameRepo,
+		giveCardAdminAction,
+		setPhaseAdminAction,
+		setResourcesAdminAction,
+		setProductionAdminAction,
+		setGlobalParametersAdminAction,
+		startTileSelectionAdminAction,
+		setCurrentTurnAdminAction,
+		setCorporationAdminAction,
+	))
 }

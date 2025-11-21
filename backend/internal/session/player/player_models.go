@@ -1,94 +1,37 @@
 package player
 
 import (
-	"github.com/google/uuid"
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/types"
 )
 
-// SelectStartingCardsPhase represents the starting card selection state
-type SelectStartingCardsPhase struct {
-	AvailableCards        []string `json:"availableCards"`
-	AvailableCorporations []string `json:"availableCorporations"`
-}
+// Player is an alias to the unified Player type
+type Player = types.Player
 
-// PendingCardSelection represents a pending card selection action (e.g., sell patents)
-type PendingCardSelection struct {
-	Source         string         `json:"source"`         // Action source (e.g., "sell-patents")
-	AvailableCards []string       `json:"availableCards"` // Card IDs that can be selected
-	CardCosts      map[string]int `json:"cardCosts"`      // Cost per card (M€)
-	CardRewards    map[string]int `json:"cardRewards"`    // Reward per card (M€)
-	MinCards       int            `json:"minCards"`       // Minimum cards to select
-	MaxCards       int            `json:"maxCards"`       // Maximum cards to select
-}
+// SelectStartingCardsPhase is an alias to the unified type
+type SelectStartingCardsPhase = types.SelectStartingCardsPhase
 
-// Player represents a player in the game
-// Expanded to support full game logic including cards, actions, and effects
-type Player struct {
-	ID                        string                           `json:"id"`
-	Name                      string                           `json:"name"`
-	Resources                 model.Resources                  `json:"resources"`
-	Production                model.Production                 `json:"production"`
-	TerraformRating           int                              `json:"terraformRating"`
-	IsConnected               bool                             `json:"isConnected"`
-	Passed                    bool                             `json:"passed"`           // Whether player has passed for the generation
-	AvailableActions          int                              `json:"availableActions"` // Number of actions available (-1 = unlimited, 0 = none, 1-2 = limited)
-	SelectStartingCardsPhase  *SelectStartingCardsPhase        `json:"selectStartingCardsPhase"`
-	ProductionPhase           *model.ProductionPhase           `json:"productionPhase"`
-	Cards                     []string                         `json:"cards"`                     // Card IDs in hand
-	PlayedCards               []string                         `json:"playedCards"`               // Card IDs played to the table
-	CorporationID             string                           `json:"corporationId"`             // Selected corporation ID
-	Corporation               *model.Card                      `json:"corporation"`               // Full corporation card data
-	PaymentSubstitutes        []model.PaymentSubstitute        `json:"paymentSubstitutes"`        // Payment substitutes from cards
-	Actions                   []model.PlayerAction             `json:"actions"`                   // Available actions from cards
-	ForcedFirstAction         *model.ForcedFirstAction         `json:"forcedFirstAction"`         // Forced first turn action
-	RequirementModifiers      []model.RequirementModifier      `json:"requirementModifiers"`      // Requirement modifiers from cards
-	Effects                   []model.PlayerEffect             `json:"effects"`                   // Active passive effects from cards
-	VictoryPoints             int                              `json:"victoryPoints"`             // Victory points
-	PendingTileSelection      *model.PendingTileSelection      `json:"pendingTileSelection"`      // Pending tile selection
-	PendingTileSelectionQueue *model.PendingTileSelectionQueue `json:"pendingTileSelectionQueue"` // Pending tile selection queue
-	PendingCardDrawSelection  *model.PendingCardDrawSelection  `json:"pendingCardDrawSelection"`  // Pending card draw selection
-	PendingCardSelection      *PendingCardSelection            `json:"pendingCardSelection"`      // Pending card selection (e.g., sell patents)
-	ResourceStorage           map[string]int                   `json:"resourceStorage"`           // Card resource storage (animals, microbes, etc.)
-}
+// PendingCardSelection is an alias to the unified type
+type PendingCardSelection = types.PendingCardSelection
 
 // NewPlayer creates a new player with default starting values
+// This is a compatibility wrapper that delegates to the unified types
 func NewPlayer(name string) *Player {
-	return &Player{
-		ID:   uuid.New().String(),
-		Name: name,
-		Resources: model.Resources{
-			Credits:  0,
-			Steel:    0,
-			Titanium: 0,
-			Plants:   0,
-			Energy:   0,
-			Heat:     0,
-		},
-		Production: model.Production{
-			Credits:  0,
-			Steel:    0,
-			Titanium: 0,
-			Plants:   0,
-			Energy:   0,
-			Heat:     0,
-		},
-		TerraformRating:           20, // Starting TR
-		IsConnected:               true,
-		Passed:                    false, // Not passed by default
-		AvailableActions:          2,     // Standard 2 actions per generation
-		Cards:                     make([]string, 0),
-		PlayedCards:               make([]string, 0),
-		CorporationID:             "",
-		Corporation:               nil,
-		PaymentSubstitutes:        make([]model.PaymentSubstitute, 0),
-		Actions:                   make([]model.PlayerAction, 0),
-		ForcedFirstAction:         nil,
-		RequirementModifiers:      make([]model.RequirementModifier, 0),
-		VictoryPoints:             0,
-		PendingTileSelection:      nil,
-		PendingTileSelectionQueue: nil,
-		PendingCardDrawSelection:  nil,
-		PendingCardSelection:      nil,
-		ResourceStorage:           make(map[string]int),
+	// Create player using types.Player directly
+	player := &types.Player{
+		Name:                 name,
+		Resources:            types.Resources{},
+		Production:           types.Production{},
+		TerraformRating:      20,
+		IsConnected:          true,
+		Passed:               false,
+		AvailableActions:     2,
+		Cards:                make([]string, 0),
+		PlayedCards:          make([]string, 0),
+		PaymentSubstitutes:   make([]types.PaymentSubstitute, 0),
+		Actions:              make([]types.PlayerAction, 0),
+		Effects:              make([]types.PlayerEffect, 0),
+		RequirementModifiers: make([]types.RequirementModifier, 0),
+		ResourceStorage:      make(map[string]int),
 	}
+	return player
 }

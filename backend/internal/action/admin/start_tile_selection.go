@@ -6,11 +6,11 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
 	sessionBoard "terraforming-mars-backend/internal/session/board"
 	sessionGame "terraforming-mars-backend/internal/session/game"
 	sessionPlayer "terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // StartTileSelectionAction handles admin command to start tile selection for testing
@@ -76,7 +76,7 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 		zap.Strings("positions", availableHexes[:min(5, len(availableHexes))])) // Log first 5
 
 	// 5. Set pending tile selection
-	pendingSelection := &model.PendingTileSelection{
+	pendingSelection := &types.PendingTileSelection{
 		TileType:       tileType,
 		AvailableHexes: availableHexes,
 		Source:         "admin_demo",

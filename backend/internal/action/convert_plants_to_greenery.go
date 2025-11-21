@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -54,9 +56,11 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID, pla
 		return err
 	}
 
-	// 4. Calculate required plants
-	// TODO: Implement card discount calculation when player model conversion is available
-	requiredPlants := BasePlantsForGreenery
+	// 4. Calculate required plants (with card discount effects)
+	requiredPlants := card.CalculateResourceConversionCost(p, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	log.Debug("💰 Calculated plants cost",
+		zap.Int("base_cost", BasePlantsForGreenery),
+		zap.Int("final_cost", requiredPlants))
 
 	// 5. Validate player has enough plants
 	if p.Resources.Plants < requiredPlants {

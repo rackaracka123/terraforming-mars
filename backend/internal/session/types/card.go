@@ -1,4 +1,4 @@
-package model
+package types
 
 // CardType represents different types of cards in Terraforming Mars
 type CardType string
