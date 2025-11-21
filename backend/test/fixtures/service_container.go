@@ -22,21 +22,27 @@ type ServiceContainer struct {
 	// Core infrastructure
 	EventBus *events.EventBusImpl
 
-	// Repositories
+	// OLD Repositories (being phased out)
 	GameRepo     repository.GameRepository
 	PlayerRepo   repository.PlayerRepository
 	CardRepo     repository.CardRepository
 	CardDeckRepo repository.CardDeckRepository
 
-	// Services
-	BoardService           service.BoardService
-	TileService            service.TileService
-	CardService            service.CardService
-	PlayerService          service.PlayerService
-	GameService            service.GameService
-	StandardProjectService service.StandardProjectService
+	// NEW Session Repositories
+	NewGameRepo   sessionGame.Repository
+	NewPlayerRepo sessionPlayer.Repository
+	NewCardRepo   sessionCard.Repository
+	NewBoardRepo  board.Repository
+	NewDeckRepo   sessionDeck.Repository
 
-	// Card system
+	// Services (still using old repositories)
+	CardService   service.CardService
+	PlayerService service.PlayerService
+	GameService   service.GameService
+
+	// Session-based components
+	BoardProcessor      *board.BoardProcessor
+	TileProcessor       *tile.Processor
 	EffectSubscriber    card.CardEffectSubscriber
 	ForcedActionManager card.ForcedActionManager
 
@@ -68,36 +74,38 @@ func NewServiceContainer() *ServiceContainer {
 	// Mocks
 	sessionManager := test.NewMockSessionManager()
 
-	// Services (build dependency chain)
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-
-	// NEW session-based tile processor
+	// NEW session-based components
 	boardProcessor := board.NewBoardProcessor()
-	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor)
+	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, eventBus)
 
-	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
-	forcedActionManager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	// Use NEW session repositories for card system components
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, newPlayerRepo, newGameRepo, newCardRepo)
+	forcedActionManager := card.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
-	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
+
+	// Services (still using mixed repositories during migration)
+	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, forcedActionManager, eventBus)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, newDeckRepo, sessionManager)
 
 	return &ServiceContainer{
-		EventBus:               eventBus,
-		GameRepo:               gameRepo,
-		PlayerRepo:             playerRepo,
-		CardRepo:               cardRepo,
-		CardDeckRepo:           cardDeckRepo,
-		BoardService:           boardService,
-		TileService:            tileService,
-		CardService:            cardService,
-		PlayerService:          playerService,
-		GameService:            gameService,
-		StandardProjectService: standardProjectService,
-		EffectSubscriber:       effectSubscriber,
-		ForcedActionManager:    forcedActionManager,
-		SessionManager:         sessionManager,
+		EventBus:            eventBus,
+		GameRepo:            gameRepo,
+		PlayerRepo:          playerRepo,
+		CardRepo:            cardRepo,
+		CardDeckRepo:        cardDeckRepo,
+		NewGameRepo:         newGameRepo,
+		NewPlayerRepo:       newPlayerRepo,
+		NewCardRepo:         newCardRepo,
+		NewBoardRepo:        newBoardRepo,
+		NewDeckRepo:         newDeckRepo,
+		CardService:         cardService,
+		PlayerService:       playerService,
+		GameService:         gameService,
+		BoardProcessor:      boardProcessor,
+		TileProcessor:       tileProcessor,
+		EffectSubscriber:    effectSubscriber,
+		ForcedActionManager: forcedActionManager,
+		SessionManager:      sessionManager,
 	}
 }
