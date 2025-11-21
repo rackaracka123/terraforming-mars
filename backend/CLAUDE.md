@@ -8,6 +8,22 @@ This document provides guidance for working with the backend API server.
 
 Go-based REST and WebSocket API server implementing the Terraforming Mars board game logic. Provides real-time multiplayer game state synchronization and enforces game rules.
 
+## Go Coding Standards
+
+**IMPORTANT**: This backend follows idiomatic Go practices and community standards. For comprehensive Go coding guidelines, see **[go.instructions.md](./go.instructions.md)**.
+
+Key standards include:
+- Follow Effective Go, Go Code Review Comments, and Google's Go Style Guide
+- Write simple, clear, and idiomatic Go code
+- Use proper naming conventions (mixedCaps, avoid underscores)
+- Check all errors immediately
+- Keep the happy path left-aligned (minimize indentation, return early)
+- Document all exported symbols
+- Use `gofmt` and `goimports` for formatting
+- **CRITICAL**: Each `.go` file must have exactly ONE `package` declaration
+
+For detailed guidance on naming, error handling, concurrency, API design, testing, and more, consult `go.instructions.md`.
+
 ## Server Restart Policy
 
 **CRITICAL**: NEVER restart the backend server yourself. ALWAYS ask the user if you think a restart is needed.
@@ -25,37 +41,39 @@ The user's development environment handles all server lifecycle management. Your
 
 The backend follows clean architecture principles with strict separation of concerns:
 
-**Domain Layer** (`internal/model/`)
+**Domain Layer** (`internal/session/types/`)
 
 - Core business entities with identity (Game, Player, GlobalParameters, Card)
-- Value objects defined by values (Resources, Production)
-- Domain events for significant business occurrences
+- Value objects defined by values (Resources, Production, Tile)
+- Domain events defined in `internal/events/`
 - Defensive copying via DeepCopy() methods
 - Zero external dependencies
 
-**Application Layer** (`internal/service/`)
+**Action Layer** (`internal/action/`)
 
-- Use cases orchestrating business operations
-- Domain services for complex multi-entity logic
-- Event handlers reacting to domain events
-- Interface definitions for infrastructure dependencies
-- Depends only on domain layer
+- Single-responsibility actions executing business logic (~100-200 lines each)
+- BaseAction provides common dependencies (repositories, session manager, logger)
+- Main actions modify game state (JoinGameAction, PlayCardAction)
+- Query actions for read operations (GetGameAction, ListGamesAction)
+- Admin actions for game management (SetResourcesAction)
+- Depends on domain types and session repository interfaces
 
-**Infrastructure Layer** (`internal/repository/`)
+**Infrastructure Layer** (`internal/session/*/`)
 
-- In-memory storage of domain models
-- Immutable getters returning values, not pointers
-- Granular update methods for targeted state changes
+- Subdomain repositories: game, player, card, board, deck
+- Immutable interfaces returning values, not pointers
+- Granular update methods for targeted state changes (UpdateResources, UpdateTemperature)
 - Event publishing via EventBus integration
 - Clean relationships using ID references
+- SessionManager unified broadcast interface (Broadcast, Send methods)
 
 **Presentation Layer** (`internal/delivery/`)
 
-- HTTP endpoints with routing and middleware (`http/`)
-- WebSocket real-time communication (`websocket/`)
+- HTTP endpoints delegate to actions (`http/`)
+- WebSocket handlers delegate to actions (`websocket/`)
 - DTOs for external communication (`dto/`)
 - Request/response mapping
-- Depends on application layer only
+- Depends on action layer, not repositories directly
 
 **Card System** (`internal/cards/`)
 
@@ -67,16 +85,9 @@ The backend follows clean architecture principles with strict separation of conc
 **Event System** (`internal/events/`)
 
 - Type-safe event bus for pub/sub
-- Domain event definitions
+- Domain event definitions (TemperatureChanged, ResourcesChanged, TilePlaced, etc.)
 - CardEffectSubscriber for passive card effects
-- Event-driven architecture decoupling services from effects
-
-**Session Management** (`internal/delivery/websocket/session/`)
-
-- SessionManager interface for broadcasting game state
-- Broadcast(gameID) sends to all players in game
-- Send(gameID, playerID) sends to specific player
-- Uses repositories directly to avoid circular dependencies
+- Event-driven architecture decoupling actions from effects
 
 ### Directory Structure
 
@@ -86,14 +97,23 @@ backend/
 │   ├── server/            # Main server with dependency injection
 │   └── watch/             # Development file watching
 ├── internal/              # Private application code
+│   ├── action/            # Action layer - single-responsibility business logic
+│   │   ├── base.go        # BaseAction with common dependencies
+│   │   ├── query/         # Query actions for reads
+│   │   └── admin/         # Admin actions
+│   ├── session/           # Session subdomain repositories
+│   │   ├── session_manager.go  # Unified broadcast interface
+│   │   ├── game/          # Game subdomain repository
+│   │   ├── player/        # Player subdomain repository
+│   │   ├── card/          # Card subdomain repository
+│   │   ├── board/         # Board subdomain repository
+│   │   ├── deck/          # Deck subdomain repository
+│   │   └── types/         # Domain type definitions
 │   ├── cards/             # Card system and registry
 │   ├── delivery/          # Presentation layer (HTTP, WebSocket, DTOs)
 │   ├── events/            # Event bus and domain events
 │   ├── initialization/    # Application bootstrap and card loading
-│   ├── logger/            # Structured logging
-│   ├── model/             # Domain entities and value objects
-│   ├── repository/        # Data access layer
-│   └── service/           # Application business logic
+│   └── logger/            # Structured logging
 ├── pkg/                   # Public packages
 │   └── typegen/           # TypeScript type generation
 ├── test/                  # Test suite (mirrors internal/ structure)
@@ -169,48 +189,60 @@ type Player struct {
 
 ## Key Development Patterns
 
-### Adding New WebSocket Actions
+### Adding New Game Operations
 
-1. **Create handler** in `internal/delivery/websocket/handler/`:
-   - Implement ActionHandler interface
-   - Validate incoming message
-   - Call appropriate service methods
-   - Services handle SessionManager broadcasting
+1. **Create action** in `internal/action/`:
+   - Extend `BaseAction` struct
+   - Implement `Execute()` method with clear parameters
+   - Validate inputs and call session repositories
+   - Return explicit result type or error
 
-2. **Register handler** in WebSocket manager
+2. **Create WebSocket handler** (if needed) in `internal/delivery/websocket/handler/`:
+   - Parse incoming WebSocket message
+   - Call the action's Execute() method
+   - SessionManager handles broadcasting
 
-3. **Add message type** to frontend types if needed
+3. **Create HTTP handler** (if needed) in `internal/delivery/http/`:
+   - Parse HTTP request
+   - Call the action's Execute() method
+   - Map result to DTO and respond
+
+4. **Add message/request types** to frontend types if needed
 
 ### Implementing Card Effects
 
 **For passive effects** (event-driven):
 
 1. Define behavior in card JSON with triggers and outputs
-2. Ensure repository publishes relevant domain event
+2. Ensure session repository publishes relevant domain event
 3. CardEffectSubscriber automatically subscribes on card play
-4. No manual service code needed for passive effects
+4. No manual action code needed for passive effects
 
 **For immediate effects**:
 
 1. Implement logic in card effect handler
-2. Call via CardService when card is played
-3. Service updates repositories and broadcasts state
+2. Call via action when card is played
+3. Action updates session repositories
+4. Repositories publish events, SessionManager broadcasts state
 
 See `docs/EVENT_SYSTEM.md` for complete event system documentation.
 
-### Repository Pattern
+### Session Repository Pattern
 
+- **Subdomain Focus**: Separate repositories per domain (game, player, card, board, deck)
 - **Immutable Interface**: All getters return values, preventing external mutation
-- **Granular Updates**: Specific methods like UpdateResources(), UpdateTerraformRating()
+- **Granular Updates**: Specific methods like UpdateResources(), UpdateTemperature()
 - **Event Integration**: Updates automatically publish domain events
 - **Clean Relationships**: Use ID references, not embedded objects
 
-### Service Layer Rules
+### Action Layer Rules
 
-- **Services do only what the action says**: Don't manually check for passive card effects
-- **Call repositories for state changes**: Repositories publish events
-- **Use SessionManager for broadcasting**: Broadcast() or Send() after state changes
-- **Event system handles passive effects**: CardEffectSubscriber triggers effects automatically
+- **Single Responsibility**: Each action performs ONE operation (~100-200 lines)
+- **Extend BaseAction**: Use common dependencies (repositories, session manager, logger)
+- **Actions do only what they say**: Don't manually check for passive card effects
+- **Call session repositories for state changes**: Repositories publish events
+- **SessionManager handles broadcasting**: Triggered by events automatically
+- **Event system handles passive effects**: CardEffectSubscriber triggers effects via events
 
 ## Data Flow
 
@@ -221,34 +253,34 @@ Client → WebSocket Connection → Hub.HandleMessage()
                                        ↓
                                  Manager.RouteMessage()
                                        ↓
-                                 ActionHandler.Handle()
+                             WebSocket Handler.Handle()
                                        ↓
-                                 Service Layer
+                                  Action.Execute()
                                        ↓
-                           Repository Updates + Events
+                         Session Repository Updates + Events
                                        ↓
-                           EventBus → Hub → Broadcaster
+                           EventBus → SessionManager → Broadcaster
                                        ↓
                               All Clients Updated
 ```
 
 ### Game State Synchronization
 
-1. Service performs business logic
-2. Repository updates state and publishes events
-3. EventBus notifies subscribers (passive effects, etc.)
-4. Service calls SessionManager.Broadcast() or Send()
-5. SessionManager fetches complete game state from repositories
+1. Action performs business logic via Execute() method
+2. Session repository updates state and publishes events
+3. EventBus notifies subscribers (SessionManager, passive effects, etc.)
+4. SessionManager automatically broadcasts on events
+5. SessionManager fetches complete game state from session repositories
 6. Clients receive full state update via WebSocket
 
 ## Type System Integration
 
 ### Go to TypeScript
 
-All domain models with `ts:` tags generate TypeScript interfaces:
+All domain types with `ts:` tags generate TypeScript interfaces:
 
 ```go
-// backend/internal/model/player.go
+// backend/internal/session/types/player.go
 type Player struct {
     ID           string    `json:"id" ts:"string"`
     Credits      int       `json:"credits" ts:"number"`
@@ -269,7 +301,7 @@ export interface Player {
 
 ### Keeping Types in Sync
 
-1. Modify Go structs in `internal/model/`
+1. Modify Go structs in `internal/session/types/`
 2. Run `make generate` from project root
 3. Check corresponding DTOs in `internal/delivery/dto/`
 4. Update DTO mappers in `internal/delivery/dto/mapper.go` if needed
@@ -279,19 +311,22 @@ export interface Player {
 
 ### Event-Driven Architecture
 
-**CRITICAL**: Services should NOT manually check for passive card effects. The event system handles this automatically:
+**CRITICAL**: Actions should NOT manually check for passive card effects. The event system handles this automatically:
 
 ```go
 // ✅ CORRECT
-func (s *GameService) RaiseTemperature(...) {
-    repo.UpdateTemperature(...)  // Publishes TemperatureChangedEvent
+func (a *ConvertHeatToTemperatureAction) Execute(...) {
+    gameRepo.UpdateTemperature(...)  // Publishes TemperatureChangedEvent
     // CardEffectSubscriber automatically triggers passive effects
+    return result, nil
 }
 
 // ❌ WRONG
-func (s *GameService) RaiseTemperature(...) {
-    repo.UpdateTemperature(...)
+func (a *ConvertHeatToTemperatureAction) Execute(...) {
+    gameRepo.UpdateTemperature(...)
     // Don't manually loop through cards to check effects
+    for _, card := range player.Cards { ... }
+    return result, nil
 }
 ```
 
@@ -343,12 +378,12 @@ func TestPlayerService_DoAction(t *testing.T) {
 
 ## Common Tasks
 
-### Adding a New Domain Entity
+### Adding a New Domain Type
 
-1. Create struct in `internal/model/` with `json:` and `ts:` tags
+1. Create struct in `internal/session/types/` with `json:` and `ts:` tags
 2. Implement DeepCopy() for defensive copying
-3. Add repository methods in `internal/repository/`
-4. Create service methods in `internal/service/`
+3. Add session repository methods in appropriate subdomain (`internal/session/game/`, `player/`, etc.)
+4. Create action in `internal/action/` extending BaseAction
 5. Add DTOs in `internal/delivery/dto/`
 6. Add mappers in `internal/delivery/dto/mapper.go`
 7. Run `make generate` to sync TypeScript types
@@ -356,10 +391,11 @@ func TestPlayerService_DoAction(t *testing.T) {
 ### Adding a New Game Rule
 
 1. Check `TERRAFORMING_MARS_RULES.md` in project root
-2. Implement in domain layer (`internal/model/`)
-3. Add validation in service layer (`internal/service/`)
-4. Create tests in `test/service/`
-5. Update relevant WebSocket handlers if needed
+2. Define types in `internal/session/types/`
+3. Create action in `internal/action/` with validation logic
+4. Update session repository if new data access needed
+5. Create tests in `test/action/`
+6. Update relevant HTTP or WebSocket handlers to call action
 
 ### Debugging
 
