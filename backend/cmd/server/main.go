@@ -10,7 +10,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	adminaction "terraforming-mars-backend/internal/action/admin"
-	"terraforming-mars-backend/internal/cards"
+	queryaction "terraforming-mars-backend/internal/action/query"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
@@ -21,12 +21,13 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/board"
+	"terraforming-mars-backend/internal/session/card"
+	sessionCard "terraforming-mars-backend/internal/session/card"
+	"terraforming-mars-backend/internal/session/deck"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/tile"
+	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/tile"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -133,9 +134,6 @@ func main() {
 	// ================================================================
 
 	// Initialize services in dependency order
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-
 	// Initialize card effect subscriber for passive effects (session-scoped)
 	effectSubscriber := sessionCard.NewCardEffectSubscriber(eventBus, newPlayerRepo, newGameRepo, newCardRepo)
 	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
@@ -165,7 +163,7 @@ func main() {
 
 	// Initialize forced action manager for corporation forced first actions
 	// UPDATED: Now uses NEW session repositories (newPlayerRepo, newGameRepo) to match event sources
-	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
+	forcedActionManager := card.NewForcedActionManager(eventBus, cardRepo, newPlayerRepo, newGameRepo, newDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	forcedActionManager.SubscribeToCardDrawEvents()
 	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
@@ -178,18 +176,25 @@ func main() {
 	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, sessionManager)
 	log.Info("✅ Admin actions initialized")
 
+	// Initialize query actions for HTTP handlers
+	getGameAction := queryaction.NewGetGameAction(newGameRepo, newPlayerRepo, playerRepo, cardRepo, sessionManager)
+	listGamesAction := queryaction.NewListGamesAction(newGameRepo, newPlayerRepo, gameRepo, sessionManager)
+	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo, newPlayerRepo, playerRepo, sessionManager)
+	listCardsAction := queryaction.NewListCardsAction(newGameRepo, newPlayerRepo, cardRepo, sessionManager)
+	getCorporationsAction := queryaction.NewGetCorporationsAction(newGameRepo, newPlayerRepo, cardRepo, sessionManager)
+	log.Info("✅ Query actions initialized for HTTP handlers")
+
 	// CardService needs TileProcessor for tile queue processing and effect subscriber for passive effects
 	// MIGRATED: Now uses session-based repositories (newGameRepo, newPlayerRepo, newCardRepo) and NEW deckRepo
 	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)
 	log.Info("SessionManager initialized for service-level broadcasting")
 
-	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
+	// PlayerService
+	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, forcedActionManager, eventBus)
 
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, newDeckRepo, boardService, sessionManager)
+	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, newDeckRepo, sessionManager)
 
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
+	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, sessionManager, eventBus)
 	adminService := service.NewAdminService(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
 
 	log.Info("Services initialized with new architecture and reconnection system")
@@ -212,8 +217,8 @@ func main() {
 
 	// Initialize WebSocket service with shared Hub and new actions
 	webSocketService := wsHandler.NewWebSocketService(
-		gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService,
-		gameRepo, playerRepo, cardRepo, newGameRepo, hub, sessionManager, eventBus,
+		gameService, playerService, cardService, adminService, resourceConversionService,
+		gameRepo, playerRepo, cardRepo, newGameRepo, newPlayerRepo, hub, sessionManager, eventBus,
 		startGameAction, joinGameAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
 		buildCityAction, selectTileAction, playCardAction,
 		launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction,
@@ -234,7 +239,15 @@ func main() {
 	mainRouter.Use(httpmiddleware.CORS) // Apply CORS to all routes (API + WebSocket)
 
 	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo, createGameAction)
+	apiRouter := httpHandler.SetupRouter(
+		createGameAction,
+		joinGameAction,
+		getGameAction,
+		listGamesAction,
+		getPlayerAction,
+		listCardsAction,
+		getCorporationsAction,
+	)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)

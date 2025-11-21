@@ -159,7 +159,7 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		zap.String("game_id", connCtx.payload.GameID))
 
 	// Now join game - broadcasts will work because connection is already registered
-	returnedPlayerID, err := ch.joinGameAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
+	joinResult, err := ch.joinGameAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
 	if err != nil {
 		ch.logger.Error("Failed to join game via action",
 			zap.Error(err))
@@ -168,17 +168,17 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 	}
 
 	ch.logger.Debug("✅ Player joined game via action",
-		zap.String("player_id", returnedPlayerID),
+		zap.String("player_id", joinResult.PlayerID),
 		zap.String("player_name", connCtx.payload.PlayerName))
 
-	connCtx.playerID = returnedPlayerID
+	connCtx.playerID = joinResult.PlayerID
 
 	// Broadcast game state to all players now that join is complete
 	// NOTE: PlayerJoinedEvent subscription removed from SessionManager to prevent race condition
 	// Connection handler now controls broadcast timing after all setup is complete
 	ch.logger.Debug("📡 Broadcasting game state after player join",
 		zap.String("game_id", connCtx.payload.GameID),
-		zap.String("player_id", returnedPlayerID))
+		zap.String("player_id", joinResult.PlayerID))
 
 	err = ch.sessionManager.Broadcast(connCtx.payload.GameID)
 	if err != nil {

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
 
 	"go.uber.org/zap"
 )
@@ -39,7 +39,6 @@ type ResourceConversionService interface {
 type ResourceConversionServiceImpl struct {
 	gameRepo       repository.GameRepository
 	playerRepo     repository.PlayerRepository
-	boardService   BoardService
 	sessionManager session.SessionManager
 	eventBus       *events.EventBusImpl
 }
@@ -48,14 +47,12 @@ type ResourceConversionServiceImpl struct {
 func NewResourceConversionService(
 	gameRepo repository.GameRepository,
 	playerRepo repository.PlayerRepository,
-	boardService BoardService,
 	sessionManager session.SessionManager,
 	eventBus *events.EventBusImpl,
 ) ResourceConversionService {
 	return &ResourceConversionServiceImpl{
 		gameRepo:       gameRepo,
 		playerRepo:     playerRepo,
-		boardService:   boardService,
 		sessionManager: sessionManager,
 		eventBus:       eventBus,
 	}
@@ -74,7 +71,7 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 	}
 
 	// Calculate required plants (considering discounts)
-	requiredPlants := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	requiredPlants := card.CalculateResourceConversionCost(&player, model.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
 
 	// Validate player has enough plants
 	if player.Resources.Plants < requiredPlants {
@@ -93,24 +90,11 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
-	// Get game to access the board for calculating available hexes
-	game, err := s.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// Calculate available hexes using board service (same logic as standard project greenery)
-	availableHexes, err := s.boardService.CalculateAvailableHexesForTileTypeWithPlayer(game, "greenery", playerID)
-	if err != nil {
-		log.Error("Failed to calculate available hexes", zap.Error(err))
-		return fmt.Errorf("failed to calculate available hexes: %w", err)
-	}
-
-	// Create pending tile selection
+	// DEPRECATED: This method is no longer used. Use ConvertPlantsToGreeneryAction instead.
+	// Create pending tile selection (availableHexes calculation removed - now handled by action pattern)
 	pendingSelection := &model.PendingTileSelection{
 		TileType:       "greenery",
-		AvailableHexes: availableHexes,
+		AvailableHexes: []string{}, // Empty - action pattern calculates this
 		Source:         "convert-plants-to-greenery",
 	}
 
@@ -125,8 +109,7 @@ func (s *ResourceConversionServiceImpl) InitiatePlantConversion(ctx context.Cont
 	}
 
 	log.Info("✅ Plant conversion initiated, waiting for tile selection",
-		zap.Int("plants_spent", requiredPlants),
-		zap.Int("available_hexes", len(availableHexes)))
+		zap.Int("plants_spent", requiredPlants))
 
 	return nil
 }
@@ -216,7 +199,7 @@ func (s *ResourceConversionServiceImpl) ConvertHeatToTemperature(ctx context.Con
 	}
 
 	// Calculate required heat (considering discounts)
-	requiredHeat := cards.CalculateResourceConversionCost(&player, model.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := card.CalculateResourceConversionCost(&player, model.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 
 	// Validate player has enough heat
 	if player.Resources.Heat < requiredHeat {
@@ -403,7 +386,7 @@ func (s *ResourceConversionServiceImpl) awardTilePlacementBonuses(ctx context.Co
 
 	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
 	if len(placementBonuses) > 0 && s.eventBus != nil {
-		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+		events.Publish(s.eventBus, events.PlacementBonusGainedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			Resources: placementBonuses,

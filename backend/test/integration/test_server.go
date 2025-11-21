@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
@@ -13,12 +12,13 @@ import (
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/board"
+	"terraforming-mars-backend/internal/session/card"
+	sessionCard "terraforming-mars-backend/internal/session/card"
+	sessionDeck "terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	sessionDeck "terraforming-mars-backend/internal/session/game/deck"
-	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/tile"
+	sessionPlayer "terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/tile"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -40,7 +40,7 @@ type TestServer struct {
 	playerRepo          *repository.PlayerRepositoryImpl
 	cardDeckRepo        *repository.CardDeckRepositoryImpl
 	eventBus            *events.EventBusImpl
-	forcedActionManager cards.ForcedActionManager
+	forcedActionManager card.ForcedActionManager
 }
 
 // NewTestServer creates a new test server on the specified port
@@ -86,8 +86,8 @@ func NewTestServer(port int) (*TestServer, error) {
 	boardProcessor := board.NewBoardProcessor()
 	tileProcessor := tile.NewProcessor(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor)
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
-	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	forcedActionManager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
 	cardService := service.NewCardService(newGameRepo, newPlayerRepo, newCardRepo, cardDeckRepo, sessionManager, tileProcessor, effectSubscriber, forcedActionManager)

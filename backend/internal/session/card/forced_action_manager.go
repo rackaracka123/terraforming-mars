@@ -1,4 +1,4 @@
-package cards
+package card
 
 import (
 	"context"
@@ -7,10 +7,10 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/repository" // OLD: Still used for CardRepository
+	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -58,7 +58,7 @@ func NewForcedActionManager(
 
 // SubscribeToPhaseChanges subscribes to game phase change events
 func (m *ForcedActionManagerImpl) SubscribeToPhaseChanges() {
-	events.Subscribe(m.eventBus, func(event repository.GamePhaseChangedEvent) {
+	events.Subscribe(m.eventBus, func(event events.GamePhaseChangedEvent) {
 		ctx := context.Background()
 		if err := m.onPhaseChanged(ctx, event); err != nil {
 			logger.Get().Error("Failed to handle phase change event",
@@ -85,7 +85,7 @@ func (m *ForcedActionManagerImpl) SubscribeToCardDrawEvents() {
 }
 
 // onPhaseChanged handles game phase change events
-func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event repository.GamePhaseChangedEvent) error {
+func (m *ForcedActionManagerImpl) onPhaseChanged(ctx context.Context, event events.GamePhaseChangedEvent) error {
 	log := logger.WithGameContext(event.GameID, "")
 
 	// Only trigger forced actions when transitioning to Action phase

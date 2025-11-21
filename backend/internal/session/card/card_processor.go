@@ -1,4 +1,4 @@
-package cards
+package card
 
 import (
 	"context"
@@ -6,24 +6,26 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/deck"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
 
-// CardProcessor handles the complete card processing including validation and effect application
+// CardProcessor handles the complete card processing including validation and effect application in session-scoped architecture
 type CardProcessor struct {
-	gameRepo     repository.GameRepository
-	playerRepo   repository.PlayerRepository
-	cardDeckRepo repository.CardDeckRepository
+	gameRepo   sessionGame.Repository
+	playerRepo player.Repository
+	deckRepo   deck.Repository
 }
 
-// NewCardProcessor creates a new card processor
-func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, cardDeckRepo repository.CardDeckRepository) *CardProcessor {
+// NewCardProcessor creates a new card processor with session-scoped repositories
+func NewCardProcessor(gameRepo sessionGame.Repository, playerRepo player.Repository, deckRepo deck.Repository) *CardProcessor {
 	return &CardProcessor{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
-		cardDeckRepo: cardDeckRepo,
+		gameRepo:   gameRepo,
+		playerRepo: playerRepo,
+		deckRepo:   deckRepo,
 	}
 }
 
@@ -31,7 +33,7 @@ func NewCardProcessor(gameRepo repository.GameRepository, playerRepo repository.
 // This function assumes all requirements and affordability checks have already been validated
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int, cardStorageTarget *string) error {
+func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID string, card *Card, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Debug("🎭 Applying card effects", zap.String("card_name", card.Name))
 
@@ -86,7 +88,7 @@ func (cp *CardProcessor) ApplyCardEffects(ctx context.Context, gameID, playerID 
 
 // applyProductionEffects applies production changes from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
-func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, playerID string, card *Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current production
@@ -166,7 +168,7 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 
 // extractAndAddManualActions extracts manual actions from card behaviors and adds them to the player
 // choiceIndex is optional - manual actions can also have choices that need to be resolved when the action is played
-func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID, playerID string, card *Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Track manual actions found
@@ -229,7 +231,7 @@ func (cp *CardProcessor) extractAndAddManualActions(ctx context.Context, gameID,
 }
 
 // applyVictoryPointConditions applies victory point conditions from a card
-func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID, playerID string, card *model.Card) error {
+func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID, playerID string, card *Card) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Check if card has VP conditions
@@ -299,7 +301,7 @@ func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, gameID
 // applyResourceEffects applies immediate resource gains/losses from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int, cardStorageTarget *string) error {
+func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playerID string, card *Card, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current player to read current resources
@@ -407,7 +409,7 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 }
 
 // applyTileEffects handles tile placement effects from card behaviors
-func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID string, card *Card) error {
 	// Collect all tile placements from card behaviors
 	var tilePlacementQueue []string
 
@@ -443,7 +445,7 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, gameID, playerID 
 }
 
 // applyCardDrawPeekEffects handles card draw/peek/take/buy effects from card behaviors
-func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, playerID string, card *model.Card) error {
+func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, playerID string, card *Card) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Scan for card-draw, card-peek, card-take, card-buy outputs
@@ -480,35 +482,31 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, p
 
 	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
 		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
-		// Pop cards from deck and auto-select all
-		for i := 0; i < cardDrawAmount; i++ {
-			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck", zap.Error(err))
-				return fmt.Errorf("failed to draw card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck and auto-select all
+		drawnCards, err := cp.deckRepo.DrawProjectCards(ctx, gameID, cardDrawAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck", zap.Error(err))
+			return fmt.Errorf("failed to draw card: %w", err)
 		}
+		cardsToShow = drawnCards
 
 		// For card-draw, player must take all cards (freeTakeCount = number of cards)
-		freeTakeCount = cardDrawAmount
+		freeTakeCount = len(drawnCards)
 		maxBuyCount = 0
 
 		log.Info("🃏 Card draw effect detected",
 			zap.String("card_name", card.Name),
-			zap.Int("cards_to_draw", cardDrawAmount))
+			zap.Int("cards_to_draw", len(drawnCards)))
 
 	} else if cardPeekAmount > 0 {
 		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
-		// Pop cards from deck (they won't be returned)
-		for i := 0; i < cardPeekAmount; i++ {
-			cardID, err := cp.cardDeckRepo.Pop(ctx, gameID)
-			if err != nil {
-				log.Error("Failed to pop card from deck for peek", zap.Error(err))
-				return fmt.Errorf("failed to peek card: %w", err)
-			}
-			cardsToShow = append(cardsToShow, cardID)
+		// Draw cards from deck to peek at them (they won't be returned)
+		peekedCards, err := cp.deckRepo.DrawProjectCards(ctx, gameID, cardPeekAmount)
+		if err != nil {
+			log.Error("Failed to draw cards from deck for peek", zap.Error(err))
+			return fmt.Errorf("failed to peek card: %w", err)
 		}
+		cardsToShow = peekedCards
 
 		// If card-draw is combined with card-peek, the draw amount becomes mandatory takes
 		// card-take adds optional takes on top
@@ -517,7 +515,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, p
 
 		log.Info("🃏 Card peek effect detected",
 			zap.String("card_name", card.Name),
-			zap.Int("cards_to_peek", cardPeekAmount),
+			zap.Int("cards_to_peek", len(peekedCards)),
 			zap.Int("card_draw_amount", cardDrawAmount),
 			zap.Int("card_take_amount", cardTakeAmount),
 			zap.Int("free_take_count", freeTakeCount),
@@ -638,7 +636,7 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, p
 
 // applyGlobalParameterEffects applies global parameter changes (temperature, oxygen, oceans) from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
-func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID, playerID string, card *model.Card, choiceIndex *int) error {
+func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, gameID, playerID string, card *Card, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get current game to read current global parameters

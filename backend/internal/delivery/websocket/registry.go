@@ -32,6 +32,7 @@ import (
 	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
+	sessionPlayer "terraforming-mars-backend/internal/session/player"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
@@ -40,7 +41,6 @@ func RegisterHandlers(
 	sessionManager session.SessionManager,
 	gameService service.GameService,
 	playerService service.PlayerService,
-	standardProjectService service.StandardProjectService,
 	cardService service.CardService,
 	adminService service.AdminService,
 	resourceConversionService service.ResourceConversionService,
@@ -48,6 +48,7 @@ func RegisterHandlers(
 	playerRepo repository.PlayerRepository,
 	cardRepo repository.CardRepository,
 	newGameRepo sessionGame.Repository,
+	newPlayerRepo sessionPlayer.Repository,
 	eventBus *events.EventBusImpl,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
@@ -96,17 +97,15 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convert_heat_to_temperature.NewHandler(convertHeatAction))
 
 	// Register skip action handler
-	// NEW ARCHITECTURE: Using action pattern for skip_action
-	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandlerWithAction(skipActionAction))
+	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(skipActionAction))
 
 	// Register game management handlers
-	// NEW ARCHITECTURE: Using action pattern for start_game
-	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandlerWithAction(startGameAction))
+	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(startGameAction))
 
 	// Register card selection handlers
 	// NEW ARCHITECTURE: Using action pattern for select_starting_card
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, standardProjectService, playerRepo, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(cardService, gameService, confirmSellPatentsAction, newPlayerRepo, parser))
 	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
 

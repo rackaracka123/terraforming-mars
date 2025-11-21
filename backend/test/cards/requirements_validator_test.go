@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +14,7 @@ import (
 func TestRequirementsValidator_ProductionRequirements(t *testing.T) {
 	// Setup
 	cardRepo := repository.NewCardRepository()
-	validator := cards.NewRequirementsValidator(cardRepo)
+	validator := card.NewRequirementsValidator(cardRepo)
 	ctx := context.Background()
 
 	// Create test player with specific production levels
@@ -90,7 +90,7 @@ func TestRequirementsValidator_ProductionRequirements(t *testing.T) {
 func TestRequirementsValidator_ResourceRequirements(t *testing.T) {
 	// Setup
 	cardRepo := repository.NewCardRepository()
-	validator := cards.NewRequirementsValidator(cardRepo)
+	validator := card.NewRequirementsValidator(cardRepo)
 	ctx := context.Background()
 
 	// Create test player with specific resource levels
@@ -166,7 +166,7 @@ func TestRequirementsValidator_ResourceRequirements(t *testing.T) {
 func TestRequirementsValidator_AffordabilityValidation(t *testing.T) {
 	// Setup
 	cardRepo := repository.NewCardRepository()
-	validator := cards.NewRequirementsValidator(cardRepo)
+	validator := card.NewRequirementsValidator(cardRepo)
 	ctx := context.Background()
 
 	// Create test player with limited resources

@@ -3,8 +3,9 @@ package http
 import (
 	"net/http"
 
+	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -13,16 +14,19 @@ import (
 // PlayerHandler handles HTTP requests related to player operations
 type PlayerHandler struct {
 	*BaseHandler
-	playerService service.PlayerService
-	gameService   service.GameService
+	joinGameAction  *action.JoinGameAction
+	getPlayerAction *query.GetPlayerAction
 }
 
 // NewPlayerHandler creates a new player handler
-func NewPlayerHandler(playerService service.PlayerService, gameService service.GameService) *PlayerHandler {
+func NewPlayerHandler(
+	joinGameAction *action.JoinGameAction,
+	getPlayerAction *query.GetPlayerAction,
+) *PlayerHandler {
 	return &PlayerHandler{
-		BaseHandler:   NewBaseHandler(),
-		playerService: playerService,
-		gameService:   gameService,
+		BaseHandler:     NewBaseHandler(),
+		joinGameAction:  joinGameAction,
+		getPlayerAction: getPlayerAction,
 	}
 }
 
@@ -42,8 +46,8 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	game, err := h.gameService.JoinGame(r.Context(), gameID, req.PlayerName)
+	// Use JoinGameAction (no playerID parameter for HTTP - it generates one)
+	result, err := h.joinGameAction.Execute(r.Context(), gameID, req.PlayerName)
 	if err != nil {
 		h.logger.Error("Failed to join game", zap.Error(err),
 			zap.String("game_id", gameID),
@@ -52,17 +56,10 @@ func (h *PlayerHandler) JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Find the player ID of the newly joined player - it's the last one added
-	var playerID string
-	if len(game.PlayerIDs) > 0 {
-		// The newly joined player is the last one in the list
-		playerID = game.PlayerIDs[len(game.PlayerIDs)-1]
-	}
-
 	// Convert to DTO and respond
 	response := dto.JoinGameResponse{
-		Game:     dto.ToGameDtoBasic(game, dto.GetPaymentConstants()),
-		PlayerID: playerID,
+		Game:     result.GameDto,
+		PlayerID: result.PlayerID,
 	}
 
 	h.WriteJSONResponse(w, http.StatusOK, response)
@@ -84,8 +81,8 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delegate to service
-	player, err := h.playerService.GetPlayer(r.Context(), gameID, playerID)
+	// Use GetPlayerAction
+	player, err := h.getPlayerAction.Execute(r.Context(), gameID, playerID)
 	if err != nil {
 		h.logger.Error("Failed to get player", zap.Error(err),
 			zap.String("game_id", gameID),

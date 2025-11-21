@@ -7,10 +7,10 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/tile"
+	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/tile"
 )
 
 // TestTileQueueCreatedEvent_TriggersAutomaticProcessing tests that creating a tile queue

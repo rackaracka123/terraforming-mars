@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ func TestCardTilePlacementEffects(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	cardDeckRepo := repository.NewCardDeckRepository()
-	cardProcessor := cards.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo)
+	cardProcessor := card.NewCardProcessor(gameRepo, playerRepo, cardDeckRepo)
 
 	// Create a game
 	gameSettings := model.GameSettings{

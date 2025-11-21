@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 )
 
 // TestImmediateEffectsNotAddedToPlayerEffects verifies that immediate effects
@@ -21,7 +21,7 @@ func TestImmediateEffectsNotAddedToPlayerEffects(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create test game and player
 	playerID := "player-1"
@@ -94,7 +94,7 @@ func TestPassiveEffectsAddedToPlayerEffects(t *testing.T) {
 	playerRepo := repository.NewPlayerRepository(eventBus)
 	gameRepo := repository.NewGameRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create test game and player
 	playerID := "player-1"
@@ -182,7 +182,7 @@ func TestDiscountEffectAppliedToExistingCards(t *testing.T) {
 		t.Fatalf("Failed to load cards from JSON: %v", err)
 	}
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})

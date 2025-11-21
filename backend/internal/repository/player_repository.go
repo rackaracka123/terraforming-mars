@@ -254,7 +254,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	timestamp := time.Now()
 
 	if oldRes.Credits != newRes.Credits {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "credits",
@@ -265,7 +265,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	}
 
 	if oldRes.Steel != newRes.Steel {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "steel",
@@ -276,7 +276,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	}
 
 	if oldRes.Titanium != newRes.Titanium {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "titanium",
@@ -287,7 +287,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	}
 
 	if oldRes.Plants != newRes.Plants {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "plants",
@@ -298,7 +298,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	}
 
 	if oldRes.Energy != newRes.Energy {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "energy",
@@ -309,7 +309,7 @@ func (r *PlayerRepositoryImpl) publishResourceChangedEvents(gameID, playerID str
 	}
 
 	if oldRes.Heat != newRes.Heat {
-		events.Publish(r.eventBus, ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "heat",
@@ -358,7 +358,7 @@ func (r *PlayerRepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID
 
 	// Publish terraform rating changed event
 	if r.eventBus != nil && oldTR != rating {
-		events.Publish(r.eventBus, TerraformRatingChangedEvent{
+		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			OldRating: oldTR,
@@ -526,7 +526,7 @@ func (r *PlayerRepositoryImpl) UpdatePlayerEffects(ctx context.Context, gameID, 
 
 	// Publish player effects changed event (after releasing lock)
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, PlayerEffectsChangedEvent{
+		events.Publish(r.eventBus, events.PlayerEffectsChangedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			Timestamp: time.Now(),
@@ -569,7 +569,7 @@ func (r *PlayerRepositoryImpl) AddCard(ctx context.Context, gameID, playerID str
 
 	// Publish card hand updated event (after releasing lock)
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, CardHandUpdatedEvent{
+		events.Publish(r.eventBus, events.CardHandUpdatedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			CardIDs:   cardIDsCopy,
@@ -607,7 +607,7 @@ func (r *PlayerRepositoryImpl) RemoveCard(ctx context.Context, gameID, playerID 
 
 			// Publish card hand updated event (after releasing lock)
 			if r.eventBus != nil {
-				events.Publish(r.eventBus, CardHandUpdatedEvent{
+				events.Publish(r.eventBus, events.CardHandUpdatedEvent{
 					GameID:    gameID,
 					PlayerID:  playerID,
 					CardIDs:   cardIDsCopy,
@@ -665,7 +665,7 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 	// Publish events (after releasing lock)
 	timestamp := time.Now()
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, CardPlayedEvent{
+		events.Publish(r.eventBus, events.CardPlayedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			CardID:    cardID,
@@ -675,7 +675,7 @@ func (r *PlayerRepositoryImpl) RemoveCardFromHand(ctx context.Context, gameID, p
 		})
 
 		// Publish card hand updated event (hand changed when card was removed)
-		events.Publish(r.eventBus, CardHandUpdatedEvent{
+		events.Publish(r.eventBus, events.CardHandUpdatedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			CardIDs:   cardIDsCopy,

@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -36,7 +35,7 @@ type CardManagerImpl struct {
 	cardRepo              Repository
 	requirementsValidator *RequirementsValidator
 	effectProcessor       *CardProcessor
-	effectSubscriber      cards.CardEffectSubscriber
+	effectSubscriber      CardEffectSubscriber
 }
 
 // NewCardManager creates a new simplified card manager with session-scoped repositories
@@ -45,7 +44,7 @@ func NewCardManager(
 	playerRepo player.Repository,
 	cardRepo Repository,
 	deckRepo deck.Repository,
-	effectSubscriber cards.CardEffectSubscriber,
+	effectSubscriber CardEffectSubscriber,
 ) CardManager {
 	return &CardManagerImpl{
 		gameRepo:              gameRepo,

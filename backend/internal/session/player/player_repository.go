@@ -10,7 +10,6 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 )
 
 var log = logger.Get()
@@ -219,7 +218,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 	// Publish ResourcesChangedEvent for each resource type that changed
 	// This allows card effects to subscribe to specific resource changes
 	if oldResources.Credits != resources.Credits {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "credits",
@@ -229,7 +228,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 		})
 	}
 	if oldResources.Steel != resources.Steel {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "steel",
@@ -239,7 +238,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 		})
 	}
 	if oldResources.Titanium != resources.Titanium {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "titanium",
@@ -249,7 +248,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 		})
 	}
 	if oldResources.Plants != resources.Plants {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "plants",
@@ -259,7 +258,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 		})
 	}
 	if oldResources.Energy != resources.Energy {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "energy",
@@ -269,7 +268,7 @@ func (r *RepositoryImpl) UpdateResources(ctx context.Context, gameID string, pla
 		})
 	}
 	if oldResources.Heat != resources.Heat {
-		events.Publish(r.eventBus, repository.ResourcesChangedEvent{
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
 			GameID:       gameID,
 			PlayerID:     playerID,
 			ResourceType: "heat",
@@ -633,7 +632,7 @@ func (r *RepositoryImpl) UpdateTerraformRating(ctx context.Context, gameID strin
 			zap.Int("old_rating", oldRating),
 			zap.Int("new_rating", rating))
 
-		events.Publish(r.eventBus, repository.TerraformRatingChangedEvent{
+		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			OldRating: oldRating,

@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/session/card"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ func TestForcedActionManager_InventrixCardDrawAction(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager and subscribe
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
@@ -112,7 +112,7 @@ func TestForcedActionManager_TharsisCityPlacementAction(t *testing.T) {
 	boardService := service.NewBoardService()
 
 	// Create forced action manager and subscribe
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
@@ -183,7 +183,7 @@ func TestForcedActionManager_NoActionForNonActionPhase(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager and subscribe
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
@@ -257,7 +257,7 @@ func TestForcedActionManager_NoActionWhenAlreadyCompleted(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager and subscribe
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game
@@ -331,7 +331,7 @@ func TestForcedActionManager_MarkComplete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 
 	// Create a test game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -382,7 +382,7 @@ func TestForcedActionManager_MarkCompleteWithNoForcedAction(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 
 	// Create a test game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -426,7 +426,7 @@ func TestForcedActionManager_NoActionWhenPlayerNotCurrentTurn(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create forced action manager and subscribe
-	manager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
+	manager := card.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
 	manager.SubscribeToPhaseChanges()
 
 	// Create a test game

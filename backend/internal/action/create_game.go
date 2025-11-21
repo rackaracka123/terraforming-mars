@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

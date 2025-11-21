@@ -1,4 +1,4 @@
-package cards
+package card
 
 import (
 	"context"
@@ -7,23 +7,24 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
+	sessionGame "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/player"
 )
 
-// RequirementsValidator handles enhanced card requirement validation
+// RequirementsValidator handles card requirement validation in session-scoped architecture
 type RequirementsValidator struct {
-	cardRepo repository.CardRepository
+	cardRepo Repository
 }
 
-// NewRequirementsValidator creates a new enhanced requirements validator
-func NewRequirementsValidator(cardRepo repository.CardRepository) *RequirementsValidator {
+// NewRequirementsValidator creates a new requirements validator
+func NewRequirementsValidator(cardRepo Repository) *RequirementsValidator {
 	return &RequirementsValidator{
 		cardRepo: cardRepo,
 	}
 }
 
 // ValidateCardRequirements validates that a card's requirements are met with full context
-func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, gameID, playerID string, card *model.Card, game *model.Game, player *model.Player) error {
+func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, gameID, playerID string, card *Card, game *sessionGame.Game, player *player.Player) error {
 	// Check if card has any requirements
 	if len(card.Requirements) == 0 {
 		return nil
@@ -44,7 +45,7 @@ func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, g
 }
 
 // validateSingleRequirement validates a single requirement
-func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement model.Requirement, game *model.Game, player *model.Player) error {
+func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
 	switch requirement.Type {
 	case model.RequirementTemperature:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Temperature, "temperature")
@@ -77,128 +78,8 @@ func (rv *RequirementsValidator) validateParameterRequirement(requirement model.
 	return nil
 }
 
-// validateGlobalParameterRequirements checks temperature, oxygen, and ocean requirements
-func (rv *RequirementsValidator) validateGlobalParameterRequirements(requirements model.CardRequirements, globalParams model.GlobalParameters) error {
-	log := logger.Get()
-
-	// Log current global parameters and requirements for debugging
-	log.Debug("🌍 Validating global parameter requirements",
-		zap.Int("current_temperature", globalParams.Temperature),
-		zap.Int("current_oxygen", globalParams.Oxygen),
-		zap.Int("current_oceans", globalParams.Oceans))
-
-	if requirements.MinTemperature != nil {
-		log.Debug("❄️ Checking min temperature", zap.Int("required", *requirements.MinTemperature), zap.Int("current", globalParams.Temperature))
-	}
-	if requirements.MinOxygen != nil {
-		log.Debug("💨 Checking min oxygen", zap.Int("required", *requirements.MinOxygen), zap.Int("current", globalParams.Oxygen))
-	}
-	if requirements.MinOceans != nil {
-		log.Debug("🌊 Checking min oceans", zap.Int("required", *requirements.MinOceans), zap.Int("current", globalParams.Oceans))
-	}
-
-	// Check temperature requirements
-	if requirements.MinTemperature != nil && globalParams.Temperature < *requirements.MinTemperature {
-		return fmt.Errorf("minimum temperature requirement not met: need %d°C, current %d°C", *requirements.MinTemperature, globalParams.Temperature)
-	}
-	if requirements.MaxTemperature != nil && globalParams.Temperature > *requirements.MaxTemperature {
-		return fmt.Errorf("maximum temperature requirement exceeded: limit %d°C, current %d°C", *requirements.MaxTemperature, globalParams.Temperature)
-	}
-
-	// Check oxygen requirements
-	if requirements.MinOxygen != nil && globalParams.Oxygen < *requirements.MinOxygen {
-		return fmt.Errorf("minimum oxygen requirement not met: need %d%%, current %d%%", *requirements.MinOxygen, globalParams.Oxygen)
-	}
-	if requirements.MaxOxygen != nil && globalParams.Oxygen > *requirements.MaxOxygen {
-		return fmt.Errorf("maximum oxygen requirement exceeded: limit %d%%, current %d%%", *requirements.MaxOxygen, globalParams.Oxygen)
-	}
-
-	// Check ocean requirements
-	if requirements.MinOceans != nil && globalParams.Oceans < *requirements.MinOceans {
-		return fmt.Errorf("minimum ocean requirement not met: need %d, current %d", *requirements.MinOceans, globalParams.Oceans)
-	}
-	if requirements.MaxOceans != nil && globalParams.Oceans > *requirements.MaxOceans {
-		return fmt.Errorf("maximum ocean requirement exceeded: limit %d, current %d", *requirements.MaxOceans, globalParams.Oceans)
-	}
-
-	return nil
-}
-
-// validateTagRequirements checks if player has required card tags
-func (rv *RequirementsValidator) validateTagRequirements(ctx context.Context, requiredTags []model.CardTag, player *model.Player) error {
-	playerTagCounts := rv.countPlayerTags(ctx, player)
-
-	for _, requiredTag := range requiredTags {
-		if playerTagCounts[requiredTag] == 0 {
-			return fmt.Errorf("required tag not found: %s", requiredTag)
-		}
-	}
-
-	return nil
-}
-
-// validateProductionRequirements checks if player has sufficient production levels
-func (rv *RequirementsValidator) validateProductionRequirements(requiredProduction model.ResourceSet, playerProduction model.Production) error {
-	if requiredProduction.Credits > 0 && playerProduction.Credits < requiredProduction.Credits {
-		return fmt.Errorf("insufficient credit production: need %d, have %d", requiredProduction.Credits, playerProduction.Credits)
-	}
-	if requiredProduction.Steel > 0 && playerProduction.Steel < requiredProduction.Steel {
-		return fmt.Errorf("insufficient steel production: need %d, have %d", requiredProduction.Steel, playerProduction.Steel)
-	}
-	if requiredProduction.Titanium > 0 && playerProduction.Titanium < requiredProduction.Titanium {
-		return fmt.Errorf("insufficient titanium production: need %d, have %d", requiredProduction.Titanium, playerProduction.Titanium)
-	}
-	if requiredProduction.Plants > 0 && playerProduction.Plants < requiredProduction.Plants {
-		return fmt.Errorf("insufficient plant production: need %d, have %d", requiredProduction.Plants, playerProduction.Plants)
-	}
-	if requiredProduction.Energy > 0 && playerProduction.Energy < requiredProduction.Energy {
-		return fmt.Errorf("insufficient energy production: need %d, have %d", requiredProduction.Energy, playerProduction.Energy)
-	}
-	if requiredProduction.Heat > 0 && playerProduction.Heat < requiredProduction.Heat {
-		return fmt.Errorf("insufficient heat production: need %d, have %d", requiredProduction.Heat, playerProduction.Heat)
-	}
-
-	return nil
-}
-
-// countPlayerTags counts the occurrence of each tag in player's played cards and corporation
-func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *model.Player) map[model.CardTag]int {
-	tagCounts := make(map[model.CardTag]int)
-
-	// Count tags from played cards
-	for _, cardID := range player.PlayedCards {
-		card, err := rv.cardRepo.GetCardByID(ctx, cardID)
-		if err != nil || card == nil {
-			continue // Skip if card not found
-		}
-
-		for _, tag := range card.Tags {
-			tagCounts[tag]++
-		}
-	}
-
-	// Add corporation tags if player has a corporation
-	if player.Corporation != nil {
-		for _, tag := range player.Corporation.Tags {
-			tagCounts[tag]++
-		}
-	}
-
-	return tagCounts
-}
-
-// HasRequirements checks if a card has any requirements to validate
-func (rv *RequirementsValidator) HasRequirements(card *model.Card) bool {
-	return len(card.Requirements) > 0
-}
-
-// GetPlayerTagCounts returns the tag counts for a player (public method for external use)
-func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, player *model.Player) map[model.CardTag]int {
-	return rv.countPlayerTags(ctx, player)
-}
-
-// validateTagRequirement validates tag-based requirements using the new Requirement structure
-func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement model.Requirement, game *model.Game, player *model.Player) error {
+// validateTagRequirement validates tag-based requirements
+func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Tag == nil {
 		return fmt.Errorf("tag requirement missing tag specification")
 	}
@@ -219,8 +100,8 @@ func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, req
 	return nil
 }
 
-// validateProductionRequirement validates production-based requirements using the new Requirement structure
-func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement model.Requirement, game *model.Game, player *model.Player) error {
+// validateProductionRequirement validates production-based requirements
+func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("production requirement missing resource specification")
 	}
@@ -259,8 +140,8 @@ func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Conte
 	return nil
 }
 
-// validateResourceRequirement validates resource-based requirements using the new Requirement structure
-func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement model.Requirement, game *model.Game, player *model.Player) error {
+// validateResourceRequirement validates resource-based requirements
+func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement model.Requirement, game *sessionGame.Game, player *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("resource requirement missing resource specification")
 	}
@@ -299,8 +180,44 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 	return nil
 }
 
+// countPlayerTags counts the occurrence of each tag in player's played cards and corporation
+func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *player.Player) map[model.CardTag]int {
+	tagCounts := make(map[model.CardTag]int)
+
+	// Count tags from played cards
+	for _, cardID := range player.PlayedCards {
+		card, err := rv.cardRepo.GetCardByID(ctx, cardID)
+		if err != nil || card == nil {
+			continue // Skip if card not found
+		}
+
+		for _, tag := range card.Tags {
+			tagCounts[tag]++
+		}
+	}
+
+	// Add corporation tags if player has a corporation
+	if player.Corporation != nil {
+		for _, tag := range player.Corporation.Tags {
+			tagCounts[tag]++
+		}
+	}
+
+	return tagCounts
+}
+
+// HasRequirements checks if a card has any requirements to validate
+func (rv *RequirementsValidator) HasRequirements(card *Card) bool {
+	return len(card.Requirements) > 0
+}
+
+// GetPlayerTagCounts returns the tag counts for a player (public method for external use)
+func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, player *player.Player) map[model.CardTag]int {
+	return rv.countPlayerTags(ctx, player)
+}
+
 // calculateEffectiveCost calculates the card cost after applying requirement modifiers (discounts)
-func (rv *RequirementsValidator) calculateEffectiveCost(card *model.Card, player *model.Player) int {
+func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, player *player.Player) int {
 	effectiveCost := card.Cost
 
 	// Apply discounts from requirement modifiers
@@ -335,7 +252,7 @@ func (rv *RequirementsValidator) calculateEffectiveCost(card *model.Card, player
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *model.Card, player *model.Player, payment *model.CardPayment, choiceIndex *int) error {
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *Card, player *player.Player, payment *model.CardPayment, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Calculate total costs from card behaviors (excluding card cost which is paid separately)
@@ -457,7 +374,7 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 }
 
 // cardHasTag checks if a card has a specific tag
-func (rv *RequirementsValidator) cardHasTag(card *model.Card, tag model.CardTag) bool {
+func (rv *RequirementsValidator) cardHasTag(card *Card, tag model.CardTag) bool {
 	for _, cardTag := range card.Tags {
 		if cardTag == tag {
 			return true
@@ -468,7 +385,7 @@ func (rv *RequirementsValidator) cardHasTag(card *model.Card, tag model.CardTag)
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs
 // choiceIndex is optional and used when the card has choices between different effects
-func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *model.Card, player *model.Player, choiceIndex *int) model.Resources {
+func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) model.Resources {
 	totalCosts := model.Resources{}
 
 	// Process all behaviors to find immediate resource costs (auto triggers)
@@ -537,7 +454,7 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 }
 
 // validateProductionDeductions validates that the player can afford any negative production effects
-func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *model.Card, player *model.Player, choiceIndex *int) error {
+func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) error {
 	// Calculate total production changes from card behaviors
 	productionChanges := model.Production{}
 

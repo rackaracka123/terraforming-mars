@@ -9,7 +9,7 @@ import (
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/deck"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -53,7 +53,6 @@ type GameServiceImpl struct {
 	cardRepo       repository.CardRepository
 	cardService    CardService
 	deckRepo       deck.Repository
-	boardService   BoardService
 	sessionManager session.SessionManager
 }
 
@@ -64,7 +63,6 @@ func NewGameService(
 	cardRepo repository.CardRepository,
 	cardService CardService,
 	deckRepo deck.Repository,
-	boardService BoardService,
 	sessionManager session.SessionManager,
 ) GameService {
 	return &GameServiceImpl{
@@ -73,7 +71,6 @@ func NewGameService(
 		cardRepo:       cardRepo,
 		cardService:    cardService,
 		deckRepo:       deckRepo,
-		boardService:   boardService,
 		sessionManager: sessionManager,
 	}
 }
@@ -94,16 +91,6 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 	if err != nil {
 		log.Error("Failed to create game", zap.Error(err))
 		return model.Game{}, fmt.Errorf("failed to create game: %w", err)
-	}
-
-	// Initialize the board with default Mars tiles
-	board := s.boardService.GenerateDefaultBoard()
-	game.Board = board
-
-	// Update the game with the initialized board
-	if err := s.gameRepo.UpdateBoard(ctx, game.ID, board); err != nil {
-		log.Error("Failed to update game with board", zap.Error(err))
-		return model.Game{}, fmt.Errorf("failed to initialize game board: %w", err)
 	}
 
 	// Initialize the card deck with project cards filtered by selected packs
@@ -146,7 +133,6 @@ func (s *GameServiceImpl) CreateGame(ctx context.Context, settings model.GameSet
 
 	log.Info("Game created via GameService",
 		zap.String("game_id", game.ID),
-		zap.Int("board_tiles", len(board.Tiles)),
 		zap.Int("deck_size", len(projectCards)))
 	return game, nil
 }

@@ -4,10 +4,9 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 	"terraforming-mars-backend/internal/session/game"
 
 	"github.com/gorilla/mux"
@@ -17,20 +16,22 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
-	gameService      service.GameService
-	playerRepo       repository.PlayerRepository
-	cardRepo         repository.CardRepository
 	createGameAction *action.CreateGameAction
+	getGameAction    *query.GetGameAction
+	listGamesAction  *query.ListGamesAction
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, createGameAction *action.CreateGameAction) *GameHandler {
+func NewGameHandler(
+	createGameAction *action.CreateGameAction,
+	getGameAction *query.GetGameAction,
+	listGamesAction *query.ListGamesAction,
+) *GameHandler {
 	return &GameHandler{
 		BaseHandler:      NewBaseHandler(),
-		gameService:      gameService,
-		playerRepo:       playerRepo,
-		cardRepo:         cardRepo,
 		createGameAction: createGameAction,
+		getGameAction:    getGameAction,
+		listGamesAction:  listGamesAction,
 	}
 }
 
@@ -80,46 +81,21 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	// Check for optional playerId query parameter for personalized view
 	playerID := r.URL.Query().Get("playerId")
 
-	// Delegate to service
-	game, err := h.gameService.GetGame(r.Context(), gameID)
+	// Use GetGameAction
+	result, err := h.getGameAction.Execute(r.Context(), gameID, playerID)
 	if err != nil {
 		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
 		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
 		return
 	}
 
+	// Convert to model.Game for DTO compatibility
+	game := convertToModelGame(result.Game)
+
 	var gameDto dto.GameDto
-	if playerID != "" {
+	if playerID != "" && result.Players != nil {
 		// Return personalized view with full player data
-		players, err := h.playerRepo.ListByGameID(r.Context(), gameID)
-		if err != nil {
-			h.logger.Error("Failed to get players", zap.Error(err), zap.String("game_id", gameID))
-			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get players")
-			return
-		}
-
-		// Collect all card IDs that need resolution
-		allCardIds := make(map[string]struct{})
-		for _, player := range players {
-			if player.Corporation != nil {
-				allCardIds[player.Corporation.ID] = struct{}{}
-			}
-			for _, cardID := range player.PlayedCards {
-				allCardIds[cardID] = struct{}{}
-			}
-			for _, cardID := range player.Cards {
-				allCardIds[cardID] = struct{}{}
-			}
-		}
-
-		resolvedCards, err := h.cardRepo.ListCardsByIdMap(r.Context(), allCardIds)
-		if err != nil {
-			h.logger.Error("Failed to resolve cards", zap.Error(err), zap.String("game_id", gameID))
-			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to resolve cards")
-			return
-		}
-
-		gameDto = dto.ToGameDto(game, players, playerID, resolvedCards, dto.GetPaymentConstants())
+		gameDto = dto.ToGameDto(game, result.Players, playerID, result.ResolvedCards, dto.GetPaymentConstants())
 	} else {
 		// Return basic non-personalized view
 		gameDto = dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
@@ -133,8 +109,8 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 // ListGames retrieves all games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
-	// Delegate to service (list all games by passing empty status)
-	games, err := h.gameService.ListGames(r.Context(), "")
+	// Use ListGamesAction (list all games by passing empty status)
+	games, err := h.listGamesAction.Execute(r.Context(), "")
 	if err != nil {
 		h.logger.Error("Failed to list games", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")

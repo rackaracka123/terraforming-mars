@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ func TestEcolineStandardProjectDiscount(t *testing.T) {
 	cardRepo := repository.NewCardRepository()
 
 	// Create effect subscriber
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -101,7 +101,7 @@ func TestModifierMerging(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -213,7 +213,7 @@ func TestTagBasedCardDiscounts(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -330,7 +330,7 @@ func TestCardTypeFiltering(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -427,7 +427,7 @@ func TestCardHandUpdateTriggersRecalc(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -510,7 +510,7 @@ func TestImmediateEffectsNoModifiers(t *testing.T) {
 	gameRepo := repository.NewGameRepository(eventBus)
 	cardRepo := repository.NewCardRepository()
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -576,7 +576,7 @@ func TestMultipleTagsOnCard(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -669,7 +669,7 @@ func TestInventrixGlobalParameterLeniencePerCard(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -796,7 +796,7 @@ func TestShuttlesSpaceTagDiscount(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -931,7 +931,7 @@ func TestMixedLenienceAndDiscount(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})
@@ -1079,8 +1079,8 @@ func TestDiscountAppliedDuringValidation(t *testing.T) {
 	err := cardRepo.LoadCards(ctx)
 	require.NoError(t, err, "Failed to load cards from JSON")
 
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
-	cardManager := cards.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	cardManager := card.NewCardManager(gameRepo, playerRepo, cardRepo, cardDeckRepo, effectSubscriber)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 2})

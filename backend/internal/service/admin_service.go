@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
+	sessionCard "terraforming-mars-backend/internal/session/card"
+	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/deck"
-	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
+	sessionPlayer "terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -50,8 +50,8 @@ type AdminServiceImpl struct {
 	cardRepo            sessionCard.Repository
 	deckRepo            deck.Repository
 	sessionManager      session.SessionManager
-	effectSubscriber    cards.CardEffectSubscriber
-	forcedActionManager cards.ForcedActionManager
+	effectSubscriber    card.CardEffectSubscriber
+	forcedActionManager card.ForcedActionManager
 }
 
 // NewAdminService creates a new AdminService instance
@@ -61,8 +61,8 @@ func NewAdminService(
 	cardRepo sessionCard.Repository,
 	deckRepo deck.Repository,
 	sessionManager session.SessionManager,
-	effectSubscriber cards.CardEffectSubscriber,
-	forcedActionManager cards.ForcedActionManager,
+	effectSubscriber card.CardEffectSubscriber,
+	forcedActionManager card.ForcedActionManager,
 ) AdminService {
 	return &AdminServiceImpl{
 		gameRepo:            gameRepo,

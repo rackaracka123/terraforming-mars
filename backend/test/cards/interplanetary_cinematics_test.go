@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,7 @@ func TestInterplanetaryCinematicsTriggersOnEventCards(t *testing.T) {
 	cardRepo := repository.NewCardRepository()
 
 	// Setup CardEffectSubscriber
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})
@@ -127,7 +127,7 @@ func TestInterplanetaryCinematicsMultipleEventCards(t *testing.T) {
 	cardRepo := repository.NewCardRepository()
 
 	// Setup CardEffectSubscriber
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
 
 	// Create game
 	game, err := gameRepo.Create(ctx, model.GameSettings{MaxPlayers: 4})

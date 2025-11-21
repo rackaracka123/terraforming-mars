@@ -9,9 +9,9 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
+	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 	"terraforming-mars-backend/test"
 )
 

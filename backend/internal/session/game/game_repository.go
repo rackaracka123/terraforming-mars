@@ -9,7 +9,6 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -126,7 +125,7 @@ func (r *RepositoryImpl) AddPlayer(ctx context.Context, gameID string, playerID 
 		zap.String("player_id", playerID))
 	log.Info("📡 Publishing PlayerJoinedEvent")
 
-	events.Publish(r.eventBus, repository.PlayerJoinedEvent{
+	events.Publish(r.eventBus, events.PlayerJoinedEvent{
 		GameID:     gameID,
 		PlayerID:   playerID,
 		PlayerName: "", // Name not available at repository level, subscribers can look up if needed
@@ -162,7 +161,7 @@ func (r *RepositoryImpl) UpdateStatus(ctx context.Context, gameID string, status
 			zap.String("new_status", string(status)))
 		log.Debug("📡 Publishing GameStatusChangedEvent")
 
-		events.Publish(r.eventBus, repository.GameStatusChangedEvent{
+		events.Publish(r.eventBus, events.GameStatusChangedEvent{
 			GameID:    gameID,
 			OldStatus: string(oldStatus),
 			NewStatus: string(status),
@@ -197,7 +196,7 @@ func (r *RepositoryImpl) UpdatePhase(ctx context.Context, gameID string, phase G
 			zap.String("new_phase", string(phase)))
 		log.Debug("📡 Publishing GamePhaseChangedEvent")
 
-		events.Publish(r.eventBus, repository.GamePhaseChangedEvent{
+		events.Publish(r.eventBus, events.GamePhaseChangedEvent{
 			GameID:    gameID,
 			OldPhase:  string(oldPhase),
 			NewPhase:  string(phase),
@@ -262,7 +261,7 @@ func (r *RepositoryImpl) UpdateTemperature(ctx context.Context, gameID string, t
 			zap.Int("new_temperature", temperature))
 		log.Debug("📡 Publishing TemperatureChangedEvent")
 
-		events.Publish(r.eventBus, repository.TemperatureChangedEvent{
+		events.Publish(r.eventBus, events.TemperatureChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldTemp,
 			NewValue:  temperature,
@@ -298,7 +297,7 @@ func (r *RepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, oxygen
 			zap.Int("new_oxygen", oxygen))
 		log.Debug("📡 Publishing OxygenChangedEvent")
 
-		events.Publish(r.eventBus, repository.OxygenChangedEvent{
+		events.Publish(r.eventBus, events.OxygenChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldOxygen,
 			NewValue:  oxygen,
@@ -334,7 +333,7 @@ func (r *RepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oceans
 			zap.Int("new_oceans", oceans))
 		log.Debug("📡 Publishing OceansChangedEvent")
 
-		events.Publish(r.eventBus, repository.OceansChangedEvent{
+		events.Publish(r.eventBus, events.OceansChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldOceans,
 			NewValue:  oceans,
@@ -370,7 +369,7 @@ func (r *RepositoryImpl) UpdateGeneration(ctx context.Context, gameID string, ge
 			zap.Int("new_generation", generation))
 		log.Debug("📡 Publishing GenerationAdvancedEvent")
 
-		events.Publish(r.eventBus, repository.GenerationAdvancedEvent{
+		events.Publish(r.eventBus, events.GenerationAdvancedEvent{
 			GameID:        gameID,
 			OldGeneration: oldGeneration,
 			NewGeneration: generation,

@@ -8,7 +8,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -130,7 +129,7 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 
 		// Publish TilePlacedEvent for passive card effects
 		if ownerID != nil {
-			event := repository.TilePlacedEvent{
+			event := events.TilePlacedEvent{
 				GameID:    gameID,
 				PlayerID:  *ownerID,
 				TileType:  string(occupant.Type),

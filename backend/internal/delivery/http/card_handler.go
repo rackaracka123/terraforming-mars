@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/service"
 
 	"go.uber.org/zap"
 )
@@ -14,14 +14,19 @@ import (
 // CardHandler handles card-related HTTP requests
 type CardHandler struct {
 	*BaseHandler
-	cardService service.CardService
+	listCardsAction       *query.ListCardsAction
+	getCorporationsAction *query.GetCorporationsAction
 }
 
 // NewCardHandler creates a new CardHandler
-func NewCardHandler(cardService service.CardService) *CardHandler {
+func NewCardHandler(
+	listCardsAction *query.ListCardsAction,
+	getCorporationsAction *query.GetCorporationsAction,
+) *CardHandler {
 	return &CardHandler{
-		BaseHandler: &BaseHandler{},
-		cardService: cardService,
+		BaseHandler:           &BaseHandler{},
+		listCardsAction:       listCardsAction,
+		getCorporationsAction: getCorporationsAction,
 	}
 }
 
@@ -68,8 +73,8 @@ func (h *CardHandler) ListCards(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// List cards from service
-	cards, totalCount, err := h.cardService.ListCardsPaginated(r.Context(), offset, limit)
+	// Use ListCardsAction
+	cards, totalCount, err := h.listCardsAction.Execute(r.Context(), offset, limit)
 	if err != nil {
 		log.Error("Failed to get cards", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get cards")
@@ -112,8 +117,8 @@ func (h *CardHandler) GetCorporations(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	log.Debug("📡 Getting all corporations")
 
-	// Get corporations from service (they're just cards with type=corporation)
-	corporations, err := h.cardService.GetCorporations(r.Context())
+	// Use GetCorporationsAction
+	corporations, err := h.getCorporationsAction.Execute(r.Context())
 	if err != nil {
 		log.Error("Failed to get corporations", zap.Error(err))
 		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get corporations")

@@ -5,10 +5,26 @@ import (
 	"fmt"
 
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
+
+// ValidateGameExists validates that a game exists (any status)
+// Returns the game if valid, or an error if not found
+func ValidateGameExists(
+	ctx context.Context,
+	gameRepo sessionGame.Repository,
+	gameID string,
+	log *zap.Logger,
+) (*sessionGame.Game, error) {
+	game, err := gameRepo.GetByID(ctx, gameID)
+	if err != nil {
+		log.Error("Game not found", zap.Error(err))
+		return nil, fmt.Errorf("game not found: %w", err)
+	}
+	return game, nil
+}
 
 // ValidateActiveGame validates that a game exists and is in active status
 // Returns the game if valid, or an error if not found or wrong status

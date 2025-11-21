@@ -10,10 +10,10 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/session/board"
+	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	"terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -347,6 +347,19 @@ func playerToModel(p *player.Player) model.Player {
 		}
 	}
 
+	// Convert PendingCardSelection if it exists
+	var pendingCardSelection *model.PendingCardSelection
+	if p.PendingCardSelection != nil {
+		pendingCardSelection = &model.PendingCardSelection{
+			Source:         p.PendingCardSelection.Source,
+			AvailableCards: p.PendingCardSelection.AvailableCards,
+			CardCosts:      p.PendingCardSelection.CardCosts,
+			CardRewards:    p.PendingCardSelection.CardRewards,
+			MinCards:       p.PendingCardSelection.MinCards,
+			MaxCards:       p.PendingCardSelection.MaxCards,
+		}
+	}
+
 	return model.Player{
 		ID:                        p.ID,
 		Name:                      p.Name,
@@ -366,7 +379,7 @@ func playerToModel(p *player.Player) model.Player {
 		SelectStartingCardsPhase:  selectStartingCards,
 		PendingTileSelection:      p.PendingTileSelection,      // Now exists in NEW player type
 		PendingTileSelectionQueue: p.PendingTileSelectionQueue, // Now exists in NEW player type
-		PendingCardSelection:      nil,                         // Not in NEW player type yet
+		PendingCardSelection:      pendingCardSelection,        // Now converted from NEW player type
 		PendingCardDrawSelection:  p.PendingCardDrawSelection,  // Now exists in NEW player type
 		ForcedFirstAction:         p.ForcedFirstAction,         // Now exists in NEW player type
 		ResourceStorage:           p.ResourceStorage,           // Now exists in NEW player type

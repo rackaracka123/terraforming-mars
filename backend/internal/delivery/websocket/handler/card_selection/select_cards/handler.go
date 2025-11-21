@@ -4,37 +4,38 @@ import (
 	"context"
 	"fmt"
 
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
 
 // Handler handles select production cards action requests
 type Handler struct {
-	cardService            service.CardService
-	gameService            service.GameService
-	standardProjectService service.StandardProjectService
-	playerRepo             repository.PlayerRepository
-	parser                 *utils.MessageParser
-	errorHandler           *utils.ErrorHandler
-	logger                 *zap.Logger
+	cardService              service.CardService
+	gameService              service.GameService
+	confirmSellPatentsAction *action.ConfirmSellPatentsAction
+	newPlayerRepo            player.Repository
+	parser                   *utils.MessageParser
+	errorHandler             *utils.ErrorHandler
+	logger                   *zap.Logger
 }
 
 // NewHandler creates a new select cards handler
-func NewHandler(cardService service.CardService, gameService service.GameService, standardProjectService service.StandardProjectService, playerRepo repository.PlayerRepository, parser *utils.MessageParser) *Handler {
+func NewHandler(cardService service.CardService, gameService service.GameService, confirmSellPatentsAction *action.ConfirmSellPatentsAction, newPlayerRepo player.Repository, parser *utils.MessageParser) *Handler {
 	return &Handler{
-		cardService:            cardService,
-		gameService:            gameService,
-		standardProjectService: standardProjectService,
-		playerRepo:             playerRepo,
-		parser:                 parser,
-		errorHandler:           utils.NewErrorHandler(),
-		logger:                 logger.Get(),
+		cardService:              cardService,
+		gameService:              gameService,
+		confirmSellPatentsAction: confirmSellPatentsAction,
+		newPlayerRepo:            newPlayerRepo,
+		parser:                   parser,
+		errorHandler:             utils.NewErrorHandler(),
+		logger:                   logger.Get(),
 	}
 }
 
@@ -86,25 +87,29 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
 
-	// Check if player has a pending card selection (e.g., sell patents)
-	pendingCardSelection, err := h.playerRepo.GetPendingCardSelection(ctx, gameID, playerID)
+	// Check if player has a pending card selection (e.g., sell patents) using NEW repository
+	p, err := h.newPlayerRepo.GetByID(ctx, gameID, playerID)
 	if err != nil {
-		log.Error("Failed to check pending card selection", zap.Error(err))
-		return fmt.Errorf("failed to check pending card selection: %w", err)
+		log.Error("Failed to get player for pending card selection check", zap.Error(err))
+		return fmt.Errorf("failed to get player: %w", err)
 	}
 
-	// If there's a pending card selection, route to ProcessCardSelection
-	if pendingCardSelection != nil {
+	// If there's a pending card selection, route to ConfirmSellPatentsAction
+	if p.PendingCardSelection != nil {
+		// Save source before action clears the pending selection
+		source := p.PendingCardSelection.Source
+
 		log.Info("Processing pending card selection",
-			zap.String("source", pendingCardSelection.Source),
+			zap.String("source", source),
 			zap.Int("cards_selected", len(cardIDs)))
 
-		if err := h.standardProjectService.ProcessCardSelection(ctx, gameID, playerID, cardIDs); err != nil {
+		// Use ConfirmSellPatentsAction instead of service
+		if err := h.confirmSellPatentsAction.Execute(ctx, gameID, playerID, cardIDs); err != nil {
 			return err
 		}
 
 		log.Info("✅ Pending card selection completed",
-			zap.String("source", pendingCardSelection.Source))
+			zap.String("source", source))
 		return nil
 	}
 

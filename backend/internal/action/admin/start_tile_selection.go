@@ -8,9 +8,9 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
+	sessionBoard "terraforming-mars-backend/internal/session/board"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	sessionBoard "terraforming-mars-backend/internal/session/game/board"
-	sessionPlayer "terraforming-mars-backend/internal/session/game/player"
+	sessionPlayer "terraforming-mars-backend/internal/session/player"
 )
 
 // StartTileSelectionAction handles admin command to start tile selection for testing

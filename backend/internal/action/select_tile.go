@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/tile"
+	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/tile"
 
 	"go.uber.org/zap"
 )

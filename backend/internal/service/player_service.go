@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/repository"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
 
 	"go.uber.org/zap"
 )
@@ -49,20 +49,16 @@ type PlayerServiceImpl struct {
 	gameRepo            repository.GameRepository
 	playerRepo          repository.PlayerRepository
 	sessionManager      session.SessionManager
-	boardService        BoardService
-	tileService         TileService
-	forcedActionManager cards.ForcedActionManager
+	forcedActionManager card.ForcedActionManager
 	eventBus            *events.EventBusImpl
 }
 
 // NewPlayerService creates a new PlayerService instance
-func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, boardService BoardService, tileService TileService, forcedActionManager cards.ForcedActionManager, eventBus *events.EventBusImpl) PlayerService {
+func NewPlayerService(gameRepo repository.GameRepository, playerRepo repository.PlayerRepository, sessionManager session.SessionManager, forcedActionManager card.ForcedActionManager, eventBus *events.EventBusImpl) PlayerService {
 	return &PlayerServiceImpl{
 		gameRepo:            gameRepo,
 		playerRepo:          playerRepo,
 		sessionManager:      sessionManager,
-		boardService:        boardService,
-		tileService:         tileService,
 		forcedActionManager: forcedActionManager,
 		eventBus:            eventBus,
 	}
@@ -542,7 +538,7 @@ func (s *PlayerServiceImpl) awardTilePlacementBonuses(ctx context.Context, gameI
 
 	// Publish PlacementBonusGainedEvent with all resources if any bonuses were gained
 	if len(placementBonuses) > 0 && s.eventBus != nil {
-		events.Publish(s.eventBus, repository.PlacementBonusGainedEvent{
+		events.Publish(s.eventBus, events.PlacementBonusGainedEvent{
 			GameID:    gameID,
 			PlayerID:  playerID,
 			Resources: placementBonuses,

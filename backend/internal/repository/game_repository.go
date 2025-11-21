@@ -194,7 +194,7 @@ func (r *GameRepositoryImpl) UpdatePhase(ctx context.Context, gameID string, pha
 
 	// Publish event AFTER releasing the lock to avoid deadlock
 	if shouldPublishEvent {
-		events.Publish(r.eventBus, GamePhaseChangedEvent{
+		events.Publish(r.eventBus, events.GamePhaseChangedEvent{
 			GameID:    gameID,
 			OldPhase:  string(oldPhase),
 			NewPhase:  string(phase),
@@ -512,7 +512,7 @@ func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID str
 
 	// Publish tile placed event when a tile occupant is added
 	if r.eventBus != nil && occupant != nil && ownerID != nil {
-		events.Publish(r.eventBus, TilePlacedEvent{
+		events.Publish(r.eventBus, events.TilePlacedEvent{
 			GameID:    gameID,
 			PlayerID:  *ownerID,
 			TileType:  string(occupant.Type),
@@ -521,7 +521,7 @@ func (r *GameRepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID str
 			S:         coord.S,
 			Timestamp: time.Now(),
 		})
-		log.Debug("🎆 TilePlacedEvent published",
+		log.Debug("🎆 events.TilePlacedEvent published",
 			zap.String("tile_type", string(occupant.Type)),
 			zap.String("player_id", *ownerID))
 	}
@@ -556,7 +556,7 @@ func (r *GameRepositoryImpl) UpdateTemperature(ctx context.Context, gameID strin
 
 	// Publish temperature changed event
 	if r.eventBus != nil && oldTemp != temperature {
-		events.Publish(r.eventBus, TemperatureChangedEvent{
+		events.Publish(r.eventBus, events.TemperatureChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldTemp,
 			NewValue:  temperature,
@@ -595,7 +595,7 @@ func (r *GameRepositoryImpl) UpdateOxygen(ctx context.Context, gameID string, ox
 
 	// Publish oxygen changed event
 	if r.eventBus != nil && oldOxygen != oxygen {
-		events.Publish(r.eventBus, OxygenChangedEvent{
+		events.Publish(r.eventBus, events.OxygenChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldOxygen,
 			NewValue:  oxygen,
@@ -634,7 +634,7 @@ func (r *GameRepositoryImpl) UpdateOceans(ctx context.Context, gameID string, oc
 
 	// Publish oceans changed event
 	if r.eventBus != nil && oldOceans != oceans {
-		events.Publish(r.eventBus, OceansChangedEvent{
+		events.Publish(r.eventBus, events.OceansChangedEvent{
 			GameID:    gameID,
 			OldValue:  oldOceans,
 			NewValue:  oceans,

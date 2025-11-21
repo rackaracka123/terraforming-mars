@@ -6,15 +6,14 @@ import (
 	"slices"
 
 	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/model"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/card"
+	"terraforming-mars-backend/internal/session/deck"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/tile"
+	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/tile"
 )
 
 // CardService handles card-related operations
@@ -52,31 +51,31 @@ type CardServiceImpl struct {
 	// Core repositories (session-based)
 	gameRepo       sessionGame.Repository
 	playerRepo     player.Repository
-	cardRepo       sessionCard.Repository
+	cardRepo       card.Repository
 	deckRepo       deck.Repository
 	sessionManager session.SessionManager
 
 	// Specialized managers from session-scoped card package
-	requirementsValidator *sessionCard.RequirementsValidator
-	effectProcessor       *sessionCard.CardProcessor
-	cardManager           sessionCard.CardManager
-	forcedActionManager   cards.ForcedActionManager
+	requirementsValidator *card.RequirementsValidator
+	effectProcessor       *card.CardProcessor
+	cardManager           card.CardManager
+	forcedActionManager   card.ForcedActionManager
 
 	// NEW session-based tile processor
 	tileProcessor *tile.Processor
 }
 
 // NewCardService creates a new CardService instance with session-based repositories
-func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo sessionCard.Repository, deckRepo deck.Repository, sessionManager session.SessionManager, tileProcessor *tile.Processor, effectSubscriber cards.CardEffectSubscriber, forcedActionManager cards.ForcedActionManager) CardService {
+func NewCardService(gameRepo sessionGame.Repository, playerRepo player.Repository, cardRepo card.Repository, deckRepo deck.Repository, sessionManager session.SessionManager, tileProcessor *tile.Processor, effectSubscriber card.CardEffectSubscriber, forcedActionManager card.ForcedActionManager) CardService {
 	return &CardServiceImpl{
 		gameRepo:              gameRepo,
 		playerRepo:            playerRepo,
 		cardRepo:              cardRepo,
 		deckRepo:              deckRepo,
 		sessionManager:        sessionManager,
-		requirementsValidator: sessionCard.NewRequirementsValidator(cardRepo),
-		effectProcessor:       sessionCard.NewCardProcessor(gameRepo, playerRepo, deckRepo),
-		cardManager:           sessionCard.NewCardManager(gameRepo, playerRepo, cardRepo, deckRepo, effectSubscriber),
+		requirementsValidator: card.NewRequirementsValidator(cardRepo),
+		effectProcessor:       card.NewCardProcessor(gameRepo, playerRepo, deckRepo),
+		cardManager:           card.NewCardManager(gameRepo, playerRepo, cardRepo, deckRepo, effectSubscriber),
 		tileProcessor:         tileProcessor,
 		forcedActionManager:   forcedActionManager,
 	}
@@ -1157,8 +1156,8 @@ func (s *CardServiceImpl) processPendingTileQueues(ctx context.Context, gameID, 
 // ========== Type Converters: NEW session types → OLD model types ==========
 // These converters bridge the gap between NEW session-scoped card types and OLD model types
 
-// cardToModel converts a NEW sessionCard.Card to an OLD model.Card
-func cardToModel(c sessionCard.Card) model.Card {
+// cardToModel converts a NEW card.Card to an OLD model.Card
+func cardToModel(c card.Card) model.Card {
 	return model.Card{
 		ID:                 c.ID,
 		Name:               c.Name,

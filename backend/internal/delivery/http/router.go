@@ -3,19 +3,26 @@ package http
 import (
 	"net/http"
 	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/action/query"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
 )
 
 // SetupRouter creates and configures the HTTP router
-func SetupRouter(gameService service.GameService, playerService service.PlayerService, cardService service.CardService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository, createGameAction *action.CreateGameAction) *mux.Router {
+func SetupRouter(
+	createGameAction *action.CreateGameAction,
+	joinGameAction *action.JoinGameAction,
+	getGameAction *query.GetGameAction,
+	listGamesAction *query.ListGamesAction,
+	getPlayerAction *query.GetPlayerAction,
+	listCardsAction *query.ListCardsAction,
+	getCorporationsAction *query.GetCorporationsAction,
+) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(gameService, playerRepo, cardRepo, createGameAction)
-	playerHandler := NewPlayerHandler(playerService, gameService)
-	cardHandler := NewCardHandler(cardService)
+	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction)
+	playerHandler := NewPlayerHandler(joinGameAction, getPlayerAction)
+	cardHandler := NewCardHandler(listCardsAction, getCorporationsAction)
 	healthHandler := NewHealthHandler()
 
 	// Create router

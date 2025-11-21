@@ -4,7 +4,7 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -39,6 +39,11 @@ func (b *BaseAction) InitLogger(gameID, playerID string) *zap.Logger {
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID),
 	)
+}
+
+// GetLogger returns the base logger for actions that don't have game/player context
+func (b *BaseAction) GetLogger() *zap.Logger {
+	return b.logger
 }
 
 // BroadcastGameState broadcasts the current game state to all connected players
