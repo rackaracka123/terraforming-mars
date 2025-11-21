@@ -285,7 +285,7 @@ func TestConfirmProductionCardsAction_WrongPhase(t *testing.T) {
 
 	// Verify: Should fail with phase error
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "not in production phase")
+	require.Contains(t, err.Error(), "game not in production_and_card_draw phase")
 }
 
 func TestConfirmProductionCardsAction_MultiplePlayersSync(t *testing.T) {
