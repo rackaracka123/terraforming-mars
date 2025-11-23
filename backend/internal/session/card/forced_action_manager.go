@@ -41,10 +41,10 @@ type ForcedActionManagerImpl struct {
 // NewForcedActionManager creates a new forced action manager
 func NewForcedActionManager(
 	eventBus *events.EventBusImpl,
-	cardRepo Repository,               // Session card repository
-	playerRepo player.Repository,      // Session player repository
-	gameRepo sessionGame.Repository,   // Session game repository
-	deckRepo deck.Repository,          // Session deck repository
+	cardRepo Repository, // Session card repository
+	playerRepo player.Repository, // Session player repository
+	gameRepo sessionGame.Repository, // Session game repository
+	deckRepo deck.Repository, // Session deck repository
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
 		eventBus:   eventBus,

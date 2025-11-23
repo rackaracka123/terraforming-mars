@@ -124,7 +124,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 // validateDevelopmentMode ensures the game is in development mode
 func (h *Handler) validateDevelopmentMode(ctx context.Context, gameID string) error {
-	// Use NEW session repository directly instead of old GameService
+	// Get game state from session repository
 	game, err := h.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		return fmt.Errorf("failed to get game state: %w", err)

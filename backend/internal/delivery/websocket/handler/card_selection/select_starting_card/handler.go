@@ -65,7 +65,7 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
-	// Game state broadcasting is now handled by the CardService
+	// Game state broadcasting is handled automatically by the SessionManager via events
 
 	h.logger.Info("✅ Select starting card action completed successfully",
 		zap.String("connection_id", connection.ID),

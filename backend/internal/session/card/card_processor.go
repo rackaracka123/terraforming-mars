@@ -561,7 +561,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, gameID, p
 }
 
 // ApplyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)
-// This is exported so it can be used by CardService for both card play and card actions
+// This is exported so it can be used by actions for both card play and card ability execution
 func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, gameID, playerID, playedCardID string, output types.ResourceCondition, cardStorageTarget *string, log *zap.Logger) error {
 	// Get current player to access resource storage
 	player, err := cp.playerRepo.GetByID(ctx, gameID, playerID)

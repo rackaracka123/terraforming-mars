@@ -99,6 +99,6 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("card_id", request.CardID),
 		zap.Int("behavior_index", request.BehaviorIndex))
 
-	// The CardService will publish game updated events, so we don't need to send a response here
+	// The action publishes domain events, triggering SessionManager to broadcast state updates
 	// The client will receive the updated game state via the game-updated event
 }

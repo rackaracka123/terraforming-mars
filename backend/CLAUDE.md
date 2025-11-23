@@ -148,11 +148,11 @@ make test-quick           # Fast iteration tests
 
 # From backend/
 go test ./test/...        # All tests
-go test ./test/service/   # Specific package
+go test ./test/action/    # Specific package
 go test -json ./test/...  # JSON output for parsing
 ```
 
-**Test Location**: Tests live in `test/` directory, mirroring `internal/` structure. Example: `test/service/player_service_test.go` tests `internal/service/player_service.go`.
+**Test Location**: Tests live in `test/` directory, mirroring `internal/` structure. Example: `test/action/confirm_production_cards_test.go` tests `internal/action/confirm_production_cards.go`.
 
 ### Code Quality
 
