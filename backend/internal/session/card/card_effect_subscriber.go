@@ -23,10 +23,11 @@ type CardEffectSubscriber interface {
 
 // CardEffectSubscriberImpl implements CardEffectSubscriber
 type CardEffectSubscriberImpl struct {
-	eventBus   *events.EventBusImpl
-	playerRepo playerRepo.Repository
-	gameRepo   gameRepo.Repository
-	cardRepo   Repository
+	eventBus    *events.EventBusImpl
+	playerRepo  playerRepo.Repository
+	gameRepo    gameRepo.Repository
+	cardRepo    Repository
+	resourceMgr *gameRepo.ResourceManager
 
 	// Track subscription IDs for cleanup
 	subscriptions map[string][]events.SubscriptionID // cardID -> list of subscription IDs
@@ -44,6 +45,7 @@ func NewCardEffectSubscriber(
 		playerRepo:    playerRepository,
 		gameRepo:      gameRepository,
 		cardRepo:      cardRepository,
+		resourceMgr:   gameRepo.NewResourceManager(),
 		subscriptions: make(map[string][]events.SubscriptionID),
 	}
 }
@@ -441,77 +443,25 @@ func (ces *CardEffectSubscriberImpl) applyEffectOutput(
 	// Apply resource or production change based on output type
 	switch output.Type {
 	// Regular resources
-	case types.ResourceCredits:
+	case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
+		types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
 		resources := player.Resources
-		resources.Credits += output.Amount
-		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-			return fmt.Errorf("failed to update resources: %w", err)
+		resources, err = ces.resourceMgr.ApplyResourceChange(resources, output.Type, output.Amount)
+		if err != nil {
+			return fmt.Errorf("failed to apply resource change: %w", err)
 		}
-	case types.ResourceSteel:
-		resources := player.Resources
-		resources.Steel += output.Amount
-		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-			return fmt.Errorf("failed to update resources: %w", err)
-		}
-	case types.ResourceTitanium:
-		resources := player.Resources
-		resources.Titanium += output.Amount
-		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-			return fmt.Errorf("failed to update resources: %w", err)
-		}
-	case types.ResourcePlants:
-		resources := player.Resources
-		resources.Plants += output.Amount
-		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-			return fmt.Errorf("failed to update resources: %w", err)
-		}
-	case types.ResourceEnergy:
-		resources := player.Resources
-		resources.Energy += output.Amount
-		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
-			return fmt.Errorf("failed to update resources: %w", err)
-		}
-	case types.ResourceHeat:
-		resources := player.Resources
-		resources.Heat += output.Amount
 		if err := ces.playerRepo.UpdateResources(ctx, gameID, playerID, resources); err != nil {
 			return fmt.Errorf("failed to update resources: %w", err)
 		}
 
 	// Production resources
-	case types.ResourceCreditsProduction:
+	case types.ResourceCreditsProduction, types.ResourceSteelProduction, types.ResourceTitaniumProduction,
+		types.ResourcePlantsProduction, types.ResourceEnergyProduction, types.ResourceHeatProduction:
 		production := player.Production
-		production.Credits += output.Amount
-		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
-			return fmt.Errorf("failed to update production: %w", err)
+		production, err = ces.resourceMgr.ApplyProductionChange(production, output.Type, output.Amount)
+		if err != nil {
+			return fmt.Errorf("failed to apply production change: %w", err)
 		}
-	case types.ResourceSteelProduction:
-		production := player.Production
-		production.Steel += output.Amount
-		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
-			return fmt.Errorf("failed to update production: %w", err)
-		}
-	case types.ResourceTitaniumProduction:
-		production := player.Production
-		production.Titanium += output.Amount
-		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
-			return fmt.Errorf("failed to update production: %w", err)
-		}
-	case types.ResourcePlantsProduction:
-		production := player.Production
-		production.Plants += output.Amount
-		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
-			return fmt.Errorf("failed to update production: %w", err)
-		}
-	case types.ResourceEnergyProduction:
-		production := player.Production
-		production.Energy += output.Amount
-		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
-			return fmt.Errorf("failed to update production: %w", err)
-		}
-	case types.ResourceHeatProduction:
-		production := player.Production
-		production.Heat += output.Amount
 		if err := ces.playerRepo.UpdateProduction(ctx, gameID, playerID, production); err != nil {
 			return fmt.Errorf("failed to update production: %w", err)
 		}

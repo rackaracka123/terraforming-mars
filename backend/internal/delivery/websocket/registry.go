@@ -3,6 +3,7 @@ package websocket
 import (
 	"terraforming-mars-backend/internal/action"
 	adminaction "terraforming-mars-backend/internal/action/admin"
+	executecardaction "terraforming-mars-backend/internal/action/execute_card_action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
@@ -48,7 +49,7 @@ func RegisterHandlers(
 	buildCityAction *action.BuildCityAction,
 	selectTileAction *action.SelectTileAction,
 	playCardAction *action.PlayCardAction,
-	executeCardActionAction *action.ExecuteCardActionAction,
+	executeCardActionAction *executecardaction.ExecuteCardActionAction,
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
 	buildAquiferAction *action.BuildAquiferAction,

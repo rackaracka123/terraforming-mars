@@ -3,7 +3,7 @@ package play_card_action
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	executecardaction "terraforming-mars-backend/internal/action/execute_card_action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
@@ -14,14 +14,14 @@ import (
 
 // Handler handles play card action requests
 type Handler struct {
-	executeCardActionAction *action.ExecuteCardActionAction
+	executeCardActionAction *executecardaction.ExecuteCardActionAction
 	parser                  *utils.MessageParser
 	errorHandler            *utils.ErrorHandler
 	logger                  *zap.Logger
 }
 
 // NewHandler creates a new play card action handler
-func NewHandler(executeCardActionAction *action.ExecuteCardActionAction, parser *utils.MessageParser) *Handler {
+func NewHandler(executeCardActionAction *executecardaction.ExecuteCardActionAction, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		executeCardActionAction: executeCardActionAction,
 		parser:                  parser,

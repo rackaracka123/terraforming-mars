@@ -10,6 +10,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	adminaction "terraforming-mars-backend/internal/action/admin"
+	executecardaction "terraforming-mars-backend/internal/action/execute_card_action"
 	queryaction "terraforming-mars-backend/internal/action/query"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
@@ -174,7 +175,7 @@ func main() {
 	log.Info("🎴 Card processor initialized")
 
 	// Initialize card action execution action (fully migrated to session-based architecture)
-	executeCardActionAction := action.NewExecuteCardActionAction(newGameRepo, newPlayerRepo, sessionManagerFactory, cardProcessor, newDeckRepo)
+	executeCardActionAction := executecardaction.NewExecuteCardActionAction(newGameRepo, newPlayerRepo, sessionManagerFactory, cardProcessor, newDeckRepo)
 	log.Info("✅ Execute card action action fully migrated to session-based architecture")
 
 	// Initialize WebSocket service with shared Hub and new actions

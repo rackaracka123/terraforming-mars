@@ -15,17 +15,19 @@ import (
 
 // CardProcessor handles the complete card processing including validation and effect application in session-scoped architecture
 type CardProcessor struct {
-	gameRepo   sessionGame.Repository
-	playerRepo player.Repository
-	deckRepo   deck.Repository
+	gameRepo    sessionGame.Repository
+	playerRepo  player.Repository
+	deckRepo    deck.Repository
+	resourceMgr *sessionGame.ResourceManager
 }
 
 // NewCardProcessor creates a new card processor with session-scoped repositories
 func NewCardProcessor(gameRepo sessionGame.Repository, playerRepo player.Repository, deckRepo deck.Repository) *CardProcessor {
 	return &CardProcessor{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
-		deckRepo:   deckRepo,
+		gameRepo:    gameRepo,
+		playerRepo:  playerRepo,
+		deckRepo:    deckRepo,
+		resourceMgr: sessionGame.NewResourceManager(),
 	}
 }
 
@@ -123,24 +125,30 @@ func (cp *CardProcessor) applyProductionEffects(ctx context.Context, gameID, pla
 			// Process all aggregated outputs
 			for _, output := range allOutputs {
 				switch output.Type {
-				case types.ResourceCreditsProduction:
-					newProduction.Credits += output.Amount
-					creditsChange += output.Amount
-				case types.ResourceSteelProduction:
-					newProduction.Steel += output.Amount
-					steelChange += output.Amount
-				case types.ResourceTitaniumProduction:
-					newProduction.Titanium += output.Amount
-					titaniumChange += output.Amount
-				case types.ResourcePlantsProduction:
-					newProduction.Plants += output.Amount
-					plantsChange += output.Amount
-				case types.ResourceEnergyProduction:
-					newProduction.Energy += output.Amount
-					energyChange += output.Amount
-				case types.ResourceHeatProduction:
-					newProduction.Heat += output.Amount
-					heatChange += output.Amount
+				case types.ResourceCreditsProduction, types.ResourceSteelProduction, types.ResourceTitaniumProduction,
+					types.ResourcePlantsProduction, types.ResourceEnergyProduction, types.ResourceHeatProduction:
+					// Use ResourceManager to apply production change
+					var err error
+					newProduction, err = cp.resourceMgr.ApplyProductionChange(newProduction, output.Type, output.Amount)
+					if err != nil {
+						return fmt.Errorf("failed to apply production change: %w", err)
+					}
+
+					// Track changes for logging
+					switch output.Type {
+					case types.ResourceCreditsProduction:
+						creditsChange += output.Amount
+					case types.ResourceSteelProduction:
+						steelChange += output.Amount
+					case types.ResourceTitaniumProduction:
+						titaniumChange += output.Amount
+					case types.ResourcePlantsProduction:
+						plantsChange += output.Amount
+					case types.ResourceEnergyProduction:
+						energyChange += output.Amount
+					case types.ResourceHeatProduction:
+						heatChange += output.Amount
+					}
 				}
 			}
 		}
@@ -341,24 +349,31 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, gameID, playe
 			// Process all aggregated outputs
 			for _, output := range allOutputs {
 				switch output.Type {
-				case types.ResourceCredits:
-					newResources.Credits += output.Amount
-					creditsChange += output.Amount
-				case types.ResourceSteel:
-					newResources.Steel += output.Amount
-					steelChange += output.Amount
-				case types.ResourceTitanium:
-					newResources.Titanium += output.Amount
-					titaniumChange += output.Amount
-				case types.ResourcePlants:
-					newResources.Plants += output.Amount
-					plantsChange += output.Amount
-				case types.ResourceEnergy:
-					newResources.Energy += output.Amount
-					energyChange += output.Amount
-				case types.ResourceHeat:
-					newResources.Heat += output.Amount
-					heatChange += output.Amount
+				case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
+					types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
+					// Use ResourceManager to apply resource change
+					var err error
+					newResources, err = cp.resourceMgr.ApplyResourceChange(newResources, output.Type, output.Amount)
+					if err != nil {
+						return fmt.Errorf("failed to apply resource change: %w", err)
+					}
+
+					// Track changes for logging
+					switch output.Type {
+					case types.ResourceCredits:
+						creditsChange += output.Amount
+					case types.ResourceSteel:
+						steelChange += output.Amount
+					case types.ResourceTitanium:
+						titaniumChange += output.Amount
+					case types.ResourcePlants:
+						plantsChange += output.Amount
+					case types.ResourceEnergy:
+						energyChange += output.Amount
+					case types.ResourceHeat:
+						heatChange += output.Amount
+					}
+
 				case types.ResourceTR:
 					trChange += output.Amount
 
