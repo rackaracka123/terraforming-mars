@@ -24,10 +24,10 @@ func NewSkipActionAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	deckRepo deck.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		deckRepo:   deckRepo,
 	}
 }
@@ -186,7 +186,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		zap.String("current_player", nextPlayerID))
 
 	// 12. Broadcast updated game state
-	if err := a.sessionMgr.Broadcast(gameID); err != nil {
+	if err := a.sessionMgrFactory.GetOrCreate(gameID).Broadcast(); err != nil {
 		log.Error("Failed to broadcast game state after skip turn", zap.Error(err))
 		// Non-fatal, don't return error
 	}
@@ -301,7 +301,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 	}
 
 	// 6. Broadcast state to all players
-	err = a.sessionMgr.Broadcast(gameID)
+	err = a.sessionMgrFactory.GetOrCreate(gameID).Broadcast()
 	if err != nil {
 		log.Error("Failed to broadcast after production phase", zap.Error(err))
 		// Non-fatal, continue

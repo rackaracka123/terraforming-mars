@@ -21,10 +21,10 @@ type ListGamesAction struct {
 func NewListGamesAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *ListGamesAction {
 	return &ListGamesAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

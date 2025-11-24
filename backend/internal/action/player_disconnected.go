@@ -19,10 +19,10 @@ type PlayerDisconnectedAction struct {
 func NewPlayerDisconnectedAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayerDisconnectedAction {
 	return &PlayerDisconnectedAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

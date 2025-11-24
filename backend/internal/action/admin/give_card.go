@@ -24,10 +24,10 @@ func NewGiveCardAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo card.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *GiveCardAction {
 	return &GiveCardAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardRepo:   cardRepo,
 	}
 }

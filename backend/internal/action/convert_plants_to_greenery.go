@@ -27,10 +27,10 @@ type ConvertPlantsToGreeneryAction struct {
 func NewConvertPlantsToGreeneryAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

@@ -92,7 +92,6 @@ func (r *RepositoryImpl) GenerateBoard(ctx context.Context, gameID string) error
 // UpdateTileOccupancy updates what occupies a tile and who owns it
 func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string, coord HexPosition, occupant *TileOccupant, ownerID *string) error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
 
 	log := r.logger.With(
 		zap.String("game_id", gameID),
@@ -101,6 +100,7 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 
 	board, exists := r.boards[gameID]
 	if !exists {
+		r.mu.Unlock()
 		return fmt.Errorf("board not found for game: %s", gameID)
 	}
 
@@ -114,6 +114,7 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 	}
 
 	if tileIndex == -1 {
+		r.mu.Unlock()
 		return fmt.Errorf("tile not found at coordinates: %s", coord.String())
 	}
 
@@ -121,27 +122,35 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 	board.Tiles[tileIndex].OccupiedBy = occupant
 	board.Tiles[tileIndex].OwnerID = ownerID
 
+	// Prepare event data before releasing lock
+	var eventToPublish *events.TilePlacedEvent
+	if occupant != nil && ownerID != nil {
+		eventToPublish = &events.TilePlacedEvent{
+			GameID:    gameID,
+			PlayerID:  *ownerID,
+			TileType:  string(occupant.Type),
+			Q:         coord.Q,
+			R:         coord.R,
+			S:         coord.S,
+			Timestamp: time.Now(),
+		}
+	}
+
+	// Release lock BEFORE publishing event
+	r.mu.Unlock()
+
+	// Log and publish after lock is released
 	if occupant != nil {
 		log.Info("🎯 Updated tile occupancy",
 			zap.String("occupant_type", string(occupant.Type)),
 			zap.Strings("occupant_tags", occupant.Tags),
 		)
 
-		// Publish TilePlacedEvent for passive card effects
-		if ownerID != nil {
-			event := events.TilePlacedEvent{
-				GameID:    gameID,
-				PlayerID:  *ownerID,
-				TileType:  string(occupant.Type),
-				Q:         coord.Q,
-				R:         coord.R,
-				S:         coord.S,
-				Timestamp: time.Now(),
-			}
-			events.Publish(r.eventBus, event)
+		if eventToPublish != nil {
+			events.Publish(r.eventBus, *eventToPublish)
 			log.Debug("📢 Published TilePlacedEvent",
-				zap.String("player_id", *ownerID),
-				zap.String("tile_type", string(occupant.Type)))
+				zap.String("player_id", eventToPublish.PlayerID),
+				zap.String("tile_type", eventToPublish.TileType))
 		}
 	} else {
 		log.Info("🧹 Cleared tile occupancy")

@@ -25,10 +25,10 @@ type BuildPowerPlantAction struct {
 func NewBuildPowerPlantAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

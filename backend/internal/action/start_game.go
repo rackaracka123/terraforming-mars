@@ -40,10 +40,10 @@ func NewStartGameAction(
 	playerRepo player.Repository,
 	cardRepo card.Repository,
 	deckRepo deck.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *StartGameAction {
 	return &StartGameAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardRepo:   cardRepo,
 		deckRepo:   deckRepo,
 	}

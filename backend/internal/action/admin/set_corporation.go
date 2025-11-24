@@ -20,10 +20,10 @@ type SetCorporationAction struct {
 func NewSetCorporationAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

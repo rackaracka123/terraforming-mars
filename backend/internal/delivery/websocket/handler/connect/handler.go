@@ -17,7 +17,7 @@ import (
 // ConnectionHandler handles player connection and reconnection logic
 type ConnectionHandler struct {
 	hub                     *core.Hub
-	sessionManager          session.SessionManager
+	sessionManagerFactory   session.SessionManagerFactory
 	joinGameAction          *action.JoinGameAction
 	playerReconnectedAction *action.PlayerReconnectedAction
 	parser                  *utils.MessageParser
@@ -37,13 +37,13 @@ type connectionContext struct {
 // NewConnectionHandler creates a new connection handler
 func NewConnectionHandler(
 	hub *core.Hub,
-	sessionManager session.SessionManager,
+	sessionManagerFactory session.SessionManagerFactory,
 	joinGameAction *action.JoinGameAction,
 	playerReconnectedAction *action.PlayerReconnectedAction,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
 		hub:                     hub,
-		sessionManager:          sessionManager,
+		sessionManagerFactory:   sessionManagerFactory,
 		joinGameAction:          joinGameAction,
 		playerReconnectedAction: playerReconnectedAction,
 		parser:                  utils.NewMessageParser(),
@@ -176,7 +176,8 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		zap.String("game_id", connCtx.payload.GameID),
 		zap.String("player_id", joinResult.PlayerID))
 
-	err = ch.sessionManager.Broadcast(connCtx.payload.GameID)
+	sessionMgr := ch.sessionManagerFactory.GetOrCreate(connCtx.payload.GameID)
+	err = sessionMgr.Broadcast()
 	if err != nil {
 		ch.logger.Error("Failed to broadcast game state after join",
 			zap.Error(err),

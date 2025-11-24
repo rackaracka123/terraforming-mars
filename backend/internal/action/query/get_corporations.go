@@ -24,10 +24,10 @@ func NewGetCorporationsAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo sessionCard.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *GetCorporationsAction {
 	return &GetCorporationsAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardRepo:   cardRepo,
 	}
 }

@@ -35,7 +35,7 @@ import (
 // RegisterHandlers registers all message type handlers with the hub
 func RegisterHandlers(
 	hub *core.Hub,
-	sessionManager session.SessionManager,
+	sessionManagerFactory session.SessionManagerFactory,
 	newGameRepo sessionGame.Repository,
 	newPlayerRepo sessionPlayer.Repository,
 	startGameAction *action.StartGameAction,
@@ -71,8 +71,8 @@ func RegisterHandlers(
 
 	// Register connection handler
 	// NEW ARCHITECTURE: Using action pattern for join_game + reconnection + explicit broadcast timing
-	// SessionManager injected so handler can control broadcast timing after join completes
-	connectionHandler := connect.NewConnectionHandler(hub, sessionManager, joinGameAction, playerReconnectedAction)
+	// SessionManagerFactory injected so handler can get game-specific broadcaster
+	connectionHandler := connect.NewConnectionHandler(hub, sessionManagerFactory, joinGameAction, playerReconnectedAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler

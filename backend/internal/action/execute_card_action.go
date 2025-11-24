@@ -27,12 +27,12 @@ type ExecuteCardActionAction struct {
 func NewExecuteCardActionAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 	cardProcessor *card.CardProcessor,
 	deckRepo deck.Repository,
 ) *ExecuteCardActionAction {
 	return &ExecuteCardActionAction{
-		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardProcessor: cardProcessor,
 		deckRepo:      deckRepo,
 	}
@@ -149,7 +149,7 @@ func (a *ExecuteCardActionAction) Execute(
 	}
 
 	// 11. Broadcast game state update
-	if err := a.sessionMgr.Broadcast(gameID); err != nil {
+	if err := a.sessionMgrFactory.GetOrCreate(gameID).Broadcast(); err != nil {
 		log.Error("Failed to broadcast game state after card action play",
 			zap.Error(err))
 		// Don't fail the action, just log the error

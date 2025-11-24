@@ -23,10 +23,10 @@ func NewSelectStartingCardsAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo card.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectStartingCardsAction {
 	return &SelectStartingCardsAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardRepo:   cardRepo,
 	}
 }

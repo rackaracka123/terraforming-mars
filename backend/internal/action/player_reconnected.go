@@ -19,10 +19,10 @@ type PlayerReconnectedAction struct {
 func NewPlayerReconnectedAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayerReconnectedAction {
 	return &PlayerReconnectedAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 
@@ -53,7 +53,7 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID, playerID 
 	log.Info("✅ Player connection status updated to connected")
 
 	// 4. Send complete game state to reconnected player
-	err = a.sessionMgr.Send(gameID, playerID)
+	err = a.sessionMgrFactory.GetOrCreate(gameID).Send(playerID)
 	if err != nil {
 		log.Error("Failed to send game state to reconnected player", zap.Error(err))
 		return err

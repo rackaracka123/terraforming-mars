@@ -12,23 +12,23 @@ import (
 // BaseAction provides common dependencies and utilities for all actions
 // All action implementations should embed this struct to access shared functionality
 type BaseAction struct {
-	gameRepo   sessionGame.Repository
-	playerRepo player.Repository
-	sessionMgr session.SessionManager
-	logger     *zap.Logger
+	gameRepo          sessionGame.Repository
+	playerRepo        player.Repository
+	sessionMgrFactory session.SessionManagerFactory
+	logger            *zap.Logger
 }
 
 // NewBaseAction creates a new BaseAction with common dependencies
 func NewBaseAction(
 	gameRepo sessionGame.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) BaseAction {
 	return BaseAction{
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
-		sessionMgr: sessionMgr,
-		logger:     logger.Get(),
+		gameRepo:          gameRepo,
+		playerRepo:        playerRepo,
+		sessionMgrFactory: sessionMgrFactory,
+		logger:            logger.Get(),
 	}
 }
 
@@ -47,9 +47,11 @@ func (b *BaseAction) GetLogger() *zap.Logger {
 }
 
 // BroadcastGameState broadcasts the current game state to all connected players
+// Gets the session-specific broadcaster for this game from the factory
 // Errors are logged but not returned as broadcasting failures are non-fatal
 func (b *BaseAction) BroadcastGameState(gameID string, log *zap.Logger) {
-	err := b.sessionMgr.Broadcast(gameID)
+	sessionMgr := b.sessionMgrFactory.GetOrCreate(gameID)
+	err := sessionMgr.Broadcast()
 	if err != nil {
 		log.Error("Failed to broadcast game state", zap.Error(err))
 		// Non-fatal - game state was updated, clients may be out of sync temporarily
@@ -57,9 +59,11 @@ func (b *BaseAction) BroadcastGameState(gameID string, log *zap.Logger) {
 }
 
 // SendToPlayer sends the current game state to a specific player
+// Gets the session-specific broadcaster for this game from the factory
 // Errors are logged but not returned as broadcasting failures are non-fatal
 func (b *BaseAction) SendToPlayer(gameID, playerID string, log *zap.Logger) {
-	err := b.sessionMgr.Send(gameID, playerID)
+	sessionMgr := b.sessionMgrFactory.GetOrCreate(gameID)
+	err := sessionMgr.Send(playerID)
 	if err != nil {
 		log.Error("Failed to send game state to player", zap.Error(err))
 		// Non-fatal - game state was updated, player may be out of sync temporarily
@@ -76,7 +80,7 @@ func (b *BaseAction) GetPlayerRepo() player.Repository {
 	return b.playerRepo
 }
 
-// GetSessionManager returns the session manager
-func (b *BaseAction) GetSessionManager() session.SessionManager {
-	return b.sessionMgr
+// GetSessionManagerFactory returns the session manager factory
+func (b *BaseAction) GetSessionManagerFactory() session.SessionManagerFactory {
+	return b.sessionMgrFactory
 }

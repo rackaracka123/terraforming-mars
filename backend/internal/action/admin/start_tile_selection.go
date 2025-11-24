@@ -15,12 +15,12 @@ import (
 
 // StartTileSelectionAction handles admin command to start tile selection for testing
 type StartTileSelectionAction struct {
-	gameRepo       sessionGame.Repository
-	playerRepo     sessionPlayer.Repository
-	boardRepo      sessionBoard.Repository
-	boardProcessor *sessionBoard.BoardProcessor
-	sessionMgr     session.SessionManager
-	logger         *zap.Logger
+	gameRepo          sessionGame.Repository
+	playerRepo        sessionPlayer.Repository
+	boardRepo         sessionBoard.Repository
+	boardProcessor    *sessionBoard.BoardProcessor
+	sessionMgrFactory session.SessionManagerFactory
+	logger            *zap.Logger
 }
 
 // NewStartTileSelectionAction creates a new start tile selection action
@@ -29,15 +29,15 @@ func NewStartTileSelectionAction(
 	playerRepo sessionPlayer.Repository,
 	boardRepo sessionBoard.Repository,
 	boardProcessor *sessionBoard.BoardProcessor,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *StartTileSelectionAction {
 	return &StartTileSelectionAction{
-		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
-		boardRepo:      boardRepo,
-		boardProcessor: boardProcessor,
-		sessionMgr:     sessionMgr,
-		logger:         logger.Get(),
+		gameRepo:          gameRepo,
+		playerRepo:        playerRepo,
+		boardRepo:         boardRepo,
+		boardProcessor:    boardProcessor,
+		sessionMgrFactory: sessionMgrFactory,
+		logger:            logger.Get(),
 	}
 }
 
@@ -92,7 +92,7 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 		zap.Int("available_positions", len(availableHexes)))
 
 	// 6. Broadcast updated game state
-	if err := a.sessionMgr.Broadcast(gameID); err != nil {
+	if err := a.sessionMgrFactory.GetOrCreate(gameID).Broadcast(); err != nil {
 		log.Error("Failed to broadcast game state", zap.Error(err))
 		// Don't fail the operation, just log
 	}

@@ -23,7 +23,7 @@ func NewWebSocketService(
 	newGameRepo sessionGame.Repository,
 	newPlayerRepo sessionPlayer.Repository,
 	hub *core.Hub,
-	sessionManager session.SessionManager,
+	sessionManagerFactory session.SessionManagerFactory,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
 	playerReconnectedAction *action.PlayerReconnectedAction,
@@ -56,7 +56,7 @@ func NewWebSocketService(
 	// Use the provided hub
 
 	// Register specific message type handlers with middleware support
-	RegisterHandlers(hub, sessionManager, newGameRepo, newPlayerRepo, startGameAction, joinGameAction, playerReconnectedAction, playerDisconnectedAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction, executeCardActionAction, launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction, sellPatentsAction, confirmSellPatentsAction, convertHeatAction, convertPlantsAction, confirmCardDrawAction, giveCardAdminAction, setPhaseAdminAction, setResourcesAdminAction, setProductionAdminAction, setGlobalParametersAdminAction, startTileSelectionAdminAction, setCurrentTurnAdminAction, setCorporationAdminAction)
+	RegisterHandlers(hub, sessionManagerFactory, newGameRepo, newPlayerRepo, startGameAction, joinGameAction, playerReconnectedAction, playerDisconnectedAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction, buildCityAction, selectTileAction, playCardAction, executeCardActionAction, launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction, sellPatentsAction, confirmSellPatentsAction, convertHeatAction, convertPlantsAction, confirmCardDrawAction, giveCardAdminAction, setPhaseAdminAction, setResourcesAdminAction, setProductionAdminAction, setGlobalParametersAdminAction, startTileSelectionAdminAction, setCurrentTurnAdminAction, setCorporationAdminAction)
 
 	// Create HTTP handler
 	httpHandler := core.NewHandler(hub)

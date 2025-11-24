@@ -28,10 +28,10 @@ func NewSelectTileAction(
 	boardRepo board.Repository,
 	tileProcessor *tile.Processor,
 	bonusCalculator *tile.BonusCalculator,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectTileAction {
 	return &SelectTileAction{
-		BaseAction:      NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction:      NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		boardRepo:       boardRepo,
 		tileProcessor:   tileProcessor,
 		bonusCalculator: bonusCalculator,

@@ -27,10 +27,10 @@ func NewBuildCityAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	tileProcessor *tile.Processor,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		tileProcessor: tileProcessor,
 	}
 }

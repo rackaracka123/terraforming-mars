@@ -21,10 +21,10 @@ type ConfirmSellPatentsAction struct {
 func NewConfirmSellPatentsAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

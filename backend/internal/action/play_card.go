@@ -28,10 +28,10 @@ func NewPlayCardAction(
 	playerRepo player.Repository,
 	cardManager card.CardManager,
 	tileProcessor *tile.Processor,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardManager:   cardManager,
 		tileProcessor: tileProcessor,
 	}

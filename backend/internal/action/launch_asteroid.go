@@ -26,10 +26,10 @@ type LaunchAsteroidAction struct {
 func NewLaunchAsteroidAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *LaunchAsteroidAction {
 	return &LaunchAsteroidAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 	}
 }
 

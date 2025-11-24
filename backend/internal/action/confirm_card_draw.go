@@ -23,11 +23,11 @@ type ConfirmCardDrawAction struct {
 func NewConfirmCardDrawAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 	eventBus *events.EventBusImpl,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		eventBus:   eventBus,
 	}
 }

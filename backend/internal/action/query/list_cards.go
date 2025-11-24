@@ -24,10 +24,10 @@ func NewListCardsAction(
 	gameRepo game.Repository,
 	playerRepo player.Repository,
 	cardRepo sessionCard.Repository,
-	sessionMgr session.SessionManager,
+	sessionMgrFactory session.SessionManagerFactory,
 ) *ListCardsAction {
 	return &ListCardsAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgr),
+		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
 		cardRepo:   cardRepo,
 	}
 }
