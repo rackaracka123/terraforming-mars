@@ -92,6 +92,16 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		log.Info("✅ Set initial turn", zap.String("first_player_id", firstPlayerID))
 	}
 
+	// Set unlimited actions for solo mode
+	if len(players) == 1 {
+		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, players[0].ID, -1)
+		if err != nil {
+			log.Error("Failed to set unlimited actions for solo mode", zap.Error(err))
+			return fmt.Errorf("failed to set unlimited actions for solo mode: %w", err)
+		}
+		log.Info("🎮 Solo mode detected - unlimited actions enabled")
+	}
+
 	// 6. Create game deck with shuffled cards
 	err = a.deckRepo.CreateDeck(ctx, gameID, convertGameSettings(g.Settings))
 	if err != nil {
