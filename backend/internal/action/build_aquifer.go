@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -19,16 +18,18 @@ const (
 // BuildAquiferAction handles the business logic for the build aquifer standard project
 type BuildAquiferAction struct {
 	BaseAction
+	gameRepo game.Repository
 }
 
 // NewBuildAquiferAction creates a new build aquifer action
 func NewBuildAquiferAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -48,24 +49,31 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 		return err
 	}
 
-	// 3. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 3. Get session and player
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate cost (18 M€)
-	if p.Resources.Credits < BuildAquiferCost {
+	if player.Resources.Credits < BuildAquiferCost {
 		log.Warn("Insufficient credits for aquifer",
 			zap.Int("cost", BuildAquiferCost),
-			zap.Int("player_credits", p.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, p.Resources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, player.Resources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := p.Resources
+	newResources := player.Resources
 	newResources.Credits -= BuildAquiferCost
-	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
 		log.Error("Failed to deduct aquifer cost", zap.Error(err))
 		return fmt.Errorf("failed to update resources: %w", err)
@@ -76,19 +84,19 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 		zap.Int("remaining_credits", newResources.Credits))
 
 	// 6. Increase terraform rating (for placing ocean)
-	newTR := p.TerraformRating + 1
-	err = a.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR)
+	newTR := player.TerraformRating + 1
+	err = player.Resources.UpdateTerraformRating(ctx, newTR)
 	if err != nil {
 		log.Error("Failed to update terraform rating", zap.Error(err))
 		return fmt.Errorf("failed to update terraform rating: %w", err)
 	}
 
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("old_tr", p.TerraformRating),
+		zap.Int("old_tr", player.TerraformRating),
 		zap.Int("new_tr", newTR))
 
 	// 7. Create tile queue with "ocean" type
-	err = a.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-aquifer", []string{"ocean"})
+	err = player.TileQueue.CreateTileQueue(ctx, "standard-project-aquifer", []string{"ocean"})
 	if err != nil {
 		log.Error("Failed to create tile queue", zap.Error(err))
 		return fmt.Errorf("failed to create tile queue: %w", err)
@@ -97,15 +105,9 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 	log.Info("📋 Created tile queue for ocean placement")
 
 	// 8. Consume action (only if not unlimited actions)
-	// Refresh player data after tile queue creation
-	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
-	}
-
-	if p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Turn.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)

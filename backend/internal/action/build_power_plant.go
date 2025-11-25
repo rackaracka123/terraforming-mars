@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -19,16 +18,18 @@ const (
 // BuildPowerPlantAction handles the business logic for the build power plant standard project
 type BuildPowerPlantAction struct {
 	BaseAction
+	gameRepo game.Repository
 }
 
 // NewBuildPowerPlantAction creates a new build power plant action
 func NewBuildPowerPlantAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -48,24 +49,31 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 		return err
 	}
 
-	// 3. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 3. Get session and player
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate cost (11 M€)
-	if p.Resources.Credits < BuildPowerPlantCost {
+	if player.Resources.Credits < BuildPowerPlantCost {
 		log.Warn("Insufficient credits for power plant",
 			zap.Int("cost", BuildPowerPlantCost),
-			zap.Int("player_credits", p.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, p.Resources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, player.Resources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := p.Resources
+	newResources := player.Resources
 	newResources.Credits -= BuildPowerPlantCost
-	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
 		log.Error("Failed to deduct power plant cost", zap.Error(err))
 		return fmt.Errorf("failed to update resources: %w", err)
@@ -76,9 +84,9 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 		zap.Int("remaining_credits", newResources.Credits))
 
 	// 6. Increase energy production by 1
-	newProduction := p.Production
+	newProduction := player.Production
 	newProduction.Energy++
-	err = a.playerRepo.UpdateProduction(ctx, gameID, playerID, newProduction)
+	err = player.Resources.UpdateProduction(ctx, newProduction)
 	if err != nil {
 		log.Error("Failed to update production", zap.Error(err))
 		return fmt.Errorf("failed to update production: %w", err)
@@ -88,15 +96,9 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 		zap.Int("new_energy_production", newProduction.Energy))
 
 	// 7. Consume action (only if not unlimited actions)
-	// Refresh player data after production update
-	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
-	}
-
-	if p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Turn.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)

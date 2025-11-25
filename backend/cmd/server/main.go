@@ -131,17 +131,17 @@ func main() {
 	log.Info("✅ PlayCardAction initialized")
 
 	// Initialize standard project actions
-	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	log.Info("✅ Standard project actions initialized")
 
 	// Initialize resource conversion actions
 	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	log.Info("✅ Resource conversion actions initialized")
 
 	// Initialize forced action manager for corporation forced first actions
