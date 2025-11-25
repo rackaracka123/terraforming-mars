@@ -105,7 +105,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	// 7. Apply corporation starting resources and production (simplified)
 	// In a full implementation, we'd parse corporation effects here
 	// For now, just set corporation and give default starting resources
-	err = player.Corporation.SetCorporation(ctx, corporationID)
+	err = player.Corporation.Set(ctx, corporationID)
 	if err != nil {
 		log.Error("Failed to set corporation", zap.Error(err))
 		return fmt.Errorf("failed to set corporation: %w", err)

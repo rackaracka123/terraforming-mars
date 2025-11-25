@@ -30,7 +30,7 @@ func NewResourceRepository(player *Player, eventBus *events.EventBusImpl) *Resou
 // Update updates player resources and publishes a batched ResourcesChangedEvent
 // Auto-saves changes to the player
 func (r *ResourceRepository) Update(ctx context.Context, resources types.Resources) error {
-	oldResources := r.player.Resources
+	oldResources := r.player.Player.Resources
 
 	// Calculate changes (delta for each resource type)
 	changes := make(map[string]int)
@@ -54,7 +54,7 @@ func (r *ResourceRepository) Update(ctx context.Context, resources types.Resourc
 	}
 
 	// Update player resources (auto-saved, no explicit save call needed)
-	r.player.Resources = resources
+	r.player.Player.Resources = resources
 
 	// Publish single batched event if any resources changed
 	if len(changes) > 0 {

@@ -3,7 +3,7 @@ package session
 import (
 	"sync"
 
-	"github.com/Mackenzie-98/terraforming-mars/backend/internal/events"
+	"terraforming-mars-backend/internal/events"
 )
 
 // SessionFactory manages creation and retrieval of game sessions

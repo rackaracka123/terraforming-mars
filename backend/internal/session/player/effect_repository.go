@@ -22,13 +22,13 @@ func NewEffectRepository(player *Player) *EffectRepository {
 // UpdateRequirementModifiers updates player requirement modifiers
 // Auto-saves changes to the player
 func (r *EffectRepository) UpdateRequirementModifiers(ctx context.Context, modifiers []types.RequirementModifier) error {
-	r.player.RequirementModifiers = modifiers
+	r.player.Player.RequirementModifiers = modifiers
 	return nil
 }
 
 // UpdateEffects updates player active effects
 // Auto-saves changes to the player
 func (r *EffectRepository) UpdateEffects(ctx context.Context, effects []types.PlayerEffect) error {
-	r.player.Effects = effects
+	r.player.Player.Effects = effects
 	return nil
 }

@@ -55,7 +55,7 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID, playerID, co
 	}
 
 	// 3. Update player corporation
-	err = player.Corporation.SetCorporation(ctx, corporationID)
+	err = player.Corporation.Set(ctx, corporationID)
 	if err != nil {
 		log.Error("Failed to update corporation", zap.Error(err))
 		return err

@@ -3,9 +3,9 @@ package session
 import (
 	"sync"
 
-	"github.com/Mackenzie-98/terraforming-mars/backend/internal/events"
-	"github.com/Mackenzie-98/terraforming-mars/backend/internal/session/player"
-	"github.com/Mackenzie-98/terraforming-mars/backend/internal/session/types"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 // Session represents a game session with all its players and game state.

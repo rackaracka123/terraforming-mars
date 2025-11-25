@@ -29,7 +29,7 @@ func (r *CorporationRepository) Set(ctx context.Context, corporationID string) e
 // Update updates the player's corporation with full card data
 // Auto-saves changes to the player
 func (r *CorporationRepository) Update(ctx context.Context, corporation types.Card) error {
-	r.player.Corporation = &corporation
+	r.player.Player.Corporation = &corporation
 	r.player.CorporationID = corporation.ID
 	return nil
 }
