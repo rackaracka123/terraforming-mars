@@ -101,9 +101,9 @@ func main() {
 	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
 	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionFactory, sessionManagerFactory)
 	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionFactory, sessionManagerFactory)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newCardRepo, sessionFactory, sessionManagerFactory)
 	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManagerFactory)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	buildCityAction := action.NewBuildCityAction(newGameRepo, newPlayerRepo, tileProcessor, sessionManagerFactory)
 
 	// Initialize BonusCalculator for tile placement bonuses

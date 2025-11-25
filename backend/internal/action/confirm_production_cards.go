@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -15,19 +13,18 @@ import (
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
 type ConfirmProductionCardsAction struct {
 	BaseAction
-	cardRepo card.Repository
+	gameRepo game.Repository
 }
 
 // NewConfirmProductionCardsAction creates a new confirm production cards action
 func NewConfirmProductionCardsAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
-	cardRepo card.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
-		cardRepo:   cardRepo,
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -47,27 +44,34 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		return err
 	}
 
-	// 2. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get session and player
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate production phase exists
-	if p.ProductionPhase == nil {
+	if player.ProductionPhase == nil {
 		log.Error("Player not in production phase")
 		return fmt.Errorf("player not in production phase")
 	}
 
 	// 5. Check if player already confirmed selection
-	if p.ProductionPhase.SelectionComplete {
+	if player.ProductionPhase.SelectionComplete {
 		log.Error("Production selection already complete")
 		return fmt.Errorf("production selection already complete")
 	}
 
 	// 6. Validate selected cards are in available cards
 	availableSet := make(map[string]bool)
-	for _, id := range p.ProductionPhase.AvailableCards {
+	for _, id := range player.ProductionPhase.AvailableCards {
 		availableSet[id] = true
 	}
 
@@ -82,18 +86,18 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	cost := len(selectedCardIDs) * 3
 
 	// 8. Validate player has enough credits
-	if p.Resources.Credits < cost {
+	if player.Resources.Credits < cost {
 		log.Error("Insufficient credits",
 			zap.Int("cost", cost),
-			zap.Int("available", p.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, p.Resources.Credits)
+			zap.Int("available", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
 	}
 
 	// 9. Deduct card selection cost
-	updatedResources := p.Resources
+	updatedResources := player.Resources
 	updatedResources.Credits -= cost
 
-	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, updatedResources)
+	err = player.Resources.Update(ctx, updatedResources)
 	if err != nil {
 		log.Error("Failed to update resources", zap.Error(err))
 		return fmt.Errorf("failed to update resources: %w", err)
@@ -111,7 +115,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Int("count", len(selectedCardIDs)))
 
 	for _, cardID := range selectedCardIDs {
-		err = a.playerRepo.AddCard(ctx, gameID, playerID, cardID)
+		err = player.Hand.AddCard(ctx, cardID)
 		if err != nil {
 			log.Error("Failed to add card", zap.String("card_id", cardID), zap.Error(err))
 			return fmt.Errorf("failed to add card %s: %w", cardID, err)
@@ -125,7 +129,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Int("card_count", len(selectedCardIDs)))
 
 	// 11. Mark production selection as complete
-	err = a.playerRepo.CompleteProductionSelection(ctx, gameID, playerID)
+	err = player.Selection.CompleteProductionSelection(ctx)
 	if err != nil {
 		log.Error("Failed to complete production selection", zap.Error(err))
 		return fmt.Errorf("failed to complete production selection: %w", err)
@@ -134,13 +138,15 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	log.Info("✅ Production selection marked complete")
 
 	// 12. Check if all players completed selection
-	allComplete, err := CheckAllPlayersComplete(ctx, a.playerRepo, gameID, func(p *player.Player) bool {
-		return p.ProductionPhase != nil && p.ProductionPhase.SelectionComplete
-	})
-	if err != nil {
-		log.Error("Failed to check completion status", zap.Error(err))
-		// Non-fatal, continue
-	} else if allComplete {
+	allComplete := true
+	for _, p := range sess.GetAllPlayers() {
+		if p.ProductionPhase == nil || !p.ProductionPhase.SelectionComplete {
+			allComplete = false
+			break
+		}
+	}
+
+	if allComplete {
 		log.Info("🎉 All players completed production selection, advancing to action phase")
 
 		// Advance game phase to Action
@@ -158,21 +164,16 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 			}
 
 			// Clear production phase data for all players (triggers frontend modal to close)
-			players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
-			if err == nil {
-				for _, p := range players {
-					err = a.playerRepo.UpdateProductionPhase(ctx, gameID, p.ID, nil)
-					if err != nil {
-						log.Error("Failed to clear production phase",
-							zap.String("player_id", p.ID),
-							zap.Error(err))
-					} else {
-						log.Debug("✅ Cleared production phase",
-							zap.String("player_id", p.ID))
-					}
+			for _, p := range sess.GetAllPlayers() {
+				err = p.Selection.UpdateProductionPhase(ctx, nil)
+				if err != nil {
+					log.Error("Failed to clear production phase",
+						zap.String("player_id", p.ID),
+						zap.Error(err))
+				} else {
+					log.Debug("✅ Cleared production phase",
+						zap.String("player_id", p.ID))
 				}
-			} else {
-				log.Error("Failed to list players for production phase cleanup", zap.Error(err))
 			}
 		}
 	}
