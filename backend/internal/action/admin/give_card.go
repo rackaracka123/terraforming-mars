@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/card"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -16,18 +15,20 @@ import (
 // GiveCardAction handles the admin action to give a card to a player
 type GiveCardAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 	cardRepo card.Repository
 }
 
 // NewGiveCardAction creates a new give card admin action
 func NewGiveCardAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
 	cardRepo card.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *GiveCardAction {
 	return &GiveCardAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 	}
 }
@@ -39,15 +40,22 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID, playerID, cardID s
 		zap.String("card_id", cardID))
 
 	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate player exists
-	_, err = action.ValidatePlayer(ctx, a.GetPlayerRepo(), gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Validate card exists
@@ -58,7 +66,7 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID, playerID, cardID s
 	}
 
 	// 4. Add card to player's hand
-	err = a.GetPlayerRepo().AddCard(ctx, gameID, playerID, cardID)
+	err = player.Hand.AddCard(ctx, cardID)
 	if err != nil {
 		log.Error("Failed to add card to hand", zap.Error(err))
 		return fmt.Errorf("failed to add card: %w", err)

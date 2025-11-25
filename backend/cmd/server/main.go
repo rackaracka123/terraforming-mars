@@ -156,14 +156,14 @@ func main() {
 	log.Info("✅ Card selection confirmation actions initialized")
 
 	// Initialize admin actions
-	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
+	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newCardRepo, sessionFactory, sessionManagerFactory)
 	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, sessionManagerFactory)
 	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	log.Info("✅ Admin actions initialized")
 
 	// Initialize query actions for HTTP handlers

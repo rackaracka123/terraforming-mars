@@ -2,11 +2,11 @@ package admin
 
 import (
 	"context"
+	"fmt"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -14,16 +14,18 @@ import (
 // SetCorporationAction handles the admin action to set a player's corporation
 type SetCorporationAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 }
 
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -34,19 +36,26 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID, playerID, co
 		zap.String("corporation_id", corporationID))
 
 	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate player exists
-	_, err = action.ValidatePlayer(ctx, a.GetPlayerRepo(), gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update player corporation
-	err = a.GetPlayerRepo().SetCorporation(ctx, gameID, playerID, corporationID)
+	err = player.Corporation.SetCorporation(ctx, corporationID)
 	if err != nil {
 		log.Error("Failed to update corporation", zap.Error(err))
 		return err
