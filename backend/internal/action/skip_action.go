@@ -16,18 +16,20 @@ import (
 // SkipActionAction handles the business logic for skipping/passing player turns
 type SkipActionAction struct {
 	BaseAction
+	gameRepo game.Repository
 	deckRepo deck.Repository
 }
 
 // NewSkipActionAction creates a new skip action action
 func NewSkipActionAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	deckRepo deck.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 		deckRepo:   deckRepo,
 	}
 }
@@ -48,14 +50,17 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		return err
 	}
 
-	// 3. Get all players
-	players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
-	if err != nil {
-		return err
+	// 3. Get session and players
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
+	players := sess.GetAllPlayers()
+
 	// 4. Find current player and their index
-	var currentPlayer *player.Player
+	var currentPlayer *session.Player
 	currentPlayerIndex := -1
 	for i, p := range players {
 		if p.ID == playerID {
@@ -83,7 +88,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1 || len(players) == 1
 	if isPassing {
 		// PASS: Player hasn't done any actions or has unlimited actions
-		err = a.playerRepo.UpdatePassed(ctx, gameID, playerID, true)
+		err = currentPlayer.Action.UpdatePassed(ctx, true)
 		if err != nil {
 			log.Error("Failed to mark player as passed", zap.Error(err))
 			return fmt.Errorf("failed to update player passed status: %w", err)
@@ -97,7 +102,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		if activePlayerCount == 2 {
 			for _, p := range players {
 				if !p.Passed && p.ID != playerID {
-					err = a.playerRepo.UpdateAvailableActions(ctx, gameID, p.ID, -1)
+					err = p.Action.UpdateAvailableActions(ctx, -1)
 					if err != nil {
 						log.Error("Failed to grant unlimited actions to last active player",
 							zap.String("player_id", p.ID),
@@ -117,11 +122,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	// 7. Refresh player list to reflect status changes
-	players, err = a.playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to list players after skip processing", zap.Error(err))
-		return fmt.Errorf("failed to list players: %w", err)
-	}
+	players = sess.GetAllPlayers()
 
 	// 8. Check if all players have finished their actions
 	allPlayersFinished := true
@@ -195,7 +196,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 }
 
 // executeProductionPhase handles the production phase when all players have passed
-func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID string, players []*player.Player) error {
+func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID string, players []*session.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Info("🏭 Starting production phase")
 
@@ -215,13 +216,13 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 		}
 
 		// C. Update player resources
-		err := a.playerRepo.UpdateResources(ctx, gameID, p.ID, newResources)
+		err := p.Resources.Update(ctx, newResources)
 		if err != nil {
 			return fmt.Errorf("failed to update resources for player %s: %w", p.ID, err)
 		}
 
 		// D. Reset player state for new generation
-		err = a.playerRepo.UpdatePassed(ctx, gameID, p.ID, false)
+		err = p.Action.UpdatePassed(ctx, false)
 		if err != nil {
 			return fmt.Errorf("failed to reset passed status: %w", err)
 		}
@@ -231,7 +232,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 		if len(players) == 1 {
 			availableActions = -1 // Unlimited for solo
 		}
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, p.ID, availableActions)
+		err = p.Action.UpdateAvailableActions(ctx, availableActions)
 		if err != nil {
 			return fmt.Errorf("failed to reset available actions: %w", err)
 		}
@@ -260,7 +261,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 			CreditsIncome:     p.Production.Credits + p.TerraformRating,
 		}
 
-		err = a.playerRepo.UpdateProductionPhase(ctx, gameID, p.ID, productionPhaseData)
+		err = p.Selection.UpdateProductionPhase(ctx, productionPhaseData)
 		if err != nil {
 			return fmt.Errorf("failed to set production phase: %w", err)
 		}

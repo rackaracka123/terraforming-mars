@@ -14,8 +14,11 @@ import (
 
 // JoinGameAction handles the business logic for players joining games
 // Broadcasting is handled automatically via PlayerJoinedEvent (event-driven architecture)
+// NOTE: This action still uses player.Repository because it CREATES new players
 type JoinGameAction struct {
-	BaseAction // Embed base (note: no sessionMgr needed, event-driven)
+	BaseAction
+	gameRepo   game.Repository
+	playerRepo player.Repository
 }
 
 // JoinGameResult contains the result of joining a game
@@ -27,11 +30,13 @@ type JoinGameResult struct {
 // NewJoinGameAction creates a new join game action
 func NewJoinGameAction(
 	gameRepo game.Repository,
+	sessionFactory session.SessionFactory,
 	playerRepo player.Repository,
 ) *JoinGameAction {
 	return &JoinGameAction{
-		// Pass nil for sessionMgr since this action uses event-driven broadcasting
-		BaseAction: NewBaseAction(gameRepo, playerRepo, nil),
+		BaseAction: NewBaseAction(sessionFactory, nil), // No sessionMgr (event-driven)
+		gameRepo:   gameRepo,
+		playerRepo: playerRepo,
 	}
 }
 
@@ -55,9 +60,10 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	}
 
 	// 2. Check if player with same name already exists (for reconnection/idempotent join)
-	existingPlayers, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
-	if err != nil {
-		return nil, err
+	sess := a.GetSessionFactory().Get(gameID)
+	var existingPlayers []*session.Player
+	if sess != nil {
+		existingPlayers = sess.GetAllPlayers()
 	}
 
 	// If player with same name exists, return existing playerID (idempotent operation)

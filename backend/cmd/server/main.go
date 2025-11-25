@@ -96,22 +96,22 @@ func main() {
 
 	// Initialize actions with SessionManagerFactory
 	// Actions will call sessionManagerFactory.GetOrCreate(gameID) to get game-specific broadcasters
-	startGameAction := action.NewStartGameAction(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManagerFactory)
+	startGameAction := action.NewStartGameAction(newGameRepo, sessionFactory, newCardRepo, newDeckRepo, sessionManagerFactory)
 	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
-	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
+	joinGameAction := action.NewJoinGameAction(newGameRepo, sessionFactory, newPlayerRepo) // Still needs playerRepo for creating new players
 	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionFactory, sessionManagerFactory)
 	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionFactory, sessionManagerFactory)
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newCardRepo, sessionFactory, sessionManagerFactory)
-	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManagerFactory)
+	skipActionAction := action.NewSkipActionAction(newGameRepo, sessionFactory, newDeckRepo, sessionManagerFactory)
 	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	buildCityAction := action.NewBuildCityAction(newGameRepo, newPlayerRepo, tileProcessor, sessionManagerFactory)
+	buildCityAction := action.NewBuildCityAction(newGameRepo, sessionFactory, tileProcessor, sessionManagerFactory)
 
 	// Initialize BonusCalculator for tile placement bonuses
 	bonusCalculator := tile.NewBonusCalculator(newGameRepo, newPlayerRepo, newBoardRepo, newDeckRepo)
 	log.Info("🎁 Bonus calculator initialized")
 
 	// Initialize SelectTileAction for tile placement
-	selectTileAction := action.NewSelectTileAction(newGameRepo, newPlayerRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManagerFactory)
+	selectTileAction := action.NewSelectTileAction(newGameRepo, sessionFactory, newBoardRepo, tileProcessor, bonusCalculator, sessionManagerFactory)
 
 	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, player_reconnected, player_disconnected, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
 	// ================================================================
@@ -127,7 +127,7 @@ func main() {
 	log.Info("🎴 Card manager initialized")
 
 	// Initialize PlayCardAction for playing cards from hand
-	playCardAction := action.NewPlayCardAction(newGameRepo, newPlayerRepo, cardManager, tileProcessor, sessionManagerFactory)
+	playCardAction := action.NewPlayCardAction(newGameRepo, sessionFactory, cardManager, tileProcessor, sessionManagerFactory)
 	log.Info("✅ PlayCardAction initialized")
 
 	// Initialize standard project actions
@@ -152,7 +152,7 @@ func main() {
 	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
 
 	// Initialize card selection confirmation actions
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, newPlayerRepo, sessionManagerFactory, eventBus)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, sessionFactory, sessionManagerFactory, eventBus)
 	log.Info("✅ Card selection confirmation actions initialized")
 
 	// Initialize admin actions

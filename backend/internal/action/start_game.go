@@ -30,6 +30,7 @@ func convertGameSettings(newSettings game.GameSettings) types.GameSettings {
 // StartGameAction handles the business logic for starting games
 type StartGameAction struct {
 	BaseAction // Embed base for common dependencies and utilities
+	gameRepo   game.Repository
 	cardRepo   card.Repository
 	deckRepo   deck.Repository
 }
@@ -37,13 +38,14 @@ type StartGameAction struct {
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	cardRepo card.Repository,
 	deckRepo deck.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *StartGameAction {
 	return &StartGameAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 		deckRepo:   deckRepo,
 	}
@@ -64,11 +66,14 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 		return err
 	}
 
-	// 2. Get all players
-	players, err := GetAllPlayers(ctx, a.playerRepo, gameID, log)
-	if err != nil {
-		return err
+	// 2. Get session and all players
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
 	}
+
+	players := sess.GetAllPlayers()
 
 	// No minimum player count validation - allow any number for development/testing
 	log.Info("🎮 Starting game with players", zap.Int("player_count", len(players)))
@@ -94,7 +99,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// Set unlimited actions for solo mode
 	if len(players) == 1 {
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, players[0].ID, -1)
+		err = players[0].Action.UpdateAvailableActions(ctx, -1)
 		if err != nil {
 			log.Error("Failed to set unlimited actions for solo mode", zap.Error(err))
 			return fmt.Errorf("failed to set unlimited actions for solo mode: %w", err)
@@ -126,7 +131,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 }
 
 // distributeStartingCards gives each player 10 project cards and 2 corporations
-func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID string, players []*player.Player) error {
+func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID string, players []*session.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
 
@@ -144,7 +149,7 @@ func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID st
 		}
 
 		// Set starting cards selection phase for player
-		err = a.playerRepo.SetStartingCardsSelection(ctx, gameID, p.ID, projectCardIDs, corporationIDs)
+		err = p.Selection.SetStartingCardsSelection(ctx, projectCardIDs, corporationIDs)
 		if err != nil {
 			return fmt.Errorf("failed to set starting cards for player %s: %w", p.ID, err)
 		}

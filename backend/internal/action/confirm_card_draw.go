@@ -16,18 +16,20 @@ import (
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
 type ConfirmCardDrawAction struct {
 	BaseAction
+	gameRepo game.Repository
 	eventBus *events.EventBusImpl
 }
 
 // NewConfirmCardDrawAction creates a new confirm card draw action
 func NewConfirmCardDrawAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 	eventBus *events.EventBusImpl,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 		eventBus:   eventBus,
 	}
 }
@@ -45,19 +47,26 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 		return err
 	}
 
-	// 2. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Validate pending card draw selection exists
-	if p.PendingCardDrawSelection == nil {
+	if player.PendingCardDrawSelection == nil {
 		log.Warn("No pending card draw selection found")
 		return fmt.Errorf("no pending card draw selection found")
 	}
 
-	selection := p.PendingCardDrawSelection
+	selection := player.PendingCardDrawSelection
 
 	// 4. Validate total cards selected
 	totalSelected := len(cardsToTake) + len(cardsToBuy)
@@ -109,17 +118,17 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 
 	// 10. Validate player can afford bought cards and deduct credits
 	if totalCost > 0 {
-		if p.Resources.Credits < totalCost {
+		if player.Resources.Credits < totalCost {
 			log.Warn("Insufficient credits to buy cards",
 				zap.Int("needed", totalCost),
-				zap.Int("available", p.Resources.Credits))
-			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, p.Resources.Credits)
+				zap.Int("available", player.Resources.Credits))
+			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, player.Resources.Credits)
 		}
 
 		// Deduct credits for bought cards
-		newResources := p.Resources
+		newResources := player.Resources
 		newResources.Credits -= totalCost
-		err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+		err = player.Resources.Update(ctx, newResources)
 		if err != nil {
 			log.Error("Failed to deduct credits for bought cards", zap.Error(err))
 			return fmt.Errorf("failed to deduct credits for bought cards: %w", err)
@@ -133,7 +142,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 
 	// 11. Add all selected cards to player's hand
 	for _, cardID := range allSelectedCards {
-		err = a.playerRepo.AddCard(ctx, gameID, playerID, cardID)
+		err = player.Hand.AddCard(ctx, cardID)
 		if err != nil {
 			log.Error("Failed to add card to hand",
 				zap.Error(err),
@@ -162,7 +171,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 	}
 
 	// 13. Clear pending card draw selection
-	err = a.playerRepo.UpdatePendingCardDrawSelection(ctx, gameID, playerID, nil)
+	err = player.Selection.UpdatePendingCardDrawSelection(ctx, nil)
 	if err != nil {
 		log.Error("Failed to clear pending card draw selection", zap.Error(err))
 		return fmt.Errorf("failed to clear pending card draw selection: %w", err)

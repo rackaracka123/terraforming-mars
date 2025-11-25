@@ -16,6 +16,7 @@ import (
 // SelectTileAction handles tile selection and placement
 type SelectTileAction struct {
 	BaseAction
+	gameRepo        game.Repository
 	boardRepo       board.Repository
 	tileProcessor   *tile.Processor
 	bonusCalculator *tile.BonusCalculator
@@ -24,14 +25,15 @@ type SelectTileAction struct {
 // NewSelectTileAction creates a new select tile action
 func NewSelectTileAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	boardRepo board.Repository,
 	tileProcessor *tile.Processor,
 	bonusCalculator *tile.BonusCalculator,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectTileAction {
 	return &SelectTileAction{
-		BaseAction:      NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction:      NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:        gameRepo,
 		boardRepo:       boardRepo,
 		tileProcessor:   tileProcessor,
 		bonusCalculator: bonusCalculator,
@@ -48,27 +50,34 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 
 	log.Info("🎯 Executing select tile action")
 
-	// Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// Validate player has pending tile selection
-	if p.PendingTileSelection == nil {
+	if player.PendingTileSelection == nil {
 		return fmt.Errorf("no pending tile selection for player")
 	}
 
 	// Validate coordinate
 	coord := board.HexPosition{Q: q, R: r, S: s}
 	coordStr := coord.String() // Format: "q,r,s"
-	if !a.isValidCoordinateString(coordStr, p.PendingTileSelection.AvailableHexes) {
+	if !a.isValidCoordinateString(coordStr, player.PendingTileSelection.AvailableHexes) {
 		return fmt.Errorf("invalid tile coordinate: not in available hexes")
 	}
 
 	// Create tile occupant based on tile type
 	var occupant *board.TileOccupant
-	switch p.PendingTileSelection.TileType {
+	switch player.PendingTileSelection.TileType {
 	case board.TileTypeCity:
 		occupant = &board.TileOccupant{
 			Type: board.ResourceCityTile,
@@ -102,14 +111,14 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 	}
 
 	// Handle greenery special case: increase oxygen and terraform rating
-	if p.PendingTileSelection.TileType == board.TileTypeGreenery {
-		if err := a.handleGreeneryPlacement(ctx, gameID, playerID, log); err != nil {
+	if player.PendingTileSelection.TileType == board.TileTypeGreenery {
+		if err := a.handleGreeneryPlacement(ctx, gameID, playerID, sess, log); err != nil {
 			return fmt.Errorf("failed to handle greenery placement: %w", err)
 		}
 	}
 
 	// Clear pending tile selection
-	if err := a.playerRepo.ClearPendingTileSelection(ctx, gameID, playerID); err != nil {
+	if err := player.Selection.ClearPendingTileSelection(ctx); err != nil {
 		return fmt.Errorf("failed to clear pending selection: %w", err)
 	}
 
@@ -138,7 +147,7 @@ func (a *SelectTileAction) isValidCoordinateString(coordStr string, availableHex
 }
 
 // handleGreeneryPlacement increases oxygen and terraform rating when placing greenery
-func (a *SelectTileAction) handleGreeneryPlacement(ctx context.Context, gameID, playerID string, log *zap.Logger) error {
+func (a *SelectTileAction) handleGreeneryPlacement(ctx context.Context, gameID, playerID string, sess *session.Session, log *zap.Logger) error {
 	// Get current game state
 	g, err := a.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
@@ -166,18 +175,18 @@ func (a *SelectTileAction) handleGreeneryPlacement(ctx context.Context, gameID, 
 		zap.Int("new_oxygen", newOxygen))
 
 	// Increase terraform rating by 1
-	p, err := a.playerRepo.GetByID(ctx, gameID, playerID)
-	if err != nil {
-		return fmt.Errorf("failed to get player: %w", err)
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	newTR := p.TerraformRating + 1
-	if err := a.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR); err != nil {
+	newTR := player.TerraformRating + 1
+	if err := player.Resources.UpdateTerraformRating(ctx, newTR); err != nil {
 		return fmt.Errorf("failed to update terraform rating: %w", err)
 	}
 
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("old_tr", p.TerraformRating),
+		zap.Int("old_tr", player.TerraformRating),
 		zap.Int("new_tr", newTR))
 
 	return nil

@@ -18,6 +18,7 @@ import (
 // PlayCardAction handles the business logic for playing cards from hand
 type PlayCardAction struct {
 	BaseAction
+	gameRepo      game.Repository
 	cardManager   card.CardManager
 	tileProcessor *tile.Processor
 }
@@ -25,13 +26,14 @@ type PlayCardAction struct {
 // NewPlayCardAction creates a new play card action
 func NewPlayCardAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	cardManager card.CardManager,
 	tileProcessor *tile.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction:    NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:      gameRepo,
 		cardManager:   cardManager,
 		tileProcessor: tileProcessor,
 	}
@@ -59,24 +61,31 @@ func (a *PlayCardAction) Execute(
 		return err
 	}
 
-	// 3. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 3. Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate card is in player's hand
-	if !slices.Contains(p.Cards, cardID) {
+	if !slices.Contains(player.Cards, cardID) {
 		log.Error("❌ Card not found in player's hand",
 			zap.String("requested_card", cardID),
-			zap.Strings("player_cards", p.Cards),
-			zap.Int("card_count", len(p.Cards)))
+			zap.Strings("player_cards", player.Cards),
+			zap.Int("card_count", len(player.Cards)))
 		return fmt.Errorf("card %s not in player's hand", cardID)
 	}
 
 	log.Debug("✅ Card validated in hand",
-		zap.Strings("player_cards", p.Cards),
-		zap.Int("card_count", len(p.Cards)))
+		zap.Strings("player_cards", player.Cards),
+		zap.Int("card_count", len(player.Cards)))
 
 	// 5. Validate card can be played (requirements, affordability, choices)
 	err = a.cardManager.CanPlay(ctx, gameID, playerID, cardID, payment, choiceIndex, cardStorageTarget)
@@ -100,9 +109,16 @@ func (a *PlayCardAction) Execute(
 	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
 	// 8. Consume action (only if not unlimited actions)
-	if p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	// Refresh player to get updated state
+	player, exists = sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found after card play")
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Action.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)

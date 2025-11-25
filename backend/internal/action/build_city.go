@@ -19,18 +19,20 @@ const (
 // BuildCityAction handles the business logic for building a city standard project
 type BuildCityAction struct {
 	BaseAction
+	gameRepo      game.Repository
 	tileProcessor *tile.Processor
 }
 
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	tileProcessor *tile.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		BaseAction:    NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction:    NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:      gameRepo,
 		tileProcessor: tileProcessor,
 	}
 }
@@ -46,24 +48,31 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		return err
 	}
 
-	// 2. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get session and player
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Validate cost (25 M€)
-	if p.Resources.Credits < BuildCityCost {
+	if player.Resources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
 			zap.Int("cost", BuildCityCost),
-			zap.Int("player_credits", p.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, p.Resources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, player.Resources.Credits)
 	}
 
 	// 4. Deduct cost
-	newResources := p.Resources
+	newResources := player.Resources
 	newResources.Credits -= BuildCityCost
-	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
 		log.Error("Failed to deduct city cost", zap.Error(err))
 		return fmt.Errorf("failed to update resources: %w", err)
@@ -74,9 +83,9 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		zap.Int("remaining_credits", newResources.Credits))
 
 	// 5. Increase credit production by 1
-	newProduction := p.Production
+	newProduction := player.Production
 	newProduction.Credits++
-	err = a.playerRepo.UpdateProduction(ctx, gameID, playerID, newProduction)
+	err = player.Resources.UpdateProduction(ctx, newProduction)
 	if err != nil {
 		log.Error("Failed to update production", zap.Error(err))
 		return fmt.Errorf("failed to update production: %w", err)
@@ -86,7 +95,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		zap.Int("new_credit_production", newProduction.Credits))
 
 	// 6. Create tile queue with "city" type
-	err = a.playerRepo.CreateTileQueue(ctx, gameID, playerID, "standard-project-city", []string{"city"})
+	err = player.TileQueue.CreateTileQueue(ctx, "standard-project-city", []string{"city"})
 	if err != nil {
 		log.Error("Failed to create tile queue", zap.Error(err))
 		return fmt.Errorf("failed to create tile queue: %w", err)
@@ -99,14 +108,15 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 8. Consume action (only if not unlimited actions)
 	// Refresh player data after tile queue creation
-	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	player, exists = sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found after tile queue creation")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	if p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Action.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)
