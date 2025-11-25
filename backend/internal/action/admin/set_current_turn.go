@@ -2,11 +2,11 @@ package admin
 
 import (
 	"context"
+	"fmt"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -14,16 +14,18 @@ import (
 // SetCurrentTurnAction handles the admin action to set the current turn
 type SetCurrentTurnAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 }
 
 // NewSetCurrentTurnAction creates a new set current turn admin action
 func NewSetCurrentTurnAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetCurrentTurnAction {
 	return &SetCurrentTurnAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -33,19 +35,26 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID, playerID str
 	log.Info("🎲 Admin: Setting current turn")
 
 	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return err
 	}
 
-	// 2. Validate player exists
-	_, err = action.ValidatePlayer(ctx, a.GetPlayerRepo(), gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Validate player exists in session
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	_, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update current turn
-	err = a.GetGameRepo().SetCurrentTurn(ctx, gameID, &playerID)
+	err = a.gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return err

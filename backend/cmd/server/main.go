@@ -157,12 +157,12 @@ func main() {
 
 	// Initialize admin actions
 	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
-	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
 	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newPlayerRepo, newBoardRepo, boardProcessor, sessionManagerFactory)
-	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
 	log.Info("✅ Admin actions initialized")
 

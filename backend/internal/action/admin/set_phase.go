@@ -6,7 +6,6 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -14,16 +13,18 @@ import (
 // SetPhaseAction handles the admin action to set the game phase
 type SetPhaseAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 }
 
 // NewSetPhaseAction creates a new set phase admin action
 func NewSetPhaseAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetPhaseAction {
 	return &SetPhaseAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -34,13 +35,13 @@ func (a *SetPhaseAction) Execute(ctx context.Context, gameID string, phase game.
 		zap.String("phase", string(phase)))
 
 	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Update game phase
-	err = a.GetGameRepo().UpdatePhase(ctx, gameID, phase)
+	err = a.gameRepo.UpdatePhase(ctx, gameID, phase)
 	if err != nil {
 		log.Error("Failed to update phase", zap.Error(err))
 		return err
