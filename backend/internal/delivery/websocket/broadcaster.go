@@ -9,10 +9,10 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/board"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/board"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -22,32 +22,32 @@ import (
 // This component is bound to a single gameID and can never broadcast to a different game
 // This component lives in the delivery layer and knows about DTOs and WebSocket Hub
 type SessionAwareBroadcaster struct {
-	gameID     string // IMMUTABLE - bound at creation, cannot change
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	cardRepo   card.Repository
-	boardRepo  board.Repository
-	hub        *core.Hub
-	logger     *zap.Logger
+	gameID         string // IMMUTABLE - bound at creation, cannot change
+	gameRepo       game.Repository
+	sessionFactory session.SessionFactory
+	cardRepo       card.Repository
+	boardRepo      board.Repository
+	hub            *core.Hub
+	logger         *zap.Logger
 }
 
 // NewSessionAwareBroadcaster creates a new session-aware broadcaster bound to a specific game
 func NewSessionAwareBroadcaster(
 	gameID string,
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	cardRepo card.Repository,
 	boardRepo board.Repository,
 	hub *core.Hub,
 ) session.SessionManager {
 	return &SessionAwareBroadcaster{
-		gameID:     gameID, // Permanently bound to this game
-		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
-		cardRepo:   cardRepo,
-		boardRepo:  boardRepo,
-		hub:        hub,
-		logger:     logger.Get(),
+		gameID:         gameID, // Permanently bound to this game
+		gameRepo:       gameRepo,
+		sessionFactory: sessionFactory,
+		cardRepo:       cardRepo,
+		boardRepo:      boardRepo,
+		hub:            hub,
+		logger:         logger.Get(),
 	}
 }
 
@@ -104,19 +104,22 @@ func (b *SessionAwareBroadcaster) broadcastGameStateInternal(ctx context.Context
 		log.Warn("⚠️  Failed to get board for game, using empty board", zap.Error(err))
 	} else {
 		// Convert session board to model board and attach to game
-		gameModel.Board = boardToModel(sessionBoard)
-		log.Debug("🗺️  Fetched board for game", zap.Int("tile_count", len(gameModel.Board.Tiles)))
+		boardData := boardToModel(sessionBoard)
+		gameModel.SetBoard(boardData)
+		log.Debug("🗺️  Fetched board for game", zap.Int("tile_count", len(boardData.Tiles)))
 	}
 
-	// Get all players for personalized game states from repository
-	newPlayers, err := b.playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get players for broadcast", zap.Error(err))
-		return err
+	// Get all players for personalized game states from session
+	sess := b.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found for broadcast")
+		return fmt.Errorf("game session not found: %s", gameID)
 	}
+
+	sessionPlayers := sess.GetAllPlayers()
 
 	// Convert player types to model types for DTO compatibility
-	players := playersToModel(newPlayers)
+	players := playersToModel(sessionPlayers)
 
 	// If no players exist, there's nothing to broadcast
 	if len(players) == 0 {
@@ -294,7 +297,8 @@ func gameToModel(g *game.Game) types.Game {
 func playersToModel(players []*player.Player) []types.Player {
 	result := make([]types.Player, len(players))
 	for i, p := range players {
-		result[i] = *p
+		// Extract the embedded types.Player from the wrapped player
+		result[i] = *p.Player
 	}
 	return result
 }

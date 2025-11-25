@@ -6,10 +6,9 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/deck"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -19,6 +18,7 @@ import (
 // Fully migrated to session-based architecture
 type ExecuteCardActionAction struct {
 	action.BaseAction
+	gameRepo  game.Repository
 	validator *Validator
 	processor *Processor
 }
@@ -26,15 +26,16 @@ type ExecuteCardActionAction struct {
 // NewExecuteCardActionAction creates a new execute card action action
 func NewExecuteCardActionAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 	cardProcessor *card.CardProcessor,
 	deckRepo deck.Repository,
 ) *ExecuteCardActionAction {
 	return &ExecuteCardActionAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
-		validator:  NewValidator(playerRepo),
-		processor:  NewProcessor(playerRepo, cardProcessor, deckRepo),
+		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
+		validator:  NewValidator(sessionFactory),
+		processor:  NewProcessor(sessionFactory, cardProcessor, deckRepo),
 	}
 }
 
@@ -52,27 +53,33 @@ func (a *ExecuteCardActionAction) Execute(
 		zap.Int("behavior_index", behaviorIndex))
 
 	// 1. Get game and validate current turn
-	game, err := a.BaseAction.GetGameRepo().GetByID(ctx, gameID)
+	g, err := a.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game for card action", zap.Error(err))
 		return fmt.Errorf("failed to get game: %w", err)
 	}
 
-	if game.CurrentTurn == nil {
+	if g.CurrentTurn == nil {
 		log.Error("No current player turn set", zap.String("requesting_player", playerID))
 		return fmt.Errorf("no current player turn set, requesting player is %s", playerID)
 	}
 
-	if *game.CurrentTurn != playerID {
-		log.Error("Not current players turn", zap.String("current_turn", *game.CurrentTurn), zap.String("requesting_player", playerID))
-		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *game.CurrentTurn, playerID)
+	if *g.CurrentTurn != playerID {
+		log.Error("Not current players turn", zap.String("current_turn", *g.CurrentTurn), zap.String("requesting_player", playerID))
+		return fmt.Errorf("not current player's turn: current turn is %s, requesting player is %s", *g.CurrentTurn, playerID)
 	}
 
-	// 2. Get the player to validate they exist and check their actions
-	player, err := a.BaseAction.GetPlayerRepo().GetByID(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to get player for card action play", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+	// 2. Get session and player to validate they exist and check their actions
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// Check if player has available actions
@@ -137,7 +144,7 @@ func (a *ExecuteCardActionAction) Execute(
 	// 10. Consume one action now that all steps have succeeded
 	if player.AvailableActions > 0 {
 		newActions := player.AvailableActions - 1
-		if err := a.BaseAction.GetPlayerRepo().UpdateAvailableActions(ctx, gameID, playerID, newActions); err != nil {
+		if err := player.Action.UpdateAvailableActions(ctx, newActions); err != nil {
 			log.Error("Failed to consume player action", zap.Error(err))
 			// Note: Action has already been applied, but we couldn't consume the action
 			// This is a critical error but we don't rollback the entire action

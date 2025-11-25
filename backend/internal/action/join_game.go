@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -14,11 +14,9 @@ import (
 
 // JoinGameAction handles the business logic for players joining games
 // Broadcasting is handled automatically via PlayerJoinedEvent (event-driven architecture)
-// NOTE: This action still uses player.Repository because it CREATES new players
 type JoinGameAction struct {
 	BaseAction
-	gameRepo   game.Repository
-	playerRepo player.Repository
+	gameRepo game.Repository
 }
 
 // JoinGameResult contains the result of joining a game
@@ -31,12 +29,10 @@ type JoinGameResult struct {
 func NewJoinGameAction(
 	gameRepo game.Repository,
 	sessionFactory session.SessionFactory,
-	playerRepo player.Repository,
 ) *JoinGameAction {
 	return &JoinGameAction{
 		BaseAction: NewBaseAction(sessionFactory, nil), // No sessionMgr (event-driven)
 		gameRepo:   gameRepo,
-		playerRepo: playerRepo,
 	}
 }
 
@@ -59,12 +55,11 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 		return nil, err
 	}
 
-	// 2. Check if player with same name already exists (for reconnection/idempotent join)
-	sess := a.GetSessionFactory().Get(gameID)
-	var existingPlayers []*session.Player
-	if sess != nil {
-		existingPlayers = sess.GetAllPlayers()
-	}
+	// 2. Get or create session
+	sess := a.GetSessionFactory().GetOrCreate(gameID)
+
+	// 3. Check if player with same name already exists (for reconnection/idempotent join)
+	existingPlayers := sess.GetAllPlayers()
 
 	// If player with same name exists, return existing playerID (idempotent operation)
 	for _, p := range existingPlayers {
@@ -87,30 +82,15 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 		return nil, fmt.Errorf("game is full")
 	}
 
-	// 3. Create new player via subdomain repository
-	var newPlayer *player.Player
-	if pid != "" {
-		// Use provided playerID (for connection setup before event publishing)
-		newPlayer = player.NewPlayer(playerName)
-		newPlayer.ID = pid
-		log.Debug("Using pre-generated player ID", zap.String("player_id", pid))
-	} else {
-		// Generate new playerID
-		newPlayer = player.NewPlayer(playerName)
-	}
-
-	err = a.playerRepo.Create(ctx, gameID, newPlayer)
-	if err != nil {
-		log.Error("Failed to create player", zap.Error(err))
-		return nil, fmt.Errorf("failed to create player: %w", err)
-	}
+	// 4. Create new player via session
+	newPlayer := sess.CreateAndAddPlayer(playerName, pid)
 
 	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID))
 
-	// 4. Check if this will be the first player (before adding to game)
+	// 5. Check if this will be the first player (before adding to game)
 	isFirstPlayer := len(g.PlayerIDs) == 0
 
-	// 5. Add player to game via repository (event-driven)
+	// 6. Add player to game via repository (event-driven)
 	err = a.gameRepo.AddPlayer(ctx, gameID, newPlayer.ID)
 	if err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
@@ -119,7 +99,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 
 	log.Info("✅ Player added to game")
 
-	// 6. If first player, set as host
+	// 7. If first player, set as host
 	if isFirstPlayer {
 		err = a.gameRepo.SetHostPlayer(ctx, gameID, newPlayer.ID)
 		if err != nil {
@@ -130,7 +110,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 		}
 	}
 
-	// 7. Fetch updated game state
+	// 8. Fetch updated game state
 	updatedGame, err := a.gameRepo.GetByID(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get updated game", zap.Error(err))

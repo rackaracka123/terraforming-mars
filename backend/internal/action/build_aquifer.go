@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -63,15 +63,21 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 	}
 
 	// 4. Validate cost (18 M€)
-	if player.Resources.Credits < BuildAquiferCost {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Credits < BuildAquiferCost {
 		log.Warn("Insufficient credits for aquifer",
 			zap.Int("cost", BuildAquiferCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, player.Resources.Credits)
+			zap.Int("player_credits", currentResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, currentResources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Credits -= BuildAquiferCost
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
@@ -96,7 +102,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 		zap.Int("new_tr", newTR))
 
 	// 7. Create tile queue with "ocean" type
-	err = player.TileQueue.CreateTileQueue(ctx, "standard-project-aquifer", []string{"ocean"})
+	err = player.TileQueue.CreateQueue(ctx, "standard-project-aquifer", []string{"ocean"})
 	if err != nil {
 		log.Error("Failed to create tile queue", zap.Error(err))
 		return fmt.Errorf("failed to create tile queue: %w", err)

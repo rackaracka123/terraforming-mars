@@ -1,4 +1,4 @@
-package game
+package core
 
 import (
 	"context"
@@ -66,4 +66,19 @@ func NewRepository(eventBus *events.EventBusImpl) Repository {
 		turn:         turnRepo,
 		globalParams: globalParamsRepo,
 	}
+}
+
+// GetCore returns the core repository for direct access
+func (r *RepositoryImpl) GetCore() *GameCoreRepository {
+	return r.core
+}
+
+// GetTurn returns the turn repository for direct access
+func (r *RepositoryImpl) GetTurn() *GameTurnRepository {
+	return r.turn
+}
+
+// GetGlobalParams returns the global parameters repository for direct access
+func (r *RepositoryImpl) GetGlobalParams() *GameGlobalParametersRepository {
+	return r.globalParams
 }

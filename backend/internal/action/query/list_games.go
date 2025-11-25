@@ -5,8 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -15,16 +14,17 @@ import (
 // ListGamesAction handles the query for listing all games
 type ListGamesAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 }
 
 // NewListGamesAction creates a new list games query action
 func NewListGamesAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 ) *ListGamesAction {
 	return &ListGamesAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -35,7 +35,7 @@ func (a *ListGamesAction) Execute(ctx context.Context, status string) ([]types.G
 		zap.String("status_filter", status))
 
 	// List games from repository
-	gamePointers, err := a.GetGameRepo().List(ctx, status)
+	gamePointers, err := a.gameRepo.List(ctx, status)
 	if err != nil {
 		log.Error("Failed to list games", zap.Error(err))
 		return nil, err

@@ -1,9 +1,13 @@
 package types
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // Game represents a unified game entity containing both metadata and state
 type Game struct {
+	// Serialized game data (sent to frontend)
 	ID               string           `json:"id" ts:"string"`
 	CreatedAt        time.Time        `json:"createdAt" ts:"string"`
 	UpdatedAt        time.Time        `json:"updatedAt" ts:"string"`
@@ -16,7 +20,32 @@ type Game struct {
 	ViewingPlayerID  string           `json:"viewingPlayerId" ts:"string"`  // The player viewing this game state
 	CurrentTurn      *string          `json:"currentTurn" ts:"string|null"` // Whose turn it is (nullable)
 	Generation       int              `json:"generation" ts:"number"`
-	Board            Board            `json:"board" ts:"Board"` // Game board with tiles and occupancy state
+	board            Board            `json:"board" ts:"Board"` // Game board with tiles and occupancy state (lowercase to avoid conflict with Board repository)
+
+	// Non-serialized runtime state (repositories, infrastructure, players)
+	// These fields are excluded from JSON serialization
+	mu sync.RWMutex `json:"-"`
+
+	// Players managed by this game (stored as interface{} to avoid circular dependency)
+	// In session package, this will be map[string]*player.Player
+	// In types package, player.Player is not available due to circular imports
+	Players interface{} `json:"-"`
+
+	// Game sub-repositories (grouped operations)
+	// Using interface{} to avoid circular imports - will be properly typed in session package
+	Core         interface{} `json:"-"` // *GameCoreRepository
+	GlobalParams interface{} `json:"-"` // *GameGlobalParametersRepository
+	Turn         interface{} `json:"-"` // *GameTurnRepository
+
+	// Domain repositories (no "Repo" suffix as per naming convention)
+	Board interface{} `json:"-"` // board.Repository
+	Cards interface{} `json:"-"` // card.Repository
+	Deck  interface{} `json:"-"` // deck.Repository
+
+	// Infrastructure components (exported for access from session package)
+	CardManager     interface{} `json:"-"` // card.CardManager
+	TileProcessor   interface{} `json:"-"` // *board.Processor
+	BonusCalculator interface{} `json:"-"` // *board.BonusCalculator
 }
 
 // NewGame creates a new game with the given settings
@@ -37,8 +66,22 @@ func NewGame(id string, settings GameSettings) *Game {
 			Oceans:      0,
 		},
 		Generation: 1,
-		Board:      Board{Tiles: []Tile{}}, // Initialize with empty board, service will populate
+		board:      Board{Tiles: []Tile{}}, // Initialize with empty board, service will populate
+		Players:    nil,                    // Will be initialized by session package
+		mu:         sync.RWMutex{},
 	}
+}
+
+// GetBoard returns the board data for serialization
+// This provides access to the private board field
+func (g *Game) GetBoard() Board {
+	return g.board
+}
+
+// SetBoard sets the board data
+// This allows updating the private board field
+func (g *Game) SetBoard(b Board) {
+	g.board = b
 }
 
 // Next returns the next player ID in turn order based on current turn

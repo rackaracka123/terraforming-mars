@@ -1,6 +1,8 @@
 package player
 
 import (
+	"sync"
+
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session/types"
 )
@@ -9,6 +11,7 @@ import (
 // This allows calling player.Resources.Update() instead of playerRepo.UpdateResources(gameID, playerID, ...)
 type Player struct {
 	*types.Player // Embedded player data
+	mu            sync.RWMutex
 
 	// Sub-repositories for operations on this specific player
 	Resources   *ResourceRepository

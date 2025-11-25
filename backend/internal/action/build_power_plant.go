@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -63,15 +63,21 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 	}
 
 	// 4. Validate cost (11 M€)
-	if player.Resources.Credits < BuildPowerPlantCost {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Credits < BuildPowerPlantCost {
 		log.Warn("Insufficient credits for power plant",
 			zap.Int("cost", BuildPowerPlantCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, player.Resources.Credits)
+			zap.Int("player_credits", currentResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, currentResources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Credits -= BuildPowerPlantCost
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {

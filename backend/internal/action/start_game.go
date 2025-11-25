@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/deck"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -131,7 +131,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 }
 
 // distributeStartingCards gives each player 10 project cards and 2 corporations
-func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID string, players []*session.Player) error {
+func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID string, players []*player.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
 

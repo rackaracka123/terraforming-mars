@@ -5,9 +5,8 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	sessionCard "terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -16,18 +15,19 @@ import (
 // GetGameAction handles the query for getting a single game
 type GetGameAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 	cardRepo sessionCard.Repository
 }
 
 // NewGetGameAction creates a new get game query action
 func NewGetGameAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	cardRepo sessionCard.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
 ) *GetGameAction {
 	return &GetGameAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 	}
 }
@@ -45,7 +45,7 @@ func (a *GetGameAction) Execute(ctx context.Context, gameID, playerID string) (*
 	log.Info("🔍 Querying game")
 
 	// 1. Validate game exists
-	gameEntity, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	gameEntity, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return nil, err
 	}
@@ -60,17 +60,19 @@ func (a *GetGameAction) Execute(ctx context.Context, gameID, playerID string) (*
 		}, nil
 	}
 
-	// 2. Get all players
-	playerPointers, err := a.GetPlayerRepo().ListByGameID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get players", zap.Error(err))
+	// 2. Get all players from session
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
 		return nil, err
 	}
 
-	// Convert player pointers to values
-	players := make([]types.Player, len(playerPointers))
-	for i, playerPtr := range playerPointers {
-		players[i] = *playerPtr
+	sessionPlayers := sess.GetAllPlayers()
+
+	// Convert wrapped players to types.Player
+	players := make([]types.Player, len(sessionPlayers))
+	for i, p := range sessionPlayers {
+		players[i] = *p.Player
 	}
 
 	// 3. Collect all card IDs that need resolution

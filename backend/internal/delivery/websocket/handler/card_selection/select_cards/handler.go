@@ -9,7 +9,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -18,18 +18,18 @@ import (
 type Handler struct {
 	confirmSellPatentsAction     *action.ConfirmSellPatentsAction
 	confirmProductionCardsAction *action.ConfirmProductionCardsAction
-	newPlayerRepo                player.Repository
+	sessionFactory               session.SessionFactory
 	parser                       *utils.MessageParser
 	errorHandler                 *utils.ErrorHandler
 	logger                       *zap.Logger
 }
 
 // NewHandler creates a new select cards handler
-func NewHandler(confirmSellPatentsAction *action.ConfirmSellPatentsAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, newPlayerRepo player.Repository, parser *utils.MessageParser) *Handler {
+func NewHandler(confirmSellPatentsAction *action.ConfirmSellPatentsAction, confirmProductionCardsAction *action.ConfirmProductionCardsAction, sessionFactory session.SessionFactory, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		confirmSellPatentsAction:     confirmSellPatentsAction,
 		confirmProductionCardsAction: confirmProductionCardsAction,
-		newPlayerRepo:                newPlayerRepo,
+		sessionFactory:               sessionFactory,
 		parser:                       parser,
 		errorHandler:                 utils.NewErrorHandler(),
 		logger:                       logger.Get(),
@@ -84,17 +84,23 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
 
-	// Check if player has a pending card selection (e.g., sell patents) using NEW repository
-	p, err := h.newPlayerRepo.GetByID(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to get player for pending card selection check", zap.Error(err))
-		return fmt.Errorf("failed to get player: %w", err)
+	// Check if player has a pending card selection (e.g., sell patents) using session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// If there's a pending card selection, route to ConfirmSellPatentsAction
-	if p.PendingCardSelection != nil {
+	if player.PendingCardSelection != nil {
 		// Save source before action clears the pending selection
-		source := p.PendingCardSelection.Source
+		source := player.PendingCardSelection.Source
 
 		log.Info("Processing pending card selection",
 			zap.String("source", source),

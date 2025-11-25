@@ -7,8 +7,8 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	game "terraforming-mars-backend/internal/session/game/core"
+	playerevents "terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -118,15 +118,21 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 
 	// 10. Validate player can afford bought cards and deduct credits
 	if totalCost > 0 {
-		if player.Resources.Credits < totalCost {
+		currentResources, err := player.Resources.Get(ctx)
+		if err != nil {
+			log.Error("Failed to get player resources", zap.Error(err))
+			return fmt.Errorf("failed to get resources: %w", err)
+		}
+
+		if currentResources.Credits < totalCost {
 			log.Warn("Insufficient credits to buy cards",
 				zap.Int("needed", totalCost),
-				zap.Int("available", player.Resources.Credits))
-			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, player.Resources.Credits)
+				zap.Int("available", currentResources.Credits))
+			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, currentResources.Credits)
 		}
 
 		// Deduct credits for bought cards
-		newResources := player.Resources
+		newResources := currentResources
 		newResources.Credits -= totalCost
 		err = player.Resources.Update(ctx, newResources)
 		if err != nil {
@@ -178,7 +184,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 	}
 
 	// 14. Publish event - ForcedActionManager will handle if this was a forced action
-	events.Publish(a.eventBus, player.CardDrawConfirmedEvent{
+	events.Publish(a.eventBus, playerevents.CardDrawConfirmedEvent{
 		GameID:   gameID,
 		PlayerID: playerID,
 		Source:   selection.Source,

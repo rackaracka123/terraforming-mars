@@ -4,34 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	sessionGame "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
 
-// CheckAllPlayersComplete checks if all players in a game satisfy a given condition
-// The checkFunc receives each player and should return true if the player has completed the condition
-// Returns true if ALL players satisfy the condition, false otherwise
-func CheckAllPlayersComplete(
-	ctx context.Context,
-	playerRepo player.Repository,
-	gameID string,
-	checkFunc func(*player.Player) bool,
-) (bool, error) {
-	players, err := playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		return false, fmt.Errorf("failed to list players: %w", err)
-	}
-
-	for _, p := range players {
-		if !checkFunc(p) {
-			return false, nil
-		}
-	}
-
-	return true, nil
-}
+// CheckAllPlayersComplete is deprecated - use session.GetAllPlayers() directly
+// This helper function is no longer needed with the new session-based architecture
 
 // TransitionGamePhase updates the game to a new phase with proper logging
 // This is a common pattern used when advancing through game phases
@@ -99,18 +78,5 @@ func SetCurrentTurn(
 	return nil
 }
 
-// GetAllPlayers retrieves all players in a game
-// Common helper to avoid repetitive error handling
-func GetAllPlayers(
-	ctx context.Context,
-	playerRepo player.Repository,
-	gameID string,
-	log *zap.Logger,
-) ([]*player.Player, error) {
-	players, err := playerRepo.ListByGameID(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to list players", zap.Error(err))
-		return nil, fmt.Errorf("failed to list players: %w", err)
-	}
-	return players, nil
-}
+// GetAllPlayers is deprecated - use session.GetAllPlayers() directly
+// This helper function is no longer needed with the new session-based architecture

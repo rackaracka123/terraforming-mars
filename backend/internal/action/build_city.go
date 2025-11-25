@@ -6,9 +6,8 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
-	"terraforming-mars-backend/internal/session/tile"
+	"terraforming-mars-backend/internal/session/game/board"
+	game "terraforming-mars-backend/internal/session/game/core"
 )
 
 const (
@@ -20,14 +19,14 @@ const (
 type BuildCityAction struct {
 	BaseAction
 	gameRepo      game.Repository
-	tileProcessor *tile.Processor
+	tileProcessor *board.Processor
 }
 
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
 	gameRepo game.Repository,
 	sessionFactory session.SessionFactory,
-	tileProcessor *tile.Processor,
+	tileProcessor *board.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildCityAction {
 	return &BuildCityAction{
@@ -62,15 +61,21 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	// 3. Validate cost (25 M€)
-	if player.Resources.Credits < BuildCityCost {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
 			zap.Int("cost", BuildCityCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, player.Resources.Credits)
+			zap.Int("player_credits", currentResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, currentResources.Credits)
 	}
 
 	// 4. Deduct cost
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Credits -= BuildCityCost
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
@@ -95,7 +100,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		zap.Int("new_credit_production", newProduction.Credits))
 
 	// 6. Create tile queue with "city" type
-	err = player.TileQueue.CreateTileQueue(ctx, "standard-project-city", []string{"city"})
+	err = player.TileQueue.CreateQueue(ctx, "standard-project-city", []string{"city"})
 	if err != nil {
 		log.Error("Failed to create tile queue", zap.Error(err))
 		return fmt.Errorf("failed to create tile queue: %w", err)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -64,15 +64,21 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID, playerID str
 	}
 
 	// 4. Validate cost (14 M€)
-	if player.Resources.Credits < LaunchAsteroidCost {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Credits < LaunchAsteroidCost {
 		log.Warn("Insufficient credits for asteroid",
 			zap.Int("cost", LaunchAsteroidCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, player.Resources.Credits)
+			zap.Int("player_credits", currentResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, currentResources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Credits -= LaunchAsteroidCost
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {

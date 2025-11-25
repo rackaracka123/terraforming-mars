@@ -5,10 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/board"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
-	"terraforming-mars-backend/internal/session/tile"
+	"terraforming-mars-backend/internal/session/game/board"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -18,8 +16,8 @@ type SelectTileAction struct {
 	BaseAction
 	gameRepo        game.Repository
 	boardRepo       board.Repository
-	tileProcessor   *tile.Processor
-	bonusCalculator *tile.BonusCalculator
+	tileProcessor   *board.Processor
+	bonusCalculator *board.BonusCalculator
 }
 
 // NewSelectTileAction creates a new select tile action
@@ -27,8 +25,8 @@ func NewSelectTileAction(
 	gameRepo game.Repository,
 	sessionFactory session.SessionFactory,
 	boardRepo board.Repository,
-	tileProcessor *tile.Processor,
-	bonusCalculator *tile.BonusCalculator,
+	tileProcessor *board.Processor,
+	bonusCalculator *board.BonusCalculator,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectTileAction {
 	return &SelectTileAction{
@@ -94,7 +92,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 			Tags: []string{},
 		}
 	default:
-		return fmt.Errorf("unknown tile type: %s", p.PendingTileSelection.TileType)
+		return fmt.Errorf("unknown tile type: %s", player.PendingTileSelection.TileType)
 	}
 
 	// Place tile on board (publishes TilePlacedEvent)
@@ -106,7 +104,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 		zap.String("tile_type", string(occupant.Type)))
 
 	// Calculate and award tile bonuses
-	if err := a.bonusCalculator.CalculateAndAwardBonuses(ctx, gameID, playerID, coord); err != nil {
+	if err := a.bonusCalculator.CalculateAndAwardBonuses(ctx, player, coord); err != nil {
 		return fmt.Errorf("failed to award bonuses: %w", err)
 	}
 
@@ -118,7 +116,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 	}
 
 	// Clear pending tile selection
-	if err := player.Selection.ClearPendingTileSelection(ctx); err != nil {
+	if err := player.TileQueue.ClearPendingTileSelection(ctx); err != nil {
 		return fmt.Errorf("failed to clear pending selection: %w", err)
 	}
 

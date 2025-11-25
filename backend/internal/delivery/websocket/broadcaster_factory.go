@@ -7,10 +7,9 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/board"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/board"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -18,12 +17,12 @@ import (
 // BroadcasterFactory creates and manages session-aware broadcasters
 // Each game gets its own broadcaster instance that is bound to that specific gameID
 type BroadcasterFactory struct {
-	gameRepo   game.Repository
-	playerRepo player.Repository
-	cardRepo   card.Repository
-	boardRepo  board.Repository
-	hub        *core.Hub
-	eventBus   *events.EventBusImpl
+	gameRepo       game.Repository
+	sessionFactory session.SessionFactory
+	cardRepo       card.Repository
+	boardRepo      board.Repository
+	hub            *core.Hub
+	eventBus       *events.EventBusImpl
 
 	broadcasters map[string]session.SessionManager
 	mu           sync.RWMutex
@@ -33,21 +32,21 @@ type BroadcasterFactory struct {
 // NewBroadcasterFactory creates a new factory for session-aware broadcasters
 func NewBroadcasterFactory(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	cardRepo card.Repository,
 	boardRepo board.Repository,
 	hub *core.Hub,
 	eventBus *events.EventBusImpl,
 ) session.SessionManagerFactory {
 	factory := &BroadcasterFactory{
-		gameRepo:     gameRepo,
-		playerRepo:   playerRepo,
-		cardRepo:     cardRepo,
-		boardRepo:    boardRepo,
-		hub:          hub,
-		eventBus:     eventBus,
-		broadcasters: make(map[string]session.SessionManager),
-		logger:       logger.Get(),
+		gameRepo:       gameRepo,
+		sessionFactory: sessionFactory,
+		cardRepo:       cardRepo,
+		boardRepo:      boardRepo,
+		hub:            hub,
+		eventBus:       eventBus,
+		broadcasters:   make(map[string]session.SessionManager),
+		logger:         logger.Get(),
 	}
 
 	// Subscribe to domain events once at factory level
@@ -80,7 +79,7 @@ func (f *BroadcasterFactory) GetOrCreate(gameID string) session.SessionManager {
 	broadcaster := NewSessionAwareBroadcaster(
 		gameID,
 		f.gameRepo,
-		f.playerRepo,
+		f.sessionFactory,
 		f.cardRepo,
 		f.boardRepo,
 		f.hub,

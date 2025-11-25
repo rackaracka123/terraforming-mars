@@ -5,26 +5,24 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
-
-	"go.uber.org/zap"
 )
 
 // GetPlayerAction handles the query for getting a single player
 type GetPlayerAction struct {
 	action.BaseAction
+	gameRepo game.Repository
 }
 
 // NewGetPlayerAction creates a new get player query action
 func NewGetPlayerAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 ) *GetPlayerAction {
 	return &GetPlayerAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -34,20 +32,26 @@ func (a *GetPlayerAction) Execute(ctx context.Context, gameID, playerID string) 
 	log.Info("🔍 Querying player")
 
 	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.GetGameRepo(), gameID, log)
+	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
 		return types.Player{}, err
 	}
 
-	// 2. Get player from repository
-	player, err := a.GetPlayerRepo().GetByID(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Failed to get player", zap.Error(err))
+	// 2. Get player from session
+	sess := a.GetSessionFactory().Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return types.Player{}, err
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
 		return types.Player{}, err
 	}
 
 	log.Info("✅ Player query completed")
 
-	// Convert pointer to value for return
-	return *player, nil
+	// Return the underlying player
+	return *player.Player, nil
 }

@@ -6,8 +6,7 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
 
@@ -24,18 +23,18 @@ func NewRequirementsValidator(cardRepo Repository) *RequirementsValidator {
 }
 
 // ValidateCardRequirements validates that a card's requirements are met with full context
-func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, gameID, playerID string, card *Card, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, game *types.Game, p *player.Player, card *Card) error {
 	// Check if card has any requirements
 	if len(card.Requirements) == 0 {
 		return nil
 	}
 
-	log := logger.WithGameContext(gameID, playerID)
+	log := logger.WithGameContext(p.GameID, p.ID)
 	log.Debug("🚨 Validating card requirements - card has requirements to check")
 
 	// Validate each requirement
 	for _, requirement := range card.Requirements {
-		if err := rv.validateSingleRequirement(ctx, requirement, game, player); err != nil {
+		if err := rv.validateSingleRequirement(ctx, requirement, game, p); err != nil {
 			return err
 		}
 	}
@@ -45,7 +44,7 @@ func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, g
 }
 
 // validateSingleRequirement validates a single requirement
-func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, requirement types.Requirement, game *types.Game, p *player.Player) error {
 	switch requirement.Type {
 	case types.RequirementTemperature:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Temperature, "temperature")
@@ -54,13 +53,13 @@ func (rv *RequirementsValidator) validateSingleRequirement(ctx context.Context, 
 	case types.RequirementOceans:
 		return rv.validateParameterRequirement(requirement, game.GlobalParameters.Oceans, "oceans")
 	case types.RequirementTR:
-		return rv.validateParameterRequirement(requirement, player.TerraformRating, "terraform rating")
+		return rv.validateParameterRequirement(requirement, p.TerraformRating, "terraform rating")
 	case types.RequirementTags:
-		return rv.validateTagRequirement(ctx, requirement, game, player)
+		return rv.validateTagRequirement(ctx, requirement, game, p)
 	case types.RequirementProduction:
-		return rv.validateProductionRequirement(ctx, requirement, game, player)
+		return rv.validateProductionRequirement(ctx, requirement, game, p)
 	case types.RequirementResource:
-		return rv.validateResourceRequirement(ctx, requirement, game, player)
+		return rv.validateResourceRequirement(ctx, requirement, game, p)
 	default:
 		// Unknown requirement type, pass for now
 		return nil
@@ -79,12 +78,12 @@ func (rv *RequirementsValidator) validateParameterRequirement(requirement types.
 }
 
 // validateTagRequirement validates tag-based requirements
-func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, requirement types.Requirement, game *types.Game, p *player.Player) error {
 	if requirement.Tag == nil {
 		return fmt.Errorf("tag requirement missing tag specification")
 	}
 
-	playerTagCounts := rv.countPlayerTags(ctx, player)
+	playerTagCounts := rv.countPlayerTags(ctx, p)
 	currentCount := playerTagCounts[*requirement.Tag]
 
 	// Check minimum tag count requirement
@@ -101,7 +100,7 @@ func (rv *RequirementsValidator) validateTagRequirement(ctx context.Context, req
 }
 
 // validateProductionRequirement validates production-based requirements
-func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Context, requirement types.Requirement, game *types.Game, p *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("production requirement missing resource specification")
 	}
@@ -112,17 +111,17 @@ func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Conte
 	// Get current production value based on resource type
 	switch *requirement.Resource {
 	case types.ResourceCredits:
-		currentProduction = player.Production.Credits
+		currentProduction = p.Production.Credits
 	case types.ResourceSteel:
-		currentProduction = player.Production.Steel
+		currentProduction = p.Production.Steel
 	case types.ResourceTitanium:
-		currentProduction = player.Production.Titanium
+		currentProduction = p.Production.Titanium
 	case types.ResourcePlants:
-		currentProduction = player.Production.Plants
+		currentProduction = p.Production.Plants
 	case types.ResourceEnergy:
-		currentProduction = player.Production.Energy
+		currentProduction = p.Production.Energy
 	case types.ResourceHeat:
-		currentProduction = player.Production.Heat
+		currentProduction = p.Production.Heat
 	default:
 		return fmt.Errorf("unsupported production resource type: %s", *requirement.Resource)
 	}
@@ -141,7 +140,7 @@ func (rv *RequirementsValidator) validateProductionRequirement(ctx context.Conte
 }
 
 // validateResourceRequirement validates resource-based requirements
-func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement types.Requirement, game *sessionGame.Game, player *player.Player) error {
+func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context, requirement types.Requirement, game *types.Game, p *player.Player) error {
 	if requirement.Resource == nil {
 		return fmt.Errorf("resource requirement missing resource specification")
 	}
@@ -152,17 +151,17 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 	// Get current resource value based on resource type
 	switch *requirement.Resource {
 	case types.ResourceCredits:
-		currentResources = player.Resources.Credits
+		currentResources = p.Player.Resources.Credits
 	case types.ResourceSteel:
-		currentResources = player.Resources.Steel
+		currentResources = p.Player.Resources.Steel
 	case types.ResourceTitanium:
-		currentResources = player.Resources.Titanium
+		currentResources = p.Player.Resources.Titanium
 	case types.ResourcePlants:
-		currentResources = player.Resources.Plants
+		currentResources = p.Player.Resources.Plants
 	case types.ResourceEnergy:
-		currentResources = player.Resources.Energy
+		currentResources = p.Player.Resources.Energy
 	case types.ResourceHeat:
-		currentResources = player.Resources.Heat
+		currentResources = p.Player.Resources.Heat
 	default:
 		return fmt.Errorf("unsupported resource type: %s", *requirement.Resource)
 	}
@@ -181,11 +180,11 @@ func (rv *RequirementsValidator) validateResourceRequirement(ctx context.Context
 }
 
 // countPlayerTags counts the occurrence of each tag in player's played cards and corporation
-func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *player.Player) map[types.CardTag]int {
+func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, p *player.Player) map[types.CardTag]int {
 	tagCounts := make(map[types.CardTag]int)
 
 	// Count tags from played cards
-	for _, cardID := range player.PlayedCards {
+	for _, cardID := range p.PlayedCards {
 		card, err := rv.cardRepo.GetCardByID(ctx, cardID)
 		if err != nil || card == nil {
 			continue // Skip if card not found
@@ -197,8 +196,8 @@ func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, player *pl
 	}
 
 	// Add corporation tags if player has a corporation
-	if player.Corporation != nil {
-		for _, tag := range player.Corporation.Tags {
+	if p.Player.Corporation != nil {
+		for _, tag := range p.Player.Corporation.Tags {
 			tagCounts[tag]++
 		}
 	}
@@ -212,16 +211,16 @@ func (rv *RequirementsValidator) HasRequirements(card *Card) bool {
 }
 
 // GetPlayerTagCounts returns the tag counts for a player (public method for external use)
-func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, player *player.Player) map[types.CardTag]int {
-	return rv.countPlayerTags(ctx, player)
+func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, p *player.Player) map[types.CardTag]int {
+	return rv.countPlayerTags(ctx, p)
 }
 
 // calculateEffectiveCost calculates the card cost after applying requirement modifiers (discounts)
-func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, player *player.Player) int {
+func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, p *player.Player) int {
 	effectiveCost := card.Cost
 
 	// Apply discounts from requirement modifiers
-	for _, modifier := range player.RequirementModifiers {
+	for _, modifier := range p.RequirementModifiers {
 		// Check if this modifier applies to this card
 		if modifier.CardTarget != nil && *modifier.CardTarget == card.ID {
 			// Check if this modifier affects credits (cost discounts)
@@ -252,25 +251,31 @@ func (rv *RequirementsValidator) calculateEffectiveCost(card *Card, player *play
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, gameID, playerID string, card *Card, player *player.Player, payment *types.CardPayment, choiceIndex *int) error {
-	log := logger.WithGameContext(gameID, playerID)
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, p *player.Player, card *Card, payment *types.CardPayment, choiceIndex *int) error {
+	log := logger.WithGameContext(p.GameID, p.ID)
 
 	// Calculate total costs from card behaviors (excluding card cost which is paid separately)
-	totalCosts := rv.calculateTotalCardCosts(ctx, card, player, choiceIndex)
+	totalCosts := rv.calculateTotalCardCosts(ctx, card, p, choiceIndex)
 
 	// Validate payment for card cost
 	if card.Cost > 0 {
+		// Get player resources (needed for multiple checks)
+		resources, err := p.Resources.Get(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get player resources: %w", err)
+		}
+
 		// Calculate effective cost after applying discounts
-		effectiveCost := rv.calculateEffectiveCost(card, player)
+		effectiveCost := rv.calculateEffectiveCost(card, p)
 
 		// Check if card allows steel (has building tag) or titanium (has space tag)
 		allowSteel := rv.cardHasTag(card, types.TagBuilding)
 		allowTitanium := rv.cardHasTag(card, types.TagSpace)
 
 		// Validate payment format and coverage (including payment substitutes)
-		if err := payment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, player.PaymentSubstitutes); err != nil {
+		if err := payment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, p.PaymentSubstitutes); err != nil {
 			// Calculate minimum alternative resources for better error messages
-			minSteel, minTitanium := types.CalculateMinimumAlternativeResources(card.Cost, player.Resources, allowSteel, allowTitanium)
+			minSteel, minTitanium := types.CalculateMinimumAlternativeResources(card.Cost, resources, allowSteel, allowTitanium)
 
 			if minSteel > 0 && minTitanium > 0 {
 				return fmt.Errorf("cannot afford card: %w (hint: need minSteel:%d or minTitanium:%d)", err, minSteel, minTitanium)
@@ -283,25 +288,25 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		}
 
 		// Validate player has the resources for this payment
-		if err := payment.CanAfford(player.Resources); err != nil {
+		if err := payment.CanAfford(resources); err != nil {
 			return fmt.Errorf("insufficient resources for payment: %w", err)
 		}
 	}
 
 	// Validate resource deductions from card behaviors (separate from card cost payment)
-	if totalCosts.Steel > 0 && player.Resources.Steel-payment.Steel < totalCosts.Steel {
+	if totalCosts.Steel > 0 && p.Player.Resources.Steel-payment.Steel < totalCosts.Steel {
 		return fmt.Errorf("insufficient steel for card effects: need %d after payment, have %d total (payment uses %d)",
-			totalCosts.Steel, player.Resources.Steel, payment.Steel)
+			totalCosts.Steel, p.Player.Resources.Steel, payment.Steel)
 	}
-	if totalCosts.Titanium > 0 && player.Resources.Titanium-payment.Titanium < totalCosts.Titanium {
+	if totalCosts.Titanium > 0 && p.Player.Resources.Titanium-payment.Titanium < totalCosts.Titanium {
 		return fmt.Errorf("insufficient titanium for card effects: need %d after payment, have %d total (payment uses %d)",
-			totalCosts.Titanium, player.Resources.Titanium, payment.Titanium)
+			totalCosts.Titanium, p.Player.Resources.Titanium, payment.Titanium)
 	}
-	if totalCosts.Plants > 0 && player.Resources.Plants < totalCosts.Plants {
-		return fmt.Errorf("insufficient plants for card effects: need %d, have %d", totalCosts.Plants, player.Resources.Plants)
+	if totalCosts.Plants > 0 && p.Player.Resources.Plants < totalCosts.Plants {
+		return fmt.Errorf("insufficient plants for card effects: need %d, have %d", totalCosts.Plants, p.Player.Resources.Plants)
 	}
-	if totalCosts.Energy > 0 && player.Resources.Energy < totalCosts.Energy {
-		return fmt.Errorf("insufficient energy for card effects: need %d, have %d", totalCosts.Energy, player.Resources.Energy)
+	if totalCosts.Energy > 0 && p.Player.Resources.Energy < totalCosts.Energy {
+		return fmt.Errorf("insufficient energy for card effects: need %d, have %d", totalCosts.Energy, p.Player.Resources.Energy)
 	}
 
 	// Check payment substitutes don't interfere with behavioral costs
@@ -313,13 +318,13 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 			switch resourceType {
 			case types.ResourceHeat:
 				totalUsed = paymentAmount + totalCosts.Heat
-				available = player.Resources.Heat
+				available = p.Player.Resources.Heat
 			case types.ResourceEnergy:
 				totalUsed = paymentAmount + totalCosts.Energy
-				available = player.Resources.Energy
+				available = p.Player.Resources.Energy
 			case types.ResourcePlants:
 				totalUsed = paymentAmount + totalCosts.Plants
-				available = player.Resources.Plants
+				available = p.Player.Resources.Plants
 			}
 
 			if totalUsed > available {
@@ -334,27 +339,27 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 		if payment.Substitutes != nil {
 			heatUsedForPayment = payment.Substitutes[types.ResourceHeat]
 		}
-		if player.Resources.Heat-heatUsedForPayment < totalCosts.Heat {
+		if p.Player.Resources.Heat-heatUsedForPayment < totalCosts.Heat {
 			return fmt.Errorf("insufficient heat for card effects: need %d after payment, have %d total (payment uses %d)",
-				totalCosts.Heat, player.Resources.Heat, heatUsedForPayment)
+				totalCosts.Heat, p.Player.Resources.Heat, heatUsedForPayment)
 		}
 	}
 
 	// Note: Credits check includes both payment and behavioral costs
-	if totalCosts.Credits > 0 && player.Resources.Credits-payment.Credits < totalCosts.Credits {
+	if totalCosts.Credits > 0 && p.Player.Resources.Credits-payment.Credits < totalCosts.Credits {
 		return fmt.Errorf("insufficient credits for card effects: need %d after payment, have %d total (payment uses %d)",
-			totalCosts.Credits, player.Resources.Credits, payment.Credits)
+			totalCosts.Credits, p.Player.Resources.Credits, payment.Credits)
 	}
 
 	// Validate production deductions (negative production effects)
-	if err := rv.validateProductionDeductions(ctx, card, player, choiceIndex); err != nil {
+	if err := rv.validateProductionDeductions(ctx, card, p, choiceIndex); err != nil {
 		return fmt.Errorf("production requirement validation failed: %w", err)
 	}
 
 	// Calculate effective cost for logging purposes
 	effectiveCost := card.Cost
 	if card.Cost > 0 {
-		effectiveCost = rv.calculateEffectiveCost(card, player)
+		effectiveCost = rv.calculateEffectiveCost(card, p)
 	}
 
 	log.Debug("✅ Card affordability validation passed",
@@ -385,7 +390,7 @@ func (rv *RequirementsValidator) cardHasTag(card *Card, tag types.CardTag) bool 
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs
 // choiceIndex is optional and used when the card has choices between different effects
-func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) types.Resources {
+func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *Card, p *player.Player, choiceIndex *int) types.Resources {
 	totalCosts := types.Resources{}
 
 	// Process all behaviors to find immediate resource costs (auto triggers)
@@ -454,7 +459,7 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 }
 
 // validateProductionDeductions validates that the player can afford any negative production effects
-func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *Card, player *player.Player, choiceIndex *int) error {
+func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *Card, p *player.Player, choiceIndex *int) error {
 	// Calculate total production changes from card behaviors
 	productionChanges := types.Production{}
 
@@ -493,29 +498,29 @@ func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Contex
 
 	// Check that negative production changes don't exceed minimum allowed production
 	// Credits production can go down to -5, other productions can't go below 0
-	if productionChanges.Credits < 0 && player.Production.Credits+productionChanges.Credits < -5 {
+	if productionChanges.Credits < 0 && p.Production.Credits+productionChanges.Credits < -5 {
 		return fmt.Errorf("insufficient credit production: card would reduce production to %d (below minimum of -5)",
-			player.Production.Credits+productionChanges.Credits)
+			p.Production.Credits+productionChanges.Credits)
 	}
-	if productionChanges.Steel < 0 && player.Production.Steel+productionChanges.Steel < 0 {
+	if productionChanges.Steel < 0 && p.Production.Steel+productionChanges.Steel < 0 {
 		return fmt.Errorf("insufficient steel production: card would reduce production to %d (below 0)",
-			player.Production.Steel+productionChanges.Steel)
+			p.Production.Steel+productionChanges.Steel)
 	}
-	if productionChanges.Titanium < 0 && player.Production.Titanium+productionChanges.Titanium < 0 {
+	if productionChanges.Titanium < 0 && p.Production.Titanium+productionChanges.Titanium < 0 {
 		return fmt.Errorf("insufficient titanium production: card would reduce production to %d (below 0)",
-			player.Production.Titanium+productionChanges.Titanium)
+			p.Production.Titanium+productionChanges.Titanium)
 	}
-	if productionChanges.Plants < 0 && player.Production.Plants+productionChanges.Plants < 0 {
+	if productionChanges.Plants < 0 && p.Production.Plants+productionChanges.Plants < 0 {
 		return fmt.Errorf("insufficient plant production: card would reduce production to %d (below 0)",
-			player.Production.Plants+productionChanges.Plants)
+			p.Production.Plants+productionChanges.Plants)
 	}
-	if productionChanges.Energy < 0 && player.Production.Energy+productionChanges.Energy < 0 {
+	if productionChanges.Energy < 0 && p.Production.Energy+productionChanges.Energy < 0 {
 		return fmt.Errorf("insufficient energy production: card would reduce production to %d (below 0)",
-			player.Production.Energy+productionChanges.Energy)
+			p.Production.Energy+productionChanges.Energy)
 	}
-	if productionChanges.Heat < 0 && player.Production.Heat+productionChanges.Heat < 0 {
+	if productionChanges.Heat < 0 && p.Production.Heat+productionChanges.Heat < 0 {
 		return fmt.Errorf("insufficient heat production: card would reduce production to %d (below 0)",
-			player.Production.Heat+productionChanges.Heat)
+			p.Production.Heat+productionChanges.Heat)
 	}
 
 	return nil

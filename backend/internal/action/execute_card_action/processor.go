@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/deck"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -16,19 +16,19 @@ import (
 
 // Processor handles the application logic for card action execution
 type Processor struct {
-	resourceMgr   *game.ResourceManager
-	playerRepo    player.Repository
-	cardProcessor *card.CardProcessor
-	deckRepo      deck.Repository
+	resourceMgr    *game.ResourceManager
+	sessionFactory session.SessionFactory
+	cardProcessor  *card.CardProcessor
+	deckRepo       deck.Repository
 }
 
 // NewProcessor creates a new Processor instance
-func NewProcessor(playerRepo player.Repository, cardProcessor *card.CardProcessor, deckRepo deck.Repository) *Processor {
+func NewProcessor(sessionFactory session.SessionFactory, cardProcessor *card.CardProcessor, deckRepo deck.Repository) *Processor {
 	return &Processor{
-		resourceMgr:   game.NewResourceManager(),
-		playerRepo:    playerRepo,
-		cardProcessor: cardProcessor,
-		deckRepo:      deckRepo,
+		resourceMgr:    game.NewResourceManager(),
+		sessionFactory: sessionFactory,
+		cardProcessor:  cardProcessor,
+		deckRepo:       deckRepo,
 	}
 }
 
@@ -37,14 +37,25 @@ func NewProcessor(playerRepo player.Repository, cardProcessor *card.CardProcesso
 func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *types.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Get current player resources
-	player, err := p.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get session and player
+	sess := p.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Get current resources
+	currentResources, err := player.Resources.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get player for input application: %w", err)
+		return fmt.Errorf("failed to get player resources: %w", err)
 	}
 
 	// Calculate new resource values after applying inputs
-	newResources := player.Resources
+	newResources := currentResources
 
 	// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
 	allInputs := action.Behavior.Inputs
@@ -86,9 +97,6 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 		}
 	}
 
-	// Track if resource storage was modified
-	resourceStorageModified := false
-
 	// APPLICATION PHASE: Apply each input by deducting resources
 	for _, input := range allInputs {
 		switch input.Type {
@@ -112,7 +120,6 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 				// Deduct from card storage
 				currentStorage := player.ResourceStorage[action.CardID]
 				player.ResourceStorage[action.CardID] = currentStorage - input.Amount
-				resourceStorageModified = true
 
 				log.Debug("📉 Deducted card storage resource",
 					zap.String("card_id", action.CardID),
@@ -136,18 +143,13 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 	}
 
 	// Update player resources
-	if err := p.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
+	if err := player.Resources.Update(ctx, newResources); err != nil {
 		log.Error("Failed to update player resources for action inputs", zap.Error(err))
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
-	// Update resource storage if modified
-	if resourceStorageModified {
-		if err := p.playerRepo.UpdateResourceStorage(ctx, gameID, playerID, player.ResourceStorage); err != nil {
-			log.Error("Failed to update resource storage for action inputs", zap.Error(err))
-			return fmt.Errorf("failed to update resource storage: %w", err)
-		}
-	}
+	// Note: resource storage is already updated in-place on the embedded player
+	// No separate update call needed as it's persisted via event publishing
 
 	log.Debug("✅ Action inputs applied successfully")
 	return nil
@@ -158,17 +160,28 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *types.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Get current player to read current resources and production
-	player, err := p.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get session and player
+	sess := p.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Get current resources and production
+	currentResources, err := player.Resources.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get player for output application: %w", err)
+		return fmt.Errorf("failed to get player resources: %w", err)
 	}
 
 	// Track what needs to be updated
 	var resourcesChanged bool
 	var productionChanged bool
 	var trChanged bool
-	newResources := player.Resources
+	newResources := currentResources
 	newProduction := player.Production
 
 	// Track card draw/peek effects
@@ -211,7 +224,8 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 
 		// Terraform rating
 		case types.ResourceTR:
-			if err := p.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, player.TerraformRating+output.Amount); err != nil {
+			newTR := player.TerraformRating + output.Amount
+			if err := player.Resources.UpdateTerraformRating(ctx, newTR); err != nil {
 				log.Error("Failed to update terraform rating", zap.Error(err))
 				return fmt.Errorf("failed to update terraform rating: %w", err)
 			}
@@ -221,7 +235,7 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Use the CardProcessor's applyCardStorageResource method
 			// For actions, the "played card" is the card that has this action
-			if err := p.cardProcessor.ApplyCardStorageResource(ctx, gameID, playerID, action.CardID, output, cardStorageTarget, log); err != nil {
+			if err := p.cardProcessor.ApplyCardStorageResource(ctx, player, action.CardID, output, cardStorageTarget, log); err != nil {
 				return fmt.Errorf("failed to apply card storage resource for action: %w", err)
 			}
 
@@ -246,7 +260,7 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 
 	// Update resources if they changed
 	if resourcesChanged {
-		if err := p.playerRepo.UpdateResources(ctx, gameID, playerID, newResources); err != nil {
+		if err := player.Resources.Update(ctx, newResources); err != nil {
 			log.Error("Failed to update player resources for action outputs", zap.Error(err))
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
@@ -254,7 +268,7 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 
 	// Update production if it changed
 	if productionChanged {
-		if err := p.playerRepo.UpdateProduction(ctx, gameID, playerID, newProduction); err != nil {
+		if err := player.Resources.UpdateProduction(ctx, newProduction); err != nil {
 			log.Error("Failed to update player production for action outputs", zap.Error(err))
 			return fmt.Errorf("failed to update player production: %w", err)
 		}
@@ -277,6 +291,17 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 // ApplyCardDrawPeekEffects handles card draw/peek/take/buy effects from action outputs
 func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, playerID, sourceCardID string, cardDrawAmount, cardPeekAmount, cardTakeAmount, cardBuyAmount int) error {
 	log := logger.WithGameContext(gameID, playerID)
+
+	// Get session and player
+	sess := p.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
 
 	// Determine the scenario and create appropriate PendingCardDrawSelection
 	var cardsToShow []string
@@ -343,8 +368,8 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 		Source:         sourceCardID,
 	}
 
-	// Store in player repository
-	if err := p.playerRepo.UpdatePendingCardDrawSelection(ctx, gameID, playerID, selection); err != nil {
+	// Store in player selection repository
+	if err := player.Selection.UpdatePendingCardDrawSelection(ctx, selection); err != nil {
 		log.Error("Failed to create pending card draw selection", zap.Error(err))
 		return fmt.Errorf("failed to create pending card draw selection: %w", err)
 	}
@@ -363,10 +388,15 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 func (p *Processor) IncrementActionPlayCount(ctx context.Context, gameID, playerID, cardID string, behaviorIndex int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Get current player to read current actions
-	player, err := p.playerRepo.GetByID(ctx, gameID, playerID)
-	if err != nil {
-		return fmt.Errorf("failed to get player for play count update: %w", err)
+	// Get session and player
+	sess := p.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// Find and update the specific action
@@ -384,8 +414,8 @@ func (p *Processor) IncrementActionPlayCount(ctx context.Context, gameID, player
 		}
 	}
 
-	// Update player actions
-	if err := p.playerRepo.UpdatePlayerActions(ctx, gameID, playerID, updatedActions); err != nil {
+	// Update player actions via action repository
+	if err := player.Action.UpdateActions(ctx, updatedActions); err != nil {
 		log.Error("Failed to update player actions for play count", zap.Error(err))
 		return fmt.Errorf("failed to update player actions: %w", err)
 	}

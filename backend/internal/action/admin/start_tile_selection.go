@@ -7,16 +7,15 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
-	sessionBoard "terraforming-mars-backend/internal/session/board"
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	sessionPlayer "terraforming-mars-backend/internal/session/player"
+	sessionBoard "terraforming-mars-backend/internal/session/game/board"
+	sessionGame "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 )
 
 // StartTileSelectionAction handles admin command to start tile selection for testing
 type StartTileSelectionAction struct {
 	gameRepo          sessionGame.Repository
-	playerRepo        sessionPlayer.Repository
+	sessionFactory    session.SessionFactory
 	boardRepo         sessionBoard.Repository
 	boardProcessor    *sessionBoard.BoardProcessor
 	sessionMgrFactory session.SessionManagerFactory
@@ -26,14 +25,14 @@ type StartTileSelectionAction struct {
 // NewStartTileSelectionAction creates a new start tile selection action
 func NewStartTileSelectionAction(
 	gameRepo sessionGame.Repository,
-	playerRepo sessionPlayer.Repository,
+	sessionFactory session.SessionFactory,
 	boardRepo sessionBoard.Repository,
 	boardProcessor *sessionBoard.BoardProcessor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *StartTileSelectionAction {
 	return &StartTileSelectionAction{
 		gameRepo:          gameRepo,
-		playerRepo:        playerRepo,
+		sessionFactory:    sessionFactory,
 		boardRepo:         boardRepo,
 		boardProcessor:    boardProcessor,
 		sessionMgrFactory: sessionMgrFactory,
@@ -46,11 +45,17 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🎯 Admin starting tile selection", zap.String("tile_type", tileType))
 
-	// 1. Validate player exists
-	_, err := a.playerRepo.GetByID(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Player not found", zap.Error(err))
-		return fmt.Errorf("player not found: %w", err)
+	// 1. Get session and validate player exists
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game session not found")
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found")
 	}
 
 	// 2. Get actual board from board repository
@@ -75,14 +80,14 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 		zap.Int("available_count", len(availableHexes)),
 		zap.Strings("positions", availableHexes[:min(5, len(availableHexes))])) // Log first 5
 
-	// 5. Set pending tile selection
+	// 5. Set pending tile selection via player's tile queue repository
 	pendingSelection := &types.PendingTileSelection{
 		TileType:       tileType,
 		AvailableHexes: availableHexes,
 		Source:         "admin_demo",
 	}
 
-	if err := a.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, pendingSelection); err != nil {
+	if err := player.TileQueue.UpdatePendingTileSelection(ctx, pendingSelection); err != nil {
 		log.Error("Failed to set pending tile selection", zap.Error(err))
 		return fmt.Errorf("failed to set pending tile selection: %w", err)
 	}

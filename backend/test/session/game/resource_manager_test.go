@@ -3,7 +3,7 @@ package game
 import (
 	"testing"
 
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 )
 

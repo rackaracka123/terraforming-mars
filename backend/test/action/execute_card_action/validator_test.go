@@ -5,17 +5,54 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action/execute_card_action"
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/types"
-	"terraforming-mars-backend/test/mocks"
 )
 
+// testSessionFactory is a minimal SessionFactory implementation for testing
+type testSessionFactory struct {
+	sessions map[string]*session.Session
+}
+
+func newTestSessionFactory() *testSessionFactory {
+	return &testSessionFactory{
+		sessions: make(map[string]*session.Session),
+	}
+}
+
+func (f *testSessionFactory) Get(gameID string) *session.Session {
+	return f.sessions[gameID]
+}
+
+func (f *testSessionFactory) GetOrCreate(gameID string) *session.Session {
+	if sess, exists := f.sessions[gameID]; exists {
+		return sess
+	}
+	sess := session.NewSession(gameID, events.NewEventBus())
+	sess.Game = types.NewGame(gameID, types.GameSettings{})
+	f.sessions[gameID] = sess
+	return sess
+}
+
+func (f *testSessionFactory) Remove(gameID string) {
+	delete(f.sessions, gameID)
+}
+
+func (f *testSessionFactory) WireGameRepositories(g *types.Game) {
+	// No-op for tests
+}
+
 func TestValidator_ValidateActionInputs_SufficientResources(t *testing.T) {
-	// Setup mock repository
-	mockPlayerRepo := mocks.NewMockPlayerRepository()
-	validator := execute_card_action.NewValidator(mockPlayerRepo)
+	// Setup test session factory
+	sessionFactory := newTestSessionFactory()
+	validator := execute_card_action.NewValidator(sessionFactory)
+
+	// Create session and game
+	sess := sessionFactory.GetOrCreate("game1")
 
 	// Create player with resources
-	player := types.Player{
+	playerData := &types.Player{
 		ID: "player1",
 		Resources: types.Resources{
 			Credits:  20,
@@ -25,8 +62,9 @@ func TestValidator_ValidateActionInputs_SufficientResources(t *testing.T) {
 			Energy:   5,
 			Heat:     8,
 		},
+		GameID: "game1",
 	}
-	mockPlayerRepo.SetPlayer("game1", "player1", player)
+	sess.AddPlayer(playerData)
 
 	// Create action with inputs
 	action := &types.PlayerAction{
@@ -48,18 +86,22 @@ func TestValidator_ValidateActionInputs_SufficientResources(t *testing.T) {
 }
 
 func TestValidator_ValidateActionInputs_InsufficientResources(t *testing.T) {
-	mockPlayerRepo := mocks.NewMockPlayerRepository()
-	validator := execute_card_action.NewValidator(mockPlayerRepo)
+	sessionFactory := newTestSessionFactory()
+	validator := execute_card_action.NewValidator(sessionFactory)
+
+	// Create session and game
+	sess := sessionFactory.GetOrCreate("game1")
 
 	// Create player with limited resources
-	player := types.Player{
+	playerData := &types.Player{
 		ID: "player1",
 		Resources: types.Resources{
 			Credits: 5, // Not enough
 			Steel:   1, // Not enough
 		},
+		GameID: "game1",
 	}
-	mockPlayerRepo.SetPlayer("game1", "player1", player)
+	sess.AddPlayer(playerData)
 
 	tests := []struct {
 		name   string
@@ -106,18 +148,22 @@ func TestValidator_ValidateActionInputs_InsufficientResources(t *testing.T) {
 }
 
 func TestValidator_ValidateActionInputs_WithChoiceIndex(t *testing.T) {
-	mockPlayerRepo := mocks.NewMockPlayerRepository()
-	validator := execute_card_action.NewValidator(mockPlayerRepo)
+	sessionFactory := newTestSessionFactory()
+	validator := execute_card_action.NewValidator(sessionFactory)
+
+	// Create session and game
+	sess := sessionFactory.GetOrCreate("game1")
 
 	// Create player with resources
-	player := types.Player{
+	playerData := &types.Player{
 		ID: "player1",
 		Resources: types.Resources{
 			Credits:  20,
 			Titanium: 5,
 		},
+		GameID: "game1",
 	}
-	mockPlayerRepo.SetPlayer("game1", "player1", player)
+	sess.AddPlayer(playerData)
 
 	// Create action with base inputs and choice-specific inputs
 	choiceIndex := 0
@@ -146,17 +192,21 @@ func TestValidator_ValidateActionInputs_WithChoiceIndex(t *testing.T) {
 }
 
 func TestValidator_ValidateActionInputs_CardStorage(t *testing.T) {
-	mockPlayerRepo := mocks.NewMockPlayerRepository()
-	validator := execute_card_action.NewValidator(mockPlayerRepo)
+	sessionFactory := newTestSessionFactory()
+	validator := execute_card_action.NewValidator(sessionFactory)
+
+	// Create session and game
+	sess := sessionFactory.GetOrCreate("game1")
 
 	// Create player with card storage
-	player := types.Player{
+	playerData := &types.Player{
 		ID: "player1",
 		ResourceStorage: map[string]int{
 			"card1": 5, // 5 animals on this card
 		},
+		GameID: "game1",
 	}
-	mockPlayerRepo.SetPlayer("game1", "player1", player)
+	sess.AddPlayer(playerData)
 
 	tests := []struct {
 		name       string
@@ -203,8 +253,8 @@ func TestValidator_ValidateActionInputs_CardStorage(t *testing.T) {
 }
 
 func TestValidator_ValidateActionInputs_PlayerNotFound(t *testing.T) {
-	mockPlayerRepo := mocks.NewMockPlayerRepository()
-	validator := execute_card_action.NewValidator(mockPlayerRepo)
+	sessionFactory := newTestSessionFactory()
+	validator := execute_card_action.NewValidator(sessionFactory)
 
 	action := &types.PlayerAction{
 		CardID: "card1",

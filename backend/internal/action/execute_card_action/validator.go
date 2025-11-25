@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -14,15 +14,15 @@ import (
 
 // Validator handles validation logic for card action execution
 type Validator struct {
-	resourceMgr *game.ResourceManager
-	playerRepo  player.Repository
+	resourceMgr    *game.ResourceManager
+	sessionFactory session.SessionFactory
 }
 
 // NewValidator creates a new Validator instance
-func NewValidator(playerRepo player.Repository) *Validator {
+func NewValidator(sessionFactory session.SessionFactory) *Validator {
 	return &Validator{
-		resourceMgr: game.NewResourceManager(),
-		playerRepo:  playerRepo,
+		resourceMgr:    game.NewResourceManager(),
+		sessionFactory: sessionFactory,
 	}
 }
 
@@ -31,10 +31,21 @@ func NewValidator(playerRepo player.Repository) *Validator {
 func (v *Validator) ValidateActionInputs(ctx context.Context, gameID, playerID string, action *types.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
-	// Get current player to check resources
-	player, err := v.playerRepo.GetByID(ctx, gameID, playerID)
+	// Get session and player to check resources
+	sess := v.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Get current resources for validation
+	currentResources, err := player.Resources.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get player for input validation: %w", err)
+		return fmt.Errorf("failed to get player resources: %w", err)
 	}
 
 	// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
@@ -55,7 +66,7 @@ func (v *Validator) ValidateActionInputs(ctx context.Context, gameID, playerID s
 		case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
 			types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
 			// Use ResourceManager for standard resource validation
-			if err := v.resourceMgr.ValidateHasResource(player.Resources, input.Type, input.Amount); err != nil {
+			if err := v.resourceMgr.ValidateHasResource(currentResources, input.Type, input.Amount); err != nil {
 				return err
 			}
 

@@ -29,8 +29,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/session"
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	sessionPlayer "terraforming-mars-backend/internal/session/player"
+	sessionGame "terraforming-mars-backend/internal/session/game/core"
 )
 
 // RegisterHandlers registers all message type handlers with the hub
@@ -38,7 +37,7 @@ func RegisterHandlers(
 	hub *core.Hub,
 	sessionManagerFactory session.SessionManagerFactory,
 	newGameRepo sessionGame.Repository,
-	newPlayerRepo sessionPlayer.Repository,
+	sessionFactory session.SessionFactory,
 	startGameAction *action.StartGameAction,
 	joinGameAction *action.JoinGameAction,
 	playerReconnectedAction *action.PlayerReconnectedAction,
@@ -105,7 +104,7 @@ func RegisterHandlers(
 	// Register card selection handlers
 	// NEW ARCHITECTURE: Using action pattern for select_starting_card and select_cards
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(confirmSellPatentsAction, confirmProductionCardsAction, newPlayerRepo, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(confirmSellPatentsAction, confirmProductionCardsAction, sessionFactory, parser))
 	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, parser))
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
 

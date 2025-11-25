@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -106,7 +106,13 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 
 	// 8. Award credits
 	if totalReward > 0 {
-		newResources := player.Resources
+		currentResources, err := player.Resources.Get(ctx)
+		if err != nil {
+			log.Error("Failed to get player resources", zap.Error(err))
+			return fmt.Errorf("failed to get resources: %w", err)
+		}
+
+		newResources := currentResources
 		newResources.Credits += totalReward
 		err = player.Resources.Update(ctx, newResources)
 		if err != nil {

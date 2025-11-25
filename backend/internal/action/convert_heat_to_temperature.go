@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -72,15 +71,21 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 		zap.Int("final_cost", requiredHeat))
 
 	// 5. Validate player has enough heat
-	if player.Resources.Heat < requiredHeat {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Heat < requiredHeat {
 		log.Warn("Player cannot afford heat conversion",
 			zap.Int("required", requiredHeat),
-			zap.Int("available", player.Resources.Heat))
-		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, player.Resources.Heat)
+			zap.Int("available", currentResources.Heat))
+		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, currentResources.Heat)
 	}
 
 	// 6. Deduct heat
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Heat -= requiredHeat
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {

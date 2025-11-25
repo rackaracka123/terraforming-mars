@@ -6,8 +6,8 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )

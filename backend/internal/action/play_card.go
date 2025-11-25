@@ -6,10 +6,9 @@ import (
 	"slices"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
-	"terraforming-mars-backend/internal/session/tile"
+	"terraforming-mars-backend/internal/session/game/board"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -20,7 +19,7 @@ type PlayCardAction struct {
 	BaseAction
 	gameRepo      game.Repository
 	cardManager   card.CardManager
-	tileProcessor *tile.Processor
+	tileProcessor *board.Processor
 }
 
 // NewPlayCardAction creates a new play card action
@@ -28,7 +27,7 @@ func NewPlayCardAction(
 	gameRepo game.Repository,
 	sessionFactory session.SessionFactory,
 	cardManager card.CardManager,
-	tileProcessor *tile.Processor,
+	tileProcessor *board.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayCardAction {
 	return &PlayCardAction{
@@ -87,8 +86,11 @@ func (a *PlayCardAction) Execute(
 		zap.Strings("player_cards", player.Cards),
 		zap.Int("card_count", len(player.Cards)))
 
-	// 5. Validate card can be played (requirements, affordability, choices)
-	err = a.cardManager.CanPlay(ctx, gameID, playerID, cardID, payment, choiceIndex, cardStorageTarget)
+	// 5. Convert game to types.Game (for card manager)
+	gameEntity := convertGameToTypesGame(g)
+
+	// 6. Validate card can be played (requirements, affordability, choices)
+	err = a.cardManager.CanPlay(ctx, gameEntity, player, cardID, payment, choiceIndex, cardStorageTarget)
 	if err != nil {
 		log.Error("Cannot play card", zap.Error(err))
 		return fmt.Errorf("cannot play card: %w", err)
@@ -96,8 +98,8 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card requirements and affordability validated")
 
-	// 6. Play card (deduct payment, move to played cards, apply effects, subscribe passive effects)
-	err = a.cardManager.PlayCard(ctx, gameID, playerID, cardID, payment, choiceIndex, cardStorageTarget)
+	// 7. Play card (deduct payment, move to played cards, apply effects, subscribe passive effects)
+	err = a.cardManager.PlayCard(ctx, gameEntity, player, cardID, payment, choiceIndex, cardStorageTarget)
 	if err != nil {
 		log.Error("Failed to play card", zap.Error(err))
 		return fmt.Errorf("failed to play card: %w", err)
@@ -105,10 +107,10 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card played and effects applied")
 
-	// 7. Tile queue processing (now automatic via TileQueueCreatedEvent)
+	// 8. Tile queue processing (now automatic via TileQueueCreatedEvent)
 	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
-	// 8. Consume action (only if not unlimited actions)
+	// 9. Consume action (only if not unlimited actions)
 	// Refresh player to get updated state
 	player, exists = sess.GetPlayer(playerID)
 	if !exists {
@@ -126,9 +128,35 @@ func (a *PlayCardAction) Execute(
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
 	}
 
-	// 9. Broadcast state to all players
+	// 10. Broadcast state to all players
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("🎉 Card played successfully")
 	return nil
+}
+
+// convertGameToTypesGame converts game.Game to types.Game
+func convertGameToTypesGame(g *game.Game) *types.Game {
+	return &types.Game{
+		ID:        g.ID,
+		CreatedAt: g.CreatedAt,
+		UpdatedAt: g.UpdatedAt,
+		Status:    types.GameStatus(g.Status),
+		Settings: types.GameSettings{
+			MaxPlayers:      g.Settings.MaxPlayers,
+			Temperature:     g.Settings.Temperature,
+			Oxygen:          g.Settings.Oxygen,
+			Oceans:          g.Settings.Oceans,
+			DevelopmentMode: g.Settings.DevelopmentMode,
+			CardPacks:       g.Settings.CardPacks,
+		},
+		PlayerIDs:        g.PlayerIDs,
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     types.GamePhase(g.CurrentPhase),
+		GlobalParameters: g.GlobalParameters,
+		ViewingPlayerID:  g.ViewingPlayerID,
+		CurrentTurn:      g.CurrentTurn,
+		Generation:       g.Generation,
+		Board:            g.Board,
+	}
 }

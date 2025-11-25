@@ -1,88 +1,53 @@
-package tile
+package board
 
 import (
 	"context"
 	"fmt"
 
 	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/board"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
 
 // Processor handles tile queue processing and tile placement logic
 type Processor struct {
 	gameRepo       game.Repository
-	playerRepo     player.Repository
-	boardRepo      board.Repository
-	boardProcessor *board.BoardProcessor
-	eventBus       *events.EventBusImpl
+	boardRepo      Repository
+	boardProcessor *BoardProcessor
 }
 
 // NewProcessor creates a new TileProcessor instance
 func NewProcessor(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
-	boardRepo board.Repository,
-	boardProcessor *board.BoardProcessor,
-	eventBus *events.EventBusImpl,
+	boardRepo Repository,
+	boardProcessor *BoardProcessor,
 ) *Processor {
 	return &Processor{
 		gameRepo:       gameRepo,
-		playerRepo:     playerRepo,
 		boardRepo:      boardRepo,
 		boardProcessor: boardProcessor,
-		eventBus:       eventBus,
 	}
-}
-
-// SubscribeToEvents sets up event subscriptions for automatic tile queue processing
-func (p *Processor) SubscribeToEvents() {
-	log := logger.Get()
-
-	// Subscribe to TileQueueCreatedEvent for automatic processing
-	events.Subscribe(p.eventBus, func(event player.TileQueueCreatedEvent) {
-		log.Info("🎯 TileQueueCreatedEvent received, processing queue automatically",
-			zap.String("game_id", event.GameID),
-			zap.String("player_id", event.PlayerID),
-			zap.Int("queue_size", event.QueueSize),
-			zap.String("source", event.Source))
-
-		// Process tile queue immediately and synchronously
-		ctx := context.Background()
-		err := p.ProcessTileQueue(ctx, event.GameID, event.PlayerID)
-		if err != nil {
-			log.Warn("⚠️ Failed to process tile queue from event",
-				zap.String("game_id", event.GameID),
-				zap.String("player_id", event.PlayerID),
-				zap.Error(err))
-			// Non-fatal - don't crash if tile processing fails
-		}
-	})
-
-	log.Info("✅ TileProcessor event subscriptions initialized")
 }
 
 // ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection
 // This should be called after any operation that creates a tile queue (e.g., card play, standard project)
 // Returns nil if queue is empty or doesn't exist
-func (p *Processor) ProcessTileQueue(ctx context.Context, gameID, playerID string) error {
-	log := logger.WithGameContext(gameID, playerID)
+func (p *Processor) ProcessTileQueue(ctx context.Context, player *player.Player) error {
+	log := logger.WithGameContext(player.GameID, player.ID)
 	log.Debug("🎯 Processing tile queue")
 
 	// Process the queue through the private validation method
-	return p.processNextTileInQueueWithValidation(ctx, gameID, playerID)
+	return p.processNextTileInQueueWithValidation(ctx, player)
 }
 
 // processNextTileInQueueWithValidation processes the next tile in queue with business logic validation
-func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, gameID, playerID string) error {
-	log := logger.WithGameContext(gameID, playerID)
+func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, player *player.Player) error {
+	log := logger.WithGameContext(player.GameID, player.ID)
 
 	// Get the queue to extract the source (card ID or project ID)
-	queue, err := p.playerRepo.GetPendingTileSelectionQueue(ctx, gameID, playerID)
+	queue, err := player.TileQueue.GetQueue(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get tile queue: %w", err)
 	}
@@ -97,7 +62,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, ga
 
 	for {
 		// Pop the next tile type from repository (pure data operation)
-		nextTileType, err := p.playerRepo.ProcessNextTileInQueue(ctx, gameID, playerID)
+		nextTileType, err := player.TileQueue.ProcessNext(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to pop next tile from queue: %w", err)
 		}
@@ -113,7 +78,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, ga
 			zap.String("source", source))
 
 		// Validate this tile placement is still possible (especially important for oceans)
-		canPlace, err := p.validateTilePlacement(ctx, gameID, nextTileType)
+		canPlace, err := p.validateTilePlacement(ctx, player.GameID, nextTileType)
 		if err != nil {
 			return fmt.Errorf("failed to validate tile placement: %w", err)
 		}
@@ -127,10 +92,10 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, ga
 			// For greenery, pass playerID to enforce adjacency rule
 			var playerIDPtr *string
 			if nextTileType == "greenery" {
-				playerIDPtr = &playerID
+				playerIDPtr = &player.ID
 			}
 
-			availableHexes, err := p.calculateAvailableHexesForTileType(ctx, gameID, playerIDPtr, nextTileType)
+			availableHexes, err := p.calculateAvailableHexesForTileType(ctx, player.GameID, playerIDPtr, nextTileType)
 			if err != nil {
 				return fmt.Errorf("failed to calculate available hexes: %w", err)
 			}
@@ -142,7 +107,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, ga
 				Source:         source,
 			}
 
-			if err := p.playerRepo.UpdatePendingTileSelection(ctx, gameID, playerID, selection); err != nil {
+			if err := player.TileQueue.UpdatePendingTileSelection(ctx, selection); err != nil {
 				return fmt.Errorf("failed to set pending tile selection: %w", err)
 			}
 
@@ -176,7 +141,7 @@ func (p *Processor) validateTilePlacement(ctx context.Context, gameID, tileType 
 		// Count existing ocean tiles on the board
 		oceanCount := 0
 		for _, tile := range b.Tiles {
-			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == board.ResourceOceanTile {
+			if tile.OccupiedBy != nil && tile.OccupiedBy.Type == ResourceOceanTile {
 				oceanCount++
 			}
 		}

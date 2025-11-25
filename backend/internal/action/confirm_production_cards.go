@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -86,15 +86,21 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	cost := len(selectedCardIDs) * 3
 
 	// 8. Validate player has enough credits
-	if player.Resources.Credits < cost {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Credits < cost {
 		log.Error("Insufficient credits",
 			zap.Int("cost", cost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
+			zap.Int("available", currentResources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, currentResources.Credits)
 	}
 
 	// 9. Deduct card selection cost
-	updatedResources := player.Resources
+	updatedResources := currentResources
 	updatedResources.Credits -= cost
 
 	err = player.Resources.Update(ctx, updatedResources)

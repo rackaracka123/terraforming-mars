@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	sessionGame "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -89,23 +88,8 @@ func ValidateGamePhase(
 	return nil
 }
 
-// ValidatePlayer validates that a player exists in the specified game
-// Returns the player if valid, or an error if not found
-func ValidatePlayer(
-	ctx context.Context,
-	playerRepo player.Repository,
-	gameID, playerID string,
-	log *zap.Logger,
-) (*player.Player, error) {
-	p, err := playerRepo.GetByID(ctx, gameID, playerID)
-	if err != nil {
-		log.Error("Player not found",
-			zap.Error(err),
-			zap.String("player_id", playerID))
-		return nil, fmt.Errorf("player not found: %w", err)
-	}
-	return p, nil
-}
+// ValidatePlayer is deprecated - use session.GetPlayer() directly instead
+// This helper function is no longer needed with the new session-based architecture
 
 // ValidateHostPermission validates that the specified player is the game host
 // Returns error if player is not the host

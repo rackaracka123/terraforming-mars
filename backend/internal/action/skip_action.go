@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/deck"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -60,7 +60,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	players := sess.GetAllPlayers()
 
 	// 4. Find current player and their index
-	var currentPlayer *session.Player
+	var currentPlayer *player.Player
 	currentPlayerIndex := -1
 	for i, p := range players {
 		if p.ID == playerID {
@@ -196,32 +196,38 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 }
 
 // executeProductionPhase handles the production phase when all players have passed
-func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID string, players []*session.Player) error {
+func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID string, players []*player.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Info("🏭 Starting production phase")
 
 	// 1. For each player: energy→heat, apply production, draw cards
 	for _, p := range players {
-		// A. Convert energy to heat
-		energyConverted := p.Resources.Energy
-
-		// B. Calculate new resources with production
-		newResources := types.Resources{
-			Credits:  p.Resources.Credits + p.Production.Credits + p.TerraformRating,
-			Steel:    p.Resources.Steel + p.Production.Steel,
-			Titanium: p.Resources.Titanium + p.Production.Titanium,
-			Plants:   p.Resources.Plants + p.Production.Plants,
-			Energy:   p.Production.Energy, // Reset to production amount
-			Heat:     p.Resources.Heat + energyConverted + p.Production.Heat,
+		// A. Get current resources
+		currentResources, err := p.Resources.Get(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get resources for player %s: %w", p.ID, err)
 		}
 
-		// C. Update player resources
-		err := p.Resources.Update(ctx, newResources)
+		// B. Convert energy to heat
+		energyConverted := currentResources.Energy
+
+		// C. Calculate new resources with production
+		newResources := types.Resources{
+			Credits:  currentResources.Credits + p.Production.Credits + p.TerraformRating,
+			Steel:    currentResources.Steel + p.Production.Steel,
+			Titanium: currentResources.Titanium + p.Production.Titanium,
+			Plants:   currentResources.Plants + p.Production.Plants,
+			Energy:   p.Production.Energy, // Reset to production amount
+			Heat:     currentResources.Heat + energyConverted + p.Production.Heat,
+		}
+
+		// D. Update player resources
+		err = p.Resources.Update(ctx, newResources)
 		if err != nil {
 			return fmt.Errorf("failed to update resources for player %s: %w", p.ID, err)
 		}
 
-		// D. Reset player state for new generation
+		// E. Reset player state for new generation
 		err = p.Action.UpdatePassed(ctx, false)
 		if err != nil {
 			return fmt.Errorf("failed to reset passed status: %w", err)
@@ -237,7 +243,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 			return fmt.Errorf("failed to reset available actions: %w", err)
 		}
 
-		// E. Draw 4 cards for production phase selection
+		// F. Draw 4 cards for production phase selection
 		drawnCards := []string{}
 		for i := 0; i < 4; i++ {
 			cardIDs, err := a.deckRepo.DrawProjectCards(ctx, gameID, 1)
@@ -251,12 +257,12 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 			drawnCards = append(drawnCards, cardIDs[0])
 		}
 
-		// F. Set production phase data
+		// G. Set production phase data
 		productionPhaseData := &types.ProductionPhase{
 			AvailableCards:    drawnCards,
 			SelectionComplete: false,
-			BeforeResources:   p.Resources,  // Before production
-			AfterResources:    newResources, // After production
+			BeforeResources:   currentResources, // Before production
+			AfterResources:    newResources,     // After production
 			EnergyConverted:   energyConverted,
 			CreditsIncome:     p.Production.Credits + p.TerraformRating,
 		}

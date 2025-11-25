@@ -92,7 +92,7 @@ func ToGameDto(game types.Game, players []types.Player, viewingPlayerID string, 
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
-		Board:            ToBoardDto(game.Board),
+		Board:            ToBoardDto(game.GetBoard()),
 		PaymentConstants: paymentConstants,
 	}
 }
@@ -329,7 +329,7 @@ func ToGameDtoBasic(game types.Game, paymentConstants PaymentConstantsDto) GameD
 		CurrentTurn:      game.CurrentTurn,
 		Generation:       game.Generation,
 		TurnOrder:        game.PlayerIDs,
-		Board:            ToBoardDto(game.Board),
+		Board:            ToBoardDto(game.GetBoard()),
 		PaymentConstants: paymentConstants,
 	}
 }

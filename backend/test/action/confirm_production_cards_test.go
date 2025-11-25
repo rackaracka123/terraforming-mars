@@ -7,11 +7,45 @@ import (
 	"github.com/stretchr/testify/require"
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	"terraforming-mars-backend/internal/session"
+	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 	"terraforming-mars-backend/test"
 )
+
+// testSessionFactory is a minimal SessionFactory implementation for testing
+type testSessionFactory struct {
+	sessions map[string]*session.Session
+}
+
+func newTestSessionFactory() *testSessionFactory {
+	return &testSessionFactory{
+		sessions: make(map[string]*session.Session),
+	}
+}
+
+func (f *testSessionFactory) Get(gameID string) *session.Session {
+	return f.sessions[gameID]
+}
+
+func (f *testSessionFactory) GetOrCreate(gameID string) *session.Session {
+	if sess, exists := f.sessions[gameID]; exists {
+		return sess
+	}
+	sess := session.NewSession(gameID, events.NewEventBus())
+	sess.Game = types.NewGame(gameID, types.GameSettings{})
+	f.sessions[gameID] = sess
+	return sess
+}
+
+func (f *testSessionFactory) Remove(gameID string) {
+	delete(f.sessions, gameID)
+}
+
+func (f *testSessionFactory) WireGameRepositories(g *types.Game) {
+	// No-op for tests
+}
 
 func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	ctx := context.Background()
@@ -19,13 +53,15 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 
 	// Create repositories
 	gameRepo := game.NewRepository(eventBus)
-	playerRepo := player.NewRepository(eventBus)
+
+	// Create session factory
+	sessionFactory := newTestSessionFactory()
 
 	// Initialize mock session manager
 	sessionMgr := test.NewMockSessionManager()
 
-	// Create action (cardRepo not needed for these tests)
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
+	// Create action
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, sessionFactory, sessionMgr)
 
 	// Setup: Create game
 	currentTurn := "player1"
@@ -41,21 +77,27 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	err := gameRepo.Create(ctx, testGame)
 	require.NoError(t, err)
 
-	// Setup: Create player with production phase
-	testPlayer := player.NewPlayer("TestPlayer")
-	testPlayer.ID = "player1"
-	testPlayer.Resources = types.Resources{
-		Credits: 50, // Enough for 3 cards (9 MC)
+	// Setup: Create session and player
+	sess := sessionFactory.GetOrCreate("test-game")
+	playerData := &types.Player{
+		ID:     "player1",
+		Name:   "TestPlayer",
+		GameID: "test-game",
+		Resources: types.Resources{
+			Credits: 50, // Enough for 3 cards (9 MC)
+		},
+		ProductionPhase: &types.ProductionPhase{
+			AvailableCards:    []string{"card1", "card2", "card3", "card4"},
+			SelectionComplete: false,
+		},
 	}
-	testPlayer.ProductionPhase = &types.ProductionPhase{
-		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
-		SelectionComplete: false,
-		BeforeResources:   testPlayer.Resources,
-		AfterResources:    testPlayer.Resources,
-	}
+	sess.AddPlayer(playerData)
 
-	err = playerRepo.Create(ctx, "test-game", testPlayer)
-	require.NoError(t, err)
+	// Set production phase resources (need to access via repository)
+	wrappedPlayer, _ := sess.GetPlayer("player1")
+	currentResources, _ := wrappedPlayer.Resources.Get(ctx)
+	playerData.ProductionPhase.BeforeResources = currentResources
+	playerData.ProductionPhase.AfterResources = currentResources
 
 	// Execute: Confirm selection of 2 cards
 	selectedCards := []string{"card1", "card3"}
@@ -63,12 +105,13 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify: Player has cards in hand
-	updatedPlayer, err := playerRepo.GetByID(ctx, "test-game", "player1")
-	require.NoError(t, err)
+	updatedPlayer, _ := sess.GetPlayer("player1")
 	require.Equal(t, selectedCards, updatedPlayer.Cards)
 
 	// Verify: Credits deducted (2 cards × 3 MC = 6 MC)
-	require.Equal(t, 44, updatedPlayer.Resources.Credits)
+	updatedResources, err := updatedPlayer.Resources.Get(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 44, updatedResources.Credits)
 
 	// Verify: Phase advanced to Action (all players ready)
 	updatedGame, err := gameRepo.GetByID(ctx, "test-game")
@@ -76,9 +119,7 @@ func TestConfirmProductionCardsAction_Success(t *testing.T) {
 	require.Equal(t, game.GamePhaseAction, updatedGame.CurrentPhase)
 
 	// Verify: ProductionPhase cleared (so frontend modal closes)
-	finalPlayer, err := playerRepo.GetByID(ctx, "test-game", "player1")
-	require.NoError(t, err)
-	require.Nil(t, finalPlayer.ProductionPhase, "ProductionPhase should be cleared to close modal")
+	require.Nil(t, updatedPlayer.ProductionPhase, "ProductionPhase should be cleared to close modal")
 }
 
 func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
@@ -86,11 +127,10 @@ func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
 	eventBus := events.NewEventBus()
 
 	gameRepo := game.NewRepository(eventBus)
-	playerRepo := player.NewRepository(eventBus)
-
+	sessionFactory := newTestSessionFactory()
 	sessionMgr := test.NewMockSessionManager()
 
-	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, playerRepo, nil, sessionMgr)
+	confirmAction := action.NewConfirmProductionCardsAction(gameRepo, sessionFactory, sessionMgr)
 
 	// Setup game
 	currentTurn := "player1"
@@ -106,19 +146,21 @@ func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
 	err := gameRepo.Create(ctx, testGame)
 	require.NoError(t, err)
 
-	// Setup player with insufficient credits
-	testPlayer := player.NewPlayer("TestPlayer")
-	testPlayer.ID = "player1"
-	testPlayer.Resources = types.Resources{
-		Credits: 5, // Not enough for 3 cards (9 MC needed)
+	// Setup: Create session and player with insufficient credits
+	sess := sessionFactory.GetOrCreate("test-game")
+	playerData := &types.Player{
+		ID:     "player1",
+		Name:   "TestPlayer",
+		GameID: "test-game",
+		Resources: types.Resources{
+			Credits: 5, // Not enough for 3 cards (9 MC needed)
+		},
+		ProductionPhase: &types.ProductionPhase{
+			AvailableCards:    []string{"card1", "card2", "card3", "card4"},
+			SelectionComplete: false,
+		},
 	}
-	testPlayer.ProductionPhase = &types.ProductionPhase{
-		AvailableCards:    []string{"card1", "card2", "card3", "card4"},
-		SelectionComplete: false,
-	}
-
-	err = playerRepo.Create(ctx, "test-game", testPlayer)
-	require.NoError(t, err)
+	sess.AddPlayer(playerData)
 
 	// Execute: Try to select 3 cards (requires 9 MC)
 	selectedCards := []string{"card1", "card2", "card3"}
@@ -129,10 +171,13 @@ func TestConfirmProductionCardsAction_InsufficientCredits(t *testing.T) {
 	require.Contains(t, err.Error(), "insufficient credits")
 
 	// Verify: Player state unchanged
-	updatedPlayer, err := playerRepo.GetByID(ctx, "test-game", "player1")
-	require.NoError(t, err)
+	updatedPlayer, _ := sess.GetPlayer("player1")
 	require.Empty(t, updatedPlayer.Cards, "No cards should be added on failure")
-	require.Equal(t, 5, updatedPlayer.Resources.Credits, "Credits should not be deducted on failure")
+
+	updatedResources, err := updatedPlayer.Resources.Get(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 5, updatedResources.Credits, "Credits should not be deducted on failure")
+
 	require.False(t, updatedPlayer.ProductionPhase.SelectionComplete, "Selection should not be marked complete on failure")
 }
 

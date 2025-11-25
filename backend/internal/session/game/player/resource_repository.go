@@ -27,9 +27,17 @@ func NewResourceRepository(player *Player, eventBus *events.EventBusImpl) *Resou
 	}
 }
 
+// Get returns a copy of the player's resources (thread-safe)
+func (r *ResourceRepository) Get(ctx context.Context) (types.Resources, error) {
+	r.player.mu.RLock()
+	defer r.player.mu.RUnlock()
+	return r.player.Player.Resources, nil
+}
+
 // Update updates player resources and publishes a batched ResourcesChangedEvent
 // Auto-saves changes to the player
 func (r *ResourceRepository) Update(ctx context.Context, resources types.Resources) error {
+	r.player.mu.Lock()
 	oldResources := r.player.Player.Resources
 
 	// Calculate changes (delta for each resource type)
@@ -55,6 +63,7 @@ func (r *ResourceRepository) Update(ctx context.Context, resources types.Resourc
 
 	// Update player resources (auto-saved, no explicit save call needed)
 	r.player.Player.Resources = resources
+	r.player.mu.Unlock()
 
 	// Publish single batched event if any resources changed
 	if len(changes) > 0 {
@@ -72,6 +81,8 @@ func (r *ResourceRepository) Update(ctx context.Context, resources types.Resourc
 // UpdateProduction updates player production
 // Auto-saves changes to the player
 func (r *ResourceRepository) UpdateProduction(ctx context.Context, production types.Production) error {
+	r.player.mu.Lock()
+	defer r.player.mu.Unlock()
 	r.player.Production = production
 	return nil
 }
@@ -79,8 +90,10 @@ func (r *ResourceRepository) UpdateProduction(ctx context.Context, production ty
 // UpdateTerraformRating updates player terraform rating and publishes TerraformRatingChangedEvent
 // Auto-saves changes to the player
 func (r *ResourceRepository) UpdateTerraformRating(ctx context.Context, rating int) error {
+	r.player.mu.Lock()
 	oldRating := r.player.TerraformRating
 	r.player.TerraformRating = rating
+	r.player.mu.Unlock()
 
 	// Publish TerraformRatingChangedEvent
 	if oldRating != rating {

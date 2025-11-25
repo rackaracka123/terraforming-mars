@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -71,15 +71,21 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID, pla
 		zap.Int("final_cost", requiredPlants))
 
 	// 5. Validate player has enough plants
-	if player.Resources.Plants < requiredPlants {
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	if currentResources.Plants < requiredPlants {
 		log.Warn("Player cannot afford plants conversion",
 			zap.Int("required", requiredPlants),
-			zap.Int("available", player.Resources.Plants))
-		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, player.Resources.Plants)
+			zap.Int("available", currentResources.Plants))
+		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, currentResources.Plants)
 	}
 
 	// 6. Deduct plants
-	newResources := player.Resources
+	newResources := currentResources
 	newResources.Plants -= requiredPlants
 	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
@@ -92,7 +98,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID, pla
 		zap.Int("remaining_plants", newResources.Plants))
 
 	// 7. Create tile queue with "greenery" type
-	err = player.TileQueue.CreateTileQueue(ctx, "convert-plants-to-greenery", []string{"greenery"})
+	err = player.TileQueue.CreateQueue(ctx, "convert-plants-to-greenery", []string{"greenery"})
 	if err != nil {
 		log.Error("Failed to create tile queue", zap.Error(err))
 		return fmt.Errorf("failed to create tile queue: %w", err)

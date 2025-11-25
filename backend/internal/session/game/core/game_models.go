@@ -1,4 +1,4 @@
-package game
+package core
 
 import (
 	"terraforming-mars-backend/internal/session/types"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
+	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -115,7 +115,13 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 
 	// 8. Apply default starting resources (typically from corporation)
 	// For simplicity, give all players 42 MC to start
-	startingResources := player.Resources
+	currentResources, err := player.Resources.Get(ctx)
+	if err != nil {
+		log.Error("Failed to get player resources", zap.Error(err))
+		return fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	startingResources := currentResources
 	startingResources.Credits = 42
 
 	// 9. Deduct card selection cost

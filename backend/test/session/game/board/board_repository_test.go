@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/session/board"
+	"terraforming-mars-backend/internal/session/game/board"
 )
 
 func TestBoardRepository_GenerateBoard(t *testing.T) {

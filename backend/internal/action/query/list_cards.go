@@ -5,9 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	sessionCard "terraforming-mars-backend/internal/session/card"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
+	sessionCard "terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -21,13 +19,11 @@ type ListCardsAction struct {
 
 // NewListCardsAction creates a new list cards query action
 func NewListCardsAction(
-	gameRepo game.Repository,
-	playerRepo player.Repository,
 	cardRepo sessionCard.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 ) *ListCardsAction {
 	return &ListCardsAction{
-		BaseAction: action.NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionFactory, nil),
 		cardRepo:   cardRepo,
 	}
 }
