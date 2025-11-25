@@ -21,17 +21,17 @@ type SetResourcesAction struct {
 // NewSetResourcesAction creates a new set resources admin action
 func NewSetResourcesAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetResourcesAction {
 	return &SetResourcesAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the set resources admin action
-func (a *SetResourcesAction) Execute(ctx context.Context, gameID, playerID string, resources types.Resources) error {
+func (a *SetResourcesAction) Execute(ctx context.Context, sess *session.Session, playerID string, resources types.Resources) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("💰 Admin: Setting player resources",
 		zap.Int("credits", resources.Credits),
@@ -48,12 +48,6 @@ func (a *SetResourcesAction) Execute(ctx context.Context, gameID, playerID strin
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

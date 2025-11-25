@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
@@ -20,10 +19,9 @@ type ListGamesAction struct {
 // NewListGamesAction creates a new list games query action
 func NewListGamesAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 ) *ListGamesAction {
 	return &ListGamesAction{
-		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		BaseAction: action.NewBaseAction(nil),
 		gameRepo:   gameRepo,
 	}
 }

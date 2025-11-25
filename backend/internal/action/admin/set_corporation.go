@@ -14,18 +14,20 @@ import (
 // SetCorporationAction handles the admin action to set a player's corporation
 type SetCorporationAction struct {
 	action.BaseAction
-	gameRepo game.Repository
+	gameRepo       game.Repository
+	sessionFactory session.SessionFactory
 }
 
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
-		gameRepo:   gameRepo,
+		BaseAction:     action.NewBaseAction(sessionMgrFactory),
+		gameRepo:       gameRepo,
+		sessionFactory: sessionFactory,
 	}
 }
 
@@ -42,10 +44,10 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID, playerID, co
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
+	sess := a.sessionFactory.Get(gameID)
 	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
+		log.Error("Session not found")
+		return fmt.Errorf("game session not found: %s", gameID)
 	}
 
 	player, exists := sess.GetPlayer(playerID)

@@ -64,16 +64,21 @@ func main() {
 	hub := core.NewHub()
 
 	// ========== NEW ARCHITECTURE: Initialize Action Pattern ==========
-	// Initialize repositories first (needed by SessionFactory)
+	// Initialize repositories first (needed by actions during migration)
+	// NOTE: These are deprecated facades - Phase 4-5 will migrate actions to use Session directly
 	newGameRepo := game.NewRepository(eventBus)
 	newCardRepo := sessionCard.NewRepository(newDeckRepo) // Use NEW deck repository
-	newBoardRepo := board.NewRepository(eventBus)
-	log.Info("🗺️  Repositories initialized")
 
-	// Initialize SessionFactory with repositories for game-scoped sessions
-	// SessionFactory wires up Game instances with repositories and infrastructure
-	sessionFactory := session.NewSessionFactory(eventBus, newGameRepo, newBoardRepo, newCardRepo, newDeckRepo)
-	log.Info("🎮 SessionFactory initialized with repository dependencies")
+	// Create shared board storage and global board repository for actions (temporary)
+	// SessionFactory will create game-scoped repositories internally
+	sharedBoards := make(map[string]*board.Board)
+	newBoardRepo := board.NewRepository("", sharedBoards, eventBus) // Empty gameID = global instance
+	log.Info("🗺️  Repositories initialized (facade for backwards compatibility)")
+
+	// Initialize SessionFactory with card and deck repositories
+	// SessionFactory manages game-scoped repositories internally (game, board, deck per game)
+	sessionFactory := session.NewSessionFactory(eventBus, newCardRepo, newDeckRepo)
+	log.Info("🎮 SessionFactory initialized - manages game-scoped repositories internally")
 
 	// Initialize BoardProcessor for hex calculations
 	boardProcessor := board.NewBoardProcessor()
@@ -91,22 +96,22 @@ func main() {
 
 	// Initialize actions with SessionManagerFactory
 	// Actions will call sessionManagerFactory.GetOrCreate(gameID) to get game-specific broadcasters
-	startGameAction := action.NewStartGameAction(newGameRepo, sessionFactory, newCardRepo, newDeckRepo, sessionManagerFactory)
+	startGameAction := action.NewStartGameAction(newGameRepo, newCardRepo, newDeckRepo, sessionManagerFactory)
 	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
 	joinGameAction := action.NewJoinGameAction(newGameRepo, sessionFactory)
-	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionFactory, sessionManagerFactory)
-	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionFactory, sessionManagerFactory)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newCardRepo, sessionFactory, sessionManagerFactory)
-	skipActionAction := action.NewSkipActionAction(newGameRepo, sessionFactory, newDeckRepo, sessionManagerFactory)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	buildCityAction := action.NewBuildCityAction(newGameRepo, sessionFactory, tileProcessor, sessionManagerFactory)
+	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionManagerFactory)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionManagerFactory)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newCardRepo, sessionManagerFactory)
+	skipActionAction := action.NewSkipActionAction(newGameRepo, newDeckRepo, sessionManagerFactory)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, sessionManagerFactory)
+	buildCityAction := action.NewBuildCityAction(newGameRepo, tileProcessor, sessionManagerFactory)
 
 	// Initialize BonusCalculator for tile placement bonuses
 	bonusCalculator := board.NewBonusCalculator(newGameRepo, newBoardRepo, newDeckRepo)
 	log.Info("🎁 Bonus calculator initialized")
 
 	// Initialize SelectTileAction for tile placement
-	selectTileAction := action.NewSelectTileAction(newGameRepo, sessionFactory, newBoardRepo, tileProcessor, bonusCalculator, sessionManagerFactory)
+	selectTileAction := action.NewSelectTileAction(newGameRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManagerFactory)
 
 	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, player_reconnected, player_disconnected, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
 	// ================================================================
@@ -122,21 +127,21 @@ func main() {
 	log.Info("🎴 Card manager initialized")
 
 	// Initialize PlayCardAction for playing cards from hand
-	playCardAction := action.NewPlayCardAction(newGameRepo, sessionFactory, cardManager, tileProcessor, sessionManagerFactory)
+	playCardAction := action.NewPlayCardAction(newGameRepo, cardManager, tileProcessor, sessionManagerFactory)
 	log.Info("✅ PlayCardAction initialized")
 
 	// Initialize standard project actions
-	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, sessionManagerFactory)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, sessionManagerFactory)
+	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, sessionManagerFactory)
+	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, sessionManagerFactory)
+	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, sessionManagerFactory)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, sessionManagerFactory)
 	log.Info("✅ Standard project actions initialized")
 
 	// Initialize resource conversion actions
-	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, sessionManagerFactory)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, sessionManagerFactory)
 	log.Info("✅ Resource conversion actions initialized")
 
 	// Initialize forced action manager for corporation forced first actions
@@ -147,26 +152,26 @@ func main() {
 	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
 
 	// Initialize card selection confirmation actions
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, sessionFactory, sessionManagerFactory, eventBus)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, sessionManagerFactory, eventBus)
 	log.Info("✅ Card selection confirmation actions initialized")
 
 	// Initialize admin actions
-	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newCardRepo, sessionFactory, sessionManagerFactory)
-	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, sessionFactory, newBoardRepo, boardProcessor, sessionManagerFactory)
-	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionFactory, sessionManagerFactory)
-	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newCardRepo, sessionManagerFactory, sessionFactory)
+	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, sessionManagerFactory)
+	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, sessionManagerFactory)
+	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, sessionManagerFactory)
+	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, sessionManagerFactory)
+	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newBoardRepo, boardProcessor, sessionManagerFactory)
+	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionManagerFactory)
+	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, sessionManagerFactory, sessionFactory)
 	log.Info("✅ Admin actions initialized")
 
 	// Initialize query actions for HTTP handlers
-	getGameAction := queryaction.NewGetGameAction(newGameRepo, sessionFactory, newCardRepo)
-	listGamesAction := queryaction.NewListGamesAction(newGameRepo, sessionFactory)
-	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo, sessionFactory)
-	listCardsAction := queryaction.NewListCardsAction(newCardRepo, sessionFactory)
-	getCorporationsAction := queryaction.NewGetCorporationsAction(newCardRepo, sessionFactory)
+	getGameAction := queryaction.NewGetGameAction(newGameRepo, newCardRepo)
+	listGamesAction := queryaction.NewListGamesAction(newGameRepo)
+	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo)
+	listCardsAction := queryaction.NewListCardsAction(newCardRepo)
+	getCorporationsAction := queryaction.NewGetCorporationsAction(newCardRepo)
 	log.Info("✅ Query actions initialized for HTTP handlers")
 
 	// Initialize CardProcessor for card action execution
@@ -174,7 +179,7 @@ func main() {
 	log.Info("🎴 Card processor initialized")
 
 	// Initialize card action execution action (fully migrated to session-based architecture)
-	executeCardActionAction := executecardaction.NewExecuteCardActionAction(newGameRepo, sessionFactory, sessionManagerFactory, cardProcessor, newDeckRepo)
+	executeCardActionAction := executecardaction.NewExecuteCardActionAction(newGameRepo, sessionManagerFactory, sessionFactory, cardProcessor, newDeckRepo)
 	log.Info("✅ Execute card action action fully migrated to session-based architecture")
 
 	// Initialize WebSocket service with shared Hub and new actions
@@ -203,6 +208,7 @@ func main() {
 
 	// Setup API router with middleware
 	apiRouter := httpHandler.SetupRouter(
+		sessionFactory,
 		createGameAction,
 		joinGameAction,
 		getGameAction,

@@ -25,13 +25,12 @@ type PlayCardAction struct {
 // NewPlayCardAction creates a new play card action
 func NewPlayCardAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	cardManager card.CardManager,
 	tileProcessor *board.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction:    NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction:    NewBaseAction(sessionMgrFactory),
 		gameRepo:      gameRepo,
 		cardManager:   cardManager,
 		tileProcessor: tileProcessor,
@@ -41,11 +40,13 @@ func NewPlayCardAction(
 // Execute performs the play card action
 func (a *PlayCardAction) Execute(
 	ctx context.Context,
-	gameID, playerID, cardID string,
+	sess *session.Session,
+	playerID, cardID string,
 	payment *types.CardPayment,
 	choiceIndex *int,
 	cardStorageTarget *string,
 ) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID).With(zap.String("card_id", cardID))
 	log.Info("🎴 Playing card from hand")
 
@@ -61,12 +62,6 @@ func (a *PlayCardAction) Execute(
 	}
 
 	// 3. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

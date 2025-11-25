@@ -23,14 +23,13 @@ type SelectTileAction struct {
 // NewSelectTileAction creates a new select tile action
 func NewSelectTileAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	boardRepo board.Repository,
 	tileProcessor *board.Processor,
 	bonusCalculator *board.BonusCalculator,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectTileAction {
 	return &SelectTileAction{
-		BaseAction:      NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction:      NewBaseAction(sessionMgrFactory),
 		gameRepo:        gameRepo,
 		boardRepo:       boardRepo,
 		tileProcessor:   tileProcessor,
@@ -39,7 +38,8 @@ func NewSelectTileAction(
 }
 
 // Execute places a tile at the selected coordinate
-func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string, q, r, s int) error {
+func (a *SelectTileAction) Execute(ctx context.Context, sess *session.Session, playerID string, q, r, s int) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID).With(
 		zap.Int("q", q),
 		zap.Int("r", r),
@@ -49,12 +49,6 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 	log.Info("🎯 Executing select tile action")
 
 	// Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
@@ -96,7 +90,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID, playerID string,
 	}
 
 	// Place tile on board (publishes TilePlacedEvent)
-	if err := a.boardRepo.UpdateTileOccupancy(ctx, gameID, coord, occupant, &playerID); err != nil {
+	if err := a.boardRepo.UpdateTileOccupancy(ctx, coord, occupant, &playerID); err != nil {
 		return fmt.Errorf("failed to place tile: %w", err)
 	}
 

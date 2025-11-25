@@ -22,11 +22,10 @@ type GetGameAction struct {
 // NewGetGameAction creates a new get game query action
 func NewGetGameAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	cardRepo sessionCard.Repository,
 ) *GetGameAction {
 	return &GetGameAction{
-		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		BaseAction: action.NewBaseAction(nil),
 		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 	}
@@ -40,7 +39,8 @@ type GameQueryResult struct {
 }
 
 // Execute performs the get game query
-func (a *GetGameAction) Execute(ctx context.Context, gameID, playerID string) (*GameQueryResult, error) {
+func (a *GetGameAction) Execute(ctx context.Context, sess *session.Session, playerID string) (*GameQueryResult, error) {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔍 Querying game")
 
@@ -61,12 +61,6 @@ func (a *GetGameAction) Execute(ctx context.Context, gameID, playerID string) (*
 	}
 
 	// 2. Get all players from session
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return nil, err
-	}
-
 	sessionPlayers := sess.GetAllPlayers()
 
 	// Convert wrapped players to types.Player

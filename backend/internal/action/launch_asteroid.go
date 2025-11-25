@@ -25,17 +25,17 @@ type LaunchAsteroidAction struct {
 // NewLaunchAsteroidAction creates a new launch asteroid action
 func NewLaunchAsteroidAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *LaunchAsteroidAction {
 	return &LaunchAsteroidAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the launch asteroid action
-func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *LaunchAsteroidAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("☄️ Launching asteroid")
 
@@ -51,12 +51,6 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID, playerID str
 	}
 
 	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

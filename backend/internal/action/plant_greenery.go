@@ -24,17 +24,17 @@ type PlantGreeneryAction struct {
 // NewPlantGreeneryAction creates a new plant greenery action
 func NewPlantGreeneryAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the plant greenery action
-func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *PlantGreeneryAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🌱 Planting greenery (standard project)")
 
@@ -50,12 +50,6 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID, playerID stri
 	}
 
 	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

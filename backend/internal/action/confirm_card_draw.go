@@ -23,19 +23,19 @@ type ConfirmCardDrawAction struct {
 // NewConfirmCardDrawAction creates a new confirm card draw action
 func NewConfirmCardDrawAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 	eventBus *events.EventBusImpl,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 		eventBus:   eventBus,
 	}
 }
 
 // Execute performs the confirm card draw action
-func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID string, cardsToTake []string, cardsToBuy []string) error {
+func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Session, playerID string, cardsToTake []string, cardsToBuy []string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🃏 Confirming card draw selection",
 		zap.Int("cards_to_take", len(cardsToTake)),
@@ -48,12 +48,6 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID, playerID st
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

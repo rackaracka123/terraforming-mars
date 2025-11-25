@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"fmt"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -18,6 +19,7 @@ import (
 type ConnectionHandler struct {
 	hub                     *core.Hub
 	sessionManagerFactory   session.SessionManagerFactory
+	sessionFactory          session.SessionFactory
 	joinGameAction          *action.JoinGameAction
 	playerReconnectedAction *action.PlayerReconnectedAction
 	parser                  *utils.MessageParser
@@ -38,12 +40,14 @@ type connectionContext struct {
 func NewConnectionHandler(
 	hub *core.Hub,
 	sessionManagerFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 	joinGameAction *action.JoinGameAction,
 	playerReconnectedAction *action.PlayerReconnectedAction,
 ) *ConnectionHandler {
 	return &ConnectionHandler{
 		hub:                     hub,
 		sessionManagerFactory:   sessionManagerFactory,
+		sessionFactory:          sessionFactory,
 		joinGameAction:          joinGameAction,
 		playerReconnectedAction: playerReconnectedAction,
 		parser:                  utils.NewMessageParser(),
@@ -155,6 +159,7 @@ func (ch *ConnectionHandler) processNewPlayer(connCtx *connectionContext) error 
 		zap.String("game_id", connCtx.payload.GameID))
 
 	// Now join game - broadcasts will work because connection is already registered
+	// NOTE: JoinGameAction has not been migrated to session pattern yet, still uses gameID
 	joinResult, err := ch.joinGameAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.payload.PlayerName, playerID)
 	if err != nil {
 		ch.logger.Error("Failed to join game via action",
@@ -205,11 +210,19 @@ func (ch *ConnectionHandler) processReconnection(connCtx *connectionContext) err
 		zap.String("player_id", connCtx.playerID),
 		zap.String("game_id", connCtx.payload.GameID))
 
+	// Get session for the game
+	sess := ch.sessionFactory.Get(connCtx.payload.GameID)
+	if sess == nil {
+		ch.logger.Error("Session not found", zap.String("game_id", connCtx.payload.GameID))
+		ch.errorHandler.SendError(connCtx.connection, utils.ErrConnectionFailed+": session not found")
+		return fmt.Errorf("session not found: %s", connCtx.payload.GameID)
+	}
+
 	// Let the action handle the complete reconnection process including:
 	// - Updating connection status
 	// - Retrieving complete game state
 	// - Sending personalized state to the player
-	err := ch.playerReconnectedAction.Execute(connCtx.ctx, connCtx.payload.GameID, connCtx.playerID)
+	err := ch.playerReconnectedAction.Execute(connCtx.ctx, sess, connCtx.playerID)
 	if err != nil {
 		ch.logger.Error("Failed to process player reconnection via action",
 			zap.Error(err))

@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -16,13 +17,15 @@ import (
 type Handler struct {
 	confirmCardDrawAction *action.ConfirmCardDrawAction
 	parser                *utils.MessageParser
+	sessionFactory        session.SessionFactory
 }
 
 // NewHandler creates a new card draw confirmation handler
-func NewHandler(confirmCardDrawAction *action.ConfirmCardDrawAction, parser *utils.MessageParser) *Handler {
+func NewHandler(confirmCardDrawAction *action.ConfirmCardDrawAction, parser *utils.MessageParser, sessionFactory session.SessionFactory) *Handler {
 	return &Handler{
 		confirmCardDrawAction: confirmCardDrawAction,
 		parser:                parser,
+		sessionFactory:        sessionFactory,
 	}
 }
 
@@ -52,8 +55,19 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
+	// Get session for the game
+	sess := h.sessionFactory.Get(connection.GameID)
+	if sess == nil {
+		log.Error("Session not found")
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": "Game session not found"},
+		}
+		return
+	}
+
 	// Execute the confirm card draw action
-	err := h.confirmCardDrawAction.Execute(ctx, connection.GameID, connection.PlayerID, request.CardsToTake, request.CardsToBuy)
+	err := h.confirmCardDrawAction.Execute(ctx, sess, connection.PlayerID, request.CardsToTake, request.CardsToBuy)
 	if err != nil {
 		log.Error("Failed to execute confirm card draw action", zap.Error(err))
 		connection.Send <- dto.WebSocketMessage{

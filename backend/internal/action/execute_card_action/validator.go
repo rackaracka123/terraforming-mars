@@ -14,15 +14,15 @@ import (
 
 // Validator handles validation logic for card action execution
 type Validator struct {
-	resourceMgr    *game.ResourceManager
 	sessionFactory session.SessionFactory
+	resourceMgr    *game.ResourceManager
 }
 
 // NewValidator creates a new Validator instance
 func NewValidator(sessionFactory session.SessionFactory) *Validator {
 	return &Validator{
-		resourceMgr:    game.NewResourceManager(),
 		sessionFactory: sessionFactory,
+		resourceMgr:    game.NewResourceManager(),
 	}
 }
 

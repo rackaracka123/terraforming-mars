@@ -21,17 +21,17 @@ type SetProductionAction struct {
 // NewSetProductionAction creates a new set production admin action
 func NewSetProductionAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetProductionAction {
 	return &SetProductionAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the set production admin action
-func (a *SetProductionAction) Execute(ctx context.Context, gameID, playerID string, production types.Production) error {
+func (a *SetProductionAction) Execute(ctx context.Context, sess *session.Session, playerID string, production types.Production) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🏭 Admin: Setting player production",
 		zap.Int("credits", production.Credits),
@@ -48,12 +48,6 @@ func (a *SetProductionAction) Execute(ctx context.Context, gameID, playerID stri
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

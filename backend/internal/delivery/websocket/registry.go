@@ -72,58 +72,59 @@ func RegisterHandlers(
 	// Register connection handler
 	// NEW ARCHITECTURE: Using action pattern for join_game + reconnection + explicit broadcast timing
 	// SessionManagerFactory injected so handler can get game-specific broadcaster
-	connectionHandler := connect.NewConnectionHandler(hub, sessionManagerFactory, joinGameAction, playerReconnectedAction)
+	connectionHandler := connect.NewConnectionHandler(hub, sessionManagerFactory, sessionFactory, joinGameAction, playerReconnectedAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
 
 	// Register disconnect handler
 	// NEW ARCHITECTURE: Using action pattern for disconnect
-	disconnectHandler := disconnect.NewDisconnectHandler(playerDisconnectedAction)
+	disconnectHandler := disconnect.NewDisconnectHandler(playerDisconnectedAction, sessionFactory)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
 
 	// Register standard project handlers
 	// NEW ARCHITECTURE: Using action pattern for standard projects
-	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(launchAsteroidAction))
-	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(sellPatentsAction))
-	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirm_sell_patents.NewHandler(confirmSellPatentsAction))
-	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(buildPowerPlantAction))
-	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(buildAquiferAction))
-	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(plantGreeneryAction))
-	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(buildCityAction))
+	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(launchAsteroidAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(sellPatentsAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirm_sell_patents.NewHandler(confirmSellPatentsAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(buildPowerPlantAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(buildAquiferAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(plantGreeneryAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(buildCityAction, sessionFactory))
 
 	// Register resource conversion handlers
 	// NEW ARCHITECTURE: Using action pattern for resource conversions
-	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convert_plants_to_greenery.NewHandler(convertPlantsAction))
-	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convert_heat_to_temperature.NewHandler(convertHeatAction))
+	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convert_plants_to_greenery.NewHandler(convertPlantsAction, sessionFactory))
+	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convert_heat_to_temperature.NewHandler(convertHeatAction, sessionFactory))
 
 	// Register skip action handler
-	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(skipActionAction))
+	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(skipActionAction, sessionFactory))
 
 	// Register game management handlers
-	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(startGameAction))
+	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(startGameAction, sessionFactory))
 
 	// Register card selection handlers
 	// NEW ARCHITECTURE: Using action pattern for select_starting_card and select_cards
-	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, parser))
+	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, sessionFactory, parser))
 	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(confirmSellPatentsAction, confirmProductionCardsAction, sessionFactory, parser))
-	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, parser))
-	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser))
+	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, sessionFactory, parser))
+	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser, sessionFactory))
 
 	// Register play card handler
 	// NEW ARCHITECTURE: Using action pattern for play_card
-	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, parser))
+	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, sessionFactory, parser))
 
 	// Register play card action handler
 	// NEW ARCHITECTURE: Using action pattern for card action execution
-	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(executeCardActionAction, parser))
+	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(executeCardActionAction, sessionFactory, parser))
 
 	// Register tile selection handlers
 	// NEW ARCHITECTURE: Using action pattern for tile_selected
-	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, parser))
+	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, sessionFactory, parser))
 
 	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
 	// NEW ARCHITECTURE: Using admin action pattern for all admin commands
 	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(
 		newGameRepo,
+		sessionFactory,
 		giveCardAdminAction,
 		setPhaseAdminAction,
 		setResourcesAdminAction,

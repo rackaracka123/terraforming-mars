@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -14,19 +15,21 @@ import (
 // Handler handles start game action requests using the action pattern
 type Handler struct {
 	startGameAction StartGameAction
+	sessionFactory  session.SessionFactory
 	errorHandler    *utils.ErrorHandler
 	logger          *zap.Logger
 }
 
 // StartGameAction interface for dependency injection
 type StartGameAction interface {
-	Execute(ctx context.Context, gameID string, playerID string) error
+	Execute(ctx context.Context, sess *session.Session, playerID string) error
 }
 
 // NewHandler creates a new start game handler using action pattern
-func NewHandler(startGameAction StartGameAction) *Handler {
+func NewHandler(startGameAction StartGameAction, sessionFactory session.SessionFactory) *Handler {
 	return &Handler{
 		startGameAction: startGameAction,
+		sessionFactory:  sessionFactory,
 		errorHandler:    utils.NewErrorHandler(),
 		logger:          logger.Get(),
 	}
@@ -47,7 +50,15 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.String("player_id", playerID),
 		zap.String("game_id", gameID))
 
-	if err := h.startGameAction.Execute(ctx, gameID, playerID); err != nil {
+	// Get session for the game
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Session not found", zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": session not found")
+		return
+	}
+
+	if err := h.startGameAction.Execute(ctx, sess, playerID); err != nil {
 		h.logger.Error("Failed to start game",
 			zap.Error(err),
 			zap.String("player_id", playerID),

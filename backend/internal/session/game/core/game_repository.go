@@ -54,12 +54,15 @@ type RepositoryImpl struct {
 }
 
 // NewRepository creates a new game repository with all sub-repositories
+// DEPRECATED: This creates repositories without a game ID binding. Use game-scoped repositories via Session instead.
+// Temporarily creates repositories with empty gameID for backwards compatibility.
 func NewRepository(eventBus *events.EventBusImpl) Repository {
 	storage := NewGameStorage()
 
-	coreRepo := NewGameCoreRepository(storage, eventBus)
-	turnRepo := NewGameTurnRepository(storage, eventBus)
-	globalParamsRepo := NewGameGlobalParametersRepository(storage, eventBus)
+	// HACK: Using empty gameID for backwards compatibility - this facade will be removed
+	coreRepo := NewGameCoreRepository("", storage, eventBus)
+	turnRepo := NewGameTurnRepository("", storage, eventBus)
+	globalParamsRepo := NewGameGlobalParametersRepository("", storage, eventBus)
 
 	return &RepositoryImpl{
 		core:         coreRepo,

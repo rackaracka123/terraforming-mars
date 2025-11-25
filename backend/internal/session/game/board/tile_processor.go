@@ -130,7 +130,7 @@ func (p *Processor) validateTilePlacement(ctx context.Context, gameID, tileType 
 	log := logger.WithGameContext(gameID, "")
 
 	// Get board state to count ocean tiles
-	b, err := p.boardRepo.GetByGameID(ctx, gameID)
+	b, err := p.boardRepo.Get(ctx)
 	if err != nil {
 		return false, fmt.Errorf("failed to get board state: %w", err)
 	}
@@ -178,7 +178,7 @@ func (p *Processor) calculateAvailableHexesForTileType(ctx context.Context, game
 		zap.Bool("player_specific", playerID != nil))
 
 	// Get the current board state
-	b, err := p.boardRepo.GetByGameID(ctx, gameID)
+	b, err := p.boardRepo.Get(ctx)
 	if err != nil {
 		log.Error("Failed to get board for hex calculation", zap.Error(err))
 		return nil, fmt.Errorf("failed to get board: %w", err)

@@ -18,16 +18,16 @@ type GetPlayerAction struct {
 // NewGetPlayerAction creates a new get player query action
 func NewGetPlayerAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 ) *GetPlayerAction {
 	return &GetPlayerAction{
-		BaseAction: action.NewBaseAction(sessionFactory, nil),
+		BaseAction: action.NewBaseAction(nil),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the get player query
-func (a *GetPlayerAction) Execute(ctx context.Context, gameID, playerID string) (types.Player, error) {
+func (a *GetPlayerAction) Execute(ctx context.Context, sess *session.Session, playerID string) (types.Player, error) {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔍 Querying player")
 
@@ -38,12 +38,6 @@ func (a *GetPlayerAction) Execute(ctx context.Context, gameID, playerID string) 
 	}
 
 	// 2. Get player from session
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return types.Player{}, err
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

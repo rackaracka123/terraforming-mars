@@ -76,7 +76,7 @@ func (f *BroadcasterFactory) GetOrCreate(gameID string) session.SessionManager {
 	}
 
 	// Create new session-aware broadcaster
-	broadcaster := NewSessionAwareBroadcaster(
+	broadcaster := NewSessionBroadcaster(
 		gameID,
 		f.gameRepo,
 		f.sessionFactory,

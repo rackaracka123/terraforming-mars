@@ -5,12 +5,14 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
+	"terraforming-mars-backend/internal/session"
 
 	"github.com/gorilla/mux"
 )
 
 // SetupRouter creates and configures the HTTP router
 func SetupRouter(
+	sessionFactory session.SessionFactory,
 	createGameAction *action.CreateGameAction,
 	joinGameAction *action.JoinGameAction,
 	getGameAction *query.GetGameAction,
@@ -20,8 +22,8 @@ func SetupRouter(
 	getCorporationsAction *query.GetCorporationsAction,
 ) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction)
-	playerHandler := NewPlayerHandler(joinGameAction, getPlayerAction)
+	gameHandler := NewGameHandler(sessionFactory, createGameAction, getGameAction, listGamesAction)
+	playerHandler := NewPlayerHandler(sessionFactory, joinGameAction, getPlayerAction)
 	cardHandler := NewCardHandler(listCardsAction, getCorporationsAction)
 	healthHandler := NewHealthHandler()
 

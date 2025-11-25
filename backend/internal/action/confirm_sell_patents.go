@@ -20,17 +20,17 @@ type ConfirmSellPatentsAction struct {
 // NewConfirmSellPatentsAction creates a new confirm sell patents action
 func NewConfirmSellPatentsAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the confirm sell patents action (Phase 2: process card selection)
-func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID string, selectedCardIDs []string) error {
+func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Session, playerID string, selectedCardIDs []string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🏛️ Confirming sell patents card selection", zap.Int("cards_selected", len(selectedCardIDs)))
 
@@ -46,12 +46,6 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 	}
 
 	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

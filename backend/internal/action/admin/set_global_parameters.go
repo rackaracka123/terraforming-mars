@@ -20,11 +20,10 @@ type SetGlobalParametersAction struct {
 // NewSetGlobalParametersAction creates a new set global parameters admin action
 func NewSetGlobalParametersAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetGlobalParametersAction {
 	return &SetGlobalParametersAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }

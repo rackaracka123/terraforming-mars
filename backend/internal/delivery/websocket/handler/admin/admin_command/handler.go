@@ -10,6 +10,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 	sessionGame "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
@@ -19,6 +20,7 @@ import (
 // Handler handles admin command requests (development mode only)
 type Handler struct {
 	gameRepo                  sessionGame.Repository
+	sessionFactory            session.SessionFactory
 	giveCardAction            *adminaction.GiveCardAction
 	setPhaseAction            *adminaction.SetPhaseAction
 	setResourcesAction        *adminaction.SetResourcesAction
@@ -34,6 +36,7 @@ type Handler struct {
 // NewHandler creates a new admin command handler
 func NewHandler(
 	gameRepo sessionGame.Repository,
+	sessionFactory session.SessionFactory,
 	giveCardAction *adminaction.GiveCardAction,
 	setPhaseAction *adminaction.SetPhaseAction,
 	setResourcesAction *adminaction.SetResourcesAction,
@@ -45,6 +48,7 @@ func NewHandler(
 ) *Handler {
 	return &Handler{
 		gameRepo:                  gameRepo,
+		sessionFactory:            sessionFactory,
 		giveCardAction:            giveCardAction,
 		setPhaseAction:            setPhaseAction,
 		setResourcesAction:        setResourcesAction,
@@ -214,8 +218,14 @@ func (h *Handler) handleSetResources(ctx context.Context, gameID string, payload
 		Heat:     command.Resources.Heat,
 	}
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
 	// Use admin action to set resources
-	return h.setResourcesAction.Execute(ctx, gameID, command.PlayerID, resources)
+	return h.setResourcesAction.Execute(ctx, sess, command.PlayerID, resources)
 }
 
 // handleSetProduction sets a player's production
@@ -240,8 +250,14 @@ func (h *Handler) handleSetProduction(ctx context.Context, gameID string, payloa
 		Heat:     command.Production.Heat,
 	}
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
 	// Use admin action to set production
-	return h.setProductionAction.Execute(ctx, gameID, command.PlayerID, production)
+	return h.setProductionAction.Execute(ctx, sess, command.PlayerID, production)
 }
 
 // handleSetGlobalParams sets the global parameters
@@ -278,8 +294,14 @@ func (h *Handler) handleStartTileSelection(ctx context.Context, gameID string, p
 		zap.String("player_id", command.PlayerID),
 		zap.String("tile_type", command.TileType))
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
 	// Use admin action to start tile selection
-	return h.startTileSelectionAction.Execute(ctx, gameID, command.PlayerID, command.TileType)
+	return h.startTileSelectionAction.Execute(ctx, sess, command.PlayerID, command.TileType)
 }
 
 // handleSetCurrentTurn sets the current player turn
@@ -298,8 +320,14 @@ func (h *Handler) handleSetCurrentTurn(ctx context.Context, gameID string, paylo
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID))
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		return fmt.Errorf("game session not found: %s", gameID)
+	}
+
 	// Use admin action to set current turn
-	return h.setCurrentTurnAction.Execute(ctx, gameID, playerID)
+	return h.setCurrentTurnAction.Execute(ctx, sess, playerID)
 }
 
 // handleSetCorporation sets a player's corporation

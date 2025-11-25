@@ -40,7 +40,7 @@ func (bc *BonusCalculator) CalculateAndAwardBonuses(ctx context.Context, p *play
 	)
 
 	// Get tile to check for bonuses
-	tile, err := bc.boardRepo.GetTile(ctx, p.GameID, coord)
+	tile, err := bc.boardRepo.GetTile(ctx, coord)
 	if err != nil {
 		return fmt.Errorf("failed to get tile: %w", err)
 	}
@@ -92,7 +92,7 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 
 		case ResourceCardDraw:
 			// Draw cards from deck
-			drawnCards, err := bc.deckRepo.DrawProjectCards(ctx, p.GameID, bonus.Amount)
+			drawnCards, err := bc.deckRepo.DrawProjectCards(ctx, bonus.Amount)
 			if err != nil {
 				return fmt.Errorf("failed to draw cards for tile bonus: %w", err)
 			}
@@ -132,7 +132,7 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 // awardOceanAdjacencyBonus awards megacredits for placing tiles adjacent to oceans
 func (bc *BonusCalculator) awardOceanAdjacencyBonus(ctx context.Context, p *player.Player, coord HexPosition, log *zap.Logger) error {
 	// Get board to check for adjacent oceans
-	b, err := bc.boardRepo.GetByGameID(ctx, p.GameID)
+	b, err := bc.boardRepo.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get board: %w", err)
 	}

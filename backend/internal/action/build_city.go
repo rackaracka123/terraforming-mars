@@ -25,19 +25,19 @@ type BuildCityAction struct {
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	tileProcessor *board.Processor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		BaseAction:    NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction:    NewBaseAction(sessionMgrFactory),
 		gameRepo:      gameRepo,
 		tileProcessor: tileProcessor,
 	}
 }
 
 // Execute performs the build city action
-func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID string) error {
+func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🏢 Building city")
 
@@ -48,12 +48,6 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

@@ -16,7 +16,8 @@ import (
 // Broadcasting is handled automatically via PlayerJoinedEvent (event-driven architecture)
 type JoinGameAction struct {
 	BaseAction
-	gameRepo game.Repository
+	gameRepo       game.Repository
+	sessionFactory session.SessionFactory
 }
 
 // JoinGameResult contains the result of joining a game
@@ -31,8 +32,9 @@ func NewJoinGameAction(
 	sessionFactory session.SessionFactory,
 ) *JoinGameAction {
 	return &JoinGameAction{
-		BaseAction: NewBaseAction(sessionFactory, nil), // No sessionMgr (event-driven)
-		gameRepo:   gameRepo,
+		BaseAction:     NewBaseAction(nil), // No sessionMgr (event-driven)
+		gameRepo:       gameRepo,
+		sessionFactory: sessionFactory,
 	}
 }
 
@@ -56,7 +58,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	}
 
 	// 2. Get or create session
-	sess := a.GetSessionFactory().GetOrCreate(gameID)
+	sess := a.sessionFactory.GetOrCreate(gameID)
 
 	// 3. Check if player with same name already exists (for reconnection/idempotent join)
 	existingPlayers := sess.GetAllPlayers()

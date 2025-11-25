@@ -16,8 +16,8 @@ import (
 
 // Processor handles the application logic for card action execution
 type Processor struct {
-	resourceMgr    *game.ResourceManager
 	sessionFactory session.SessionFactory
+	resourceMgr    *game.ResourceManager
 	cardProcessor  *card.CardProcessor
 	deckRepo       deck.Repository
 }
@@ -25,8 +25,8 @@ type Processor struct {
 // NewProcessor creates a new Processor instance
 func NewProcessor(sessionFactory session.SessionFactory, cardProcessor *card.CardProcessor, deckRepo deck.Repository) *Processor {
 	return &Processor{
-		resourceMgr:    game.NewResourceManager(),
 		sessionFactory: sessionFactory,
+		resourceMgr:    game.NewResourceManager(),
 		cardProcessor:  cardProcessor,
 		deckRepo:       deckRepo,
 	}
@@ -311,7 +311,7 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
 		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
 		// Draw cards from deck and auto-select all
-		drawnCards, err := p.deckRepo.DrawProjectCards(ctx, gameID, cardDrawAmount)
+		drawnCards, err := p.deckRepo.DrawProjectCards(ctx, cardDrawAmount)
 		if err != nil {
 			log.Error("Failed to draw cards from deck", zap.Error(err))
 			return fmt.Errorf("failed to draw card: %w", err)
@@ -329,7 +329,7 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 	} else if cardPeekAmount > 0 {
 		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
 		// Draw cards from deck to peek at them (they won't be returned)
-		peekedCards, err := p.deckRepo.DrawProjectCards(ctx, gameID, cardPeekAmount)
+		peekedCards, err := p.deckRepo.DrawProjectCards(ctx, cardPeekAmount)
 		if err != nil {
 			log.Error("Failed to draw cards from deck for peek", zap.Error(err))
 			return fmt.Errorf("failed to peek card: %w", err)

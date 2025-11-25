@@ -15,7 +15,6 @@ import (
 // StartTileSelectionAction handles admin command to start tile selection for testing
 type StartTileSelectionAction struct {
 	gameRepo          sessionGame.Repository
-	sessionFactory    session.SessionFactory
 	boardRepo         sessionBoard.Repository
 	boardProcessor    *sessionBoard.BoardProcessor
 	sessionMgrFactory session.SessionManagerFactory
@@ -25,14 +24,12 @@ type StartTileSelectionAction struct {
 // NewStartTileSelectionAction creates a new start tile selection action
 func NewStartTileSelectionAction(
 	gameRepo sessionGame.Repository,
-	sessionFactory session.SessionFactory,
 	boardRepo sessionBoard.Repository,
 	boardProcessor *sessionBoard.BoardProcessor,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *StartTileSelectionAction {
 	return &StartTileSelectionAction{
 		gameRepo:          gameRepo,
-		sessionFactory:    sessionFactory,
 		boardRepo:         boardRepo,
 		boardProcessor:    boardProcessor,
 		sessionMgrFactory: sessionMgrFactory,
@@ -41,17 +38,12 @@ func NewStartTileSelectionAction(
 }
 
 // Execute starts tile selection for a player (admin/testing feature)
-func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, playerID string, tileType string) error {
+func (a *StartTileSelectionAction) Execute(ctx context.Context, sess *session.Session, playerID string, tileType string) error {
+	gameID := sess.GetGameID()
 	log := logger.WithGameContext(gameID, playerID)
 	log.Info("🎯 Admin starting tile selection", zap.String("tile_type", tileType))
 
 	// 1. Get session and validate player exists
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game session not found")
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
@@ -59,7 +51,7 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 	}
 
 	// 2. Get actual board from board repository
-	board, err := a.boardRepo.GetByGameID(ctx, gameID)
+	board, err := a.boardRepo.Get(ctx)
 	if err != nil {
 		log.Error("Board not found", zap.Error(err))
 		return fmt.Errorf("board not found: %w", err)

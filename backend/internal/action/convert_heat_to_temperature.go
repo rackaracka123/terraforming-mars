@@ -26,17 +26,17 @@ type ConvertHeatToTemperatureAction struct {
 // NewConvertHeatToTemperatureAction creates a new convert heat to temperature action
 func NewConvertHeatToTemperatureAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the convert heat to temperature action
-func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔥 Converting heat to temperature")
 
@@ -52,12 +52,6 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 	}
 
 	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

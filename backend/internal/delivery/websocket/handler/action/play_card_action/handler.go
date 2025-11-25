@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -15,15 +16,17 @@ import (
 // Handler handles play card action requests
 type Handler struct {
 	executeCardActionAction *executecardaction.ExecuteCardActionAction
+	sessionFactory          session.SessionFactory
 	parser                  *utils.MessageParser
 	errorHandler            *utils.ErrorHandler
 	logger                  *zap.Logger
 }
 
 // NewHandler creates a new play card action handler
-func NewHandler(executeCardActionAction *executecardaction.ExecuteCardActionAction, parser *utils.MessageParser) *Handler {
+func NewHandler(executeCardActionAction *executecardaction.ExecuteCardActionAction, sessionFactory session.SessionFactory, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		executeCardActionAction: executeCardActionAction,
+		sessionFactory:          sessionFactory,
 		parser:                  parser,
 		errorHandler:            utils.NewErrorHandler(),
 		logger:                  logger.Get(),
@@ -77,6 +80,15 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 			zap.String("player_id", playerID),
 			zap.Int("behavior_index", request.BehaviorIndex))
 		h.errorHandler.SendError(connection, "Behavior index must be non-negative")
+		return
+	}
+
+	// Get session for the game
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Session not found",
+			zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": session not found")
 		return
 	}
 

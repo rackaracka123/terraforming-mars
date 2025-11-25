@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -16,15 +17,17 @@ import (
 // Handler handles tile selected requests
 type Handler struct {
 	selectTileAction *action.SelectTileAction
+	sessionFactory   session.SessionFactory
 	parser           *utils.MessageParser
 	errorHandler     *utils.ErrorHandler
 	logger           *zap.Logger
 }
 
 // NewHandler creates a new tile selected handler
-func NewHandler(selectTileAction *action.SelectTileAction, parser *utils.MessageParser) *Handler {
+func NewHandler(selectTileAction *action.SelectTileAction, sessionFactory session.SessionFactory, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		selectTileAction: selectTileAction,
+		sessionFactory:   sessionFactory,
 		parser:           parser,
 		errorHandler:     utils.NewErrorHandler(),
 		logger:           logger.Get(),
@@ -72,8 +75,16 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		return
 	}
 
+	// Get session for the game
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Session not found", zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, utils.ErrActionFailed+": session not found")
+		return
+	}
+
 	// Execute the tile selection using NEW action pattern
-	if err := h.selectTileAction.Execute(ctx, gameID, playerID, request.Coordinate.Q, request.Coordinate.R, request.Coordinate.S); err != nil {
+	if err := h.selectTileAction.Execute(ctx, sess, playerID, request.Coordinate.Q, request.Coordinate.R, request.Coordinate.S); err != nil {
 		h.logger.Error("Failed to process tile selection",
 			zap.Error(err),
 			zap.String("player_id", playerID),

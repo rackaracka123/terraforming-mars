@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -15,15 +16,17 @@ import (
 // Handler handles play card action requests
 type Handler struct {
 	playCardAction *action.PlayCardAction
+	sessionFactory session.SessionFactory
 	parser         *utils.MessageParser
 	errorHandler   *utils.ErrorHandler
 	logger         *zap.Logger
 }
 
 // NewHandler creates a new play card handler
-func NewHandler(playCardAction *action.PlayCardAction, parser *utils.MessageParser) *Handler {
+func NewHandler(playCardAction *action.PlayCardAction, sessionFactory session.SessionFactory, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		playCardAction: playCardAction,
+		sessionFactory: sessionFactory,
 		parser:         parser,
 		errorHandler:   utils.NewErrorHandler(),
 		logger:         logger.Get(),
@@ -80,8 +83,16 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 		zap.Int("steel", payment.Steel),
 		zap.Int("titanium", payment.Titanium))
 
+	// Get session for the game
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Session not found", zap.String("game_id", gameID))
+		h.errorHandler.SendError(connection, "Game session not found")
+		return
+	}
+
 	// Execute the play card action with payment, optional choice index, and card storage target
-	err := h.playCardAction.Execute(ctx, gameID, playerID, request.CardID, &payment, request.ChoiceIndex, request.CardStorageTarget)
+	err := h.playCardAction.Execute(ctx, sess, playerID, request.CardID, &payment, request.ChoiceIndex, request.CardStorageTarget)
 	if err != nil {
 		h.logger.Warn("Failed to play card",
 			zap.String("connection_id", connection.ID),

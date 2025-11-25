@@ -22,18 +22,18 @@ type SelectStartingCardsAction struct {
 func NewSelectStartingCardsAction(
 	gameRepo game.Repository,
 	cardRepo card.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SelectStartingCardsAction {
 	return &SelectStartingCardsAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 	}
 }
 
 // Execute performs the select starting cards action
-func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, playerID string, cardIDs []string, corporationID string) error {
+func (a *SelectStartingCardsAction) Execute(ctx context.Context, sess *session.Session, playerID string, cardIDs []string, corporationID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID).With(
 		zap.Strings("card_ids", cardIDs),
 		zap.String("corporation_id", corporationID),
@@ -41,12 +41,6 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	log.Info("🃏 Player selecting starting cards and corporation")
 
 	// 1. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

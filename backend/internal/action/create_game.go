@@ -21,7 +21,7 @@ type CreateGameAction struct {
 // NewCreateGameAction creates a new create game action
 func NewCreateGameAction(gameRepo game.Repository, boardRepo board.Repository) *CreateGameAction {
 	return &CreateGameAction{
-		BaseAction: NewBaseAction(nil, nil), // No sessionFactory or sessionMgr needed
+		BaseAction: NewBaseAction(nil), // No sessionFactory or sessionMgr needed
 		gameRepo:   gameRepo,
 		boardRepo:  boardRepo,
 	}
@@ -60,7 +60,7 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	}
 
 	// 6. Generate board with 42 tiles via board repository
-	err = a.boardRepo.GenerateBoard(ctx, gameID)
+	err = a.boardRepo.GenerateBoard(ctx)
 	if err != nil {
 		log.Error("Failed to generate board", zap.Error(err))
 		// Note: Rollback not implemented - game repository doesn't support deletion

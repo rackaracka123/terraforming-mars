@@ -107,7 +107,7 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 			zap.Int("cards_selected", len(cardIDs)))
 
 		// Use ConfirmSellPatentsAction instead of service
-		if err := h.confirmSellPatentsAction.Execute(ctx, gameID, playerID, cardIDs); err != nil {
+		if err := h.confirmSellPatentsAction.Execute(ctx, sess, playerID, cardIDs); err != nil {
 			return err
 		}
 
@@ -118,7 +118,7 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 
 	// Otherwise, handle as production card selection using ConfirmProductionCardsAction
 	log.Debug("Processing production card selection")
-	if err := h.confirmProductionCardsAction.Execute(ctx, gameID, playerID, cardIDs); err != nil {
+	if err := h.confirmProductionCardsAction.Execute(ctx, sess, playerID, cardIDs); err != nil {
 		return err
 	}
 

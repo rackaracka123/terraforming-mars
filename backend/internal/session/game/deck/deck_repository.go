@@ -13,23 +13,16 @@ import (
 )
 
 // Repository manages card decks and definitions
+// Deck operations are scoped to a specific game, while card definitions are global
 type Repository interface {
-	// CreateDeck initializes a new game deck
-	CreateDeck(ctx context.Context, gameID string, settings types.GameSettings) error
+	// Game-scoped deck operations (no gameID parameter needed)
+	CreateDeck(ctx context.Context, settings types.GameSettings) error
+	DrawProjectCards(ctx context.Context, count int) ([]string, error)
+	DrawCorporations(ctx context.Context, count int) ([]string, error)
+	DiscardCards(ctx context.Context, cardIDs []string) error
+	GetAvailableCardCount(ctx context.Context) (int, error)
 
-	// DrawProjectCards draws N random project cards from the deck
-	DrawProjectCards(ctx context.Context, gameID string, count int) ([]string, error)
-
-	// DrawCorporations draws N random corporation cards
-	DrawCorporations(ctx context.Context, gameID string, count int) ([]string, error)
-
-	// DiscardCards adds cards to the discard pile
-	DiscardCards(ctx context.Context, gameID string, cardIDs []string) error
-
-	// GetAvailableCardCount returns the number of cards remaining in draw pile
-	GetAvailableCardCount(ctx context.Context, gameID string) (int, error)
-
-	// Card definition queries
+	// Global card definition queries (not game-scoped)
 	GetCardByID(ctx context.Context, cardID string) (*types.Card, error)
 	GetAllCards(ctx context.Context) ([]types.Card, error)
 	GetProjectCards(ctx context.Context) ([]types.Card, error)
@@ -40,12 +33,14 @@ type Repository interface {
 
 // RepositoryImpl implements the Repository interface
 type RepositoryImpl struct {
+	gameID      string // Bound to specific game (empty for global instance)
 	mu          sync.RWMutex
-	decks       map[string]*GameDeck // gameID -> GameDeck
+	decks       map[string]*GameDeck // gameID -> GameDeck (shared storage)
 	definitions *CardDefinitions     // All card definitions
 }
 
-// NewRepository creates a new deck repository with loaded card definitions
+// NewRepository creates a global deck repository with loaded card definitions
+// For game-scoped operations, use NewGameScopedRepository
 func NewRepository(ctx context.Context) (Repository, error) {
 	// Load card definitions from JSON
 	defs, err := LoadCardsFromJSON(ctx)
@@ -54,17 +49,32 @@ func NewRepository(ctx context.Context) (Repository, error) {
 	}
 
 	return &RepositoryImpl{
+		gameID:      "", // Empty means global instance
 		decks:       make(map[string]*GameDeck),
 		definitions: defs,
 	}, nil
 }
 
+// NewGameScopedRepository creates a game-scoped deck repository
+func NewGameScopedRepository(gameID string, decks map[string]*GameDeck, definitions *CardDefinitions) Repository {
+	return &RepositoryImpl{
+		gameID:      gameID,
+		decks:       decks,
+		definitions: definitions,
+	}
+}
+
+// GetDefinitions returns the card definitions (for creating game-scoped instances)
+func (r *RepositoryImpl) GetDefinitions() *CardDefinitions {
+	return r.definitions
+}
+
 // CreateDeck initializes a new game deck
-func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings types.GameSettings) error {
+func (r *RepositoryImpl) CreateDeck(ctx context.Context, settings types.GameSettings) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	log := logger.WithGameContext(gameID, "")
+	log := logger.WithGameContext(r.gameID, "")
 
 	// Get all available card IDs
 	projectCardIDs := extractCardIDs(r.definitions.ProjectCards)
@@ -82,8 +92,8 @@ func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings
 	preludeIDs = shuffleStrings(preludeIDs)
 
 	// Create game deck
-	deck := NewGameDeck(gameID, projectCardIDs, corpIDs, preludeIDs)
-	r.decks[gameID] = deck
+	deck := NewGameDeck(r.gameID, projectCardIDs, corpIDs, preludeIDs)
+	r.decks[r.gameID] = deck
 
 	log.Info("🎴 Game deck created",
 		zap.Int("project_cards", len(deck.ProjectCards)),
@@ -94,16 +104,16 @@ func (r *RepositoryImpl) CreateDeck(ctx context.Context, gameID string, settings
 }
 
 // DrawProjectCards draws N random project cards from the deck
-func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, gameID string, count int) ([]string, error) {
+func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, count int) ([]string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	deck, err := r.getDeck(gameID)
+	deck, err := r.getDeck(r.gameID)
 	if err != nil {
 		return nil, err
 	}
 
-	log := logger.WithGameContext(gameID, "")
+	log := logger.WithGameContext(r.gameID, "")
 
 	// Check if enough cards available
 	available := len(deck.ProjectCards)
@@ -127,16 +137,16 @@ func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, gameID string, co
 }
 
 // DrawCorporations draws N random corporation cards
-func (r *RepositoryImpl) DrawCorporations(ctx context.Context, gameID string, count int) ([]string, error) {
+func (r *RepositoryImpl) DrawCorporations(ctx context.Context, count int) ([]string, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	deck, err := r.getDeck(gameID)
+	deck, err := r.getDeck(r.gameID)
 	if err != nil {
 		return nil, err
 	}
 
-	log := logger.WithGameContext(gameID, "")
+	log := logger.WithGameContext(r.gameID, "")
 
 	// Check if enough corporations available
 	available := len(deck.Corporations)
@@ -159,18 +169,18 @@ func (r *RepositoryImpl) DrawCorporations(ctx context.Context, gameID string, co
 }
 
 // DiscardCards adds cards to the discard pile
-func (r *RepositoryImpl) DiscardCards(ctx context.Context, gameID string, cardIDs []string) error {
+func (r *RepositoryImpl) DiscardCards(ctx context.Context, cardIDs []string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	deck, err := r.getDeck(gameID)
+	deck, err := r.getDeck(r.gameID)
 	if err != nil {
 		return err
 	}
 
 	deck.DiscardPile = append(deck.DiscardPile, cardIDs...)
 
-	logger.WithGameContext(gameID, "").Debug("🗑️ Cards discarded",
+	logger.WithGameContext(r.gameID, "").Debug("🗑️ Cards discarded",
 		zap.Int("count", len(cardIDs)),
 		zap.Int("discard_pile_size", len(deck.DiscardPile)))
 
@@ -178,11 +188,11 @@ func (r *RepositoryImpl) DiscardCards(ctx context.Context, gameID string, cardID
 }
 
 // GetAvailableCardCount returns the number of cards remaining in draw pile
-func (r *RepositoryImpl) GetAvailableCardCount(ctx context.Context, gameID string) (int, error) {
+func (r *RepositoryImpl) GetAvailableCardCount(ctx context.Context) (int, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	deck, err := r.getDeck(gameID)
+	deck, err := r.getDeck(r.gameID)
 	if err != nil {
 		return 0, err
 	}

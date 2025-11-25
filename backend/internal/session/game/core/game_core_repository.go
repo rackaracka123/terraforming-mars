@@ -7,56 +7,31 @@ import (
 	"terraforming-mars-backend/internal/events"
 )
 
-// GameCoreRepository handles core CRUD and game state operations
+// GameCoreRepository handles core game state operations
+// This repository is scoped to a specific game instance
 type GameCoreRepository struct {
+	gameID   string // Bound to specific game
 	storage  *GameStorage
 	eventBus *events.EventBusImpl
 }
 
-// NewGameCoreRepository creates a new game core repository
-func NewGameCoreRepository(storage *GameStorage, eventBus *events.EventBusImpl) *GameCoreRepository {
+// NewGameCoreRepository creates a new game core repository bound to a specific game
+func NewGameCoreRepository(gameID string, storage *GameStorage, eventBus *events.EventBusImpl) *GameCoreRepository {
 	return &GameCoreRepository{
+		gameID:   gameID,
 		storage:  storage,
 		eventBus: eventBus,
 	}
 }
 
-// Create creates a new game
-func (r *GameCoreRepository) Create(ctx context.Context, game *Game) error {
-	return r.storage.Create(game)
-}
-
-// GetByID retrieves a game by ID
-func (r *GameCoreRepository) GetByID(ctx context.Context, gameID string) (*Game, error) {
-	return r.storage.Get(gameID)
-}
-
-// List retrieves all games, optionally filtered by status
-func (r *GameCoreRepository) List(ctx context.Context, status string) ([]*Game, error) {
-	allGames, err := r.storage.GetAll()
-	if err != nil {
-		return nil, err
-	}
-
-	// If no status filter, return all
-	if status == "" {
-		return allGames, nil
-	}
-
-	// Filter by status
-	filtered := make([]*Game, 0)
-	for _, game := range allGames {
-		if string(game.Status) == status {
-			filtered = append(filtered, game)
-		}
-	}
-
-	return filtered, nil
+// Get retrieves the game data for this repository's bound game
+func (r *GameCoreRepository) Get(ctx context.Context) (*Game, error) {
+	return r.storage.Get(r.gameID)
 }
 
 // UpdateStatus updates game status and publishes event
-func (r *GameCoreRepository) UpdateStatus(ctx context.Context, gameID string, status GameStatus) error {
-	game, err := r.storage.Get(gameID)
+func (r *GameCoreRepository) UpdateStatus(ctx context.Context, status GameStatus) error {
+	game, err := r.storage.Get(r.gameID)
 	if err != nil {
 		return err
 	}
@@ -64,7 +39,7 @@ func (r *GameCoreRepository) UpdateStatus(ctx context.Context, gameID string, st
 	oldStatus := game.Status
 	game.Status = status
 
-	err = r.storage.Set(gameID, game)
+	err = r.storage.Set(r.gameID, game)
 	if err != nil {
 		return err
 	}
@@ -72,7 +47,7 @@ func (r *GameCoreRepository) UpdateStatus(ctx context.Context, gameID string, st
 	// Publish event if status changed
 	if oldStatus != status {
 		events.Publish(r.eventBus, events.GameStatusChangedEvent{
-			GameID:    gameID,
+			GameID:    r.gameID,
 			OldStatus: string(oldStatus),
 			NewStatus: string(status),
 			Timestamp: time.Now(),
@@ -83,8 +58,8 @@ func (r *GameCoreRepository) UpdateStatus(ctx context.Context, gameID string, st
 }
 
 // UpdatePhase updates game phase and publishes event
-func (r *GameCoreRepository) UpdatePhase(ctx context.Context, gameID string, phase GamePhase) error {
-	game, err := r.storage.Get(gameID)
+func (r *GameCoreRepository) UpdatePhase(ctx context.Context, phase GamePhase) error {
+	game, err := r.storage.Get(r.gameID)
 	if err != nil {
 		return err
 	}
@@ -92,7 +67,7 @@ func (r *GameCoreRepository) UpdatePhase(ctx context.Context, gameID string, pha
 	oldPhase := game.CurrentPhase
 	game.CurrentPhase = phase
 
-	err = r.storage.Set(gameID, game)
+	err = r.storage.Set(r.gameID, game)
 	if err != nil {
 		return err
 	}
@@ -100,7 +75,7 @@ func (r *GameCoreRepository) UpdatePhase(ctx context.Context, gameID string, pha
 	// Publish event if phase changed
 	if oldPhase != phase {
 		events.Publish(r.eventBus, events.GamePhaseChangedEvent{
-			GameID:    gameID,
+			GameID:    r.gameID,
 			OldPhase:  string(oldPhase),
 			NewPhase:  string(phase),
 			Timestamp: time.Now(),

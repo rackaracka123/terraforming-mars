@@ -23,19 +23,19 @@ type SkipActionAction struct {
 // NewSkipActionAction creates a new skip action action
 func NewSkipActionAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	deckRepo deck.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 		deckRepo:   deckRepo,
 	}
 }
 
 // Execute performs the skip action
-func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID string) error {
+func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("⏭️ Skipping player turn")
 
@@ -51,12 +51,6 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	}
 
 	// 3. Get session and players
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	players := sess.GetAllPlayers()
 
 	// 4. Find current player and their index
@@ -246,7 +240,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 		// F. Draw 4 cards for production phase selection
 		drawnCards := []string{}
 		for i := 0; i < 4; i++ {
-			cardIDs, err := a.deckRepo.DrawProjectCards(ctx, gameID, 1)
+			cardIDs, err := a.deckRepo.DrawProjectCards(ctx, 1)
 			if err != nil || len(cardIDs) == 0 {
 				// Deck might be empty, stop drawing
 				log.Debug("⚠️ Deck empty or error drawing card, stopping at card draw",

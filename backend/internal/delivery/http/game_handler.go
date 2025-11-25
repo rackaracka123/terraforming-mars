@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
@@ -16,6 +17,7 @@ import (
 // GameHandler handles HTTP requests related to game operations
 type GameHandler struct {
 	*BaseHandler
+	sessionFactory   session.SessionFactory
 	createGameAction *action.CreateGameAction
 	getGameAction    *query.GetGameAction
 	listGamesAction  *query.ListGamesAction
@@ -23,12 +25,14 @@ type GameHandler struct {
 
 // NewGameHandler creates a new game handler
 func NewGameHandler(
+	sessionFactory session.SessionFactory,
 	createGameAction *action.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 ) *GameHandler {
 	return &GameHandler{
 		BaseHandler:      NewBaseHandler(),
+		sessionFactory:   sessionFactory,
 		createGameAction: createGameAction,
 		getGameAction:    getGameAction,
 		listGamesAction:  listGamesAction,
@@ -81,8 +85,16 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	// Check for optional playerId query parameter for personalized view
 	playerID := r.URL.Query().Get("playerId")
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Game session not found", zap.String("game_id", gameID))
+		h.WriteErrorResponse(w, http.StatusNotFound, "Game session not found")
+		return
+	}
+
 	// Use GetGameAction
-	result, err := h.getGameAction.Execute(r.Context(), gameID, playerID)
+	result, err := h.getGameAction.Execute(r.Context(), sess, playerID)
 	if err != nil {
 		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
 		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")

@@ -15,21 +15,23 @@ import (
 // GiveCardAction handles the admin action to give a card to a player
 type GiveCardAction struct {
 	action.BaseAction
-	gameRepo game.Repository
-	cardRepo card.Repository
+	gameRepo       game.Repository
+	cardRepo       card.Repository
+	sessionFactory session.SessionFactory
 }
 
 // NewGiveCardAction creates a new give card admin action
 func NewGiveCardAction(
 	gameRepo game.Repository,
 	cardRepo card.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 ) *GiveCardAction {
 	return &GiveCardAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
-		gameRepo:   gameRepo,
-		cardRepo:   cardRepo,
+		BaseAction:     action.NewBaseAction(sessionMgrFactory),
+		gameRepo:       gameRepo,
+		cardRepo:       cardRepo,
+		sessionFactory: sessionFactory,
 	}
 }
 
@@ -46,10 +48,10 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID, playerID, cardID s
 	}
 
 	// 2. Get session and player
-	sess := a.GetSessionFactory().Get(gameID)
+	sess := a.sessionFactory.Get(gameID)
 	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
+		log.Error("Session not found")
+		return fmt.Errorf("game session not found: %s", gameID)
 	}
 
 	player, exists := sess.GetPlayer(playerID)

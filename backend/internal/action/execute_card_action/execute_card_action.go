@@ -18,24 +18,26 @@ import (
 // Fully migrated to session-based architecture
 type ExecuteCardActionAction struct {
 	action.BaseAction
-	gameRepo  game.Repository
-	validator *Validator
-	processor *Processor
+	gameRepo       game.Repository
+	validator      *Validator
+	processor      *Processor
+	sessionFactory session.SessionFactory
 }
 
 // NewExecuteCardActionAction creates a new execute card action action
 func NewExecuteCardActionAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
+	sessionFactory session.SessionFactory,
 	cardProcessor *card.CardProcessor,
 	deckRepo deck.Repository,
 ) *ExecuteCardActionAction {
 	return &ExecuteCardActionAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
-		gameRepo:   gameRepo,
-		validator:  NewValidator(sessionFactory),
-		processor:  NewProcessor(sessionFactory, cardProcessor, deckRepo),
+		BaseAction:     action.NewBaseAction(sessionMgrFactory),
+		gameRepo:       gameRepo,
+		validator:      NewValidator(sessionFactory),
+		processor:      NewProcessor(sessionFactory, cardProcessor, deckRepo),
+		sessionFactory: sessionFactory,
 	}
 }
 
@@ -70,9 +72,9 @@ func (a *ExecuteCardActionAction) Execute(
 	}
 
 	// 2. Get session and player to validate they exist and check their actions
-	sess := a.GetSessionFactory().Get(gameID)
+	sess := a.sessionFactory.Get(gameID)
 	if sess == nil {
-		log.Error("Game session not found")
+		log.Error("Session not found")
 		return fmt.Errorf("game session not found: %s", gameID)
 	}
 

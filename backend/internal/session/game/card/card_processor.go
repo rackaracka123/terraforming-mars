@@ -498,7 +498,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 	if cardDrawAmount > 0 && cardPeekAmount == 0 && cardTakeAmount == 0 && cardBuyAmount == 0 {
 		// Scenario 1: Simple card-draw (e.g., "Draw 2 cards")
 		// Draw cards from deck and auto-select all
-		drawnCards, err := cp.deckRepo.DrawProjectCards(ctx, p.GameID, cardDrawAmount)
+		drawnCards, err := cp.deckRepo.DrawProjectCards(ctx, cardDrawAmount)
 		if err != nil {
 			log.Error("Failed to draw cards from deck", zap.Error(err))
 			return fmt.Errorf("failed to draw card: %w", err)
@@ -516,7 +516,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 	} else if cardPeekAmount > 0 {
 		// Scenario 2/3/4: Peek-based scenarios (card-peek + card-take/card-buy)
 		// Draw cards from deck to peek at them (they won't be returned)
-		peekedCards, err := cp.deckRepo.DrawProjectCards(ctx, p.GameID, cardPeekAmount)
+		peekedCards, err := cp.deckRepo.DrawProjectCards(ctx, cardPeekAmount)
 		if err != nil {
 			log.Error("Failed to draw cards from deck for peek", zap.Error(err))
 			return fmt.Errorf("failed to peek card: %w", err)

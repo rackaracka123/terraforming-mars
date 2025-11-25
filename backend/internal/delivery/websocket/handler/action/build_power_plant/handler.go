@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -14,12 +15,14 @@ import (
 // Handler handles build power plant standard project action requests
 type Handler struct {
 	buildPowerPlantAction *action.BuildPowerPlantAction
+	sessionFactory        session.SessionFactory
 }
 
 // NewHandler creates a new build power plant handler
-func NewHandler(buildPowerPlantAction *action.BuildPowerPlantAction) *Handler {
+func NewHandler(buildPowerPlantAction *action.BuildPowerPlantAction, sessionFactory session.SessionFactory) *Handler {
 	return &Handler{
 		buildPowerPlantAction: buildPowerPlantAction,
+		sessionFactory:        sessionFactory,
 	}
 }
 
@@ -32,8 +35,19 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 	log.Debug("⚡ Processing build power plant action")
 
+	// Get session for the game
+	sess := h.sessionFactory.Get(connection.GameID)
+	if sess == nil {
+		log.Error("Session not found")
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": "Game session not found"},
+		}
+		return
+	}
+
 	// Execute the build power plant action
-	err := h.buildPowerPlantAction.Execute(ctx, connection.GameID, connection.PlayerID)
+	err := h.buildPowerPlantAction.Execute(ctx, sess, connection.PlayerID)
 	if err != nil {
 		log.Error("Failed to execute build power plant action", zap.Error(err))
 		connection.Send <- dto.WebSocketMessage{

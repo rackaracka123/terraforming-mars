@@ -19,11 +19,10 @@ type SetPhaseAction struct {
 // NewSetPhaseAction creates a new set phase admin action
 func NewSetPhaseAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetPhaseAction {
 	return &SetPhaseAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }

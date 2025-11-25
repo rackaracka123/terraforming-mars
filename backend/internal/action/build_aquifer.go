@@ -24,17 +24,17 @@ type BuildAquiferAction struct {
 // NewBuildAquiferAction creates a new build aquifer action
 func NewBuildAquiferAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the build aquifer action
-func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *BuildAquiferAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("💧 Building aquifer (ocean tile)")
 
@@ -49,13 +49,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID, playerID strin
 		return err
 	}
 
-	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
+	// 3. Get player from session
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

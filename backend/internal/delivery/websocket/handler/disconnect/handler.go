@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -15,15 +16,17 @@ import (
 // DisconnectHandler handles player disconnection events
 type DisconnectHandler struct {
 	playerDisconnectedAction *action.PlayerDisconnectedAction
+	sessionFactory           session.SessionFactory
 	parser                   *utils.MessageParser
 	errorHandler             *utils.ErrorHandler
 	logger                   *zap.Logger
 }
 
 // NewDisconnectHandler creates a new disconnect handler
-func NewDisconnectHandler(playerDisconnectedAction *action.PlayerDisconnectedAction) *DisconnectHandler {
+func NewDisconnectHandler(playerDisconnectedAction *action.PlayerDisconnectedAction, sessionFactory session.SessionFactory) *DisconnectHandler {
 	return &DisconnectHandler{
 		playerDisconnectedAction: playerDisconnectedAction,
+		sessionFactory:           sessionFactory,
 		parser:                   utils.NewMessageParser(),
 		errorHandler:             utils.NewErrorHandler(),
 		logger:                   logger.Get(),
@@ -46,8 +49,16 @@ func (dh *DisconnectHandler) HandleMessage(ctx context.Context, connection *core
 		zap.String("player_id", disconnectPayload.PlayerID),
 		zap.String("game_id", disconnectPayload.GameID))
 
+	// Get session for the game
+	sess := dh.sessionFactory.Get(disconnectPayload.GameID)
+	if sess == nil {
+		log.Error("Session not found", zap.String("game_id", disconnectPayload.GameID))
+		dh.errorHandler.SendError(connection, utils.ErrActionFailed+": session not found")
+		return
+	}
+
 	// Execute the player disconnected action
-	err := dh.playerDisconnectedAction.Execute(ctx, disconnectPayload.GameID, disconnectPayload.PlayerID)
+	err := dh.playerDisconnectedAction.Execute(ctx, sess, disconnectPayload.PlayerID)
 	if err != nil {
 		log.Error("Failed to process player disconnection",
 			zap.String("player_id", disconnectPayload.PlayerID),

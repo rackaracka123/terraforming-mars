@@ -7,6 +7,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -14,12 +15,14 @@ import (
 // Handler handles confirm sell patents card selection requests (Phase 2)
 type Handler struct {
 	confirmSellPatentsAction *action.ConfirmSellPatentsAction
+	sessionFactory           session.SessionFactory
 }
 
 // NewHandler creates a new confirm sell patents handler
-func NewHandler(confirmSellPatentsAction *action.ConfirmSellPatentsAction) *Handler {
+func NewHandler(confirmSellPatentsAction *action.ConfirmSellPatentsAction, sessionFactory session.SessionFactory) *Handler {
 	return &Handler{
 		confirmSellPatentsAction: confirmSellPatentsAction,
+		sessionFactory:           sessionFactory,
 	}
 }
 
@@ -80,8 +83,19 @@ func (h *Handler) HandleMessage(ctx context.Context, connection *core.Connection
 
 	log.Debug("Confirming sell patents with selected cards", zap.Int("card_count", len(selectedCards)))
 
+	// Get session for the game
+	sess := h.sessionFactory.Get(connection.GameID)
+	if sess == nil {
+		log.Error("Session not found")
+		connection.Send <- dto.WebSocketMessage{
+			Type:    dto.MessageTypeError,
+			Payload: map[string]interface{}{"error": "Game session not found"},
+		}
+		return
+	}
+
 	// Execute the confirm sell patents action (Phase 2: process selection)
-	err := h.confirmSellPatentsAction.Execute(ctx, connection.GameID, connection.PlayerID, selectedCards)
+	err := h.confirmSellPatentsAction.Execute(ctx, sess, connection.PlayerID, selectedCards)
 	if err != nil {
 		log.Error("Failed to execute confirm sell patents action", zap.Error(err))
 		connection.Send <- dto.WebSocketMessage{

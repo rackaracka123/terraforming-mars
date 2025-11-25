@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
+	"terraforming-mars-backend/internal/session"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -14,17 +15,20 @@ import (
 // PlayerHandler handles HTTP requests related to player operations
 type PlayerHandler struct {
 	*BaseHandler
+	sessionFactory  session.SessionFactory
 	joinGameAction  *action.JoinGameAction
 	getPlayerAction *query.GetPlayerAction
 }
 
 // NewPlayerHandler creates a new player handler
 func NewPlayerHandler(
+	sessionFactory session.SessionFactory,
 	joinGameAction *action.JoinGameAction,
 	getPlayerAction *query.GetPlayerAction,
 ) *PlayerHandler {
 	return &PlayerHandler{
 		BaseHandler:     NewBaseHandler(),
+		sessionFactory:  sessionFactory,
 		joinGameAction:  joinGameAction,
 		getPlayerAction: getPlayerAction,
 	}
@@ -81,8 +85,16 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get session
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		h.logger.Error("Game session not found", zap.String("game_id", gameID))
+		h.WriteErrorResponse(w, http.StatusNotFound, "Game session not found")
+		return
+	}
+
 	// Use GetPlayerAction
-	player, err := h.getPlayerAction.Execute(r.Context(), gameID, playerID)
+	player, err := h.getPlayerAction.Execute(r.Context(), sess, playerID)
 	if err != nil {
 		h.logger.Error("Failed to get player", zap.Error(err),
 			zap.String("game_id", gameID),

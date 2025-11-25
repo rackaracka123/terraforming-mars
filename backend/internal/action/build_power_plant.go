@@ -24,17 +24,17 @@ type BuildPowerPlantAction struct {
 // NewBuildPowerPlantAction creates a new build power plant action
 func NewBuildPowerPlantAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the build power plant action
-func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("⚡ Building power plant")
 
@@ -50,12 +50,6 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 	}
 
 	// 3. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

@@ -13,64 +13,68 @@ import (
 )
 
 // Repository defines the interface for board data access
+// This repository is scoped to a specific game instance
 type Repository interface {
-	// GetByGameID returns a deep copy of the board for a game (immutable getter)
-	GetByGameID(ctx context.Context, gameID string) (*Board, error)
+	// Get returns a deep copy of the board (immutable getter)
+	Get(ctx context.Context) (*Board, error)
 
-	// GenerateBoard creates and initializes the default 42-tile board for a game
-	GenerateBoard(ctx context.Context, gameID string) error
+	// GenerateBoard creates and initializes the default 42-tile board
+	GenerateBoard(ctx context.Context) error
 
 	// UpdateTileOccupancy updates what occupies a tile and who owns it
-	UpdateTileOccupancy(ctx context.Context, gameID string, coord HexPosition, occupant *TileOccupant, ownerID *string) error
+	UpdateTileOccupancy(ctx context.Context, coord HexPosition, occupant *TileOccupant, ownerID *string) error
 
 	// GetTile returns a specific tile by coordinates (immutable getter)
-	GetTile(ctx context.Context, gameID string, coord HexPosition) (*Tile, error)
+	GetTile(ctx context.Context, coord HexPosition) (*Tile, error)
 }
 
 // RepositoryImpl implements the Repository interface with in-memory storage
+// Scoped to a specific game instance
 type RepositoryImpl struct {
+	gameID    string // Bound to specific game
 	mu        sync.RWMutex
-	boards    map[string]*Board // gameID -> Board
+	boards    map[string]*Board // gameID -> Board (shared storage across instances)
 	processor *BoardProcessor
 	eventBus  *events.EventBusImpl
 	logger    *zap.Logger
 }
 
-// NewRepository creates a new board repository
-func NewRepository(eventBus *events.EventBusImpl) Repository {
+// NewRepository creates a new board repository bound to a specific game
+func NewRepository(gameID string, boards map[string]*Board, eventBus *events.EventBusImpl) Repository {
 	return &RepositoryImpl{
-		boards:    make(map[string]*Board),
+		gameID:    gameID,
+		boards:    boards,
 		processor: NewBoardProcessor(),
 		eventBus:  eventBus,
 		logger:    logger.Get(),
 	}
 }
 
-// GetByGameID returns a deep copy of the board for a game (immutable getter)
-func (r *RepositoryImpl) GetByGameID(ctx context.Context, gameID string) (*Board, error) {
+// Get returns a deep copy of the board (immutable getter)
+func (r *RepositoryImpl) Get(ctx context.Context) (*Board, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	board, exists := r.boards[gameID]
+	board, exists := r.boards[r.gameID]
 	if !exists {
-		return nil, fmt.Errorf("board not found for game: %s", gameID)
+		return nil, fmt.Errorf("board not found for game: %s", r.gameID)
 	}
 
 	// Return deep copy to maintain immutability
 	return board.DeepCopy(), nil
 }
 
-// GenerateBoard creates and initializes the default 42-tile board for a game
-func (r *RepositoryImpl) GenerateBoard(ctx context.Context, gameID string) error {
+// GenerateBoard creates and initializes the default 42-tile board
+func (r *RepositoryImpl) GenerateBoard(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	log := r.logger.With(zap.String("game_id", gameID))
+	log := r.logger.With(zap.String("game_id", r.gameID))
 
 	// Check if board already exists
-	if _, exists := r.boards[gameID]; exists {
+	if _, exists := r.boards[r.gameID]; exists {
 		log.Warn("⚠️  Board already exists for game, skipping generation")
-		return fmt.Errorf("board already exists for game: %s", gameID)
+		return fmt.Errorf("board already exists for game: %s", r.gameID)
 	}
 
 	// Generate tiles using processor
@@ -82,7 +86,7 @@ func (r *RepositoryImpl) GenerateBoard(ctx context.Context, gameID string) error
 	}
 
 	// Store board
-	r.boards[gameID] = board
+	r.boards[r.gameID] = board
 
 	log.Info("🗺️  Generated board with tiles", zap.Int("tile_count", len(tiles)))
 
@@ -90,18 +94,18 @@ func (r *RepositoryImpl) GenerateBoard(ctx context.Context, gameID string) error
 }
 
 // UpdateTileOccupancy updates what occupies a tile and who owns it
-func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string, coord HexPosition, occupant *TileOccupant, ownerID *string) error {
+func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, coord HexPosition, occupant *TileOccupant, ownerID *string) error {
 	r.mu.Lock()
 
 	log := r.logger.With(
-		zap.String("game_id", gameID),
+		zap.String("game_id", r.gameID),
 		zap.String("coordinate", coord.String()),
 	)
 
-	board, exists := r.boards[gameID]
+	board, exists := r.boards[r.gameID]
 	if !exists {
 		r.mu.Unlock()
-		return fmt.Errorf("board not found for game: %s", gameID)
+		return fmt.Errorf("board not found for game: %s", r.gameID)
 	}
 
 	// Find the tile
@@ -126,7 +130,7 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 	var eventToPublish *events.TilePlacedEvent
 	if occupant != nil && ownerID != nil {
 		eventToPublish = &events.TilePlacedEvent{
-			GameID:    gameID,
+			GameID:    r.gameID,
 			PlayerID:  *ownerID,
 			TileType:  string(occupant.Type),
 			Q:         coord.Q,
@@ -160,13 +164,13 @@ func (r *RepositoryImpl) UpdateTileOccupancy(ctx context.Context, gameID string,
 }
 
 // GetTile returns a specific tile by coordinates (immutable getter)
-func (r *RepositoryImpl) GetTile(ctx context.Context, gameID string, coord HexPosition) (*Tile, error) {
+func (r *RepositoryImpl) GetTile(ctx context.Context, coord HexPosition) (*Tile, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	board, exists := r.boards[gameID]
+	board, exists := r.boards[r.gameID]
 	if !exists {
-		return nil, fmt.Errorf("board not found for game: %s", gameID)
+		return nil, fmt.Errorf("board not found for game: %s", r.gameID)
 	}
 
 	// Find the tile

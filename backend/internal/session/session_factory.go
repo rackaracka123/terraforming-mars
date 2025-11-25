@@ -1,7 +1,6 @@
 package session
 
 import (
-	"context"
 	"sync"
 
 	"terraforming-mars-backend/internal/events"
@@ -25,13 +24,16 @@ type SessionFactoryImpl struct {
 	sessions map[string]*Session
 	eventBus *events.EventBusImpl
 
-	// Repository instances (shared across sessions)
-	gameRepo  game.Repository
-	boardRepo board.Repository
-	cardRepo  card.Repository
-	deckRepo  deck.Repository
+	// Shared storage for game-scoped repositories
+	gameStorage *game.GameStorage         // Shared game storage
+	boards      map[string]*board.Board   // Shared board storage
+	decks       map[string]*deck.GameDeck // Shared deck storage
 
-	// Infrastructure component factories
+	// Global repositories (not game-scoped)
+	cardRepo        card.Repository       // Card definitions (global)
+	deckDefinitions *deck.CardDefinitions // Card definitions (global)
+
+	// Infrastructure components
 	effectSubscriber card.CardEffectSubscriber
 	boardProcessor   *board.BoardProcessor
 
@@ -41,8 +43,6 @@ type SessionFactoryImpl struct {
 // NewSessionFactory creates a new session factory with repository dependencies
 func NewSessionFactory(
 	eventBus *events.EventBusImpl,
-	gameRepo game.Repository,
-	boardRepo board.Repository,
 	cardRepo card.Repository,
 	deckRepo deck.Repository,
 ) SessionFactory {
@@ -50,13 +50,20 @@ func NewSessionFactory(
 	effectSubscriber := card.NewCardEffectSubscriber(eventBus, cardRepo)
 	boardProcessor := board.NewBoardProcessor()
 
+	// Extract card definitions from deck repository for creating game-scoped instances
+	var deckDefinitions *deck.CardDefinitions
+	if deckRepoImpl, ok := deckRepo.(*deck.RepositoryImpl); ok {
+		deckDefinitions = deckRepoImpl.GetDefinitions()
+	}
+
 	return &SessionFactoryImpl{
 		sessions:         make(map[string]*Session),
 		eventBus:         eventBus,
-		gameRepo:         gameRepo,
-		boardRepo:        boardRepo,
+		gameStorage:      game.NewGameStorage(),
+		boards:           make(map[string]*board.Board),
+		decks:            make(map[string]*deck.GameDeck),
 		cardRepo:         cardRepo,
-		deckRepo:         deckRepo,
+		deckDefinitions:  deckDefinitions,
 		effectSubscriber: effectSubscriber,
 		boardProcessor:   boardProcessor,
 		mu:               sync.RWMutex{},
@@ -92,8 +99,8 @@ func (f *SessionFactoryImpl) GetOrCreate(gameID string) *Session {
 
 	session := NewSession(gameID, f.eventBus)
 
-	// Fetch game from repository and initialize session
-	g, err := f.gameRepo.GetByID(context.Background(), gameID)
+	// Fetch game from storage and initialize session
+	g, err := f.gameStorage.Get(gameID)
 	if err == nil && g != nil {
 		// Convert to types.Game
 		typesGame := &types.Game{
@@ -130,27 +137,29 @@ func (f *SessionFactoryImpl) Remove(gameID string) {
 	delete(f.sessions, gameID)
 }
 
-// WireGameRepositories wires up a types.Game instance with repositories and infrastructure
-// This should be called when setting a Game on a Session to ensure it has access to all dependencies
+// WireGameRepositories wires up a types.Game instance with game-scoped repositories and infrastructure
+// Creates NEW repository instances bound to the specific game ID
 func (f *SessionFactoryImpl) WireGameRepositories(g *types.Game) {
 	if g == nil {
 		return
 	}
 
-	// Wire up sub-repositories from game repository
-	if gameRepoImpl, ok := f.gameRepo.(*game.RepositoryImpl); ok {
-		g.Core = gameRepoImpl.GetCore()
-		g.GlobalParams = gameRepoImpl.GetGlobalParams()
-		g.Turn = gameRepoImpl.GetTurn()
-	}
+	gameID := g.ID
 
-	// Wire up domain repositories
-	g.Board = f.boardRepo
+	// Create game-scoped repository instances
+	g.Core = game.NewGameCoreRepository(gameID, f.gameStorage, f.eventBus)
+	g.GlobalParams = game.NewGameGlobalParametersRepository(gameID, f.gameStorage, f.eventBus)
+	g.Turn = game.NewGameTurnRepository(gameID, f.gameStorage, f.eventBus)
+	g.Board = board.NewRepository(gameID, f.boards, f.eventBus)
+	g.Deck = deck.NewGameScopedRepository(gameID, f.decks, f.deckDefinitions)
+
+	// Wire up global repositories
 	g.Cards = f.cardRepo
-	g.Deck = f.deckRepo
 
-	// Wire up infrastructure components
-	g.CardManager = card.NewCardManager(f.cardRepo, f.deckRepo, f.effectSubscriber)
-	g.TileProcessor = board.NewProcessor(f.gameRepo, f.boardRepo, f.boardProcessor)
-	g.BonusCalculator = board.NewBonusCalculator(f.gameRepo, f.boardRepo, f.deckRepo)
+	// Wire up infrastructure components with game-scoped repositories
+	g.CardManager = card.NewCardManager(f.cardRepo, g.Deck.(deck.Repository), f.effectSubscriber)
+	// Note: TileProcessor and BonusCalculator will need updating since we removed facade
+	// For now, commenting out - we'll fix when we get to actions
+	// g.TileProcessor = board.NewProcessor(?, g.Board.(board.Repository), f.boardProcessor)
+	// g.BonusCalculator = board.NewBonusCalculator(?, g.Board.(board.Repository), g.Deck.(deck.Repository))
 }

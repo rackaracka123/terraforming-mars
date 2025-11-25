@@ -16,27 +16,20 @@ type PlayerDisconnectedAction struct {
 
 // NewPlayerDisconnectedAction creates a new player disconnected action
 func NewPlayerDisconnectedAction(
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayerDisconnectedAction {
 	return &PlayerDisconnectedAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 	}
 }
 
 // Execute performs the player disconnected action
-func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *PlayerDisconnectedAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔌 Player disconnecting")
 
-	// 1. Get session
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
-	// 2. Get player from session
+	// 1. Get session	// 2. Get player from session
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

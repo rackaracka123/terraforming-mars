@@ -20,17 +20,17 @@ type SetCurrentTurnAction struct {
 // NewSetCurrentTurnAction creates a new set current turn admin action
 func NewSetCurrentTurnAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *SetCurrentTurnAction {
 	return &SetCurrentTurnAction{
-		BaseAction: action.NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: action.NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the set current turn admin action
-func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID, playerID string) error {
+func (a *SetCurrentTurnAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🎲 Admin: Setting current turn")
 
@@ -41,12 +41,6 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID, playerID str
 	}
 
 	// 2. Validate player exists in session
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	_, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

@@ -38,13 +38,12 @@ type StartGameAction struct {
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	cardRepo card.Repository,
 	deckRepo deck.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *StartGameAction {
 	return &StartGameAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 		cardRepo:   cardRepo,
 		deckRepo:   deckRepo,
@@ -52,7 +51,8 @@ func NewStartGameAction(
 }
 
 // Execute performs the start game action
-func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID string) error {
+func (a *StartGameAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🎮 Starting game")
 
@@ -67,12 +67,6 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	// 2. Get session and all players
-	sess := a.GetSessionFactory().Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	players := sess.GetAllPlayers()
 
 	// No minimum player count validation - allow any number for development/testing
@@ -108,7 +102,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	// 6. Create game deck with shuffled cards
-	err = a.deckRepo.CreateDeck(ctx, gameID, convertGameSettings(g.Settings))
+	err = a.deckRepo.CreateDeck(ctx, convertGameSettings(g.Settings))
 	if err != nil {
 		log.Error("Failed to create game deck", zap.Error(err))
 		return fmt.Errorf("failed to create game deck: %w", err)
@@ -137,13 +131,13 @@ func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID st
 
 	for _, p := range players {
 		// Draw 10 project cards from game deck
-		projectCardIDs, err := a.deckRepo.DrawProjectCards(ctx, gameID, 10)
+		projectCardIDs, err := a.deckRepo.DrawProjectCards(ctx, 10)
 		if err != nil {
 			return fmt.Errorf("failed to draw project cards for player %s: %w", p.ID, err)
 		}
 
 		// Draw 2 corporation cards from game deck
-		corporationIDs, err := a.deckRepo.DrawCorporations(ctx, gameID, 2)
+		corporationIDs, err := a.deckRepo.DrawCorporations(ctx, 2)
 		if err != nil {
 			return fmt.Errorf("failed to draw corporations for player %s: %w", p.ID, err)
 		}

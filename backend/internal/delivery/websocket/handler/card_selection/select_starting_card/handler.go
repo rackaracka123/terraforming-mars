@@ -2,12 +2,14 @@ package select_starting_card
 
 import (
 	"context"
+	"fmt"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/utils"
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
@@ -15,15 +17,17 @@ import (
 // Handler handles select starting card action requests
 type Handler struct {
 	selectStartingCardsAction *action.SelectStartingCardsAction
+	sessionFactory            session.SessionFactory
 	parser                    *utils.MessageParser
 	errorHandler              *utils.ErrorHandler
 	logger                    *zap.Logger
 }
 
 // NewHandler creates a new select starting card handler
-func NewHandler(selectStartingCardsAction *action.SelectStartingCardsAction, parser *utils.MessageParser) *Handler {
+func NewHandler(selectStartingCardsAction *action.SelectStartingCardsAction, sessionFactory session.SessionFactory, parser *utils.MessageParser) *Handler {
 	return &Handler{
 		selectStartingCardsAction: selectStartingCardsAction,
+		sessionFactory:            sessionFactory,
 		parser:                    parser,
 		errorHandler:              utils.NewErrorHandler(),
 		logger:                    logger.Get(),
@@ -91,6 +95,15 @@ func (h *Handler) logCardSelection(gameID, playerID string, cardIDs []string, co
 
 // selectCards processes the card and corporation selection through the action
 func (h *Handler) selectCards(ctx context.Context, gameID, playerID string, cardIDs []string, corporationID string) error {
+	log := logger.WithGameContext(gameID, playerID)
+
+	// Get session for the game
+	sess := h.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Session not found", zap.String("game_id", gameID))
+		return fmt.Errorf("session not found: %s", gameID)
+	}
+
 	// Execute the action directly - actions are orchestrators
-	return h.selectStartingCardsAction.Execute(ctx, gameID, playerID, cardIDs, corporationID)
+	return h.selectStartingCardsAction.Execute(ctx, sess, playerID, cardIDs, corporationID)
 }

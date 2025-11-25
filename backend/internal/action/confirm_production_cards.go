@@ -19,17 +19,17 @@ type ConfirmProductionCardsAction struct {
 // NewConfirmProductionCardsAction creates a new confirm production cards action
 func NewConfirmProductionCardsAction(
 	gameRepo game.Repository,
-	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionMgrFactory),
 		gameRepo:   gameRepo,
 	}
 }
 
 // Execute performs the confirm production cards action
-func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
+func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *session.Session, playerID string, selectedCardIDs []string) error {
+	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID).With(zap.Strings("selected_card_ids", selectedCardIDs))
 	log.Info("🃏 Player confirming production card selection")
 
@@ -45,12 +45,6 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 	}
 
 	// 2. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Game session not found")
-		return fmt.Errorf("game not found: %s", gameID)
-	}
-
 	player, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")

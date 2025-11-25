@@ -18,10 +18,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// SessionAwareBroadcaster handles broadcasting game state updates via WebSocket for a SPECIFIC game
+// SessionBroadcaster handles broadcasting game state updates via WebSocket for a SPECIFIC game
 // This component is bound to a single gameID and can never broadcast to a different game
 // This component lives in the delivery layer and knows about DTOs and WebSocket Hub
-type SessionAwareBroadcaster struct {
+type SessionBroadcaster struct {
 	gameID         string // IMMUTABLE - bound at creation, cannot change
 	gameRepo       game.Repository
 	sessionFactory session.SessionFactory
@@ -31,8 +31,8 @@ type SessionAwareBroadcaster struct {
 	logger         *zap.Logger
 }
 
-// NewSessionAwareBroadcaster creates a new session-aware broadcaster bound to a specific game
-func NewSessionAwareBroadcaster(
+// NewSessionBroadcaster creates a new session-aware broadcaster bound to a specific game
+func NewSessionBroadcaster(
 	gameID string,
 	gameRepo game.Repository,
 	sessionFactory session.SessionFactory,
@@ -40,7 +40,7 @@ func NewSessionAwareBroadcaster(
 	boardRepo board.Repository,
 	hub *core.Hub,
 ) session.SessionManager {
-	return &SessionAwareBroadcaster{
+	return &SessionBroadcaster{
 		gameID:         gameID, // Permanently bound to this game
 		gameRepo:       gameRepo,
 		sessionFactory: sessionFactory,
@@ -52,18 +52,18 @@ func NewSessionAwareBroadcaster(
 }
 
 // GetGameID returns the game ID this broadcaster is bound to
-func (b *SessionAwareBroadcaster) GetGameID() string {
+func (b *SessionBroadcaster) GetGameID() string {
 	return b.gameID
 }
 
 // Broadcast sends complete game state to all players in THIS game
-func (b *SessionAwareBroadcaster) Broadcast() error {
+func (b *SessionBroadcaster) Broadcast() error {
 	ctx := context.Background()
 	return b.broadcastGameStateInternal(ctx, "")
 }
 
 // Send sends complete game state to a specific player in THIS game
-func (b *SessionAwareBroadcaster) Send(playerID string) error {
+func (b *SessionBroadcaster) Send(playerID string) error {
 	ctx := context.Background()
 	return b.broadcastGameStateInternal(ctx, playerID)
 }
@@ -71,7 +71,7 @@ func (b *SessionAwareBroadcaster) Send(playerID string) error {
 // broadcastGameStateInternal gathers all game data, creates personalized DTOs, and broadcasts to all players
 // If playerID is empty, broadcasts to all players; if specified, sends only to that player
 // Uses b.gameID which is immutably bound at creation time
-func (b *SessionAwareBroadcaster) broadcastGameStateInternal(ctx context.Context, targetPlayerID string) error {
+func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, targetPlayerID string) error {
 	gameID := b.gameID // Use the immutable game ID this broadcaster is bound to
 	log := b.logger.With(zap.String("game_id", gameID))
 	if targetPlayerID == "" {
@@ -97,7 +97,7 @@ func (b *SessionAwareBroadcaster) broadcastGameStateInternal(ctx context.Context
 	gameModel := gameToModel(newGame)
 
 	// Get board from board repository and attach to game
-	sessionBoard, err := b.boardRepo.GetByGameID(ctx, gameID)
+	sessionBoard, err := b.boardRepo.Get(ctx)
 	if err != nil {
 		// Board may not exist for games created before board migration
 		// Log warning but continue with empty board
@@ -265,7 +265,7 @@ func (b *SessionAwareBroadcaster) broadcastGameStateInternal(ctx context.Context
 }
 
 // sendToPlayerDirect sends a message directly to a specific player via the Hub
-func (b *SessionAwareBroadcaster) sendToPlayerDirect(playerID, gameID string, messageType dto.MessageType, payload any) error {
+func (b *SessionBroadcaster) sendToPlayerDirect(playerID, gameID string, messageType dto.MessageType, payload any) error {
 	message := dto.WebSocketMessage{
 		Type:    messageType,
 		Payload: payload,
