@@ -15,7 +15,8 @@ type Player struct {
 	Hand        *HandRepository
 	Selection   *SelectionRepository
 	Corporation *CorporationRepository
-	Turn        *TurnRepository
+	Connection  *ConnectionRepository
+	Action      *ActionRepository
 	Effects     *EffectRepository
 	TileQueue   *TileQueueRepository
 }
@@ -31,7 +32,8 @@ func NewPlayer(player *types.Player, eventBus *events.EventBusImpl) *Player {
 	p.Hand = NewHandRepository(p)
 	p.Selection = NewSelectionRepository(p)
 	p.Corporation = NewCorporationRepository(p)
-	p.Turn = NewTurnRepository(p)
+	p.Connection = NewConnectionRepository(p)
+	p.Action = NewActionRepository(p)
 	p.Effects = NewEffectRepository(p)
 	p.TileQueue = NewTileQueueRepository(p, eventBus)
 

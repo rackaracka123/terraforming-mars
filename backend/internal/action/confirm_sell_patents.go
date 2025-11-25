@@ -143,7 +143,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 	// 11. Consume action (only if player actually sold cards and not unlimited actions)
 	if len(selectedCardIDs) > 0 && player.AvailableActions > 0 {
 		newActions := player.AvailableActions - 1
-		err = player.Turn.UpdateAvailableActions(ctx, newActions)
+		err = player.Action.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)

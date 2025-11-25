@@ -44,7 +44,7 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID, playerID 
 	}
 
 	// 3. Update player connection status to connected
-	err := player.Turn.UpdateConnectionStatus(ctx, true)
+	err := player.Connection.UpdateStatus(ctx, true)
 	if err != nil {
 		log.Error("Failed to update connection status", zap.Error(err))
 		return err

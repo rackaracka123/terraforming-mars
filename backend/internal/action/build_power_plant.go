@@ -98,7 +98,7 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, gameID, playerID st
 	// 7. Consume action (only if not unlimited actions)
 	if player.AvailableActions > 0 {
 		newActions := player.AvailableActions - 1
-		err = player.Turn.UpdateAvailableActions(ctx, newActions)
+		err = player.Action.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)
