@@ -6,7 +6,6 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -15,16 +14,18 @@ import (
 // This is Phase 2: processes the selected cards and awards credits
 type ConfirmSellPatentsAction struct {
 	BaseAction
+	gameRepo game.Repository // Still needed for validation
 }
 
 // NewConfirmSellPatentsAction creates a new confirm sell patents action
 func NewConfirmSellPatentsAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -44,42 +45,49 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 		return err
 	}
 
-	// 3. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 3. Get session and player
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate pending card selection exists
-	if p.PendingCardSelection == nil {
+	if player.PendingCardSelection == nil {
 		log.Warn("No pending card selection found")
 		return fmt.Errorf("no pending card selection found")
 	}
 
-	if p.PendingCardSelection.Source != "sell-patents" {
+	if player.PendingCardSelection.Source != "sell-patents" {
 		log.Warn("Pending card selection is not for sell patents",
-			zap.String("source", p.PendingCardSelection.Source))
+			zap.String("source", player.PendingCardSelection.Source))
 		return fmt.Errorf("pending card selection is not for sell patents")
 	}
 
 	// 5. Validate selection count
-	if len(selectedCardIDs) < p.PendingCardSelection.MinCards {
+	if len(selectedCardIDs) < player.PendingCardSelection.MinCards {
 		log.Warn("Too few cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("min_required", p.PendingCardSelection.MinCards))
-		return fmt.Errorf("must select at least %d cards", p.PendingCardSelection.MinCards)
+			zap.Int("min_required", player.PendingCardSelection.MinCards))
+		return fmt.Errorf("must select at least %d cards", player.PendingCardSelection.MinCards)
 	}
 
-	if len(selectedCardIDs) > p.PendingCardSelection.MaxCards {
+	if len(selectedCardIDs) > player.PendingCardSelection.MaxCards {
 		log.Warn("Too many cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("max_allowed", p.PendingCardSelection.MaxCards))
-		return fmt.Errorf("cannot select more than %d cards", p.PendingCardSelection.MaxCards)
+			zap.Int("max_allowed", player.PendingCardSelection.MaxCards))
+		return fmt.Errorf("cannot select more than %d cards", player.PendingCardSelection.MaxCards)
 	}
 
 	// 6. Validate all selected cards are in available cards
 	availableCardsMap := make(map[string]bool)
-	for _, cardID := range p.PendingCardSelection.AvailableCards {
+	for _, cardID := range player.PendingCardSelection.AvailableCards {
 		availableCardsMap[cardID] = true
 	}
 
@@ -93,14 +101,14 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 	// 7. Calculate total reward (1 M€ per card)
 	totalReward := 0
 	for _, cardID := range selectedCardIDs {
-		totalReward += p.PendingCardSelection.CardRewards[cardID]
+		totalReward += player.PendingCardSelection.CardRewards[cardID]
 	}
 
 	// 8. Award credits
 	if totalReward > 0 {
-		newResources := p.Resources
+		newResources := player.Resources
 		newResources.Credits += totalReward
-		err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+		err = player.Resources.Update(ctx, newResources)
 		if err != nil {
 			log.Error("Failed to award credits", zap.Error(err))
 			return fmt.Errorf("failed to award credits: %w", err)
@@ -114,7 +122,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 
 	// 9. Remove sold cards from hand
 	for _, cardID := range selectedCardIDs {
-		err = a.playerRepo.RemoveCardFromHand(ctx, gameID, playerID, cardID)
+		err = player.Hand.RemoveCard(ctx, cardID)
 		if err != nil {
 			log.Error("Failed to remove card from hand",
 				zap.Error(err),
@@ -126,22 +134,16 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID, playerID
 	log.Info("🗑️ Removed sold cards from hand", zap.Int("cards_removed", len(selectedCardIDs)))
 
 	// 10. Clear pending card selection
-	err = a.playerRepo.ClearPendingCardSelection(ctx, gameID, playerID)
+	err = player.Selection.ClearPendingCardSelection(ctx)
 	if err != nil {
 		log.Error("Failed to clear pending card selection", zap.Error(err))
 		return fmt.Errorf("failed to clear pending card selection: %w", err)
 	}
 
 	// 11. Consume action (only if player actually sold cards and not unlimited actions)
-	// Refresh player data after clearing pending selection
-	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
-	}
-
-	if len(selectedCardIDs) > 0 && p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	if len(selectedCardIDs) > 0 && player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Turn.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)

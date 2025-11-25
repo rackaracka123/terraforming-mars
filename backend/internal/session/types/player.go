@@ -86,6 +86,7 @@ type RequirementModifier struct {
 type Player struct {
 	ID                       string                    `json:"id" ts:"string"`
 	Name                     string                    `json:"name" ts:"string"`
+	GameID                   string                    `json:"gameId" ts:"string"` // Game ID this player belongs to
 	Corporation              *Card                     `json:"corporation" ts:"CardDto | null"`
 	CorporationID            string                    `json:"corporationId" ts:"string"` // Corporation ID (separate from full card data)
 	Cards                    []string                  `json:"cards" ts:"string[]"`
@@ -115,6 +116,7 @@ type Player struct {
 	PaymentSubstitutes []PaymentSubstitute `json:"paymentSubstitutes" ts:"PaymentSubstitute[]"` // Alternative resources usable as payment
 	// Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
 	RequirementModifiers []RequirementModifier `json:"requirementModifiers" ts:"RequirementModifier[]"` // Calculated discounts/leniences for cards and standard projects
+
 }
 
 // GetStartingSelectionCards returns the player's starting card selection, nil if not in that phase

@@ -3,8 +3,6 @@ package action
 import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -12,21 +10,18 @@ import (
 // BaseAction provides common dependencies and utilities for all actions
 // All action implementations should embed this struct to access shared functionality
 type BaseAction struct {
-	gameRepo          sessionGame.Repository
-	playerRepo        player.Repository
+	sessionFactory    session.SessionFactory
 	sessionMgrFactory session.SessionManagerFactory
 	logger            *zap.Logger
 }
 
 // NewBaseAction creates a new BaseAction with common dependencies
 func NewBaseAction(
-	gameRepo sessionGame.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) BaseAction {
 	return BaseAction{
-		gameRepo:          gameRepo,
-		playerRepo:        playerRepo,
+		sessionFactory:    sessionFactory,
 		sessionMgrFactory: sessionMgrFactory,
 		logger:            logger.Get(),
 	}
@@ -70,14 +65,9 @@ func (b *BaseAction) SendToPlayer(gameID, playerID string, log *zap.Logger) {
 	}
 }
 
-// GetGameRepo returns the game repository
-func (b *BaseAction) GetGameRepo() sessionGame.Repository {
-	return b.gameRepo
-}
-
-// GetPlayerRepo returns the player repository
-func (b *BaseAction) GetPlayerRepo() player.Repository {
-	return b.playerRepo
+// GetSessionFactory returns the session factory
+func (b *BaseAction) GetSessionFactory() session.SessionFactory {
+	return b.sessionFactory
 }
 
 // GetSessionManagerFactory returns the session manager factory

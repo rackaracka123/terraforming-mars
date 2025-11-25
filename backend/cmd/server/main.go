@@ -18,6 +18,7 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
+	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/board"
 	"terraforming-mars-backend/internal/session/card"
 	sessionCard "terraforming-mars-backend/internal/session/card"
@@ -65,12 +66,15 @@ func main() {
 	hub := core.NewHub()
 
 	// ========== NEW ARCHITECTURE: Initialize Action Pattern ==========
-	// Initialize new repositories BEFORE SessionManager to ensure state consistency
+	// Initialize SessionFactory for game-scoped sessions
+	sessionFactory := session.NewSessionFactory(eventBus)
+	log.Info("🎮 SessionFactory initialized")
+
+	// Initialize legacy repositories for components not yet migrated
 	newGameRepo := game.NewRepository(eventBus)
-	newPlayerRepo := player.NewRepository(eventBus)
 	newCardRepo := sessionCard.NewRepository(newDeckRepo) // Use NEW deck repository
 	newBoardRepo := board.NewRepository(eventBus)
-	log.Info("🗺️  Board repository initialized")
+	log.Info("🗺️  Legacy repositories initialized")
 
 	// Initialize BoardProcessor for hex calculations
 	boardProcessor := board.NewBoardProcessor()
@@ -95,8 +99,8 @@ func main() {
 	startGameAction := action.NewStartGameAction(newGameRepo, newPlayerRepo, newCardRepo, newDeckRepo, sessionManagerFactory)
 	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
 	joinGameAction := action.NewJoinGameAction(newGameRepo, newPlayerRepo) // Event-driven: no SessionManager needed
-	playerReconnectedAction := action.NewPlayerReconnectedAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	playerDisconnectedAction := action.NewPlayerDisconnectedAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionFactory, sessionManagerFactory)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionFactory, sessionManagerFactory)
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
 	skipActionAction := action.NewSkipActionAction(newGameRepo, newPlayerRepo, newDeckRepo, sessionManagerFactory)
 	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, newPlayerRepo, newCardRepo, sessionManagerFactory)
@@ -131,12 +135,12 @@ func main() {
 	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
 	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
 	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
-	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	log.Info("✅ Standard project actions initialized")
 
 	// Initialize resource conversion actions
-	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, sessionFactory, sessionManagerFactory)
 	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, newPlayerRepo, sessionManagerFactory)
 	log.Info("✅ Resource conversion actions initialized")
 

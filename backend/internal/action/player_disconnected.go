@@ -2,10 +2,9 @@ package action
 
 import (
 	"context"
+	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/player"
 
 	"go.uber.org/zap"
 )
@@ -17,12 +16,11 @@ type PlayerDisconnectedAction struct {
 
 // NewPlayerDisconnectedAction creates a new player disconnected action
 func NewPlayerDisconnectedAction(
-	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *PlayerDisconnectedAction {
 	return &PlayerDisconnectedAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
 	}
 }
 
@@ -31,20 +29,22 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID, playerID
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔌 Player disconnecting")
 
-	// 1. Validate game exists
-	_, err := ValidateGameExists(ctx, a.gameRepo, gameID, log)
-	if err != nil {
-		return err
+	// 1. Get session
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate player exists
-	_, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 2. Get player from session
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update player connection status to disconnected
-	err = a.playerRepo.UpdateConnectionStatus(ctx, gameID, playerID, false)
+	err := player.Turn.UpdateConnectionStatus(ctx, false)
 	if err != nil {
 		log.Error("Failed to update connection status", zap.Error(err))
 		return err

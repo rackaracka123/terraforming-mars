@@ -21,16 +21,18 @@ const (
 // ConvertHeatToTemperatureAction handles the business logic for converting heat to raise temperature
 type ConvertHeatToTemperatureAction struct {
 	BaseAction
+	gameRepo game.Repository
 }
 
 // NewConvertHeatToTemperatureAction creates a new convert heat to temperature action
 func NewConvertHeatToTemperatureAction(
 	gameRepo game.Repository,
-	playerRepo player.Repository,
+	sessionFactory session.SessionFactory,
 	sessionMgrFactory session.SessionManagerFactory,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction: NewBaseAction(gameRepo, playerRepo, sessionMgrFactory),
+		BaseAction: NewBaseAction(sessionFactory, sessionMgrFactory),
+		gameRepo:   gameRepo,
 	}
 }
 
@@ -50,30 +52,37 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 		return err
 	}
 
-	// 3. Validate player exists
-	p, err := ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
+	// 3. Get session and player
+	sess := a.sessionFactory.Get(gameID)
+	if sess == nil {
+		log.Error("Game session not found")
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	player, exists := sess.GetPlayer(playerID)
+	if !exists {
+		log.Error("Player not found in session")
+		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Calculate required heat (with card discount effects)
-	requiredHeat := card.CalculateResourceConversionCost(p, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := card.CalculateResourceConversionCost(player.Player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 	log.Debug("💰 Calculated heat cost",
 		zap.Int("base_cost", BaseHeatForTemperature),
 		zap.Int("final_cost", requiredHeat))
 
 	// 5. Validate player has enough heat
-	if p.Resources.Heat < requiredHeat {
+	if player.Resources.Heat < requiredHeat {
 		log.Warn("Player cannot afford heat conversion",
 			zap.Int("required", requiredHeat),
-			zap.Int("available", p.Resources.Heat))
-		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, p.Resources.Heat)
+			zap.Int("available", player.Resources.Heat))
+		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, player.Resources.Heat)
 	}
 
 	// 6. Deduct heat
-	newResources := p.Resources
+	newResources := player.Resources
 	newResources.Heat -= requiredHeat
-	err = a.playerRepo.UpdateResources(ctx, gameID, playerID, newResources)
+	err = player.Resources.Update(ctx, newResources)
 	if err != nil {
 		log.Error("Failed to deduct heat", zap.Error(err))
 		return fmt.Errorf("failed to update resources: %w", err)
@@ -107,34 +116,22 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, gameID, pl
 
 	// 8. Award TR if temperature was raised
 	if temperatureRaised {
-		// Refresh player data
-		p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-		if err != nil {
-			return err
-		}
-
-		newTR := p.TerraformRating + 1
-		err = a.playerRepo.UpdateTerraformRating(ctx, gameID, playerID, newTR)
+		newTR := player.TerraformRating + 1
+		err = player.Resources.UpdateTerraformRating(ctx, newTR)
 		if err != nil {
 			log.Error("Failed to update terraform rating", zap.Error(err))
 			return fmt.Errorf("failed to update terraform rating: %w", err)
 		}
 
 		log.Info("🏆 Increased terraform rating",
-			zap.Int("old_tr", p.TerraformRating),
+			zap.Int("old_tr", player.TerraformRating),
 			zap.Int("new_tr", newTR))
 	}
 
 	// 9. Consume action (only if not unlimited actions)
-	// Refresh player data
-	p, err = ValidatePlayer(ctx, a.playerRepo, gameID, playerID, log)
-	if err != nil {
-		return err
-	}
-
-	if p.AvailableActions > 0 {
-		newActions := p.AvailableActions - 1
-		err = a.playerRepo.UpdateAvailableActions(ctx, gameID, playerID, newActions)
+	if player.AvailableActions > 0 {
+		newActions := player.AvailableActions - 1
+		err = player.Turn.UpdateAvailableActions(ctx, newActions)
 		if err != nil {
 			log.Error("Failed to consume action", zap.Error(err))
 			return fmt.Errorf("failed to consume action: %w", err)
