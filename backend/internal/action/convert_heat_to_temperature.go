@@ -59,37 +59,25 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *sess
 	}
 
 	// 4. Calculate required heat (with card discount effects)
-	requiredHeat := card.CalculateResourceConversionCost(player.Player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := card.CalculateResourceConversionCost(player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 	log.Debug("💰 Calculated heat cost",
 		zap.Int("base_cost", BaseHeatForTemperature),
 		zap.Int("final_cost", requiredHeat))
 
 	// 5. Validate player has enough heat
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Heat < requiredHeat {
+	if player.Resources.Heat < requiredHeat {
 		log.Warn("Player cannot afford heat conversion",
 			zap.Int("required", requiredHeat),
-			zap.Int("available", currentResources.Heat))
-		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, currentResources.Heat)
+			zap.Int("available", player.Resources.Heat))
+		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, player.Resources.Heat)
 	}
 
 	// 6. Deduct heat
-	newResources := currentResources
-	newResources.Heat -= requiredHeat
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct heat", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	player.Resources.Heat -= requiredHeat
 
 	log.Info("🔥 Deducted heat",
 		zap.Int("heat_spent", requiredHeat),
-		zap.Int("remaining_heat", newResources.Heat))
+		zap.Int("remaining_heat", player.Resources.Heat))
 
 	// 7. Raise temperature by 1 step (+2°C) if not already maxed
 	temperatureRaised := false
@@ -115,27 +103,18 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *sess
 
 	// 8. Award TR if temperature was raised
 	if temperatureRaised {
-		newTR := player.TerraformRating + 1
-		err = player.Resources.UpdateTerraformRating(ctx, newTR)
-		if err != nil {
-			log.Error("Failed to update terraform rating", zap.Error(err))
-			return fmt.Errorf("failed to update terraform rating: %w", err)
-		}
+		oldTR := player.TerraformRating
+		player.TerraformRating++
 
 		log.Info("🏆 Increased terraform rating",
-			zap.Int("old_tr", player.TerraformRating),
-			zap.Int("new_tr", newTR))
+			zap.Int("old_tr", oldTR),
+			zap.Int("new_tr", player.TerraformRating))
 	}
 
 	// 9. Consume action (only if not unlimited actions)
 	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+		player.AvailableActions--
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 10. Broadcast state

@@ -1,6 +1,9 @@
 package board
 
-import "fmt"
+import (
+
+	"terraforming-mars-backend/internal/session/types"
+)
 
 // Tile type string constants for placement operations
 const (
@@ -30,41 +33,8 @@ const (
 	ResourceCardDraw     ResourceType = "card-draw"
 )
 
-// HexPosition represents a hex coordinate in cube coordinate system
-type HexPosition struct {
-	Q int `json:"q"` // Column coordinate
-	R int `json:"r"` // Row coordinate
-	S int `json:"s"` // Third coordinate (Q + R + S = 0)
-}
-
-// String returns a string representation of the hex position
-func (h HexPosition) String() string {
-	return fmt.Sprintf("%d,%d,%d", h.Q, h.R, h.S)
-}
-
-// GetNeighbors returns all 6 adjacent hex positions using cube coordinate system
-func (h HexPosition) GetNeighbors() []HexPosition {
-	// Six adjacent directions in cube coordinates (hexagonal grid)
-	directions := []HexPosition{
-		{Q: 1, R: -1, S: 0}, // East
-		{Q: 1, R: 0, S: -1}, // Northeast
-		{Q: 0, R: 1, S: -1}, // Northwest
-		{Q: -1, R: 1, S: 0}, // West
-		{Q: -1, R: 0, S: 1}, // Southwest
-		{Q: 0, R: -1, S: 1}, // Southeast
-	}
-
-	neighbors := make([]HexPosition, 0, 6)
-	for _, dir := range directions {
-		neighbors = append(neighbors, HexPosition{
-			Q: h.Q + dir.Q,
-			R: h.R + dir.R,
-			S: h.S + dir.S,
-		})
-	}
-
-	return neighbors
-}
+// HexPosition is re-exported from types to avoid import cycles
+type HexPosition = types.HexPosition
 
 // TileBonus represents a resource bonus provided by a tile when occupied
 type TileBonus struct {

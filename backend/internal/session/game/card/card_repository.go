@@ -3,18 +3,16 @@ package card
 import (
 	"context"
 	"math/rand"
-
-	"terraforming-mars-backend/internal/session/types"
 )
 
 // DeckRepository interface for deck operations (to avoid circular dependency)
 type DeckRepository interface {
-	GetCardByID(ctx context.Context, cardID string) (*types.Card, error)
-	GetAllCards(ctx context.Context) ([]types.Card, error)
-	GetProjectCards(ctx context.Context) ([]types.Card, error)
-	GetCorporationCards(ctx context.Context) ([]types.Card, error)
-	GetStartingCardPool(ctx context.Context) ([]types.Card, error)
-	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error)
+	GetCardByID(ctx context.Context, cardID string) (*Card, error)
+	GetAllCards(ctx context.Context) ([]Card, error)
+	GetProjectCards(ctx context.Context) ([]Card, error)
+	GetCorporationCards(ctx context.Context) ([]Card, error)
+	GetStartingCardPool(ctx context.Context) ([]Card, error)
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]Card, error)
 }
 
 // Repository manages card data

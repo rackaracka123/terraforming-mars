@@ -1,6 +1,7 @@
 package deck
 
 import (
+	"terraforming-mars-backend/internal/session/game/card"
 	"context"
 	"fmt"
 	"math/rand"
@@ -23,12 +24,12 @@ type Repository interface {
 	GetAvailableCardCount(ctx context.Context) (int, error)
 
 	// Global card definition queries (not game-scoped)
-	GetCardByID(ctx context.Context, cardID string) (*types.Card, error)
-	GetAllCards(ctx context.Context) ([]types.Card, error)
-	GetProjectCards(ctx context.Context) ([]types.Card, error)
-	GetCorporationCards(ctx context.Context) ([]types.Card, error)
-	GetStartingCardPool(ctx context.Context) ([]types.Card, error)
-	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error)
+	GetCardByID(ctx context.Context, cardID string) (*card.Card, error)
+	GetAllCards(ctx context.Context) ([]card.Card, error)
+	GetProjectCards(ctx context.Context) ([]card.Card, error)
+	GetCorporationCards(ctx context.Context) ([]card.Card, error)
+	GetStartingCardPool(ctx context.Context) ([]card.Card, error)
+	ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]card.Card, error)
 }
 
 // RepositoryImpl implements the Repository interface
@@ -96,9 +97,9 @@ func (r *RepositoryImpl) CreateDeck(ctx context.Context, settings types.GameSett
 	r.decks[r.gameID] = deck
 
 	log.Info("🎴 Game deck created",
-		zap.Int("project_cards", len(deck.ProjectCards)),
-		zap.Int("corporations", len(deck.Corporations)),
-		zap.Int("prelude_cards", len(deck.PreludeCards)))
+		zap.Int("project_cards", len(deck.ProjectCards())),
+		zap.Int("corporations", len(deck.Corporations())),
+		zap.Int("prelude_cards", len(deck.PreludeCards())))
 
 	return nil
 }
@@ -115,23 +116,15 @@ func (r *RepositoryImpl) DrawProjectCards(ctx context.Context, count int) ([]str
 
 	log := logger.WithGameContext(r.gameID, "")
 
-	// Check if enough cards available
-	available := len(deck.ProjectCards)
-	if count > available {
-		log.Warn("Not enough project cards in deck, drawing all remaining",
-			zap.Int("requested", count),
-			zap.Int("available", available))
-		count = available
+	// Delegate to deck's Draw method
+	drawnCards, err := deck.Draw(count)
+	if err != nil {
+		return nil, err
 	}
 
-	// Draw cards from top of deck
-	drawnCards := deck.ProjectCards[:count]
-	deck.ProjectCards = deck.ProjectCards[count:]
-	deck.DrawnCardCount += count
-
 	log.Debug("🎴 Drew project cards",
-		zap.Int("count", count),
-		zap.Int("remaining", len(deck.ProjectCards)))
+		zap.Int("count", len(drawnCards)),
+		zap.Int("remaining", deck.GetAvailableCardCount()))
 
 	return drawnCards, nil
 }
@@ -148,22 +141,15 @@ func (r *RepositoryImpl) DrawCorporations(ctx context.Context, count int) ([]str
 
 	log := logger.WithGameContext(r.gameID, "")
 
-	// Check if enough corporations available
-	available := len(deck.Corporations)
-	if count > available {
-		log.Warn("Not enough corporations in deck, drawing all remaining",
-			zap.Int("requested", count),
-			zap.Int("available", available))
-		count = available
+	// Delegate to deck's DrawCorporations method
+	drawnCorps, err := deck.DrawCorporations(count)
+	if err != nil {
+		return nil, err
 	}
 
-	// Draw corporations from top of deck
-	drawnCorps := deck.Corporations[:count]
-	deck.Corporations = deck.Corporations[count:]
-
 	log.Debug("🏢 Drew corporations",
-		zap.Int("count", count),
-		zap.Int("remaining", len(deck.Corporations)))
+		zap.Int("count", len(drawnCorps)),
+		zap.Int("remaining", len(deck.Corporations())))
 
 	return drawnCorps, nil
 }
@@ -178,11 +164,15 @@ func (r *RepositoryImpl) DiscardCards(ctx context.Context, cardIDs []string) err
 		return err
 	}
 
-	deck.DiscardPile = append(deck.DiscardPile, cardIDs...)
+	// Delegate to deck's Discard method
+	err = deck.Discard(cardIDs)
+	if err != nil {
+		return err
+	}
 
 	logger.WithGameContext(r.gameID, "").Debug("🗑️ Cards discarded",
 		zap.Int("count", len(cardIDs)),
-		zap.Int("discard_pile_size", len(deck.DiscardPile)))
+		zap.Int("discard_pile_size", len(deck.DiscardPile())))
 
 	return nil
 }
@@ -197,11 +187,11 @@ func (r *RepositoryImpl) GetAvailableCardCount(ctx context.Context) (int, error)
 		return 0, err
 	}
 
-	return len(deck.ProjectCards), nil
+	return deck.GetAvailableCardCount(), nil
 }
 
 // GetCardByID retrieves a specific card by ID
-func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*types.Card, error) {
+func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -214,11 +204,11 @@ func (r *RepositoryImpl) GetCardByID(ctx context.Context, cardID string) (*types
 }
 
 // GetAllCards retrieves all card definitions
-func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]types.Card, error) {
+func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	cards := make([]types.Card, 0, len(r.definitions.AllCards))
+	cards := make([]card.Card, 0, len(r.definitions.AllCards))
 	for _, card := range r.definitions.AllCards {
 		cards = append(cards, card)
 	}
@@ -227,7 +217,7 @@ func (r *RepositoryImpl) GetAllCards(ctx context.Context) ([]types.Card, error) 
 }
 
 // GetProjectCards retrieves all project card definitions
-func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]types.Card, error) {
+func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -235,7 +225,7 @@ func (r *RepositoryImpl) GetProjectCards(ctx context.Context) ([]types.Card, err
 }
 
 // GetCorporationCards retrieves all corporation card definitions
-func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]types.Card, error) {
+func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -243,7 +233,7 @@ func (r *RepositoryImpl) GetCorporationCards(ctx context.Context) ([]types.Card,
 }
 
 // GetStartingCardPool retrieves all starting card definitions
-func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]types.Card, error) {
+func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -251,11 +241,11 @@ func (r *RepositoryImpl) GetStartingCardPool(ctx context.Context) ([]types.Card,
 }
 
 // ListCardsByIdMap retrieves multiple cards by their IDs
-func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]types.Card, error) {
+func (r *RepositoryImpl) ListCardsByIdMap(ctx context.Context, ids map[string]struct{}) (map[string]card.Card, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	result := make(map[string]types.Card, len(ids))
+	result := make(map[string]card.Card, len(ids))
 	for id := range ids {
 		if card, exists := r.definitions.AllCards[id]; exists {
 			result[id] = card

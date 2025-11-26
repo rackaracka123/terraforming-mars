@@ -100,55 +100,28 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 
 	// 8. Award credits
 	if totalReward > 0 {
-		currentResources, err := player.Resources.Get(ctx)
-		if err != nil {
-			log.Error("Failed to get player resources", zap.Error(err))
-			return fmt.Errorf("failed to get resources: %w", err)
-		}
-
-		newResources := currentResources
-		newResources.Credits += totalReward
-		err = player.Resources.Update(ctx, newResources)
-		if err != nil {
-			log.Error("Failed to award credits", zap.Error(err))
-			return fmt.Errorf("failed to award credits: %w", err)
-		}
+		player.Resources.Credits += totalReward
 
 		log.Info("💰 Awarded credits for sold cards",
 			zap.Int("cards_sold", len(selectedCardIDs)),
 			zap.Int("credits_earned", totalReward),
-			zap.Int("new_credits", newResources.Credits))
+			zap.Int("new_credits", player.Resources.Credits))
 	}
 
 	// 9. Remove sold cards from hand
 	for _, cardID := range selectedCardIDs {
-		err = player.Hand.RemoveCard(ctx, cardID)
-		if err != nil {
-			log.Error("Failed to remove card from hand",
-				zap.Error(err),
-				zap.String("card_id", cardID))
-			return fmt.Errorf("failed to remove card from hand: %w", err)
-		}
+		player.RemoveCardFromHand(cardID)
 	}
 
 	log.Info("🗑️ Removed sold cards from hand", zap.Int("cards_removed", len(selectedCardIDs)))
 
 	// 10. Clear pending card selection
-	err = player.Selection.ClearPendingCardSelection(ctx)
-	if err != nil {
-		log.Error("Failed to clear pending card selection", zap.Error(err))
-		return fmt.Errorf("failed to clear pending card selection: %w", err)
-	}
+	player.PendingCardSelection = nil
 
 	// 11. Consume action (only if player actually sold cards and not unlimited actions)
 	if len(selectedCardIDs) > 0 && player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+		player.AvailableActions--
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 12. Broadcast state

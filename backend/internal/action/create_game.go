@@ -5,7 +5,6 @@ import (
 
 	"terraforming-mars-backend/internal/session/game/board"
 	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -50,7 +49,7 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	newGame := game.NewGame(gameID, settings)
 
 	// 4. Initialize empty board on game entity (actual board stored in board repository)
-	newGame.Board = types.Board{Tiles: []types.Tile{}}
+	newGame.Board = board.Board{Tiles: []board.Tile{}}
 
 	// 5. Store game in repository
 	err := a.gameRepo.Create(ctx, newGame)

@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game/board"
 	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/types"
 )
 
 const (
@@ -55,79 +56,48 @@ func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, pl
 	}
 
 	// 3. Validate cost (25 M€)
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Credits < BuildCityCost {
+	if player.Resources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
 			zap.Int("cost", BuildCityCost),
-			zap.Int("player_credits", currentResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, currentResources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, player.Resources.Credits)
 	}
 
-	// 4. Deduct cost
-	newResources := currentResources
-	newResources.Credits -= BuildCityCost
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct city cost", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	// 4. Deduct cost using domain method
+	player.AddResources(map[types.ResourceType]int{
+		types.ResourceCredits: -BuildCityCost,
+	})
 
 	log.Info("💰 Deducted city cost",
 		zap.Int("cost", BuildCityCost),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("remaining_credits", player.Resources.Credits))
 
-	// 5. Increase credit production by 1
-	newProduction := player.Production
-	newProduction.Credits++
-	err = player.Resources.UpdateProduction(ctx, newProduction)
-	if err != nil {
-		log.Error("Failed to update production", zap.Error(err))
-		return fmt.Errorf("failed to update production: %w", err)
-	}
+	// 5. Increase credit production by 1 using domain method
+	player.AddProduction(map[types.ResourceType]int{
+		types.ResourceCredits: 1,
+	})
 
 	log.Info("📈 Increased credit production",
-		zap.Int("new_credit_production", newProduction.Credits))
+		zap.Int("new_credit_production", player.Production.Credits))
 
-	// 6. Create tile queue with "city" type
-	err = player.TileQueue.CreateQueue(ctx, "standard-project-city", []string{"city"})
-	if err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
-	}
+	// 6. Queue city tile for placement using domain method
+	player.QueueTilePlacement("standard-project-city", []string{"city"})
 
 	log.Info("📋 Created tile queue for city placement")
 
 	// 7. Tile queue processing (now automatic via TileQueueCreatedEvent)
 	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
-	// 8. Consume action (only if not unlimited actions)
-	// Refresh player data after tile queue creation
-	player, exists = sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found after tile queue creation")
-		return fmt.Errorf("player not found: %s", playerID)
-	}
-
-	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	// 8. Consume action using domain method
+	if player.ConsumeAction() {
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ City built successfully, tile queued for placement",
-		zap.Int("new_credit_production", newProduction.Credits),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("new_credit_production", player.Production.Credits),
+		zap.Int("remaining_credits", player.Resources.Credits))
 	return nil
 }

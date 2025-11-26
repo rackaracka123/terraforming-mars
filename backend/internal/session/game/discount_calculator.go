@@ -1,6 +1,8 @@
-package card
+package game
 
 import (
+	"terraforming-mars-backend/internal/session/game/card"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
 
@@ -18,7 +20,7 @@ const (
 //   - baseCost: The base cost before discounts (typically 8)
 //
 // Returns the final cost after applying all applicable discounts (minimum 1).
-func CalculateResourceConversionCost(player *types.Player, conversionType types.StandardProject, baseCost int) int {
+func CalculateResourceConversionCost(player *player.Player, conversionType types.StandardProject, baseCost int) int {
 	if player == nil || player.Effects == nil {
 		return baseCost
 	}

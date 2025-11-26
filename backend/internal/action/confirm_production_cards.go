@@ -80,32 +80,19 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 	cost := len(selectedCardIDs) * 3
 
 	// 8. Validate player has enough credits
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Credits < cost {
+	if player.Resources.Credits < cost {
 		log.Error("Insufficient credits",
 			zap.Int("cost", cost),
-			zap.Int("available", currentResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, currentResources.Credits)
+			zap.Int("available", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
 	}
 
 	// 9. Deduct card selection cost
-	updatedResources := currentResources
-	updatedResources.Credits -= cost
-
-	err = player.Resources.Update(ctx, updatedResources)
-	if err != nil {
-		log.Error("Failed to update resources", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	player.Resources.Credits -= cost
 
 	log.Info("✅ Resources updated",
 		zap.Int("cost", cost),
-		zap.Int("remaining_credits", updatedResources.Credits))
+		zap.Int("remaining_credits", player.Resources.Credits))
 
 	// 10. Add selected cards to player's hand
 	log.Debug("🃏 Adding cards to player hand",
@@ -115,11 +102,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 		zap.Int("count", len(selectedCardIDs)))
 
 	for _, cardID := range selectedCardIDs {
-		err = player.Hand.AddCard(ctx, cardID)
-		if err != nil {
-			log.Error("Failed to add card", zap.String("card_id", cardID), zap.Error(err))
-			return fmt.Errorf("failed to add card %s: %w", cardID, err)
-		}
+		player.AddCardToHand(cardID)
 	}
 
 	log.Info("✅ Cards added to hand",
@@ -129,10 +112,8 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 		zap.Int("card_count", len(selectedCardIDs)))
 
 	// 11. Mark production selection as complete
-	err = player.Selection.CompleteProductionSelection(ctx)
-	if err != nil {
-		log.Error("Failed to complete production selection", zap.Error(err))
-		return fmt.Errorf("failed to complete production selection: %w", err)
+	if player.ProductionPhase != nil {
+		player.ProductionPhase.SelectionComplete = true
 	}
 
 	log.Info("✅ Production selection marked complete")
@@ -155,25 +136,26 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 			// Non-fatal
 		} else {
 			// Set current turn to first player
-			if len(g.PlayerIDs) > 0 {
-				firstPlayer := g.PlayerIDs[0]
-				if err := SetCurrentTurn(ctx, a.gameRepo, gameID, &firstPlayer, log); err != nil {
-					log.Error("Failed to set current turn", zap.Error(err))
-					// Non-fatal
+			if len(g.Players) > 0 {
+				// Get first player ID from map (note: order not guaranteed - TODO: proper turn order)
+				var firstPlayerID string
+				for id := range g.Players {
+					firstPlayerID = id
+					break
+				}
+				if firstPlayerID != "" {
+					if err := SetCurrentTurn(ctx, a.gameRepo, gameID, &firstPlayerID, log); err != nil {
+						log.Error("Failed to set current turn", zap.Error(err))
+						// Non-fatal
+					}
 				}
 			}
 
 			// Clear production phase data for all players (triggers frontend modal to close)
 			for _, p := range sess.GetAllPlayers() {
-				err = p.Selection.UpdateProductionPhase(ctx, nil)
-				if err != nil {
-					log.Error("Failed to clear production phase",
-						zap.String("player_id", p.ID),
-						zap.Error(err))
-				} else {
-					log.Debug("✅ Cleared production phase",
-						zap.String("player_id", p.ID))
-				}
+				p.ProductionPhase = nil
+				log.Debug("✅ Cleared production phase",
+					zap.String("player_id", p.ID))
 			}
 		}
 	}

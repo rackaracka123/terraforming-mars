@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -57,69 +58,43 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, sess *session.Session,
 	}
 
 	// 4. Validate cost (18 M€)
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Credits < BuildAquiferCost {
+	if player.Resources.Credits < BuildAquiferCost {
 		log.Warn("Insufficient credits for aquifer",
 			zap.Int("cost", BuildAquiferCost),
-			zap.Int("player_credits", currentResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, currentResources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, player.Resources.Credits)
 	}
 
-	// 5. Deduct cost
-	newResources := currentResources
-	newResources.Credits -= BuildAquiferCost
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct aquifer cost", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	// 5. Deduct cost using domain method
+	player.AddResources(map[types.ResourceType]int{
+		types.ResourceCredits: -BuildAquiferCost,
+	})
 
 	log.Info("💰 Deducted aquifer cost",
 		zap.Int("cost", BuildAquiferCost),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("remaining_credits", player.Resources.Credits))
 
 	// 6. Increase terraform rating (for placing ocean)
-	newTR := player.TerraformRating + 1
-	err = player.Resources.UpdateTerraformRating(ctx, newTR)
-	if err != nil {
-		log.Error("Failed to update terraform rating", zap.Error(err))
-		return fmt.Errorf("failed to update terraform rating: %w", err)
-	}
+	player.UpdateTerraformRating(1)
 
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("old_tr", player.TerraformRating),
-		zap.Int("new_tr", newTR))
+		zap.Int("new_tr", player.TerraformRating))
 
-	// 7. Create tile queue with "ocean" type
-	err = player.TileQueue.CreateQueue(ctx, "standard-project-aquifer", []string{"ocean"})
-	if err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
-	}
+	// 7. Queue ocean tile for placement using domain method
+	player.QueueTilePlacement("standard-project-aquifer", []string{"ocean"})
 
 	log.Info("📋 Created tile queue for ocean placement")
 
-	// 8. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	// 8. Consume action using domain method
+	if player.ConsumeAction() {
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",
-		zap.Int("new_terraform_rating", newTR),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("new_terraform_rating", player.TerraformRating),
+		zap.Int("remaining_credits", player.Resources.Credits))
 	return nil
 }

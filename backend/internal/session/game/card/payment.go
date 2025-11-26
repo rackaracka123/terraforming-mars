@@ -1,13 +1,16 @@
-package types
+package card
 
-import "fmt"
+import (
+	"fmt"
+	"terraforming-mars-backend/internal/session/types"
+)
 
 // CardPayment represents how a player is paying for a card
 type CardPayment struct {
-	Credits     int                  `json:"credits" ts:"number"`                                           // MC spent
-	Steel       int                  `json:"steel" ts:"number"`                                             // Steel resources used (2 MC value each)
-	Titanium    int                  `json:"titanium" ts:"number"`                                          // Titanium resources used (3 MC value each)
-	Substitutes map[ResourceType]int `json:"substitutes,omitempty" ts:"Record<string, number> | undefined"` // Payment substitutes (e.g., heat for Helion) with conversion rates from player
+	Credits     int                  // MC spent
+	Steel       int                  // Steel resources used (2 MC value each)
+	Titanium    int                  // Titanium resources used (3 MC value each)
+	Substitutes map[types.ResourceType]int // Payment substitutes (e.g., heat for Helion) with conversion rates from player
 }
 
 // PaymentMethod defines conversion rates for alternative payment resources
@@ -62,7 +65,7 @@ func (p CardPayment) Validate() error {
 }
 
 // CanAfford checks if a player has sufficient resources for this payment
-func (p CardPayment) CanAfford(playerResources Resources) error {
+func (p CardPayment) CanAfford(playerResources types.Resources) error {
 	if playerResources.Credits < p.Credits {
 		return fmt.Errorf("insufficient credits: need %d, have %d", p.Credits, playerResources.Credits)
 	}
@@ -78,11 +81,11 @@ func (p CardPayment) CanAfford(playerResources Resources) error {
 		for resourceType, amount := range p.Substitutes {
 			var available int
 			switch resourceType {
-			case ResourceHeat:
+			case types.ResourceHeat:
 				available = playerResources.Heat
-			case ResourceEnergy:
+			case types.ResourceEnergy:
 				available = playerResources.Energy
-			case ResourcePlants:
+			case types.ResourcePlants:
 				available = playerResources.Plants
 			// Add other resource types as needed
 			default:
@@ -144,7 +147,7 @@ func (p CardPayment) CoversCardCost(cardCost int, allowSteel, allowTitanium bool
 
 // CalculateMinimumAlternativeResources calculates the minimum steel or titanium needed when MC is insufficient
 // Returns (minSteel, minTitanium) - at least one will be 0 if the card doesn't support that payment type
-func CalculateMinimumAlternativeResources(cardCost int, playerResources Resources, allowSteel, allowTitanium bool) (minSteel int, minTitanium int) {
+func CalculateMinimumAlternativeResources(cardCost int, playerResources types.Resources, allowSteel, allowTitanium bool) (minSteel int, minTitanium int) {
 	if cardCost <= 0 {
 		return 0, 0
 	}

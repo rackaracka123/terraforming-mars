@@ -1,4 +1,8 @@
-package types
+package card
+
+import (
+	"terraforming-mars-backend/internal/session/types"
+)
 
 // TriggerType represents different trigger conditions
 type TriggerType string
@@ -22,9 +26,9 @@ const (
 
 // TerraformingActions represents tile placement actions
 type TerraformingActions struct {
-	CityPlacement     int `json:"cityPlacement,omitempty" ts:"number"`     // Number of city tiles to place
-	OceanPlacement    int `json:"oceanPlacement,omitempty" ts:"number"`    // Number of ocean tiles to place
-	GreeneryPlacement int `json:"greeneryPlacement,omitempty" ts:"number"` // Number of greenery tiles to place
+	CityPlacement     int // Number of city tiles to place
+	OceanPlacement    int // Number of ocean tiles to place
+	GreeneryPlacement int // Number of greenery tiles to place
 }
 
 // RequirementType represents different types of card requirements
@@ -45,21 +49,21 @@ const (
 
 // Requirement represents a single card requirement with flexible min/max values
 type Requirement struct {
-	Type     RequirementType    `json:"type" ts:"RequirementType"`                             // Type of requirement
-	Min      *int               `json:"min,omitempty" ts:"number | undefined"`                 // Minimum value required
-	Max      *int               `json:"max,omitempty" ts:"number | undefined"`                 // Maximum value allowed
-	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Location constraint (Mars, anywhere, etc.)
-	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`                // For tag requirements: which tag
-	Resource *ResourceType      `json:"resource,omitempty" ts:"ResourceType | undefined"`      // For production: which resource
+	Type     RequirementType    // Type of requirement
+	Min      *int               // Minimum value required
+	Max      *int               // Maximum value allowed
+	Location *CardApplyLocation // Location constraint (Mars, anywhere, etc.)
+	Tag      *types.CardTag           // For tag requirements: which tag
+	Resource *types.ResourceType      // For production: which resource
 }
 
 // CardBehavior represents any card behavior - both immediate (when played) and repeatable (activated by player)
 // The trigger type determines when it executes: auto = immediate, manual = repeatable
 type CardBehavior struct {
-	Triggers []Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`          // When/how this action is activated
-	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
-	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
-	Choices  []Choice            `json:"choices,omitempty" ts:"Choice[] | undefined"`            // Player choices between different input/output combinations
+	Triggers []Trigger           // When/how this action is activated
+	Inputs   []ResourceCondition // Resources spent (input side of arrow)
+	Outputs  []ResourceCondition // Resources gained (output side of arrow)
+	Choices  []Choice            // Player choices between different input/output combinations
 }
 
 // DeepCopy creates a deep copy of the CardBehavior
@@ -130,12 +134,12 @@ func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 	}
 
 	if rc.AffectedTags != nil {
-		result.AffectedTags = make([]CardTag, len(rc.AffectedTags))
+		result.AffectedTags = make([]types.CardTag, len(rc.AffectedTags))
 		copy(result.AffectedTags, rc.AffectedTags)
 	}
 
 	if rc.AffectedStandardProjects != nil {
-		result.AffectedStandardProjects = make([]StandardProject, len(rc.AffectedStandardProjects))
+		result.AffectedStandardProjects = make([]types.StandardProject, len(rc.AffectedStandardProjects))
 		copy(result.AffectedStandardProjects, rc.AffectedStandardProjects)
 	}
 
@@ -144,17 +148,17 @@ func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
-	Type     ResourceType `json:"type" ts:"ResourceType"`                     // Type of resource stored
-	Capacity *int         `json:"capacity,omitempty" ts:"number | undefined"` // Max capacity (if limited)
-	Starting int          `json:"starting" ts:"number"`                       // Starting amount
+	Type     types.ResourceType // Type of resource stored
+	Capacity *int         // Max capacity (if limited)
+	Starting int          // Starting amount
 }
 
 // VictoryPointCondition represents a VP condition like "1 VP per jovian tag"
 type VictoryPointCondition struct {
-	Amount     int             `json:"amount" ts:"number"`                           // VP awarded
-	Condition  VPConditionType `json:"condition" ts:"VPConditionType"`               // Type of condition
-	MaxTrigger *int            `json:"maxTrigger,omitempty" ts:"number | undefined"` // Max times it can trigger (-1 = unlimited), only for "per" conditions
-	Per        *PerCondition   `json:"per,omitempty" ts:"PerCondition | undefined"`  // Per condition details, only for "per" conditions
+	Amount     int             // VP awarded
+	Condition  VPConditionType // Type of condition
+	MaxTrigger *int            // Max times it can trigger (-1 = unlimited), only for "per" conditions
+	Per        *PerCondition   // Per condition details, only for "per" conditions
 }
 
 // VPConditionType represents different types of VP conditions
@@ -178,24 +182,24 @@ const (
 
 // DiscountEffect represents cost reductions for playing cards
 type DiscountEffect struct {
-	Amount      int       `json:"amount" ts:"number"`                        // M€ discount per qualifying tag
-	Tags        []CardTag `json:"tags,omitempty" ts:"CardTag[] | undefined"` // Tags that qualify for discount (empty = all cards)
-	Description string    `json:"description" ts:"string"`                   // Human readable description
+	Amount      int       // M€ discount per qualifying tag
+	Tags        []types.CardTag // Tags that qualify for discount (empty = all cards)
+	Description string    // Human readable description
 }
 
 // PaymentSubstitute represents an alternative resource that can be used as payment for credits
 // Example: Helion allows using heat as M€ with 1:1 conversion
 type PaymentSubstitute struct {
-	ResourceType   ResourceType `json:"resourceType" ts:"ResourceType"` // The resource that can be used (e.g., heat)
-	ConversionRate int          `json:"conversionRate" ts:"number"`     // How many credits each resource is worth (1 = 1:1)
+	ResourceType   types.ResourceType // The resource that can be used (e.g., heat)
+	ConversionRate int                // How many credits each resource is worth (1 = 1:1)
 }
 
 // PlayerEffect represents ongoing effects that a player has active, aligned with PlayerAction structure
 type PlayerEffect struct {
-	CardID        string       `json:"cardId" ts:"string"`         // ID of the card that provides this effect
-	CardName      string       `json:"cardName" ts:"string"`       // Name of the card for display purposes
-	BehaviorIndex int          `json:"behaviorIndex" ts:"number"`  // Which behavior on the card this effect represents
-	Behavior      CardBehavior `json:"behavior" ts:"CardBehavior"` // The actual behavior definition with inputs/outputs
+	CardID        string       // ID of the card that provides this effect
+	CardName      string       // Name of the card for display purposes
+	BehaviorIndex int          // Which behavior on the card this effect represents
+	Behavior      CardBehavior // The actual behavior definition with inputs/outputs
 	// Note: No PlayCount since effects are ongoing, not per-generation like actions
 }
 
@@ -230,7 +234,7 @@ func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
 			}
 
 			if input.AffectedTags != nil {
-				inputCopy.AffectedTags = make([]CardTag, len(input.AffectedTags))
+				inputCopy.AffectedTags = make([]types.CardTag, len(input.AffectedTags))
 				copy(inputCopy.AffectedTags, input.AffectedTags)
 			}
 
@@ -252,7 +256,7 @@ func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
 			}
 
 			if output.AffectedTags != nil {
-				outputCopy.AffectedTags = make([]CardTag, len(output.AffectedTags))
+				outputCopy.AffectedTags = make([]types.CardTag, len(output.AffectedTags))
 				copy(outputCopy.AffectedTags, output.AffectedTags)
 			}
 
@@ -278,7 +282,7 @@ func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
 					}
 
 					if input.AffectedTags != nil {
-						inputCopy.AffectedTags = make([]CardTag, len(input.AffectedTags))
+						inputCopy.AffectedTags = make([]types.CardTag, len(input.AffectedTags))
 						copy(inputCopy.AffectedTags, input.AffectedTags)
 					}
 
@@ -298,7 +302,7 @@ func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
 					}
 
 					if output.AffectedTags != nil {
-						outputCopy.AffectedTags = make([]CardTag, len(output.AffectedTags))
+						outputCopy.AffectedTags = make([]types.CardTag, len(output.AffectedTags))
 						copy(outputCopy.AffectedTags, output.AffectedTags)
 					}
 
@@ -332,30 +336,30 @@ const (
 
 // PerCondition represents what to count for conditional resource gains
 type PerCondition struct {
-	Type     ResourceType       `json:"type" ts:"ResourceType"`                                // What to count (city-tile, ocean-tile, etc.)
-	Amount   int                `json:"amount" ts:"number"`                                    // How many of the counted thing per gain
-	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"` // Location constraint (Mars, anywhere, etc.)
-	Target   *TargetType        `json:"target,omitempty" ts:"TargetType | undefined"`          // Whose tags/resources to count (self-player, any-player, etc.)
-	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`                // For tag-based VP conditions (jovian tag, science tag, etc.)
+	Type     types.ResourceType       // What to count (city-tile, ocean-tile, etc.)
+	Amount   int                // How many of the counted thing per gain
+	Location *CardApplyLocation // Location constraint (Mars, anywhere, etc.)
+	Target   *TargetType        // Whose tags/resources to count (self-player, any-player, etc.)
+	Tag      *types.CardTag           // For tag-based VP conditions (jovian tag, science tag, etc.)
 }
 
 // Choice represents a single choice option with inputs and outputs
 type Choice struct {
-	Inputs  []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent for this choice
-	Outputs []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained from this choice
+	Inputs  []ResourceCondition // Resources spent for this choice
+	Outputs []ResourceCondition // Resources gained from this choice
 }
 
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
-	Type                     ResourceType      `json:"type" ts:"ResourceType"`                                                // Type of resource
-	Amount                   int               `json:"amount" ts:"number"`                                                    // Amount of resource
-	Target                   TargetType        `json:"target" ts:"TargetType"`                                                // Target for this resource condition
-	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`                 // For defense: resources being protected
-	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                     // For discount: tags qualifying for discount
-	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`               // For discount/effects: card types qualifying
-	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"` // For discount: standard projects affected
-	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`                          // Max times it can trigger (-1 = unlimited), only for "per" conditions
-	Per                      *PerCondition     `json:"per,omitempty" ts:"PerCondition | undefined"`                           // For conditional gains: what to count
+	Type                     types.ResourceType      // Type of resource
+	Amount                   int               // Amount of resource
+	Target                   TargetType        // Target for this resource condition
+	AffectedResources        []string          // For defense: resources being protected
+	AffectedTags             []types.CardTag         // For discount: tags qualifying for discount
+	AffectedCardTypes        []CardType        // For discount/effects: card types qualifying
+	AffectedStandardProjects []types.StandardProject // For discount: standard projects affected
+	MaxTrigger               *int              // Max times it can trigger (-1 = unlimited), only for "per" conditions
+	Per                      *PerCondition     // For conditional gains: what to count
 }
 
 // ResourceTriggerType represents different trigger types for resource exchanges
@@ -370,42 +374,42 @@ const (
 
 // MinMaxValue represents a minimum and/or maximum value constraint
 type MinMaxValue struct {
-	Min *int `json:"min,omitempty" ts:"number | undefined"` // Minimum value (e.g., at least 20)
-	Max *int `json:"max,omitempty" ts:"number | undefined"` // Maximum value (e.g., at most 10)
+	Min *int // Minimum value (e.g., at least 20)
+	Max *int // Maximum value (e.g., at most 10)
 }
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type                   TriggerType                  `json:"type" ts:"TriggerType"`                                                               // What triggers this (onCityPlaced, etc.)
-	Location               *CardApplyLocation           `json:"location,omitempty" ts:"CardApplyLocation | undefined"`                               // Where the trigger applies (mars, anywhere)
-	AffectedTags           []CardTag                    `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`                                   // Tags that trigger this effect
-	AffectedResources      []string                     `json:"affectedResources,omitempty" ts:"string[] | undefined"`                               // Resource types that trigger this effect (for placement-bonus-gained)
-	AffectedCardTypes      []CardType                   `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`                             // Card types that trigger this effect (for card-played triggers: event, automated, active, etc.)
-	Target                 *TargetType                  `json:"target,omitempty" ts:"TargetType | undefined"`                                        // Whose actions trigger this (self-player, any-player, etc.)
-	RequiredOriginalCost   *MinMaxValue                 `json:"requiredOriginalCost,omitempty" ts:"MinMaxValue | undefined"`                         // Original credit cost requirement (only for card-played/standard-project-played triggers)
-	RequiredResourceChange map[ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty" ts:"Record<ResourceType, MinMaxValue> | undefined"` // Min/max requirements for actual resources spent
+	Type                   TriggerType                  // What triggers this (onCityPlaced, etc.)
+	Location               *CardApplyLocation           // Where the trigger applies (mars, anywhere)
+	AffectedTags           []types.CardTag                    // Tags that trigger this effect
+	AffectedResources      []string                     // Resource types that trigger this effect (for placement-bonus-gained)
+	AffectedCardTypes      []CardType                   // Card types that trigger this effect (for card-played triggers: event, automated, active, etc.)
+	Target                 *TargetType                  // Whose actions trigger this (self-player, any-player, etc.)
+	RequiredOriginalCost   *MinMaxValue                 // Original credit cost requirement (only for card-played/standard-project-played triggers)
+	RequiredResourceChange map[types.ResourceType]MinMaxValue // Min/max requirements for actual resources spent
 }
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type      ResourceTriggerType       `json:"type" ts:"ResourceTriggerType"`                                 // Manual or auto activation
-	Condition *ResourceTriggerCondition `json:"condition,omitempty" ts:"ResourceTriggerCondition | undefined"` // What triggers auto actions
+	Type      ResourceTriggerType       // Manual or auto activation
+	Condition *ResourceTriggerCondition // What triggers auto actions
 }
 
 // ResourceExchange represents a directional resource trade (input → output)
 type ResourceExchange struct {
-	Triggers []Trigger           `json:"triggers,omitempty" ts:"Trigger[] | undefined"`          // When/how this exchange is activated
-	Inputs   []ResourceCondition `json:"inputs,omitempty" ts:"ResourceCondition[] | undefined"`  // Resources spent (input side of arrow)
-	Outputs  []ResourceCondition `json:"outputs,omitempty" ts:"ResourceCondition[] | undefined"` // Resources gained (output side of arrow)
+	Triggers []Trigger           // When/how this exchange is activated
+	Inputs   []ResourceCondition // Resources spent (input side of arrow)
+	Outputs  []ResourceCondition // Resources gained (output side of arrow)
 }
 
 // EffectContext provides context about a game event that triggered passive effects
 // This allows effects to access information about what triggered them
 type EffectContext struct {
-	TriggeringPlayerID string        `json:"triggeringPlayerId" ts:"string"`         // Player who caused the event
-	TileCoordinate     *HexPosition  `json:"tileCoordinate" ts:"HexPosition | null"` // Coordinate for tile placement events
-	CardID             *string       `json:"cardId" ts:"string | null"`              // Card ID for card-played events
-	TagType            *CardTag      `json:"tagType" ts:"CardTag | null"`            // Tag type for tag-played events
-	TileType           *ResourceType `json:"tileType" ts:"ResourceType | null"`      // Type of tile placed (city, ocean, greenery)
-	ParameterChange    *int          `json:"parameterChange" ts:"number | null"`     // Amount of parameter change (temperature, oxygen)
+	TriggeringPlayerID string              // Player who caused the event
+	TileCoordinate     *types.HexPosition  // Coordinate for tile placement events
+	CardID             *string             // Card ID for card-played events
+	TagType            *types.CardTag      // Tag type for tag-played events
+	TileType           *types.ResourceType // Type of tile placed (city, ocean, greenery)
+	ParameterChange    *int          // Amount of parameter change (temperature, oxygen)
 }

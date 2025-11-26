@@ -2,10 +2,26 @@ package dto
 
 import (
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
+
+// getPlayerIDs extracts player IDs from Game.Players map
+// Note: Order is not guaranteed - TODO: implement proper turn order
+func getPlayerIDs(g game.Game) []string {
+	if g.Players == nil {
+		return []string{}
+	}
+
+	playerIDs := make([]string, 0, len(g.Players))
+	for id := range g.Players {
+		playerIDs = append(playerIDs, id)
+	}
+	return playerIDs
+}
 
 // ToCardPayment converts a CardPaymentDto to domain model CardPayment
 func ToCardPayment(dto CardPaymentDto) types.CardPayment {
@@ -49,9 +65,9 @@ func resolveCards(cardIDs []string, resolvedMap map[string]types.Card) []CardDto
 }
 
 // ToGameDto converts a model Game to personalized GameDto
-func ToGameDto(game types.Game, players []types.Player, viewingPlayerID string, resolvedCards map[string]types.Card, paymentConstants PaymentConstantsDto) GameDto {
+func ToGameDto(g game.Game, players []types.Player, viewingPlayerID string, resolvedCards map[string]types.Card, paymentConstants PaymentConstantsDto) GameDto {
 	log := logger.Get().With(
-		zap.String("game_id", game.ID),
+		zap.String("game_id", g.ID),
 		zap.String("viewing_player_id", viewingPlayerID),
 		zap.Int("total_players", len(players)))
 
@@ -80,19 +96,19 @@ func ToGameDto(game types.Game, players []types.Player, viewingPlayerID string, 
 		zap.Int("other_players_count", len(otherPlayers)))
 
 	return GameDto{
-		ID:               game.ID,
-		Status:           GameStatus(game.Status),
-		Settings:         ToGameSettingsDto(game.Settings),
-		HostPlayerID:     game.HostPlayerID,
-		CurrentPhase:     GamePhase(game.CurrentPhase),
-		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
+		ID:               g.ID,
+		Status:           GameStatus(g.Status),
+		Settings:         ToGameSettingsDto(g.Settings),
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     GamePhase(g.CurrentPhase),
+		GlobalParameters: ToGlobalParametersDto(g.GlobalParameters),
 		CurrentPlayer:    currentPlayer,
 		OtherPlayers:     otherPlayers,
 		ViewingPlayerID:  viewingPlayerID,
-		CurrentTurn:      game.CurrentTurn,
-		Generation:       game.Generation,
-		TurnOrder:        game.PlayerIDs,
-		Board:            ToBoardDto(game.GetBoard()),
+		CurrentTurn:      g.CurrentTurn,
+		Generation:       g.Generation,
+		TurnOrder:        getPlayerIDs(g),
+		Board:            ToBoardDto(g.Board),
 		PaymentConstants: paymentConstants,
 	}
 }
@@ -315,30 +331,30 @@ func ToGameSettingsDto(settings types.GameSettings) GameSettingsDto {
 // Option 1: Create separate DTOs - GameListingDto (basic) and GameDetailDto (personalized)
 // Option 2: Rename existing PersonalizedGameDto and use GameDto only for basic views
 // Current approach reuses GameDto with empty player fields, which is suboptimal
-func ToGameDtoBasic(game types.Game, paymentConstants PaymentConstantsDto) GameDto {
+func ToGameDtoBasic(g game.Game, paymentConstants PaymentConstantsDto) GameDto {
 	return GameDto{
-		ID:               game.ID,
-		Status:           GameStatus(game.Status),
-		Settings:         ToGameSettingsDto(game.Settings),
-		HostPlayerID:     game.HostPlayerID,
-		CurrentPhase:     GamePhase(game.CurrentPhase),
-		GlobalParameters: ToGlobalParametersDto(game.GlobalParameters),
+		ID:               g.ID,
+		Status:           GameStatus(g.Status),
+		Settings:         ToGameSettingsDto(g.Settings),
+		HostPlayerID:     g.HostPlayerID,
+		CurrentPhase:     GamePhase(g.CurrentPhase),
+		GlobalParameters: ToGlobalParametersDto(g.GlobalParameters),
 		CurrentPlayer:    PlayerDto{},               // Empty for non-personalized view
 		OtherPlayers:     make([]OtherPlayerDto, 0), // Empty for non-personalized view
 		ViewingPlayerID:  "",                        // No viewing player for basic view
-		CurrentTurn:      game.CurrentTurn,
-		Generation:       game.Generation,
-		TurnOrder:        game.PlayerIDs,
-		Board:            ToBoardDto(game.GetBoard()),
+		CurrentTurn:      g.CurrentTurn,
+		Generation:       g.Generation,
+		TurnOrder:        getPlayerIDs(g),
+		Board:            ToBoardDto(g.Board),
 		PaymentConstants: paymentConstants,
 	}
 }
 
 // ToGameDtoSlice provides basic non-personalized game views (temporary compatibility)
-func ToGameDtoSlice(games []types.Game, paymentConstants PaymentConstantsDto) []GameDto {
+func ToGameDtoSlice(games []game.Game, paymentConstants PaymentConstantsDto) []GameDto {
 	dtos := make([]GameDto, len(games))
-	for i, game := range games {
-		dtos[i] = ToGameDtoBasic(game, paymentConstants)
+	for i, g := range games {
+		dtos[i] = ToGameDtoBasic(g, paymentConstants)
 	}
 	return dtos
 }
@@ -763,14 +779,14 @@ func ToPlayerActionDtoSlice(actions []types.PlayerAction) []PlayerActionDto {
 // Board conversion functions
 
 // ToBoardDto converts a model Board to BoardDto
-func ToBoardDto(board types.Board) BoardDto {
+func ToBoardDto(b board.Board) BoardDto {
 	return BoardDto{
-		Tiles: ToTileDtoSlice(board.Tiles),
+		Tiles: ToTileDtoSlice(b.Tiles),
 	}
 }
 
 // ToTileDto converts a model Tile to TileDto
-func ToTileDto(tile types.Tile) TileDto {
+func ToTileDto(tile board.Tile) TileDto {
 	return TileDto{
 		Coordinates: HexPositionDto{
 			Q: tile.Coordinates.Q,
@@ -788,7 +804,7 @@ func ToTileDto(tile types.Tile) TileDto {
 }
 
 // ToTileDtoSlice converts a slice of model Tiles to TileDto slice
-func ToTileDtoSlice(tiles []types.Tile) []TileDto {
+func ToTileDtoSlice(tiles []board.Tile) []TileDto {
 	if tiles == nil {
 		return nil
 	}
@@ -801,7 +817,7 @@ func ToTileDtoSlice(tiles []types.Tile) []TileDto {
 }
 
 // ToTileBonusDto converts a model TileBonus to TileBonusDto
-func ToTileBonusDto(bonus types.TileBonus) TileBonusDto {
+func ToTileBonusDto(bonus board.TileBonus) TileBonusDto {
 	return TileBonusDto{
 		Type:   string(bonus.Type),
 		Amount: bonus.Amount,
@@ -809,7 +825,7 @@ func ToTileBonusDto(bonus types.TileBonus) TileBonusDto {
 }
 
 // ToTileBonusDtoSlice converts a slice of model TileBonus to TileBonusDto slice
-func ToTileBonusDtoSlice(bonuses []types.TileBonus) []TileBonusDto {
+func ToTileBonusDtoSlice(bonuses []board.TileBonus) []TileBonusDto {
 	if bonuses == nil {
 		return []TileBonusDto{}
 	}
@@ -822,7 +838,7 @@ func ToTileBonusDtoSlice(bonuses []types.TileBonus) []TileBonusDto {
 }
 
 // ToTileOccupantDto converts a model TileOccupant pointer to TileOccupantDto pointer
-func ToTileOccupantDto(occupant *types.TileOccupant) *TileOccupantDto {
+func ToTileOccupantDto(occupant *board.TileOccupant) *TileOccupantDto {
 	if occupant == nil {
 		return nil
 	}

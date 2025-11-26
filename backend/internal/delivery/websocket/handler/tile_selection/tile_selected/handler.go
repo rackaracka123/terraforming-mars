@@ -36,7 +36,7 @@ func NewHandler(selectTileAction *action.SelectTileAction, sessionFactory sessio
 
 // TileSelectedRequest represents the payload for tile selection
 type TileSelectedRequest struct {
-	Coordinate types.HexPosition `json:"coordinate" ts:"HexPosition"`
+	Coordinate types.HexPosition `json:"coordinate"`
 }
 
 // HandleMessage implements the MessageHandler interface

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/card"
 
 	"go.uber.org/zap"
 )
@@ -25,37 +25,37 @@ func LoadCardsFromJSON(ctx context.Context) (*CardDefinitions, error) {
 	}
 
 	// Parse JSON into card array
-	var cards []types.Card
+	var cards []card.Card
 	if err := json.Unmarshal(data, &cards); err != nil {
 		return nil, fmt.Errorf("failed to parse card data: %w", err)
 	}
 
 	// Organize cards by type
 	defs := &CardDefinitions{
-		AllCards:         make(map[string]types.Card),
-		ProjectCards:     make([]types.Card, 0),
-		CorporationCards: make([]types.Card, 0),
-		PreludeCards:     make([]types.Card, 0),
-		StartingCards:    make([]types.Card, 0),
+		AllCards:         make(map[string]card.Card),
+		ProjectCards:     make([]card.Card, 0),
+		CorporationCards: make([]card.Card, 0),
+		PreludeCards:     make([]card.Card, 0),
+		StartingCards:    make([]card.Card, 0),
 	}
 
 	// Categorize cards
-	for _, card := range cards {
+	for _, c := range cards {
 		// Add to all cards map
-		defs.AllCards[card.ID] = card
+		defs.AllCards[c.ID] = c
 
 		// Categorize by type
-		switch card.Type {
-		case types.CardTypeCorporation:
-			defs.CorporationCards = append(defs.CorporationCards, card)
-		case types.CardTypePrelude:
-			defs.PreludeCards = append(defs.PreludeCards, card)
-		case types.CardTypeAutomated, types.CardTypeActive, types.CardTypeEvent:
-			defs.ProjectCards = append(defs.ProjectCards, card)
+		switch c.Type {
+		case card.CardTypeCorporation:
+			defs.CorporationCards = append(defs.CorporationCards, c)
+		case card.CardTypePrelude:
+			defs.PreludeCards = append(defs.PreludeCards, c)
+		case card.CardTypeAutomated, card.CardTypeActive, card.CardTypeEvent:
+			defs.ProjectCards = append(defs.ProjectCards, c)
 
 			// Check if it's a starting card (cost <= 10 and in base-game pack)
-			if card.Cost <= 10 && card.Pack == "base-game" {
-				defs.StartingCards = append(defs.StartingCards, card)
+			if c.Cost <= 10 && c.Pack == "base-game" {
+				defs.StartingCards = append(defs.StartingCards, c)
 			}
 		}
 	}
@@ -71,10 +71,10 @@ func LoadCardsFromJSON(ctx context.Context) (*CardDefinitions, error) {
 }
 
 // extractCardIDs extracts card IDs from a slice of cards
-func extractCardIDs(cards []types.Card) []string {
+func extractCardIDs(cards []card.Card) []string {
 	ids := make([]string, len(cards))
-	for i, card := range cards {
-		ids[i] = card.ID
+	for i, c := range cards {
+		ids[i] = c.ID
 	}
 	return ids
 }

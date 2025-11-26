@@ -93,9 +93,6 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 		return err
 	}
 
-	// Convert game type to model type for DTO compatibility
-	gameModel := gameToModel(newGame)
-
 	// Get board from board repository and attach to game
 	sessionBoard, err := b.boardRepo.Get(ctx)
 	if err != nil {
@@ -103,10 +100,9 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 		// Log warning but continue with empty board
 		log.Warn("⚠️  Failed to get board for game, using empty board", zap.Error(err))
 	} else {
-		// Convert session board to model board and attach to game
-		boardData := boardToModel(sessionBoard)
-		gameModel.SetBoard(boardData)
-		log.Debug("🗺️  Fetched board for game", zap.Int("tile_count", len(boardData.Tiles)))
+		// Attach board to game
+		newGame.Board = *sessionBoard
+		log.Debug("🗺️  Fetched board for game", zap.Int("tile_count", len(sessionBoard.Tiles)))
 	}
 
 	// Get all players for personalized game states from session
@@ -234,7 +230,7 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 				zap.String("player_name", p.Name))
 		}
 
-		personalizedGameDTO := dto.ToGameDto(gameModel, players, player.ID, resolvedCards, paymentConstants)
+		personalizedGameDTO := dto.ToGameDto(*newGame, players, player.ID, resolvedCards, paymentConstants)
 
 		// Send game state via Hub
 		err = b.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{

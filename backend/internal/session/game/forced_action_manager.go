@@ -1,12 +1,13 @@
-package card
+package game
 
 import (
 	"context"
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	sessionGame "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
 
@@ -22,15 +23,14 @@ type ForcedActionManager interface {
 	MarkComplete(ctx context.Context, gameID, playerID string) error
 
 	// TriggerForcedFirstAction manually triggers a player's forced first action
-	TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player types.Player) error
+	TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, plr *player.Player) error
 }
 
 // ForcedActionManagerImpl implements ForcedActionManager
 type ForcedActionManagerImpl struct {
 	eventBus *events.EventBusImpl
-	cardRepo Repository             // Session card repository
-	gameRepo sessionGame.Repository // Session game repository
-	deckRepo deck.Repository        // Session deck repository
+	cardRepo card.Repository // Session card repository
+	deckRepo deck.Repository // Session deck repository
 	// TODO: Full implementation needs refactoring for new architecture
 	// Event handlers need access to session to fetch player/game data when events trigger
 }
@@ -38,14 +38,12 @@ type ForcedActionManagerImpl struct {
 // NewForcedActionManager creates a new forced action manager
 func NewForcedActionManager(
 	eventBus *events.EventBusImpl,
-	cardRepo Repository,
-	gameRepo sessionGame.Repository,
+	cardRepo card.Repository,
 	deckRepo deck.Repository,
 ) ForcedActionManager {
 	return &ForcedActionManagerImpl{
 		eventBus: eventBus,
 		cardRepo: cardRepo,
-		gameRepo: gameRepo,
 		deckRepo: deckRepo,
 	}
 }
@@ -74,7 +72,7 @@ func (m *ForcedActionManagerImpl) MarkComplete(ctx context.Context, gameID, play
 
 // TriggerForcedFirstAction manually triggers a player's forced first action
 // TODO: Full implementation pending architecture refactoring
-func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, player types.Player) error {
+func (m *ForcedActionManagerImpl) TriggerForcedFirstAction(ctx context.Context, gameID, playerID string, plr *player.Player) error {
 	log := logger.WithGameContext(gameID, playerID)
 	log.Warn("⚠️  ForcedActionManager.TriggerForcedFirstAction not yet implemented")
 	// Corporation forced first actions (like Inventrix or Helion's starting bonuses) won't work until this is implemented

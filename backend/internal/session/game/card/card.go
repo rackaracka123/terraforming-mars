@@ -1,4 +1,8 @@
-package types
+package card
+
+import (
+	"terraforming-mars-backend/internal/session/types"
+)
 
 // CardType represents different types of cards in Terraforming Mars
 type CardType string
@@ -13,37 +17,37 @@ const (
 
 // ProductionEffects represents changes to resource production
 type ProductionEffects struct {
-	Credits  int `json:"credits" ts:"number"`
-	Steel    int `json:"steel" ts:"number"`
-	Titanium int `json:"titanium" ts:"number"`
-	Plants   int `json:"plants" ts:"number"`
-	Energy   int `json:"energy" ts:"number"`
-	Heat     int `json:"heat" ts:"number"`
+	Credits  int
+	Steel    int
+	Titanium int
+	Plants   int
+	Energy   int
+	Heat     int
 }
 
 // Card represents a game card
 type Card struct {
-	ID              string                  `json:"id" ts:"string"`
-	Name            string                  `json:"name" ts:"string"`
-	Type            CardType                `json:"type" ts:"CardType"`
-	Cost            int                     `json:"cost" ts:"number"`
-	Description     string                  `json:"description" ts:"string"`
-	Pack            string                  `json:"pack" ts:"string"` // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
-	Tags            []CardTag               `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
-	Behaviors       []CardBehavior          `json:"behaviors,omitempty" ts:"CardBehavior[] | undefined"`             // All card behaviors (immediate and repeatable)
-	ResourceStorage *ResourceStorage        `json:"resourceStorage,omitempty" ts:"ResourceStorage | undefined"`      // Cards that can hold resources
-	VPConditions    []VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"` // VP per X conditions
+	ID              string
+	Name            string
+	Type            CardType
+	Cost            int
+	Description     string
+	Pack            string // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
+	Tags            []types.CardTag
+	Requirements    []Requirement          // Within card package
+	Behaviors       []CardBehavior         // Within card package
+	ResourceStorage *ResourceStorage       // Within card package
+	VPConditions    []VictoryPointCondition // Within card package
 
 	// Corporation-specific fields (nil for non-corporation cards)
-	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
-	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
+	StartingResources  *types.ResourceSet // Parsed from first auto behavior (corporations only)
+	StartingProduction *types.ResourceSet // Parsed from first auto behavior (corporations only)
 }
 
 // DeepCopy creates a deep copy of the Card
 func (c Card) DeepCopy() Card {
 	// Copy slices
-	tags := make([]CardTag, len(c.Tags))
+	tags := make([]types.CardTag, len(c.Tags))
 	copy(tags, c.Tags)
 
 	requirements := make([]Requirement, len(c.Requirements))
@@ -65,13 +69,13 @@ func (c Card) DeepCopy() Card {
 	}
 
 	// Copy corporation-specific fields
-	var startingResources *ResourceSet
+	var startingResources *types.ResourceSet
 	if c.StartingResources != nil {
 		rs := *c.StartingResources
 		startingResources = &rs
 	}
 
-	var startingProduction *ResourceSet
+	var startingProduction *types.ResourceSet
 	if c.StartingProduction != nil {
 		sp := *c.StartingProduction
 		startingProduction = &sp

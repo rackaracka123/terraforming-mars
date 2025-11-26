@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -57,60 +58,40 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Sessi
 	}
 
 	// 4. Validate cost (11 M€)
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Credits < BuildPowerPlantCost {
+	if player.Resources.Credits < BuildPowerPlantCost {
 		log.Warn("Insufficient credits for power plant",
 			zap.Int("cost", BuildPowerPlantCost),
-			zap.Int("player_credits", currentResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, currentResources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, player.Resources.Credits)
 	}
 
-	// 5. Deduct cost
-	newResources := currentResources
-	newResources.Credits -= BuildPowerPlantCost
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct power plant cost", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	// 5. Deduct cost using domain method
+	player.AddResources(map[types.ResourceType]int{
+		types.ResourceCredits: -BuildPowerPlantCost,
+	})
 
 	log.Info("💰 Deducted power plant cost",
 		zap.Int("cost", BuildPowerPlantCost),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("remaining_credits", player.Resources.Credits))
 
-	// 6. Increase energy production by 1
-	newProduction := player.Production
-	newProduction.Energy++
-	err = player.Resources.UpdateProduction(ctx, newProduction)
-	if err != nil {
-		log.Error("Failed to update production", zap.Error(err))
-		return fmt.Errorf("failed to update production: %w", err)
-	}
+	// 6. Increase energy production by 1 using domain method
+	player.AddProduction(map[types.ResourceType]int{
+		types.ResourceEnergy: 1,
+	})
 
 	log.Info("📈 Increased energy production",
-		zap.Int("new_energy_production", newProduction.Energy))
+		zap.Int("new_energy_production", player.Production.Energy))
 
-	// 7. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+	// 7. Consume action using domain method
+	if player.ConsumeAction() {
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 8. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Power plant built successfully",
-		zap.Int("new_energy_production", newProduction.Energy),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("new_energy_production", player.Production.Energy),
+		zap.Int("remaining_credits", player.Resources.Credits))
 	return nil
 }

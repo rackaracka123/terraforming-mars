@@ -59,44 +59,28 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, sess *sessi
 	}
 
 	// 4. Calculate required plants (with card discount effects)
-	requiredPlants := card.CalculateResourceConversionCost(player.Player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	requiredPlants := card.CalculateResourceConversionCost(player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
 	log.Debug("💰 Calculated plants cost",
 		zap.Int("base_cost", BasePlantsForGreenery),
 		zap.Int("final_cost", requiredPlants))
 
 	// 5. Validate player has enough plants
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Plants < requiredPlants {
+	if player.Resources.Plants < requiredPlants {
 		log.Warn("Player cannot afford plants conversion",
 			zap.Int("required", requiredPlants),
-			zap.Int("available", currentResources.Plants))
-		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, currentResources.Plants)
+			zap.Int("available", player.Resources.Plants))
+		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, player.Resources.Plants)
 	}
 
 	// 6. Deduct plants
-	newResources := currentResources
-	newResources.Plants -= requiredPlants
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct plants", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	player.Resources.Plants -= requiredPlants
 
 	log.Info("🌿 Deducted plants",
 		zap.Int("plants_spent", requiredPlants),
-		zap.Int("remaining_plants", newResources.Plants))
+		zap.Int("remaining_plants", player.Resources.Plants))
 
 	// 7. Create tile queue with "greenery" type
-	err = player.TileQueue.CreateQueue(ctx, "convert-plants-to-greenery", []string{"greenery"})
-	if err != nil {
-		log.Error("Failed to create tile queue", zap.Error(err))
-		return fmt.Errorf("failed to create tile queue: %w", err)
-	}
+	player.QueueTilePlacement("convert-plants-to-greenery", []string{"greenery"})
 
 	log.Info("📋 Created tile queue for greenery placement")
 
@@ -104,13 +88,8 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, sess *sessi
 
 	// 8. Consume action (only if not unlimited actions)
 	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+		player.AvailableActions--
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 9. Broadcast state

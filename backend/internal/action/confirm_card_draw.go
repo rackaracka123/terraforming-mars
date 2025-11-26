@@ -112,43 +112,25 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Sessi
 
 	// 10. Validate player can afford bought cards and deduct credits
 	if totalCost > 0 {
-		currentResources, err := player.Resources.Get(ctx)
-		if err != nil {
-			log.Error("Failed to get player resources", zap.Error(err))
-			return fmt.Errorf("failed to get resources: %w", err)
-		}
-
-		if currentResources.Credits < totalCost {
+		if player.Resources.Credits < totalCost {
 			log.Warn("Insufficient credits to buy cards",
 				zap.Int("needed", totalCost),
-				zap.Int("available", currentResources.Credits))
-			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, currentResources.Credits)
+				zap.Int("available", player.Resources.Credits))
+			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, player.Resources.Credits)
 		}
 
 		// Deduct credits for bought cards
-		newResources := currentResources
-		newResources.Credits -= totalCost
-		err = player.Resources.Update(ctx, newResources)
-		if err != nil {
-			log.Error("Failed to deduct credits for bought cards", zap.Error(err))
-			return fmt.Errorf("failed to deduct credits for bought cards: %w", err)
-		}
+		player.Resources.Credits -= totalCost
 
 		log.Info("💰 Paid for bought cards",
 			zap.Int("cards_bought", len(cardsToBuy)),
 			zap.Int("cost", totalCost),
-			zap.Int("remaining_credits", newResources.Credits))
+			zap.Int("remaining_credits", player.Resources.Credits))
 	}
 
 	// 11. Add all selected cards to player's hand
 	for _, cardID := range allSelectedCards {
-		err = player.Hand.AddCard(ctx, cardID)
-		if err != nil {
-			log.Error("Failed to add card to hand",
-				zap.Error(err),
-				zap.String("card_id", cardID))
-			return fmt.Errorf("failed to add card %s to hand: %w", cardID, err)
-		}
+		player.AddCardToHand(cardID)
 	}
 
 	log.Info("🃏 Added selected cards to hand",
@@ -171,11 +153,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Sessi
 	}
 
 	// 13. Clear pending card draw selection
-	err = player.Selection.UpdatePendingCardDrawSelection(ctx, nil)
-	if err != nil {
-		log.Error("Failed to clear pending card draw selection", zap.Error(err))
-		return fmt.Errorf("failed to clear pending card draw selection: %w", err)
-	}
+	player.PendingCardDrawSelection = nil
 
 	// 14. Publish event - ForcedActionManager will handle if this was a forced action
 	events.Publish(a.eventBus, playerevents.CardDrawConfirmedEvent{

@@ -97,19 +97,17 @@ func (f *SessionFactoryImpl) GetOrCreate(gameID string) *Session {
 		return session
 	}
 
-	session := NewSession(gameID, f.eventBus)
-
 	// Fetch game from storage and initialize session
 	g, err := f.gameStorage.Get(gameID)
+	var typesGame *types.Game
 	if err == nil && g != nil {
 		// Convert to types.Game
-		typesGame := &types.Game{
+		typesGame = &types.Game{
 			ID:               g.ID,
 			CreatedAt:        g.CreatedAt,
 			UpdatedAt:        g.UpdatedAt,
 			Status:           types.GameStatus(g.Status),
 			Settings:         g.Settings,
-			PlayerIDs:        g.PlayerIDs,
 			HostPlayerID:     g.HostPlayerID,
 			CurrentPhase:     types.GamePhase(g.CurrentPhase),
 			GlobalParameters: g.GlobalParameters,
@@ -121,10 +119,10 @@ func (f *SessionFactoryImpl) GetOrCreate(gameID string) *Session {
 
 		// Wire repositories
 		f.WireGameRepositories(typesGame)
-
-		// Set on session
-		session.SetGame(typesGame)
 	}
+
+	// Create session with game and eventBus
+	session := NewSession(typesGame, f.eventBus)
 
 	f.sessions[gameID] = session
 	return session
@@ -139,6 +137,7 @@ func (f *SessionFactoryImpl) Remove(gameID string) {
 
 // WireGameRepositories wires up a types.Game instance with game-scoped repositories and infrastructure
 // Creates NEW repository instances bound to the specific game ID
+// TODO: This will be gradually removed as we migrate to domain methods on Game/Player/Board
 func (f *SessionFactoryImpl) WireGameRepositories(g *types.Game) {
 	if g == nil {
 		return
@@ -146,20 +145,12 @@ func (f *SessionFactoryImpl) WireGameRepositories(g *types.Game) {
 
 	gameID := g.ID
 
-	// Create game-scoped repository instances
-	g.Core = game.NewGameCoreRepository(gameID, f.gameStorage, f.eventBus)
-	g.GlobalParams = game.NewGameGlobalParametersRepository(gameID, f.gameStorage, f.eventBus)
-	g.Turn = game.NewGameTurnRepository(gameID, f.gameStorage, f.eventBus)
-	g.Board = board.NewRepository(gameID, f.boards, f.eventBus)
-	g.Deck = deck.NewGameScopedRepository(gameID, f.decks, f.deckDefinitions)
+	// Wire up infrastructure components
+	// Note: During migration, we'll keep minimal infrastructure for card/deck operations
+	// that haven't been migrated to domain methods yet
+	deckRepo := deck.NewGameScopedRepository(gameID, f.decks, f.deckDefinitions)
+	g.CardManager = card.NewCardManager(f.cardRepo, deckRepo, f.effectSubscriber)
 
-	// Wire up global repositories
-	g.Cards = f.cardRepo
-
-	// Wire up infrastructure components with game-scoped repositories
-	g.CardManager = card.NewCardManager(f.cardRepo, g.Deck.(deck.Repository), f.effectSubscriber)
-	// Note: TileProcessor and BonusCalculator will need updating since we removed facade
-	// For now, commenting out - we'll fix when we get to actions
-	// g.TileProcessor = board.NewProcessor(?, g.Board.(board.Repository), f.boardProcessor)
-	// g.BonusCalculator = board.NewBonusCalculator(?, g.Board.(board.Repository), g.Deck.(deck.Repository))
+	// TODO: TileProcessor and BonusCalculator will be migrated to domain methods
+	// For now, keep them as infrastructure until we migrate tile placement logic
 }

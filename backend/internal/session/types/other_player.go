@@ -3,47 +3,21 @@ package types
 // OtherPlayer represents a player from another player's perspective
 // Contains public information only - hand cards are hidden but played cards are visible
 type OtherPlayer struct {
-	ID               string     `json:"id" ts:"string"`
-	Name             string     `json:"name" ts:"string"`
-	Corporation      string     `json:"corporation" ts:"string"`
-	HandCardCount    int        `json:"handCardCount" ts:"number"` // Number of cards in hand (private)
-	Resources        Resources  `json:"resources" ts:"Resources"`
-	Production       Production `json:"production" ts:"Production"`
-	TerraformRating  int        `json:"terraformRating" ts:"number"`
-	PlayedCards      []string   `json:"playedCards" ts:"string[]"` // Played cards are public
-	Passed           bool       `json:"passed" ts:"boolean"`
-	AvailableActions int        `json:"availableActions" ts:"number"`
-	VictoryPoints    int        `json:"victoryPoints" ts:"number"`
-	IsConnected      bool       `json:"isConnected" ts:"boolean"`
+	ID               string
+	Name             string
+	Corporation      string
+	HandCardCount    int // Number of cards in hand (private)
+	Resources        Resources
+	Production       Production
+	TerraformRating  int
+	PlayedCards      []string // Played cards are public
+	Passed           bool
+	AvailableActions int
+	VictoryPoints    int
+	IsConnected      bool
 }
 
-// NewOtherPlayerFromPlayer creates an OtherPlayer from a full Player
-// This hides the hand cards but keeps played cards visible
-func NewOtherPlayerFromPlayer(player *Player) *OtherPlayer {
-	if player == nil {
-		return nil
-	}
-
-	corporationName := ""
-	if player.Corporation != nil {
-		corporationName = player.Corporation.Name
-	}
-
-	return &OtherPlayer{
-		ID:               player.ID,
-		Name:             player.Name,
-		Corporation:      corporationName,
-		HandCardCount:    len(player.Cards), // Convert hand cards to count
-		Resources:        player.Resources,
-		Production:       player.Production,
-		TerraformRating:  player.TerraformRating,
-		PlayedCards:      append([]string{}, player.PlayedCards...), // Copy played cards (public)
-		Passed:           player.Passed,
-		AvailableActions: player.AvailableActions,
-		VictoryPoints:    player.VictoryPoints,
-		IsConnected:      player.IsConnected,
-	}
-}
+// NOTE: NewOtherPlayerFromPlayer has been moved to the player package to avoid import cycles
 
 // DeepCopy creates a deep copy of the OtherPlayer
 func (op *OtherPlayer) DeepCopy() *OtherPlayer {

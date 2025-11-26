@@ -1,19 +1,24 @@
 package core
 
+// DEPRECATED: This file provides backward compatibility aliases
+// Game type moved to parent game package but we can't import it (import cycle)
+// TODO: Remove core package entirely and move repositories to game package
+
 import (
 	"terraforming-mars-backend/internal/session/types"
 )
 
-// Game is an alias to the unified Game type
-type Game = types.Game
+// Game - REMOVED: Can't alias parent package due to import cycle
+// Use session/game.Game directly instead of core.Game
+// type Game = game.Game
 
-// GamePhase is an alias to the unified GamePhase type
+// GamePhase is an alias (still in types for now)
 type GamePhase = types.GamePhase
 
-// GameStatus is an alias to the unified GameStatus type
+// GameStatus is an alias (still in types for now)
 type GameStatus = types.GameStatus
 
-// GameSettings is an alias to the unified GameSettings type
+// GameSettings is an alias (still in types for now)
 type GameSettings = types.GameSettings
 
 // Re-export constants from types package
@@ -38,8 +43,9 @@ const (
 	DefaultOceans      = types.DefaultOceans
 )
 
-// NewGame is an alias to the unified NewGame function
-var NewGame = types.NewGame
+// NewGame - REMOVED: Can't alias parent package due to import cycle
+// Use game.NewGame directly instead
+// var NewGame = game.NewGame
 
 // DefaultCardPacks is an alias to the unified DefaultCardPacks function
 var DefaultCardPacks = types.DefaultCardPacks

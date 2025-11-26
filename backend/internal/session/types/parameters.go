@@ -23,12 +23,12 @@ const (
 
 // GameSettings contains configurable game parameters (all optional)
 type GameSettings struct {
-	MaxPlayers      int      `json:"maxPlayers,omitempty" ts:"number"`              // Default: 5
-	Temperature     *int     `json:"temperature,omitempty" ts:"number | undefined"` // Default: -30°C
-	Oxygen          *int     `json:"oxygen,omitempty" ts:"number | undefined"`      // Default: 0%
-	Oceans          *int     `json:"oceans,omitempty" ts:"number | undefined"`      // Default: 0
-	DevelopmentMode bool     `json:"developmentMode" ts:"boolean"`                  // Default: false
-	CardPacks       []string `json:"cardPacks,omitempty" ts:"string[] | undefined"` // Default: ["base-game"]
+	MaxPlayers      int      // Default: 5
+	Temperature     *int     // Default: -30°C
+	Oxygen          *int     // Default: 0%
+	Oceans          *int     // Default: 0
+	DevelopmentMode bool     // Default: false
+	CardPacks       []string // Default: ["base-game"]
 }
 
 // Card pack constants
@@ -52,9 +52,9 @@ func DefaultCardPacks() []string {
 
 // GlobalParameters represents the terraforming progress
 type GlobalParameters struct {
-	Temperature int `json:"temperature" ts:"number"` // Range: -30 to +8°C
-	Oxygen      int `json:"oxygen" ts:"number"`      // Range: 0-14%
-	Oceans      int `json:"oceans" ts:"number"`      // Range: 0-9
+	Temperature int // Range: -30 to +8°C
+	Oxygen      int // Range: 0-14%
+	Oceans      int // Range: 0-9
 }
 
 // Constants for terraforming limits
@@ -66,3 +66,45 @@ const (
 	MinOceans      = 0
 	MaxOceans      = 9
 )
+
+// RaiseTemperature raises the temperature by the specified number of steps
+// Returns the actual number of steps raised (may be less if limit reached)
+func (gp *GlobalParameters) RaiseTemperature(steps int) int {
+	oldValue := gp.Temperature
+	newValue := gp.Temperature + (steps * 2) // Each step is 2 degrees
+	if newValue > MaxTemperature {
+		newValue = MaxTemperature
+	}
+	gp.Temperature = newValue
+	actualSteps := (newValue - oldValue) / 2
+	return actualSteps
+}
+
+// RaiseOxygen raises the oxygen by the specified number of steps
+// Returns the actual number of steps raised (may be less if limit reached)
+func (gp *GlobalParameters) RaiseOxygen(steps int) int {
+	oldValue := gp.Oxygen
+	newValue := gp.Oxygen + steps
+	if newValue > MaxOxygen {
+		newValue = MaxOxygen
+	}
+	gp.Oxygen = newValue
+	return newValue - oldValue
+}
+
+// PlaceOcean places an ocean tile (increments ocean count)
+// Returns true if successful, false if limit reached
+func (gp *GlobalParameters) PlaceOcean() bool {
+	if gp.Oceans >= MaxOceans {
+		return false
+	}
+	gp.Oceans++
+	return true
+}
+
+// IsMaxed returns true if all global parameters have reached their maximum values
+func (gp *GlobalParameters) IsMaxed() bool {
+	return gp.Temperature >= MaxTemperature &&
+		gp.Oxygen >= MaxOxygen &&
+		gp.Oceans >= MaxOceans
+}

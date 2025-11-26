@@ -6,26 +6,21 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/logger"
-	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/types"
 )
 
 // Processor handles tile queue processing and tile placement logic
 type Processor struct {
-	gameRepo       game.Repository
 	boardRepo      Repository
 	boardProcessor *BoardProcessor
 }
 
 // NewProcessor creates a new TileProcessor instance
 func NewProcessor(
-	gameRepo game.Repository,
 	boardRepo Repository,
 	boardProcessor *BoardProcessor,
 ) *Processor {
 	return &Processor{
-		gameRepo:       gameRepo,
 		boardRepo:      boardRepo,
 		boardProcessor: boardProcessor,
 	}
@@ -34,23 +29,21 @@ func NewProcessor(
 // ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection
 // This should be called after any operation that creates a tile queue (e.g., card play, standard project)
 // Returns nil if queue is empty or doesn't exist
-func (p *Processor) ProcessTileQueue(ctx context.Context, player *player.Player) error {
-	log := logger.WithGameContext(player.GameID, player.ID)
+// Note: gameID is not needed as processor is scoped to a specific game instance
+func (p *Processor) ProcessTileQueue(ctx context.Context, plr *player.Player) error {
+	log := logger.Get().With(zap.String("player_id", plr.ID()))
 	log.Debug("🎯 Processing tile queue")
 
 	// Process the queue through the private validation method
-	return p.processNextTileInQueueWithValidation(ctx, player)
+	return p.processNextTileInQueueWithValidation(ctx, plr)
 }
 
 // processNextTileInQueueWithValidation processes the next tile in queue with business logic validation
-func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, player *player.Player) error {
-	log := logger.WithGameContext(player.GameID, player.ID)
+func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, plr *player.Player) error {
+	log := logger.Get().With(zap.String("player_id", plr.ID()))
 
 	// Get the queue to extract the source (card ID or project ID)
-	queue, err := player.TileQueue.GetQueue(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get tile queue: %w", err)
-	}
+	queue := plr.PendingTileSelectionQueue()
 
 	// If no queue, we're done
 	if queue == nil {
@@ -61,8 +54,8 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 	source := queue.Source // Store the source (card/project ID)
 
 	for {
-		// Pop the next tile type from repository (pure data operation)
-		nextTileType, err := player.TileQueue.ProcessNext(ctx)
+		// Pop the next tile type from player (pure data operation)
+		nextTileType, err := plr.ProcessNextTile(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to pop next tile from queue: %w", err)
 		}
@@ -78,7 +71,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 			zap.String("source", source))
 
 		// Validate this tile placement is still possible (especially important for oceans)
-		canPlace, err := p.validateTilePlacement(ctx, player.GameID, nextTileType)
+		canPlace, err := p.validateTilePlacement(ctx, nextTileType)
 		if err != nil {
 			return fmt.Errorf("failed to validate tile placement: %w", err)
 		}
@@ -92,22 +85,23 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 			// For greenery, pass playerID to enforce adjacency rule
 			var playerIDPtr *string
 			if nextTileType == "greenery" {
-				playerIDPtr = &player.ID
+				playerID := plr.ID()
+				playerIDPtr = &playerID
 			}
 
-			availableHexes, err := p.calculateAvailableHexesForTileType(ctx, player.GameID, playerIDPtr, nextTileType)
+			availableHexes, err := p.calculateAvailableHexesForTileType(ctx, playerIDPtr, nextTileType)
 			if err != nil {
 				return fmt.Errorf("failed to calculate available hexes: %w", err)
 			}
 
 			// Create and set the pending tile selection with available hexes
-			selection := &types.PendingTileSelection{
+			selection := &player.PendingTileSelection{
 				TileType:       nextTileType,
 				AvailableHexes: availableHexes,
 				Source:         source,
 			}
 
-			if err := player.TileQueue.UpdatePendingTileSelection(ctx, selection); err != nil {
+			if err := plr.SetPendingTileSelection(ctx, selection); err != nil {
 				return fmt.Errorf("failed to set pending tile selection: %w", err)
 			}
 
@@ -126,8 +120,8 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 }
 
 // validateTilePlacement checks if a tile type can still be placed in the game
-func (p *Processor) validateTilePlacement(ctx context.Context, gameID, tileType string) (bool, error) {
-	log := logger.WithGameContext(gameID, "")
+func (p *Processor) validateTilePlacement(ctx context.Context, tileType string) (bool, error) {
+	log := logger.Get()
 
 	// Get board state to count ocean tiles
 	b, err := p.boardRepo.Get(ctx)
@@ -167,10 +161,11 @@ func (p *Processor) validateTilePlacement(ctx context.Context, gameID, tileType 
 
 // calculateAvailableHexesForTileType returns available hexes with optional player context
 // Used for greenery placement which requires adjacency to player's tiles
-func (p *Processor) calculateAvailableHexesForTileType(ctx context.Context, gameID string, playerID *string, tileType string) ([]string, error) {
-	log := logger.WithGameContext(gameID, "")
+// Note: gameID is not needed as processor is scoped to a specific game instance
+func (p *Processor) calculateAvailableHexesForTileType(ctx context.Context, playerID *string, tileType string) ([]string, error) {
+	log := logger.Get()
 	if playerID != nil {
-		log = logger.WithGameContext(gameID, *playerID)
+		log = log.With(zap.String("player_id", *playerID))
 	}
 
 	log.Info("🏙️ Starting available hexes calculation",

@@ -1,10 +1,11 @@
-package card
+package game
 
 import (
 	"context"
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
+	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
@@ -18,28 +19,28 @@ type CardManager interface {
 	// payment is the proposed payment method (credits, steel, titanium) for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	CanPlay(ctx context.Context, game *types.Game, p *player.Player, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error
+	CanPlay(ctx context.Context, game *Game, p *player.Player, cardID string, payment *card.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 
 	// PlayCard plays a card (assumes CanPlay validation has passed)
 	// payment is the payment method to use for the card cost
 	// choiceIndex is optional and used when the card has choices between different effects
 	// cardStorageTarget is optional and used when outputs target "any-card" storage
-	PlayCard(ctx context.Context, game *types.Game, p *player.Player, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error
+	PlayCard(ctx context.Context, game *Game, p *player.Player, cardID string, payment *card.CardPayment, choiceIndex *int, cardStorageTarget *string) error
 }
 
 // CardManagerImpl implements the simplified card management interface with session-scoped repositories
 type CardManagerImpl struct {
-	cardRepo              Repository
+	cardRepo              card.Repository
 	requirementsValidator *RequirementsValidator
 	effectProcessor       *CardProcessor
-	effectSubscriber      CardEffectSubscriber
+	effectSubscriber      card.CardEffectSubscriber
 }
 
 // NewCardManager creates a new simplified card manager with session-scoped repositories
 func NewCardManager(
-	cardRepo Repository,
+	cardRepo card.Repository,
 	deckRepo deck.Repository,
-	effectSubscriber CardEffectSubscriber,
+	effectSubscriber card.CardEffectSubscriber,
 ) CardManager {
 	return &CardManagerImpl{
 		cardRepo:              cardRepo,
@@ -53,8 +54,8 @@ func NewCardManager(
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) CanPlay(ctx context.Context, game *types.Game, p *player.Player, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
-	log := logger.WithGameContext(p.GameID, p.ID)
+func (cm *CardManagerImpl) CanPlay(ctx context.Context, game *Game, p *player.Player, cardID string, payment *card.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+	log := logger.WithGameContext(p.GameID(), p.ID())
 	log.Debug("🔍 Validating card requirements and affordability", zap.String("card_id", cardID))
 
 	// Get and validate card data
@@ -87,8 +88,8 @@ func (cm *CardManagerImpl) CanPlay(ctx context.Context, game *types.Game, p *pla
 // payment is the payment method to use for the card cost
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *player.Player, cardID string, payment *types.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
-	log := logger.WithGameContext(p.GameID, p.ID)
+func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *Game, p *player.Player, cardID string, payment *card.CardPayment, choiceIndex *int, cardStorageTarget *string) error {
+	log := logger.WithGameContext(p.GameID(), p.ID())
 	log.Debug("🎮 Playing card", zap.String("card_id", cardID))
 
 	// Get card data (we need this for cost and effects)
@@ -104,10 +105,7 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *pl
 	// STEP 1: Apply card cost payment (using credits, steel, titanium, and/or payment substitutes)
 	if card.Cost > 0 {
 		// Get current resources (thread-safe)
-		updatedResources, err := p.Resources.Get(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get player resources: %w", err)
-		}
+		updatedResources := p.Resources()
 		updatedResources.Credits -= payment.Credits
 		updatedResources.Steel -= payment.Steel
 		updatedResources.Titanium -= payment.Titanium
@@ -129,7 +127,7 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *pl
 			}
 		}
 
-		if err := p.Resources.Update(ctx, updatedResources); err != nil {
+		if err := p.SetResources(ctx, updatedResources); err != nil {
 			return fmt.Errorf("failed to update player resources: %w", err)
 		}
 
@@ -149,7 +147,7 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *pl
 	}
 
 	// STEP 2: Move card from hand to played cards
-	err = p.Hand.RemoveCard(ctx, cardID)
+	err = p.PlayCard(ctx, cardID)
 	if err != nil {
 		return fmt.Errorf("failed to play card: %w", err)
 	}
@@ -157,16 +155,19 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *pl
 
 	// STEP 3: Initialize resource storage if the card has storage capability
 	if card.ResourceStorage != nil {
+		// Get current resource storage
+		storage := p.ResourceStorage()
+
 		// Initialize the map if it's nil
-		if p.ResourceStorage == nil {
-			p.ResourceStorage = make(map[string]int)
+		if storage == nil {
+			storage = make(map[string]int)
 		}
 
 		// Set the starting amount for this card's resource storage
-		p.ResourceStorage[cardID] = card.ResourceStorage.Starting
+		storage[cardID] = card.ResourceStorage.Starting
 
 		// Update the player's resource storage
-		if err := p.Resources.UpdateStorage(ctx, p.ResourceStorage); err != nil {
+		if err := p.SetResourceStorage(ctx, storage); err != nil {
 			return fmt.Errorf("failed to initialize card resource storage: %w", err)
 		}
 
@@ -183,7 +184,7 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *types.Game, p *pl
 
 	// STEP 5: Subscribe passive effects to event bus
 	if cm.effectSubscriber != nil {
-		if err := cm.effectSubscriber.SubscribeCardEffects(ctx, p, cardID, card); err != nil {
+		if err := cm.effectSubscriber.SubscribeCardEffects(ctx, p.GameID(), p.ID(), cardID, card); err != nil {
 			return fmt.Errorf("failed to subscribe card effects: %w", err)
 		}
 		log.Debug("🎆 Passive effects subscribed to event bus")

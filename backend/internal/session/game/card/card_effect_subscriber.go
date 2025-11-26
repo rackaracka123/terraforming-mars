@@ -5,13 +5,12 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session/game/player"
 )
 
 // CardEffectSubscriber manages subscriptions for card passive effects to domain events
 type CardEffectSubscriber interface {
 	// SubscribeCardEffects subscribes all passive effects for a card when it's played
-	SubscribeCardEffects(ctx context.Context, p *player.Player, cardID string, card *Card) error
+	SubscribeCardEffects(ctx context.Context, gameID, playerID, cardID string, card *Card) error
 
 	// UnsubscribeCardEffects unsubscribes all effects for a card (cleanup on card removal)
 	UnsubscribeCardEffects(cardID string) error
@@ -44,8 +43,8 @@ func NewCardEffectSubscriber(
 
 // SubscribeCardEffects subscribes passive effects based on card behaviors
 // TODO: Full implementation pending architecture refactoring
-func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, p *player.Player, cardID string, card *Card) error {
-	log := logger.WithGameContext(p.GameID, p.ID)
+func (ces *CardEffectSubscriberImpl) SubscribeCardEffects(ctx context.Context, gameID, playerID, cardID string, card *Card) error {
+	log := logger.WithGameContext(gameID, playerID)
 	log.Warn("⚠️  CardEffectSubscriber not yet fully implemented in new architecture - passive card effects will not trigger")
 	// Passive effects like "gain 2 MC when any city is placed" won't work until this is implemented
 	return nil

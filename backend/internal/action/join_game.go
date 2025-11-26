@@ -79,7 +79,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	}
 
 	// Check max players only for new players
-	if len(g.PlayerIDs) >= g.Settings.MaxPlayers {
+	if len(g.Players) >= g.Settings.MaxPlayers {
 		log.Error("Game is full", zap.Int("max_players", g.Settings.MaxPlayers))
 		return nil, fmt.Errorf("game is full")
 	}
@@ -89,8 +89,8 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 
 	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID))
 
-	// 5. Check if this will be the first player (before adding to game)
-	isFirstPlayer := len(g.PlayerIDs) == 0
+	// 5. Check if this was the first player (after adding to session)
+	isFirstPlayer := len(g.Players) == 1
 
 	// 6. Add player to game via repository (event-driven)
 	err = a.gameRepo.AddPlayer(ctx, gameID, newPlayer.ID)
@@ -147,7 +147,6 @@ func convertToModelGame(g *game.Game) types.Game {
 			DevelopmentMode: g.Settings.DevelopmentMode,
 			CardPacks:       g.Settings.CardPacks,
 		},
-		PlayerIDs:        g.PlayerIDs,
 		HostPlayerID:     g.HostPlayerID,
 		CurrentPhase:     types.GamePhase(g.CurrentPhase),
 		GlobalParameters: g.GlobalParameters,
@@ -155,5 +154,6 @@ func convertToModelGame(g *game.Game) types.Game {
 		CurrentTurn:      g.CurrentTurn,
 		Generation:       g.Generation,
 		Board:            g.Board,
+		Players:          g.Players,
 	}
 }

@@ -58,31 +58,19 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, sess *session.Sessio
 	}
 
 	// 4. Validate cost (14 M€)
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		log.Error("Failed to get player resources", zap.Error(err))
-		return fmt.Errorf("failed to get resources: %w", err)
-	}
-
-	if currentResources.Credits < LaunchAsteroidCost {
+	if player.Resources.Credits < LaunchAsteroidCost {
 		log.Warn("Insufficient credits for asteroid",
 			zap.Int("cost", LaunchAsteroidCost),
-			zap.Int("player_credits", currentResources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, currentResources.Credits)
+			zap.Int("player_credits", player.Resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, player.Resources.Credits)
 	}
 
 	// 5. Deduct cost
-	newResources := currentResources
-	newResources.Credits -= LaunchAsteroidCost
-	err = player.Resources.Update(ctx, newResources)
-	if err != nil {
-		log.Error("Failed to deduct asteroid cost", zap.Error(err))
-		return fmt.Errorf("failed to update resources: %w", err)
-	}
+	player.Resources.Credits -= LaunchAsteroidCost
 
 	log.Info("💰 Deducted asteroid cost",
 		zap.Int("cost", LaunchAsteroidCost),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("remaining_credits", player.Resources.Credits))
 
 	// 6. Increase temperature by 1 step (2°C)
 	if g.GlobalParameters.Temperature < types.MaxTemperature {
@@ -103,33 +91,24 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, sess *session.Sessio
 	}
 
 	// 7. Increase terraform rating
-	newTR := player.TerraformRating + 1
-	err = player.Resources.UpdateTerraformRating(ctx, newTR)
-	if err != nil {
-		log.Error("Failed to update terraform rating", zap.Error(err))
-		return fmt.Errorf("failed to update terraform rating: %w", err)
-	}
+	oldTR := player.TerraformRating
+	player.TerraformRating++
 
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("old_tr", player.TerraformRating),
-		zap.Int("new_tr", newTR))
+		zap.Int("old_tr", oldTR),
+		zap.Int("new_tr", player.TerraformRating))
 
 	// 8. Consume action (only if not unlimited actions)
 	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		err = player.Action.UpdateAvailableActions(ctx, newActions)
-		if err != nil {
-			log.Error("Failed to consume action", zap.Error(err))
-			return fmt.Errorf("failed to consume action: %w", err)
-		}
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
+		player.AvailableActions--
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Asteroid launched successfully",
-		zap.Int("new_terraform_rating", newTR),
-		zap.Int("remaining_credits", newResources.Credits))
+		zap.Int("new_terraform_rating", player.TerraformRating),
+		zap.Int("remaining_credits", player.Resources.Credits))
 	return nil
 }

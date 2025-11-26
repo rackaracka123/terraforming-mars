@@ -5,26 +5,22 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/logger"
-	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
 
 // BonusCalculator calculates and awards bonuses from tile placement
 type BonusCalculator struct {
-	gameRepo  game.Repository
 	boardRepo Repository
 	deckRepo  deck.Repository
 	logger    *zap.Logger
 }
 
 // NewBonusCalculator creates a new bonus calculator
-func NewBonusCalculator(gameRepo game.Repository, boardRepo Repository, deckRepo deck.Repository) *BonusCalculator {
+func NewBonusCalculator(boardRepo Repository, deckRepo deck.Repository) *BonusCalculator {
 	return &BonusCalculator{
-		gameRepo:  gameRepo,
 		boardRepo: boardRepo,
 		deckRepo:  deckRepo,
 		logger:    logger.Get(),
@@ -32,10 +28,10 @@ func NewBonusCalculator(gameRepo game.Repository, boardRepo Repository, deckRepo
 }
 
 // CalculateAndAwardBonuses calculates and awards all bonuses for a tile placement
+// Note: gameID is not needed as this calculator is scoped to a specific game instance
 func (bc *BonusCalculator) CalculateAndAwardBonuses(ctx context.Context, p *player.Player, coord HexPosition) error {
 	log := bc.logger.With(
-		zap.String("game_id", p.GameID),
-		zap.String("player_id", p.ID),
+		zap.String("player_id", p.ID()),
 		zap.String("coordinate", coord.String()),
 	)
 
@@ -64,11 +60,8 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 		return nil
 	}
 
-	// Get current resources (thread-safe copy)
-	resources, err := p.Resources.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
+	// Get current resources
+	resources := p.Resources()
 
 	for _, bonus := range tile.Bonuses {
 		switch bonus.Type {
@@ -98,7 +91,7 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 			}
 
 			// Create pending card draw selection (all cards are free from tile bonus)
-			selection := &types.PendingCardDrawSelection{
+			selection := &player.PendingCardDrawSelection{
 				AvailableCards: drawnCards,
 				FreeTakeCount:  bonus.Amount, // All cards must be taken (free from tile bonus)
 				MaxBuyCount:    0,            // Cannot buy additional cards from tile bonus
@@ -106,8 +99,8 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 				Source:         "tile-bonus",
 			}
 
-			// Store pending selection for player to confirm
-			if err := p.Selection.UpdatePendingCardDrawSelection(ctx, selection); err != nil {
+			// Store pending selection using player setter
+			if err := p.SetPendingCardDrawSelection(ctx, selection); err != nil {
 				return fmt.Errorf("failed to create pending card draw selection: %w", err)
 			}
 
@@ -121,8 +114,8 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 		}
 	}
 
-	// Update player resources using sub-repository
-	if err := p.Resources.Update(ctx, resources); err != nil {
+	// Update resources using player setter
+	if err := p.SetResources(ctx, resources); err != nil {
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
@@ -153,15 +146,11 @@ func (bc *BonusCalculator) awardOceanAdjacencyBonus(ctx context.Context, p *play
 
 	totalBonus := bonusPerOcean * adjacentOceans
 
-	// Get current resources (thread-safe copy)
-	resources, err := p.Resources.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
-
-	// Award megacredits
+	// Award megacredits using player setter
+	resources := p.Resources()
 	resources.Credits += totalBonus
-	if err := p.Resources.Update(ctx, resources); err != nil {
+
+	if err := p.SetResources(ctx, resources); err != nil {
 		return fmt.Errorf("failed to update player resources: %w", err)
 	}
 
@@ -215,7 +204,8 @@ func (bc *BonusCalculator) countAdjacentOceans(coord HexPosition, b *Board) int 
 
 // hasCard checks if player has a specific card by ID
 func (bc *BonusCalculator) hasCard(p *player.Player, cardID string) bool {
-	for _, playedCardID := range p.PlayedCards {
+	playedCards := p.PlayedCards()
+	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
 			return true
 		}
