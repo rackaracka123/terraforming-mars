@@ -1,7 +1,6 @@
 package game
 
 import (
-	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
@@ -21,14 +20,14 @@ const (
 //
 // Returns the final cost after applying all applicable discounts (minimum 1).
 func CalculateResourceConversionCost(player *player.Player, conversionType types.StandardProject, baseCost int) int {
-	if player == nil || player.Effects == nil {
+	if player == nil || len(player.Effects()) == 0 {
 		return baseCost
 	}
 
 	totalDiscount := 0
 
 	// Loop through all player effects
-	for _, effect := range player.Effects {
+	for _, effect := range player.Effects() {
 		// Check each output in the effect's behavior
 		for _, output := range effect.Behavior.Outputs {
 			// Check if this is a discount effect

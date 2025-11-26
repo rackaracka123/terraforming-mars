@@ -7,7 +7,6 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/types"
 )
 
 // Session represents a game session with all its players and game state.

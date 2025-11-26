@@ -4,11 +4,10 @@ import (
 	"sync"
 
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/types"
 )
 
 // SessionFactory manages creation and retrieval of game sessions
@@ -16,7 +15,7 @@ type SessionFactory interface {
 	Get(gameID string) *Session
 	GetOrCreate(gameID string) *Session
 	Remove(gameID string)
-	WireGameRepositories(g *types.Game) // Wires repositories and infrastructure to a Game instance
+	WireGameRepositories(g *game.Game) // Wires repositories and infrastructure to a Game instance
 }
 
 // SessionFactoryImpl implements SessionFactory
@@ -25,9 +24,8 @@ type SessionFactoryImpl struct {
 	eventBus *events.EventBusImpl
 
 	// Shared storage for game-scoped repositories
-	gameStorage *game.GameStorage         // Shared game storage
-	boards      map[string]*board.Board   // Shared board storage
-	decks       map[string]*deck.GameDeck // Shared deck storage
+	boards map[string]*board.Board   // Shared board storage
+	decks  map[string]*deck.GameDeck // Shared deck storage
 
 	// Global repositories (not game-scoped)
 	cardRepo        card.Repository       // Card definitions (global)
@@ -59,7 +57,6 @@ func NewSessionFactory(
 	return &SessionFactoryImpl{
 		sessions:         make(map[string]*Session),
 		eventBus:         eventBus,
-		gameStorage:      game.NewGameStorage(),
 		boards:           make(map[string]*board.Board),
 		decks:            make(map[string]*deck.GameDeck),
 		cardRepo:         cardRepo,
@@ -97,32 +94,9 @@ func (f *SessionFactoryImpl) GetOrCreate(gameID string) *Session {
 		return session
 	}
 
-	// Fetch game from storage and initialize session
-	g, err := f.gameStorage.Get(gameID)
-	var typesGame *types.Game
-	if err == nil && g != nil {
-		// Convert to types.Game
-		typesGame = &types.Game{
-			ID:               g.ID,
-			CreatedAt:        g.CreatedAt,
-			UpdatedAt:        g.UpdatedAt,
-			Status:           types.GameStatus(g.Status),
-			Settings:         g.Settings,
-			HostPlayerID:     g.HostPlayerID,
-			CurrentPhase:     types.GamePhase(g.CurrentPhase),
-			GlobalParameters: g.GlobalParameters,
-			CurrentTurn:      g.CurrentTurn,
-			Generation:       g.Generation,
-			Board:            g.Board,
-			Players:          make(map[string]*types.Player),
-		}
-
-		// Wire repositories
-		f.WireGameRepositories(typesGame)
-	}
-
-	// Create session with game and eventBus
-	session := NewSession(typesGame, f.eventBus)
+	// Create session with nil game (will be populated by game creation action)
+	// Note: In the new architecture, games are created via actions, not loaded from storage
+	session := NewSession(nil, f.eventBus)
 
 	f.sessions[gameID] = session
 	return session
@@ -135,22 +109,11 @@ func (f *SessionFactoryImpl) Remove(gameID string) {
 	delete(f.sessions, gameID)
 }
 
-// WireGameRepositories wires up a types.Game instance with game-scoped repositories and infrastructure
-// Creates NEW repository instances bound to the specific game ID
-// TODO: This will be gradually removed as we migrate to domain methods on Game/Player/Board
-func (f *SessionFactoryImpl) WireGameRepositories(g *types.Game) {
-	if g == nil {
-		return
-	}
-
-	gameID := g.ID
-
-	// Wire up infrastructure components
-	// Note: During migration, we'll keep minimal infrastructure for card/deck operations
-	// that haven't been migrated to domain methods yet
-	deckRepo := deck.NewGameScopedRepository(gameID, f.decks, f.deckDefinitions)
-	g.CardManager = card.NewCardManager(f.cardRepo, deckRepo, f.effectSubscriber)
-
-	// TODO: TileProcessor and BonusCalculator will be migrated to domain methods
-	// For now, keep them as infrastructure until we migrate tile placement logic
+// WireGameRepositories wires up a game.Game instance with game-scoped repositories and infrastructure
+// DEPRECATED: In the new architecture, Game receives its CardManager in the constructor (NewGame)
+// This method is kept for interface compatibility but does nothing
+// TODO: Remove this method once all callers are updated
+func (f *SessionFactoryImpl) WireGameRepositories(g *game.Game) {
+	// No-op: Game now owns its own CardManager, set during construction
+	// Infrastructure components are passed to NewGame() instead
 }

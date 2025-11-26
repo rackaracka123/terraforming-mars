@@ -1,6 +1,6 @@
 package dto
 
-import "terraforming-mars-backend/internal/session/types"
+import "terraforming-mars-backend/internal/session/game/card"
 
 // PaymentConstantsDto contains the conversion rates for alternative payment methods
 // These values are sent to the frontend so it knows how much each resource is worth
@@ -13,7 +13,7 @@ type PaymentConstantsDto struct {
 // This ensures DRY - the values are defined once in types.payment.go
 func GetPaymentConstants() PaymentConstantsDto {
 	return PaymentConstantsDto{
-		SteelValue:    types.SteelValue,
-		TitaniumValue: types.TitaniumValue,
+		SteelValue:    card.SteelValue,
+		TitaniumValue: card.TitaniumValue,
 	}
 }

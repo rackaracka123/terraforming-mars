@@ -8,7 +8,6 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session/game/board"
-	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
@@ -99,11 +98,25 @@ func (g *Game) AddPlayer(p *player.Player) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	if _, exists := g.Players[p.ID]; exists {
-		return fmt.Errorf("player %s already exists in game %s", p.ID, g.ID)
+	if _, exists := g.Players[p.ID()]; exists {
+		return fmt.Errorf("player %s already exists in game %s", p.ID(), g.ID)
 	}
 
-	g.Players[p.ID] = p
+	g.Players[p.ID()] = p
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+// RemovePlayer removes a player from the game
+func (g *Game) RemovePlayer(playerID string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if _, exists := g.Players[playerID]; !exists {
+		return fmt.Errorf("player %s not found in game %s", playerID, g.ID)
+	}
+
+	delete(g.Players, playerID)
 	g.UpdatedAt = time.Now()
 	return nil
 }
@@ -125,8 +138,8 @@ func (g *Game) UpdateStatus(ctx context.Context, newStatus types.GameStatus) err
 	if g.eventBus != nil && oldStatus != newStatus {
 		events.Publish(g.eventBus, events.GameStatusChangedEvent{
 			GameID:   g.ID,
-			OldValue: string(oldStatus),
-			NewValue: string(newStatus),
+			OldStatus: string(oldStatus),
+			NewStatus: string(newStatus),
 		})
 	}
 
@@ -150,8 +163,8 @@ func (g *Game) UpdatePhase(ctx context.Context, newPhase types.GamePhase) error 
 	if g.eventBus != nil && oldPhase != newPhase {
 		events.Publish(g.eventBus, events.GamePhaseChangedEvent{
 			GameID:   g.ID,
-			OldValue: string(oldPhase),
-			NewValue: string(newPhase),
+			OldPhase: string(oldPhase),
+			NewPhase: string(newPhase),
 		})
 	}
 
@@ -242,14 +255,16 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	oldGeneration := g.Generation
 	g.Generation++
 	g.UpdatedAt = time.Now()
 
 	// Publish event
 	if g.eventBus != nil {
 		events.Publish(g.eventBus, events.GenerationAdvancedEvent{
-			GameID:     g.ID,
-			Generation: g.Generation,
+			GameID:        g.ID,
+			OldGeneration: oldGeneration,
+			NewGeneration: g.Generation,
 		})
 	}
 

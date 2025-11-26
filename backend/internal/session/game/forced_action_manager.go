@@ -8,7 +8,6 @@ import (
 	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/types"
 )
 
 // ForcedActionManager manages forced first turn actions for corporations

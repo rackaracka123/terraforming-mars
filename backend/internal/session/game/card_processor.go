@@ -303,23 +303,20 @@ func (cp *CardProcessor) applyVictoryPointConditions(ctx context.Context, p *pla
 // applyResourceEffects applies immediate resource gains/losses from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
 // cardStorageTarget is optional and used when outputs target "any-card" storage
-func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Player, card *card.Card, choiceIndex *int, cardStorageTarget *string) error {
+func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Player, c *card.Card, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(p.GameID(), p.ID())
 
 	// Get current player to read current resources
 
 	// Calculate new resource values from card behaviors
-	newResources, err := p.Resources()(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
+	newResources := p.Resources()
 
 	// Track changes for logging
 	var creditsChange, steelChange, titaniumChange, plantsChange, energyChange, heatChange int
 	var trChange int
 
 	// Process all behaviors to find resource effects
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
 		// Auto triggers WITH conditions are passive effects, not immediate resource effects
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
@@ -378,7 +375,7 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Pla
 				// card.Card storage resources (animals, microbes, floaters, science, asteroid)
 				case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 					// Handle card storage resources
-					if err := cp.ApplyCardStorageResource(ctx, p, card.ID, output, cardStorageTarget, log); err != nil {
+					if err := cp.ApplyCardStorageResource(ctx, p, c.ID, output, cardStorageTarget, log); err != nil {
 						return fmt.Errorf("failed to apply card storage resource: %w", err)
 					}
 				}
@@ -398,7 +395,7 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Pla
 		}
 
 		log.Debug("💰 Resource effects applied",
-			zap.String("card_name", card.Name),
+			zap.String("card_name", c.Name),
 			zap.Int("credits_change", creditsChange),
 			zap.Int("steel_change", steelChange),
 			zap.Int("titanium_change", titaniumChange),
@@ -410,13 +407,13 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Pla
 	// Apply TR changes separately (not part of resources)
 	if trChange != 0 {
 		newTR := p.TerraformRating() + trChange
-		if err := p.SetResourcesTerraformRating(ctx, newTR); err != nil {
+		if err := p.SetTerraformRating(ctx, newTR); err != nil {
 			log.Error("Failed to update terraform rating", zap.Error(err))
 			return fmt.Errorf("failed to update terraform rating: %w", err)
 		}
 
 		log.Info("⭐ Terraform Rating changed",
-			zap.String("card_name", card.Name),
+			zap.String("card_name", c.Name),
 			zap.Int("change", trChange),
 			zap.Int("terraform_rating", p.TerraformRating()),
 			zap.Int("new_tr", newTR))
@@ -426,12 +423,12 @@ func (cp *CardProcessor) applyResourceEffects(ctx context.Context, p *player.Pla
 }
 
 // applyTileEffects handles tile placement effects from card behaviors
-func (cp *CardProcessor) applyTileEffects(ctx context.Context, p *player.Player, card *card.Card) error {
+func (cp *CardProcessor) applyTileEffects(ctx context.Context, p *player.Player, c *card.Card) error {
 	// Collect all tile placements from card behaviors
 	var tilePlacementQueue []string
 
 	// Process all behaviors to find tile placement effects
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
 		// Auto triggers WITH conditions are passive effects, not immediate tile placement effects
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
@@ -457,12 +454,12 @@ func (cp *CardProcessor) applyTileEffects(ctx context.Context, p *player.Player,
 		}
 	}
 
-	// Delegate to PlayerRepository to handle the queue creation and processing
-	return p.TileQueue.CreateQueue(ctx, card.ID, tilePlacementQueue)
+	// Delegate to Player to handle the queue creation and processing
+	return p.CreateTileQueue(ctx, c.ID, tilePlacementQueue)
 }
 
 // applyCardDrawPeekEffects handles card draw/peek/take/buy effects from card behaviors
-func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player.Player, card *card.Card) error {
+func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player.Player, c *card.Card) error {
 	log := logger.WithGameContext(p.GameID(), p.ID())
 
 	// Scan for card-draw, card-peek, card-take, card-buy outputs
@@ -470,7 +467,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 	var cardBuyCost int = 3 // Default cost for buying cards in Terraforming Mars
 
 	// Process all behaviors to find card draw/peek effects
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			for _, output := range behavior.Outputs {
@@ -512,7 +509,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 		maxBuyCount = 0
 
 		log.Info("🃏 card.Card draw effect detected",
-			zap.String("card_name", card.Name),
+			zap.String("card_name", c.Name),
 			zap.Int("cards_to_draw", len(drawnCards)))
 
 	} else if cardPeekAmount > 0 {
@@ -531,7 +528,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 		maxBuyCount = cardBuyAmount
 
 		log.Info("🃏 card.Card peek effect detected",
-			zap.String("card_name", card.Name),
+			zap.String("card_name", c.Name),
 			zap.Int("cards_to_peek", len(peekedCards)),
 			zap.Int("card_draw_amount", cardDrawAmount),
 			zap.Int("card_take_amount", cardTakeAmount),
@@ -540,7 +537,7 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 	} else {
 		// Invalid combination (e.g., card-take without card-peek, or card-buy without card-peek)
 		log.Warn("⚠️ Invalid card effect combination",
-			zap.String("card_name", card.Name),
+			zap.String("card_name", c.Name),
 			zap.Int("card_draw", cardDrawAmount),
 			zap.Int("card_peek", cardPeekAmount),
 			zap.Int("card_take", cardTakeAmount),
@@ -549,22 +546,22 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 	}
 
 	// Create PendingCardDrawSelection
-	selection := &types.PendingCardDrawSelection{
+	selection := &player.PendingCardDrawSelection{
 		AvailableCards: cardsToShow,
 		FreeTakeCount:  freeTakeCount,
 		MaxBuyCount:    maxBuyCount,
 		CardBuyCost:    cardBuyCost,
-		Source:         card.ID,
+		Source:         c.ID,
 	}
 
-	// Store in player repository
-	if err := p.Selection.UpdatePendingCardDrawSelection(ctx, selection); err != nil {
+	// Store in player
+	if err := p.SetPendingCardDrawSelection(ctx, selection); err != nil {
 		log.Error("Failed to create pending card draw selection", zap.Error(err))
 		return fmt.Errorf("failed to create pending card draw selection: %w", err)
 	}
 
 	log.Info("✅ Pending card draw selection created",
-		zap.String("card_name", card.Name),
+		zap.String("card_name", c.Name),
 		zap.Int("available_cards", len(cardsToShow)),
 		zap.Int("free_take_count", freeTakeCount),
 		zap.Int("max_buy_count", maxBuyCount),
@@ -576,17 +573,18 @@ func (cp *CardProcessor) applyCardDrawPeekEffects(ctx context.Context, p *player
 // ApplyCardStorageResource handles adding resources to card storage (animals, microbes, floaters, science)
 // This is exported so it can be used by actions for both card play and card ability execution
 func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, p *player.Player, playedCardID string, output card.ResourceCondition, cardStorageTarget *string, log *zap.Logger) error {
-	// Get current player to access resource storage
+	// Get current resource storage
+	resourceStorage := p.ResourceStorage()
 
 	// Initialize resource storage map if nil
-	if p.ResourceStorage == nil {
-		p.ResourceStorage = make(map[string]int)
+	if resourceStorage == nil {
+		resourceStorage = make(map[string]int)
 	}
 
 	// Determine target card based on output.Target
 	var targetCardID string
 	switch output.Target {
-	case types.TargetSelfCard:
+	case card.TargetSelfCard:
 		// Target is the card itself (the card being played)
 		targetCardID = playedCardID
 		log.Debug("💾 Applying card storage to self-card",
@@ -594,7 +592,7 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, p *player
 			zap.String("resource_type", string(output.Type)),
 			zap.Int("amount", output.Amount))
 
-	case types.TargetAnyCard:
+	case card.TargetAnyCard:
 		// Target is any card - if not provided or empty, resources will be discarded
 		if cardStorageTarget == nil || *cardStorageTarget == "" {
 			log.Info("⚠️ No card storage target provided - resources will be lost",
@@ -607,7 +605,7 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, p *player
 
 		// Validate that target card exists in player's played cards
 		targetCardExists := false
-		for _, playedCardID := range p.PlayedCards {
+		for _, playedCardID := range p.PlayedCards() {
 			if playedCardID == targetCardID {
 				targetCardExists = true
 				break
@@ -630,26 +628,26 @@ func (cp *CardProcessor) ApplyCardStorageResource(ctx context.Context, p *player
 	}
 
 	// Update the resource storage for the target card
-	p.ResourceStorage[targetCardID] += output.Amount
+	resourceStorage[targetCardID] += output.Amount
 
 	// Persist the updated resource storage
-	if err := p.SetResourcesStorage(ctx, p.ResourceStorage); err != nil {
+	if err := p.SetResourceStorage(ctx, resourceStorage); err != nil {
 		log.Error("Failed to update card resource storage", zap.Error(err))
 		return fmt.Errorf("failed to update card resource storage: %w", err)
 	}
 
-	log.Info("✅ card.Card storage resource applied",
+	log.Info("✅ Card storage resource applied",
 		zap.String("target_card_id", targetCardID),
 		zap.String("resource_type", string(output.Type)),
 		zap.Int("amount", output.Amount),
-		zap.Int("new_storage_amount", p.ResourceStorage[targetCardID]))
+		zap.Int("new_storage_amount", resourceStorage[targetCardID]))
 
 	return nil
 }
 
 // applyGlobalParameterEffects applies global parameter changes (temperature, oxygen, oceans) from a card's behaviors
 // choiceIndex is optional and used when the card has choices between different effects
-func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *Game, p *player.Player, card *card.Card, choiceIndex *int) error {
+func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *Game, p *player.Player, c *card.Card, choiceIndex *int) error {
 	log := logger.WithGameContext(p.GameID(), p.ID())
 
 	// Get current game to read current global parameters
@@ -658,7 +656,7 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *
 	var temperatureChange, oxygenChange, oceansChange int
 
 	// Process all behaviors to find global parameter effects
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers WITHOUT conditions (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto && behavior.Triggers[0].Condition == nil {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
@@ -709,20 +707,20 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *
 		if stepsChanged > 0 {
 
 			newTR := p.TerraformRating() + stepsChanged
-			if err := p.SetResourcesTerraformRating(ctx, newTR); err != nil {
+			if err := p.SetTerraformRating(ctx, newTR); err != nil {
 				log.Error("Failed to update TR after temperature change", zap.Error(err))
 				return fmt.Errorf("failed to update terraform rating: %w", err)
 			}
 
 			log.Info("🌡️ Temperature changed (TR granted)",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("temperature_change", actualChange),
 				zap.Int("new_temperature", newTemperature),
 				zap.Int("tr_change", stepsChanged),
 				zap.Int("new_tr", newTR))
 		} else {
 			log.Info("🌡️ Temperature changed",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("change", actualChange),
 				zap.Int("new_temperature", newTemperature))
 		}
@@ -752,20 +750,20 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *
 		if oxygenChange > 0 {
 
 			newTR := p.TerraformRating() + oxygenChange
-			if err := p.SetResourcesTerraformRating(ctx, newTR); err != nil {
+			if err := p.SetTerraformRating(ctx, newTR); err != nil {
 				log.Error("Failed to update TR after oxygen change", zap.Error(err))
 				return fmt.Errorf("failed to update terraform rating: %w", err)
 			}
 
 			log.Info("💨 Oxygen changed (TR granted)",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("oxygen_change", oxygenChange),
 				zap.Int("new_oxygen", newOxygen),
 				zap.Int("tr_change", oxygenChange),
 				zap.Int("new_tr", newTR))
 		} else {
 			log.Info("💨 Oxygen changed",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("change", oxygenChange),
 				zap.Int("new_oxygen", newOxygen))
 		}
@@ -795,20 +793,20 @@ func (cp *CardProcessor) applyGlobalParameterEffects(ctx context.Context, game *
 		if oceansChange > 0 {
 
 			newTR := p.TerraformRating() + oceansChange
-			if err := p.SetResourcesTerraformRating(ctx, newTR); err != nil {
+			if err := p.SetTerraformRating(ctx, newTR); err != nil {
 				log.Error("Failed to update TR after ocean placement", zap.Error(err))
 				return fmt.Errorf("failed to update terraform rating: %w", err)
 			}
 
 			log.Info("🌊 Oceans changed (TR granted)",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("oceans_change", oceansChange),
 				zap.Int("new_oceans", newOceans),
 				zap.Int("tr_change", oceansChange),
 				zap.Int("new_tr", newTR))
 		} else {
 			log.Info("🌊 Oceans changed",
-				zap.String("card_name", card.Name),
+				zap.String("card_name", c.Name),
 				zap.Int("change", oceansChange),
 				zap.Int("new_oceans", newOceans))
 		}

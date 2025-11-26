@@ -24,9 +24,9 @@ func NewRequirementsValidator(cardRepo card.Repository) *RequirementsValidator {
 }
 
 // ValidateCardRequirements validates that a card's requirements are met with full context
-func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, game *Game, p *player.Player, card *card.Card) error {
+func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, game *Game, p *player.Player, c *card.Card) error {
 	// Check if card has any requirements
-	if len(card.Requirements) == 0 {
+	if len(c.Requirements) == 0 {
 		return nil
 	}
 
@@ -34,7 +34,7 @@ func (rv *RequirementsValidator) ValidateCardRequirements(ctx context.Context, g
 	log.Debug("🚨 Validating card requirements - card has requirements to check")
 
 	// Validate each requirement
-	for _, requirement := range card.Requirements {
+	for _, requirement := range c.Requirements {
 		if err := rv.validateSingleRequirement(ctx, requirement, game, p); err != nil {
 			return err
 		}
@@ -207,8 +207,8 @@ func (rv *RequirementsValidator) countPlayerTags(ctx context.Context, p *player.
 }
 
 // HasRequirements checks if a card has any requirements to validate
-func (rv *RequirementsValidator) HasRequirements(card *card.Card) bool {
-	return len(card.Requirements) > 0
+func (rv *RequirementsValidator) HasRequirements(c *card.Card) bool {
+	return len(c.Requirements) > 0
 }
 
 // GetPlayerTagCounts returns the tag counts for a player (public method for external use)
@@ -217,13 +217,13 @@ func (rv *RequirementsValidator) GetPlayerTagCounts(ctx context.Context, p *play
 }
 
 // calculateEffectiveCost calculates the card cost after applying requirement modifiers (discounts)
-func (rv *RequirementsValidator) calculateEffectiveCost(card *card.Card, p *player.Player) int {
-	effectiveCost := card.Cost
+func (rv *RequirementsValidator) calculateEffectiveCost(c *card.Card, p *player.Player) int {
+	effectiveCost := c.Cost
 
 	// Apply discounts from requirement modifiers
 	for _, modifier := range p.RequirementModifiers() {
 		// Check if this modifier applies to this card
-		if modifier.CardTarget != nil && *modifier.CardTarget == card.ID {
+		if modifier.CardTarget != nil && *modifier.CardTarget == c.ID {
 			// Check if this modifier affects credits (cost discounts)
 			for _, affectedResource := range modifier.AffectedResources {
 				if affectedResource == types.ResourceCredits {
@@ -252,28 +252,28 @@ func (rv *RequirementsValidator) calculateEffectiveCost(card *card.Card, p *play
 // ValidateCardAffordability validates that the player can afford to play a card including all resource deductions
 // choiceIndex is optional and used when the card has choices between different effects
 // payment is the proposed payment method (credits, steel, titanium) for the card cost
-func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, p *player.Player, card *card.Card, payment *card.CardPayment, choiceIndex *int) error {
+func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, p *player.Player, c *card.Card, payment *card.CardPayment, choiceIndex *int) error {
 	log := logger.WithGameContext(p.GameID(), p.ID())
 
 	// Calculate total costs from card behaviors (excluding card cost which is paid separately)
-	totalCosts := rv.calculateTotalCardCosts(ctx, card, p, choiceIndex)
+	totalCosts := rv.calculateTotalCardCosts(ctx, c, p, choiceIndex)
 
 	// Validate payment for card cost
-	if card.Cost > 0 {
+	if c.Cost > 0 {
 		// Get player resources (needed for multiple checks)
 		resources := p.Resources()
 
 		// Calculate effective cost after applying discounts
-		effectiveCost := rv.calculateEffectiveCost(card, p)
+		effectiveCost := rv.calculateEffectiveCost(c, p)
 
 		// Check if card allows steel (has building tag) or titanium (has space tag)
-		allowSteel := rv.cardHasTag(card, types.TagBuilding)
-		allowTitanium := rv.cardHasTag(card, types.TagSpace)
+		allowSteel := rv.cardHasTag(c, types.TagBuilding)
+		allowTitanium := rv.cardHasTag(c, types.TagSpace)
 
 		// Validate payment format and coverage (including payment substitutes)
 		if err := payment.CoversCardCost(effectiveCost, allowSteel, allowTitanium, p.PaymentSubstitutes()); err != nil {
 			// Calculate minimum alternative resources for better error messages
-			minSteel, minTitanium := types.CalculateMinimumAlternativeResources(card.Cost, resources, allowSteel, allowTitanium)
+			minSteel, minTitanium := card.CalculateMinimumAlternativeResources(c.Cost, resources, allowSteel, allowTitanium)
 
 			if minSteel > 0 && minTitanium > 0 {
 				return fmt.Errorf("cannot afford card: %w (hint: need minSteel:%d or minTitanium:%d)", err, minSteel, minTitanium)
@@ -351,18 +351,18 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 	}
 
 	// Validate production deductions (negative production effects)
-	if err := rv.validateProductionDeductions(ctx, card, p, choiceIndex); err != nil {
+	if err := rv.validateProductionDeductions(ctx, c, p, choiceIndex); err != nil {
 		return fmt.Errorf("production requirement validation failed: %w", err)
 	}
 
 	// Calculate effective cost for logging purposes
-	effectiveCost := card.Cost
-	if card.Cost > 0 {
-		effectiveCost = rv.calculateEffectiveCost(card, p)
+	effectiveCost := c.Cost
+	if c.Cost > 0 {
+		effectiveCost = rv.calculateEffectiveCost(c, p)
 	}
 
 	log.Debug("✅ Card affordability validation passed",
-		zap.Int("card_cost", card.Cost),
+		zap.Int("card_cost", c.Cost),
 		zap.Int("effective_cost", effectiveCost),
 		zap.Int("payment_credits", payment.Credits),
 		zap.Int("payment_steel", payment.Steel),
@@ -378,8 +378,8 @@ func (rv *RequirementsValidator) ValidateCardAffordability(ctx context.Context, 
 }
 
 // cardHasTag checks if a card has a specific tag
-func (rv *RequirementsValidator) cardHasTag(card *card.Card, tag types.CardTag) bool {
-	for _, cardTag := range card.Tags {
+func (rv *RequirementsValidator) cardHasTag(c *card.Card, tag types.CardTag) bool {
+	for _, cardTag := range c.Tags {
 		if cardTag == tag {
 			return true
 		}
@@ -389,11 +389,11 @@ func (rv *RequirementsValidator) cardHasTag(card *card.Card, tag types.CardTag) 
 
 // calculateTotalCardCosts analyzes card behaviors and calculates all resource costs
 // choiceIndex is optional and used when the card has choices between different effects
-func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, card *card.Card, p *player.Player, choiceIndex *int) types.Resources {
+func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, c *card.Card, p *player.Player, choiceIndex *int) types.Resources {
 	totalCosts := types.Resources{}
 
 	// Process all behaviors to find immediate resource costs (auto triggers)
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto {
 			// Aggregate all inputs: behavior.Inputs + choice[choiceIndex].Inputs
@@ -458,12 +458,12 @@ func (rv *RequirementsValidator) calculateTotalCardCosts(ctx context.Context, ca
 }
 
 // validateProductionDeductions validates that the player can afford any negative production effects
-func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, card *card.Card, p *player.Player, choiceIndex *int) error {
+func (rv *RequirementsValidator) validateProductionDeductions(ctx context.Context, c *card.Card, p *player.Player, choiceIndex *int) error {
 	// Calculate total production changes from card behaviors
 	productionChanges := types.Production{}
 
 	// Process all behaviors to find production effects
-	for _, behavior := range card.Behaviors {
+	for _, behavior := range c.Behaviors {
 		// Only process auto triggers (immediate effects when card is played)
 		if len(behavior.Triggers) > 0 && behavior.Triggers[0].Type == card.ResourceTriggerAuto {
 			// Aggregate all outputs: behavior.Outputs + choice[choiceIndex].Outputs
