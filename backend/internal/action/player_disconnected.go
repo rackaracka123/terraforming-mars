@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-
-	"go.uber.org/zap"
 )
 
 // PlayerDisconnectedAction handles the business logic for player disconnection
@@ -37,11 +35,7 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, sess *session.Se
 	}
 
 	// 3. Update player connection status to disconnected
-	err := player.Connection.UpdateStatus(ctx, false)
-	if err != nil {
-		log.Error("Failed to update connection status", zap.Error(err))
-		return err
-	}
+	player.Turn().SetConnectionStatus(false)
 
 	log.Info("✅ Player connection status updated to disconnected")
 

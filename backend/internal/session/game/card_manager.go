@@ -104,22 +104,22 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *Game, p *player.P
 
 	// STEP 1: Apply card cost payment (using credits, steel, titanium, and/or payment substitutes)
 	if card.Cost > 0 {
-		// Get current resources (thread-safe)
-		updatedResources := p.Resources()
-		updatedResources.Credits -= payment.Credits
-		updatedResources.Steel -= payment.Steel
-		updatedResources.Titanium -= payment.Titanium
+		// Build resource changes map (negative values for deductions)
+		resourceChanges := make(map[types.ResourceType]int)
+		resourceChanges[types.ResourceCredits] = -payment.Credits
+		resourceChanges[types.ResourceSteel] = -payment.Steel
+		resourceChanges[types.ResourceTitanium] = -payment.Titanium
 
 		// Deduct payment substitutes (e.g., heat for Helion)
 		if payment.Substitutes != nil {
 			for resourceType, amount := range payment.Substitutes {
 				switch resourceType {
 				case types.ResourceHeat:
-					updatedResources.Heat -= amount
+					resourceChanges[types.ResourceHeat] = -amount
 				case types.ResourceEnergy:
-					updatedResources.Energy -= amount
+					resourceChanges[types.ResourceEnergy] = -amount
 				case types.ResourcePlants:
-					updatedResources.Plants -= amount
+					resourceChanges[types.ResourcePlants] = -amount
 				// Add other resource types as needed
 				default:
 					log.Warn("Unknown payment substitute resource type", zap.String("resource_type", string(resourceType)))
@@ -127,9 +127,8 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *Game, p *player.P
 			}
 		}
 
-		if err := p.SetResources(ctx, updatedResources); err != nil {
-			return fmt.Errorf("failed to update player resources: %w", err)
-		}
+		// Apply resource changes via component (publishes events automatically)
+		p.Resources().Add(resourceChanges)
 
 		// Log payment details
 		logFields := []zap.Field{
@@ -147,16 +146,15 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *Game, p *player.P
 	}
 
 	// STEP 2: Move card from hand to played cards
-	err = p.PlayCard(ctx, cardID)
-	if err != nil {
-		return fmt.Errorf("failed to play card: %w", err)
+	if !p.Hand().PlayCard(cardID) {
+		return fmt.Errorf("failed to play card %s: card not found in hand", cardID)
 	}
 	log.Debug("🃏 Card moved to played cards")
 
 	// STEP 3: Initialize resource storage if the card has storage capability
 	if card.ResourceStorage != nil {
 		// Get current resource storage
-		storage := p.ResourceStorage()
+		storage := p.Resources().Storage()
 
 		// Initialize the map if it's nil
 		if storage == nil {
@@ -166,10 +164,8 @@ func (cm *CardManagerImpl) PlayCard(ctx context.Context, game *Game, p *player.P
 		// Set the starting amount for this card's resource storage
 		storage[cardID] = card.ResourceStorage.Starting
 
-		// Update the player's resource storage
-		if err := p.SetResourceStorage(ctx, storage); err != nil {
-			return fmt.Errorf("failed to initialize card resource storage: %w", err)
-		}
+		// Update the player's resource storage via component
+		p.Resources().SetStorage(storage)
 
 		log.Debug("💾 Card resource storage initialized",
 			zap.String("resource_type", string(card.ResourceStorage.Type)),

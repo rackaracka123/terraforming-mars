@@ -58,19 +58,21 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, sess *session.Sessio
 	}
 
 	// 4. Validate cost (14 M€)
-	if player.Resources.Credits < LaunchAsteroidCost {
+	resources := player.Resources().Get()
+	if resources.Credits < LaunchAsteroidCost {
 		log.Warn("Insufficient credits for asteroid",
 			zap.Int("cost", LaunchAsteroidCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, player.Resources.Credits)
+			zap.Int("player_credits", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", LaunchAsteroidCost, resources.Credits)
 	}
 
 	// 5. Deduct cost
-	player.Resources.Credits -= LaunchAsteroidCost
+	resources.Credits -= LaunchAsteroidCost
+	player.Resources().Set(resources)
 
 	log.Info("💰 Deducted asteroid cost",
 		zap.Int("cost", LaunchAsteroidCost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
 	// 6. Increase temperature by 1 step (2°C)
 	if g.GlobalParameters.Temperature < types.MaxTemperature {
@@ -91,24 +93,26 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, sess *session.Sessio
 	}
 
 	// 7. Increase terraform rating
-	oldTR := player.TerraformRating
-	player.TerraformRating++
+	oldTR := player.Resources().TerraformRating()
+	newTR := oldTR + 1
+	player.Resources().SetTerraformRating(newTR)
 
 	log.Info("🏆 Increased terraform rating",
 		zap.Int("old_tr", oldTR),
-		zap.Int("new_tr", player.TerraformRating))
+		zap.Int("new_tr", newTR))
 
 	// 8. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		player.AvailableActions--
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	availableActions := player.Turn().AvailableActions()
+	if availableActions > 0 {
+		player.Turn().SetAvailableActions(availableActions - 1)
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Asteroid launched successfully",
-		zap.Int("new_terraform_rating", player.TerraformRating),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("new_terraform_rating", newTR),
+		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

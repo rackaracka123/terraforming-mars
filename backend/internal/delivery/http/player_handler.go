@@ -103,8 +103,9 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO and respond
-	playerDto := dto.ToPlayerDto(player, nil)
+	// Convert to DTO and respond (dereference pointer to value)
+	// Phase state now managed by Game, pass it to mapper (dereference Game pointer)
+	playerDto := dto.ToPlayerDto(*sess.Game(), *player, nil)
 	response := dto.GetPlayerResponse{
 		Player: playerDto,
 	}

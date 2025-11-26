@@ -4,10 +4,14 @@
 - **Encapsulated domain objects** with private fields and public methods
 - **Delegation pattern** - Domain objects delegate to focused subfolder types
 - **Navigation path**: `SessionRepository → Session → Game → Player → delegated components`
-- **Separation of concerns** - Each component manages its own state (Hand, Resources, Production, etc.)
+- **Separation of concerns** - Each component manages its own state (Hand, Resources, etc.)
 - **Domain types co-located** with their domain
 - **EventBus integration** for event publishing where needed
 - **No repository confusion** - Components have clear responsibilities
+- **No factory files** - `NewXxx()` constructor lives in same file as struct
+- **Flat exposure** - Parent exposes component accessors (e.g., `player.Hand()`) - callers use component methods directly
+- **Single mutex on parent** - Player/Game owns the mutex, components are pure state
+- **Turn and phases on Game** - Game-level concerns managed by Game, not Player
 
 ---
 

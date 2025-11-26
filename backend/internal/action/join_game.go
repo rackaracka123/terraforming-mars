@@ -6,8 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	gameCore "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
 )
@@ -16,7 +15,7 @@ import (
 // Broadcasting is handled automatically via PlayerJoinedEvent (event-driven architecture)
 type JoinGameAction struct {
 	BaseAction
-	gameRepo       game.Repository
+	gameRepo       gameCore.Repository
 	sessionFactory session.SessionFactory
 }
 
@@ -28,7 +27,7 @@ type JoinGameResult struct {
 
 // NewJoinGameAction creates a new join game action
 func NewJoinGameAction(
-	gameRepo game.Repository,
+	gameRepo gameCore.Repository,
 	sessionFactory session.SessionFactory,
 ) *JoinGameAction {
 	return &JoinGameAction{
@@ -65,14 +64,14 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 
 	// If player with same name exists, return existing playerID (idempotent operation)
 	for _, p := range existingPlayers {
-		if p.Name == playerName {
+		if p.Name() == playerName {
 			log.Info("🔄 Player already exists, returning existing ID",
-				zap.String("player_id", p.ID))
+				zap.String("player_id", p.ID()))
 
 			// Return the existing game state
-			gameDto := dto.ToGameDtoBasic(convertToModelGame(g), dto.GetPaymentConstants())
+			gameDto := dto.ToGameDtoBasic(*g, dto.GetPaymentConstants())
 			return &JoinGameResult{
-				PlayerID: p.ID,
+				PlayerID: p.ID(),
 				GameDto:  gameDto,
 			}, nil
 		}
@@ -87,13 +86,13 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	// 4. Create new player via session
 	newPlayer := sess.CreateAndAddPlayer(playerName, pid)
 
-	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID))
+	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID()))
 
 	// 5. Check if this was the first player (after adding to session)
 	isFirstPlayer := len(g.Players) == 1
 
 	// 6. Add player to game via repository (event-driven)
-	err = a.gameRepo.AddPlayer(ctx, gameID, newPlayer.ID)
+	err = a.gameRepo.AddPlayer(ctx, gameID, newPlayer.ID())
 	if err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
 		return nil, fmt.Errorf("failed to add player to game: %w", err)
@@ -103,7 +102,7 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 
 	// 7. If first player, set as host
 	if isFirstPlayer {
-		err = a.gameRepo.SetHostPlayer(ctx, gameID, newPlayer.ID)
+		err = a.gameRepo.SetHostPlayer(ctx, gameID, newPlayer.ID())
 		if err != nil {
 			log.Error("Failed to set host player", zap.Error(err))
 			// Non-fatal, continue
@@ -120,40 +119,14 @@ func (a *JoinGameAction) Execute(ctx context.Context, gameID string, playerName 
 	}
 
 	// 8. Convert to DTO
-	gameDto := dto.ToGameDtoBasic(convertToModelGame(updatedGame), dto.GetPaymentConstants())
+	gameDto := dto.ToGameDtoBasic(*updatedGame, dto.GetPaymentConstants())
 
 	// Note: Broadcasting is now handled automatically via PlayerJoinedEvent
 	// gameRepo.AddPlayer() publishes event → SessionManager subscribes → broadcasts automatically
 
 	log.Info("🎉 Player joined game successfully")
 	return &JoinGameResult{
-		PlayerID: newPlayer.ID,
+		PlayerID: newPlayer.ID(),
 		GameDto:  gameDto,
 	}, nil
-}
-
-// convertToModelGame converts a game.Game to types.Game
-func convertToModelGame(g *game.Game) types.Game {
-	return types.Game{
-		ID:        g.ID,
-		CreatedAt: g.CreatedAt,
-		UpdatedAt: g.UpdatedAt,
-		Status:    types.GameStatus(g.Status),
-		Settings: types.GameSettings{
-			MaxPlayers:      g.Settings.MaxPlayers,
-			Temperature:     g.Settings.Temperature,
-			Oxygen:          g.Settings.Oxygen,
-			Oceans:          g.Settings.Oceans,
-			DevelopmentMode: g.Settings.DevelopmentMode,
-			CardPacks:       g.Settings.CardPacks,
-		},
-		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     types.GamePhase(g.CurrentPhase),
-		GlobalParameters: g.GlobalParameters,
-		ViewingPlayerID:  g.ViewingPlayerID,
-		CurrentTurn:      g.CurrentTurn,
-		Generation:       g.Generation,
-		Board:            g.Board,
-		Players:          g.Players,
-	}
 }

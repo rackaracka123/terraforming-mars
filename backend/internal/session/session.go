@@ -76,12 +76,11 @@ func (s *Session) CreateAndAddPlayer(playerName string, playerID ...string) *pla
 		pid = uuid.New().String()
 	}
 
-	// Create player factory and create player
-	factory := player.NewFactory(s.eventBus)
-	p := factory.CreatePlayer(s.game.ID, pid, playerName)
+	// Create player directly
+	p := player.NewPlayer(s.eventBus, s.game.ID, pid, playerName)
 
 	// Set connection status to true for new players
-	_ = p.SetConnectionStatus(nil, true)
+	p.Turn().SetConnectionStatus(true)
 
 	// Add to game
 	_ = s.game.AddPlayer(p)

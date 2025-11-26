@@ -54,13 +54,12 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Sessi
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Validate pending card draw selection exists
-	if player.PendingCardDrawSelection == nil {
+	// 3. Validate pending card draw selection exists (card selection phase state on Player)
+	selection := player.Selection().GetPendingCardDrawSelection()
+	if selection == nil {
 		log.Warn("No pending card draw selection found")
 		return fmt.Errorf("no pending card draw selection found")
 	}
-
-	selection := player.PendingCardDrawSelection
 
 	// 4. Validate total cards selected
 	totalSelected := len(cardsToTake) + len(cardsToBuy)
@@ -112,25 +111,27 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Sessi
 
 	// 10. Validate player can afford bought cards and deduct credits
 	if totalCost > 0 {
-		if player.Resources.Credits < totalCost {
+		resources := player.Resources().Get()
+		if resources.Credits < totalCost {
 			log.Warn("Insufficient credits to buy cards",
 				zap.Int("needed", totalCost),
-				zap.Int("available", player.Resources.Credits))
-			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, player.Resources.Credits)
+				zap.Int("available", resources.Credits))
+			return fmt.Errorf("insufficient credits to buy cards: need %d, have %d", totalCost, resources.Credits)
 		}
 
 		// Deduct credits for bought cards
-		player.Resources.Credits -= totalCost
+		resources.Credits -= totalCost
+		player.Resources().Set(resources)
 
 		log.Info("💰 Paid for bought cards",
 			zap.Int("cards_bought", len(cardsToBuy)),
 			zap.Int("cost", totalCost),
-			zap.Int("remaining_credits", player.Resources.Credits))
+			zap.Int("remaining_credits", resources.Credits))
 	}
 
 	// 11. Add all selected cards to player's hand
 	for _, cardID := range allSelectedCards {
-		player.AddCardToHand(cardID)
+		player.Hand().AddCard(cardID)
 	}
 
 	log.Info("🃏 Added selected cards to hand",
@@ -152,8 +153,8 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, sess *session.Sessi
 			zap.Strings("card_ids", unselectedCards))
 	}
 
-	// 13. Clear pending card draw selection
-	player.PendingCardDrawSelection = nil
+	// 13. Clear pending card draw selection (card selection phase state on Player)
+	player.Selection().SetPendingCardDrawSelection(nil)
 
 	// 14. Publish event - ForcedActionManager will handle if this was a forced action
 	events.Publish(a.eventBus, playerevents.CardDrawConfirmedEvent{

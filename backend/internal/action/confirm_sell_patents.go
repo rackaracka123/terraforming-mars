@@ -52,36 +52,37 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Validate pending card selection exists
-	if player.PendingCardSelection == nil {
+	// 4. Validate pending card selection exists (card selection phase state on Player)
+	pendingCardSelection := player.Selection().GetPendingCardSelection()
+	if pendingCardSelection == nil {
 		log.Warn("No pending card selection found")
 		return fmt.Errorf("no pending card selection found")
 	}
 
-	if player.PendingCardSelection.Source != "sell-patents" {
+	if pendingCardSelection.Source != "sell-patents" {
 		log.Warn("Pending card selection is not for sell patents",
-			zap.String("source", player.PendingCardSelection.Source))
+			zap.String("source", pendingCardSelection.Source))
 		return fmt.Errorf("pending card selection is not for sell patents")
 	}
 
 	// 5. Validate selection count
-	if len(selectedCardIDs) < player.PendingCardSelection.MinCards {
+	if len(selectedCardIDs) < pendingCardSelection.MinCards {
 		log.Warn("Too few cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("min_required", player.PendingCardSelection.MinCards))
-		return fmt.Errorf("must select at least %d cards", player.PendingCardSelection.MinCards)
+			zap.Int("min_required", pendingCardSelection.MinCards))
+		return fmt.Errorf("must select at least %d cards", pendingCardSelection.MinCards)
 	}
 
-	if len(selectedCardIDs) > player.PendingCardSelection.MaxCards {
+	if len(selectedCardIDs) > pendingCardSelection.MaxCards {
 		log.Warn("Too many cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
-			zap.Int("max_allowed", player.PendingCardSelection.MaxCards))
-		return fmt.Errorf("cannot select more than %d cards", player.PendingCardSelection.MaxCards)
+			zap.Int("max_allowed", pendingCardSelection.MaxCards))
+		return fmt.Errorf("cannot select more than %d cards", pendingCardSelection.MaxCards)
 	}
 
 	// 6. Validate all selected cards are in available cards
 	availableCardsMap := make(map[string]bool)
-	for _, cardID := range player.PendingCardSelection.AvailableCards {
+	for _, cardID := range pendingCardSelection.AvailableCards {
 		availableCardsMap[cardID] = true
 	}
 
@@ -95,33 +96,39 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 	// 7. Calculate total reward (1 M€ per card)
 	totalReward := 0
 	for _, cardID := range selectedCardIDs {
-		totalReward += player.PendingCardSelection.CardRewards[cardID]
+		totalReward += pendingCardSelection.CardRewards[cardID]
 	}
 
 	// 8. Award credits
 	if totalReward > 0 {
-		player.Resources.Credits += totalReward
+		resources := player.Resources().Get()
+		resources.Credits += totalReward
+		player.Resources().Set(resources)
 
 		log.Info("💰 Awarded credits for sold cards",
 			zap.Int("cards_sold", len(selectedCardIDs)),
 			zap.Int("credits_earned", totalReward),
-			zap.Int("new_credits", player.Resources.Credits))
+			zap.Int("new_credits", resources.Credits))
 	}
 
 	// 9. Remove sold cards from hand
 	for _, cardID := range selectedCardIDs {
-		player.RemoveCardFromHand(cardID)
+		removed := player.Hand().RemoveCard(cardID)
+		if !removed {
+			log.Warn("Failed to remove card from hand", zap.String("card_id", cardID))
+		}
 	}
 
 	log.Info("🗑️ Removed sold cards from hand", zap.Int("cards_removed", len(selectedCardIDs)))
 
-	// 10. Clear pending card selection
-	player.PendingCardSelection = nil
+	// 10. Clear pending card selection (card selection phase state on Player)
+	player.Selection().SetPendingCardSelection(nil)
 
 	// 11. Consume action (only if player actually sold cards and not unlimited actions)
-	if len(selectedCardIDs) > 0 && player.AvailableActions > 0 {
-		player.AvailableActions--
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	availableActions := player.Turn().AvailableActions()
+	if len(selectedCardIDs) > 0 && availableActions > 0 {
+		player.Turn().SetAvailableActions(availableActions - 1)
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
 	// 12. Broadcast state

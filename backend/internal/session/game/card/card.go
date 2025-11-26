@@ -34,9 +34,9 @@ type Card struct {
 	Description     string
 	Pack            string // Card pack identifier (e.g., "base-game", "corporate-era", "prelude")
 	Tags            []types.CardTag
-	Requirements    []Requirement          // Within card package
-	Behaviors       []CardBehavior         // Within card package
-	ResourceStorage *ResourceStorage       // Within card package
+	Requirements    []Requirement           // Within card package
+	Behaviors       []CardBehavior          // Within card package
+	ResourceStorage *ResourceStorage        // Within card package
 	VPConditions    []VictoryPointCondition // Within card package
 
 	// Corporation-specific fields (nil for non-corporation cards)

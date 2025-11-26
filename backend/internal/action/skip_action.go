@@ -8,6 +8,7 @@ import (
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -57,7 +58,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 	var currentPlayer *player.Player
 	currentPlayerIndex := -1
 	for i, p := range players {
-		if p.ID == playerID {
+		if p.ID() == playerID {
 			currentPlayer = p
 			currentPlayerIndex = i
 			break
@@ -72,39 +73,30 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 	// 5. Count active players (not passed)
 	activePlayerCount := 0
 	for _, p := range players {
-		if !p.Passed {
+		if !p.Turn().Passed() {
 			activePlayerCount++
 		}
 	}
 
 	// 6. Determine PASS vs SKIP behavior
 	// Solo games: skip always means pass (player is done with generation)
-	isPassing := currentPlayer.AvailableActions == 2 || currentPlayer.AvailableActions == -1 || len(players) == 1
+	availableActions := currentPlayer.Turn().AvailableActions()
+	isPassing := availableActions == 2 || availableActions == -1 || len(players) == 1
 	if isPassing {
 		// PASS: Player hasn't done any actions or has unlimited actions
-		err = currentPlayer.Action.UpdatePassed(ctx, true)
-		if err != nil {
-			log.Error("Failed to mark player as passed", zap.Error(err))
-			return fmt.Errorf("failed to update player passed status: %w", err)
-		}
+		currentPlayer.Turn().SetPassed(true)
 
 		log.Debug("Player PASSED (marked as passed for generation)",
 			zap.String("player_id", playerID),
-			zap.Int("available_actions", currentPlayer.AvailableActions))
+			zap.Int("available_actions", availableActions))
 
 		// If only one active player remains, grant them unlimited actions
 		if activePlayerCount == 2 {
 			for _, p := range players {
-				if !p.Passed && p.ID != playerID {
-					err = p.Action.UpdateAvailableActions(ctx, -1)
-					if err != nil {
-						log.Error("Failed to grant unlimited actions to last active player",
-							zap.String("player_id", p.ID),
-							zap.Error(err))
-						return fmt.Errorf("failed to update last active player's actions: %w", err)
-					}
+				if !p.Turn().Passed() && p.ID() != playerID {
+					p.Turn().SetAvailableActions(-1)
 					log.Info("🏃 Last active player granted unlimited actions due to others passing",
-						zap.String("player_id", p.ID))
+						zap.String("player_id", p.ID()))
 				}
 			}
 		}
@@ -112,7 +104,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		// SKIP: Player has done some actions, just advance turn without passing
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
 			zap.String("player_id", playerID),
-			zap.Int("available_actions", currentPlayer.AvailableActions))
+			zap.Int("available_actions", availableActions))
 	}
 
 	// 7. Refresh player list to reflect status changes
@@ -123,12 +115,14 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 	passedCount := 0
 	playersWithNoActions := 0
 	for _, p := range players {
-		if p.Passed {
+		if p.Turn().Passed() {
 			passedCount++
 			continue // Skip remaining checks - this player is done
-		} else if p.AvailableActions == 0 {
+		}
+		pActions := p.Turn().AvailableActions()
+		if pActions == 0 {
 			playersWithNoActions++
-		} else if p.AvailableActions > 0 || p.AvailableActions == -1 {
+		} else if pActions > 0 || pActions == -1 {
 			allPlayersFinished = false
 		}
 	}
@@ -148,7 +142,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 			zap.Int("players_with_no_actions", playersWithNoActions))
 
 		// Execute production phase inline
-		err = a.executeProductionPhase(ctx, gameID, players)
+		err = a.executeProductionPhase(ctx, sess, gameID, players)
 		if err != nil {
 			log.Error("Failed to execute production phase", zap.Error(err))
 			return fmt.Errorf("failed to execute production phase: %w", err)
@@ -162,14 +156,14 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 	nextPlayerIndex := (currentPlayerIndex + 1) % len(players)
 	for i := 0; i < len(players); i++ {
 		nextPlayer := players[nextPlayerIndex]
-		if !nextPlayer.Passed {
+		if !nextPlayer.Turn().Passed() {
 			break
 		}
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(players)
 	}
 
 	// 11. Update current turn
-	nextPlayerID := players[nextPlayerIndex].ID
+	nextPlayerID := players[nextPlayerIndex].ID()
 	err = a.gameRepo.SetCurrentTurn(ctx, gameID, &nextPlayerID)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
@@ -190,52 +184,42 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 }
 
 // executeProductionPhase handles the production phase when all players have passed
-func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID string, players []*player.Player) error {
+func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *session.Session, gameID string, players []*player.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Info("🏭 Starting production phase")
 
 	// 1. For each player: energy→heat, apply production, draw cards
 	for _, p := range players {
 		// A. Get current resources
-		currentResources, err := p.Resources.Get(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get resources for player %s: %w", p.ID, err)
-		}
+		currentResources := p.Resources().Get()
 
 		// B. Convert energy to heat
 		energyConverted := currentResources.Energy
 
 		// C. Calculate new resources with production
+		production := p.Resources().Production()
+		tr := p.Resources().TerraformRating()
 		newResources := types.Resources{
-			Credits:  currentResources.Credits + p.Production.Credits + p.TerraformRating,
-			Steel:    currentResources.Steel + p.Production.Steel,
-			Titanium: currentResources.Titanium + p.Production.Titanium,
-			Plants:   currentResources.Plants + p.Production.Plants,
-			Energy:   p.Production.Energy, // Reset to production amount
-			Heat:     currentResources.Heat + energyConverted + p.Production.Heat,
+			Credits:  currentResources.Credits + production.Credits + tr,
+			Steel:    currentResources.Steel + production.Steel,
+			Titanium: currentResources.Titanium + production.Titanium,
+			Plants:   currentResources.Plants + production.Plants,
+			Energy:   production.Energy, // Reset to production amount
+			Heat:     currentResources.Heat + energyConverted + production.Heat,
 		}
 
 		// D. Update player resources
-		err = p.Resources.Update(ctx, newResources)
-		if err != nil {
-			return fmt.Errorf("failed to update resources for player %s: %w", p.ID, err)
-		}
+		p.Resources().Set(newResources)
 
 		// E. Reset player state for new generation
-		err = p.Action.UpdatePassed(ctx, false)
-		if err != nil {
-			return fmt.Errorf("failed to reset passed status: %w", err)
-		}
+		p.Turn().SetPassed(false)
 
 		// Set available actions (2 for normal, -1 for solo)
 		availableActions := 2
 		if len(players) == 1 {
 			availableActions = -1 // Unlimited for solo
 		}
-		err = p.Action.UpdateAvailableActions(ctx, availableActions)
-		if err != nil {
-			return fmt.Errorf("failed to reset available actions: %w", err)
-		}
+		p.Turn().SetAvailableActions(availableActions)
 
 		// F. Draw 4 cards for production phase selection
 		drawnCards := []string{}
@@ -251,23 +235,23 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 			drawnCards = append(drawnCards, cardIDs[0])
 		}
 
-		// G. Set production phase data
-		productionPhaseData := &types.ProductionPhase{
+		// G. Set production phase data (phase state managed by Game)
+		productionPhaseData := &selection.ProductionPhase{
 			AvailableCards:    drawnCards,
 			SelectionComplete: false,
 			BeforeResources:   currentResources, // Before production
 			AfterResources:    newResources,     // After production
 			EnergyConverted:   energyConverted,
-			CreditsIncome:     p.Production.Credits + p.TerraformRating,
+			CreditsIncome:     production.Credits + tr,
 		}
 
-		err = p.Selection.UpdateProductionPhase(ctx, productionPhaseData)
+		err := sess.Game().SetProductionPhase(ctx, p.ID(), productionPhaseData)
 		if err != nil {
 			return fmt.Errorf("failed to set production phase: %w", err)
 		}
 
 		log.Debug("✅ Production applied for player",
-			zap.String("player_id", p.ID),
+			zap.String("player_id", p.ID()),
 			zap.Int("cards_drawn", len(drawnCards)),
 			zap.Int("credits_income", productionPhaseData.CreditsIncome),
 			zap.Int("energy_converted", energyConverted))
@@ -287,11 +271,18 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameID st
 	}
 
 	// 4. Set current turn to first player
-	if len(g.PlayerIDs) > 0 {
-		firstPlayerID := g.PlayerIDs[0]
-		err = a.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID)
-		if err != nil {
-			return fmt.Errorf("failed to set current turn: %w", err)
+	if len(g.Players) > 0 {
+		// Get first player ID from map (note: order not guaranteed)
+		var firstPlayerID string
+		for id := range g.Players {
+			firstPlayerID = id
+			break
+		}
+		if firstPlayerID != "" {
+			err = a.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID)
+			if err != nil {
+				return fmt.Errorf("failed to set current turn: %w", err)
+			}
 		}
 	}
 

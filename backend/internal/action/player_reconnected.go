@@ -37,16 +37,12 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, sess *session.Ses
 	}
 
 	// 3. Update player connection status to connected
-	err := player.Connection.UpdateStatus(ctx, true)
-	if err != nil {
-		log.Error("Failed to update connection status", zap.Error(err))
-		return err
-	}
+	player.Turn().SetConnectionStatus(true)
 
 	log.Info("✅ Player connection status updated to connected")
 
 	// 4. Send complete game state to reconnected player
-	err = a.sessionMgrFactory.GetOrCreate(gameID).Send(playerID)
+	err := a.sessionMgrFactory.GetOrCreate(gameID).Send(playerID)
 	if err != nil {
 		log.Error("Failed to send game state to reconnected player", zap.Error(err))
 		return err

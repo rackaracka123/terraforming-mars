@@ -68,11 +68,7 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID, playerID, cardID s
 	}
 
 	// 4. Add card to player's hand
-	err = player.Hand.AddCard(ctx, cardID)
-	if err != nil {
-		log.Error("Failed to add card to hand", zap.Error(err))
-		return fmt.Errorf("failed to add card: %w", err)
-	}
+	player.Hand().AddCard(cardID)
 
 	log.Info("✅ Card added to player's hand")
 

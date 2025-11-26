@@ -19,10 +19,9 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 	"terraforming-mars-backend/internal/session"
+	gamePackage "terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/game/card"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
 
 	"github.com/gorilla/mux"
@@ -66,8 +65,8 @@ func main() {
 	// ========== NEW ARCHITECTURE: Initialize Action Pattern ==========
 	// Initialize repositories first (needed by actions during migration)
 	// NOTE: These are deprecated facades - Phase 4-5 will migrate actions to use Session directly
-	newGameRepo := game.NewRepository(eventBus)
-	newCardRepo := sessionCard.NewRepository(newDeckRepo) // Use NEW deck repository
+	newGameRepo := gamePackage.NewRepository(eventBus)
+	newCardRepo := card.NewRepository(newDeckRepo) // Use NEW deck repository
 
 	// Create shared board storage and global board repository for actions (temporary)
 	// SessionFactory will create game-scoped repositories internally
@@ -85,7 +84,7 @@ func main() {
 	log.Info("🎲 Board processor initialized")
 
 	// Initialize TileProcessor for tile queue processing
-	tileProcessor := board.NewProcessor(newGameRepo, newBoardRepo, boardProcessor)
+	tileProcessor := board.NewProcessor(newBoardRepo, boardProcessor)
 	log.Info("🎯 Tile processor initialized")
 
 	// Initialize BroadcasterFactory (creates session-aware SessionManagers)
@@ -97,7 +96,6 @@ func main() {
 	// Initialize actions with SessionManagerFactory
 	// Actions will call sessionManagerFactory.GetOrCreate(gameID) to get game-specific broadcasters
 	startGameAction := action.NewStartGameAction(newGameRepo, newCardRepo, newDeckRepo, sessionManagerFactory)
-	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo)
 	joinGameAction := action.NewJoinGameAction(newGameRepo, sessionFactory)
 	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionManagerFactory)
 	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionManagerFactory)
@@ -107,7 +105,7 @@ func main() {
 	buildCityAction := action.NewBuildCityAction(newGameRepo, tileProcessor, sessionManagerFactory)
 
 	// Initialize BonusCalculator for tile placement bonuses
-	bonusCalculator := board.NewBonusCalculator(newGameRepo, newBoardRepo, newDeckRepo)
+	bonusCalculator := board.NewBonusCalculator(newBoardRepo, newDeckRepo)
 	log.Info("🎁 Bonus calculator initialized")
 
 	// Initialize SelectTileAction for tile placement
@@ -118,13 +116,17 @@ func main() {
 
 	// Initialize services in dependency order
 	// Initialize card effect subscriber for passive effects (session-scoped)
-	effectSubscriber := sessionCard.NewCardEffectSubscriber(eventBus, newCardRepo)
+	effectSubscriber := card.NewCardEffectSubscriber(eventBus, newCardRepo)
 	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
 
 	// Initialize CardManager for card playing logic (session-based)
 	// UPDATED: Now uses NEW deck repository instead of OLD CardDeckRepository
-	cardManager := sessionCard.NewCardManager(newCardRepo, newDeckRepo, effectSubscriber)
+	cardManager := gamePackage.NewCardManager(newCardRepo, newDeckRepo, effectSubscriber)
 	log.Info("🎴 Card manager initialized")
+
+	// Initialize CreateGameAction now that cardManager is available
+	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo, eventBus, cardManager)
+	log.Info("✅ CreateGameAction initialized")
 
 	// Initialize PlayCardAction for playing cards from hand
 	playCardAction := action.NewPlayCardAction(newGameRepo, cardManager, tileProcessor, sessionManagerFactory)
@@ -146,7 +148,7 @@ func main() {
 
 	// Initialize forced action manager for corporation forced first actions
 	// UPDATED: Now uses NEW session repositories to match event sources
-	forcedActionManager := card.NewForcedActionManager(eventBus, newCardRepo, newGameRepo, newDeckRepo)
+	forcedActionManager := gamePackage.NewForcedActionManager(eventBus, newCardRepo, newDeckRepo)
 	forcedActionManager.SubscribeToPhaseChanges()
 	forcedActionManager.SubscribeToCardDrawEvents()
 	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
@@ -163,7 +165,7 @@ func main() {
 	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, sessionManagerFactory)
 	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newBoardRepo, boardProcessor, sessionManagerFactory)
 	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionManagerFactory)
-	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, sessionManagerFactory, sessionFactory)
+	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, newCardRepo, sessionManagerFactory, sessionFactory)
 	log.Info("✅ Admin actions initialized")
 
 	// Initialize query actions for HTTP handlers
@@ -175,7 +177,7 @@ func main() {
 	log.Info("✅ Query actions initialized for HTTP handlers")
 
 	// Initialize CardProcessor for card action execution
-	cardProcessor := sessionCard.NewCardProcessor(newDeckRepo)
+	cardProcessor := gamePackage.NewCardProcessor(newDeckRepo)
 	log.Info("🎴 Card processor initialized")
 
 	// Initialize card action execution action (fully migrated to session-based architecture)

@@ -55,21 +55,23 @@ func (a *SelectTileAction) Execute(ctx context.Context, sess *session.Session, p
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Validate player has pending tile selection
-	if player.PendingTileSelection == nil {
+	// Validate player has pending tile selection (now managed by Game)
+	game := sess.Game()
+	pendingTileSelection := game.GetPendingTileSelection(playerID)
+	if pendingTileSelection == nil {
 		return fmt.Errorf("no pending tile selection for player")
 	}
 
 	// Validate coordinate
 	coord := board.HexPosition{Q: q, R: r, S: s}
 	coordStr := coord.String() // Format: "q,r,s"
-	if !a.isValidCoordinateString(coordStr, player.PendingTileSelection.AvailableHexes) {
+	if !a.isValidCoordinateString(coordStr, pendingTileSelection.AvailableHexes) {
 		return fmt.Errorf("invalid tile coordinate: not in available hexes")
 	}
 
 	// Create tile occupant based on tile type
 	var occupant *board.TileOccupant
-	switch player.PendingTileSelection.TileType {
+	switch pendingTileSelection.TileType {
 	case board.TileTypeCity:
 		occupant = &board.TileOccupant{
 			Type: board.ResourceCityTile,
@@ -86,7 +88,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, sess *session.Session, p
 			Tags: []string{},
 		}
 	default:
-		return fmt.Errorf("unknown tile type: %s", player.PendingTileSelection.TileType)
+		return fmt.Errorf("unknown tile type: %s", pendingTileSelection.TileType)
 	}
 
 	// Place tile on board (publishes TilePlacedEvent)
@@ -98,19 +100,25 @@ func (a *SelectTileAction) Execute(ctx context.Context, sess *session.Session, p
 		zap.String("tile_type", string(occupant.Type)))
 
 	// Calculate and award tile bonuses
-	if err := a.bonusCalculator.CalculateAndAwardBonuses(ctx, player, coord); err != nil {
+	pendingSelection, err := a.bonusCalculator.CalculateAndAwardBonuses(ctx, player, coord)
+	if err != nil {
 		return fmt.Errorf("failed to award bonuses: %w", err)
 	}
 
+	// Set pending card draw selection on Player if one was created
+	if pendingSelection != nil {
+		player.Selection().SetPendingCardDrawSelection(pendingSelection)
+	}
+
 	// Handle greenery special case: increase oxygen and terraform rating
-	if player.PendingTileSelection.TileType == board.TileTypeGreenery {
+	if pendingTileSelection.TileType == board.TileTypeGreenery {
 		if err := a.handleGreeneryPlacement(ctx, gameID, playerID, sess, log); err != nil {
 			return fmt.Errorf("failed to handle greenery placement: %w", err)
 		}
 	}
 
-	// Clear pending tile selection
-	if err := player.TileQueue.ClearPendingTileSelection(ctx); err != nil {
+	// Clear pending tile selection (phase state managed by Game)
+	if err := sess.Game().SetPendingTileSelection(ctx, playerID, nil); err != nil {
 		return fmt.Errorf("failed to clear pending selection: %w", err)
 	}
 
@@ -172,13 +180,12 @@ func (a *SelectTileAction) handleGreeneryPlacement(ctx context.Context, gameID, 
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	newTR := player.TerraformRating + 1
-	if err := player.Resources.UpdateTerraformRating(ctx, newTR); err != nil {
-		return fmt.Errorf("failed to update terraform rating: %w", err)
-	}
+	oldTR := player.Resources().TerraformRating()
+	newTR := oldTR + 1
+	player.Resources().SetTerraformRating(newTR)
 
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("old_tr", player.TerraformRating),
+		zap.Int("old_tr", oldTR),
 		zap.Int("new_tr", newTR))
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
+	gamePackage "terraforming-mars-backend/internal/session/game"
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
@@ -27,22 +28,19 @@ func NewListGamesAction(
 }
 
 // Execute performs the list games query
-func (a *ListGamesAction) Execute(ctx context.Context, status string) ([]types.Game, error) {
+func (a *ListGamesAction) Execute(ctx context.Context, statusStr string) ([]*gamePackage.Game, error) {
 	log := a.GetLogger()
 	log.Info("🔍 Querying all games",
-		zap.String("status_filter", status))
+		zap.String("status_filter", statusStr))
+
+	// Convert string to GameStatus type
+	status := types.GameStatus(statusStr)
 
 	// List games from repository
-	gamePointers, err := a.gameRepo.List(ctx, status)
+	games, err := a.gameRepo.List(ctx, status)
 	if err != nil {
 		log.Error("Failed to list games", zap.Error(err))
 		return nil, err
-	}
-
-	// Convert game pointers to values
-	games := make([]types.Game, len(gamePointers))
-	for i, gamePtr := range gamePointers {
-		games[i] = types.Game(*gamePtr)
 	}
 
 	log.Info("✅ Games query completed",

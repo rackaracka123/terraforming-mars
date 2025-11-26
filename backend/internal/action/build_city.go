@@ -8,6 +8,7 @@ import (
 	"terraforming-mars-backend/internal/session"
 	"terraforming-mars-backend/internal/session/game/board"
 	game "terraforming-mars-backend/internal/session/game/core"
+	playerTypes "terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 )
 
@@ -56,32 +57,41 @@ func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, pl
 	}
 
 	// 3. Validate cost (25 M€)
-	if player.Resources.Credits < BuildCityCost {
+	resources := player.Resources().Get()
+	if resources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
 			zap.Int("cost", BuildCityCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, player.Resources.Credits)
+			zap.Int("player_credits", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, resources.Credits)
 	}
 
 	// 4. Deduct cost using domain method
-	player.AddResources(map[types.ResourceType]int{
+	player.Resources().Add(map[types.ResourceType]int{
 		types.ResourceCredits: -BuildCityCost,
 	})
 
+	resources = player.Resources().Get() // Refresh after update
 	log.Info("💰 Deducted city cost",
 		zap.Int("cost", BuildCityCost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
 	// 5. Increase credit production by 1 using domain method
-	player.AddProduction(map[types.ResourceType]int{
+	player.Resources().AddProduction(map[types.ResourceType]int{
 		types.ResourceCredits: 1,
 	})
 
+	production := player.Resources().Production() // Refresh after update
 	log.Info("📈 Increased credit production",
-		zap.Int("new_credit_production", player.Production.Credits))
+		zap.Int("new_credit_production", production.Credits))
 
-	// 6. Queue city tile for placement using domain method
-	player.QueueTilePlacement("standard-project-city", []string{"city"})
+	// 6. Queue city tile for placement on Game (phase state managed by Game)
+	queue := &playerTypes.PendingTileSelectionQueue{
+		Items:  []string{"city"},
+		Source: "standard-project-city",
+	}
+	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+		return fmt.Errorf("failed to queue tile placement: %w", err)
+	}
 
 	log.Info("📋 Created tile queue for city placement")
 
@@ -89,15 +99,16 @@ func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, pl
 	// No manual call needed - TileProcessor subscribes to events and processes automatically
 
 	// 8. Consume action using domain method
-	if player.ConsumeAction() {
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	if player.Turn().ConsumeAction() {
+		availableActions := player.Turn().AvailableActions()
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ City built successfully, tile queued for placement",
-		zap.Int("new_credit_production", player.Production.Credits),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("new_credit_production", production.Credits),
+		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

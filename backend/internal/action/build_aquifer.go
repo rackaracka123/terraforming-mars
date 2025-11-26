@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
+	playerTypes "terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -58,43 +59,53 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, sess *session.Session,
 	}
 
 	// 4. Validate cost (18 M€)
-	if player.Resources.Credits < BuildAquiferCost {
+	resources := player.Resources().Get()
+	if resources.Credits < BuildAquiferCost {
 		log.Warn("Insufficient credits for aquifer",
 			zap.Int("cost", BuildAquiferCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, player.Resources.Credits)
+			zap.Int("player_credits", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, resources.Credits)
 	}
 
 	// 5. Deduct cost using domain method
-	player.AddResources(map[types.ResourceType]int{
+	player.Resources().Add(map[types.ResourceType]int{
 		types.ResourceCredits: -BuildAquiferCost,
 	})
 
+	resources = player.Resources().Get() // Refresh after update
 	log.Info("💰 Deducted aquifer cost",
 		zap.Int("cost", BuildAquiferCost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
 	// 6. Increase terraform rating (for placing ocean)
-	player.UpdateTerraformRating(1)
+	player.Resources().UpdateTerraformRating(1)
 
+	newTR := player.Resources().TerraformRating()
 	log.Info("🏆 Increased terraform rating",
-		zap.Int("new_tr", player.TerraformRating))
+		zap.Int("new_tr", newTR))
 
-	// 7. Queue ocean tile for placement using domain method
-	player.QueueTilePlacement("standard-project-aquifer", []string{"ocean"})
+	// 7. Queue ocean tile for placement on Game (phase state managed by Game)
+	queue := &playerTypes.PendingTileSelectionQueue{
+		Items:  []string{"ocean"},
+		Source: "standard-project-aquifer",
+	}
+	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+		return fmt.Errorf("failed to queue tile placement: %w", err)
+	}
 
 	log.Info("📋 Created tile queue for ocean placement")
 
 	// 8. Consume action using domain method
-	if player.ConsumeAction() {
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	if player.Turn().ConsumeAction() {
+		availableActions := player.Turn().AvailableActions()
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
 	}
 
 	// 9. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",
-		zap.Int("new_terraform_rating", player.TerraformRating),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("new_terraform_rating", newTR),
+		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

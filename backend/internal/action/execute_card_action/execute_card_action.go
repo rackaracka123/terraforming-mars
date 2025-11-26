@@ -6,10 +6,10 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/game"
+	gameCore "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player/actions"
 
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ import (
 // Fully migrated to session-based architecture
 type ExecuteCardActionAction struct {
 	action.BaseAction
-	gameRepo       game.Repository
+	gameRepo       gameCore.Repository
 	validator      *Validator
 	processor      *Processor
 	sessionFactory session.SessionFactory
@@ -26,10 +26,10 @@ type ExecuteCardActionAction struct {
 
 // NewExecuteCardActionAction creates a new execute card action action
 func NewExecuteCardActionAction(
-	gameRepo game.Repository,
+	gameRepo gameCore.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 	sessionFactory session.SessionFactory,
-	cardProcessor *card.CardProcessor,
+	cardProcessor *game.CardProcessor,
 	deckRepo deck.Repository,
 ) *ExecuteCardActionAction {
 	return &ExecuteCardActionAction{
@@ -85,16 +85,20 @@ func (a *ExecuteCardActionAction) Execute(
 	}
 
 	// Check if player has available actions
-	if player.AvailableActions <= 0 && player.AvailableActions != -1 {
+	availableActions := player.Turn().AvailableActions()
+	if availableActions <= 0 && availableActions != -1 {
 		return fmt.Errorf("no available actions remaining")
 	}
 
 	// 3. Find the specific action in the player's action list
-	var targetAction *types.PlayerAction
-	for i := range player.Actions {
-		action := &player.Actions[i]
+	playerActions := player.Actions().List()
+	var targetAction *actions.PlayerAction
+	for i := range playerActions {
+		action := &playerActions[i]
 		if action.CardID == cardID && action.BehaviorIndex == behaviorIndex {
-			targetAction = action
+			// Create a copy to avoid holding a reference to the slice element
+			actionCopy := *action
+			targetAction = &actionCopy
 			break
 		}
 	}
@@ -144,14 +148,9 @@ func (a *ExecuteCardActionAction) Execute(
 	}
 
 	// 10. Consume one action now that all steps have succeeded
-	if player.AvailableActions > 0 {
-		newActions := player.AvailableActions - 1
-		if err := player.Action.UpdateAvailableActions(ctx, newActions); err != nil {
-			log.Error("Failed to consume player action", zap.Error(err))
-			// Note: Action has already been applied, but we couldn't consume the action
-			// This is a critical error but we don't rollback the entire action
-			return fmt.Errorf("action applied but failed to consume available action: %w", err)
-		}
+	if availableActions > 0 {
+		newActions := availableActions - 1
+		player.Turn().SetAvailableActions(newActions)
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", newActions))
 	} else {
 		log.Debug("✅ Action consumed (unlimited actions)", zap.Int("available_actions", -1))

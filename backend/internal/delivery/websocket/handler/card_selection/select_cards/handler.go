@@ -97,10 +97,11 @@ func (h *Handler) handle(ctx context.Context, gameID, playerID string, cardIDs [
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// If there's a pending card selection, route to ConfirmSellPatentsAction
-	if player.PendingCardSelection != nil {
+	// If there's a pending card selection, route to ConfirmSellPatentsAction (card selection phase state on Player)
+	pendingCardSelection := player.Selection().GetPendingCardSelection()
+	if pendingCardSelection != nil {
 		// Save source before action clears the pending selection
-		source := player.PendingCardSelection.Source
+		source := pendingCardSelection.Source
 
 		log.Info("Processing pending card selection",
 			zap.String("source", source),

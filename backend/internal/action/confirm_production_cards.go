@@ -51,21 +51,22 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Validate production phase exists
-	if player.ProductionPhase == nil {
+	// 4. Validate production phase exists (card selection phase state on Player)
+	productionPhase := sess.Game().GetProductionPhase(playerID)
+	if productionPhase == nil {
 		log.Error("Player not in production phase")
 		return fmt.Errorf("player not in production phase")
 	}
 
 	// 5. Check if player already confirmed selection
-	if player.ProductionPhase.SelectionComplete {
+	if productionPhase.SelectionComplete {
 		log.Error("Production selection already complete")
 		return fmt.Errorf("production selection already complete")
 	}
 
 	// 6. Validate selected cards are in available cards
 	availableSet := make(map[string]bool)
-	for _, id := range player.ProductionPhase.AvailableCards {
+	for _, id := range productionPhase.AvailableCards {
 		availableSet[id] = true
 	}
 
@@ -80,19 +81,21 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 	cost := len(selectedCardIDs) * 3
 
 	// 8. Validate player has enough credits
-	if player.Resources.Credits < cost {
+	resources := player.Resources().Get()
+	if resources.Credits < cost {
 		log.Error("Insufficient credits",
 			zap.Int("cost", cost),
-			zap.Int("available", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, player.Resources.Credits)
+			zap.Int("available", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, resources.Credits)
 	}
 
 	// 9. Deduct card selection cost
-	player.Resources.Credits -= cost
+	resources.Credits -= cost
+	player.Resources().Set(resources)
 
 	log.Info("✅ Resources updated",
 		zap.Int("cost", cost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
 	// 10. Add selected cards to player's hand
 	log.Debug("🃏 Adding cards to player hand",
@@ -102,7 +105,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 		zap.Int("count", len(selectedCardIDs)))
 
 	for _, cardID := range selectedCardIDs {
-		player.AddCardToHand(cardID)
+		player.Hand().AddCard(cardID)
 	}
 
 	log.Info("✅ Cards added to hand",
@@ -111,17 +114,21 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 		zap.Strings("card_ids_added", selectedCardIDs),
 		zap.Int("card_count", len(selectedCardIDs)))
 
-	// 11. Mark production selection as complete
-	if player.ProductionPhase != nil {
-		player.ProductionPhase.SelectionComplete = true
+	// 11. Mark production selection as complete (card selection phase state on Player)
+	// Refresh production phase to get updated state
+	productionPhase = sess.Game().GetProductionPhase(playerID)
+	if productionPhase != nil {
+		productionPhase.SelectionComplete = true
+		sess.Game().SetProductionPhase(ctx, playerID, productionPhase)
 	}
 
 	log.Info("✅ Production selection marked complete")
 
-	// 12. Check if all players completed selection
+	// 12. Check if all players completed selection (phase state managed by Game)
 	allComplete := true
 	for _, p := range sess.GetAllPlayers() {
-		if p.ProductionPhase == nil || !p.ProductionPhase.SelectionComplete {
+		pPhase := sess.Game().GetProductionPhase(p.ID())
+		if pPhase == nil || !pPhase.SelectionComplete {
 			allComplete = false
 			break
 		}
@@ -153,9 +160,9 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, sess *sessio
 
 			// Clear production phase data for all players (triggers frontend modal to close)
 			for _, p := range sess.GetAllPlayers() {
-				p.ProductionPhase = nil
+				sess.Game().SetProductionPhase(ctx, p.ID(), nil)
 				log.Debug("✅ Cleared production phase",
-					zap.String("player_id", p.ID))
+					zap.String("player_id", p.ID()))
 			}
 		}
 	}

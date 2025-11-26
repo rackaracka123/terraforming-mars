@@ -3,8 +3,11 @@ package action
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/board"
-	game "terraforming-mars-backend/internal/session/game/core"
+	gameCore "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/session/types"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -12,22 +15,31 @@ import (
 
 // CreateGameAction handles the business logic for creating new games
 type CreateGameAction struct {
-	BaseAction // Embed base (no sessionMgr needed for creation)
-	gameRepo   game.Repository
-	boardRepo  board.Repository
+	BaseAction  // Embed base (no sessionMgr needed for creation)
+	gameRepo    gameCore.Repository
+	boardRepo   board.Repository
+	eventBus    *events.EventBusImpl
+	cardManager game.CardManager
 }
 
 // NewCreateGameAction creates a new create game action
-func NewCreateGameAction(gameRepo game.Repository, boardRepo board.Repository) *CreateGameAction {
+func NewCreateGameAction(
+	gameRepo gameCore.Repository,
+	boardRepo board.Repository,
+	eventBus *events.EventBusImpl,
+	cardManager game.CardManager,
+) *CreateGameAction {
 	return &CreateGameAction{
-		BaseAction: NewBaseAction(nil), // No sessionFactory or sessionMgr needed
-		gameRepo:   gameRepo,
-		boardRepo:  boardRepo,
+		BaseAction:  NewBaseAction(nil), // No sessionFactory or sessionMgr needed
+		gameRepo:    gameRepo,
+		boardRepo:   boardRepo,
+		eventBus:    eventBus,
+		cardManager: cardManager,
 	}
 }
 
 // Execute performs the create game action
-func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettings) (*game.Game, error) {
+func (a *CreateGameAction) Execute(ctx context.Context, settings types.GameSettings) (*game.Game, error) {
 	log := a.logger.With(
 		zap.Int("max_players", settings.MaxPlayers),
 		zap.Strings("card_packs", settings.CardPacks),
@@ -46,7 +58,8 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings game.GameSettin
 	}
 
 	// 3. Create game entity
-	newGame := game.NewGame(gameID, settings)
+	// Note: hostPlayerID is empty initially, will be set when first player joins
+	newGame := game.NewGame(gameID, "", settings, a.eventBus, a.cardManager)
 
 	// 4. Initialize empty board on game entity (actual board stored in board repository)
 	newGame.Board = board.Board{Tiles: []board.Tile{}}

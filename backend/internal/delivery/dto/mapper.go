@@ -6,6 +6,9 @@ import (
 	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/game/card"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/player/actions"
+	"terraforming-mars-backend/internal/session/game/player/effects"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -86,9 +89,9 @@ func ToGameDto(g game.Game, players []player.Player, viewingPlayerID string, res
 
 		if player.ID() == viewingPlayerID {
 			log.Debug("✅ Match found - setting as currentPlayer")
-			currentPlayer = ToPlayerDto(player, resolvedCards)
+			currentPlayer = ToPlayerDto(g, player, resolvedCards)
 		} else {
-			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(player))
+			otherPlayers = append(otherPlayers, PlayerToOtherPlayerDto(g, player))
 		}
 	}
 
@@ -116,15 +119,22 @@ func ToGameDto(g game.Game, players []player.Player, viewingPlayerID string, res
 }
 
 // ToPlayerDto converts a model Player to PlayerDto with resolved cards
-func ToPlayerDto(player player.Player, resolvedCards map[string]card.Card) PlayerDto {
+// Requires Game to access phase state (phase state moved from Player to Game)
+func ToPlayerDto(g game.Game, player player.Player, resolvedCards map[string]card.Card) PlayerDto {
+	playerID := player.ID()
+
+	// Get card selection phase state from Player (card selection phase state owned by Player)
+	selectStartingCardsPhase := player.Selection().GetSelectStartingCardsPhase()
+	productionPhase := player.Selection().GetProductionPhase()
+
 	status := PlayerStatusActive
-	if player.Passed() {
+	if player.Turn().Passed() {
 		status = PlayerStatusWaiting
-	} else if player.SelectStartingCardsPhase() != nil {
+	} else if selectStartingCardsPhase != nil {
 		// Phase exists means selection is in progress (phase is set to nil when complete)
 		status = PlayerStatusSelectingStartingCards
-	} else if player.ProductionPhase() != nil {
-		if player.ProductionPhase().SelectionComplete {
+	} else if productionPhase != nil {
+		if productionPhase.SelectionComplete {
 			status = PlayerStatusActive
 		} else {
 			status = PlayerStatusSelectingProductionCards
@@ -133,16 +143,16 @@ func ToPlayerDto(player player.Player, resolvedCards map[string]card.Card) Playe
 
 	// Extract starting cards from SelectStartingCardsPhase if present
 	var startingCards []CardDto
-	if player.SelectStartingCardsPhase() != nil && len(player.SelectStartingCardsPhase().AvailableCards) > 0 {
-		startingCards = resolveCards(player.SelectStartingCardsPhase().AvailableCards, resolvedCards)
+	if selectStartingCardsPhase != nil && len(selectStartingCardsPhase.AvailableCards) > 0 {
+		startingCards = resolveCards(selectStartingCardsPhase.AvailableCards, resolvedCards)
 	} else {
 		startingCards = []CardDto{}
 	}
 
 	// Convert corporation to CardDto if present
 	var corporationDto *CardDto
-	if player.Corporation() != nil {
-		dto := ToCardDto(*player.Corporation())
+	if player.Corp().HasCorporation() {
+		dto := ToCardDto(*player.Corp().Card())
 		corporationDto = &dto
 	}
 
@@ -151,47 +161,52 @@ func ToPlayerDto(player player.Player, resolvedCards map[string]card.Card) Playe
 		Name:                     player.Name(),
 		Status:                   status,
 		Corporation:              corporationDto,
-		Cards:                    resolveCards(player.Cards(), resolvedCards),
-		Resources:                ToResourcesDto(player.Resources()),
-		Production:               ToProductionDto(player.Production()),
-		TerraformRating:          player.TerraformRating(),
-		PlayedCards:              player.PlayedCards(),
-		Passed:                   player.Passed(),
-		AvailableActions:         player.AvailableActions(),
-		VictoryPoints:            player.VictoryPoints(),
-		IsConnected:              player.IsConnected(),
-		Effects:                  ToPlayerEffectDtoSlice(player.Effects()),
-		Actions:                  ToPlayerActionDtoSlice(player.Actions()),
-		SelectStartingCardsPhase: ToSelectStartingCardsPhaseDto(player.SelectStartingCardsPhase(), resolvedCards),
-		ProductionPhase:          ToProductionPhaseDto(player.ProductionPhase(), resolvedCards),
+		Cards:                    resolveCards(player.Hand().Cards(), resolvedCards),
+		Resources:                ToResourcesDto(player.Resources().Get()),
+		Production:               ToProductionDto(player.Resources().Production()),
+		TerraformRating:          player.Resources().TerraformRating(),
+		PlayedCards:              player.Hand().PlayedCards(),
+		Passed:                   player.Turn().Passed(),
+		AvailableActions:         player.Turn().AvailableActions(),
+		VictoryPoints:            player.Resources().VictoryPoints(),
+		IsConnected:              player.Turn().IsConnected(),
+		Effects:                  ToPlayerEffectDtoSlice(player.Effects().List()),
+		Actions:                  ToPlayerActionDtoSlice(player.Actions().List()),
+		SelectStartingCardsPhase: ToSelectStartingCardsPhaseDto(selectStartingCardsPhase, resolvedCards),
+		ProductionPhase:          ToProductionPhaseDto(productionPhase, resolvedCards),
 		StartingCards:            startingCards,
-		PendingTileSelection:     ToPendingTileSelectionDto(player.PendingTileSelection()),
-		PendingCardSelection:     ToPendingCardSelectionDto(player.PendingCardSelection(), resolvedCards),
-		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.PendingCardDrawSelection(), resolvedCards),
-		ForcedFirstAction:        ToForcedFirstActionDto(player.ForcedFirstAction()),
-		ResourceStorage:          player.ResourceStorage(),
-		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes()),
-		RequirementModifiers:     ToRequirementModifierDtoSlice(player.RequirementModifiers()),
+		PendingTileSelection:     ToPendingTileSelectionDto(g.GetPendingTileSelection(playerID)),
+		PendingCardSelection:     ToPendingCardSelectionDto(player.Selection().GetPendingCardSelection(), resolvedCards),
+		PendingCardDrawSelection: ToPendingCardDrawSelectionDto(player.Selection().GetPendingCardDrawSelection(), resolvedCards),
+		ForcedFirstAction:        ToForcedFirstActionDto(g.GetForcedFirstAction(playerID)),
+		ResourceStorage:          player.Resources().Storage(),
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.Resources().PaymentSubstitutes()),
+		RequirementModifiers:     ToRequirementModifierDtoSlice(player.Effects().RequirementModifiers()),
 	}
 }
 
 // PlayerToOtherPlayerDto converts a player.Player to OtherPlayerDto (limited view)
-func PlayerToOtherPlayerDto(player player.Player) OtherPlayerDto {
+// Requires Game to access phase state for tile/forced action (card selection phase on Player)
+func PlayerToOtherPlayerDto(g game.Game, player player.Player) OtherPlayerDto {
+	// Get card selection phase state from Player (card selection phase state owned by Player)
+	selectStartingCardsPhase := player.Selection().GetSelectStartingCardsPhase()
+	productionPhase := player.Selection().GetProductionPhase()
+
 	// Convert corporation to CardDto if present
 	var corporationDto *CardDto
-	if player.Corporation() != nil {
-		dto := ToCardDto(*player.Corporation())
+	if player.Corp().HasCorporation() {
+		dto := ToCardDto(*player.Corp().Card())
 		corporationDto = &dto
 	}
 
 	status := PlayerStatusActive
-	if player.Passed() {
+	if player.Turn().Passed() {
 		status = PlayerStatusWaiting
-	} else if player.SelectStartingCardsPhase() != nil {
+	} else if selectStartingCardsPhase != nil {
 		// Phase exists means selection is in progress (phase is set to nil when complete)
 		status = PlayerStatusSelectingStartingCards
-	} else if player.ProductionPhase() != nil {
-		if player.ProductionPhase().SelectionComplete {
+	} else if productionPhase != nil {
+		if productionPhase.SelectionComplete {
 			status = PlayerStatusActive
 		} else {
 			status = PlayerStatusSelectingProductionCards
@@ -203,21 +218,21 @@ func PlayerToOtherPlayerDto(player player.Player) OtherPlayerDto {
 		Name:                     player.Name(),
 		Status:                   status,
 		Corporation:              corporationDto,
-		HandCardCount:            len(player.Cards()), // Hide actual cards, show count only
-		Resources:                ToResourcesDto(player.Resources()),
-		Production:               ToProductionDto(player.Production()),
-		TerraformRating:          player.TerraformRating(),
-		PlayedCards:              player.PlayedCards(), // Played cards are public
-		Passed:                   player.Passed(),
-		AvailableActions:         player.AvailableActions(),
-		VictoryPoints:            player.VictoryPoints(),
-		IsConnected:              player.IsConnected(),
-		Effects:                  ToPlayerEffectDtoSlice(player.Effects()),
-		Actions:                  ToPlayerActionDtoSlice(player.Actions()),
-		SelectStartingCardsPhase: ToSelectStartingCardsOtherPlayerDto(player.SelectStartingCardsPhase()),
-		ProductionPhase:          ToProductionPhaseOtherPlayerDto(player.ProductionPhase()),
-		ResourceStorage:          player.ResourceStorage(), // Resource storage is public information
-		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.PaymentSubstitutes()),
+		HandCardCount:            len(player.Hand().Cards()), // Hide actual cards, show count only
+		Resources:                ToResourcesDto(player.Resources().Get()),
+		Production:               ToProductionDto(player.Resources().Production()),
+		TerraformRating:          player.Resources().TerraformRating(),
+		PlayedCards:              player.Hand().PlayedCards(), // Played cards are public
+		Passed:                   player.Turn().Passed(),
+		AvailableActions:         player.Turn().AvailableActions(),
+		VictoryPoints:            player.Resources().VictoryPoints(),
+		IsConnected:              player.Turn().IsConnected(),
+		Effects:                  ToPlayerEffectDtoSlice(player.Effects().List()),
+		Actions:                  ToPlayerActionDtoSlice(player.Actions().List()),
+		SelectStartingCardsPhase: ToSelectStartingCardsOtherPlayerDto(selectStartingCardsPhase),
+		ProductionPhase:          ToProductionPhaseOtherPlayerDto(productionPhase),
+		ResourceStorage:          player.Resources().Storage(), // Resource storage is public information
+		PaymentSubstitutes:       ToPaymentSubstituteDtoSlice(player.Resources().PaymentSubstitutes()),
 	}
 }
 
@@ -267,7 +282,7 @@ func ToPaymentSubstituteDtoSlice(substitutes []card.PaymentSubstitute) []Payment
 }
 
 // ToRequirementModifierDto converts model RequirementModifier to RequirementModifierDto
-func ToRequirementModifierDto(modifier player.RequirementModifier) RequirementModifierDto {
+func ToRequirementModifierDto(modifier effects.RequirementModifier) RequirementModifierDto {
 	// Convert affected resources slice
 	affectedResources := make([]ResourceType, len(modifier.AffectedResources))
 	for i, res := range modifier.AffectedResources {
@@ -297,7 +312,7 @@ func ToRequirementModifierDto(modifier player.RequirementModifier) RequirementMo
 }
 
 // ToRequirementModifierDtoSlice converts a slice of model RequirementModifier to RequirementModifierDto slice
-func ToRequirementModifierDtoSlice(modifiers []player.RequirementModifier) []RequirementModifierDto {
+func ToRequirementModifierDtoSlice(modifiers []effects.RequirementModifier) []RequirementModifierDto {
 	if modifiers == nil {
 		return []RequirementModifierDto{}
 	}
@@ -361,14 +376,8 @@ func ToGameDtoSlice(games []game.Game, paymentConstants PaymentConstantsDto) []G
 	return dtos
 }
 
-// ToPlayerDtoSlice converts a slice of model Players to PlayerDto slice with empty cards
-func ToPlayerDtoSlice(players []player.Player) []PlayerDto {
-	dtos := make([]PlayerDto, len(players))
-	for i, player := range players {
-		dtos[i] = ToPlayerDto(player, nil) // Empty cards for basic conversion
-	}
-	return dtos
-}
+// ToPlayerDtoSlice removed - function not used anywhere and requires Game parameter
+// If needed in future, signature should be: ToPlayerDtoSlice(g game.Game, players []player.Player) []PlayerDto
 
 // ToCardDto converts a model Card to CardDto
 func ToCardDto(card card.Card) CardDto {
@@ -469,7 +478,7 @@ func ToStandardProjectDtoSlice(projects []types.StandardProject) []StandardProje
 }
 
 // ToSelectStartingCardsPhaseDto converts model SelectStartingCardsPhase to SelectStartingCardsPhaseDto
-func ToSelectStartingCardsPhaseDto(phase *player.SelectStartingCardsPhase, resolvedCards map[string]card.Card) *SelectStartingCardsPhaseDto {
+func ToSelectStartingCardsPhaseDto(phase *selection.SelectStartingCardsPhase, resolvedCards map[string]card.Card) *SelectStartingCardsPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -480,7 +489,7 @@ func ToSelectStartingCardsPhaseDto(phase *player.SelectStartingCardsPhase, resol
 	}
 }
 
-func ToSelectStartingCardsOtherPlayerDto(phase *player.SelectStartingCardsPhase) *SelectStartingCardsOtherPlayerDto {
+func ToSelectStartingCardsOtherPlayerDto(phase *selection.SelectStartingCardsPhase) *SelectStartingCardsOtherPlayerDto {
 	if phase == nil {
 		return nil
 	}
@@ -490,7 +499,7 @@ func ToSelectStartingCardsOtherPlayerDto(phase *player.SelectStartingCardsPhase)
 }
 
 // ToProductionPhaseDto converts model ProductionPhase to ProductionPhaseDto
-func ToProductionPhaseDto(phase *player.ProductionPhase, resolvedCards map[string]card.Card) *ProductionPhaseDto {
+func ToProductionPhaseDto(phase *selection.ProductionPhase, resolvedCards map[string]card.Card) *ProductionPhaseDto {
 	if phase == nil {
 		return nil
 	}
@@ -515,7 +524,7 @@ func ToProductionPhaseDto(phase *player.ProductionPhase, resolvedCards map[strin
 	}
 }
 
-func ToProductionPhaseOtherPlayerDto(phase *player.ProductionPhase) *ProductionPhaseOtherPlayerDto {
+func ToProductionPhaseOtherPlayerDto(phase *selection.ProductionPhase) *ProductionPhaseOtherPlayerDto {
 	if phase == nil {
 		return nil
 	}
@@ -744,7 +753,7 @@ func ToPlayerEffectDtoSlice(effects []card.PlayerEffect) []PlayerEffectDto {
 }
 
 // ToPlayerActionDto converts a model PlayerAction to PlayerActionDto
-func ToPlayerActionDto(action player.PlayerAction) PlayerActionDto {
+func ToPlayerActionDto(action actions.PlayerAction) PlayerActionDto {
 	return PlayerActionDto{
 		CardID:        action.CardID,
 		CardName:      action.CardName,
@@ -756,7 +765,7 @@ func ToPlayerActionDto(action player.PlayerAction) PlayerActionDto {
 
 // ToPlayerActionDtoSlice converts a slice of model PlayerActions to PlayerActionDto slice
 // Filters out auto-first-action triggers that have already been used (PlayCount > 0)
-func ToPlayerActionDtoSlice(actions []player.PlayerAction) []PlayerActionDto {
+func ToPlayerActionDtoSlice(actions []actions.PlayerAction) []PlayerActionDto {
 	if actions == nil {
 		return []PlayerActionDto{}
 	}
@@ -879,7 +888,7 @@ func ToPendingTileSelectionDto(selection *player.PendingTileSelection) *PendingT
 }
 
 // ToPendingCardSelectionDto converts a model PendingCardSelection to PendingCardSelectionDto
-func ToPendingCardSelectionDto(selection *player.PendingCardSelection, resolvedCards map[string]card.Card) *PendingCardSelectionDto {
+func ToPendingCardSelectionDto(selection *selection.PendingCardSelection, resolvedCards map[string]card.Card) *PendingCardSelectionDto {
 	if selection == nil {
 		return nil
 	}
@@ -898,7 +907,7 @@ func ToPendingCardSelectionDto(selection *player.PendingCardSelection, resolvedC
 }
 
 // ToPendingCardDrawSelectionDto converts a model PendingCardDrawSelection to PendingCardDrawSelectionDto
-func ToPendingCardDrawSelectionDto(selection *player.PendingCardDrawSelection, resolvedCards map[string]card.Card) *PendingCardDrawSelectionDto {
+func ToPendingCardDrawSelectionDto(selection *selection.PendingCardDrawSelection, resolvedCards map[string]card.Card) *PendingCardDrawSelectionDto {
 	if selection == nil {
 		return nil
 	}

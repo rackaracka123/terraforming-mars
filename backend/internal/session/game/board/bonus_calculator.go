@@ -7,6 +7,8 @@ import (
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/player/selection"
+	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
 )
@@ -28,8 +30,8 @@ func NewBonusCalculator(boardRepo Repository, deckRepo deck.Repository) *BonusCa
 }
 
 // CalculateAndAwardBonuses calculates and awards all bonuses for a tile placement
-// Note: gameID is not needed as this calculator is scoped to a specific game instance
-func (bc *BonusCalculator) CalculateAndAwardBonuses(ctx context.Context, p *player.Player, coord HexPosition) error {
+// Returns any pending card draw selection that needs to be set on Player
+func (bc *BonusCalculator) CalculateAndAwardBonuses(ctx context.Context, p *player.Player, coord HexPosition) (*selection.PendingCardDrawSelection, error) {
 	log := bc.logger.With(
 		zap.String("player_id", p.ID()),
 		zap.String("coordinate", coord.String()),
@@ -38,70 +40,72 @@ func (bc *BonusCalculator) CalculateAndAwardBonuses(ctx context.Context, p *play
 	// Get tile to check for bonuses
 	tile, err := bc.boardRepo.GetTile(ctx, coord)
 	if err != nil {
-		return fmt.Errorf("failed to get tile: %w", err)
+		return nil, fmt.Errorf("failed to get tile: %w", err)
 	}
 
 	// Award tile bonuses (steel, titanium, plants, card draw)
-	if err := bc.awardTileBonuses(ctx, p, tile, log); err != nil {
-		return fmt.Errorf("failed to award tile bonuses: %w", err)
+	pendingSelection, err := bc.awardTileBonuses(ctx, p, tile, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to award tile bonuses: %w", err)
 	}
 
 	// Award ocean adjacency bonus if applicable
 	if err := bc.awardOceanAdjacencyBonus(ctx, p, coord, log); err != nil {
-		return fmt.Errorf("failed to award ocean adjacency bonus: %w", err)
+		return nil, fmt.Errorf("failed to award ocean adjacency bonus: %w", err)
 	}
 
-	return nil
+	return pendingSelection, nil
 }
 
 // awardTileBonuses awards bonuses from the tile itself (steel, titanium, plants, card draw)
-func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Player, tile *Tile, log *zap.Logger) error {
+// Returns any pending card draw selection that needs to be set on Player
+func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Player, tile *Tile, log *zap.Logger) (*selection.PendingCardDrawSelection, error) {
 	if len(tile.Bonuses) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	// Get current resources
-	resources := p.Resources()
+	// Collect resource changes for batched update
+	resourceChanges := make(map[types.ResourceType]int)
+	var pendingSelection *selection.PendingCardDrawSelection
 
 	for _, bonus := range tile.Bonuses {
 		switch bonus.Type {
 		case ResourceSteel:
-			resources.Steel += bonus.Amount
+			resourceChanges[types.ResourceSteel] += bonus.Amount
+			currentSteel := p.Resources().Get().Steel + resourceChanges[types.ResourceSteel]
 			log.Info("🎁 Awarded steel from tile bonus",
 				zap.Int("amount", bonus.Amount),
-				zap.Int("new_total", resources.Steel))
+				zap.Int("new_total", currentSteel))
 
 		case ResourceTitanium:
-			resources.Titanium += bonus.Amount
+			resourceChanges[types.ResourceTitanium] += bonus.Amount
+			currentTitanium := p.Resources().Get().Titanium + resourceChanges[types.ResourceTitanium]
 			log.Info("🎁 Awarded titanium from tile bonus",
 				zap.Int("amount", bonus.Amount),
-				zap.Int("new_total", resources.Titanium))
+				zap.Int("new_total", currentTitanium))
 
 		case ResourcePlants:
-			resources.Plants += bonus.Amount
+			resourceChanges[types.ResourcePlants] += bonus.Amount
+			currentPlants := p.Resources().Get().Plants + resourceChanges[types.ResourcePlants]
 			log.Info("🎁 Awarded plants from tile bonus",
 				zap.Int("amount", bonus.Amount),
-				zap.Int("new_total", resources.Plants))
+				zap.Int("new_total", currentPlants))
 
 		case ResourceCardDraw:
 			// Draw cards from deck
 			drawnCards, err := bc.deckRepo.DrawProjectCards(ctx, bonus.Amount)
 			if err != nil {
-				return fmt.Errorf("failed to draw cards for tile bonus: %w", err)
+				return nil, fmt.Errorf("failed to draw cards for tile bonus: %w", err)
 			}
 
 			// Create pending card draw selection (all cards are free from tile bonus)
-			selection := &player.PendingCardDrawSelection{
+			// This will be set on Player by the caller
+			pendingSelection = &selection.PendingCardDrawSelection{
 				AvailableCards: drawnCards,
 				FreeTakeCount:  bonus.Amount, // All cards must be taken (free from tile bonus)
 				MaxBuyCount:    0,            // Cannot buy additional cards from tile bonus
 				CardBuyCost:    0,
 				Source:         "tile-bonus",
-			}
-
-			// Store pending selection using player setter
-			if err := p.SetPendingCardDrawSelection(ctx, selection); err != nil {
-				return fmt.Errorf("failed to create pending card draw selection: %w", err)
 			}
 
 			log.Info("🎁 Awarded card draw bonus from tile",
@@ -114,12 +118,12 @@ func (bc *BonusCalculator) awardTileBonuses(ctx context.Context, p *player.Playe
 		}
 	}
 
-	// Update resources using player setter
-	if err := p.SetResources(ctx, resources); err != nil {
-		return fmt.Errorf("failed to update player resources: %w", err)
+	// Apply resource changes using component's Add method (publishes events automatically)
+	if len(resourceChanges) > 0 {
+		p.Resources().Add(resourceChanges)
 	}
 
-	return nil
+	return pendingSelection, nil
 }
 
 // awardOceanAdjacencyBonus awards megacredits for placing tiles adjacent to oceans
@@ -146,26 +150,25 @@ func (bc *BonusCalculator) awardOceanAdjacencyBonus(ctx context.Context, p *play
 
 	totalBonus := bonusPerOcean * adjacentOceans
 
-	// Award megacredits using player setter
-	resources := p.Resources()
-	resources.Credits += totalBonus
+	// Award megacredits using component's Add method (publishes events automatically)
+	p.Resources().Add(map[types.ResourceType]int{
+		types.ResourceCredits: totalBonus,
+	})
 
-	if err := p.SetResources(ctx, resources); err != nil {
-		return fmt.Errorf("failed to update player resources: %w", err)
-	}
+	newCredits := p.Resources().Get().Credits
 
 	if hasLakefrontResorts {
 		log.Info("🎁 Awarded ocean adjacency bonus with Lakefront Resorts",
 			zap.Int("adjacent_oceans", adjacentOceans),
 			zap.Int("bonus_per_ocean", bonusPerOcean),
 			zap.Int("total_bonus", totalBonus),
-			zap.Int("new_credits", resources.Credits))
+			zap.Int("new_credits", newCredits))
 	} else {
 		log.Info("🎁 Awarded ocean adjacency bonus",
 			zap.Int("adjacent_oceans", adjacentOceans),
 			zap.Int("bonus_per_ocean", bonusPerOcean),
 			zap.Int("total_bonus", totalBonus),
-			zap.Int("new_credits", resources.Credits))
+			zap.Int("new_credits", newCredits))
 	}
 
 	return nil
@@ -204,7 +207,7 @@ func (bc *BonusCalculator) countAdjacentOceans(coord HexPosition, b *Board) int 
 
 // hasCard checks if player has a specific card by ID
 func (bc *BonusCalculator) hasCard(p *player.Player, cardID string) bool {
-	playedCards := p.PlayedCards()
+	playedCards := p.Hand().PlayedCards()
 	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
 			return true

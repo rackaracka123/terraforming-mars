@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/card"
+	gamePackage "terraforming-mars-backend/internal/session/game"
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/types"
 
@@ -59,25 +59,27 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *sess
 	}
 
 	// 4. Calculate required heat (with card discount effects)
-	requiredHeat := card.CalculateResourceConversionCost(player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
+	requiredHeat := gamePackage.CalculateResourceConversionCost(player, types.StandardProjectConvertHeatToTemperature, BaseHeatForTemperature)
 	log.Debug("💰 Calculated heat cost",
 		zap.Int("base_cost", BaseHeatForTemperature),
 		zap.Int("final_cost", requiredHeat))
 
 	// 5. Validate player has enough heat
-	if player.Resources.Heat < requiredHeat {
+	resources := player.Resources().Get()
+	if resources.Heat < requiredHeat {
 		log.Warn("Player cannot afford heat conversion",
 			zap.Int("required", requiredHeat),
-			zap.Int("available", player.Resources.Heat))
-		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, player.Resources.Heat)
+			zap.Int("available", resources.Heat))
+		return fmt.Errorf("insufficient heat: need %d, have %d", requiredHeat, resources.Heat)
 	}
 
 	// 6. Deduct heat
-	player.Resources.Heat -= requiredHeat
+	resources.Heat -= requiredHeat
+	player.Resources().Set(resources)
 
 	log.Info("🔥 Deducted heat",
 		zap.Int("heat_spent", requiredHeat),
-		zap.Int("remaining_heat", player.Resources.Heat))
+		zap.Int("remaining_heat", resources.Heat))
 
 	// 7. Raise temperature by 1 step (+2°C) if not already maxed
 	temperatureRaised := false
@@ -103,18 +105,20 @@ func (a *ConvertHeatToTemperatureAction) Execute(ctx context.Context, sess *sess
 
 	// 8. Award TR if temperature was raised
 	if temperatureRaised {
-		oldTR := player.TerraformRating
-		player.TerraformRating++
+		oldTR := player.Resources().TerraformRating()
+		newTR := oldTR + 1
+		player.Resources().SetTerraformRating(newTR)
 
 		log.Info("🏆 Increased terraform rating",
 			zap.Int("old_tr", oldTR),
-			zap.Int("new_tr", player.TerraformRating))
+			zap.Int("new_tr", newTR))
 	}
 
 	// 9. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		player.AvailableActions--
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	availableActions := player.Turn().AvailableActions()
+	if availableActions > 0 {
+		player.Turn().SetAvailableActions(availableActions - 1)
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
 	// 10. Broadcast state

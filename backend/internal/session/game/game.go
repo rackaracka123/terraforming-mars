@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/session/game/board"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 	"terraforming-mars-backend/internal/session/types"
 )
 
@@ -32,6 +33,12 @@ type Game struct {
 	mu       sync.RWMutex
 	Players  map[string]*player.Player // Player map by ID (single source of truth)
 	eventBus *events.EventBusImpl      // Event bus for publishing domain events
+
+	// Player-specific non-card phase state (managed by Game)
+	pendingTileSelections      map[string]*player.PendingTileSelection      // playerID -> pending tile selection
+	pendingTileSelectionQueues map[string]*player.PendingTileSelectionQueue // playerID -> tile selection queue
+	forcedFirstActions         map[string]*player.ForcedFirstAction         // playerID -> forced first action
+	productionPhases           map[string]*selection.ProductionPhase        // playerID -> production phase state
 
 	// Infrastructure components
 	cardManager CardManager // Card validation and playing
@@ -66,6 +73,11 @@ func NewGame(
 		eventBus:    eventBus,
 		cardManager: cardManager,
 		mu:          sync.RWMutex{},
+		// Initialize non-card phase state maps
+		pendingTileSelections:      make(map[string]*player.PendingTileSelection),
+		pendingTileSelectionQueues: make(map[string]*player.PendingTileSelectionQueue),
+		forcedFirstActions:         make(map[string]*player.ForcedFirstAction),
+		productionPhases:           make(map[string]*selection.ProductionPhase),
 	}
 }
 
@@ -137,7 +149,7 @@ func (g *Game) UpdateStatus(ctx context.Context, newStatus types.GameStatus) err
 	// Publish event
 	if g.eventBus != nil && oldStatus != newStatus {
 		events.Publish(g.eventBus, events.GameStatusChangedEvent{
-			GameID:   g.ID,
+			GameID:    g.ID,
 			OldStatus: string(oldStatus),
 			NewStatus: string(newStatus),
 		})
@@ -329,4 +341,172 @@ func (g *Game) Next() *string {
 // CardManager returns the card manager
 func (g *Game) CardManager() CardManager {
 	return g.cardManager
+}
+
+// ================== Player Non-Card Phase State Management ==================
+
+// GetPendingTileSelection returns the pending tile selection for a player
+func (g *Game) GetPendingTileSelection(playerID string) *player.PendingTileSelection {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	selection, exists := g.pendingTileSelections[playerID]
+	if !exists || selection == nil {
+		return nil
+	}
+	// Simple struct, return copy
+	selectionCopy := *selection
+	return &selectionCopy
+}
+
+// SetPendingTileSelection sets the pending tile selection for a player
+func (g *Game) SetPendingTileSelection(ctx context.Context, playerID string, selection *player.PendingTileSelection) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if selection == nil {
+		delete(g.pendingTileSelections, playerID)
+	} else {
+		selectionCopy := *selection
+		g.pendingTileSelections[playerID] = &selectionCopy
+	}
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+// GetPendingTileSelectionQueue returns the tile selection queue for a player
+func (g *Game) GetPendingTileSelectionQueue(playerID string) *player.PendingTileSelectionQueue {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	queue, exists := g.pendingTileSelectionQueues[playerID]
+	if !exists || queue == nil {
+		return nil
+	}
+	// Simple struct, return copy
+	queueCopy := *queue
+	return &queueCopy
+}
+
+// SetPendingTileSelectionQueue sets the tile selection queue for a player
+func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string, queue *player.PendingTileSelectionQueue) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if queue == nil {
+		delete(g.pendingTileSelectionQueues, playerID)
+	} else {
+		queueCopy := *queue
+		g.pendingTileSelectionQueues[playerID] = &queueCopy
+	}
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+// GetForcedFirstAction returns the forced first action for a player
+func (g *Game) GetForcedFirstAction(playerID string) *player.ForcedFirstAction {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	action, exists := g.forcedFirstActions[playerID]
+	if !exists || action == nil {
+		return nil
+	}
+	// Simple struct, return copy
+	actionCopy := *action
+	return &actionCopy
+}
+
+// SetForcedFirstAction sets the forced first action for a player
+func (g *Game) SetForcedFirstAction(ctx context.Context, playerID string, action *player.ForcedFirstAction) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if action == nil {
+		delete(g.forcedFirstActions, playerID)
+	} else {
+		actionCopy := *action
+		g.forcedFirstActions[playerID] = &actionCopy
+	}
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+// GetProductionPhase returns the production phase state for a player
+func (g *Game) GetProductionPhase(playerID string) *selection.ProductionPhase {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	phase, exists := g.productionPhases[playerID]
+	if !exists || phase == nil {
+		return nil
+	}
+	// Return copy to prevent external mutation
+	phaseCopy := *phase
+	return &phaseCopy
+}
+
+// SetProductionPhase sets the production phase state for a player
+func (g *Game) SetProductionPhase(ctx context.Context, playerID string, phase *selection.ProductionPhase) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if phase == nil {
+		delete(g.productionPhases, playerID)
+	} else {
+		phaseCopy := *phase
+		g.productionPhases[playerID] = &phaseCopy
+	}
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+// ProcessNextTile pops the next tile from a player's tile queue
+// Returns the tile type and whether more tiles remain in the queue
+func (g *Game) ProcessNextTile(ctx context.Context, playerID string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	// Get queue for this player
+	queue, exists := g.pendingTileSelectionQueues[playerID]
+	if !exists || queue == nil || len(queue.Items) == 0 {
+		return "", nil // No queue or empty queue
+	}
+
+	// Pop first item
+	nextTileType := queue.Items[0]
+	remainingItems := queue.Items[1:]
+
+	// Update or clear queue
+	if len(remainingItems) > 0 {
+		g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
+			Items:  remainingItems,
+			Source: queue.Source,
+		}
+	} else {
+		delete(g.pendingTileSelectionQueues, playerID)
+	}
+
+	g.UpdatedAt = time.Now()
+	return nextTileType, nil
 }

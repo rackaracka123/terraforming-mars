@@ -1,11 +1,11 @@
 package deck
 
 import (
-	"terraforming-mars-backend/internal/session/game/card"
 	"context"
 	"fmt"
 	"math/rand"
 	"sync"
+	"terraforming-mars-backend/internal/session/game/card"
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session/types"

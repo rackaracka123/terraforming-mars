@@ -48,18 +48,14 @@ func (a *SetProductionAction) Execute(ctx context.Context, sess *session.Session
 	}
 
 	// 2. Get session and player
-	player, exists := sess.GetPlayer(playerID)
+	p, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update player production
-	err = player.Resources.UpdateProduction(ctx, production)
-	if err != nil {
-		log.Error("Failed to update production", zap.Error(err))
-		return err
-	}
+	p.Resources().SetProduction(production)
 
 	log.Info("✅ Player production updated")
 

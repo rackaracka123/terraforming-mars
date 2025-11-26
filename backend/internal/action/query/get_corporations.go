@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/action"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/card"
 
 	"go.uber.org/zap"
 )
@@ -13,12 +12,12 @@ import (
 // GetCorporationsAction handles the query for getting all corporations
 type GetCorporationsAction struct {
 	action.BaseAction
-	cardRepo sessionCard.Repository
+	cardRepo card.Repository
 }
 
 // NewGetCorporationsAction creates a new get corporations query action
 func NewGetCorporationsAction(
-	cardRepo sessionCard.Repository,
+	cardRepo card.Repository,
 ) *GetCorporationsAction {
 	return &GetCorporationsAction{
 		BaseAction: action.NewBaseAction(nil),
@@ -27,7 +26,7 @@ func NewGetCorporationsAction(
 }
 
 // Execute performs the get corporations query
-func (a *GetCorporationsAction) Execute(ctx context.Context) ([]types.Card, error) {
+func (a *GetCorporationsAction) Execute(ctx context.Context) ([]card.Card, error) {
 	log := a.GetLogger()
 	log.Info("🔍 Querying corporations")
 

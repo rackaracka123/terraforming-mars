@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/card"
+	gamePackage "terraforming-mars-backend/internal/session/game"
 	game "terraforming-mars-backend/internal/session/game/core"
+	playerTypes "terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -59,37 +60,46 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, sess *sessi
 	}
 
 	// 4. Calculate required plants (with card discount effects)
-	requiredPlants := card.CalculateResourceConversionCost(player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
+	requiredPlants := gamePackage.CalculateResourceConversionCost(player, types.StandardProjectConvertPlantsToGreenery, BasePlantsForGreenery)
 	log.Debug("💰 Calculated plants cost",
 		zap.Int("base_cost", BasePlantsForGreenery),
 		zap.Int("final_cost", requiredPlants))
 
 	// 5. Validate player has enough plants
-	if player.Resources.Plants < requiredPlants {
+	resources := player.Resources().Get()
+	if resources.Plants < requiredPlants {
 		log.Warn("Player cannot afford plants conversion",
 			zap.Int("required", requiredPlants),
-			zap.Int("available", player.Resources.Plants))
-		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, player.Resources.Plants)
+			zap.Int("available", resources.Plants))
+		return fmt.Errorf("insufficient plants: need %d, have %d", requiredPlants, resources.Plants)
 	}
 
 	// 6. Deduct plants
-	player.Resources.Plants -= requiredPlants
+	resources.Plants -= requiredPlants
+	player.Resources().Set(resources)
 
 	log.Info("🌿 Deducted plants",
 		zap.Int("plants_spent", requiredPlants),
-		zap.Int("remaining_plants", player.Resources.Plants))
+		zap.Int("remaining_plants", resources.Plants))
 
-	// 7. Create tile queue with "greenery" type
-	player.QueueTilePlacement("convert-plants-to-greenery", []string{"greenery"})
+	// 7. Create tile queue with "greenery" type on Game (phase state managed by Game)
+	queue := &playerTypes.PendingTileSelectionQueue{
+		Items:  []string{"greenery"},
+		Source: "convert-plants-to-greenery",
+	}
+	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+		return fmt.Errorf("failed to queue tile placement: %w", err)
+	}
 
 	log.Info("📋 Created tile queue for greenery placement")
 
 	// Note: Terraform rating increase and oxygen increase happen when the greenery is placed (via SelectTileAction)
 
 	// 8. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		player.AvailableActions--
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	availableActions := player.Turn().AvailableActions()
+	if availableActions > 0 {
+		player.Turn().SetAvailableActions(availableActions - 1)
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
 	// 9. Broadcast state

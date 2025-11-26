@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
+	playerTypes "terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -57,37 +58,46 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, sess *session.Session
 	}
 
 	// 4. Validate cost (23 M€)
-	if player.Resources.Credits < PlantGreeneryStandardProjectCost {
+	resources := player.Resources().Get()
+	if resources.Credits < PlantGreeneryStandardProjectCost {
 		log.Warn("Insufficient credits for greenery",
 			zap.Int("cost", PlantGreeneryStandardProjectCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", PlantGreeneryStandardProjectCost, player.Resources.Credits)
+			zap.Int("player_credits", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", PlantGreeneryStandardProjectCost, resources.Credits)
 	}
 
 	// 5. Deduct cost
-	player.Resources.Credits -= PlantGreeneryStandardProjectCost
+	resources.Credits -= PlantGreeneryStandardProjectCost
+	player.Resources().Set(resources)
 
 	log.Info("💰 Deducted greenery cost",
 		zap.Int("cost", PlantGreeneryStandardProjectCost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
-	// 6. Create tile queue with "greenery" type
-	player.QueueTilePlacement("standard-project-greenery", []string{"greenery"})
+	// 6. Create tile queue with "greenery" type on Game (phase state managed by Game)
+	queue := &playerTypes.PendingTileSelectionQueue{
+		Items:  []string{"greenery"},
+		Source: "standard-project-greenery",
+	}
+	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+		return fmt.Errorf("failed to queue tile placement: %w", err)
+	}
 
 	log.Info("📋 Created tile queue for greenery placement")
 
 	// Note: Terraform rating increase happens when the greenery is placed (via SelectTileAction)
 
 	// 7. Consume action (only if not unlimited actions)
-	if player.AvailableActions > 0 {
-		player.AvailableActions--
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	availableActions := player.Turn().AvailableActions()
+	if availableActions > 0 {
+		player.Turn().SetAvailableActions(availableActions - 1)
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
 	// 8. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Greenery queued successfully, tile awaiting placement",
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

@@ -5,9 +5,10 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
-	sessionCard "terraforming-mars-backend/internal/session/game/card"
+	gamePackage "terraforming-mars-backend/internal/session/game"
+	"terraforming-mars-backend/internal/session/game/card"
 	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"go.uber.org/zap"
 )
@@ -16,13 +17,13 @@ import (
 type GetGameAction struct {
 	action.BaseAction
 	gameRepo game.Repository
-	cardRepo sessionCard.Repository
+	cardRepo card.Repository
 }
 
 // NewGetGameAction creates a new get game query action
 func NewGetGameAction(
 	gameRepo game.Repository,
-	cardRepo sessionCard.Repository,
+	cardRepo card.Repository,
 ) *GetGameAction {
 	return &GetGameAction{
 		BaseAction: action.NewBaseAction(nil),
@@ -33,9 +34,9 @@ func NewGetGameAction(
 
 // GameQueryResult contains the full game data for queries
 type GameQueryResult struct {
-	Game          *game.Game
-	Players       []types.Player
-	ResolvedCards map[string]types.Card
+	Game          *gamePackage.Game
+	Players       []*player.Player
+	ResolvedCards map[string]card.Card
 }
 
 // Execute performs the get game query
@@ -61,24 +62,19 @@ func (a *GetGameAction) Execute(ctx context.Context, sess *session.Session, play
 	}
 
 	// 2. Get all players from session
-	sessionPlayers := sess.GetAllPlayers()
-
-	// Convert wrapped players to types.Player
-	players := make([]types.Player, len(sessionPlayers))
-	for i, p := range sessionPlayers {
-		players[i] = *p.Player
-	}
+	players := sess.GetAllPlayers()
 
 	// 3. Collect all card IDs that need resolution
 	allCardIds := make(map[string]struct{})
-	for _, player := range players {
-		if player.Corporation != nil {
-			allCardIds[player.Corporation.ID] = struct{}{}
+	for _, p := range players {
+		if p.Corp().HasCorporation() {
+			corp := p.Corp().Card()
+			allCardIds[corp.ID] = struct{}{}
 		}
-		for _, cardID := range player.PlayedCards {
+		for _, cardID := range p.Hand().PlayedCards() {
 			allCardIds[cardID] = struct{}{}
 		}
-		for _, cardID := range player.Cards {
+		for _, cardID := range p.Hand().Cards() {
 			allCardIds[cardID] = struct{}{}
 		}
 	}

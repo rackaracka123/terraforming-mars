@@ -6,7 +6,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player"
 )
 
 // GetPlayerAction handles the query for getting a single player
@@ -26,7 +26,7 @@ func NewGetPlayerAction(
 }
 
 // Execute performs the get player query
-func (a *GetPlayerAction) Execute(ctx context.Context, sess *session.Session, playerID string) (types.Player, error) {
+func (a *GetPlayerAction) Execute(ctx context.Context, sess *session.Session, playerID string) (*player.Player, error) {
 	gameID := sess.GetGameID()
 	log := a.InitLogger(gameID, playerID)
 	log.Info("🔍 Querying player")
@@ -34,18 +34,18 @@ func (a *GetPlayerAction) Execute(ctx context.Context, sess *session.Session, pl
 	// 1. Validate game exists
 	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
 	if err != nil {
-		return types.Player{}, err
+		return nil, err
 	}
 
 	// 2. Get player from session
-	player, exists := sess.GetPlayer(playerID)
+	p, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
-		return types.Player{}, err
+		return nil, err
 	}
 
 	log.Info("✅ Player query completed")
 
-	// Return the underlying player
-	return *player.Player, nil
+	// Return the player
+	return p, nil
 }

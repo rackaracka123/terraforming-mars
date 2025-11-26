@@ -1,7 +1,6 @@
 package board
 
 import (
-
 	"terraforming-mars-backend/internal/session/types"
 )
 

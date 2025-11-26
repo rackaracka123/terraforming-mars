@@ -7,9 +7,9 @@ import (
 
 // CardPayment represents how a player is paying for a card
 type CardPayment struct {
-	Credits     int                  // MC spent
-	Steel       int                  // Steel resources used (2 MC value each)
-	Titanium    int                  // Titanium resources used (3 MC value each)
+	Credits     int                        // MC spent
+	Steel       int                        // Steel resources used (2 MC value each)
+	Titanium    int                        // Titanium resources used (3 MC value each)
 	Substitutes map[types.ResourceType]int // Payment substitutes (e.g., heat for Helion) with conversion rates from player
 }
 

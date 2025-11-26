@@ -49,12 +49,12 @@ const (
 
 // Requirement represents a single card requirement with flexible min/max values
 type Requirement struct {
-	Type     RequirementType    // Type of requirement
-	Min      *int               // Minimum value required
-	Max      *int               // Maximum value allowed
-	Location *CardApplyLocation // Location constraint (Mars, anywhere, etc.)
-	Tag      *types.CardTag           // For tag requirements: which tag
-	Resource *types.ResourceType      // For production: which resource
+	Type     RequirementType     // Type of requirement
+	Min      *int                // Minimum value required
+	Max      *int                // Maximum value allowed
+	Location *CardApplyLocation  // Location constraint (Mars, anywhere, etc.)
+	Tag      *types.CardTag      // For tag requirements: which tag
+	Resource *types.ResourceType // For production: which resource
 }
 
 // CardBehavior represents any card behavior - both immediate (when played) and repeatable (activated by player)
@@ -149,8 +149,8 @@ func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
 	Type     types.ResourceType // Type of resource stored
-	Capacity *int         // Max capacity (if limited)
-	Starting int          // Starting amount
+	Capacity *int               // Max capacity (if limited)
+	Starting int                // Starting amount
 }
 
 // VictoryPointCondition represents a VP condition like "1 VP per jovian tag"
@@ -182,9 +182,9 @@ const (
 
 // DiscountEffect represents cost reductions for playing cards
 type DiscountEffect struct {
-	Amount      int       // M€ discount per qualifying tag
+	Amount      int             // M€ discount per qualifying tag
 	Tags        []types.CardTag // Tags that qualify for discount (empty = all cards)
-	Description string    // Human readable description
+	Description string          // Human readable description
 }
 
 // PaymentSubstitute represents an alternative resource that can be used as payment for credits
@@ -336,11 +336,11 @@ const (
 
 // PerCondition represents what to count for conditional resource gains
 type PerCondition struct {
-	Type     types.ResourceType       // What to count (city-tile, ocean-tile, etc.)
+	Type     types.ResourceType // What to count (city-tile, ocean-tile, etc.)
 	Amount   int                // How many of the counted thing per gain
 	Location *CardApplyLocation // Location constraint (Mars, anywhere, etc.)
 	Target   *TargetType        // Whose tags/resources to count (self-player, any-player, etc.)
-	Tag      *types.CardTag           // For tag-based VP conditions (jovian tag, science tag, etc.)
+	Tag      *types.CardTag     // For tag-based VP conditions (jovian tag, science tag, etc.)
 }
 
 // Choice represents a single choice option with inputs and outputs
@@ -352,14 +352,14 @@ type Choice struct {
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
 	Type                     types.ResourceType      // Type of resource
-	Amount                   int               // Amount of resource
-	Target                   TargetType        // Target for this resource condition
-	AffectedResources        []string          // For defense: resources being protected
+	Amount                   int                     // Amount of resource
+	Target                   TargetType              // Target for this resource condition
+	AffectedResources        []string                // For defense: resources being protected
 	AffectedTags             []types.CardTag         // For discount: tags qualifying for discount
-	AffectedCardTypes        []CardType        // For discount/effects: card types qualifying
+	AffectedCardTypes        []CardType              // For discount/effects: card types qualifying
 	AffectedStandardProjects []types.StandardProject // For discount: standard projects affected
-	MaxTrigger               *int              // Max times it can trigger (-1 = unlimited), only for "per" conditions
-	Per                      *PerCondition     // For conditional gains: what to count
+	MaxTrigger               *int                    // Max times it can trigger (-1 = unlimited), only for "per" conditions
+	Per                      *PerCondition           // For conditional gains: what to count
 }
 
 // ResourceTriggerType represents different trigger types for resource exchanges
@@ -380,13 +380,13 @@ type MinMaxValue struct {
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type                   TriggerType                  // What triggers this (onCityPlaced, etc.)
-	Location               *CardApplyLocation           // Where the trigger applies (mars, anywhere)
+	Type                   TriggerType                        // What triggers this (onCityPlaced, etc.)
+	Location               *CardApplyLocation                 // Where the trigger applies (mars, anywhere)
 	AffectedTags           []types.CardTag                    // Tags that trigger this effect
-	AffectedResources      []string                     // Resource types that trigger this effect (for placement-bonus-gained)
-	AffectedCardTypes      []CardType                   // Card types that trigger this effect (for card-played triggers: event, automated, active, etc.)
-	Target                 *TargetType                  // Whose actions trigger this (self-player, any-player, etc.)
-	RequiredOriginalCost   *MinMaxValue                 // Original credit cost requirement (only for card-played/standard-project-played triggers)
+	AffectedResources      []string                           // Resource types that trigger this effect (for placement-bonus-gained)
+	AffectedCardTypes      []CardType                         // Card types that trigger this effect (for card-played triggers: event, automated, active, etc.)
+	Target                 *TargetType                        // Whose actions trigger this (self-player, any-player, etc.)
+	RequiredOriginalCost   *MinMaxValue                       // Original credit cost requirement (only for card-played/standard-project-played triggers)
 	RequiredResourceChange map[types.ResourceType]MinMaxValue // Min/max requirements for actual resources spent
 }
 
@@ -411,5 +411,5 @@ type EffectContext struct {
 	CardID             *string             // Card ID for card-played events
 	TagType            *types.CardTag      // Tag type for tag-played events
 	TileType           *types.ResourceType // Type of tile placed (city, ocean, greenery)
-	ParameterChange    *int          // Amount of parameter change (temperature, oxygen)
+	ParameterChange    *int                // Amount of parameter change (temperature, oxygen)
 }

@@ -3,6 +3,7 @@ package helpers
 import (
 	"testing"
 
+	"terraforming-mars-backend/internal/session/game/player"
 	"terraforming-mars-backend/internal/session/types"
 
 	"github.com/stretchr/testify/assert"
@@ -46,20 +47,22 @@ func AssertGameStatus(t *testing.T, expected types.GameStatus, actual types.Game
 }
 
 // AssertPlayerHasCard checks if player has a specific card in their played cards
-func AssertPlayerHasCard(t *testing.T, player types.Player, cardID string) {
-	for _, playedCardID := range player.PlayedCards {
+func AssertPlayerHasCard(t *testing.T, p *player.Player, cardID string) {
+	playedCards := p.Hand().PlayedCards()
+	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
 			return
 		}
 	}
-	t.Errorf("Player %s does not have card %s in played cards", player.ID, cardID)
+	t.Errorf("Player %s does not have card %s in played cards", p.ID(), cardID)
 }
 
 // AssertPlayerDoesNotHaveCard checks if player does NOT have a specific card
-func AssertPlayerDoesNotHaveCard(t *testing.T, player types.Player, cardID string) {
-	for _, playedCardID := range player.PlayedCards {
+func AssertPlayerDoesNotHaveCard(t *testing.T, p *player.Player, cardID string) {
+	playedCards := p.Hand().PlayedCards()
+	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
-			t.Errorf("Player %s should not have card %s in played cards", player.ID, cardID)
+			t.Errorf("Player %s should not have card %s in played cards", p.ID(), cardID)
 			return
 		}
 	}

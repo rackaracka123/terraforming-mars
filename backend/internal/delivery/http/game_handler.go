@@ -7,8 +7,9 @@ import (
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/session"
+	sessionGame "terraforming-mars-backend/internal/session/game"
 	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -61,11 +62,8 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to types.Game for DTO
-	modelGame := convertToModelGame(createdGame)
-
-	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(modelGame, dto.GetPaymentConstants())
+	// Convert to DTO and respond (dereference pointer)
+	gameDto := dto.ToGameDtoBasic(*createdGame, dto.GetPaymentConstants())
 	response := dto.CreateGameResponse{
 		Game: gameDto,
 	}
@@ -101,16 +99,18 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to types.Game for DTO compatibility
-	game := convertToModelGame(result.Game)
-
 	var gameDto dto.GameDto
 	if playerID != "" && result.Players != nil {
+		// Convert player pointers to values for DTO
+		playerValues := make([]player.Player, len(result.Players))
+		for i, p := range result.Players {
+			playerValues[i] = *p
+		}
 		// Return personalized view with full player data
-		gameDto = dto.ToGameDto(game, result.Players, playerID, result.ResolvedCards, dto.GetPaymentConstants())
+		gameDto = dto.ToGameDto(*result.Game, playerValues, playerID, result.ResolvedCards, dto.GetPaymentConstants())
 	} else {
 		// Return basic non-personalized view
-		gameDto = dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
+		gameDto = dto.ToGameDtoBasic(*result.Game, dto.GetPaymentConstants())
 	}
 
 	response := dto.GetGameResponse{
@@ -129,36 +129,16 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Convert game pointers to values for DTO
+	gameValues := make([]sessionGame.Game, len(games))
+	for i, g := range games {
+		gameValues[i] = *g
+	}
+
 	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(games, dto.GetPaymentConstants())
+	gameDtos := dto.ToGameDtoSlice(gameValues, dto.GetPaymentConstants())
 	response := dto.ListGamesResponse{
 		Games: gameDtos,
 	}
 	h.WriteJSONResponse(w, http.StatusOK, response)
-}
-
-// convertToModelGame converts a game.Game to types.Game for DTO compatibility
-func convertToModelGame(g *game.Game) types.Game {
-	return types.Game{
-		ID:        g.ID,
-		CreatedAt: g.CreatedAt,
-		UpdatedAt: g.UpdatedAt,
-		Status:    types.GameStatus(g.Status),
-		Settings: types.GameSettings{
-			MaxPlayers:      g.Settings.MaxPlayers,
-			Temperature:     g.Settings.Temperature,
-			Oxygen:          g.Settings.Oxygen,
-			Oceans:          g.Settings.Oceans,
-			DevelopmentMode: g.Settings.DevelopmentMode,
-			CardPacks:       g.Settings.CardPacks,
-		},
-		PlayerIDs:        g.PlayerIDs,
-		HostPlayerID:     g.HostPlayerID,
-		CurrentPhase:     types.GamePhase(g.CurrentPhase),
-		GlobalParameters: g.GlobalParameters,
-		ViewingPlayerID:  g.ViewingPlayerID,
-		CurrentTurn:      g.CurrentTurn,
-		Generation:       g.Generation,
-		Board:            g.Board,
-	}
 }

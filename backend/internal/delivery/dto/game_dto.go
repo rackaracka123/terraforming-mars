@@ -255,17 +255,17 @@ type ResourceStorageDto struct {
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID              string                        `json:"id" ts:"string"`
-	Name            string                        `json:"name" ts:"string"`
-	Type            CardType                      `json:"type" ts:"CardType"`
-	Cost            int                           `json:"cost" ts:"number"`
-	Description     string                         `json:"description" ts:"string"`
-	Pack            string                         `json:"pack" ts:"string"`
-	Tags            []CardTag                      `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []card.Requirement             `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
-	Behaviors       []CardBehaviorDto              `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto            `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []card.VictoryPointCondition   `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
+	ID              string                       `json:"id" ts:"string"`
+	Name            string                       `json:"name" ts:"string"`
+	Type            CardType                     `json:"type" ts:"CardType"`
+	Cost            int                          `json:"cost" ts:"number"`
+	Description     string                       `json:"description" ts:"string"`
+	Pack            string                       `json:"pack" ts:"string"`
+	Tags            []CardTag                    `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    []card.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
+	Behaviors       []CardBehaviorDto            `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto          `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []card.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
 
 	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)

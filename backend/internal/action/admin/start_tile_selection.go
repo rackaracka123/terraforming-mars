@@ -9,7 +9,7 @@ import (
 	"terraforming-mars-backend/internal/session"
 	sessionBoard "terraforming-mars-backend/internal/session/game/board"
 	sessionGame "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player"
 )
 
 // StartTileSelectionAction handles admin command to start tile selection for testing
@@ -44,8 +44,7 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, sess *session.Se
 	log.Info("🎯 Admin starting tile selection", zap.String("tile_type", tileType))
 
 	// 1. Get session and validate player exists
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
+	if _, exists := sess.GetPlayer(playerID); !exists {
 		log.Error("Player not found in session")
 		return fmt.Errorf("player not found")
 	}
@@ -72,14 +71,14 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, sess *session.Se
 		zap.Int("available_count", len(availableHexes)),
 		zap.Strings("positions", availableHexes[:min(5, len(availableHexes))])) // Log first 5
 
-	// 5. Set pending tile selection via player's tile queue repository
-	pendingSelection := &types.PendingTileSelection{
+	// 5. Set pending tile selection via Game (phase state managed by Game)
+	pendingSelection := &player.PendingTileSelection{
 		TileType:       tileType,
 		AvailableHexes: availableHexes,
 		Source:         "admin_demo",
 	}
 
-	if err := player.TileQueue.UpdatePendingTileSelection(ctx, pendingSelection); err != nil {
+	if err := sess.Game().SetPendingTileSelection(ctx, playerID, pendingSelection); err != nil {
 		log.Error("Failed to set pending tile selection", zap.Error(err))
 		return fmt.Errorf("failed to set pending tile selection: %w", err)
 	}

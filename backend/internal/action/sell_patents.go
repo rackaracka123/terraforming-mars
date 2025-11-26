@@ -6,7 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/session"
 	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 
 	"go.uber.org/zap"
 )
@@ -47,14 +47,15 @@ func (a *SellPatentsAction) Execute(ctx context.Context, sess *session.Session, 
 	}
 
 	// 3. Get session and player
-	player, exists := sess.GetPlayer(playerID)
+	p, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 4. Validate player has cards to sell
-	if len(player.Cards) == 0 {
+	playerCards := p.Hand().Cards()
+	if len(playerCards) == 0 {
 		log.Warn("Player has no cards to sell")
 		return fmt.Errorf("no cards available to sell")
 	}
@@ -63,29 +64,25 @@ func (a *SellPatentsAction) Execute(ctx context.Context, sess *session.Session, 
 	// Each card costs 0 M€ to sell and rewards 1 M€
 	cardCosts := make(map[string]int)
 	cardRewards := make(map[string]int)
-	for _, cardID := range player.Cards {
+	for _, cardID := range playerCards {
 		cardCosts[cardID] = 0   // No cost to sell
 		cardRewards[cardID] = 1 // 1 M€ reward per card
 	}
 
-	pendingSelection := &types.PendingCardSelection{
+	pendingSelection := &selection.PendingCardSelection{
 		Source:         "sell-patents",
-		AvailableCards: player.Cards,
+		AvailableCards: playerCards,
 		CardCosts:      cardCosts,
 		CardRewards:    cardRewards,
 		MinCards:       0, // Can cancel by selecting 0 cards
-		MaxCards:       len(player.Cards),
+		MaxCards:       len(playerCards),
 	}
 
-	// 6. Store pending card selection
-	err = player.Selection.UpdatePendingCardSelection(ctx, pendingSelection)
-	if err != nil {
-		log.Error("Failed to create pending card selection", zap.Error(err))
-		return fmt.Errorf("failed to create pending card selection: %w", err)
-	}
+	// 6. Store pending card selection (card selection phase state on Player)
+	p.Selection().SetPendingCardSelection(pendingSelection)
 
 	log.Info("📋 Created pending card selection for sell patents",
-		zap.Int("available_cards", len(player.Cards)))
+		zap.Int("available_cards", len(playerCards)))
 
 	// 7. Broadcast state (DO NOT consume action - happens in Phase 2)
 	a.BroadcastGameState(gameID, log)

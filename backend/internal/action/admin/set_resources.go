@@ -48,18 +48,14 @@ func (a *SetResourcesAction) Execute(ctx context.Context, sess *session.Session,
 	}
 
 	// 2. Get session and player
-	player, exists := sess.GetPlayer(playerID)
+	p, exists := sess.GetPlayer(playerID)
 	if !exists {
 		log.Error("Player not found in session")
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update player resources
-	err = player.Resources.Update(ctx, resources)
-	if err != nil {
-		log.Error("Failed to update resources", zap.Error(err))
-		return err
-	}
+	p.Resources().Set(resources)
 
 	log.Info("✅ Player resources updated")
 

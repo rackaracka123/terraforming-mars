@@ -9,6 +9,14 @@ import (
 	"terraforming-mars-backend/internal/session/game/player"
 )
 
+// GameInterface defines the methods needed from Game for tile processing
+// This avoids circular dependency between board and game packages
+type GameInterface interface {
+	GetPendingTileSelectionQueue(playerID string) *player.PendingTileSelectionQueue
+	ProcessNextTile(ctx context.Context, playerID string) (string, error)
+	SetPendingTileSelection(ctx context.Context, playerID string, selection *player.PendingTileSelection) error
+}
+
 // Processor handles tile queue processing and tile placement logic
 type Processor struct {
 	boardRepo      Repository
@@ -29,21 +37,22 @@ func NewProcessor(
 // ProcessTileQueue processes the tile queue, validating and setting up the first valid tile selection
 // This should be called after any operation that creates a tile queue (e.g., card play, standard project)
 // Returns nil if queue is empty or doesn't exist
-// Note: gameID is not needed as processor is scoped to a specific game instance
-func (p *Processor) ProcessTileQueue(ctx context.Context, plr *player.Player) error {
+// Requires Game to manage phase state (tile queue, pending selections)
+func (p *Processor) ProcessTileQueue(ctx context.Context, game GameInterface, plr *player.Player) error {
 	log := logger.Get().With(zap.String("player_id", plr.ID()))
 	log.Debug("🎯 Processing tile queue")
 
 	// Process the queue through the private validation method
-	return p.processNextTileInQueueWithValidation(ctx, plr)
+	return p.processNextTileInQueueWithValidation(ctx, game, plr)
 }
 
 // processNextTileInQueueWithValidation processes the next tile in queue with business logic validation
-func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, plr *player.Player) error {
+func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, game GameInterface, plr *player.Player) error {
 	log := logger.Get().With(zap.String("player_id", plr.ID()))
+	playerID := plr.ID()
 
 	// Get the queue to extract the source (card ID or project ID)
-	queue := plr.PendingTileSelectionQueue()
+	queue := game.GetPendingTileSelectionQueue(playerID)
 
 	// If no queue, we're done
 	if queue == nil {
@@ -54,8 +63,8 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 	source := queue.Source // Store the source (card/project ID)
 
 	for {
-		// Pop the next tile type from player (pure data operation)
-		nextTileType, err := plr.ProcessNextTile(ctx)
+		// Pop the next tile type from game (pure data operation)
+		nextTileType, err := game.ProcessNextTile(ctx, playerID)
 		if err != nil {
 			return fmt.Errorf("failed to pop next tile from queue: %w", err)
 		}
@@ -85,7 +94,6 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 			// For greenery, pass playerID to enforce adjacency rule
 			var playerIDPtr *string
 			if nextTileType == "greenery" {
-				playerID := plr.ID()
 				playerIDPtr = &playerID
 			}
 
@@ -101,7 +109,7 @@ func (p *Processor) processNextTileInQueueWithValidation(ctx context.Context, pl
 				Source:         source,
 			}
 
-			if err := plr.SetPendingTileSelection(ctx, selection); err != nil {
+			if err := game.SetPendingTileSelection(ctx, playerID, selection); err != nil {
 				return fmt.Errorf("failed to set pending tile selection: %w", err)
 			}
 

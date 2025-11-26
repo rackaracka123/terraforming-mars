@@ -58,40 +58,44 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Sessi
 	}
 
 	// 4. Validate cost (11 M€)
-	if player.Resources.Credits < BuildPowerPlantCost {
+	resources := player.Resources().Get()
+	if resources.Credits < BuildPowerPlantCost {
 		log.Warn("Insufficient credits for power plant",
 			zap.Int("cost", BuildPowerPlantCost),
-			zap.Int("player_credits", player.Resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, player.Resources.Credits)
+			zap.Int("player_credits", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, resources.Credits)
 	}
 
 	// 5. Deduct cost using domain method
-	player.AddResources(map[types.ResourceType]int{
+	player.Resources().Add(map[types.ResourceType]int{
 		types.ResourceCredits: -BuildPowerPlantCost,
 	})
 
+	resources = player.Resources().Get() // Refresh after update
 	log.Info("💰 Deducted power plant cost",
 		zap.Int("cost", BuildPowerPlantCost),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("remaining_credits", resources.Credits))
 
 	// 6. Increase energy production by 1 using domain method
-	player.AddProduction(map[types.ResourceType]int{
+	player.Resources().AddProduction(map[types.ResourceType]int{
 		types.ResourceEnergy: 1,
 	})
 
+	production := player.Resources().Production() // Refresh after update
 	log.Info("📈 Increased energy production",
-		zap.Int("new_energy_production", player.Production.Energy))
+		zap.Int("new_energy_production", production.Energy))
 
 	// 7. Consume action using domain method
-	if player.ConsumeAction() {
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", player.AvailableActions))
+	if player.Turn().ConsumeAction() {
+		availableActions := player.Turn().AvailableActions()
+		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
 	}
 
 	// 8. Broadcast state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Power plant built successfully",
-		zap.Int("new_energy_production", player.Production.Energy),
-		zap.Int("remaining_credits", player.Resources.Credits))
+		zap.Int("new_energy_production", production.Energy),
+		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

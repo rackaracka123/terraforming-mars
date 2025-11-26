@@ -6,9 +6,11 @@ import (
 
 	"terraforming-mars-backend/internal/logger"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game"
 	"terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
+	"terraforming-mars-backend/internal/session/game/player/actions"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -17,16 +19,14 @@ import (
 // Processor handles the application logic for card action execution
 type Processor struct {
 	sessionFactory session.SessionFactory
-	resourceMgr    *game.ResourceManager
-	cardProcessor  *card.CardProcessor
+	cardProcessor  *game.CardProcessor
 	deckRepo       deck.Repository
 }
 
 // NewProcessor creates a new Processor instance
-func NewProcessor(sessionFactory session.SessionFactory, cardProcessor *card.CardProcessor, deckRepo deck.Repository) *Processor {
+func NewProcessor(sessionFactory session.SessionFactory, cardProcessor *game.CardProcessor, deckRepo deck.Repository) *Processor {
 	return &Processor{
 		sessionFactory: sessionFactory,
-		resourceMgr:    game.NewResourceManager(),
 		cardProcessor:  cardProcessor,
 		deckRepo:       deckRepo,
 	}
@@ -34,7 +34,7 @@ func NewProcessor(sessionFactory session.SessionFactory, cardProcessor *card.Car
 
 // ApplyActionInputs applies the action inputs by deducting resources from the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *types.PlayerAction, choiceIndex *int) error {
+func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID string, action *actions.PlayerAction, choiceIndex *int) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get session and player
@@ -49,10 +49,7 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 	}
 
 	// Get current resources
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
+	currentResources := player.Resources().Get()
 
 	// Calculate new resource values after applying inputs
 	newResources := currentResources
@@ -74,21 +71,32 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 		switch input.Type {
 		case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
 			types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
-			// Use ResourceManager for validation
-			if err := p.resourceMgr.ValidateHasResource(newResources, input.Type, input.Amount); err != nil {
-				return err
+			// Validate standard resources directly
+			var currentAmount int
+			switch input.Type {
+			case types.ResourceCredits:
+				currentAmount = newResources.Credits
+			case types.ResourceSteel:
+				currentAmount = newResources.Steel
+			case types.ResourceTitanium:
+				currentAmount = newResources.Titanium
+			case types.ResourcePlants:
+				currentAmount = newResources.Plants
+			case types.ResourceEnergy:
+				currentAmount = newResources.Energy
+			case types.ResourceHeat:
+				currentAmount = newResources.Heat
+			}
+			if currentAmount < input.Amount {
+				return fmt.Errorf("insufficient %s: need %d, have %d", input.Type, input.Amount, currentAmount)
 			}
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
 		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Validate card storage resource inputs
-			if input.Target == types.TargetSelfCard {
-				// Initialize resource storage map if nil (for checking)
-				if player.ResourceStorage == nil {
-					player.ResourceStorage = make(map[string]int)
-				}
-
-				currentStorage := player.ResourceStorage[action.CardID]
+			if input.Target == card.TargetSelfCard {
+				resourceStorage := player.Resources().Storage()
+				currentStorage := resourceStorage[action.CardID]
 				if currentStorage < input.Amount {
 					return fmt.Errorf("insufficient %s storage on card %s: need %d, have %d",
 						input.Type, action.CardID, input.Amount, currentStorage)
@@ -102,31 +110,43 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 		switch input.Type {
 		case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
 			types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
-			// Use ResourceManager to apply resource change (negative amount)
-			newResources, err = p.resourceMgr.ApplyResourceChange(newResources, input.Type, -input.Amount)
-			if err != nil {
-				return fmt.Errorf("failed to apply resource change: %w", err)
+			// Apply resource change (negative amount)
+			switch input.Type {
+			case types.ResourceCredits:
+				newResources.Credits -= input.Amount
+			case types.ResourceSteel:
+				newResources.Steel -= input.Amount
+			case types.ResourceTitanium:
+				newResources.Titanium -= input.Amount
+			case types.ResourcePlants:
+				newResources.Plants -= input.Amount
+			case types.ResourceEnergy:
+				newResources.Energy -= input.Amount
+			case types.ResourceHeat:
+				newResources.Heat -= input.Amount
 			}
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
 		case types.ResourceAnimals, types.ResourceMicrobes, types.ResourceFloaters, types.ResourceScience, types.ResourceAsteroid:
 			// Handle card storage resource inputs
-			if input.Target == types.TargetSelfCard {
-				// Initialize resource storage map if nil
-				if player.ResourceStorage == nil {
-					player.ResourceStorage = make(map[string]int)
-				}
-
+			if input.Target == card.TargetSelfCard {
+				resourceStorage := player.Resources().Storage()
 				// Deduct from card storage
-				currentStorage := player.ResourceStorage[action.CardID]
-				player.ResourceStorage[action.CardID] = currentStorage - input.Amount
+				currentStorage := resourceStorage[action.CardID]
+				newStorage := make(map[string]int)
+				for k, v := range resourceStorage {
+					newStorage[k] = v
+				}
+				newStorage[action.CardID] = currentStorage - input.Amount
+
+				player.Resources().SetStorage(newStorage)
 
 				log.Debug("📉 Deducted card storage resource",
 					zap.String("card_id", action.CardID),
 					zap.String("resource_type", string(input.Type)),
 					zap.Int("amount", input.Amount),
 					zap.Int("previous_storage", currentStorage),
-					zap.Int("new_storage", player.ResourceStorage[action.CardID]))
+					zap.Int("new_storage", newStorage[action.CardID]))
 			} else {
 				log.Warn("Card storage input with non-self-card target not supported",
 					zap.String("type", string(input.Type)),
@@ -143,13 +163,7 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 	}
 
 	// Update player resources
-	if err := player.Resources.Update(ctx, newResources); err != nil {
-		log.Error("Failed to update player resources for action inputs", zap.Error(err))
-		return fmt.Errorf("failed to update player resources: %w", err)
-	}
-
-	// Note: resource storage is already updated in-place on the embedded player
-	// No separate update call needed as it's persisted via event publishing
+	player.Resources().Set(newResources)
 
 	log.Debug("✅ Action inputs applied successfully")
 	return nil
@@ -157,7 +171,7 @@ func (p *Processor) ApplyActionInputs(ctx context.Context, gameID, playerID stri
 
 // ApplyActionOutputs applies the action outputs by giving resources/production/etc. to the player
 // choiceIndex is optional and used when the action has choices between different effects
-func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *types.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
+func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID string, action *actions.PlayerAction, choiceIndex *int, cardStorageTarget *string) error {
 	log := logger.WithGameContext(gameID, playerID)
 
 	// Get session and player
@@ -172,17 +186,16 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 	}
 
 	// Get current resources and production
-	currentResources, err := player.Resources.Get(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get player resources: %w", err)
-	}
+	currentResources := player.Resources().Get()
+	currentProduction := player.Resources().Production()
+	currentTR := player.Resources().TerraformRating()
 
 	// Track what needs to be updated
 	var resourcesChanged bool
 	var productionChanged bool
 	var trChanged bool
 	newResources := currentResources
-	newProduction := player.Production
+	newProduction := currentProduction
 
 	// Track card draw/peek effects
 	var cardDrawAmount, cardPeekAmount, cardTakeAmount, cardBuyAmount int
@@ -203,32 +216,49 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 	for _, output := range allOutputs {
 		switch output.Type {
 		// Immediate resource gains
-		case types.ResourceCredits, types.ResourceSteel, types.ResourceTitanium,
-			types.ResourcePlants, types.ResourceEnergy, types.ResourceHeat:
-			// Use ResourceManager to apply resource change
-			newResources, err = p.resourceMgr.ApplyResourceChange(newResources, output.Type, output.Amount)
-			if err != nil {
-				return fmt.Errorf("failed to apply resource change: %w", err)
-			}
+		case types.ResourceCredits:
+			newResources.Credits += output.Amount
+			resourcesChanged = true
+		case types.ResourceSteel:
+			newResources.Steel += output.Amount
+			resourcesChanged = true
+		case types.ResourceTitanium:
+			newResources.Titanium += output.Amount
+			resourcesChanged = true
+		case types.ResourcePlants:
+			newResources.Plants += output.Amount
+			resourcesChanged = true
+		case types.ResourceEnergy:
+			newResources.Energy += output.Amount
+			resourcesChanged = true
+		case types.ResourceHeat:
+			newResources.Heat += output.Amount
 			resourcesChanged = true
 
 		// Production increases
-		case types.ResourceCreditsProduction, types.ResourceSteelProduction, types.ResourceTitaniumProduction,
-			types.ResourcePlantsProduction, types.ResourceEnergyProduction, types.ResourceHeatProduction:
-			// Use ResourceManager to apply production change
-			newProduction, err = p.resourceMgr.ApplyProductionChange(newProduction, output.Type, output.Amount)
-			if err != nil {
-				return fmt.Errorf("failed to apply production change: %w", err)
-			}
+		case types.ResourceCreditsProduction:
+			newProduction.Credits += output.Amount
+			productionChanged = true
+		case types.ResourceSteelProduction:
+			newProduction.Steel += output.Amount
+			productionChanged = true
+		case types.ResourceTitaniumProduction:
+			newProduction.Titanium += output.Amount
+			productionChanged = true
+		case types.ResourcePlantsProduction:
+			newProduction.Plants += output.Amount
+			productionChanged = true
+		case types.ResourceEnergyProduction:
+			newProduction.Energy += output.Amount
+			productionChanged = true
+		case types.ResourceHeatProduction:
+			newProduction.Heat += output.Amount
 			productionChanged = true
 
 		// Terraform rating
 		case types.ResourceTR:
-			newTR := player.TerraformRating + output.Amount
-			if err := player.Resources.UpdateTerraformRating(ctx, newTR); err != nil {
-				log.Error("Failed to update terraform rating", zap.Error(err))
-				return fmt.Errorf("failed to update terraform rating: %w", err)
-			}
+			newTR := currentTR + output.Amount
+			player.Resources().SetTerraformRating(newTR)
 			trChanged = true
 
 		// Card storage resources (animals, microbes, floaters, science, asteroid)
@@ -260,18 +290,12 @@ func (p *Processor) ApplyActionOutputs(ctx context.Context, gameID, playerID str
 
 	// Update resources if they changed
 	if resourcesChanged {
-		if err := player.Resources.Update(ctx, newResources); err != nil {
-			log.Error("Failed to update player resources for action outputs", zap.Error(err))
-			return fmt.Errorf("failed to update player resources: %w", err)
-		}
+		player.Resources().Set(newResources)
 	}
 
 	// Update production if it changed
 	if productionChanged {
-		if err := player.Resources.UpdateProduction(ctx, newProduction); err != nil {
-			log.Error("Failed to update player production for action outputs", zap.Error(err))
-			return fmt.Errorf("failed to update player production: %w", err)
-		}
+		player.Resources().SetProduction(newProduction)
 	}
 
 	// Process card draw/peek/take/buy effects if any were found
@@ -360,7 +384,7 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 	}
 
 	// Create PendingCardDrawSelection
-	selection := &types.PendingCardDrawSelection{
+	selection := &selection.PendingCardDrawSelection{
 		AvailableCards: cardsToShow,
 		FreeTakeCount:  freeTakeCount,
 		MaxBuyCount:    maxBuyCount,
@@ -368,11 +392,8 @@ func (p *Processor) ApplyCardDrawPeekEffects(ctx context.Context, gameID, player
 		Source:         sourceCardID,
 	}
 
-	// Store in player selection repository
-	if err := player.Selection.UpdatePendingCardDrawSelection(ctx, selection); err != nil {
-		log.Error("Failed to create pending card draw selection", zap.Error(err))
-		return fmt.Errorf("failed to create pending card draw selection: %w", err)
-	}
+	// Store on Player (card selection phase state on Player)
+	player.Selection().SetPendingCardDrawSelection(selection)
 
 	log.Info("✅ Pending card draw selection created (from action)",
 		zap.String("source_card_id", sourceCardID),
@@ -399,9 +420,10 @@ func (p *Processor) IncrementActionPlayCount(ctx context.Context, gameID, player
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Find and update the specific action
-	updatedActions := make([]types.PlayerAction, len(player.Actions))
-	copy(updatedActions, player.Actions)
+	// Get current actions and update the specific action
+	currentActions := player.Actions().List()
+	updatedActions := make([]actions.PlayerAction, len(currentActions))
+	copy(updatedActions, currentActions)
 
 	for i := range updatedActions {
 		if updatedActions[i].CardID == cardID && updatedActions[i].BehaviorIndex == behaviorIndex {
@@ -414,11 +436,8 @@ func (p *Processor) IncrementActionPlayCount(ctx context.Context, gameID, player
 		}
 	}
 
-	// Update player actions via action repository
-	if err := player.Action.UpdateActions(ctx, updatedActions); err != nil {
-		log.Error("Failed to update player actions for play count", zap.Error(err))
-		return fmt.Errorf("failed to update player actions: %w", err)
-	}
+	// Update player actions
+	player.Actions().SetActions(updatedActions)
 
 	return nil
 }

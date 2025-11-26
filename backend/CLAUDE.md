@@ -244,6 +244,42 @@ See `docs/EVENT_SYSTEM.md` for complete event system documentation.
 - **SessionManager handles broadcasting**: Triggered by events automatically
 - **Event system handles passive effects**: CardEffectSubscriber triggers effects via events
 
+### State Ownership and Encapsulation
+
+The architecture follows clear ownership boundaries for game state:
+
+**Game Repository Owns:**
+- Game-wide state (status, phase, generation, current turn)
+- Player-specific phase state (ProductionPhase, SelectStartingCardsPhase, PendingCardSelection, PendingCardDrawSelection, PendingTileSelection, PendingTileSelectionQueue, ForcedFirstAction)
+- Global parameters (temperature, oxygen, oceans)
+- Game configuration and settings
+
+**Player Repository Owns:**
+- Player identity (ID, name, gameID)
+- Corporation selection
+- Cards (hand and played cards)
+- Resources, production, terraform rating, victory points
+- Turn state (passed, available actions, connection status)
+- Player effects, actions, requirement modifiers
+
+**Why Phase State Lives in Game:**
+- Phase state is transient - exists only during specific game phases
+- Game controls phase transitions and needs atomic access to all players' phase states
+- Cleaner separation: Player represents persistent player state, Game manages workflow state
+- Simplifies phase transition logic (e.g., checking if all players completed starting selection)
+
+**Access Pattern:**
+```go
+// ✅ CORRECT: Access phase state via Game
+sess := sessionFactory.Get(gameID)
+productionPhase := sess.Game().GetProductionPhase(playerID)
+sess.Game().SetProductionPhase(ctx, playerID, phase)
+
+// ❌ WRONG: Phase state not on Player
+player, _ := sess.GetPlayer(playerID)
+productionPhase := player.ProductionPhase() // This method doesn't exist
+```
+
 ## Data Flow
 
 ### WebSocket Message Flow

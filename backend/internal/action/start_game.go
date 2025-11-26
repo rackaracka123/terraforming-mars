@@ -9,6 +9,7 @@ import (
 	game "terraforming-mars-backend/internal/session/game/core"
 	"terraforming-mars-backend/internal/session/game/deck"
 	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/session/game/player/selection"
 	"terraforming-mars-backend/internal/session/types"
 
 	"go.uber.org/zap"
@@ -84,7 +85,7 @@ func (a *StartGameAction) Execute(ctx context.Context, sess *session.Session, pl
 
 	// 5. Set first player's turn
 	if len(players) > 0 {
-		firstPlayerID := players[0].ID
+		firstPlayerID := players[0].ID()
 		if err := SetCurrentTurn(ctx, a.gameRepo, gameID, &firstPlayerID, log); err != nil {
 			return err
 		}
@@ -93,11 +94,7 @@ func (a *StartGameAction) Execute(ctx context.Context, sess *session.Session, pl
 
 	// Set unlimited actions for solo mode
 	if len(players) == 1 {
-		err = players[0].Action.UpdateAvailableActions(ctx, -1)
-		if err != nil {
-			log.Error("Failed to set unlimited actions for solo mode", zap.Error(err))
-			return fmt.Errorf("failed to set unlimited actions for solo mode: %w", err)
-		}
+		players[0].Turn().SetAvailableActions(-1)
 		log.Info("🎮 Solo mode detected - unlimited actions enabled")
 	}
 
@@ -110,7 +107,7 @@ func (a *StartGameAction) Execute(ctx context.Context, sess *session.Session, pl
 	log.Info("🎴 Game deck created and shuffled")
 
 	// 7. Distribute starting cards to all players
-	if err := a.distributeStartingCards(ctx, gameID, players); err != nil {
+	if err := a.distributeStartingCards(ctx, sess, gameID, players); err != nil {
 		log.Error("Failed to distribute starting cards", zap.Error(err))
 		return fmt.Errorf("failed to distribute starting cards: %w", err)
 	}
@@ -125,7 +122,7 @@ func (a *StartGameAction) Execute(ctx context.Context, sess *session.Session, pl
 }
 
 // distributeStartingCards gives each player 10 project cards and 2 corporations
-func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID string, players []*player.Player) error {
+func (a *StartGameAction) distributeStartingCards(ctx context.Context, sess *session.Session, gameID string, players []*player.Player) error {
 	log := a.logger.With(zap.String("game_id", gameID))
 	log.Debug("Distributing starting cards to players", zap.Int("player_count", len(players)))
 
@@ -133,23 +130,24 @@ func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameID st
 		// Draw 10 project cards from game deck
 		projectCardIDs, err := a.deckRepo.DrawProjectCards(ctx, 10)
 		if err != nil {
-			return fmt.Errorf("failed to draw project cards for player %s: %w", p.ID, err)
+			return fmt.Errorf("failed to draw project cards for player %s: %w", p.ID(), err)
 		}
 
 		// Draw 2 corporation cards from game deck
 		corporationIDs, err := a.deckRepo.DrawCorporations(ctx, 2)
 		if err != nil {
-			return fmt.Errorf("failed to draw corporations for player %s: %w", p.ID, err)
+			return fmt.Errorf("failed to draw corporations for player %s: %w", p.ID(), err)
 		}
 
-		// Set starting cards selection phase for player
-		err = p.Selection.SetStartingCardsSelection(ctx, projectCardIDs, corporationIDs)
-		if err != nil {
-			return fmt.Errorf("failed to set starting cards for player %s: %w", p.ID, err)
+		// Set starting cards selection phase for player (card selection phase state on Player)
+		selectionPhase := &selection.SelectStartingCardsPhase{
+			AvailableCards:        projectCardIDs,
+			AvailableCorporations: corporationIDs,
 		}
+		p.Selection().SetSelectStartingCardsPhase(selectionPhase)
 
 		log.Debug("✅ Distributed cards to player",
-			zap.String("player_id", p.ID),
+			zap.String("player_id", p.ID()),
 			zap.Int("project_cards", len(projectCardIDs)),
 			zap.Int("corporations", len(corporationIDs)))
 	}

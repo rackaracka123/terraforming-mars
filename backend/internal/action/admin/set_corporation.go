@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/session"
+	"terraforming-mars-backend/internal/session/game/card"
 	game "terraforming-mars-backend/internal/session/game/core"
 
 	"go.uber.org/zap"
@@ -15,18 +16,21 @@ import (
 type SetCorporationAction struct {
 	action.BaseAction
 	gameRepo       game.Repository
+	cardRepo       card.Repository
 	sessionFactory session.SessionFactory
 }
 
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
 	gameRepo game.Repository,
+	cardRepo card.Repository,
 	sessionMgrFactory session.SessionManagerFactory,
 	sessionFactory session.SessionFactory,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
 		BaseAction:     action.NewBaseAction(sessionMgrFactory),
 		gameRepo:       gameRepo,
+		cardRepo:       cardRepo,
 		sessionFactory: sessionFactory,
 	}
 }
@@ -56,16 +60,19 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID, playerID, co
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update player corporation
-	err = player.Corporation.Set(ctx, corporationID)
+	// 3. Get corporation card
+	corp, err := a.cardRepo.GetCardByID(ctx, corporationID)
 	if err != nil {
-		log.Error("Failed to update corporation", zap.Error(err))
-		return err
+		log.Error("Corporation card not found", zap.Error(err))
+		return fmt.Errorf("corporation not found: %w", err)
 	}
+
+	// 4. Update player corporation
+	player.Corp().SetCard(*corp)
 
 	log.Info("✅ Player corporation updated")
 
-	// 4. Broadcast updated game state
+	// 5. Broadcast updated game state
 	a.BroadcastGameState(gameID, log)
 
 	log.Info("✅ Admin set corporation completed")

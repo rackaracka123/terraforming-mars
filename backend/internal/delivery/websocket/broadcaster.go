@@ -112,10 +112,7 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 		return fmt.Errorf("game session not found: %s", gameID)
 	}
 
-	sessionPlayers := sess.GetAllPlayers()
-
-	// Convert player types to model types for DTO compatibility
-	players := playersToModel(sessionPlayers)
+	players := sess.GetAllPlayers()
 
 	// If no players exist, there's nothing to broadcast
 	if len(players) == 0 {
@@ -127,60 +124,67 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 		zap.String("game_id", gameID),
 		zap.Int("player_count", len(players)))
 
-	for _, player := range players {
+	for _, p := range players {
+		cards := p.Hand().Cards()
+		playedCards := p.Hand().PlayedCards()
 		log.Debug("🔍 Player state in broadcast",
-			zap.String("player_id", player.ID),
-			zap.String("player_name", player.Name),
-			zap.Strings("cards_in_hand", player.Cards),
-			zap.Int("hand_size", len(player.Cards)),
-			zap.Strings("played_cards", player.PlayedCards),
-			zap.Int("played_count", len(player.PlayedCards)))
+			zap.String("player_id", p.ID()),
+			zap.String("player_name", p.Name()),
+			zap.Strings("cards_in_hand", cards),
+			zap.Int("hand_size", len(cards)),
+			zap.Strings("played_cards", playedCards),
+			zap.Int("played_count", len(playedCards)))
 	}
 
 	allCardIds := make(map[string]struct{})
-	for _, player := range players {
-		for _, cardID := range player.Cards {
+	for _, p := range players {
+		for _, cardID := range p.Hand().Cards() {
 			allCardIds[cardID] = struct{}{}
 		}
-		for _, cardID := range player.PlayedCards {
+		for _, cardID := range p.Hand().PlayedCards() {
 			allCardIds[cardID] = struct{}{}
 		}
-		if player.ProductionPhase != nil {
-			for _, cardID := range player.ProductionPhase.AvailableCards {
+		// Get card selection phase state from Player (owned by Player)
+		productionPhase := p.Selection().GetProductionPhase()
+		if productionPhase != nil {
+			for _, cardID := range productionPhase.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
 		}
-		if player.SelectStartingCardsPhase != nil {
+		startingCardsPhase := p.Selection().GetSelectStartingCardsPhase()
+		if startingCardsPhase != nil {
 			// Collect available starting cards
-			for _, cardID := range player.SelectStartingCardsPhase.AvailableCards {
+			for _, cardID := range startingCardsPhase.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
 			log.Debug("Added starting cards to resolution",
-				zap.Int("card_count", len(player.SelectStartingCardsPhase.AvailableCards)))
+				zap.Int("card_count", len(startingCardsPhase.AvailableCards)))
 
 			// CRITICAL: Add corporation cards to resolved cards for frontend display
-			for _, corpID := range player.SelectStartingCardsPhase.AvailableCorporations {
+			for _, corpID := range startingCardsPhase.AvailableCorporations {
 				allCardIds[corpID] = struct{}{}
 			}
 			log.Debug("Added corporations to resolution",
-				zap.Int("corporation_count", len(player.SelectStartingCardsPhase.AvailableCorporations)),
-				zap.Strings("corporation_ids", player.SelectStartingCardsPhase.AvailableCorporations))
+				zap.Int("corporation_count", len(startingCardsPhase.AvailableCorporations)),
+				zap.Strings("corporation_ids", startingCardsPhase.AvailableCorporations))
 		}
 		// Add cards from PendingCardSelection (card selection effects)
-		if player.PendingCardSelection != nil {
-			for _, cardID := range player.PendingCardSelection.AvailableCards {
+		pendingCardSelection := p.Selection().GetPendingCardSelection()
+		if pendingCardSelection != nil {
+			for _, cardID := range pendingCardSelection.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
 			log.Debug("Added pending card selection cards to resolution",
-				zap.Int("card_count", len(player.PendingCardSelection.AvailableCards)))
+				zap.Int("card_count", len(pendingCardSelection.AvailableCards)))
 		}
 		// Add cards from PendingCardDrawSelection (card draw/peek/take/buy effects)
-		if player.PendingCardDrawSelection != nil {
-			for _, cardID := range player.PendingCardDrawSelection.AvailableCards {
+		pendingCardDrawSelection := p.Selection().GetPendingCardDrawSelection()
+		if pendingCardDrawSelection != nil {
+			for _, cardID := range pendingCardDrawSelection.AvailableCards {
 				allCardIds[cardID] = struct{}{}
 			}
 			log.Debug("Added pending card draw selection cards to resolution",
-				zap.Int("card_count", len(player.PendingCardDrawSelection.AvailableCards)))
+				zap.Int("card_count", len(pendingCardDrawSelection.AvailableCards)))
 		}
 	}
 
@@ -201,10 +205,10 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 	playersToSend := players
 	if targetPlayerID != "" {
 		// Find specific player
-		playersToSend = []types.Player{}
-		for _, player := range players {
-			if player.ID == targetPlayerID {
-				playersToSend = []types.Player{player}
+		playersToSend = []*player.Player{}
+		for _, p := range players {
+			if p.ID() == targetPlayerID {
+				playersToSend = []*player.Player{p}
 				break
 			}
 		}
@@ -217,23 +221,24 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 	paymentConstants := dto.GetPaymentConstants()
 
 	// Send personalized game state to target player(s)
-	for _, player := range playersToSend {
+	for _, p := range playersToSend {
+		playerID := p.ID()
 		log.Debug("🎯 Creating personalized DTO",
-			zap.String("viewing_player_id", player.ID),
-			zap.String("viewing_player_name", player.Name),
+			zap.String("viewing_player_id", playerID),
+			zap.String("viewing_player_name", p.Name()),
 			zap.Int("total_players", len(players)))
 
-		for i, p := range players {
+		for i, pl := range players {
 			log.Debug("🔍 Player in array",
 				zap.Int("index", i),
-				zap.String("player_id", p.ID),
-				zap.String("player_name", p.Name))
+				zap.String("player_id", pl.ID()),
+				zap.String("player_name", pl.Name()))
 		}
 
-		personalizedGameDTO := dto.ToGameDto(*newGame, players, player.ID, resolvedCards, paymentConstants)
+		personalizedGameDTO := dto.ToGameDto(*newGame, playersToModel(players), playerID, resolvedCards, paymentConstants)
 
 		// Send game state via Hub
-		err = b.sendToPlayerDirect(player.ID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
+		err = b.sendToPlayerDirect(playerID, gameID, dto.MessageTypeGameUpdated, dto.GameUpdatedPayload{
 			Game: personalizedGameDTO,
 		})
 		if err != nil {
@@ -243,17 +248,17 @@ func (b *SessionBroadcaster) broadcastGameStateInternal(ctx context.Context, tar
 			if errors.As(err, &notFoundErr) || errors.As(err, &sessionErr) {
 				log.Debug("Player session no longer exists, skipping broadcast",
 					zap.Error(err),
-					zap.String("player_id", player.ID))
+					zap.String("player_id", playerID))
 			} else {
 				log.Error("Failed to send game state update to player",
 					zap.Error(err),
-					zap.String("player_id", player.ID))
+					zap.String("player_id", playerID))
 			}
 			continue // Continue with other players
 		}
 
 		log.Debug("✅ Sent personalized game state to player",
-			zap.String("player_id", player.ID))
+			zap.String("player_id", playerID))
 	}
 
 	log.Info("✅ Game state broadcast completed")
@@ -284,64 +289,59 @@ func (b *SessionBroadcaster) sendToPlayerDirect(playerID, gameID string, message
 
 // ========== Type Converters: Session types → Model types ==========
 
-// gameToModel converts a game.Game pointer to a types.Game value
-func gameToModel(g *game.Game) types.Game {
-	return *g
-}
-
-// playersToModel converts a slice of player.Player pointers to a slice of types.Player values
-func playersToModel(players []*player.Player) []types.Player {
-	result := make([]types.Player, len(players))
+// playersToModel converts a slice of player.Player pointers to a slice of player.Player values
+// After refactoring, player.Player IS the domain type, so we dereference pointers
+func playersToModel(players []*player.Player) []player.Player {
+	result := make([]player.Player, len(players))
 	for i, p := range players {
-		// Extract the embedded types.Player from the wrapped player
-		result[i] = *p.Player
+		result[i] = *p
 	}
 	return result
 }
 
-// cardsToModel converts a map of card.Card values to a map of types.Card values
-func cardsToModel(cards map[string]card.Card) map[string]types.Card {
+// cardsToModel converts a map of card.Card values (identity function after refactoring)
+func cardsToModel(cards map[string]card.Card) map[string]card.Card {
 	return cards
 }
 
-// boardToModel converts a board.Board pointer to a types.Board value
-func boardToModel(b *board.Board) types.Board {
+// boardToModel converts a board.Board pointer to a board.Board value
+func boardToModel(b *board.Board) board.Board {
 	if b == nil {
-		return types.Board{Tiles: []types.Tile{}}
+		return board.Board{Tiles: []board.Tile{}}
 	}
 
-	tiles := make([]types.Tile, len(b.Tiles))
+	tiles := make([]board.Tile, len(b.Tiles))
 	for i, tile := range b.Tiles {
 		// Convert bonuses
-		bonuses := make([]types.TileBonus, len(tile.Bonuses))
+		bonuses := make([]board.TileBonus, len(tile.Bonuses))
 		for j, bonus := range tile.Bonuses {
-			bonuses[j] = types.TileBonus{
-				Type:   types.ResourceType(bonus.Type),
+			bonuses[j] = board.TileBonus{
+				Type:   board.ResourceType(bonus.Type),
 				Amount: bonus.Amount,
 			}
 		}
 
 		// Convert occupant if exists
-		var occupant *types.TileOccupant
+		var occupant *board.TileOccupant
 		if tile.OccupiedBy != nil {
 			tags := make([]string, len(tile.OccupiedBy.Tags))
 			copy(tags, tile.OccupiedBy.Tags)
-			occupant = &types.TileOccupant{
-				Type: types.ResourceType(tile.OccupiedBy.Type),
+			occupant = &board.TileOccupant{
+				Type: board.ResourceType(tile.OccupiedBy.Type),
 				Tags: tags,
 			}
 		}
 
 		// Convert tile
-		tiles[i] = types.Tile{
-			Coordinates: types.HexPosition{
+		tiles[i] = board.Tile{
+			Coordinates: board.HexPosition{
 				Q: tile.Coordinates.Q,
 				R: tile.Coordinates.R,
 				S: tile.Coordinates.S,
 			},
 			Tags:        tile.Tags,
-			Type:        types.ResourceType(tile.Type),
-			Location:    types.TileLocation(tile.Location),
+			Type:        board.ResourceType(tile.Type),
+			Location:    board.TileLocation(tile.Location),
 			DisplayName: tile.DisplayName,
 			Bonuses:     bonuses,
 			OccupiedBy:  occupant,
@@ -349,5 +349,5 @@ func boardToModel(b *board.Board) types.Board {
 		}
 	}
 
-	return types.Board{Tiles: tiles}
+	return board.Board{Tiles: tiles}
 }
