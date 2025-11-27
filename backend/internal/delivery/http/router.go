@@ -20,7 +20,7 @@ func SetupRouter(
 ) *mux.Router {
 	// Create handlers
 	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction)
-	playerHandler := NewPlayerHandler(getPlayerAction)
+	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction)
 	healthHandler := NewHealthHandler()
 
 	// Create router

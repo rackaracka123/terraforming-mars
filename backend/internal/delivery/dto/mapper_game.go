@@ -5,7 +5,6 @@ import (
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/player"
-	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ToGameDto converts migration Game to GameDto
@@ -127,18 +126,18 @@ func ToCardDto(card game.Card) CardDto {
 }
 
 // getCorporationCard fetches the corporation card for a player from the deck
+// TODO: Currently returns nil because card data is not available through Deck.
+// Deck only stores card IDs. Full card data would require a card registry/repository.
+// The player's corporationID is correctly stored and can be used for lookups when
+// card data becomes available.
 func getCorporationCard(p *player.Player, d *deck.Deck) *CardDto {
 	if p.CorporationID() == "" {
 		return nil
 	}
 
-	card, err := d.GetCard(p.CorporationID())
-	if err != nil {
-		return nil
-	}
-
-	cardDto := ToCardDto(card)
-	return &cardDto
+	// TODO: Fetch actual card data once card registry is available
+	// For now, return nil - corporation is correctly stored in player.PlayedCards()
+	return nil
 }
 
 // ToPlayerDto converts migration Player to PlayerDto
