@@ -1,16 +1,20 @@
 package dto
 
 import (
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/logger"
+
+	"go.uber.org/zap"
 )
 
 // ToGameDto converts migration Game to GameDto
 // Note: This returns basic game info without personalization (no viewing player)
 // For personalized view, frontend should call with playerID parameter
-func ToGameDto(g *game.Game) GameDto {
+func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry) GameDto {
 	players := g.GetAllPlayers()
 
 	// For non-personalized view, just show basic data
@@ -19,11 +23,10 @@ func ToGameDto(g *game.Game) GameDto {
 	otherPlayers := make([]OtherPlayerDto, 0)
 
 	// Just return first player as current for now (non-personalized)
-	deck := g.Deck()
 	if len(players) > 0 {
-		currentPlayer = ToPlayerDto(players[0], deck)
+		currentPlayer = ToPlayerDto(players[0], cardRegistry)
 		for i := 1; i < len(players); i++ {
-			otherPlayers = append(otherPlayers, ToOtherPlayerDto(players[i], deck))
+			otherPlayers = append(otherPlayers, ToOtherPlayerDto(players[i], cardRegistry))
 		}
 	}
 
@@ -53,11 +56,11 @@ func ToGameDto(g *game.Game) GameDto {
 				R: tile.Coordinates.R,
 				S: tile.Coordinates.S,
 			},
-			Type:    string(tile.Type),
-			OwnerID: tile.OwnerID,
-			Tags:    tile.Tags,
-			Bonuses: convertTileBonuses(tile.Bonuses),
-			Location: string(tile.Location),
+			Type:        string(tile.Type),
+			OwnerID:     tile.OwnerID,
+			Tags:        tile.Tags,
+			Bonuses:     convertTileBonuses(tile.Bonuses),
+			Location:    string(tile.Location),
 			DisplayName: tile.DisplayName,
 		}
 		if tile.OccupiedBy != nil {
@@ -125,32 +128,57 @@ func ToCardDto(card game.Card) CardDto {
 	}
 }
 
-// getCorporationCard fetches the corporation card for a player from the deck
-// TODO: Currently returns nil because card data is not available through Deck.
-// Deck only stores card IDs. Full card data would require a card registry/repository.
-// The player's corporationID is correctly stored and can be used for lookups when
-// card data becomes available.
-func getCorporationCard(p *player.Player, d *deck.Deck) *CardDto {
+// getCorporationCard fetches the corporation card for a player using the card registry
+func getCorporationCard(p *player.Player, cardRegistry cards.CardRegistry) *CardDto {
 	if p.CorporationID() == "" {
 		return nil
 	}
 
-	// TODO: Fetch actual card data once card registry is available
-	// For now, return nil - corporation is correctly stored in player.PlayedCards()
-	return nil
+	card, err := cardRegistry.GetByID(p.CorporationID())
+	if err != nil {
+		log := logger.Get()
+		log.Warn("Failed to fetch corporation card",
+			zap.String("player_id", p.ID()),
+			zap.String("corporation_id", p.CorporationID()),
+			zap.Error(err))
+		return nil
+	}
+
+	cardDto := ToCardDto(*card)
+	return &cardDto
+}
+
+// getPlayedCards converts a slice of card IDs to CardDto objects using the card registry
+func getPlayedCards(cardIDs []string, cardRegistry cards.CardRegistry) []CardDto {
+	cardDtos := make([]CardDto, 0, len(cardIDs))
+	log := logger.Get()
+
+	for _, cardID := range cardIDs {
+		card, err := cardRegistry.GetByID(cardID)
+		if err != nil {
+			log.Warn("Failed to fetch played card",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			continue // Skip cards that can't be found
+		}
+		cardDtos = append(cardDtos, ToCardDto(*card))
+	}
+
+	return cardDtos
 }
 
 // ToPlayerDto converts migration Player to PlayerDto
-func ToPlayerDto(p *player.Player, d *deck.Deck) PlayerDto {
+func ToPlayerDto(p *player.Player, cardRegistry cards.CardRegistry) PlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
 
 	// Get corporation card if player has one
-	corporation := getCorporationCard(p, d)
+	corporation := getCorporationCard(p, cardRegistry)
 
-	// Get played cards
-	playedCards := p.PlayedCards().Cards()
+	// Get played cards with full card details
+	playedCardIDs := p.PlayedCards().Cards()
+	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
 
 	return PlayerDto{
 		ID:   p.ID(),
@@ -175,7 +203,7 @@ func ToPlayerDto(p *player.Player, d *deck.Deck) PlayerDto {
 		VictoryPoints:    resourcesComponent.VictoryPoints(),
 		Status:           PlayerStatusWaiting, // Default status
 		Corporation:      corporation,
-		Cards:            []CardDto{},   // Migration doesn't have card details yet
+		Cards:            []CardDto{}, // Migration doesn't have card details yet
 		PlayedCards:      playedCards,
 		Passed:           false,
 		AvailableActions: 0,
@@ -197,16 +225,17 @@ func ToPlayerDto(p *player.Player, d *deck.Deck) PlayerDto {
 }
 
 // ToOtherPlayerDto converts migration Player to OtherPlayerDto
-func ToOtherPlayerDto(p *player.Player, d *deck.Deck) OtherPlayerDto {
+func ToOtherPlayerDto(p *player.Player, cardRegistry cards.CardRegistry) OtherPlayerDto {
 	resourcesComponent := p.Resources()
 	resources := resourcesComponent.Get()
 	production := resourcesComponent.Production()
 
 	// Get corporation card if player has one
-	corporation := getCorporationCard(p, d)
+	corporation := getCorporationCard(p, cardRegistry)
 
-	// Get played cards
-	playedCards := p.PlayedCards().Cards()
+	// Get played cards with full card details
+	playedCardIDs := p.PlayedCards().Cards()
+	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
 
 	// Get hand card count
 	handCardCount := len(p.Hand().Cards())

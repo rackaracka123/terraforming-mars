@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"terraforming-mars/internal/game"
+	"terraforming-mars-backend/internal/game"
 )
 
 // LoadCardsFromJSON loads cards from a JSON file

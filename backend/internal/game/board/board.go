@@ -1,10 +1,10 @@
 package board
 
 import (
-	"terraforming-mars-backend/internal/game/shared"
 	"context"
 	"fmt"
 	"sync"
+	"terraforming-mars-backend/internal/game/shared"
 
 	"terraforming-mars-backend/internal/events"
 )
@@ -27,25 +27,25 @@ const (
 // TileBonus represents a resource bonus provided by a tile when occupied
 type TileBonus struct {
 	Type   shared.ResourceType `json:"type"`
-	Amount int               `json:"amount"`
+	Amount int                 `json:"amount"`
 }
 
 // TileOccupant represents what currently occupies a tile
 type TileOccupant struct {
 	Type shared.ResourceType `json:"type"`
-	Tags []string          `json:"tags"`
+	Tags []string            `json:"tags"`
 }
 
 // Tile represents a single hexagonal tile on the game board
 type Tile struct {
-	Coordinates shared.HexPosition `json:"coordinates"`
-	Tags        []string         `json:"tags"`
+	Coordinates shared.HexPosition  `json:"coordinates"`
+	Tags        []string            `json:"tags"`
 	Type        shared.ResourceType `json:"type"`
-	Location    TileLocation     `json:"location"`
-	DisplayName *string          `json:"displayName,omitempty"`
-	Bonuses     []TileBonus      `json:"bonuses"`
-	OccupiedBy  *TileOccupant    `json:"occupiedBy,omitempty"`
-	OwnerID     *string          `json:"ownerId,omitempty"`
+	Location    TileLocation        `json:"location"`
+	DisplayName *string             `json:"displayName,omitempty"`
+	Bonuses     []TileBonus         `json:"bonuses"`
+	OccupiedBy  *TileOccupant       `json:"occupiedBy,omitempty"`
+	OwnerID     *string             `json:"ownerId,omitempty"`
 }
 
 // Board represents the complete game board state with encapsulated tiles

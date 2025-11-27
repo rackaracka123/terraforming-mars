@@ -100,12 +100,12 @@ const (
 	ResourceColonyTile   ResourceType = "colony-tile"
 
 	// Global parameters
-	ResourceTemperature       ResourceType = "temperature"
-	ResourceOxygen            ResourceType = "oxygen"
-	ResourceOceans            ResourceType = "oceans"
-	ResourceVenus             ResourceType = "venus"
-	ResourceTR                ResourceType = "tr"
-	ResourceGlobalParameter   ResourceType = "global-parameter"
+	ResourceTemperature     ResourceType = "temperature"
+	ResourceOxygen          ResourceType = "oxygen"
+	ResourceOceans          ResourceType = "oceans"
+	ResourceVenus           ResourceType = "venus"
+	ResourceTR              ResourceType = "tr"
+	ResourceGlobalParameter ResourceType = "global-parameter"
 
 	// Production resources
 	ResourceCreditsProduction  ResourceType = "credits-production"
@@ -197,12 +197,12 @@ func (h HexPosition) String() string {
 // GetNeighbors returns all 6 adjacent hex positions using cube coordinate system
 func (h HexPosition) GetNeighbors() []HexPosition {
 	directions := []HexPosition{
-		{Q: 1, R: -1, S: 0},  // East
-		{Q: 1, R: 0, S: -1},  // Northeast
-		{Q: 0, R: 1, S: -1},  // Northwest
-		{Q: -1, R: 1, S: 0},  // West
-		{Q: -1, R: 0, S: 1},  // Southwest
-		{Q: 0, R: -1, S: 1},  // Southeast
+		{Q: 1, R: -1, S: 0}, // East
+		{Q: 1, R: 0, S: -1}, // Northeast
+		{Q: 0, R: 1, S: -1}, // Northwest
+		{Q: -1, R: 1, S: 0}, // West
+		{Q: -1, R: 0, S: 1}, // Southwest
+		{Q: 0, R: -1, S: 1}, // Southeast
 	}
 
 	neighbors := make([]HexPosition, 0, 6)

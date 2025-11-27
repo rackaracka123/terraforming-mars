@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/shared"
 	playerPkg "terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 const (

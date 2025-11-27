@@ -1,6 +1,5 @@
 package game
 
-
 import "terraforming-mars-backend/internal/game/shared"
 import "fmt"
 

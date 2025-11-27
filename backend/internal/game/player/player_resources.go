@@ -1,8 +1,8 @@
 package player
 
 import (
-	"terraforming-mars-backend/internal/game/shared"
 	"sync"
+	"terraforming-mars-backend/internal/game/shared"
 
 	"terraforming-mars-backend/internal/events"
 )
@@ -10,8 +10,8 @@ import (
 // PlayerResources manages player resources, production, scoring
 type PlayerResources struct {
 	mu                 sync.RWMutex
-	resources shared.Resources
-	production shared.Production
+	resources          shared.Resources
+	production         shared.Production
 	terraformRating    int
 	victoryPoints      int
 	resourceStorage    map[string]int

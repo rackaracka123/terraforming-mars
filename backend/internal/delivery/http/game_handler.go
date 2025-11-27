@@ -6,6 +6,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
@@ -19,6 +20,7 @@ type GameHandler struct {
 	createGameAction *action.CreateGameAction
 	getGameAction    *query.GetGameAction
 	listGamesAction  *query.ListGamesAction
+	cardRegistry     cards.CardRegistry
 }
 
 // NewGameHandler creates a new game handler
@@ -26,11 +28,13 @@ func NewGameHandler(
 	createGameAction *action.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
+	cardRegistry cards.CardRegistry,
 ) *GameHandler {
 	return &GameHandler{
 		createGameAction: createGameAction,
 		getGameAction:    getGameAction,
 		listGamesAction:  listGamesAction,
+		cardRegistry:     cardRegistry,
 	}
 }
 
@@ -54,7 +58,7 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO
-	gameDto := dto.ToGameDto(game)
+	gameDto := dto.ToGameDto(game, h.cardRegistry)
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
@@ -85,7 +89,7 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	// Convert to DTOs
 	gameDtos := make([]dto.GameDto, len(games))
 	for i, game := range games {
-		gameDtos[i] = dto.ToGameDto(game)
+		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry)
 	}
 
 	// Return response
@@ -135,7 +139,7 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO
-	gameDto := dto.ToGameDto(game)
+	gameDto := dto.ToGameDto(game, h.cardRegistry)
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")

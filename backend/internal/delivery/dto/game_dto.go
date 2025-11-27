@@ -409,7 +409,7 @@ type PlayerDto struct {
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
-	PlayedCards      []string          `json:"playedCards" ts:"string[]"`
+	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Full card details for all played cards
 	Passed           bool              `json:"passed" ts:"boolean"`
 	AvailableActions int               `json:"availableActions" ts:"number"`
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
@@ -446,7 +446,7 @@ type OtherPlayerDto struct {
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
-	PlayedCards      []string          `json:"playedCards" ts:"string[]"` // Played cards are public
+	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Played cards are public - full card details
 	Passed           bool              `json:"passed" ts:"boolean"`
 	AvailableActions int               `json:"availableActions" ts:"number"`
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`

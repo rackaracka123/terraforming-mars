@@ -65,7 +65,7 @@ func main() {
 	log.Info("🔌 WebSocket hub initialized")
 
 	// ========== Initialize Migration Broadcaster (Event-Driven Broadcasting) ==========
-	migrationBroadcaster := wsHandler.NewBroadcaster(migrationGameRepo, eventBus, hub)
+	migrationBroadcaster := wsHandler.NewBroadcaster(migrationGameRepo, eventBus, hub, cardRegistry)
 	log.Info("📡 Migration broadcaster initialized and subscribed to BroadcastEvent")
 	_ = migrationBroadcaster // Silence unused warning
 
@@ -178,6 +178,7 @@ func main() {
 		getGameAction,
 		listGamesAction,
 		getPlayerAction,
+		cardRegistry,
 	)
 
 	// Mount API router

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/logger"
 
@@ -16,16 +17,19 @@ import (
 type PlayerHandler struct {
 	getPlayerAction *query.GetPlayerAction
 	getGameAction   *query.GetGameAction
+	cardRegistry    cards.CardRegistry
 }
 
 // NewPlayerHandler creates a new player handler
 func NewPlayerHandler(
 	getPlayerAction *query.GetPlayerAction,
 	getGameAction *query.GetGameAction,
+	cardRegistry cards.CardRegistry,
 ) *PlayerHandler {
 	return &PlayerHandler{
 		getPlayerAction: getPlayerAction,
 		getGameAction:   getGameAction,
+		cardRegistry:    cardRegistry,
 	}
 }
 
@@ -59,11 +63,11 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert to DTO
-	playerDto := dto.ToPlayerDto(player, game.Deck())
+	playerDto := dto.ToPlayerDto(player, h.cardRegistry)
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(playerDto); err != nil{
+	if err := json.NewEncoder(w).Encode(playerDto); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

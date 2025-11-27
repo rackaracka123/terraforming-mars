@@ -5,6 +5,7 @@ import (
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 
 	"github.com/gorilla/mux"
@@ -17,10 +18,11 @@ func SetupRouter(
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 	getPlayerAction *query.GetPlayerAction,
+	cardRegistry cards.CardRegistry,
 ) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction)
-	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction)
+	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction, cardRegistry)
+	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction, cardRegistry)
 	healthHandler := NewHealthHandler()
 
 	// Create router

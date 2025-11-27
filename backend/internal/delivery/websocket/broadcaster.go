@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"
@@ -15,10 +16,11 @@ import (
 // Broadcaster handles automatic broadcasting for the new architecture
 // Subscribes to BroadcastEvent and sends personalized game states to clients
 type Broadcaster struct {
-	gameRepo game.GameRepository
-	eventBus *events.EventBusImpl
-	hub      *core.Hub
-	logger   *zap.Logger
+	gameRepo     game.GameRepository
+	eventBus     *events.EventBusImpl
+	hub          *core.Hub
+	cardRegistry cards.CardRegistry
+	logger       *zap.Logger
 }
 
 // NewBroadcaster creates a broadcaster for the migration architecture
@@ -27,12 +29,14 @@ func NewBroadcaster(
 	gameRepo game.GameRepository,
 	eventBus *events.EventBusImpl,
 	hub *core.Hub,
+	cardRegistry cards.CardRegistry,
 ) *Broadcaster {
 	broadcaster := &Broadcaster{
-		gameRepo: gameRepo,
-		eventBus: eventBus,
-		hub:      hub,
-		logger:   logger.Get(),
+		gameRepo:     gameRepo,
+		eventBus:     eventBus,
+		hub:          hub,
+		cardRegistry: cardRegistry,
+		logger:       logger.Get(),
 	}
 
 	// Subscribe to BroadcastEvent
@@ -94,7 +98,7 @@ func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerI
 
 	// Create DTO from game state using migration mapper
 	// TODO: Implement personalization based on playerID
-	gameDto := dto.ToGameDto(game)
+	gameDto := dto.ToGameDto(game, b.cardRegistry)
 
 	// Create game updated message
 	message := dto.WebSocketMessage{

@@ -4,7 +4,6 @@ import "terraforming-mars-backend/internal/game/shared"
 
 import (
 	"sync"
-
 )
 
 // Selection manages player-specific card selection state
@@ -87,8 +86,8 @@ type SelectStartingCardsPhase struct {
 type ProductionPhase struct {
 	AvailableCards    []string
 	SelectionComplete bool
-	BeforeResources shared.Resources
-	AfterResources shared.Resources
+	BeforeResources   shared.Resources
+	AfterResources    shared.Resources
 	EnergyConverted   int
 	CreditsIncome     int
 }
