@@ -9,6 +9,7 @@ import {
   MessageTypeFullState,
   MessageTypeGameUpdated,
   MessageTypePlayerConnect,
+  MessageTypePlayerConnected,
   MessageTypePlayerDisconnected,
   // New message types
   MessageTypeActionSellPatents,
@@ -29,6 +30,7 @@ import {
   MessageTypeActionConvertPlantsToGreenery,
   MessageTypeActionConvertHeatToTemperature,
   // Payload types
+  PlayerConnectedPayload,
   PlayerDisconnectedPayload,
   WebSocketMessage,
 } from "../types/generated/api-types.ts";
@@ -137,6 +139,13 @@ export class WebSocketService {
         // Handle both direct game data and nested structure
         const gameData = gamePayload.game || gamePayload;
         this.emit("game-updated", gameData);
+        break;
+      }
+      case MessageTypePlayerConnected: {
+        const connectedPayload = message.payload as PlayerConnectedPayload;
+        // This is a confirmation that player joined successfully
+        // The full game state will arrive via game-updated from broadcaster
+        this.emit("player-connected", connectedPayload);
         break;
       }
       case MessageTypePlayerDisconnected: {

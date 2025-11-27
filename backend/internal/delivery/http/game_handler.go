@@ -57,8 +57,8 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO
-	gameDto := dto.ToGameDto(game, h.cardRegistry)
+	// Convert to DTO (HTTP GET has no authenticated player, use first player as fallback)
+	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
@@ -86,10 +86,10 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTOs
+	// Convert to DTOs (HTTP GET has no authenticated player, use first player as fallback)
 	gameDtos := make([]dto.GameDto, len(games))
 	for i, game := range games {
-		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry)
+		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry, "")
 	}
 
 	// Return response
@@ -133,8 +133,8 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTO
-	gameDto := dto.ToGameDto(game, h.cardRegistry)
+	// Convert to DTO (HTTP POST has no authenticated player yet, use first player as fallback)
+	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
 	// Wrap in response structure
 	response := dto.CreateGameResponse{

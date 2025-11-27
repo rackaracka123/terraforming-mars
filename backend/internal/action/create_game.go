@@ -70,7 +70,8 @@ func (a *CreateGameAction) Execute(
 	log.Info("✅ Deck initialized",
 		zap.Int("project_cards", len(projectCardIDs)),
 		zap.Int("corporations", len(corpIDs)),
-		zap.Int("preludes", len(preludeIDs)))
+		zap.Int("preludes", len(preludeIDs)),
+		zap.Strings("first_5_corps", getFirst5(corpIDs)))
 
 	// 5. Store game in repository
 	err := a.gameRepo.Create(ctx, newGame)
@@ -83,9 +84,23 @@ func (a *CreateGameAction) Execute(
 	return newGame, nil
 }
 
+// getFirst5 returns up to the first 5 elements of a slice (for logging)
+func getFirst5(ids []string) []string {
+	if len(ids) <= 5 {
+		return ids
+	}
+	return ids[:5]
+}
+
 // getCardIDsByPacks retrieves card IDs filtered by pack and separated by type
 func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corps, preludes []string) {
 	allCards := a.cardRegistry.GetAll()
+
+	log := a.logger.With(
+		zap.Strings("requested_packs", packs),
+		zap.Int("total_cards", len(allCards)),
+	)
+	log.Debug("🔍 Filtering cards by packs")
 
 	// Create a map for quick pack lookup
 	packMap := make(map[string]bool, len(packs))
@@ -106,6 +121,7 @@ func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corp
 		switch card.Type {
 		case game.CardTypeCorporation:
 			corps = append(corps, card.ID)
+			log.Debug("   Found corporation", zap.String("id", card.ID), zap.String("name", card.Name))
 		case game.CardTypePrelude:
 			preludes = append(preludes, card.ID)
 		default:
@@ -113,6 +129,11 @@ func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corp
 			projectCards = append(projectCards, card.ID)
 		}
 	}
+
+	log.Info("📊 Card filtering complete",
+		zap.Int("project_cards", len(projectCards)),
+		zap.Int("corporations", len(corps)),
+		zap.Int("preludes", len(preludes)))
 
 	return projectCards, corps, preludes
 }

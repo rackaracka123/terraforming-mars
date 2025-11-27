@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -14,13 +15,18 @@ import (
 // JoinGameHandler handles join game requests using the migrated architecture
 type JoinGameHandler struct {
 	joinGameAction *action.JoinGameAction
+	eventBus       *events.EventBusImpl
 	logger         *zap.Logger
 }
 
 // NewJoinGameHandler creates a new join game handler for migrated actions
-func NewJoinGameHandler(joinGameAction *action.JoinGameAction) *JoinGameHandler {
+func NewJoinGameHandler(
+	joinGameAction *action.JoinGameAction,
+	eventBus *events.EventBusImpl,
+) *JoinGameHandler {
 	return &JoinGameHandler{
 		joinGameAction: joinGameAction,
+		eventBus:       eventBus,
 		logger:         logger.Get(),
 	}
 }
@@ -64,6 +70,13 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 		zap.String("player_name", playerName),
 		zap.String("player_id", playerID))
 
+	// CRITICAL: Register connection with game BEFORE executing action
+	// This ensures Broadcaster can find the connection when BroadcastEvent fires
+	if playerID != "" {
+		// For reconnection, set the existing player ID first
+		connection.SetPlayer(playerID, gameID)
+	}
+
 	// Execute the migrated join game action
 	var result *action.JoinGameResult
 	var err error
@@ -80,28 +93,37 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 		return
 	}
 
-	// Update connection with player and game IDs
-	connection.PlayerID = result.PlayerID
-	connection.GameID = gameID
+	// For new players, register connection now that we have the player ID
+	if playerID == "" {
+		connection.SetPlayer(result.PlayerID, gameID)
+	}
 
 	log.Info("✅ Join game action completed successfully",
 		zap.String("player_id", result.PlayerID))
 
-	// Send success response with full game state
+	// Send minimal success response confirming join
 	response := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnected,
 		GameID: gameID,
-		Payload: dto.PlayerConnectedPayload{
-			PlayerID:   result.PlayerID,
-			PlayerName: playerName,
-			Game:       result.GameDto,
+		Payload: map[string]interface{}{
+			"playerID":   result.PlayerID,
+			"playerName": playerName,
+			"success":    true,
 		},
 	}
 
 	connection.Send <- response
+	log.Info("📤 Sent player connected confirmation")
 
-	log.Info("📤 Sent player connected response with game state")
-	// Note: BroadcastEvent is published by the action, Broadcaster will handle game state updates
+	// CRITICAL: Publish BroadcastEvent AFTER connection is registered
+	// This ensures Broadcaster can find the connection when it tries to send
+	if h.eventBus != nil {
+		events.Publish(h.eventBus, events.BroadcastEvent{
+			GameID:    gameID,
+			PlayerIDs: nil, // Broadcast to all players
+		})
+		log.Info("📢 Published BroadcastEvent for game state update")
+	}
 }
 
 // sendError sends an error message to the client

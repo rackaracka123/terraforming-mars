@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
@@ -15,9 +16,10 @@ import (
 // JoinGameAction handles players joining games
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type JoinGameAction struct {
-	gameRepo game.GameRepository
-	eventBus *events.EventBusImpl
-	logger   *zap.Logger
+	gameRepo     game.GameRepository
+	eventBus     *events.EventBusImpl
+	cardRegistry cards.CardRegistry
+	logger       *zap.Logger
 }
 
 // JoinGameResult contains the result of joining a game
@@ -30,12 +32,14 @@ type JoinGameResult struct {
 func NewJoinGameAction(
 	gameRepo game.GameRepository,
 	eventBus *events.EventBusImpl,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *JoinGameAction {
 	return &JoinGameAction{
-		gameRepo: gameRepo,
-		eventBus: eventBus,
-		logger:   logger,
+		gameRepo:     gameRepo,
+		eventBus:     eventBus,
+		cardRegistry: cardRegistry,
+		logger:       logger,
 	}
 }
 
@@ -78,8 +82,8 @@ func (a *JoinGameAction) Execute(
 			log.Info("🔄 Player already exists, returning existing ID",
 				zap.String("player_id", p.ID()))
 
-			// Return the existing game state
-			gameDto := a.createGameDto(g)
+			// Return the existing game state with personalized view
+			gameDto := dto.ToGameDto(g, a.cardRegistry, p.ID())
 			return &JoinGameResult{
 				PlayerID: p.ID(),
 				GameDto:  gameDto,
@@ -124,8 +128,8 @@ func (a *JoinGameAction) Execute(
 		}
 	}
 
-	// 9. Convert to DTO
-	gameDto := a.createGameDto(g)
+	// 9. Convert to DTO with personalized view for the joining player
+	gameDto := dto.ToGameDto(g, a.cardRegistry, newPlayer.ID())
 
 	// Note: Broadcasting handled automatically via PlayerJoinedEvent
 	// g.AddPlayer() publishes event → SessionManager subscribes → broadcasts
@@ -135,28 +139,4 @@ func (a *JoinGameAction) Execute(
 		PlayerID: newPlayer.ID(),
 		GameDto:  gameDto,
 	}, nil
-}
-
-// createGameDto creates a basic game DTO for join responses
-// TODO: This is a temporary implementation - should use proper DTO mapper
-func (a *JoinGameAction) createGameDto(g *game.Game) dto.GameDto {
-	// For now, return a minimal DTO with just the essentials
-	// This will be replaced with proper DTO mapping once we fully migrate
-	return dto.GameDto{
-		ID:           g.ID(),
-		Status:       dto.GameStatus(g.Status()),
-		HostPlayerID: g.HostPlayerID(),
-		CurrentPhase: dto.GamePhase(g.CurrentPhase()),
-		Generation:   g.Generation(),
-		GlobalParameters: dto.GlobalParametersDto{
-			Temperature: g.GlobalParameters().Temperature(),
-			Oxygen:      g.GlobalParameters().Oxygen(),
-			Oceans:      g.GlobalParameters().Oceans(),
-		},
-		// TODO: Add full player data, board, etc. when DTO mapper is migrated
-		PaymentConstants: dto.PaymentConstantsDto{
-			SteelValue:    2, // Default steel value
-			TitaniumValue: 3, // Default titanium value
-		},
-	}
 }

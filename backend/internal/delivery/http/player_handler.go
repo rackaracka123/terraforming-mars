@@ -47,7 +47,7 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID))
 
-	// Execute query action
+	// Execute query actions - need both player and game for DTO mapping
 	player, err := h.getPlayerAction.Execute(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
@@ -55,8 +55,15 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	game, err := h.getGameAction.Execute(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game for player DTO mapping", zap.Error(err))
+		http.Error(w, "Game not found", http.StatusNotFound)
+		return
+	}
+
 	// Convert to DTO
-	playerDto := dto.ToPlayerDto(player, h.cardRegistry)
+	playerDto := dto.ToPlayerDto(player, game, h.cardRegistry)
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")

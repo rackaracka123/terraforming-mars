@@ -148,10 +148,11 @@ func (a *StartGameAction) distributeStartingCards(ctx context.Context, gameInsta
 			return fmt.Errorf("failed to set selection phase for player %s: %w", p.ID(), err)
 		}
 
-		log.Debug("✅ Distributed cards to player",
+		log.Info("✅ Distributed cards to player",
 			zap.String("player_id", p.ID()),
 			zap.Int("project_cards", len(projectCardIDs)),
-			zap.Int("corporations", len(corporationIDs)))
+			zap.Int("corporations", len(corporationIDs)),
+			zap.Strings("corporation_ids", corporationIDs))
 	}
 
 	return nil

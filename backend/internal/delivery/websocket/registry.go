@@ -4,12 +4,14 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/confirmation"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connection"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/standard_project"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/turn_management"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -20,9 +22,12 @@ import (
 // Eventually this will replace RegisterHandlers entirely
 func RegisterHandlers(
 	hub *core.Hub,
+	eventBus *events.EventBusImpl,
 	// Game lifecycle
 	createGameAction *action.CreateGameAction,
 	joinGameAction *action.JoinGameAction,
+	// Card actions
+	playCardAction *action.PlayCardAction,
 	// Standard projects
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
@@ -52,8 +57,12 @@ func RegisterHandlers(
 	createGameHandler := game.NewCreateGameHandler(createGameAction)
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
-	joinGameHandler := game.NewJoinGameHandler(joinGameAction)
+	joinGameHandler := game.NewJoinGameHandler(joinGameAction, eventBus)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Overwrites old handler
+
+	// ========== Card Actions ==========
+	playCardHandler := card.NewPlayCardHandler(playCardAction)
+	hub.RegisterHandler(dto.MessageTypeActionPlayCard, playCardHandler)
 
 	// ========== Standard Projects ==========
 	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction)
@@ -114,12 +123,13 @@ func RegisterHandlers(
 
 	log.Info("🎯 Migration handlers registered successfully")
 	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect (handles both join & reconnect)")
+	log.Info("   ✅ Card Actions (1): PlayCard")
 	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
-	log.Info("   📌 Total: 17 handlers registered (OLD handlers overwritten)")
+	log.Info("   📌 Total: 18 handlers registered (OLD handlers overwritten)")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler

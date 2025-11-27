@@ -35,37 +35,18 @@ func (h *PlayerDisconnectedHandler) HandleMessage(ctx context.Context, connectio
 	log.Info("⛓️‍💥 Processing player disconnected request (migrated)")
 
 	if connection.GameID == "" || connection.PlayerID == "" {
-		log.Error("Missing connection context")
-		h.sendError(connection, "Not connected to a game")
+		log.Error("Missing connection context - connection closing anyway")
 		return
 	}
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID)
 	if err != nil {
-		log.Error("Failed to execute player disconnected action", zap.Error(err))
-		h.sendError(connection, err.Error())
+		log.Error("Failed to execute player disconnected action (connection closing anyway)", zap.Error(err))
 		return
 	}
 
 	log.Info("✅ Player disconnected action completed successfully")
 
-	response := dto.WebSocketMessage{
-		Type:   dto.MessageTypePlayerDisconnected,
-		GameID: connection.GameID,
-		Payload: map[string]interface{}{
-			"playerId": connection.PlayerID,
-			"success":  true,
-		},
-	}
-
-	connection.Send <- response
-}
-
-func (h *PlayerDisconnectedHandler) sendError(connection *core.Connection, errorMessage string) {
-	connection.Send <- dto.WebSocketMessage{
-		Type: dto.MessageTypeError,
-		Payload: map[string]interface{}{
-			"error": errorMessage,
-		},
-	}
+	// NOTE: Do NOT send response on connection.Send - the connection is being closed
+	// The BroadcastEvent from PlayerDisconnectedAction will notify other players
 }

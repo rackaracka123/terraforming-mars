@@ -73,7 +73,10 @@ func main() {
 
 	// Game lifecycle (2)
 	createGameAction := action.NewCreateGameAction(gameRepo, eventBus, cardRegistry, log)
-	joinGameAction := action.NewJoinGameAction(gameRepo, eventBus, log)
+	joinGameAction := action.NewJoinGameAction(gameRepo, eventBus, cardRegistry, log)
+
+	// Card actions (1)
+	playCardAction := action.NewPlayCardAction(gameRepo, cardRegistry, log)
 
 	// Standard projects (6)
 	launchAsteroidAction := action.NewLaunchAsteroidAction(gameRepo, log)
@@ -115,6 +118,7 @@ func main() {
 
 	log.Info("✅ All migration actions initialized")
 	log.Info("   📌 Game Lifecycle (2): CreateGame, JoinGame")
+	log.Info("   📌 Card Actions (1): PlayCard")
 	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
 	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
@@ -126,9 +130,12 @@ func main() {
 	// ========== Register Migration Handlers with WebSocket Hub ==========
 	wsHandler.RegisterHandlers(
 		hub,
+		eventBus,
 		// Game lifecycle
 		createGameAction,
 		joinGameAction,
+		// Card actions
+		playCardAction,
 		// Standard projects
 		launchAsteroidAction,
 		buildPowerPlantAction,
@@ -152,7 +159,7 @@ func main() {
 		playerDisconnectedAction,
 	)
 
-	log.Info("🎯 Migration handlers registered with WebSocket hub (17 handlers)")
+	log.Info("🎯 Migration handlers registered with WebSocket hub (18 handlers)")
 
 	// Silence unused admin actions (HTTP-only, not yet wired)
 	_ = adminSetPhaseAction

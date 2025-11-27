@@ -96,9 +96,9 @@ func (b *Broadcaster) sendToPlayer(ctx context.Context, game *game.Game, playerI
 		zap.String("player_id", playerID),
 	)
 
-	// Create DTO from game state using migration mapper
-	// TODO: Implement personalization based on playerID
-	gameDto := dto.ToGameDto(game, b.cardRegistry)
+	// Create personalized DTO from game state using migration mapper
+	// playerID determines which player is "currentPlayer" vs "otherPlayers"
+	gameDto := dto.ToGameDto(game, b.cardRegistry, playerID)
 
 	// Create game updated message
 	message := dto.WebSocketMessage{

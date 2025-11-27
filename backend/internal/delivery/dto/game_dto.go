@@ -259,8 +259,8 @@ type CardDto struct {
 }
 
 type SelectStartingCardsPhaseDto struct {
-	AvailableCards        []CardDto `json:"availableCards" ts:"CardDto[]"`       // Cards available for selection
-	AvailableCorporations []string  `json:"availableCorporations" ts:"string[]"` // Corporation IDs available for selection (2 corporations)
+	AvailableCards        []CardDto `json:"availableCards" ts:"CardDto[]"`        // Cards available for selection
+	AvailableCorporations []CardDto `json:"availableCorporations" ts:"CardDto[]"` // Corporation cards available for selection (2 corporations)
 }
 
 type SelectStartingCardsOtherPlayerDto struct {

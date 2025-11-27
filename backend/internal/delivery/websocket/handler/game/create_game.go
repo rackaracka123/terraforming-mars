@@ -75,18 +75,21 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 	log.Info("✅ Create game action completed successfully",
 		zap.String("game_id", game.ID()))
 
-	// Send success response with game ID
+	// Send simple success response with game ID
+	// Frontend will then call playerConnect to join the game
+	// and receive full game state via the broadcaster
 	response := dto.WebSocketMessage{
-		Type: "game-created", // Custom message type for create game response
+		Type: dto.MessageTypeGameUpdated, // Use standard message type
 		Payload: map[string]interface{}{
 			"gameId":  game.ID(),
 			"success": true,
+			"message": "Game created successfully. Join with playerConnect.",
 		},
 	}
 
 	connection.Send <- response
 
-	log.Info("📤 Sent game created response")
+	log.Info("📤 Sent game created response to client")
 }
 
 // sendError sends an error message to the client

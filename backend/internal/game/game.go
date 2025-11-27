@@ -231,16 +231,13 @@ func (g *Game) AddPlayer(ctx context.Context, p *player.Player) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Publish event AFTER releasing lock
+	// Publish PlayerJoinedEvent AFTER releasing lock
+	// NOTE: BroadcastEvent is NOT published here - the handler is responsible
+	// for publishing it AFTER registering the connection with the Hub
 	if g.eventBus != nil {
 		events.Publish(g.eventBus, events.PlayerJoinedEvent{
 			GameID:   g.id,
 			PlayerID: p.ID(),
-		})
-		// Trigger client broadcast to all players
-		events.Publish(g.eventBus, events.BroadcastEvent{
-			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -634,6 +631,9 @@ func (g *Game) SetSelectStartingCardsPhase(ctx context.Context, playerID string,
 	} else {
 		phaseCopy := *phase
 		g.selectStartingCardsPhases[playerID] = &phaseCopy
+		// DEBUG: Log what we're setting
+		fmt.Printf("🔧 SetSelectStartingCardsPhase: playerID=%s, cards=%d, corps=%v\n",
+			playerID, len(phase.AvailableCards), phase.AvailableCorporations)
 	}
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
