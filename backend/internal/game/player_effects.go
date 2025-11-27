@@ -12,11 +12,16 @@ type Effects struct {
 	requirementModifiers []shared.RequirementModifier
 }
 
-func newEffects() *Effects {
+// NewEffects creates a new Effects instance
+func NewEffects() *Effects {
 	return &Effects{
 		effects:              []PlayerEffect{},
 		requirementModifiers: []shared.RequirementModifier{},
 	}
+}
+
+func newEffects() *Effects {
+	return NewEffects()
 }
 
 func (e *Effects) List() []PlayerEffect {

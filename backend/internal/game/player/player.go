@@ -42,8 +42,8 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		connected:     true, // Players start as connected when created
 		eventBus:      eventBus,
 		corporationID: "",
-		hand:          newHand(),
-		playedCards:   newPlayedCards(),
+		hand:          newHand(eventBus, gameID, playerID),
+		playedCards:   newPlayedCards(eventBus, gameID, playerID),
 		resources:     newResources(eventBus, gameID, playerID),
 		turn:          newTurn(),
 		selection:     newSelection(),
@@ -72,6 +72,14 @@ func (p *Player) IsConnected() bool {
 
 func (p *Player) SetConnected(connected bool) {
 	p.connected = connected
+
+	// Publish broadcast event to notify clients of connection status change
+	if p.eventBus != nil {
+		events.Publish(p.eventBus, events.BroadcastEvent{
+			GameID:    p.gameID,
+			PlayerIDs: []string{p.id},
+		})
+	}
 }
 
 // ==================== Component Accessors ====================

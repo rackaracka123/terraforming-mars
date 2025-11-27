@@ -37,7 +37,7 @@ func main() {
 	defer logger.Shutdown()
 
 	log := logger.Get()
-	log.Info("🚀 Starting Terraforming Mars backend server (MIGRATION ARCHITECTURE)")
+	log.Info("🚀 Starting Terraforming Mars backend server")
 	log.Info("Log level set to " + logLevel)
 
 	// Setup graceful shutdown
@@ -57,61 +57,61 @@ func main() {
 	log.Info("🎆 Event bus initialized")
 
 	// ========== Initialize Game Repository (Single Source of Truth) ==========
-	migrationGameRepo := game.NewInMemoryGameRepository()
-	log.Info("🎮 Game repository initialized (migration architecture)")
+	gameRepo := game.NewInMemoryGameRepository()
+	log.Info("🎮 Game repository initialized")
 
 	// ========== Initialize WebSocket Hub ==========
 	hub := core.NewHub()
 	log.Info("🔌 WebSocket hub initialized")
 
-	// ========== Initialize Migration Broadcaster (Event-Driven Broadcasting) ==========
-	migrationBroadcaster := wsHandler.NewBroadcaster(migrationGameRepo, eventBus, hub, cardRegistry)
-	log.Info("📡 Migration broadcaster initialized and subscribed to BroadcastEvent")
-	_ = migrationBroadcaster // Silence unused warning
+	// ========== Initialize Game State Broadcaster (Event-Driven Broadcasting) ==========
+	broadcaster := wsHandler.NewBroadcaster(gameRepo, eventBus, hub, cardRegistry)
+	log.Info("📡 Game state broadcaster initialized and subscribed to BroadcastEvent")
+	_ = broadcaster // Silence unused warning
 
-	// ========== Initialize Migration Actions ==========
+	// ========== Initialize Game Actions ==========
 
 	// Game lifecycle (2)
-	createGameAction := action.NewCreateGameAction(migrationGameRepo, eventBus, log)
-	joinGameAction := action.NewJoinGameAction(migrationGameRepo, eventBus, log)
+	createGameAction := action.NewCreateGameAction(gameRepo, eventBus, log)
+	joinGameAction := action.NewJoinGameAction(gameRepo, eventBus, log)
 
 	// Standard projects (6)
-	launchAsteroidAction := action.NewLaunchAsteroidAction(migrationGameRepo, log)
-	buildPowerPlantAction := action.NewBuildPowerPlantAction(migrationGameRepo, log)
-	buildAquiferAction := action.NewBuildAquiferAction(migrationGameRepo, log)
-	buildCityAction := action.NewBuildCityAction(migrationGameRepo, log)
-	plantGreeneryAction := action.NewPlantGreeneryAction(migrationGameRepo, log)
-	sellPatentsAction := action.NewSellPatentsAction(migrationGameRepo, log)
+	launchAsteroidAction := action.NewLaunchAsteroidAction(gameRepo, log)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(gameRepo, log)
+	buildAquiferAction := action.NewBuildAquiferAction(gameRepo, log)
+	buildCityAction := action.NewBuildCityAction(gameRepo, log)
+	plantGreeneryAction := action.NewPlantGreeneryAction(gameRepo, log)
+	sellPatentsAction := action.NewSellPatentsAction(gameRepo, log)
 
 	// Resource conversions (2)
-	convertHeatAction := action.NewConvertHeatToTemperatureAction(migrationGameRepo, log)
-	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(migrationGameRepo, log)
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(gameRepo, log)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(gameRepo, log)
 
 	// Turn management (3)
-	startGameAction := action.NewStartGameAction(migrationGameRepo, log)
-	skipActionAction := action.NewSkipActionAction(migrationGameRepo, log)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(migrationGameRepo, log)
+	startGameAction := action.NewStartGameAction(gameRepo, log)
+	skipActionAction := action.NewSkipActionAction(gameRepo, log)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, log)
 
 	// Confirmations (3)
-	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(migrationGameRepo, log)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(migrationGameRepo, log)
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(migrationGameRepo, eventBus, log)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, log)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, eventBus, log)
 
 	// Connection management (2)
-	playerReconnectedAction := action.NewPlayerReconnectedAction(migrationGameRepo, log)
-	playerDisconnectedAction := action.NewPlayerDisconnectedAction(migrationGameRepo, log)
+	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(gameRepo, log)
 
 	// Admin actions (5)
-	adminSetPhaseAction := admin.NewSetPhaseAction(migrationGameRepo, log)
-	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(migrationGameRepo, log)
-	adminSetResourcesAction := admin.NewSetResourcesAction(migrationGameRepo, log)
-	adminSetProductionAction := admin.NewSetProductionAction(migrationGameRepo, log)
-	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(migrationGameRepo, log)
+	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)
+	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(gameRepo, log)
+	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
+	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
+	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
 
 	// Query actions for HTTP (3)
-	getGameAction := query.NewGetGameAction(migrationGameRepo, log)
-	listGamesAction := query.NewListGamesAction(migrationGameRepo, log)
-	getPlayerAction := query.NewGetPlayerAction(migrationGameRepo, log)
+	getGameAction := query.NewGetGameAction(gameRepo, log)
+	listGamesAction := query.NewListGamesAction(gameRepo, log)
+	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
 
 	log.Info("✅ All migration actions initialized")
 	log.Info("   📌 Game Lifecycle (2): CreateGame, JoinGame")

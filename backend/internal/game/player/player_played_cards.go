@@ -1,16 +1,25 @@
 package player
 
-import "sync"
+import (
+	"sync"
+	"terraforming-mars-backend/internal/events"
+)
 
 // PlayedCards manages all cards a player has played, including corporation
 type PlayedCards struct {
-	mu    sync.RWMutex
-	cards []string // Includes ALL played cards (corporation + project cards)
+	mu       sync.RWMutex
+	cards    []string // Includes ALL played cards (corporation + project cards)
+	eventBus *events.EventBusImpl
+	gameID   string
+	playerID string
 }
 
-func newPlayedCards() *PlayedCards {
+func newPlayedCards(eventBus *events.EventBusImpl, gameID, playerID string) *PlayedCards {
 	return &PlayedCards{
-		cards: []string{},
+		cards:    []string{},
+		eventBus: eventBus,
+		gameID:   gameID,
+		playerID: playerID,
 	}
 }
 
@@ -38,8 +47,16 @@ func (pc *PlayedCards) Contains(cardID string) bool {
 // AddCard adds a card to played cards (used for both corporation and project cards)
 func (pc *PlayedCards) AddCard(cardID string) {
 	pc.mu.Lock()
-	defer pc.mu.Unlock()
 	pc.cards = append(pc.cards, cardID)
+	pc.mu.Unlock()
+
+	// Publish broadcast event after adding card
+	if pc.eventBus != nil {
+		events.Publish(pc.eventBus, events.BroadcastEvent{
+			GameID:    pc.gameID,
+			PlayerIDs: []string{pc.playerID},
+		})
+	}
 }
 
 // RemoveCard removes a card from played cards (if it exists)

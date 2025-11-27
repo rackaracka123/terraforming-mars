@@ -1,16 +1,25 @@
 package player
 
-import "sync"
+import (
+	"sync"
+	"terraforming-mars-backend/internal/events"
+)
 
 // Hand manages player card hand (cards currently held)
 type Hand struct {
-	mu    sync.RWMutex
-	cards []string
+	mu       sync.RWMutex
+	cards    []string
+	eventBus *events.EventBusImpl
+	gameID   string
+	playerID string
 }
 
-func newHand() *Hand {
+func newHand(eventBus *events.EventBusImpl, gameID, playerID string) *Hand {
 	return &Hand{
-		cards: []string{},
+		cards:    []string{},
+		eventBus: eventBus,
+		gameID:   gameID,
+		playerID: playerID,
 	}
 }
 
@@ -52,18 +61,37 @@ func (h *Hand) SetCards(cards []string) {
 
 func (h *Hand) AddCard(cardID string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.cards = append(h.cards, cardID)
+	h.mu.Unlock()
+
+	// Publish broadcast event after adding card
+	if h.eventBus != nil {
+		events.Publish(h.eventBus, events.BroadcastEvent{
+			GameID:    h.gameID,
+			PlayerIDs: []string{h.playerID},
+		})
+	}
 }
 
 func (h *Hand) RemoveCard(cardID string) bool {
+	var removed bool
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	for i, id := range h.cards {
 		if id == cardID {
 			h.cards = append(h.cards[:i], h.cards[i+1:]...)
-			return true
+			removed = true
+			break
 		}
 	}
-	return false
+	h.mu.Unlock()
+
+	// Publish broadcast event after removing card (only if card was found)
+	if removed && h.eventBus != nil {
+		events.Publish(h.eventBus, events.BroadcastEvent{
+			GameID:    h.gameID,
+			PlayerIDs: []string{h.playerID},
+		})
+	}
+
+	return removed
 }

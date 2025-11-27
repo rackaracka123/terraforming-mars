@@ -10,10 +10,15 @@ type Actions struct {
 	actions []PlayerAction
 }
 
-func newActions() *Actions {
+// NewActions creates a new Actions instance
+func NewActions() *Actions {
 	return &Actions{
 		actions: []PlayerAction{},
 	}
+}
+
+func newActions() *Actions {
+	return NewActions()
 }
 
 func (a *Actions) List() []PlayerAction {

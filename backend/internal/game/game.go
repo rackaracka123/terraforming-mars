@@ -39,6 +39,10 @@ type Game struct {
 	forcedFirstActions         map[string]*player.ForcedFirstAction
 	productionPhases           map[string]*player.ProductionPhase
 	selectStartingCardsPhases  map[string]*player.SelectStartingCardsPhase
+
+	// Player-specific actions and effects (managed by Game to avoid import cycles)
+	playerActions map[string]*Actions
+	playerEffects map[string]*Effects
 }
 
 // NewGame creates a new game with the given settings
@@ -84,6 +88,9 @@ func NewGame(
 		forcedFirstActions:         make(map[string]*player.ForcedFirstAction),
 		productionPhases:           make(map[string]*player.ProductionPhase),
 		selectStartingCardsPhases:  make(map[string]*player.SelectStartingCardsPhase),
+		// Initialize player actions and effects maps
+		playerActions: make(map[string]*Actions),
+		playerEffects: make(map[string]*Effects),
 	}
 }
 
@@ -685,4 +692,40 @@ func (g *Game) ProcessNextTile(ctx context.Context, playerID string) (string, er
 	}
 
 	return nextTileType, nil
+}
+
+// ================== Player Actions and Effects Accessors ==================
+
+// GetPlayerActions returns the actions for a player (creates new if doesn't exist)
+func (g *Game) GetPlayerActions(playerID string) *Actions {
+	g.mu.RLock()
+	actions, exists := g.playerActions[playerID]
+	g.mu.RUnlock()
+
+	if !exists || actions == nil {
+		// Initialize if doesn't exist
+		g.mu.Lock()
+		actions = NewActions()
+		g.playerActions[playerID] = actions
+		g.mu.Unlock()
+	}
+
+	return actions
+}
+
+// GetPlayerEffects returns the effects for a player (creates new if doesn't exist)
+func (g *Game) GetPlayerEffects(playerID string) *Effects {
+	g.mu.RLock()
+	effects, exists := g.playerEffects[playerID]
+	g.mu.RUnlock()
+
+	if !exists || effects == nil {
+		// Initialize if doesn't exist
+		g.mu.Lock()
+		effects = NewEffects()
+		g.playerEffects[playerID] = effects
+		g.mu.Unlock()
+	}
+
+	return effects
 }

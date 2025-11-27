@@ -891,6 +891,7 @@ export interface BoardDto {
 export interface CreateGameRequest {
   maxPlayers: number /* int */;
   developmentMode: boolean;
+  cardPacks?: string[];
 }
 /**
  * CreateGameResponse represents the response for creating a game

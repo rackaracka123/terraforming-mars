@@ -103,12 +103,6 @@ func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
 	log.Info("✅ Games listed successfully", zap.Int("count", len(games)))
 }
 
-// CreateGameRequest represents the request body for creating a game
-type CreateGameRequest struct {
-	MaxPlayers int      `json:"maxPlayers"`
-	CardPacks  []string `json:"cardPacks"`
-}
-
 // CreateGame handles POST /api/v1/games
 func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
@@ -117,17 +111,18 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	log.Info("📡 HTTP POST /api/v1/games")
 
 	// Parse request body
-	var req CreateGameRequest
+	var req dto.CreateGameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("Failed to decode request", zap.Error(err))
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Convert to migration GameSettings
+	// Convert to GameSettings
 	settings := game.GameSettings{
-		MaxPlayers: req.MaxPlayers,
-		CardPacks:  req.CardPacks,
+		MaxPlayers:      req.MaxPlayers,
+		DevelopmentMode: req.DevelopmentMode,
+		CardPacks:       req.CardPacks,
 	}
 
 	// Execute create game action
