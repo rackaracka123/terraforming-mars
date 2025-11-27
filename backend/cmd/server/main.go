@@ -72,7 +72,7 @@ func main() {
 	// ========== Initialize Game Actions ==========
 
 	// Game lifecycle (2)
-	createGameAction := action.NewCreateGameAction(gameRepo, eventBus, log)
+	createGameAction := action.NewCreateGameAction(gameRepo, eventBus, cardRegistry, log)
 	joinGameAction := action.NewJoinGameAction(gameRepo, eventBus, log)
 
 	// Standard projects (6)
