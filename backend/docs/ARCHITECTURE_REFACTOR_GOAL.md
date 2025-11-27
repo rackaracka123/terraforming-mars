@@ -71,6 +71,7 @@ type Game struct {
     deck              *Deck
     generation        int
     phase             GamePhase
+    currentTurn       *Turn  // Track active player and available actions
     pendingSelections map[string]*Selection
 }
 
@@ -96,6 +97,23 @@ func (gp *GlobalParameters) IncreaseOxygen(ctx context.Context, steps int)
 func (gp *GlobalParameters) Temperature() int
 ```
 
+### Turn
+```go
+type Turn struct {
+    mu               sync.RWMutex
+    playerID         string
+    availableActions []ActionType
+    actionsRemaining int
+}
+
+// Public methods
+func (t *Turn) PlayerID() string
+func (t *Turn) AvailableActions() []ActionType
+func (t *Turn) CanPerformAction(actionType ActionType) bool
+func (t *Turn) DecrementActions()
+func (t *Turn) SetActions(actions []ActionType)
+```
+
 ### Player (in `internal/game/player/` package)
 ```go
 package player
@@ -106,6 +124,9 @@ type Player struct {
     name   string
     gameID string
 
+    // Connection status
+    connected bool
+
     // Corporation reference (quick lookup in playedCards)
     corporationID string  // References corporation card ID in playedCards
 
@@ -113,7 +134,6 @@ type Player struct {
     hand        *Hand
     playedCards *PlayedCards
     resources   *PlayerResources
-    turn        *Turn
     selection   *Selection
 
     // Infrastructure
@@ -123,6 +143,8 @@ type Player struct {
 // Public methods - delegate to components
 func (p *Player) ID() string
 func (p *Player) Name() string
+func (p *Player) IsConnected() bool
+func (p *Player) SetConnected(connected bool)
 func (p *Player) Hand() *Hand
 func (p *Player) PlayedCards() *PlayedCards
 func (p *Player) Resources() *PlayerResources

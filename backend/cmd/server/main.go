@@ -11,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	admin "terraforming-mars-backend/internal/action/admin"
 	query "terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
@@ -42,6 +43,14 @@ func main() {
 	// Setup graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// ========== Initialize Card Registry ==========
+	cardData, err := cards.LoadCardsFromJSON("assets/terraforming_mars_cards.json")
+	if err != nil {
+		log.Fatal("Failed to load cards", zap.Error(err))
+	}
+	cardRegistry := cards.NewInMemoryCardRegistry(cardData)
+	log.Info("🃏 Card registry initialized", zap.Int("card_count", len(cardData)))
 
 	// ========== Initialize Event Bus ==========
 	eventBus := events.NewEventBus()
