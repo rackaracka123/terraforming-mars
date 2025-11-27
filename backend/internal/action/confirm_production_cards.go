@@ -152,7 +152,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		// Set current turn to first player
 		if len(allPlayers) > 0 {
 			firstPlayerID := allPlayers[0].ID()
-			if err := g.SetCurrentTurn(ctx, firstPlayerID); err != nil {
+			if err := g.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
 				log.Error("Failed to set current turn", zap.Error(err))
 				return fmt.Errorf("failed to set current turn: %w", err)
 			}

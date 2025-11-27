@@ -50,7 +50,7 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, pl
 	}
 
 	// 3. Update player connection status to connected
-	player.Turn().SetConnectionStatus(true)
+	player.SetConnected(true)
 
 	log.Info("✅ Player connection status updated to connected")
 

@@ -84,7 +84,7 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	// 8. BUSINESS LOGIC: Set first player's turn
 	if len(players) > 0 {
 		firstPlayerID := players[0].ID()
-		if err := g.SetCurrentTurn(ctx, firstPlayerID); err != nil {
+		if err := g.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
 			log.Error("Failed to set current turn", zap.Error(err))
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}

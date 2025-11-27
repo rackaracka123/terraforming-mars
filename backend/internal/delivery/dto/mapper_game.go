@@ -4,7 +4,6 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
-	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/logger"
 
@@ -88,7 +87,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry) GameDto {
 		CurrentPlayer:    currentPlayer,
 		OtherPlayers:     otherPlayers,
 		ViewingPlayerID:  currentPlayer.ID, // Set to first player for now
-		CurrentTurn:      g.CurrentTurn(),
+		CurrentTurn:      getCurrentTurnPlayerID(g),
 		Generation:       g.Generation(),
 		TurnOrder:        []string{}, // Migration doesn't track turn order yet
 		Board: BoardDto{
@@ -96,6 +95,16 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry) GameDto {
 		},
 		PaymentConstants: paymentConstants,
 	}
+}
+
+// getCurrentTurnPlayerID extracts the player ID from the current turn
+func getCurrentTurnPlayerID(g *game.Game) *string {
+	turn := g.CurrentTurn()
+	if turn == nil {
+		return nil
+	}
+	playerID := turn.PlayerID()
+	return &playerID
 }
 
 // convertTileBonuses converts migration TileBonus to DTO

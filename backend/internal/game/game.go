@@ -26,7 +26,7 @@ type Game struct {
 	hostPlayerID     string
 	currentPhase     GamePhase
 	globalParameters *global_parameters.GlobalParameters
-	currentTurn      *string // Whose turn it is (nullable)
+	currentTurn      *Turn // Tracks active player and available actions (nullable)
 	generation       int
 	board            *board.Board
 	deck             *deck.Deck
@@ -144,15 +144,11 @@ func (g *Game) Generation() int {
 	return g.generation
 }
 
-// CurrentTurn returns the current player's turn (may be nil)
-func (g *Game) CurrentTurn() *string {
+// CurrentTurn returns the current turn information (may be nil)
+func (g *Game) CurrentTurn() *Turn {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	if g.currentTurn == nil {
-		return nil
-	}
-	turnCopy := *g.currentTurn
-	return &turnCopy
+	return g.currentTurn
 }
 
 // ================== Component Accessors ==================
@@ -359,14 +355,14 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 	return nil
 }
 
-// SetCurrentTurn sets the current turn to a specific player
-func (g *Game) SetCurrentTurn(ctx context.Context, playerID string) error {
+// SetCurrentTurn sets the current turn to a specific player with available actions
+func (g *Game) SetCurrentTurn(ctx context.Context, playerID string, availableActions []ActionType) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	g.mu.Lock()
-	g.currentTurn = &playerID
+	g.currentTurn = NewTurn(playerID, availableActions)
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
@@ -408,6 +404,8 @@ func (g *Game) NextPlayer() *string {
 		return nil
 	}
 
+	currentPlayerID := g.currentTurn.PlayerID()
+
 	// Get ordered list of player IDs (for now, simple iteration)
 	playerIDs := make([]string, 0, len(g.players))
 	for id := range g.players {
@@ -421,7 +419,7 @@ func (g *Game) NextPlayer() *string {
 	// Find current player index
 	currentIndex := -1
 	for i, playerID := range playerIDs {
-		if playerID == *g.currentTurn {
+		if playerID == currentPlayerID {
 			currentIndex = i
 			break
 		}

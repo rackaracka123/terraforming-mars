@@ -52,10 +52,10 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 
 	// 3. BUSINESS LOGIC: Validate it's the player's turn
 	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || *currentTurn != playerID {
+	if currentTurn == nil || currentTurn.PlayerID() != playerID {
 		var turnPlayerID string
 		if currentTurn != nil {
-			turnPlayerID = *currentTurn
+			turnPlayerID = currentTurn.PlayerID()
 		}
 		log.Warn("Not player's turn",
 			zap.String("current_turn_player", turnPlayerID),
@@ -176,7 +176,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 
 	// 12. Update current turn
 	nextPlayerID := players[nextPlayerIndex].ID()
-	err = g.SetCurrentTurn(ctx, nextPlayerID)
+	err = g.SetCurrentTurn(ctx, nextPlayerID, []game.ActionType{})
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
@@ -284,7 +284,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 	// 3. Set current turn to first player
 	if len(players) > 0 {
 		firstPlayerID := players[0].ID()
-		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID); err != nil {
+		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}
 	}

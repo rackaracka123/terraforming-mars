@@ -117,10 +117,10 @@ func ValidateCurrentTurn(
 		return fmt.Errorf("no current turn set")
 	}
 
-	if *currentTurn != playerID {
+	if currentTurn.PlayerID() != playerID {
 		log.Error("Not player's turn",
 			zap.String("player_id", playerID),
-			zap.String("current_turn", *currentTurn))
+			zap.String("current_turn", currentTurn.PlayerID()))
 		return fmt.Errorf("not your turn")
 	}
 

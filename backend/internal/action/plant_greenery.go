@@ -57,10 +57,10 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 
 	// 3. BUSINESS LOGIC: Validate it's the player's turn
 	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || *currentTurn != playerID {
+	if currentTurn == nil || currentTurn.PlayerID() != playerID {
 		var turnPlayerID string
 		if currentTurn != nil {
-			turnPlayerID = *currentTurn
+			turnPlayerID = currentTurn.PlayerID()
 		}
 		log.Warn("Not player's turn",
 			zap.String("current_turn_player", turnPlayerID),

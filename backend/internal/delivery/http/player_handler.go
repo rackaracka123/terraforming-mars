@@ -47,18 +47,11 @@ func (h *PlayerHandler) GetPlayer(w http.ResponseWriter, r *http.Request) {
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID))
 
-	// Execute query actions
+	// Execute query action
 	player, err := h.getPlayerAction.Execute(ctx, gameID, playerID)
 	if err != nil {
 		log.Error("Failed to get player", zap.Error(err))
 		http.Error(w, "Player not found", http.StatusNotFound)
-		return
-	}
-
-	game, err := h.getGameAction.Execute(ctx, gameID)
-	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
 

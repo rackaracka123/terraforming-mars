@@ -12,6 +12,9 @@ type Player struct {
 	name   string
 	gameID string
 
+	// Connection status
+	connected bool
+
 	// Infrastructure
 	eventBus *events.EventBusImpl
 
@@ -36,6 +39,7 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		id:            playerID,
 		name:          name,
 		gameID:        gameID,
+		connected:     true, // Players start as connected when created
 		eventBus:      eventBus,
 		corporationID: "",
 		hand:          newHand(),
@@ -58,6 +62,16 @@ func (p *Player) Name() string {
 
 func (p *Player) GameID() string {
 	return p.gameID
+}
+
+// ==================== Connection Status ====================
+
+func (p *Player) IsConnected() bool {
+	return p.connected
+}
+
+func (p *Player) SetConnected(connected bool) {
+	p.connected = connected
 }
 
 // ==================== Component Accessors ====================

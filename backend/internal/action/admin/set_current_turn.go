@@ -50,7 +50,7 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playe
 	}
 
 	// 3. Update current turn
-	err = game.SetCurrentTurn(ctx, playerID)
+	err = game.SetCurrentTurn(ctx, playerID, nil)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update current turn: %w", err)

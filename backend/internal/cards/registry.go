@@ -2,7 +2,7 @@ package cards
 
 import (
 	"fmt"
-	"terraforming-mars/internal/game"
+	"terraforming-mars-backend/internal/game"
 )
 
 // CardRegistry provides lookup functionality for card data

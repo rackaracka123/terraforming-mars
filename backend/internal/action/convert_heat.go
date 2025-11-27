@@ -60,7 +60,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 
 	// 3. Validate it's the player's turn
 	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || *currentTurn != playerID {
+	if currentTurn == nil || currentTurn.PlayerID() != playerID {
 		log.Warn("Not player's turn")
 		return fmt.Errorf("not your turn")
 	}

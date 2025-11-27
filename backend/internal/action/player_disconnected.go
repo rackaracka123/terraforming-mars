@@ -50,7 +50,7 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 	}
 
 	// 3. Update player connection status to disconnected
-	player.Turn().SetConnectionStatus(false)
+	player.SetConnected(false)
 
 	log.Info("✅ Player connection status updated to disconnected")
 
