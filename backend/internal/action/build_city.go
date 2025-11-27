@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
-	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/board"
-	game "terraforming-mars-backend/internal/session/game/core"
-	playerTypes "terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
+	playerPkg "terraforming-mars-backend/internal/game/player"
 )
 
 const (
@@ -18,45 +16,53 @@ const (
 )
 
 // BuildCityAction handles the business logic for building a city standard project
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type BuildCityAction struct {
-	BaseAction
-	gameRepo      game.Repository
-	tileProcessor *board.Processor
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewBuildCityAction creates a new build city action
 func NewBuildCityAction(
-	gameRepo game.Repository,
-	tileProcessor *board.Processor,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *BuildCityAction {
 	return &BuildCityAction{
-		BaseAction:    NewBaseAction(sessionMgrFactory),
-		gameRepo:      gameRepo,
-		tileProcessor: tileProcessor,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the build city action
-func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "build_city"),
+	)
 	log.Info("🏢 Building city")
 
-	// 1. Validate game is active
-	_, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get session and player
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 2. Validate game is active
+	if g.Status() != game.GameStatusActive {
+		log.Warn("Game is not active", zap.String("status", string(g.Status())))
+		return fmt.Errorf("game is not active: %s", g.Status())
+	}
+
+	// 3. Get player from game
+	player, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Validate cost (25 M€)
+	// 4. BUSINESS LOGIC: Validate cost (25 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < BuildCityCost {
 		log.Warn("Insufficient credits for city",
@@ -65,9 +71,10 @@ func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, pl
 		return fmt.Errorf("insufficient credits: need %d, have %d", BuildCityCost, resources.Credits)
 	}
 
-	// 4. Deduct cost using domain method
-	player.Resources().Add(map[types.ResourceType]int{
-		types.ResourceCredits: -BuildCityCost,
+	// 5. BUSINESS LOGIC: Deduct cost using domain method
+	// Player.game.Resources() is already encapsulated - no changes needed
+	player.Resources().Add(map[shared.ResourceType]int{
+		shared.ResourceCredits: -BuildCityCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
@@ -75,37 +82,37 @@ func (a *BuildCityAction) Execute(ctx context.Context, sess *session.Session, pl
 		zap.Int("cost", BuildCityCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 5. Increase credit production by 1 using domain method
-	player.Resources().AddProduction(map[types.ResourceType]int{
-		types.ResourceCredits: 1,
+	// 6. BUSINESS LOGIC: Increase credit production by 1 using domain method
+	player.Resources().AddProduction(map[shared.ResourceType]int{
+		shared.ResourceCredits: 1,
 	})
 
 	production := player.Resources().Production() // Refresh after update
 	log.Info("📈 Increased credit production",
 		zap.Int("new_credit_production", production.Credits))
 
-	// 6. Queue city tile for placement on Game (phase state managed by Game)
-	queue := &playerTypes.PendingTileSelectionQueue{
+	// 7. Queue city tile for placement on Game (phase state managed by Game)
+	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"city"},
 		Source: "standard-project-city",
 	}
-	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
 	log.Info("📋 Created tile queue for city placement")
 
-	// 7. Tile queue processing (now automatic via TileQueueCreatedEvent)
-	// No manual call needed - TileProcessor subscribes to events and processes automatically
-
-	// 8. Consume action using domain method
+	// 8. BUSINESS LOGIC: Consume action using domain method
 	if player.Turn().ConsumeAction() {
 		availableActions := player.Turn().AvailableActions()
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
 	}
 
-	// 9. Broadcast state
-	a.BroadcastGameState(gameID, log)
+	// 9. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - g.SetPendingTileSelectionQueue() publishes BroadcastEvent
+	//    - player.Resources().Add() publishes ResourcesChangedEvent
+	//    - player.Resources().AddProduction() publishes ProductionChangedEvent
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ City built successfully, tile queued for placement",
 		zap.Int("new_credit_production", production.Credits),

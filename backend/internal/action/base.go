@@ -1,27 +1,25 @@
 package action
 
 import (
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/session"
 
 	"go.uber.org/zap"
 )
 
-// BaseAction provides common dependencies and utilities for all actions
-// All action implementations should embed this struct to access shared functionality
-// NOTE: sessionFactory removed - actions receive Session directly as parameter (Phase 4)
+// BaseAction provides common dependencies for all migrated actions
+// Following the new architecture: actions use ONLY GameRepository (+ logger)
+// Broadcasting happens automatically via events published by Game methods
 type BaseAction struct {
-	sessionMgrFactory session.SessionManagerFactory
-	logger            *zap.Logger
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
-// NewBaseAction creates a new BaseAction with common dependencies
-func NewBaseAction(
-	sessionMgrFactory session.SessionManagerFactory,
-) BaseAction {
+// NewBaseAction creates a new BaseAction with minimal dependencies
+func NewBaseAction(gameRepo game.GameRepository) BaseAction {
 	return BaseAction{
-		sessionMgrFactory: sessionMgrFactory,
-		logger:            logger.Get(),
+		gameRepo: gameRepo,
+		logger:   logger.Get(),
 	}
 }
 
@@ -39,31 +37,7 @@ func (b *BaseAction) GetLogger() *zap.Logger {
 	return b.logger
 }
 
-// BroadcastGameState broadcasts the current game state to all connected players
-// Gets the session-specific broadcaster for this game from the factory
-// Errors are logged but not returned as broadcasting failures are non-fatal
-func (b *BaseAction) BroadcastGameState(gameID string, log *zap.Logger) {
-	sessionMgr := b.sessionMgrFactory.GetOrCreate(gameID)
-	err := sessionMgr.Broadcast()
-	if err != nil {
-		log.Error("Failed to broadcast game state", zap.Error(err))
-		// Non-fatal - game state was updated, clients may be out of sync temporarily
-	}
-}
-
-// SendToPlayer sends the current game state to a specific player
-// Gets the session-specific broadcaster for this game from the factory
-// Errors are logged but not returned as broadcasting failures are non-fatal
-func (b *BaseAction) SendToPlayer(gameID, playerID string, log *zap.Logger) {
-	sessionMgr := b.sessionMgrFactory.GetOrCreate(gameID)
-	err := sessionMgr.Send(playerID)
-	if err != nil {
-		log.Error("Failed to send game state to player", zap.Error(err))
-		// Non-fatal - game state was updated, player may be out of sync temporarily
-	}
-}
-
-// GetSessionManagerFactory returns the session manager factory
-func (b *BaseAction) GetSessionManagerFactory() session.SessionManagerFactory {
-	return b.sessionMgrFactory
+// GameRepository returns the game repository
+func (b *BaseAction) GameRepository() game.GameRepository {
+	return b.gameRepo
 }

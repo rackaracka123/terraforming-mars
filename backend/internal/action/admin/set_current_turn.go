@@ -4,60 +4,63 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
 )
 
 // SetCurrentTurnAction handles the admin action to set the current turn
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetCurrentTurnAction struct {
-	action.BaseAction
-	gameRepo game.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewSetCurrentTurnAction creates a new set current turn admin action
 func NewSetCurrentTurnAction(
-	gameRepo game.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *SetCurrentTurnAction {
 	return &SetCurrentTurnAction{
-		BaseAction: action.NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the set current turn admin action
-func (a *SetCurrentTurnAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "admin_set_current_turn"),
+	)
 	log.Info("🎲 Admin: Setting current turn")
 
-	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate player exists in session
-	_, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 2. Validate player exists in game
+	_, err = game.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
 	// 3. Update current turn
-	err = a.gameRepo.SetCurrentTurn(ctx, gameID, &playerID)
+	err = game.SetCurrentTurn(ctx, playerID)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
-		return err
+		return fmt.Errorf("failed to update current turn: %w", err)
 	}
 
 	log.Info("✅ Current turn updated")
 
-	// 4. Broadcast updated game state
-	a.BroadcastGameState(gameID, log)
+	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - game.SetCurrentTurn() publishes BroadcastEvent
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Admin set current turn completed")
 	return nil

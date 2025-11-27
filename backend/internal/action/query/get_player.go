@@ -2,50 +2,53 @@ package query
 
 import (
 	"context"
+	"fmt"
 
-	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/player"
+
+	"go.uber.org/zap"
 )
 
-// GetPlayerAction handles the query for getting a single player
+// GetPlayerAction handles querying a single player
 type GetPlayerAction struct {
-	action.BaseAction
-	gameRepo game.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewGetPlayerAction creates a new get player query action
 func NewGetPlayerAction(
-	gameRepo game.Repository,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *GetPlayerAction {
 	return &GetPlayerAction{
-		BaseAction: action.NewBaseAction(nil),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
-// Execute performs the get player query
-func (a *GetPlayerAction) Execute(ctx context.Context, sess *session.Session, playerID string) (*player.Player, error) {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+// Execute retrieves a player from a game
+func (a *GetPlayerAction) Execute(ctx context.Context, gameID string, playerID string) (*player.Player, error) {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+	)
 	log.Info("🔍 Querying player")
 
-	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
+	// Get game
+	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
 		return nil, err
 	}
 
-	// 2. Get player from session
-	p, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
-		return nil, err
+	// Get player from game
+	player, err := game.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
+		return nil, fmt.Errorf("player %s not found in game %s", playerID, gameID)
 	}
 
 	log.Info("✅ Player query completed")
-
-	// Return the player
-	return p, nil
+	return player, nil
 }

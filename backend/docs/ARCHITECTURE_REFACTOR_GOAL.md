@@ -44,6 +44,13 @@ Transform the backend architecture to achieve clean separation of concerns where
 
 ### Target Architecture
 - `internal/game/` as root package for all game state
+- **Package Structure**:
+  - `internal/game/` - Core game types (Game, Card types, Actions, Effects)
+  - `internal/game/shared/` - Simple shared types (Resources, ResourceType, HexPosition, etc.)
+  - `internal/game/player/` - Player entity and components (Hand, PlayedCards, Resources, Turn, Selection)
+  - `internal/game/board/` - Board and Tile types
+  - `internal/game/deck/` - Deck management
+  - `internal/game/global_parameters/` - GlobalParameters with terraforming constants
 - Single GameRepository managing active games
 - Game contains: Players, Deck, Board, GlobalParameters, Generation, Phase, PendingSelections
 - Actions receive only GameRepository
@@ -89,36 +96,83 @@ func (gp *GlobalParameters) IncreaseOxygen(ctx context.Context, steps int)
 func (gp *GlobalParameters) Temperature() int
 ```
 
-### Player
+### Player (in `internal/game/player/` package)
 ```go
+package player
+
 type Player struct {
-    mu          sync.RWMutex
-    id          string
-    name        string
+    // Identity (immutable, private)
+    id     string
+    name   string
+    gameID string
+
+    // Corporation reference (quick lookup in playedCards)
+    corporationID string  // References corporation card ID in playedCards
+
+    // Delegated Components (private, exposed via accessors)
     hand        *Hand
-    resources   *Resources
     playedCards *PlayedCards
-    corporation *Corporation
-    // ... other components
+    resources   *PlayerResources
+    turn        *Turn
+    selection   *Selection
+
+    // Infrastructure
+    eventBus *events.EventBusImpl
 }
 
 // Public methods - delegate to components
+func (p *Player) ID() string
+func (p *Player) Name() string
 func (p *Player) Hand() *Hand
-func (p *Player) Resources() *Resources
+func (p *Player) PlayedCards() *PlayedCards
+func (p *Player) Resources() *PlayerResources
+func (p *Player) CorporationID() string
+func (p *Player) SetCorporationID(id string)
+func (p *Player) HasCorporation() bool
 ```
 
-### Components (Hand, Resources, etc.)
+**Note on Corporations**: Corporations are treated as special played cards, not a separate component. The `corporationID` field provides quick reference to the player's corporation card, which is stored in `playedCards`. Corporation cards have special fields (`StartingResources`, `StartingProduction`) and can trigger forced actions, but are otherwise handled through the standard card system.
+
+**Note on Actions and Effects**: The `Actions` and `Effects` components (managing available player actions and passive effects) remain in the `game` package, not in the `player` package. This avoids import cycles since these components depend heavily on card behavior types.
+
+### Components (Hand, PlayedCards, Resources, etc.)
 ```go
+package player
+
 type Hand struct {
     mu    sync.RWMutex
-    cards map[string]*Card
+    cards []string  // Card IDs only
 }
 
 // Simple state operations only
-func (h *Hand) GetCard(id string) (*Card, error)
-func (h *Hand) RemoveCard(id string) error
-func (h *Hand) AddCard(card *Card)
-func (h *Hand) Cards() []*Card
+func (h *Hand) Cards() []string
+func (h *Hand) Contains(cardID string) bool
+func (h *Hand) AddCard(cardID string)
+func (h *Hand) RemoveCard(cardID string) error
+
+type PlayedCards struct {
+    mu    sync.RWMutex
+    cards []string  // ALL played cards including corporation
+}
+
+func (pc *PlayedCards) Cards() []string
+func (pc *PlayedCards) Contains(cardID string) bool
+func (pc *PlayedCards) AddCard(cardID string)  // Used for both corporation and project cards
+
+type PlayerResources struct {
+    mu                 sync.RWMutex
+    resources          shared.Resources
+    production         shared.Production
+    terraformRating    int
+    victoryPoints      int
+    resourceStorage    map[string]int
+    paymentSubstitutes []shared.PaymentSubstitute
+}
+
+func (r *PlayerResources) Get() shared.Resources
+func (r *PlayerResources) Production() shared.Production
+func (r *PlayerResources) Add(changes map[shared.ResourceType]int)
+func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int)
 ```
 
 ## Action Pattern
@@ -284,11 +338,22 @@ func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
 
 ## Implementation Strategy
 
+**Migration Directories**: Use separate directories during development to build new architecture in parallel:
+- `internal/game_migration/` - New domain types and GameRepository
+- `internal/action_migration/` - Migrated actions using new architecture
+
+This allows:
+- Existing system continues working unchanged
+- Easy copy-paste of code between old and new
+- Clear separation of old vs new patterns
+- Test new architecture without breaking production
+- Once complete, rename to `internal/game/` and `internal/action/`, remove old code
+
 ### Phase 1: Foundation
-- Create `internal/game/` package structure
+- Create `internal/game_migration/` package structure
 - Implement encapsulated Game, GlobalParameters, Board, Deck types
 - Implement GameRepository with in-memory storage
-- Keep existing code running in parallel
+- Keep existing `internal/session/` code running in parallel
 
 ### Phase 2: Event System
 - Update EventBus to support BroadcastEvent
@@ -296,20 +361,28 @@ func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
 - Create DTO generation from gameID + playerID
 
 ### Phase 3: Incremental Migration
-- Migrate 5-10 representative actions as proof of concept
-- Update tests for migrated actions
+- Create `internal/action_migration/` directory
+- Migrate 5-10 representative actions using GameRepository from `internal/game_migration/`
+- Update tests in `test/action_migration/`
 - Validate event flow and broadcasting works
 
 ### Phase 4: Complete Migration
-- Migrate remaining ~30 action files
-- Update all tests
-- Remove `internal/session/` package and old repositories
+- Migrate remaining ~30 action files to `internal/action_migration/`
+- Update all tests in `test/action_migration/`
+- All migrated actions use `internal/game_migration/`
 
-### Phase 5: Cleanup
+### Phase 5: Final Cutover
+- Rename `internal/game_migration/` → `internal/game/`
+- Rename `internal/action_migration/` → `internal/action/` (replace old)
+- Remove `internal/session/` package and old repositories
+- Update all imports across codebase
 - Update handlers in delivery layer
 - Simplify main.go dependency injection
-- Update documentation (CLAUDE.md)
+
+### Phase 6: Cleanup
+- Update documentation (CLAUDE.md, this file)
 - Run full test suite and linting
+- Verify all functionality works
 
 ## Success Criteria
 

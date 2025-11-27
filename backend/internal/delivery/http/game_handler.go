@@ -1,24 +1,21 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/session"
-	sessionGame "terraforming-mars-backend/internal/session/game"
-	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/game/player"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
-// GameHandler handles HTTP requests related to game operations
+// GameHandler handles HTTP requests for games
 type GameHandler struct {
-	*BaseHandler
-	sessionFactory   session.SessionFactory
 	createGameAction *action.CreateGameAction
 	getGameAction    *query.GetGameAction
 	listGamesAction  *query.ListGamesAction
@@ -26,119 +23,128 @@ type GameHandler struct {
 
 // NewGameHandler creates a new game handler
 func NewGameHandler(
-	sessionFactory session.SessionFactory,
 	createGameAction *action.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 ) *GameHandler {
 	return &GameHandler{
-		BaseHandler:      NewBaseHandler(),
-		sessionFactory:   sessionFactory,
 		createGameAction: createGameAction,
 		getGameAction:    getGameAction,
 		listGamesAction:  listGamesAction,
 	}
 }
 
-// CreateGame creates a new game
-func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
-	var req dto.CreateGameRequest
-	if err := h.ParseJSONRequest(r, &req); err != nil {
-		h.WriteErrorResponse(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Convert to subdomain settings
-	gameSettings := game.GameSettings{
-		MaxPlayers:      req.MaxPlayers,
-		DevelopmentMode: req.DevelopmentMode,
-	}
-
-	// Use new action pattern
-	createdGame, err := h.createGameAction.Execute(r.Context(), gameSettings)
-	if err != nil {
-		h.logger.Error("Failed to create game", zap.Error(err))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
-		return
-	}
-
-	// Convert to DTO and respond (dereference pointer)
-	gameDto := dto.ToGameDtoBasic(*createdGame, dto.GetPaymentConstants())
-	response := dto.CreateGameResponse{
-		Game: gameDto,
-	}
-	h.WriteJSONResponse(w, http.StatusCreated, response)
-}
-
-// GetGame retrieves a game by ID
+// GetGame handles GET /api/v1/games/{gameId}
 func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	// Extract gameId from URL
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
-	if gameID == "" {
-		h.WriteErrorResponse(w, http.StatusBadRequest, "Game ID is required")
-		return
-	}
+	log.Info("📡 HTTP GET /api/v1/games/:gameId", zap.String("game_id", gameID))
 
-	// Check for optional playerId query parameter for personalized view
-	playerID := r.URL.Query().Get("playerId")
-
-	// Get session
-	sess := h.sessionFactory.Get(gameID)
-	if sess == nil {
-		h.logger.Error("Game session not found", zap.String("game_id", gameID))
-		h.WriteErrorResponse(w, http.StatusNotFound, "Game session not found")
-		return
-	}
-
-	// Use GetGameAction
-	result, err := h.getGameAction.Execute(r.Context(), sess, playerID)
+	// Execute query action
+	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
-		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
-		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
+		log.Error("Failed to get game", zap.Error(err))
+		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
 
-	var gameDto dto.GameDto
-	if playerID != "" && result.Players != nil {
-		// Convert player pointers to values for DTO
-		playerValues := make([]player.Player, len(result.Players))
-		for i, p := range result.Players {
-			playerValues[i] = *p
-		}
-		// Return personalized view with full player data
-		gameDto = dto.ToGameDto(*result.Game, playerValues, playerID, result.ResolvedCards, dto.GetPaymentConstants())
-	} else {
-		// Return basic non-personalized view
-		gameDto = dto.ToGameDtoBasic(*result.Game, dto.GetPaymentConstants())
+	// Convert to DTO
+	gameDto := dto.ToGameDto(game)
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(gameDto); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 
-	response := dto.GetGameResponse{
-		Game: gameDto,
-	}
-	h.WriteJSONResponse(w, http.StatusOK, response)
+	log.Info("✅ Game retrieved successfully", zap.String("game_id", gameID))
 }
 
-// ListGames retrieves all games
+// ListGames handles GET /api/v1/games
 func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
-	// Use ListGamesAction (list all games by passing empty status)
-	games, err := h.listGamesAction.Execute(r.Context(), "")
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP GET /api/v1/games")
+
+	// Execute query action (no status filter for now)
+	games, err := h.listGamesAction.Execute(ctx, nil)
 	if err != nil {
-		h.logger.Error("Failed to list games", zap.Error(err))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")
+		log.Error("Failed to list games", zap.Error(err))
+		http.Error(w, "Failed to list games", http.StatusInternalServerError)
 		return
 	}
 
-	// Convert game pointers to values for DTO
-	gameValues := make([]sessionGame.Game, len(games))
-	for i, g := range games {
-		gameValues[i] = *g
+	// Convert to DTOs
+	gameDtos := make([]dto.GameDto, len(games))
+	for i, game := range games {
+		gameDtos[i] = dto.ToGameDto(game)
 	}
 
-	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(gameValues, dto.GetPaymentConstants())
-	response := dto.ListGamesResponse{
-		Games: gameDtos,
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(gameDtos); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
-	h.WriteJSONResponse(w, http.StatusOK, response)
+
+	log.Info("✅ Games listed successfully", zap.Int("count", len(games)))
+}
+
+// CreateGameRequest represents the request body for creating a game
+type CreateGameRequest struct {
+	MaxPlayers int      `json:"maxPlayers"`
+	CardPacks  []string `json:"cardPacks"`
+}
+
+// CreateGame handles POST /api/v1/games
+func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP POST /api/v1/games")
+
+	// Parse request body
+	var req CreateGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Convert to migration GameSettings
+	settings := game.GameSettings{
+		MaxPlayers: req.MaxPlayers,
+		CardPacks:  req.CardPacks,
+	}
+
+	// Execute create game action
+	game, err := h.createGameAction.Execute(ctx, settings)
+	if err != nil {
+		log.Error("Failed to create game", zap.Error(err))
+		http.Error(w, "Failed to create game", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to DTO
+	gameDto := dto.ToGameDto(game)
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(gameDto); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Game created successfully", zap.String("game_id", game.ID()))
 }

@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-	playerTypes "terraforming-mars-backend/internal/session/game/player"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
+	playerPkg "terraforming-mars-backend/internal/game/player"
 )
 
 const (
@@ -17,47 +16,66 @@ const (
 )
 
 // PlantGreeneryAction handles the business logic for the plant greenery standard project
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlantGreeneryAction struct {
-	BaseAction
-	gameRepo game.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewPlantGreeneryAction creates a new plant greenery action
 func NewPlantGreeneryAction(
-	gameRepo game.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		BaseAction: NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the plant greenery action
-func (a *PlantGreeneryAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "plant_greenery"),
+	)
 	log.Info("🌱 Planting greenery (standard project)")
 
-	// 1. Validate game is active
-	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
-		return err
+	// 2. BUSINESS LOGIC: Validate game is active
+	if g.Status() != game.GameStatusActive {
+		log.Warn("Game is not active", zap.String("status", string(g.Status())))
+		return fmt.Errorf("game is not active: %s", g.Status())
 	}
 
-	// 3. Get session and player
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 3. BUSINESS LOGIC: Validate it's the player's turn
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil || *currentTurn != playerID {
+		var turnPlayerID string
+		if currentTurn != nil {
+			turnPlayerID = *currentTurn
+		}
+		log.Warn("Not player's turn",
+			zap.String("current_turn_player", turnPlayerID),
+			zap.String("requesting_player", playerID))
+		return fmt.Errorf("not your turn")
+	}
+
+	// 4. Get player from game
+	player, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Validate cost (23 M€)
+	// 5. BUSINESS LOGIC: Validate cost (23 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < PlantGreeneryStandardProjectCost {
 		log.Warn("Insufficient credits for greenery",
@@ -66,36 +84,41 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, sess *session.Session
 		return fmt.Errorf("insufficient credits: need %d, have %d", PlantGreeneryStandardProjectCost, resources.Credits)
 	}
 
-	// 5. Deduct cost
-	resources.Credits -= PlantGreeneryStandardProjectCost
-	player.Resources().Set(resources)
+	// 6. BUSINESS LOGIC: Deduct cost using domain method
+	player.Resources().Add(map[shared.ResourceType]int{
+		shared.ResourceCredits: -PlantGreeneryStandardProjectCost,
+	})
 
+	resources = player.Resources().Get() // Refresh after update
 	log.Info("💰 Deducted greenery cost",
 		zap.Int("cost", PlantGreeneryStandardProjectCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 6. Create tile queue with "greenery" type on Game (phase state managed by Game)
-	queue := &playerTypes.PendingTileSelectionQueue{
+	// 7. Create tile queue with "greenery" type on Game (phase state managed by Game)
+	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"greenery"},
 		Source: "standard-project-greenery",
 	}
-	if err := sess.Game().SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+	if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
 	log.Info("📋 Created tile queue for greenery placement")
 
 	// Note: Terraform rating increase happens when the greenery is placed (via SelectTileAction)
+	// Note: Oxygen increase happens when greenery is placed (by SelectTileAction)
 
-	// 7. Consume action (only if not unlimited actions)
+	// 8. BUSINESS LOGIC: Consume action (only if not unlimited actions)
 	availableActions := player.Turn().AvailableActions()
 	if availableActions > 0 {
 		player.Turn().SetAvailableActions(availableActions - 1)
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
-	// 8. Broadcast state
-	a.BroadcastGameState(gameID, log)
+	// 9. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - g.SetPendingTileSelectionQueue() publishes BroadcastEvent
+	//    - player.Resources().Add() publishes ResourcesChangedEvent
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Greenery queued successfully, tile awaiting placement",
 		zap.Int("remaining_credits", resources.Credits))

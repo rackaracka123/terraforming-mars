@@ -4,76 +4,63 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
 )
 
 // GiveCardAction handles the admin action to give a card to a player
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
+// NOTE: Card validation is skipped (admin action with trusted input)
 type GiveCardAction struct {
-	action.BaseAction
-	gameRepo       game.Repository
-	cardRepo       card.Repository
-	sessionFactory session.SessionFactory
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewGiveCardAction creates a new give card admin action
 func NewGiveCardAction(
-	gameRepo game.Repository,
-	cardRepo card.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
-	sessionFactory session.SessionFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *GiveCardAction {
 	return &GiveCardAction{
-		BaseAction:     action.NewBaseAction(sessionMgrFactory),
-		gameRepo:       gameRepo,
-		cardRepo:       cardRepo,
-		sessionFactory: sessionFactory,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the give card admin action
-func (a *GiveCardAction) Execute(ctx context.Context, gameID, playerID, cardID string) error {
-	log := a.InitLogger(gameID, playerID)
-	log.Info("🎴 Admin: Giving card to player",
-		zap.String("card_id", cardID))
+func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID string, cardID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "admin_give_card"),
+		zap.String("card_id", cardID),
+	)
+	log.Info("🎴 Admin: Giving card to player")
 
-	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Session not found")
-		return fmt.Errorf("game session not found: %s", gameID)
-	}
-
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 2. Get player from game
+	player, err := game.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Validate card exists
-	_, err = a.cardRepo.GetCardByID(ctx, cardID)
-	if err != nil {
-		log.Error("Card not found", zap.Error(err))
-		return fmt.Errorf("card not found: %w", err)
-	}
-
-	// 4. Add card to player's hand
+	// 3. Add card to player's hand
+	// NOTE: Card validation is skipped - admin actions are trusted to provide valid card IDs
+	// In production, you might want to add card existence validation via a card repository
 	player.Hand().AddCard(cardID)
 
 	log.Info("✅ Card added to player's hand")
 
-	// 5. Broadcast updated game state
-	a.BroadcastGameState(gameID, log)
+	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Admin give card completed")
 	return nil

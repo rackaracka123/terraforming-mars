@@ -30,6 +30,7 @@ const (
 	MessageTypeActionConvertHeatToTemperature MessageType = "action.resource-conversion.convert-heat-to-temperature"
 
 	// Game management message types
+	MessageTypeCreateGame       MessageType = "create-game"
 	MessageTypeActionStartGame  MessageType = "action.game-management.start-game"
 	MessageTypeActionSkipAction MessageType = "action.game-management.skip-action"
 

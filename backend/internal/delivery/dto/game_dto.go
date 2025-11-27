@@ -1,10 +1,5 @@
 package dto
 
-import (
-	"terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/types"
-)
-
 // GamePhase represents the current phase of the game
 type GamePhase string
 
@@ -246,30 +241,21 @@ type CardBehaviorDto struct {
 	Choices  []ChoiceDto            `json:"choices,omitempty" ts:"ChoiceDto[] | undefined"`
 }
 
-// ResourceStorageDto represents a card's resource storage capability for client consumption
-type ResourceStorageDto struct {
-	Type     types.ResourceType `json:"type" ts:"ResourceType"`
-	Capacity *int               `json:"capacity,omitempty" ts:"number | undefined"`
-	Starting int                `json:"starting" ts:"number"`
+// PaymentConstantsDto represents payment conversion rates
+type PaymentConstantsDto struct {
+	SteelValue    int `json:"steelValue" ts:"number"`
+	TitaniumValue int `json:"titaniumValue" ts:"number"`
 }
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID              string                       `json:"id" ts:"string"`
-	Name            string                       `json:"name" ts:"string"`
-	Type            CardType                     `json:"type" ts:"CardType"`
-	Cost            int                          `json:"cost" ts:"number"`
-	Description     string                       `json:"description" ts:"string"`
-	Pack            string                       `json:"pack" ts:"string"`
-	Tags            []CardTag                    `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []card.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
-	Behaviors       []CardBehaviorDto            `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto          `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []card.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
-
-	// Corporation-specific fields (nil for non-corporation cards)
-	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
-	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
+	ID          string    `json:"id" ts:"string"`
+	Name        string    `json:"name" ts:"string"`
+	Type        CardType  `json:"type" ts:"CardType"`
+	Cost        int       `json:"cost" ts:"number"`
+	Description string    `json:"description" ts:"string"`
+	Pack        string    `json:"pack" ts:"string"`
+	Tags        []CardTag `json:"tags,omitempty" ts:"CardTag[] | undefined"`
 }
 
 type SelectStartingCardsPhaseDto struct {

@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
 
 	"go.uber.org/zap"
 )
@@ -16,48 +15,64 @@ const (
 	BuildPowerPlantCost = 11
 )
 
-// BuildPowerPlantAction handles the business logic for the build power plant standard project
+// BuildPowerPlantAction handles the build power plant standard project
+// New architecture: Uses only GameRepository + logger
 type BuildPowerPlantAction struct {
-	BaseAction
-	gameRepo game.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewBuildPowerPlantAction creates a new build power plant action
 func NewBuildPowerPlantAction(
-	gameRepo game.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the build power plant action
-func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *BuildPowerPlantAction) Execute(
+	ctx context.Context,
+	gameID string,
+	playerID string,
+) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+	)
 	log.Info("⚡ Building power plant")
 
-	// 1. Validate game is active
-	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Game not found", zap.Error(err))
+		return fmt.Errorf("game not found: %w", err)
 	}
 
-	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
-		return err
+	// 2. Validate game is active
+	if g.Status() != game.GameStatusActive {
+		log.Warn("Game is not active", zap.String("status", string(g.Status())))
+		return fmt.Errorf("game is not active: %s", g.Status())
 	}
 
-	// 3. Get session and player
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
-		return fmt.Errorf("player not found: %s", playerID)
+	// 3. Validate it's the player's turn
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil || *currentTurn != playerID {
+		log.Warn("Not player's turn")
+		return fmt.Errorf("not your turn")
 	}
 
-	// 4. Validate cost (11 M€)
+	// 4. Get player from game
+	player, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found", zap.Error(err))
+		return fmt.Errorf("player not found: %w", err)
+	}
+
+	// 5. Validate cost (11 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < BuildPowerPlantCost {
 		log.Warn("Insufficient credits for power plant",
@@ -66,9 +81,9 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Sessi
 		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, resources.Credits)
 	}
 
-	// 5. Deduct cost using domain method
-	player.Resources().Add(map[types.ResourceType]int{
-		types.ResourceCredits: -BuildPowerPlantCost,
+	// 6. Deduct cost (publishes ResourcesChangedEvent)
+	player.Resources().Add(map[shared.ResourceType]int{
+		shared.ResourceCredits: -BuildPowerPlantCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
@@ -76,23 +91,24 @@ func (a *BuildPowerPlantAction) Execute(ctx context.Context, sess *session.Sessi
 		zap.Int("cost", BuildPowerPlantCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 6. Increase energy production by 1 using domain method
-	player.Resources().AddProduction(map[types.ResourceType]int{
-		types.ResourceEnergy: 1,
+	// 7. Increase energy production by 1 (publishes ProductionChangedEvent)
+	player.Resources().AddProduction(map[shared.ResourceType]int{
+		shared.ResourceEnergy: 1,
 	})
 
 	production := player.Resources().Production() // Refresh after update
 	log.Info("📈 Increased energy production",
 		zap.Int("new_energy_production", production.Energy))
 
-	// 7. Consume action using domain method
+	// 8. Consume action
 	if player.Turn().ConsumeAction() {
 		availableActions := player.Turn().AvailableActions()
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
 	}
 
-	// 8. Broadcast state
-	a.BroadcastGameState(gameID, log)
+	// 9. NO MANUAL BROADCAST - Events automatically trigger:
+	//     - ResourcesChangedEvent → SessionManager → WebSocket broadcast
+	//     - ProductionChangedEvent → SessionManager → WebSocket broadcast
 
 	log.Info("✅ Power plant built successfully",
 		zap.Int("new_energy_production", production.Energy),

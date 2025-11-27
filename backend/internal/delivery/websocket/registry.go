@@ -2,136 +2,155 @@ package websocket
 
 import (
 	"terraforming-mars-backend/internal/action"
-	adminaction "terraforming-mars-backend/internal/action/admin"
-	executecardaction "terraforming-mars-backend/internal/action/execute_card_action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_aquifer"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_city"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/build_power_plant"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/confirm_sell_patents"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/convert_heat_to_temperature"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/convert_plants_to_greenery"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/launch_asteroid"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/plant_greenery"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/play_card"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/play_card_action"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/action/sell_patents"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/admin/admin_command"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/card_draw_confirmed"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_cards"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/card_selection/select_starting_card"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/connect"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/disconnect"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/game/skip_action"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/game/start_game"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/production/confirm_cards"
-	"terraforming-mars-backend/internal/delivery/websocket/handler/tile_selection/tile_selected"
-	"terraforming-mars-backend/internal/delivery/websocket/utils"
-	"terraforming-mars-backend/internal/session"
-	sessionGame "terraforming-mars-backend/internal/session/game/core"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/confirmation"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/connection"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/game"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/resource_conversion"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/standard_project"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/turn_management"
+	"terraforming-mars-backend/internal/logger"
+
+	"go.uber.org/zap"
 )
 
-// RegisterHandlers registers all message type handlers with the hub
+// RegisterHandlers registers migrated action handlers with the hub
+// This is a parallel registry for the new architecture, allowing gradual migration
+// Eventually this will replace RegisterHandlers entirely
 func RegisterHandlers(
 	hub *core.Hub,
-	sessionManagerFactory session.SessionManagerFactory,
-	newGameRepo sessionGame.Repository,
-	sessionFactory session.SessionFactory,
-	startGameAction *action.StartGameAction,
+	// Game lifecycle
+	createGameAction *action.CreateGameAction,
 	joinGameAction *action.JoinGameAction,
-	playerReconnectedAction *action.PlayerReconnectedAction,
-	playerDisconnectedAction *action.PlayerDisconnectedAction,
-	selectStartingCardsAction *action.SelectStartingCardsAction,
-	skipActionAction *action.SkipActionAction,
-	confirmProductionCardsAction *action.ConfirmProductionCardsAction,
-	buildCityAction *action.BuildCityAction,
-	selectTileAction *action.SelectTileAction,
-	playCardAction *action.PlayCardAction,
-	executeCardActionAction *executecardaction.ExecuteCardActionAction,
+	// Standard projects
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
 	buildAquiferAction *action.BuildAquiferAction,
+	buildCityAction *action.BuildCityAction,
 	plantGreeneryAction *action.PlantGreeneryAction,
 	sellPatentsAction *action.SellPatentsAction,
-	confirmSellPatentsAction *action.ConfirmSellPatentsAction,
+	// Resource conversions
 	convertHeatAction *action.ConvertHeatToTemperatureAction,
 	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
+	// Turn management
+	startGameAction *action.StartGameAction,
+	skipActionAction *action.SkipActionAction,
+	selectStartingCardsAction *action.SelectStartingCardsAction,
+	// Confirmations
+	confirmSellPatentsAction *action.ConfirmSellPatentsAction,
+	confirmProductionCardsAction *action.ConfirmProductionCardsAction,
 	confirmCardDrawAction *action.ConfirmCardDrawAction,
-	giveCardAdminAction *adminaction.GiveCardAction,
-	setPhaseAdminAction *adminaction.SetPhaseAction,
-	setResourcesAdminAction *adminaction.SetResourcesAction,
-	setProductionAdminAction *adminaction.SetProductionAction,
-	setGlobalParametersAdminAction *adminaction.SetGlobalParametersAction,
-	startTileSelectionAdminAction *adminaction.StartTileSelectionAction,
-	setCurrentTurnAdminAction *adminaction.SetCurrentTurnAction,
-	setCorporationAdminAction *adminaction.SetCorporationAction,
+	// Connection
+	playerReconnectedAction *action.PlayerReconnectedAction,
+	playerDisconnectedAction *action.PlayerDisconnectedAction,
 ) {
-	parser := utils.NewMessageParser()
+	log := logger.Get()
+	log.Info("🔄 Registering migration handlers for new architecture")
 
-	// Register connection handler
-	// NEW ARCHITECTURE: Using action pattern for join_game + reconnection + explicit broadcast timing
-	// SessionManagerFactory injected so handler can get game-specific broadcaster
-	connectionHandler := connect.NewConnectionHandler(hub, sessionManagerFactory, sessionFactory, joinGameAction, playerReconnectedAction)
-	hub.RegisterHandler(dto.MessageTypePlayerConnect, connectionHandler)
+	// ========== Game Lifecycle ==========
+	createGameHandler := game.NewCreateGameHandler(createGameAction)
+	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
-	// Register disconnect handler
-	// NEW ARCHITECTURE: Using action pattern for disconnect
-	disconnectHandler := disconnect.NewDisconnectHandler(playerDisconnectedAction, sessionFactory)
-	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, disconnectHandler)
+	joinGameHandler := game.NewJoinGameHandler(joinGameAction)
+	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Overwrites old handler
 
-	// Register standard project handlers
-	// NEW ARCHITECTURE: Using action pattern for standard projects
-	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launch_asteroid.NewHandler(launchAsteroidAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sell_patents.NewHandler(sellPatentsAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirm_sell_patents.NewHandler(confirmSellPatentsAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, build_power_plant.NewHandler(buildPowerPlantAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, build_aquifer.NewHandler(buildAquiferAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plant_greenery.NewHandler(plantGreeneryAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionBuildCity, build_city.NewHandler(buildCityAction, sessionFactory))
+	// ========== Standard Projects ==========
+	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction)
+	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launchAsteroidHandler)
 
-	// Register resource conversion handlers
-	// NEW ARCHITECTURE: Using action pattern for resource conversions
-	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convert_plants_to_greenery.NewHandler(convertPlantsAction, sessionFactory))
-	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convert_heat_to_temperature.NewHandler(convertHeatAction, sessionFactory))
+	buildPowerPlantHandler := standard_project.NewBuildPowerPlantHandler(buildPowerPlantAction)
+	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, buildPowerPlantHandler)
 
-	// Register skip action handler
-	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skip_action.NewHandler(skipActionAction, sessionFactory))
+	buildAquiferHandler := standard_project.NewBuildAquiferHandler(buildAquiferAction)
+	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, buildAquiferHandler)
 
-	// Register game management handlers
-	hub.RegisterHandler(dto.MessageTypeActionStartGame, start_game.NewHandler(startGameAction, sessionFactory))
+	buildCityHandler := standard_project.NewBuildCityHandler(buildCityAction)
+	hub.RegisterHandler(dto.MessageTypeActionBuildCity, buildCityHandler)
 
-	// Register card selection handlers
-	// NEW ARCHITECTURE: Using action pattern for select_starting_card and select_cards
-	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, select_starting_card.NewHandler(selectStartingCardsAction, sessionFactory, parser))
-	hub.RegisterHandler(dto.MessageTypeActionSelectCards, select_cards.NewHandler(confirmSellPatentsAction, confirmProductionCardsAction, sessionFactory, parser))
-	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirm_cards.NewHandler(confirmProductionCardsAction, sessionFactory, parser))
-	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, card_draw_confirmed.NewHandler(confirmCardDrawAction, parser, sessionFactory))
+	plantGreeneryHandler := standard_project.NewPlantGreeneryHandler(plantGreeneryAction)
+	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plantGreeneryHandler)
 
-	// Register play card handler
-	// NEW ARCHITECTURE: Using action pattern for play_card
-	hub.RegisterHandler(dto.MessageTypeActionPlayCard, play_card.NewHandler(playCardAction, sessionFactory, parser))
+	sellPatentsHandler := standard_project.NewSellPatentsHandler(sellPatentsAction)
+	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sellPatentsHandler)
 
-	// Register play card action handler
-	// NEW ARCHITECTURE: Using action pattern for card action execution
-	hub.RegisterHandler(dto.MessageTypeActionCardAction, play_card_action.NewHandler(executeCardActionAction, sessionFactory, parser))
+	// ========== Resource Conversions ==========
+	convertHeatHandler := resource_conversion.NewConvertHeatHandler(convertHeatAction)
+	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convertHeatHandler)
 
-	// Register tile selection handlers
-	// NEW ARCHITECTURE: Using action pattern for tile_selected
-	hub.RegisterHandler(dto.MessageTypeActionTileSelected, tile_selected.NewHandler(selectTileAction, sessionFactory, parser))
+	convertPlantsHandler := resource_conversion.NewConvertPlantsHandler(convertPlantsAction)
+	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convertPlantsHandler)
 
-	// Register admin command handler WITHOUT middleware (development mode validation is handled internally)
-	// NEW ARCHITECTURE: Using admin action pattern for all admin commands
-	hub.RegisterHandler(dto.MessageTypeAdminCommand, admin_command.NewHandler(
-		newGameRepo,
-		sessionFactory,
-		giveCardAdminAction,
-		setPhaseAdminAction,
-		setResourcesAdminAction,
-		setProductionAdminAction,
-		setGlobalParametersAdminAction,
-		startTileSelectionAdminAction,
-		setCurrentTurnAdminAction,
-		setCorporationAdminAction,
-	))
+	// ========== Turn Management ==========
+	startGameHandler := turn_management.NewStartGameHandler(startGameAction)
+	hub.RegisterHandler(dto.MessageTypeActionStartGame, startGameHandler)
+
+	skipActionHandler := turn_management.NewSkipActionHandler(skipActionAction)
+	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skipActionHandler)
+
+	selectStartingCardsHandler := turn_management.NewSelectStartingCardsHandler(selectStartingCardsAction)
+	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, selectStartingCardsHandler)
+
+	// ========== Confirmations ==========
+	confirmSellPatentsHandler := confirmation.NewConfirmSellPatentsHandler(confirmSellPatentsAction)
+	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirmSellPatentsHandler)
+
+	confirmProductionCardsHandler := confirmation.NewConfirmProductionCardsHandler(confirmProductionCardsAction)
+	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirmProductionCardsHandler)
+
+	confirmCardDrawHandler := confirmation.NewConfirmCardDrawHandler(confirmCardDrawAction)
+	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, confirmCardDrawHandler)
+
+	// ========== Connection Management ==========
+	// NOTE: PlayerReconnectedHandler is NOT registered separately because:
+	// - JoinGameHandler (on 'player-connect') handles BOTH new joins AND reconnections
+	// - It checks for playerID in payload to determine if it's a reconnect
+	// - MessageTypePlayerReconnected is a SERVER->CLIENT response type, not CLIENT->SERVER request
+	// If reconnection logic needs to be different, integrate it into JoinGameHandler
+	_ = playerReconnectedAction // Keep action available for future use
+
+	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction)
+	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
+
+	log.Info("🎯 Migration handlers registered successfully")
+	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect (handles both join & reconnect)")
+	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
+	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")
+	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
+	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
+	log.Info("   ✅ Connection (1): PlayerDisconnected")
+	log.Info("   📌 Total: 17 handlers registered (OLD handlers overwritten)")
 }
+
+// MigrateSingleHandler migrates a specific message type from old to new handler
+// This allows for gradual, controlled migration of individual handlers
+func MigrateSingleHandler(
+	hub *core.Hub,
+	messageType dto.MessageType,
+	newHandler core.MessageHandler,
+) {
+	log := logger.Get().With(zap.String("message_type", string(messageType)))
+
+	log.Info("🔄 Migrating handler to new architecture")
+	hub.RegisterHandler(messageType, newHandler)
+	log.Info("✅ Handler migration complete")
+}
+
+// TODO: Add more migration handlers as they are implemented:
+// - ConvertHeatHandler
+// - ConvertPlantsHandler
+// - BuildPowerPlantHandler
+// - BuildCityHandler
+// - BuildAquiferHandler
+// - PlantGreeneryHandler
+// - LaunchAsteroidHandler
+// - SellPatentsHandler
+// - ConfirmSellPatentsHandler
+// - SkipActionHandler
+// - StartGameHandler
+// - SelectStartingCardsHandler
+// - ConfirmProductionCardsHandler
+// - ConfirmCardDrawHandler
+// - PlayerReconnectedHandler
+// - PlayerDisconnectedHandler
+// - Admin handlers (SetPhase, SetResources, SetProduction, SetGlobalParameters)

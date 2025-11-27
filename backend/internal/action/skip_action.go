@@ -4,58 +4,70 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/game/deck"
-	"terraforming-mars-backend/internal/session/game/player"
-	"terraforming-mars-backend/internal/session/game/player/selection"
-	"terraforming-mars-backend/internal/session/types"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
+	playerPkg "terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // SkipActionAction handles the business logic for skipping/passing player turns
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SkipActionAction struct {
-	BaseAction
-	gameRepo game.Repository
-	deckRepo deck.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewSkipActionAction creates a new skip action action
 func NewSkipActionAction(
-	gameRepo game.Repository,
-	deckRepo deck.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
-		deckRepo:   deckRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the skip action
-func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "skip_action"),
+	)
 	log.Info("⏭️ Skipping player turn")
 
-	// 1. Validate game is active
-	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
-		return err
+	// 2. BUSINESS LOGIC: Validate game is active
+	if g.Status() != game.GameStatusActive {
+		log.Warn("Game is not active", zap.String("status", string(g.Status())))
+		return fmt.Errorf("game is not active: %s", g.Status())
 	}
 
-	// 3. Get session and players
-	players := sess.GetAllPlayers()
+	// 3. BUSINESS LOGIC: Validate it's the player's turn
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil || *currentTurn != playerID {
+		var turnPlayerID string
+		if currentTurn != nil {
+			turnPlayerID = *currentTurn
+		}
+		log.Warn("Not player's turn",
+			zap.String("current_turn_player", turnPlayerID),
+			zap.String("requesting_player", playerID))
+		return fmt.Errorf("not your turn")
+	}
 
-	// 4. Find current player and their index
-	var currentPlayer *player.Player
+	// 4. Get all players
+	players := g.GetAllPlayers()
+
+	// 5. Find current player and their index
+	var currentPlayer *playerPkg.Player
 	currentPlayerIndex := -1
 	for i, p := range players {
 		if p.ID() == playerID {
@@ -70,7 +82,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		return fmt.Errorf("player not found in game")
 	}
 
-	// 5. Count active players (not passed)
+	// 6. Count active players (not passed)
 	activePlayerCount := 0
 	for _, p := range players {
 		if !p.Turn().Passed() {
@@ -78,7 +90,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		}
 	}
 
-	// 6. Determine PASS vs SKIP behavior
+	// 7. BUSINESS LOGIC: Determine PASS vs SKIP behavior
 	// Solo games: skip always means pass (player is done with generation)
 	availableActions := currentPlayer.Turn().AvailableActions()
 	isPassing := availableActions == 2 || availableActions == -1 || len(players) == 1
@@ -107,10 +119,10 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 			zap.Int("available_actions", availableActions))
 	}
 
-	// 7. Refresh player list to reflect status changes
-	players = sess.GetAllPlayers()
+	// 8. Refresh player list to reflect status changes
+	players = g.GetAllPlayers()
 
-	// 8. Check if all players have finished their actions
+	// 9. BUSINESS LOGIC: Check if all players have finished their actions
 	allPlayersFinished := true
 	passedCount := 0
 	playersWithNoActions := 0
@@ -133,16 +145,16 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		zap.Int("total_players", len(players)),
 		zap.Bool("all_players_finished", allPlayersFinished))
 
-	// 9. If all players finished, trigger production phase
+	// 10. If all players finished, trigger production phase
 	if allPlayersFinished {
 		log.Info("🏭 All players finished their turns - executing production phase",
 			zap.String("game_id", gameID),
-			zap.Int("generation", g.Generation),
+			zap.Int("generation", g.Generation()),
 			zap.Int("passed_players", passedCount),
 			zap.Int("players_with_no_actions", playersWithNoActions))
 
 		// Execute production phase inline
-		err = a.executeProductionPhase(ctx, sess, gameID, players)
+		err = a.executeProductionPhase(ctx, g, players)
 		if err != nil {
 			log.Error("Failed to execute production phase", zap.Error(err))
 			return fmt.Errorf("failed to execute production phase: %w", err)
@@ -152,7 +164,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		return nil
 	}
 
-	// 10. Find next player who hasn't passed
+	// 11. Find next player who hasn't passed
 	nextPlayerIndex := (currentPlayerIndex + 1) % len(players)
 	for i := 0; i < len(players); i++ {
 		nextPlayer := players[nextPlayerIndex]
@@ -162,9 +174,9 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(players)
 	}
 
-	// 11. Update current turn
+	// 12. Update current turn
 	nextPlayerID := players[nextPlayerIndex].ID()
-	err = a.gameRepo.SetCurrentTurn(ctx, gameID, &nextPlayerID)
+	err = g.SetCurrentTurn(ctx, nextPlayerID)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
@@ -174,19 +186,24 @@ func (a *SkipActionAction) Execute(ctx context.Context, sess *session.Session, p
 		zap.String("previous_player", playerID),
 		zap.String("current_player", nextPlayerID))
 
-	// 12. Broadcast updated game state
-	if err := a.sessionMgrFactory.GetOrCreate(gameID).Broadcast(); err != nil {
-		log.Error("Failed to broadcast game state after skip turn", zap.Error(err))
-		// Non-fatal, don't return error
-	}
+	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - currentPlayer.Turn().SetPassed() publishes events
+	//    - g.SetCurrentTurn() publishes BroadcastEvent
+	//    - (or production phase publishes many events)
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	return nil
 }
 
 // executeProductionPhase handles the production phase when all players have passed
-func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *session.Session, gameID string, players []*player.Player) error {
-	log := a.logger.With(zap.String("game_id", gameID))
+func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInstance *game.Game, players []*playerPkg.Player) error {
+	log := a.logger.With(zap.String("game_id", gameInstance.ID()))
 	log.Info("🏭 Starting production phase")
+
+	deck := gameInstance.Deck()
+	if deck == nil {
+		return fmt.Errorf("game deck is nil")
+	}
 
 	// 1. For each player: energy→heat, apply production, draw cards
 	for _, p := range players {
@@ -199,7 +216,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *ses
 		// C. Calculate new resources with production
 		production := p.Resources().Production()
 		tr := p.Resources().TerraformRating()
-		newResources := types.Resources{
+		newResources := shared.Resources{
 			Credits:  currentResources.Credits + production.Credits + tr,
 			Steel:    currentResources.Steel + production.Steel,
 			Titanium: currentResources.Titanium + production.Titanium,
@@ -224,7 +241,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *ses
 		// F. Draw 4 cards for production phase selection
 		drawnCards := []string{}
 		for i := 0; i < 4; i++ {
-			cardIDs, err := a.deckRepo.DrawProjectCards(ctx, 1)
+			cardIDs, err := deck.DrawProjectCards(ctx, 1)
 			if err != nil || len(cardIDs) == 0 {
 				// Deck might be empty, stop drawing
 				log.Debug("⚠️ Deck empty or error drawing card, stopping at card draw",
@@ -236,7 +253,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *ses
 		}
 
 		// G. Set production phase data (phase state managed by Game)
-		productionPhaseData := &selection.ProductionPhase{
+		productionPhaseData := &playerPkg.ProductionPhase{
 			AvailableCards:    drawnCards,
 			SelectionComplete: false,
 			BeforeResources:   currentResources, // Before production
@@ -245,7 +262,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *ses
 			CreditsIncome:     production.Credits + tr,
 		}
 
-		err := sess.Game().SetProductionPhase(ctx, p.ID(), productionPhaseData)
+		err := gameInstance.SetProductionPhase(ctx, p.ID(), productionPhaseData)
 		if err != nil {
 			return fmt.Errorf("failed to set production phase: %w", err)
 		}
@@ -257,50 +274,29 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, sess *ses
 			zap.Int("energy_converted", energyConverted))
 	}
 
-	// 2. Get updated game state
-	g, err := a.gameRepo.GetByID(ctx, gameID)
-	if err != nil {
-		return fmt.Errorf("failed to get game: %w", err)
-	}
-
-	// 3. Increment generation
-	newGeneration := g.Generation + 1
-	err = a.gameRepo.UpdateGeneration(ctx, gameID, newGeneration)
-	if err != nil {
+	// 2. Increment generation
+	oldGeneration := gameInstance.Generation()
+	if err := gameInstance.AdvanceGeneration(ctx); err != nil {
 		return fmt.Errorf("failed to increment generation: %w", err)
 	}
+	newGeneration := gameInstance.Generation()
 
-	// 4. Set current turn to first player
-	if len(g.Players) > 0 {
-		// Get first player ID from map (note: order not guaranteed)
-		var firstPlayerID string
-		for id := range g.Players {
-			firstPlayerID = id
-			break
-		}
-		if firstPlayerID != "" {
-			err = a.gameRepo.SetCurrentTurn(ctx, gameID, &firstPlayerID)
-			if err != nil {
-				return fmt.Errorf("failed to set current turn: %w", err)
-			}
+	// 3. Set current turn to first player
+	if len(players) > 0 {
+		firstPlayerID := players[0].ID()
+		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID); err != nil {
+			return fmt.Errorf("failed to set current turn: %w", err)
 		}
 	}
 
-	// 5. Set phase to production and card draw
-	err = a.gameRepo.UpdatePhase(ctx, gameID, game.GamePhaseProductionAndCardDraw)
+	// 4. Set phase to production and card draw
+	err := gameInstance.UpdatePhase(ctx, game.GamePhaseProductionAndCardDraw)
 	if err != nil {
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 
-	// 6. Broadcast state to all players
-	err = a.sessionMgrFactory.GetOrCreate(gameID).Broadcast()
-	if err != nil {
-		log.Error("Failed to broadcast after production phase", zap.Error(err))
-		// Non-fatal, continue
-	}
-
 	log.Info("🎉 Production phase complete, generation advanced",
-		zap.Int("old_generation", g.Generation),
+		zap.Int("old_generation", oldGeneration),
 		zap.Int("new_generation", newGeneration))
 
 	return nil

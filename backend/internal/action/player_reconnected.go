@@ -4,35 +4,48 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/session"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
 )
 
 // PlayerReconnectedAction handles the business logic for player reconnection
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlayerReconnectedAction struct {
-	BaseAction
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewPlayerReconnectedAction creates a new player reconnected action
 func NewPlayerReconnectedAction(
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *PlayerReconnectedAction {
 	return &PlayerReconnectedAction{
-		BaseAction: NewBaseAction(sessionMgrFactory),
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the player reconnected action
-func (a *PlayerReconnectedAction) Execute(ctx context.Context, sess *session.Session, playerID string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
+func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, playerID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "player_reconnected"),
+	)
 	log.Info("🔗 Player reconnecting")
 
-	// 1. Get session	// 2. Get player from session
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	// 2. Get player from game
+	player, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
@@ -41,17 +54,13 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, sess *session.Ses
 
 	log.Info("✅ Player connection status updated to connected")
 
-	// 4. Send complete game state to reconnected player
-	err := a.sessionMgrFactory.GetOrCreate(gameID).Send(playerID)
-	if err != nil {
-		log.Error("Failed to send game state to reconnected player", zap.Error(err))
-		return err
-	}
-
-	log.Info("📤 Game state sent to reconnected player")
-
-	// 5. Broadcast to all players that this player has reconnected
-	a.BroadcastGameState(gameID, log)
+	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - player.Turn().SetConnectionStatus() publishes events
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
+	//
+	// NOTE: In old architecture, this action explicitly sent state to reconnected player first,
+	// then broadcast to all. In new architecture, the event-driven broadcast handles both.
+	// The Broadcaster will send personalized state to all players including the reconnected one.
 
 	log.Info("✅ Player reconnected successfully")
 	return nil

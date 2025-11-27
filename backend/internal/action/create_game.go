@@ -4,42 +4,38 @@ import (
 	"context"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	gameCore "terraforming-mars-backend/internal/session/game/core"
-	"terraforming-mars-backend/internal/session/types"
+	"terraforming-mars-backend/internal/game"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // CreateGameAction handles the business logic for creating new games
+// MIGRATION: Uses new architecture (GameRepository only, no board repository)
 type CreateGameAction struct {
-	BaseAction  // Embed base (no sessionMgr needed for creation)
-	gameRepo    gameCore.Repository
-	boardRepo   board.Repository
-	eventBus    *events.EventBusImpl
-	cardManager game.CardManager
+	gameRepo game.GameRepository
+	eventBus *events.EventBusImpl
+	logger   *zap.Logger
 }
 
 // NewCreateGameAction creates a new create game action
 func NewCreateGameAction(
-	gameRepo gameCore.Repository,
-	boardRepo board.Repository,
+	gameRepo game.GameRepository,
 	eventBus *events.EventBusImpl,
-	cardManager game.CardManager,
+	logger *zap.Logger,
 ) *CreateGameAction {
 	return &CreateGameAction{
-		BaseAction:  NewBaseAction(nil), // No sessionFactory or sessionMgr needed
-		gameRepo:    gameRepo,
-		boardRepo:   boardRepo,
-		eventBus:    eventBus,
-		cardManager: cardManager,
+		gameRepo: gameRepo,
+		eventBus: eventBus,
+		logger:   logger,
 	}
 }
 
 // Execute performs the create game action
-func (a *CreateGameAction) Execute(ctx context.Context, settings types.GameSettings) (*game.Game, error) {
+func (a *CreateGameAction) Execute(
+	ctx context.Context,
+	settings game.GameSettings,
+) (*game.Game, error) {
 	log := a.logger.With(
 		zap.Int("max_players", settings.MaxPlayers),
 		zap.Strings("card_packs", settings.CardPacks),
@@ -59,26 +55,13 @@ func (a *CreateGameAction) Execute(ctx context.Context, settings types.GameSetti
 
 	// 3. Create game entity
 	// Note: hostPlayerID is empty initially, will be set when first player joins
-	newGame := game.NewGame(gameID, "", settings, a.eventBus, a.cardManager)
+	// Board is automatically created by NewGame
+	newGame := game.NewGame(gameID, "", settings, a.eventBus)
 
-	// 4. Initialize empty board on game entity (actual board stored in board repository)
-	newGame.Board = board.Board{Tiles: []board.Tile{}}
-
-	// 5. Store game in repository
+	// 4. Store game in repository
 	err := a.gameRepo.Create(ctx, newGame)
 	if err != nil {
 		log.Error("Failed to create game", zap.Error(err))
-		return nil, err
-	}
-
-	// 6. Generate board with 42 tiles via board repository
-	err = a.boardRepo.GenerateBoard(ctx)
-	if err != nil {
-		log.Error("Failed to generate board", zap.Error(err))
-		// Note: Rollback not implemented - game repository doesn't support deletion
-		// In practice, board generation failures are rare and indicate system issues
-		// Failed games will remain in repository but won't be playable without a board
-		// Future improvement: Add game status field to mark as "failed" or implement cleanup
 		return nil, err
 	}
 

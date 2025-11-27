@@ -4,55 +4,74 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmSellPatentsAction handles the business logic for confirming sell patents card selection
 // This is Phase 2: processes the selected cards and awards credits
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmSellPatentsAction struct {
-	BaseAction
-	gameRepo game.Repository // Still needed for validation
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewConfirmSellPatentsAction creates a new confirm sell patents action
 func NewConfirmSellPatentsAction(
-	gameRepo game.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		BaseAction: NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the confirm sell patents action (Phase 2: process card selection)
-func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Session, playerID string, selectedCardIDs []string) error {
-	gameID := sess.GetGameID()
-	log := a.InitLogger(gameID, playerID)
-	log.Info("🏛️ Confirming sell patents card selection", zap.Int("cards_selected", len(selectedCardIDs)))
+func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "confirm_sell_patents"),
+		zap.Int("cards_selected", len(selectedCardIDs)),
+	)
+	log.Info("🏛️ Confirming sell patents card selection")
 
-	// 1. Validate game is active
-	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
-		return err
+	// 2. BUSINESS LOGIC: Validate game is active
+	if g.Status() != game.GameStatusActive {
+		log.Warn("Game is not active", zap.String("status", string(g.Status())))
+		return fmt.Errorf("game is not active: %s", g.Status())
 	}
 
-	// 3. Get session and player
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 3. BUSINESS LOGIC: Validate it's the player's turn
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil || *currentTurn != playerID {
+		var turnPlayerID string
+		if currentTurn != nil {
+			turnPlayerID = *currentTurn
+		}
+		log.Warn("Not player's turn",
+			zap.String("current_turn_player", turnPlayerID),
+			zap.String("requesting_player", playerID))
+		return fmt.Errorf("not your turn")
+	}
+
+	// 4. Get player from game
+	player, err := g.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 4. Validate pending card selection exists (card selection phase state on Player)
+	// 5. BUSINESS LOGIC: Validate pending card selection exists (card selection phase state on Player)
 	pendingCardSelection := player.Selection().GetPendingCardSelection()
 	if pendingCardSelection == nil {
 		log.Warn("No pending card selection found")
@@ -65,7 +84,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 		return fmt.Errorf("pending card selection is not for sell patents")
 	}
 
-	// 5. Validate selection count
+	// 6. BUSINESS LOGIC: Validate selection count
 	if len(selectedCardIDs) < pendingCardSelection.MinCards {
 		log.Warn("Too few cards selected",
 			zap.Int("selected", len(selectedCardIDs)),
@@ -80,7 +99,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 		return fmt.Errorf("cannot select more than %d cards", pendingCardSelection.MaxCards)
 	}
 
-	// 6. Validate all selected cards are in available cards
+	// 7. BUSINESS LOGIC: Validate all selected cards are in available cards
 	availableCardsMap := make(map[string]bool)
 	for _, cardID := range pendingCardSelection.AvailableCards {
 		availableCardsMap[cardID] = true
@@ -93,25 +112,26 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 		}
 	}
 
-	// 7. Calculate total reward (1 M€ per card)
+	// 8. BUSINESS LOGIC: Calculate total reward (1 M€ per card)
 	totalReward := 0
 	for _, cardID := range selectedCardIDs {
 		totalReward += pendingCardSelection.CardRewards[cardID]
 	}
 
-	// 8. Award credits
+	// 9. BUSINESS LOGIC: Award credits
 	if totalReward > 0 {
-		resources := player.Resources().Get()
-		resources.Credits += totalReward
-		player.Resources().Set(resources)
+		player.Resources().Add(map[shared.ResourceType]int{
+			shared.ResourceCredits: totalReward,
+		})
 
+		resources := player.Resources().Get()
 		log.Info("💰 Awarded credits for sold cards",
 			zap.Int("cards_sold", len(selectedCardIDs)),
 			zap.Int("credits_earned", totalReward),
 			zap.Int("new_credits", resources.Credits))
 	}
 
-	// 9. Remove sold cards from hand
+	// 10. BUSINESS LOGIC: Remove sold cards from hand
 	for _, cardID := range selectedCardIDs {
 		removed := player.Hand().RemoveCard(cardID)
 		if !removed {
@@ -121,18 +141,21 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, sess *session.Se
 
 	log.Info("🗑️ Removed sold cards from hand", zap.Int("cards_removed", len(selectedCardIDs)))
 
-	// 10. Clear pending card selection (card selection phase state on Player)
+	// 11. Clear pending card selection (card selection phase state on Player)
 	player.Selection().SetPendingCardSelection(nil)
 
-	// 11. Consume action (only if player actually sold cards and not unlimited actions)
+	// 12. BUSINESS LOGIC: Consume action (only if player actually sold cards and not unlimited actions)
 	availableActions := player.Turn().AvailableActions()
 	if len(selectedCardIDs) > 0 && availableActions > 0 {
 		player.Turn().SetAvailableActions(availableActions - 1)
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
 	}
 
-	// 12. Broadcast state
-	a.BroadcastGameState(gameID, log)
+	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - player.Resources().Add() publishes ResourcesChangedEvent
+	//    - player.Hand().RemoveCard() publishes CardHandUpdatedEvent
+	//    - player.Selection().SetPendingCardSelection() publishes events
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Sell patents completed successfully",
 		zap.Int("cards_sold", len(selectedCardIDs)),

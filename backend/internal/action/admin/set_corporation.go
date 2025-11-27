@@ -4,76 +4,64 @@ import (
 	"context"
 	"fmt"
 
-	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
-	"terraforming-mars-backend/internal/session/game/card"
-	game "terraforming-mars-backend/internal/session/game/core"
-
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
 )
 
 // SetCorporationAction handles the admin action to set a player's corporation
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
+// NOTE: Corporation validation is skipped (admin action with trusted input)
+// NOTE: Uses SetID instead of SetCard since we don't have card repository access
 type SetCorporationAction struct {
-	action.BaseAction
-	gameRepo       game.Repository
-	cardRepo       card.Repository
-	sessionFactory session.SessionFactory
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
-	gameRepo game.Repository,
-	cardRepo card.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
-	sessionFactory session.SessionFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
-		BaseAction:     action.NewBaseAction(sessionMgrFactory),
-		gameRepo:       gameRepo,
-		cardRepo:       cardRepo,
-		sessionFactory: sessionFactory,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the set corporation admin action
-func (a *SetCorporationAction) Execute(ctx context.Context, gameID, playerID, corporationID string) error {
-	log := a.InitLogger(gameID, playerID)
-	log.Info("🏢 Admin: Setting player corporation",
-		zap.String("corporation_id", corporationID))
+func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playerID string, corporationID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "admin_set_corporation"),
+		zap.String("corporation_id", corporationID),
+	)
+	log.Info("🏢 Admin: Setting player corporation")
 
-	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
-	// 2. Get session and player
-	sess := a.sessionFactory.Get(gameID)
-	if sess == nil {
-		log.Error("Session not found")
-		return fmt.Errorf("game session not found: %s", gameID)
-	}
-
-	player, exists := sess.GetPlayer(playerID)
-	if !exists {
-		log.Error("Player not found in session")
+	// 2. Get player from game
+	player, err := game.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Get corporation card
-	corp, err := a.cardRepo.GetCardByID(ctx, corporationID)
-	if err != nil {
-		log.Error("Corporation card not found", zap.Error(err))
-		return fmt.Errorf("corporation not found: %w", err)
-	}
-
-	// 4. Update player corporation
-	player.Corp().SetCard(*corp)
+	// 3. Update player corporation
+	// NOTE: Corporation validation is skipped - admin actions are trusted to provide valid corporation IDs
+	// In production, you might want to validate the corporation ID exists
+	player.SetCorporationID(corporationID)
 
 	log.Info("✅ Player corporation updated")
 
-	// 5. Broadcast updated game state
-	a.BroadcastGameState(gameID, log)
+	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - player.SetCorporationID() publishes events
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Admin set corporation completed")
 	return nil

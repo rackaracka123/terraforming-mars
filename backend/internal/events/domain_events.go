@@ -9,6 +9,14 @@ import "time"
 // GAME EVENTS
 // ============================================================================
 
+// BroadcastEvent signals that game state has changed and clients should receive updates
+// Published by domain entities (Game, GlobalParameters, Board, etc.) after state mutations
+// Delivery layer listens for this event to trigger WebSocket broadcasts
+type BroadcastEvent struct {
+	GameID    string
+	PlayerIDs []string // Specific players to notify (nil = broadcast to all players in the game)
+}
+
 // TemperatureChangedEvent is published when the global temperature parameter changes
 type TemperatureChangedEvent struct {
 	GameID    string

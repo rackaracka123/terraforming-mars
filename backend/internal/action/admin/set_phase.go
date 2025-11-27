@@ -2,54 +2,58 @@ package admin
 
 import (
 	"context"
-
-	"terraforming-mars-backend/internal/action"
-	"terraforming-mars-backend/internal/session"
-	game "terraforming-mars-backend/internal/session/game/core"
+	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
 )
 
 // SetPhaseAction handles the admin action to set the game phase
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SetPhaseAction struct {
-	action.BaseAction
-	gameRepo game.Repository
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewSetPhaseAction creates a new set phase admin action
 func NewSetPhaseAction(
-	gameRepo game.Repository,
-	sessionMgrFactory session.SessionManagerFactory,
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
 ) *SetPhaseAction {
 	return &SetPhaseAction{
-		BaseAction: action.NewBaseAction(sessionMgrFactory),
-		gameRepo:   gameRepo,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
 // Execute performs the set phase admin action
 func (a *SetPhaseAction) Execute(ctx context.Context, gameID string, phase game.GamePhase) error {
-	log := a.InitLogger(gameID, "")
-	log.Info("🎬 Admin: Setting game phase",
-		zap.String("phase", string(phase)))
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("action", "admin_set_phase"),
+		zap.String("phase", string(phase)),
+	)
+	log.Info("🎬 Admin: Setting game phase")
 
-	// 1. Validate game exists
-	_, err := action.ValidateGameExists(ctx, a.gameRepo, gameID, log)
+	// 1. Fetch game from repository
+	game, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
-		return err
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	// 2. Update game phase
-	err = a.gameRepo.UpdatePhase(ctx, gameID, phase)
+	err = game.UpdatePhase(ctx, phase)
 	if err != nil {
 		log.Error("Failed to update phase", zap.Error(err))
-		return err
+		return fmt.Errorf("failed to update phase: %w", err)
 	}
 
 	log.Info("✅ Game phase updated")
 
-	// 3. Broadcast updated game state
-	a.BroadcastGameState(gameID, log)
+	// 3. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - game.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
+	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Admin set phase completed")
 	return nil

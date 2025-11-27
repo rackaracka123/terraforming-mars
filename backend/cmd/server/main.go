@@ -9,20 +9,15 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/action"
-	adminaction "terraforming-mars-backend/internal/action/admin"
-	executecardaction "terraforming-mars-backend/internal/action/execute_card_action"
-	queryaction "terraforming-mars-backend/internal/action/query"
+	admin "terraforming-mars-backend/internal/action/admin"
+	query "terraforming-mars-backend/internal/action/query"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/session"
-	gamePackage "terraforming-mars-backend/internal/session/game"
-	"terraforming-mars-backend/internal/session/game/board"
-	"terraforming-mars-backend/internal/session/game/card"
-	"terraforming-mars-backend/internal/session/game/deck"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -41,192 +36,159 @@ func main() {
 	defer logger.Shutdown()
 
 	log := logger.Get()
-	log.Info("🚀 Starting Terraforming Mars backend server")
+	log.Info("🚀 Starting Terraforming Mars backend server (MIGRATION ARCHITECTURE)")
 	log.Info("Log level set to " + logLevel)
 
 	// Setup graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize event bus for domain events
+	// ========== Initialize Event Bus ==========
 	eventBus := events.NewEventBus()
 	log.Info("🎆 Event bus initialized")
 
-	// Initialize NEW deck repository with card loading
-	newDeckRepo, err := deck.NewRepository(context.Background())
-	if err != nil {
-		log.Fatal("Failed to initialize deck repository", zap.Error(err))
-	}
-	log.Info("🎴 NEW deck repository initialized with card definitions")
+	// ========== Initialize Game Repository (Single Source of Truth) ==========
+	migrationGameRepo := game.NewInMemoryGameRepository()
+	log.Info("🎮 Game repository initialized (migration architecture)")
 
-	// Create Hub first (no dependencies)
+	// ========== Initialize WebSocket Hub ==========
 	hub := core.NewHub()
+	log.Info("🔌 WebSocket hub initialized")
 
-	// ========== NEW ARCHITECTURE: Initialize Action Pattern ==========
-	// Initialize repositories first (needed by actions during migration)
-	// NOTE: These are deprecated facades - Phase 4-5 will migrate actions to use Session directly
-	newGameRepo := gamePackage.NewRepository(eventBus)
-	newCardRepo := card.NewRepository(newDeckRepo) // Use NEW deck repository
+	// ========== Initialize Migration Broadcaster (Event-Driven Broadcasting) ==========
+	migrationBroadcaster := wsHandler.NewBroadcaster(migrationGameRepo, eventBus, hub)
+	log.Info("📡 Migration broadcaster initialized and subscribed to BroadcastEvent")
+	_ = migrationBroadcaster // Silence unused warning
 
-	// Create shared board storage and global board repository for actions (temporary)
-	// SessionFactory will create game-scoped repositories internally
-	sharedBoards := make(map[string]*board.Board)
-	newBoardRepo := board.NewRepository("", sharedBoards, eventBus) // Empty gameID = global instance
-	log.Info("🗺️  Repositories initialized (facade for backwards compatibility)")
+	// ========== Initialize Migration Actions ==========
 
-	// Initialize SessionFactory with card and deck repositories
-	// SessionFactory manages game-scoped repositories internally (game, board, deck per game)
-	sessionFactory := session.NewSessionFactory(eventBus, newCardRepo, newDeckRepo)
-	log.Info("🎮 SessionFactory initialized - manages game-scoped repositories internally")
+	// Game lifecycle (2)
+	createGameAction := action.NewCreateGameAction(migrationGameRepo, eventBus, log)
+	joinGameAction := action.NewJoinGameAction(migrationGameRepo, eventBus, log)
 
-	// Initialize BoardProcessor for hex calculations
-	boardProcessor := board.NewBoardProcessor()
-	log.Info("🎲 Board processor initialized")
+	// Standard projects (6)
+	launchAsteroidAction := action.NewLaunchAsteroidAction(migrationGameRepo, log)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(migrationGameRepo, log)
+	buildAquiferAction := action.NewBuildAquiferAction(migrationGameRepo, log)
+	buildCityAction := action.NewBuildCityAction(migrationGameRepo, log)
+	plantGreeneryAction := action.NewPlantGreeneryAction(migrationGameRepo, log)
+	sellPatentsAction := action.NewSellPatentsAction(migrationGameRepo, log)
 
-	// Initialize TileProcessor for tile queue processing
-	tileProcessor := board.NewProcessor(newBoardRepo, boardProcessor)
-	log.Info("🎯 Tile processor initialized")
+	// Resource conversions (2)
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(migrationGameRepo, log)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(migrationGameRepo, log)
 
-	// Initialize BroadcasterFactory (creates session-aware SessionManagers)
-	// Each game gets its own SessionManager instance bound to that specific gameID
-	// Factory subscribes to domain events and automatically broadcasts on state changes
-	sessionManagerFactory := wsHandler.NewBroadcasterFactory(newGameRepo, sessionFactory, newCardRepo, newBoardRepo, hub, eventBus)
-	log.Info("📡 BroadcasterFactory initialized and subscribed to domain events")
+	// Turn management (3)
+	startGameAction := action.NewStartGameAction(migrationGameRepo, log)
+	skipActionAction := action.NewSkipActionAction(migrationGameRepo, log)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(migrationGameRepo, log)
 
-	// Initialize actions with SessionManagerFactory
-	// Actions will call sessionManagerFactory.GetOrCreate(gameID) to get game-specific broadcasters
-	startGameAction := action.NewStartGameAction(newGameRepo, newCardRepo, newDeckRepo, sessionManagerFactory)
-	joinGameAction := action.NewJoinGameAction(newGameRepo, sessionFactory)
-	playerReconnectedAction := action.NewPlayerReconnectedAction(sessionManagerFactory)
-	playerDisconnectedAction := action.NewPlayerDisconnectedAction(sessionManagerFactory)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(newGameRepo, newCardRepo, sessionManagerFactory)
-	skipActionAction := action.NewSkipActionAction(newGameRepo, newDeckRepo, sessionManagerFactory)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(newGameRepo, sessionManagerFactory)
-	buildCityAction := action.NewBuildCityAction(newGameRepo, tileProcessor, sessionManagerFactory)
+	// Confirmations (3)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(migrationGameRepo, log)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(migrationGameRepo, log)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(migrationGameRepo, eventBus, log)
 
-	// Initialize BonusCalculator for tile placement bonuses
-	bonusCalculator := board.NewBonusCalculator(newBoardRepo, newDeckRepo)
-	log.Info("🎁 Bonus calculator initialized")
+	// Connection management (2)
+	playerReconnectedAction := action.NewPlayerReconnectedAction(migrationGameRepo, log)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(migrationGameRepo, log)
 
-	// Initialize SelectTileAction for tile placement
-	selectTileAction := action.NewSelectTileAction(newGameRepo, newBoardRepo, tileProcessor, bonusCalculator, sessionManagerFactory)
+	// Admin actions (5)
+	adminSetPhaseAction := admin.NewSetPhaseAction(migrationGameRepo, log)
+	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(migrationGameRepo, log)
+	adminSetResourcesAction := admin.NewSetResourcesAction(migrationGameRepo, log)
+	adminSetProductionAction := admin.NewSetProductionAction(migrationGameRepo, log)
+	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(migrationGameRepo, log)
 
-	log.Info("🎯 New architecture initialized: start_game, create_game, join_game, player_reconnected, player_disconnected, select_starting_cards, skip_action, confirm_production_cards, build_city, select_tile actions ready")
-	// ================================================================
+	// Query actions for HTTP (3)
+	getGameAction := query.NewGetGameAction(migrationGameRepo, log)
+	listGamesAction := query.NewListGamesAction(migrationGameRepo, log)
+	getPlayerAction := query.NewGetPlayerAction(migrationGameRepo, log)
 
-	// Initialize services in dependency order
-	// Initialize card effect subscriber for passive effects (session-scoped)
-	effectSubscriber := card.NewCardEffectSubscriber(eventBus, newCardRepo)
-	log.Info("🎆 Card effect subscriber initialized (session-scoped)")
+	log.Info("✅ All migration actions initialized")
+	log.Info("   📌 Game Lifecycle (2): CreateGame, JoinGame")
+	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
+	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
+	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
+	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
+	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
+	log.Info("   📌 Admin Actions (5): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters")
+	log.Info("   📌 Query Actions (3): GetGame, ListGames, GetPlayer")
 
-	// Initialize CardManager for card playing logic (session-based)
-	// UPDATED: Now uses NEW deck repository instead of OLD CardDeckRepository
-	cardManager := gamePackage.NewCardManager(newCardRepo, newDeckRepo, effectSubscriber)
-	log.Info("🎴 Card manager initialized")
-
-	// Initialize CreateGameAction now that cardManager is available
-	createGameAction := action.NewCreateGameAction(newGameRepo, newBoardRepo, eventBus, cardManager)
-	log.Info("✅ CreateGameAction initialized")
-
-	// Initialize PlayCardAction for playing cards from hand
-	playCardAction := action.NewPlayCardAction(newGameRepo, cardManager, tileProcessor, sessionManagerFactory)
-	log.Info("✅ PlayCardAction initialized")
-
-	// Initialize standard project actions
-	launchAsteroidAction := action.NewLaunchAsteroidAction(newGameRepo, sessionManagerFactory)
-	buildPowerPlantAction := action.NewBuildPowerPlantAction(newGameRepo, sessionManagerFactory)
-	buildAquiferAction := action.NewBuildAquiferAction(newGameRepo, sessionManagerFactory)
-	plantGreeneryAction := action.NewPlantGreeneryAction(newGameRepo, sessionManagerFactory)
-	sellPatentsAction := action.NewSellPatentsAction(newGameRepo, sessionManagerFactory)
-	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(newGameRepo, sessionManagerFactory)
-	log.Info("✅ Standard project actions initialized")
-
-	// Initialize resource conversion actions
-	convertHeatAction := action.NewConvertHeatToTemperatureAction(newGameRepo, sessionManagerFactory)
-	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(newGameRepo, sessionManagerFactory)
-	log.Info("✅ Resource conversion actions initialized")
-
-	// Initialize forced action manager for corporation forced first actions
-	// UPDATED: Now uses NEW session repositories to match event sources
-	forcedActionManager := gamePackage.NewForcedActionManager(eventBus, newCardRepo, newDeckRepo)
-	forcedActionManager.SubscribeToPhaseChanges()
-	forcedActionManager.SubscribeToCardDrawEvents()
-	log.Info("🎯 Forced action manager initialized and subscribed to events (phase changes + card draw confirmations)")
-
-	// Initialize card selection confirmation actions
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(newGameRepo, sessionManagerFactory, eventBus)
-	log.Info("✅ Card selection confirmation actions initialized")
-
-	// Initialize admin actions
-	giveCardAdminAction := adminaction.NewGiveCardAction(newGameRepo, newCardRepo, sessionManagerFactory, sessionFactory)
-	setPhaseAdminAction := adminaction.NewSetPhaseAction(newGameRepo, sessionManagerFactory)
-	setResourcesAdminAction := adminaction.NewSetResourcesAction(newGameRepo, sessionManagerFactory)
-	setProductionAdminAction := adminaction.NewSetProductionAction(newGameRepo, sessionManagerFactory)
-	setGlobalParametersAdminAction := adminaction.NewSetGlobalParametersAction(newGameRepo, sessionManagerFactory)
-	startTileSelectionAdminAction := adminaction.NewStartTileSelectionAction(newGameRepo, newBoardRepo, boardProcessor, sessionManagerFactory)
-	setCurrentTurnAdminAction := adminaction.NewSetCurrentTurnAction(newGameRepo, sessionManagerFactory)
-	setCorporationAdminAction := adminaction.NewSetCorporationAction(newGameRepo, newCardRepo, sessionManagerFactory, sessionFactory)
-	log.Info("✅ Admin actions initialized")
-
-	// Initialize query actions for HTTP handlers
-	getGameAction := queryaction.NewGetGameAction(newGameRepo, newCardRepo)
-	listGamesAction := queryaction.NewListGamesAction(newGameRepo)
-	getPlayerAction := queryaction.NewGetPlayerAction(newGameRepo)
-	listCardsAction := queryaction.NewListCardsAction(newCardRepo)
-	getCorporationsAction := queryaction.NewGetCorporationsAction(newCardRepo)
-	log.Info("✅ Query actions initialized for HTTP handlers")
-
-	// Initialize CardProcessor for card action execution
-	cardProcessor := gamePackage.NewCardProcessor(newDeckRepo)
-	log.Info("🎴 Card processor initialized")
-
-	// Initialize card action execution action (fully migrated to session-based architecture)
-	executeCardActionAction := executecardaction.NewExecuteCardActionAction(newGameRepo, sessionManagerFactory, sessionFactory, cardProcessor, newDeckRepo)
-	log.Info("✅ Execute card action action fully migrated to session-based architecture")
-
-	// Initialize WebSocket service with shared Hub and new actions
-	ctx := context.Background()
-	webSocketService := wsHandler.NewWebSocketService(
-		newGameRepo, sessionFactory, hub, sessionManagerFactory,
-		startGameAction, joinGameAction, playerReconnectedAction, playerDisconnectedAction, selectStartingCardsAction, skipActionAction, confirmProductionCardsAction,
-		buildCityAction, selectTileAction, playCardAction, executeCardActionAction,
-		launchAsteroidAction, buildPowerPlantAction, buildAquiferAction, plantGreeneryAction,
-		sellPatentsAction, confirmSellPatentsAction,
-		convertHeatAction, convertPlantsAction,
-		confirmCardDrawAction,
-		giveCardAdminAction, setPhaseAdminAction, setResourcesAdminAction, setProductionAdminAction,
-		setGlobalParametersAdminAction, startTileSelectionAdminAction, setCurrentTurnAdminAction, setCorporationAdminAction,
-	)
-
-	// Start WebSocket service in background
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	defer wsCancel()
-	go webSocketService.Run(wsCtx)
-	log.Info("WebSocket hub started")
-
-	// Setup main router with CORS middleware
-	mainRouter := mux.NewRouter()
-	mainRouter.Use(httpmiddleware.CORS) // Apply CORS to all routes (API + WebSocket)
-
-	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(
-		sessionFactory,
+	// ========== Register Migration Handlers with WebSocket Hub ==========
+	wsHandler.RegisterHandlers(
+		hub,
+		// Game lifecycle
 		createGameAction,
 		joinGameAction,
+		// Standard projects
+		launchAsteroidAction,
+		buildPowerPlantAction,
+		buildAquiferAction,
+		buildCityAction,
+		plantGreeneryAction,
+		sellPatentsAction,
+		// Resource conversions
+		convertHeatAction,
+		convertPlantsAction,
+		// Turn management
+		startGameAction,
+		skipActionAction,
+		selectStartingCardsAction,
+		// Confirmations
+		confirmSellPatentsAction,
+		confirmProductionCardsAction,
+		confirmCardDrawAction,
+		// Connection
+		playerReconnectedAction,
+		playerDisconnectedAction,
+	)
+
+	log.Info("🎯 Migration handlers registered with WebSocket hub (17 handlers)")
+
+	// Silence unused admin actions (HTTP-only, not yet wired)
+	_ = adminSetPhaseAction
+	_ = adminSetCurrentTurnAction
+	_ = adminSetResourcesAction
+	_ = adminSetProductionAction
+	_ = adminSetGlobalParametersAction
+
+	// ========== Start WebSocket Hub ==========
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go hub.Run(ctx)
+	log.Info("🔌 WebSocket hub running")
+
+	// ========== Setup HTTP Router ==========
+	mainRouter := mux.NewRouter()
+	mainRouter.Use(httpmiddleware.CORS) // Apply CORS to all routes
+
+	// Setup API router with migration actions
+	apiRouter := httpHandler.SetupRouter(
+		createGameAction,
 		getGameAction,
 		listGamesAction,
 		getPlayerAction,
-		listCardsAction,
-		getCorporationsAction,
 	)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 
-	// Add WebSocket endpoint to main router (inherits CORS from mainRouter)
-	mainRouter.HandleFunc("/ws", webSocketService.ServeWS)
+	// Create WebSocket handler
+	wsHttpHandler := core.NewHandler(hub)
 
-	// Setup HTTP server
+	// Add WebSocket endpoint
+	mainRouter.HandleFunc("/ws", wsHttpHandler.ServeWS)
+
+	log.Info("🌐 HTTP routes configured")
+	log.Info("   📌 POST /api/v1/games - Create game")
+	log.Info("   📌 GET  /api/v1/games - List games")
+	log.Info("   📌 GET  /api/v1/games/{gameId} - Get game")
+	log.Info("   📌 GET  /api/v1/games/{gameId}/players/{playerId} - Get player")
+	log.Info("   📌 WS   /ws - WebSocket endpoint")
+	log.Info("   ℹ️  Game creation available via both HTTP POST and WebSocket 'create-game'")
+
+	// ========== Setup HTTP Server ==========
 	server := &http.Server{
 		Addr:         ":3001",
 		Handler:      mainRouter,
@@ -237,15 +199,14 @@ func main() {
 
 	// Start HTTP server in background
 	go func() {
-		log.Info("Starting HTTP server on :3001")
+		log.Info("🌍 HTTP server listening on :3001")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start HTTP server", zap.Error(err))
 		}
 	}()
 
-	log.Info("✅ Server started")
-	log.Info("🌍 HTTP server listening on :3001")
-	log.Info("🔌 WebSocket endpoint available at /ws")
+	log.Info("✅ Server started successfully")
+	log.Info("🎮 Using migration architecture - all old code removed")
 
 	// Wait for shutdown signal
 	<-quit
@@ -263,9 +224,9 @@ func main() {
 		log.Info("✅ HTTP server stopped")
 	}
 
-	// Cancel WebSocket service context
-	wsCancel()
-	log.Info("✅ WebSocket service stopped")
+	// Cancel WebSocket hub context
+	cancel()
+	log.Info("✅ WebSocket hub stopped")
 
 	log.Info("✅ Server shutdown complete")
 }
