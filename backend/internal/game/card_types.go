@@ -18,21 +18,21 @@ const (
 
 // Card represents a game card
 type Card struct {
-	ID              string
-	Name            string
-	Type            CardType
-	Cost            int
-	Description     string
-	Pack            string
-	Tags            []shared.CardTag
-	Requirements    []Requirement
-	Behaviors       []CardBehavior
-	ResourceStorage *ResourceStorage
-	VPConditions    []VictoryPointCondition
+	ID              string                  `json:"id"`
+	Name            string                  `json:"name"`
+	Type            CardType                `json:"type"`
+	Cost            int                     `json:"cost"`
+	Description     string                  `json:"description"`
+	Pack            string                  `json:"pack"`
+	Tags            []shared.CardTag        `json:"tags"`
+	Requirements    []Requirement           `json:"requirements"`
+	Behaviors       []CardBehavior          `json:"behaviors"`
+	ResourceStorage *ResourceStorage        `json:"resourceStorage"`
+	VPConditions    []VictoryPointCondition `json:"vpConditions"`
 
 	// Corporation-specific fields (nil for non-corporation cards)
-	StartingResources  *shared.ResourceSet
-	StartingProduction *shared.ResourceSet
+	StartingResources  *shared.ResourceSet `json:"startingResources"`
+	StartingProduction *shared.ResourceSet `json:"startingProduction"`
 }
 
 // DeepCopy creates a deep copy of the Card
@@ -106,12 +106,12 @@ const (
 
 // Requirement represents a single card requirement
 type Requirement struct {
-	Type     RequirementType
-	Min      *int
-	Max      *int
-	Location *CardApplyLocation
-	Tag      *shared.CardTag
-	Resource *shared.ResourceType
+	Type     RequirementType      `json:"type"`
+	Min      *int                 `json:"min,omitempty"`
+	Max      *int                 `json:"max,omitempty"`
+	Location *CardApplyLocation   `json:"location,omitempty"`
+	Tag      *shared.CardTag      `json:"tag,omitempty"`
+	Resource *shared.ResourceType `json:"resource,omitempty"`
 }
 
 // CardApplyLocation represents different locations
@@ -126,10 +126,10 @@ const (
 
 // CardBehavior represents card behaviors (immediate and repeatable)
 type CardBehavior struct {
-	Triggers []Trigger
-	Inputs   []ResourceCondition
-	Outputs  []ResourceCondition
-	Choices  []Choice
+	Triggers []Trigger           `json:"triggers,omitempty"`
+	Inputs   []ResourceCondition `json:"inputs,omitempty"`
+	Outputs  []ResourceCondition `json:"outputs,omitempty"`
+	Choices  []Choice            `json:"choices,omitempty"`
 }
 
 // DeepCopy creates a deep copy of the CardBehavior
@@ -207,8 +207,8 @@ func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 
 // Choice represents a player choice option
 type Choice struct {
-	Inputs  []ResourceCondition
-	Outputs []ResourceCondition
+	Inputs  []ResourceCondition `json:"inputs,omitempty"`
+	Outputs []ResourceCondition `json:"outputs,omitempty"`
 }
 
 // ==================== Triggers ====================
@@ -245,26 +245,26 @@ const (
 
 // Trigger represents when and how an action or effect is activated
 type Trigger struct {
-	Type      ResourceTriggerType
-	Condition *ResourceTriggerCondition
+	Type      ResourceTriggerType       `json:"type"`
+	Condition *ResourceTriggerCondition `json:"condition,omitempty"`
 }
 
 // MinMaxValue represents a min/max value constraint
 type MinMaxValue struct {
-	Min *int
-	Max *int
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
 }
 
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
-	Type                   TriggerType
-	Location               *CardApplyLocation
-	AffectedTags           []shared.CardTag
-	AffectedResources      []string
-	AffectedCardTypes      []CardType
-	Target                 *TargetType
-	RequiredOriginalCost   *MinMaxValue
-	RequiredResourceChange map[shared.ResourceType]MinMaxValue
+	Type                   TriggerType                         `json:"type"`
+	Location               *CardApplyLocation                  `json:"location,omitempty"`
+	AffectedTags           []shared.CardTag                    `json:"affectedTags,omitempty"`
+	AffectedResources      []string                            `json:"affectedResources,omitempty"`
+	AffectedCardTypes      []CardType                          `json:"affectedCardTypes,omitempty"`
+	Target                 *TargetType                         `json:"target,omitempty"`
+	RequiredOriginalCost   *MinMaxValue                        `json:"requiredOriginalCost,omitempty"`
+	RequiredResourceChange map[shared.ResourceType]MinMaxValue `json:"requiredResourceChange,omitempty"`
 }
 
 // ==================== Resource Conditions ====================
@@ -283,41 +283,41 @@ const (
 
 // ResourceCondition represents a resource amount (input or output)
 type ResourceCondition struct {
-	Type                     shared.ResourceType
-	Amount                   int
-	Target                   TargetType
-	AffectedResources        []string
-	AffectedTags             []shared.CardTag
-	AffectedCardTypes        []CardType
-	AffectedStandardProjects []shared.StandardProject
-	MaxTrigger               *int
-	Per                      *PerCondition
+	Type                     shared.ResourceType      `json:"type"`
+	Amount                   int                      `json:"amount"`
+	Target                   TargetType               `json:"target"`
+	AffectedResources        []string                 `json:"affectedResources,omitempty"`
+	AffectedTags             []shared.CardTag         `json:"affectedTags,omitempty"`
+	AffectedCardTypes        []CardType               `json:"affectedCardTypes,omitempty"`
+	AffectedStandardProjects []shared.StandardProject `json:"affectedStandardProjects,omitempty"`
+	MaxTrigger               *int                     `json:"maxTrigger,omitempty"`
+	Per                      *PerCondition            `json:"per,omitempty"`
 }
 
 // PerCondition represents what to count for conditional resource gains
 type PerCondition struct {
-	Type     shared.ResourceType
-	Amount   int
-	Location *CardApplyLocation
-	Target   *TargetType
-	Tag      *shared.CardTag
+	Type     shared.ResourceType `json:"type"`
+	Amount   int                 `json:"amount"`
+	Location *CardApplyLocation  `json:"location,omitempty"`
+	Target   *TargetType         `json:"target,omitempty"`
+	Tag      *shared.CardTag     `json:"tag,omitempty"`
 }
 
 // ==================== Card Storage and VP ====================
 
 // ResourceStorage represents a card's ability to hold resources
 type ResourceStorage struct {
-	Type     shared.ResourceType
-	Capacity *int
-	Starting int
+	Type     shared.ResourceType `json:"type"`
+	Capacity *int                `json:"capacity,omitempty"`
+	Starting int                 `json:"starting"`
 }
 
 // VictoryPointCondition represents a VP condition
 type VictoryPointCondition struct {
-	Amount     int
-	Condition  VPConditionType
-	MaxTrigger *int
-	Per        *PerCondition
+	Amount     int             `json:"amount"`
+	Condition  VPConditionType `json:"condition"`
+	MaxTrigger *int            `json:"maxTrigger,omitempty"`
+	Per        *PerCondition   `json:"per,omitempty"`
 }
 
 // VPConditionType represents different types of VP conditions

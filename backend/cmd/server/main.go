@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -45,7 +46,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	// ========== Initialize Card Registry ==========
-	cardData, err := cards.LoadCardsFromJSON("assets/terraforming_mars_cards.json")
+	// Get working directory to build absolute path
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal("Failed to get working directory", zap.Error(err))
+	}
+
+	cardPath := filepath.Join(wd, "assets", "terraforming_mars_cards.json")
+	log.Info("📂 Loading cards from", zap.String("path", cardPath))
+
+	cardData, err := cards.LoadCardsFromJSON(cardPath)
 	if err != nil {
 		log.Fatal("Failed to load cards", zap.Error(err))
 	}
