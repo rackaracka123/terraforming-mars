@@ -1,10 +1,10 @@
-# Backend Architecture Refactor: Action-Driven with Game as State Repository
+# Backend Architecture: Action-Driven with Game as State Repository
 
-## High-Level Goal (Achieved)
+## Overview
 
-The backend architecture has been successfully refactored to achieve clean separation of concerns where **Actions contain all business logic** (validation, orchestration, effect application) and **Game serves as a pure state repository** (getters/setters, event publishing) with fully encapsulated types using private fields and public methods.
+The backend architecture implements clean separation of concerns where **Actions contain all business logic** (validation, orchestration, effect application) and **Game serves as a pure state repository** (getters/setters, event publishing) with fully encapsulated types using private fields and public methods.
 
-**Note**: This document describes the current architecture and the patterns in use. The key principles achieved are: encapsulation, separation of concerns, and thread-safe state management.
+This document describes the current architecture, design patterns, and the refactor history that led to the current implementation.
 
 ## Core Architectural Principle
 
@@ -470,7 +470,7 @@ The refactor was completed using a phased approach with parallel migration direc
 - `backend/internal/action/convert_heat.go:76` - Reimplement card discount effects when card system is migrated
 - `backend/internal/delivery/dto/mapper_game.go:238,298` - Implement production phase mapping
 
-**Documentation Issues:**
-- `backend/CLAUDE.md` references `internal/session/types/` (should be `internal/game/`)
-- Test directories still use `test/session/` naming (consider renaming to `test/game/`)
-- Some test files import from old `internal/session/types` paths (need to update imports)
+**Documentation Status:**
+- ✅ CLAUDE.md files updated to reflect `internal/game/` structure
+- ✅ Broadcaster terminology clarified (removed SessionManager references)
+- 🔄 Test directories still use `test/session/` naming (consider renaming to `test/game/` in future cleanup)

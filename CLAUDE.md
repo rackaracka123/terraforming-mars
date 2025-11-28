@@ -61,19 +61,18 @@ backend/
 │   │   ├── base.go        # BaseAction with common dependencies
 │   │   ├── query/         # Read-only HTTP GET operations
 │   │   └── admin/         # Admin operations for testing/debugging
-│   ├── session/           # Subdomain repositories
-│   │   ├── session_manager.go  # 2-method broadcast interface
-│   │   ├── game/          # Game state, global parameters
-│   │   ├── player/        # Player resources, cards
-│   │   ├── card/          # Card data and deck
-│   │   ├── board/         # Tile placement, hex grid
-│   │   ├── deck/          # Card deck management
-│   │   └── types/         # Domain entities (Player, Game, Card, etc.)
+│   ├── game/              # Game state repository and domain types
+│   │   ├── game.go        # Core Game type with all game state
+│   │   ├── player/        # Player entity and components
+│   │   ├── board/         # Board and Tile types
+│   │   ├── deck/          # Deck management
+│   │   ├── shared/        # Shared types (Resources, HexPosition, etc.)
+│   │   └── global_parameters/  # GlobalParameters with terraforming state
 │   ├── cards/             # Card system, validation, registry
 │   ├── delivery/          # Presentation layer
 │   │   ├── dto/           # Data Transfer Objects and mappers
 │   │   ├── http/          # HTTP handlers (delegate to actions)
-│   │   └── websocket/     # WebSocket hub and handlers
+│   │   └── websocket/     # WebSocket hub, handlers, broadcaster
 │   ├── events/            # Event bus and domain events
 │   └── logger/            # Structured logging
 ├── test/                  # Comprehensive test suite
@@ -84,39 +83,42 @@ backend/
 
 **Action Pattern**
 - Each action performs ONE operation (join game, play card, raise temperature)
-- Actions extend `BaseAction` with injected dependencies (repositories, session manager, logger)
+- Actions extend `BaseAction` with injected dependencies (GameRepository, CardRegistry, logger)
 - Execute method with clear inputs/outputs and error handling
 - HTTP and WebSocket handlers both delegate to the same actions
 
 ```go
 type MyAction struct {
-    BaseAction  // gameRepo, playerRepo, sessionMgr, logger
+    BaseAction  // gameRepo, cardRegistry, logger
 }
 
 func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
     // 1. Validate inputs
-    // 2. Call session repositories with granular methods
-    // 3. Return result (SessionManager broadcasts via events)
+    // 2. Fetch game from GameRepository
+    // 3. Call game state methods (Game publishes events automatically)
+    // 4. Return result (Broadcaster receives events and broadcasts)
 }
 ```
 
-**Session Repositories**
-- Organized by subdomain (game, player, card, board, deck)
-- Return values (not pointers) to prevent external mutation
-- Granular update methods publish precise events: `UpdateResources()`, `UpdateTemperature()`, etc.
-- All repositories publish domain events to EventBus
+**Game as State Repository**
+- Single Game type contains all state (Players, Board, Deck, GlobalParameters)
+- Private fields with public accessor methods enforce encapsulation
+- State mutation methods publish domain events to EventBus
+- GameRepository manages collection of active games
+- No separate player/board/deck repositories - all accessed via Game
 
-**Event-Driven Architecture** (📖 See `backend/docs/EVENT_SYSTEM.md`)
-- Actions update repositories → Repositories publish events → SessionManager broadcasts
+**Event-Driven Architecture**
+- Actions update Game → Game publishes events → Broadcaster sends to clients
 - Passive card effects subscribe to domain events automatically
 - No manual polling or effect checking in services
 - **Core Rule**: Services do ONLY what the action says. Effects trigger via events.
 
-**SessionManager Interface**
+**Broadcaster**
+Subscribes to BroadcastEvent and sends personalized game state to WebSocket clients:
 ```go
-type SessionManager interface {
-    Broadcast(gameID string) error                  // Send to all players
-    Send(gameID string, playerID string) error      // Send to specific player
+// In internal/delivery/websocket/broadcaster.go
+func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
+    // Fetch game state and send personalized DTO to each player
 }
 ```
 
@@ -125,9 +127,9 @@ type SessionManager interface {
 ```
 Frontend → WebSocket Hub → Manager.RouteMessage() → Action Handler
     ↓
-Action.Execute() → Repository Updates (granular methods)
+Action.Execute() → Game State Updates (game methods)
     ↓
-EventBus (domain events) → SessionManager → WebSocket Broadcast
+EventBus (domain events) → Broadcaster → WebSocket Broadcast
     ↓
 All Clients Receive Personalized Game State
 ```
@@ -216,9 +218,9 @@ import GameIcon from '../ui/display/GameIcon.tsx';
 
 **CRITICAL**: Always check `TERRAFORMING_MARS_RULES.md` first for any task involving game mechanics, rules, or card effects.
 
-1. **Define domain types** in `internal/session/types/` with `json:` and `ts:` tags
+1. **Define domain types** in `internal/game/` or subpackages with `json:` and `ts:` tags
 2. **Create action** in `internal/action/` extending BaseAction
-3. **Update repositories** if new data access methods needed
+3. **Update Game methods** if new state access methods needed
 4. **Wire handlers** (HTTP or WebSocket) to delegate to action
 5. **Generate types**: Run `make generate`
 6. **Frontend**: Import generated types, implement UI
@@ -241,11 +243,11 @@ For passive effects (e.g., "Gain 2 MC when any city is placed"):
 - Implement `Execute()` with clear parameters
 - Design for idempotency when possible
 
-**Repository Usage**
-- Use subdomain repositories: gameRepo, playerRepo, cardRepo, boardRepo
-- Call granular methods: `UpdateResources()`, `UpdateTemperature()`
-- Never mutate returned values (repositories return copies)
-- Let repositories publish events automatically
+**Game State Usage**
+- Access game state via GameRepository: `game, err := a.gameRepo.Get(gameID)`
+- Call Game methods: `game.GlobalParameters().IncreaseTemperature(ctx, steps)`
+- Access players: `player := game.GetPlayer(playerID)`
+- Game methods publish events automatically
 
 **Handler Development**
 - HTTP: Parse request → Call action → Map to DTO → Respond
@@ -283,7 +285,7 @@ When asked to "debug frontend", use Playwright MCP to interactively debug:
 
 ### Type and DTO Synchronization
 
-When updating types in `/internal/session/types/`:
+When updating types in `/internal/game/`:
 1. Check if DTOs in `/internal/delivery/dto/` need updates
 2. Update mapper functions in `/internal/delivery/dto/mapper.go`
 3. Run `make generate` to sync TypeScript types
