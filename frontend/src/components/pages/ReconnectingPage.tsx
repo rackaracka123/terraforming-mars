@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { apiService } from "../../services/apiService.ts";
+import {
+  clearGameSession,
+  getGameSession,
+} from "../../utils/sessionStorage.ts";
 
 interface ReconnectingPageProps {
   // Add any props if needed
@@ -26,20 +30,32 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         setIsReconnecting(true);
 
         // Check localStorage for saved game data
-        const savedGameData = localStorage.getItem("terraforming-mars-game");
+        const savedGameData = getGameSession();
         if (!savedGameData) {
-          throw new Error("No saved game data found");
+          // No saved data, clear storage and go to landing page
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
-        const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+        const { gameId, playerId, playerName } = savedGameData;
         if (!gameId || !playerName || !playerId) {
-          throw new Error("Invalid saved game data - missing required fields");
+          // Invalid data, clear storage and go to landing page
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
         // Verify game still exists
         const game = await apiService.getGame(gameId);
         if (!game) {
-          throw new Error("Game no longer exists");
+          // Game no longer exists, automatically clear storage and redirect
+          console.log(
+            "Game no longer exists, clearing session and returning to landing page",
+          );
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
         // Ensure WebSocket is ready and attempt reconnection
@@ -92,7 +108,7 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
   }, [navigate]);
 
   const handleReturnToMenu = () => {
-    localStorage.removeItem("terraforming-mars-game");
+    clearGameSession();
     navigate("/", { replace: true });
   };
 

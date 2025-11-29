@@ -74,7 +74,7 @@ export default function ProjectedHexGrid({
           spherePosition,
           normal: spherePosition.clone().normalize(),
           // Convert backend tile data to legacy interface for compatibility
-          isOceanSpace: tile.type === "ocean-tile",
+          isOceanSpace: tile.type === "ocean-space",
           bonuses: convertBackendBonuses(tile.bonuses),
         };
       });

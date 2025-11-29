@@ -13,8 +13,7 @@ import (
 // This is Phase 2: processes the selected cards and awards credits
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmSellPatentsAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewConfirmSellPatentsAction creates a new confirm sell patents action
@@ -23,52 +22,36 @@ func NewConfirmSellPatentsAction(
 	logger *zap.Logger,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
 // Execute performs the confirm sell patents action (Phase 2: process card selection)
 func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.String("action", "confirm_sell_patents"),
 		zap.Int("cards_selected", len(selectedCardIDs)),
 	)
 	log.Info("🏛️ Confirming sell patents card selection")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 3. BUSINESS LOGIC: Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		var turnPlayerID string
-		if currentTurn != nil {
-			turnPlayerID = currentTurn.PlayerID()
-		}
-		log.Warn("Not player's turn",
-			zap.String("current_turn_player", turnPlayerID),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("not your turn")
-	}
-
-	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 3. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 5. BUSINESS LOGIC: Validate pending card selection exists (card selection phase state on Player)
@@ -144,11 +127,9 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	// 11. Clear pending card selection (card selection phase state on Player)
 	player.Selection().SetPendingCardSelection(nil)
 
-	// 12. BUSINESS LOGIC: Consume action (only if player actually sold cards and not unlimited actions)
-	availableActions := player.Turn().AvailableActions()
-	if len(selectedCardIDs) > 0 && availableActions > 0 {
-		player.Turn().SetAvailableActions(availableActions - 1)
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
+	// 12. Consume action (only if player actually sold cards and not unlimited actions)
+	if len(selectedCardIDs) > 0 {
+		a.ConsumePlayerAction(g, log)
 	}
 
 	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:

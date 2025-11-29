@@ -100,10 +100,13 @@ func main() {
 	convertHeatAction := action.NewConvertHeatToTemperatureAction(gameRepo, log)
 	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(gameRepo, log)
 
+	// Tile selection (1)
+	selectTileAction := action.NewSelectTileAction(gameRepo, log)
+
 	// Turn management (3)
 	startGameAction := action.NewStartGameAction(gameRepo, log)
 	skipActionAction := action.NewSkipActionAction(gameRepo, log)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, log)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
 
 	// Confirmations (3)
 	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
@@ -131,6 +134,7 @@ func main() {
 	log.Info("   📌 Card Actions (1): PlayCard")
 	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
+	log.Info("   📌 Tile Selection (1): SelectTile")
 	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
@@ -156,6 +160,8 @@ func main() {
 		// Resource conversions
 		convertHeatAction,
 		convertPlantsAction,
+		// Tile selection
+		selectTileAction,
 		// Turn management
 		startGameAction,
 		skipActionAction,
@@ -169,7 +175,7 @@ func main() {
 		playerDisconnectedAction,
 	)
 
-	log.Info("🎯 Migration handlers registered with WebSocket hub (18 handlers)")
+	log.Info("🎯 Migration handlers registered with WebSocket hub (19 handlers)")
 
 	// Silence unused admin actions (HTTP-only, not yet wired)
 	_ = adminSetPhaseAction

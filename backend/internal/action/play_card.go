@@ -14,9 +14,7 @@ import (
 // Card playing involves: validating requirements, calculating costs (with discounts),
 // moving card to played cards, applying immediate effects, and deducting payment
 type PlayCardAction struct {
-	gameRepo     game.GameRepository
-	cardRegistry cards.CardRegistry
-	logger       *zap.Logger
+	BaseAction
 }
 
 // NewPlayCardAction creates a new play card action
@@ -26,9 +24,11 @@ func NewPlayCardAction(
 	logger *zap.Logger,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		gameRepo:     gameRepo,
-		cardRegistry: cardRegistry,
-		logger:       logger,
+		BaseAction: BaseAction{
+			gameRepo:     gameRepo,
+			cardRegistry: cardRegistry,
+			logger:       logger,
+		},
 	}
 }
 
@@ -47,16 +47,14 @@ func (a *PlayCardAction) Execute(
 	cardID string,
 	payment PaymentRequest,
 ) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
 		zap.String("action", "play_card"),
 	)
 	log.Info("🃏 Player attempting to play card")
 
 	// 1. Validate game exists and is active
-	g, err := ValidateActiveGame(ctx, a.gameRepo, gameID, log)
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
@@ -72,10 +70,9 @@ func (a *PlayCardAction) Execute(
 	}
 
 	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 5. BUSINESS LOGIC: Validate card is in player's hand

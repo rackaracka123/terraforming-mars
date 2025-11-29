@@ -11,6 +11,7 @@ import (
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Game represents a unified game entity containing all game state
@@ -31,6 +32,7 @@ type Game struct {
 	board            *board.Board
 	deck             *deck.Deck
 	players          map[string]*player.Player
+	turnOrder        []string // Ordered list of player IDs for turn sequence
 	eventBus         *events.EventBusImpl
 
 	// Player-specific non-card phase state (managed by Game)
@@ -78,9 +80,10 @@ func NewGame(
 		currentPhase:     GamePhaseWaitingForGameStart,
 		globalParameters: global_parameters.NewGlobalParametersWithValues(id, initTemp, initOxy, initOcean, eventBus),
 		generation:       1,
-		board:            board.NewBoard(id, eventBus),
+		board:            board.NewBoardWithTiles(id, board.GenerateMarsBoard(), eventBus),
 		deck:             nil, // Set via SetDeck after deck is created
 		players:          make(map[string]*player.Player),
+		turnOrder:        []string{}, // Empty until game starts
 		eventBus:         eventBus,
 		// Initialize non-card phase state maps
 		pendingTileSelections:      make(map[string]*player.PendingTileSelection),
@@ -149,6 +152,16 @@ func (g *Game) Generation() int {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.generation
+}
+
+// TurnOrder returns a copy of the turn order
+func (g *Game) TurnOrder() []string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	// Return a copy to prevent external mutation
+	order := make([]string, len(g.turnOrder))
+	copy(order, g.turnOrder)
+	return order
 }
 
 // CurrentTurn returns the current turn information (may be nil)
@@ -359,18 +372,42 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 	return nil
 }
 
-// SetCurrentTurn sets the current turn to a specific player with available actions
-func (g *Game) SetCurrentTurn(ctx context.Context, playerID string, availableActions []ActionType) error {
+// SetCurrentTurn sets the current turn to a specific player with a specific action count
+func (g *Game) SetCurrentTurn(ctx context.Context, playerID string, actionsRemaining int) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	g.mu.Lock()
-	g.currentTurn = NewTurn(playerID, availableActions)
+	g.currentTurn = NewTurn(playerID, actionsRemaining)
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
 	// Trigger client broadcast for turn change
+	if g.eventBus != nil {
+		events.Publish(g.eventBus, events.BroadcastEvent{
+			GameID:    g.id,
+			PlayerIDs: nil, // Broadcast to all players
+		})
+	}
+
+	return nil
+}
+
+// SetTurnOrder sets the turn order for the game
+func (g *Game) SetTurnOrder(ctx context.Context, turnOrder []string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	g.mu.Lock()
+	// Create a copy to prevent external mutation
+	g.turnOrder = make([]string, len(turnOrder))
+	copy(g.turnOrder, turnOrder)
+	g.updatedAt = time.Now()
+	g.mu.Unlock()
+
+	// Trigger client broadcast for turn order update
 	if g.eventBus != nil {
 		events.Publish(g.eventBus, events.BroadcastEvent{
 			GameID:    g.id,
@@ -649,49 +686,118 @@ func (g *Game) SetSelectStartingCardsPhase(ctx context.Context, playerID string,
 	return nil
 }
 
-// ProcessNextTile pops the next tile from a player's tile queue
-// Returns the tile type and whether more tiles remain in the queue
-func (g *Game) ProcessNextTile(ctx context.Context, playerID string) (string, error) {
+// ProcessNextTile pops the next tile from a player's tile queue and creates a PendingTileSelection
+// This method converts the queue into an actionable tile selection for the player
+func (g *Game) ProcessNextTile(ctx context.Context, playerID string) error {
 	if err := ctx.Err(); err != nil {
-		return "", err
+		return err
 	}
-
-	var nextTileType string
 
 	g.mu.Lock()
 	// Get queue for this player
 	queue, exists := g.pendingTileSelectionQueues[playerID]
 	if !exists || queue == nil || len(queue.Items) == 0 {
 		g.mu.Unlock()
-		return "", nil // No queue or empty queue
+		return nil // No queue or empty queue
 	}
 
 	// Pop first item
-	nextTileType = queue.Items[0]
+	nextTileType := queue.Items[0]
 	remainingItems := queue.Items[1:]
+	source := queue.Source
 
 	// Update or clear queue
 	if len(remainingItems) > 0 {
 		g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
 			Items:  remainingItems,
-			Source: queue.Source,
+			Source: source,
 		}
 	} else {
 		delete(g.pendingTileSelectionQueues, playerID)
 	}
-
-	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player AFTER releasing lock
-	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
-			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
-		})
+	// Calculate available hexes for this tile type
+	availableHexes := g.calculateAvailableHexesForTile(nextTileType, playerID)
+
+	// Create pending tile selection
+	err := g.SetPendingTileSelection(ctx, playerID, &player.PendingTileSelection{
+		TileType:       nextTileType,
+		AvailableHexes: availableHexes,
+		Source:         source,
+	})
+
+	return err
+}
+
+// calculateAvailableHexesForTile returns a list of valid hex positions for placing a tile
+func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) []string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if g.board == nil {
+		return []string{}
 	}
 
-	return nextTileType, nil
+	tiles := g.board.Tiles()
+	availableHexes := []string{}
+
+	for _, tile := range tiles {
+		// Skip tiles that are already occupied
+		if tile.OccupiedBy != nil {
+			continue
+		}
+
+		switch tileType {
+		case "city":
+			// Cities can be placed on land tiles (not ocean-space)
+			// Cities CANNOT be adjacent to other cities
+			if tile.Type != shared.ResourceLandTile {
+				continue
+			}
+
+			// Check if any neighbor has a city
+			hasAdjacentCity := false
+			neighbors := tile.Coordinates.GetNeighbors()
+			for _, neighborPos := range neighbors {
+				for _, neighborTile := range tiles {
+					if neighborTile.Coordinates.Equals(neighborPos) {
+						if neighborTile.OccupiedBy != nil && neighborTile.OccupiedBy.Type == shared.ResourceCityTile {
+							hasAdjacentCity = true
+							break
+						}
+					}
+				}
+				if hasAdjacentCity {
+					break
+				}
+			}
+
+			if !hasAdjacentCity {
+				availableHexes = append(availableHexes, tile.Coordinates.String())
+			}
+
+		case "greenery":
+			// Greeneries can be placed on land tiles (not ocean-space)
+			if tile.Type == shared.ResourceLandTile {
+				availableHexes = append(availableHexes, tile.Coordinates.String())
+			}
+
+		case "ocean":
+			// Oceans can only be placed on ocean-space tiles
+			if tile.Type == shared.ResourceOceanSpace {
+				availableHexes = append(availableHexes, tile.Coordinates.String())
+			}
+
+		default:
+			// For unknown tile types, allow placement on any land tile
+			if tile.Type == shared.ResourceLandTile {
+				availableHexes = append(availableHexes, tile.Coordinates.String())
+			}
+		}
+	}
+
+	return availableHexes
 }
 
 // ================== Player Actions and Effects Accessors ==================

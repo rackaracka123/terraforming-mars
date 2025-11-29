@@ -49,8 +49,8 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update current turn
-	err = game.SetCurrentTurn(ctx, playerID, nil)
+	// 3. Update current turn (-1 = unlimited actions for admin testing)
+	err = game.SetCurrentTurn(ctx, playerID, -1)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update current turn: %w", err)

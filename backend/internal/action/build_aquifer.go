@@ -18,8 +18,7 @@ const (
 // BuildAquiferAction handles the business logic for the build aquifer standard project
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type BuildAquiferAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewBuildAquiferAction creates a new build aquifer action
@@ -28,51 +27,33 @@ func NewBuildAquiferAction(
 	logger *zap.Logger,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
 // Execute performs the build aquifer action
 func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "build_aquifer"),
-	)
+	log := a.InitLogger(gameID, playerID).With(zap.String("action", "build_aquifer"))
 	log.Info("💧 Building aquifer (ocean tile)")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 3. BUSINESS LOGIC: Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		var turnPlayerID string
-		if currentTurn != nil {
-			turnPlayerID = currentTurn.PlayerID()
-		}
-		log.Warn("Not player's turn",
-			zap.String("current_turn_player", turnPlayerID),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("not your turn")
-	}
-
-	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 3. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 5. BUSINESS LOGIC: Validate cost (18 M€)
@@ -112,11 +93,8 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 
 	log.Info("📋 Created tile queue for ocean placement")
 
-	// 9. BUSINESS LOGIC: Consume action using domain method
-	if player.Turn().ConsumeAction() {
-		availableActions := player.Turn().AvailableActions()
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions))
-	}
+	// 9. Consume action (only if not unlimited actions)
+	a.ConsumePlayerAction(g, log)
 
 	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//    - player.Resources().Add() publishes ResourcesChangedEvent

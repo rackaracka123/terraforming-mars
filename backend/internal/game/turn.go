@@ -2,24 +2,19 @@ package game
 
 import "sync"
 
-// ActionType represents the type of action a player can take
-type ActionType string
-
 // Turn tracks the active player and available actions for the current turn
 // This is game-level turn state (whose turn it is), not per-player state
 type Turn struct {
 	mu               sync.RWMutex
 	playerID         string
-	availableActions []ActionType
-	actionsRemaining int
+	actionsRemaining int // -1 = unlimited, 0 = none, >0 = specific count
 }
 
-// NewTurn creates a new turn for the specified player
-func NewTurn(playerID string, availableActions []ActionType) *Turn {
+// NewTurn creates a new turn for the specified player with a specific action count
+func NewTurn(playerID string, actionsRemaining int) *Turn {
 	return &Turn{
 		playerID:         playerID,
-		availableActions: availableActions,
-		actionsRemaining: len(availableActions),
+		actionsRemaining: actionsRemaining,
 	}
 }
 
@@ -30,49 +25,34 @@ func (t *Turn) PlayerID() string {
 	return t.playerID
 }
 
-// AvailableActions returns the list of available action types
-func (t *Turn) AvailableActions() []ActionType {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	// Return a copy to prevent external modification
-	actions := make([]ActionType, len(t.availableActions))
-	copy(actions, t.availableActions)
-	return actions
-}
-
 // ActionsRemaining returns the number of actions remaining in this turn
+// Returns -1 for unlimited actions, 0 for no actions, >0 for specific count
 func (t *Turn) ActionsRemaining() int {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.actionsRemaining
 }
 
-// CanPerformAction checks if the specified action type is available
-func (t *Turn) CanPerformAction(actionType ActionType) bool {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	for _, action := range t.availableActions {
-		if action == actionType {
-			return true
-		}
-	}
-	return false
-}
-
-// DecrementActions decreases the number of actions remaining
-func (t *Turn) DecrementActions() {
+// SetActionsRemaining sets the number of actions remaining
+func (t *Turn) SetActionsRemaining(actions int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.actionsRemaining = actions
+}
+
+// ConsumeAction decreases the number of actions remaining
+// Returns true if an action was consumed, false if unlimited (-1) or no actions (0)
+func (t *Turn) ConsumeAction() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Only consume if player has limited actions remaining (> 0)
+	// -1 = unlimited actions (don't consume)
+	// 0 = no actions remaining (don't consume)
 	if t.actionsRemaining > 0 {
 		t.actionsRemaining--
+		return true
 	}
-}
 
-// SetActions updates the available actions and resets the remaining count
-func (t *Turn) SetActions(actions []ActionType) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	t.availableActions = make([]ActionType, len(actions))
-	copy(t.availableActions, actions)
-	t.actionsRemaining = len(actions)
+	return false
 }

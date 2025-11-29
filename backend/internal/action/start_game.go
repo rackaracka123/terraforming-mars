@@ -3,6 +3,8 @@ package action
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
@@ -62,42 +64,53 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	players := g.GetAllPlayers()
 	log.Info("🎮 Starting game with players", zap.Int("player_count", len(players)))
 
-	// 5. BUSINESS LOGIC: Ensure deck is initialized
+	// 5. BUSINESS LOGIC: Randomize and set turn order
+	playerIDs := make([]string, len(players))
+	for i, p := range players {
+		playerIDs[i] = p.ID()
+	}
+	// Shuffle player IDs to randomize turn order
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(playerIDs), func(i, j int) {
+		playerIDs[i], playerIDs[j] = playerIDs[j], playerIDs[i]
+	})
+	if err := g.SetTurnOrder(ctx, playerIDs); err != nil {
+		log.Error("Failed to set turn order", zap.Error(err))
+		return fmt.Errorf("failed to set turn order: %w", err)
+	}
+	log.Info("🎲 Randomized turn order", zap.Strings("turn_order", playerIDs))
+
+	// 6. BUSINESS LOGIC: Ensure deck is initialized
 	deck := g.Deck()
 	if deck == nil {
 		log.Error("Game deck not initialized")
 		return fmt.Errorf("game deck not initialized - must initialize deck before starting game")
 	}
 
-	// 6. BUSINESS LOGIC: Update game status to Active
+	// 7. BUSINESS LOGIC: Update game status to Active
 	if err := g.UpdateStatus(ctx, game.GameStatusActive); err != nil {
 		log.Error("Failed to update game status", zap.Error(err))
 		return fmt.Errorf("failed to update game status: %w", err)
 	}
 
-	// 7. BUSINESS LOGIC: Update game phase to StartingCardSelection
+	// 8. BUSINESS LOGIC: Update game phase to StartingCardSelection
 	if err := g.UpdatePhase(ctx, game.GamePhaseStartingCardSelection); err != nil {
 		log.Error("Failed to update game phase", zap.Error(err))
 		return fmt.Errorf("failed to update game phase: %w", err)
 	}
 
-	// 8. BUSINESS LOGIC: Set first player's turn
-	if len(players) > 0 {
-		firstPlayerID := players[0].ID()
-		if err := g.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
+	// 9. BUSINESS LOGIC: Set first player's turn (use randomized turn order)
+	if len(playerIDs) > 0 {
+		firstPlayerID := playerIDs[0]
+		if err := g.SetCurrentTurn(ctx, firstPlayerID, 0); err != nil {
 			log.Error("Failed to set current turn", zap.Error(err))
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}
 		log.Info("✅ Set initial turn", zap.String("first_player_id", firstPlayerID))
-
-		// Set unlimited actions for solo mode
-		if len(players) == 1 {
-			players[0].Turn().SetAvailableActions(-1)
-			log.Info("🎮 Solo mode detected - unlimited actions enabled")
-		}
+		// Note: Available actions will be set when transitioning to Action phase
 	}
 
-	// 9. BUSINESS LOGIC: Distribute starting cards to all players
+	// 10. BUSINESS LOGIC: Distribute starting cards to all players
 	if err := a.distributeStartingCards(ctx, g, players); err != nil {
 		log.Error("Failed to distribute starting cards", zap.Error(err))
 		return fmt.Errorf("failed to distribute starting cards: %w", err)
@@ -105,7 +118,8 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 
 	log.Info("✅ Starting cards distributed to all players")
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	// 11. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//    - g.SetTurnOrder() publishes BroadcastEvent
 	//    - game.UpdateStatus() publishes GameStatusChangedEvent + BroadcastEvent
 	//    - g.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
 	//    - g.SetCurrentTurn() publishes BroadcastEvent

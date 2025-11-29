@@ -76,6 +76,93 @@ func NewBoardWithTiles(gameID string, tiles []Tile, eventBus *events.EventBusImp
 	}
 }
 
+// GenerateMarsBoard creates the standard Terraforming Mars board layout
+// Returns a hexagonal grid with ocean spaces, bonus tiles, and land tiles
+func GenerateMarsBoard() []Tile {
+	tiles := []Tile{}
+
+	// Ocean space positions (9 total, distributed across the board)
+	oceanSpaces := map[shared.HexPosition]bool{
+		{Q: -4, R: 0, S: 4}:  true,
+		{Q: -3, R: -1, S: 4}: true,
+		{Q: -1, R: -2, S: 3}: true,
+		{Q: 1, R: 1, S: -2}:  true,
+		{Q: 2, R: -1, S: -1}: true,
+		{Q: 3, R: -2, S: -1}: true,
+		{Q: 0, R: 3, S: -3}:  true,
+		{Q: -2, R: 4, S: -2}: true,
+		{Q: 1, R: 3, S: -4}:  true,
+	}
+
+	// Bonus tiles with their positions and types
+	bonusTiles := map[shared.HexPosition]TileBonus{
+		{Q: -3, R: 1, S: 2}:  {Type: shared.ResourceSteel, Amount: 2},
+		{Q: -2, R: 0, S: 2}:  {Type: shared.ResourceSteel, Amount: 2},
+		{Q: 2, R: 1, S: -3}:  {Type: shared.ResourceTitanium, Amount: 3},
+		{Q: 3, R: 0, S: -3}:  {Type: shared.ResourceTitanium, Amount: 3},
+		{Q: -1, R: 2, S: -1}: {Type: shared.ResourcePlants, Amount: 2},
+		{Q: 0, R: 2, S: -2}:  {Type: shared.ResourcePlants, Amount: 2},
+		{Q: 1, R: -3, S: 2}:  {Type: shared.ResourceCardDraw, Amount: 2},
+		{Q: 2, R: -3, S: 1}:  {Type: shared.ResourceCardDraw, Amount: 2},
+	}
+
+	// Generate hexagonal grid (radius 4 from center)
+	radius := 4
+	for q := -radius; q <= radius; q++ {
+		r1 := max(-radius, -q-radius)
+		r2 := min(radius, -q+radius)
+
+		for r := r1; r <= r2; r++ {
+			s := -q - r
+			pos := shared.HexPosition{Q: q, R: r, S: s}
+
+			// Determine tile type and bonuses
+			var tileType shared.ResourceType
+			var bonuses []TileBonus
+
+			if oceanSpaces[pos] {
+				tileType = shared.ResourceOceanSpace
+			} else {
+				tileType = shared.ResourceLandTile
+			}
+
+			// Add bonus if this position has one
+			if bonus, hasBonus := bonusTiles[pos]; hasBonus {
+				bonuses = append(bonuses, bonus)
+			}
+
+			tile := Tile{
+				Coordinates: pos,
+				Type:        tileType,
+				Location:    TileLocationMars,
+				Tags:        []string{},
+				Bonuses:     bonuses,
+				OccupiedBy:  nil,
+				OwnerID:     nil,
+			}
+
+			tiles = append(tiles, tile)
+		}
+	}
+
+	return tiles
+}
+
+// Helper functions for min/max
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // ================== Getters ==================
 
 // Tiles returns a deep copy of all tiles to prevent external mutation

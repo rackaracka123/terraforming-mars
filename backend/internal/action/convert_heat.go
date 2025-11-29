@@ -18,8 +18,7 @@ const (
 // ConvertHeatToTemperatureAction handles converting heat to raise temperature
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type ConvertHeatToTemperatureAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewConvertHeatToTemperatureAction creates a new convert heat action
@@ -28,8 +27,10 @@ func NewConvertHeatToTemperatureAction(
 	logger *zap.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
@@ -39,37 +40,24 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	gameID string,
 	playerID string,
 ) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-	)
+	log := a.InitLogger(gameID, playerID)
 	log.Info("🔥 Converting heat to temperature")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Game not found", zap.Error(err))
-		return fmt.Errorf("game not found: %w", err)
+		return err
 	}
 
-	// 2. Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 3. Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		log.Warn("Not player's turn")
-		return fmt.Errorf("not your turn")
-	}
-
-	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 3. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found", zap.Error(err))
-		return fmt.Errorf("player not found: %w", err)
+		return err
 	}
 
 	// 5. Calculate required heat (with card discount effects)
@@ -126,11 +114,7 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	}
 
 	// 10. Consume action (only if not unlimited actions)
-	availableActions := player.Turn().AvailableActions()
-	if availableActions > 0 {
-		player.Turn().SetAvailableActions(availableActions - 1)
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
-	}
+	a.ConsumePlayerAction(g, log)
 
 	// 11. NO MANUAL BROADCAST - Events automatically trigger:
 	//     - TemperatureChangedEvent → SessionManager → WebSocket broadcast

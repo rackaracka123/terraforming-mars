@@ -35,6 +35,10 @@ const (
 	ResourceGreeneryTile ResourceType = "greenery-tile"
 	ResourceColonyTile   ResourceType = "colony-tile"
 
+	// Tile types for board spaces
+	ResourceLandTile   ResourceType = "land"
+	ResourceOceanSpace ResourceType = "ocean-space"
+
 	// Global parameters
 	ResourceTemperature     ResourceType = "temperature"
 	ResourceOxygen          ResourceType = "oxygen"

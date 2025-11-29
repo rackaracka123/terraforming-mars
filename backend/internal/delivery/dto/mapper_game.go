@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -99,7 +100,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 		ViewingPlayerID:  playerID, // The player viewing this game state
 		CurrentTurn:      getCurrentTurnPlayerID(g),
 		Generation:       g.Generation(),
-		TurnOrder:        []string{}, // Migration doesn't track turn order yet
+		TurnOrder:        g.TurnOrder(),
 		Board: BoardDto{
 			Tiles: tileDtos,
 		},
@@ -530,22 +531,22 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		Corporation:      corporation,
 		Cards:            handCards,
 		PlayedCards:      playedCards,
-		Passed:           false,
-		AvailableActions: 0,
-		IsConnected:      true, // Assume connected
-		Effects:          []PlayerEffectDto{},
-		Actions:          []PlayerActionDto{},
+		Passed:           p.HasPassed(),
+		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
+		IsConnected:      p.IsConnected(),
+		Effects:          convertPlayerEffects(g.GetPlayerEffects(p.ID()).List()),
+		Actions:          convertPlayerActions(g.GetPlayerActions(p.ID()).List()),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
 		ProductionPhase:          nil, // TODO: Implement production phase mapping
 		StartingCards:            []CardDto{},
-		PendingTileSelection:     nil,
-		PendingCardSelection:     nil,
-		PendingCardDrawSelection: nil,
-		ForcedFirstAction:        nil,
-		ResourceStorage:          map[string]int{},
-		PaymentSubstitutes:       []PaymentSubstituteDto{},
-		RequirementModifiers:     []RequirementModifierDto{},
+		PendingTileSelection:     convertPendingTileSelection(g.GetPendingTileSelection(p.ID())),
+		PendingCardSelection:     convertPendingCardSelection(p.Selection().GetPendingCardSelection(), cardRegistry),
+		PendingCardDrawSelection: convertPendingCardDrawSelection(p.Selection().GetPendingCardDrawSelection(), cardRegistry),
+		ForcedFirstAction:        convertForcedFirstAction(g.GetForcedFirstAction(p.ID())),
+		ResourceStorage:          p.Resources().Storage(),
+		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
+		RequirementModifiers:     convertRequirementModifiers(g.GetPlayerEffects(p.ID()).RequirementModifiers()),
 	}
 }
 
@@ -590,16 +591,16 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 		Corporation:      corporation,
 		HandCardCount:    handCardCount,
 		PlayedCards:      playedCards,
-		Passed:           false,
-		AvailableActions: 0,
-		IsConnected:      true,
-		Effects:          []PlayerEffectDto{},
-		Actions:          []PlayerActionDto{},
+		Passed:           p.HasPassed(),
+		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
+		IsConnected:      p.IsConnected(),
+		Effects:          convertPlayerEffects(g.GetPlayerEffects(p.ID()).List()),
+		Actions:          convertPlayerActions(g.GetPlayerActions(p.ID()).List()),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhaseForOtherPlayer(g.GetSelectStartingCardsPhase(p.ID())),
 		ProductionPhase:          nil, // TODO: Implement production phase mapping
-		ResourceStorage:          map[string]int{},
-		PaymentSubstitutes:       []PaymentSubstituteDto{},
+		ResourceStorage:          p.Resources().Storage(),
+		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
 	}
 }
 
@@ -638,4 +639,169 @@ func convertSelectStartingCardsPhaseForOtherPlayer(phase *player.SelectStartingC
 
 	// Other players don't see selection details
 	return &SelectStartingCardsOtherPlayerDto{}
+}
+
+// convertPlayerEffects converts PlayerEffect slice to PlayerEffectDto slice
+func convertPlayerEffects(effects []game.PlayerEffect) []PlayerEffectDto {
+	if len(effects) == 0 {
+		return []PlayerEffectDto{}
+	}
+
+	dtos := make([]PlayerEffectDto, len(effects))
+	for i, effect := range effects {
+		dtos[i] = PlayerEffectDto{
+			CardID:        effect.CardID,
+			CardName:      effect.CardName,
+			BehaviorIndex: effect.BehaviorIndex,
+			Behavior:      toCardBehaviorDto(effect.Behavior),
+		}
+	}
+	return dtos
+}
+
+// convertPlayerActions converts PlayerAction slice to PlayerActionDto slice
+func convertPlayerActions(actions []game.PlayerAction) []PlayerActionDto {
+	if len(actions) == 0 {
+		return []PlayerActionDto{}
+	}
+
+	dtos := make([]PlayerActionDto, len(actions))
+	for i, action := range actions {
+		dtos[i] = PlayerActionDto{
+			CardID:        action.CardID,
+			CardName:      action.CardName,
+			BehaviorIndex: action.BehaviorIndex,
+			Behavior:      toCardBehaviorDto(action.Behavior),
+			PlayCount:     action.PlayCount,
+		}
+	}
+	return dtos
+}
+
+// convertPaymentSubstitutes converts PaymentSubstitute slice to PaymentSubstituteDto slice
+func convertPaymentSubstitutes(substitutes []shared.PaymentSubstitute) []PaymentSubstituteDto {
+	if len(substitutes) == 0 {
+		return []PaymentSubstituteDto{}
+	}
+
+	dtos := make([]PaymentSubstituteDto, len(substitutes))
+	for i, sub := range substitutes {
+		dtos[i] = PaymentSubstituteDto{
+			ResourceType:   ResourceType(sub.ResourceType),
+			ConversionRate: sub.ConversionRate,
+		}
+	}
+	return dtos
+}
+
+// convertRequirementModifiers converts RequirementModifier slice to RequirementModifierDto slice
+func convertRequirementModifiers(modifiers []shared.RequirementModifier) []RequirementModifierDto {
+	if len(modifiers) == 0 {
+		return []RequirementModifierDto{}
+	}
+
+	dtos := make([]RequirementModifierDto, len(modifiers))
+	for i, mod := range modifiers {
+		// Convert resource types
+		affectedResources := make([]ResourceType, len(mod.AffectedResources))
+		for j, res := range mod.AffectedResources {
+			affectedResources[j] = ResourceType(res)
+		}
+
+		// Convert standard project pointer
+		var standardProjectTarget *StandardProject
+		if mod.StandardProjectTarget != nil {
+			sp := StandardProject(*mod.StandardProjectTarget)
+			standardProjectTarget = &sp
+		}
+
+		dtos[i] = RequirementModifierDto{
+			Amount:                mod.Amount,
+			AffectedResources:     affectedResources,
+			CardTarget:            mod.CardTarget,
+			StandardProjectTarget: standardProjectTarget,
+		}
+	}
+	return dtos
+}
+
+// convertPendingCardSelection converts PendingCardSelection to DTO
+func convertPendingCardSelection(selection *player.PendingCardSelection, cardRegistry cards.CardRegistry) *PendingCardSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Convert card IDs to full CardDtos
+	availableCards := getPlayedCards(selection.AvailableCards, cardRegistry)
+
+	return &PendingCardSelectionDto{
+		AvailableCards: availableCards,
+		CardCosts:      selection.CardCosts,
+		CardRewards:    selection.CardRewards,
+		Source:         selection.Source,
+		MinCards:       selection.MinCards,
+		MaxCards:       selection.MaxCards,
+	}
+}
+
+// convertPendingCardDrawSelection converts PendingCardDrawSelection to DTO
+func convertPendingCardDrawSelection(selection *player.PendingCardDrawSelection, cardRegistry cards.CardRegistry) *PendingCardDrawSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	// Convert card IDs to full CardDtos
+	availableCards := getPlayedCards(selection.AvailableCards, cardRegistry)
+
+	return &PendingCardDrawSelectionDto{
+		AvailableCards: availableCards,
+		FreeTakeCount:  selection.FreeTakeCount,
+		MaxBuyCount:    selection.MaxBuyCount,
+		CardBuyCost:    selection.CardBuyCost,
+		Source:         selection.Source,
+	}
+}
+
+// convertForcedFirstAction converts ForcedFirstAction to DTO
+func convertForcedFirstAction(action *player.ForcedFirstAction) *ForcedFirstActionDto {
+	if action == nil {
+		return nil
+	}
+
+	return &ForcedFirstActionDto{
+		ActionType:    action.ActionType,
+		CorporationID: action.CorporationID,
+		Completed:     action.Completed,
+		Description:   action.Description,
+	}
+}
+
+// convertPendingTileSelection converts PendingTileSelection to DTO
+func convertPendingTileSelection(selection *player.PendingTileSelection) *PendingTileSelectionDto {
+	if selection == nil {
+		return nil
+	}
+
+	return &PendingTileSelectionDto{
+		TileType:       selection.TileType,
+		AvailableHexes: selection.AvailableHexes,
+		Source:         selection.Source,
+	}
+}
+
+// getAvailableActionsForPlayer returns the available actions for a player
+// Actions are now at game level, so only the current player has actions
+func getAvailableActionsForPlayer(g *game.Game, playerID string) int {
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil {
+		return 0 // No current turn set
+	}
+
+	// Only return actions if this is the current player
+	if currentTurn.PlayerID() == playerID {
+		return currentTurn.ActionsRemaining()
+	}
+
+	// Other players don't have actions (actions are per-turn, not per-player)
+	return 0
 }

@@ -18,8 +18,7 @@ const (
 // PlantGreeneryAction handles the business logic for the plant greenery standard project
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlantGreeneryAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewPlantGreeneryAction creates a new plant greenery action
@@ -28,51 +27,33 @@ func NewPlantGreeneryAction(
 	logger *zap.Logger,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
 // Execute performs the plant greenery action
 func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "plant_greenery"),
-	)
+	log := a.InitLogger(gameID, playerID).With(zap.String("action", "plant_greenery"))
 	log.Info("🌱 Planting greenery (standard project)")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 3. BUSINESS LOGIC: Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		var turnPlayerID string
-		if currentTurn != nil {
-			turnPlayerID = currentTurn.PlayerID()
-		}
-		log.Warn("Not player's turn",
-			zap.String("current_turn_player", turnPlayerID),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("not your turn")
-	}
-
-	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 3. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 5. BUSINESS LOGIC: Validate cost (23 M€)
@@ -105,22 +86,25 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 
 	log.Info("📋 Created tile queue for greenery placement")
 
+	// 8. Process the queue to create PendingTileSelection with available hexes
+	if err := g.ProcessNextTile(ctx, playerID); err != nil {
+		return fmt.Errorf("failed to process tile queue: %w", err)
+	}
+
+	log.Info("🎯 Processed tile queue into pending tile selection")
+
 	// Note: Terraform rating increase happens when the greenery is placed (via SelectTileAction)
 	// Note: Oxygen increase happens when greenery is placed (by SelectTileAction)
 
-	// 8. BUSINESS LOGIC: Consume action (only if not unlimited actions)
-	availableActions := player.Turn().AvailableActions()
-	if availableActions > 0 {
-		player.Turn().SetAvailableActions(availableActions - 1)
-		log.Debug("✅ Action consumed", zap.Int("remaining_actions", availableActions-1))
-	}
+	// 9. Consume action (only if not unlimited actions)
+	a.ConsumePlayerAction(g, log)
 
-	// 9. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - g.SetPendingTileSelectionQueue() publishes BroadcastEvent
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
+	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	//     - g.ProcessNextTile() -> g.SetPendingTileSelection() publishes BroadcastEvent
+	//     - player.Resources().Add() publishes ResourcesChangedEvent
+	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
-	log.Info("✅ Greenery queued successfully, tile awaiting placement",
+	log.Info("✅ Greenery tile selection ready",
 		zap.Int("remaining_credits", resources.Credits))
 	return nil
 }

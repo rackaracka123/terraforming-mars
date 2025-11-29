@@ -304,7 +304,9 @@ export class WebSocketService {
 
   // Tile selection actions
   selectTile(coordinate: { q: number; r: number; s: number }): string {
-    return this.send(MessageTypeActionTileSelected, { coordinate });
+    // Convert coordinate object to "q,r,s" string format expected by backend
+    const hex = `${coordinate.q},${coordinate.r},${coordinate.s}`;
+    return this.send(MessageTypeActionTileSelected, { hex });
   }
 
   on(event: string, callback: EventCallback) {

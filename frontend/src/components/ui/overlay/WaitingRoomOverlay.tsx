@@ -64,10 +64,13 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                 });
 
                 // Use turnOrder to display players in correct order
+                // If turnOrder is empty (lobby phase), show all players
                 const orderedPlayers =
-                  game.turnOrder
-                    ?.map((playerId) => playerMap.get(playerId))
-                    .filter((player) => player !== undefined) || [];
+                  game.turnOrder && game.turnOrder.length > 0
+                    ? game.turnOrder
+                        .map((playerId) => playerMap.get(playerId))
+                        .filter((player) => player !== undefined)
+                    : Array.from(playerMap.values());
 
                 return orderedPlayers.map((player) => (
                   <div

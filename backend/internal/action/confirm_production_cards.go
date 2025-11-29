@@ -149,13 +149,20 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
-		// Set current turn to first player
+		// Set current turn to first player with appropriate action count
 		if len(allPlayers) > 0 {
 			firstPlayerID := allPlayers[0].ID()
-			if err := g.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
+			availableActions := 2
+			if len(allPlayers) == 1 {
+				availableActions = -1 // Unlimited for solo mode
+			}
+			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
 				log.Error("Failed to set current turn", zap.Error(err))
 				return fmt.Errorf("failed to set current turn: %w", err)
 			}
+			log.Debug("✅ Set first player turn with actions",
+				zap.String("player_id", firstPlayerID),
+				zap.Int("available_actions", availableActions))
 		}
 
 		// Clear production phase data for all players (triggers frontend modal to close)

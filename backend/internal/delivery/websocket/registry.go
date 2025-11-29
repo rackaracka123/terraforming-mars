@@ -10,6 +10,7 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/game"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/standard_project"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/tile"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/turn_management"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
@@ -38,6 +39,8 @@ func RegisterHandlers(
 	// Resource conversions
 	convertHeatAction *action.ConvertHeatToTemperatureAction,
 	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
+	// Tile selection
+	selectTileAction *action.SelectTileAction,
 	// Turn management
 	startGameAction *action.StartGameAction,
 	skipActionAction *action.SkipActionAction,
@@ -90,6 +93,10 @@ func RegisterHandlers(
 	convertPlantsHandler := resource_conversion.NewConvertPlantsHandler(convertPlantsAction)
 	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convertPlantsHandler)
 
+	// ========== Tile Selection ==========
+	selectTileHandler := tile.NewSelectTileHandler(selectTileAction)
+	hub.RegisterHandler(dto.MessageTypeActionTileSelected, selectTileHandler)
+
 	// ========== Turn Management ==========
 	startGameHandler := turn_management.NewStartGameHandler(startGameAction)
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, startGameHandler)
@@ -126,10 +133,11 @@ func RegisterHandlers(
 	log.Info("   ✅ Card Actions (1): PlayCard")
 	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")
+	log.Info("   ✅ Tile Selection (1): SelectTile")
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
-	log.Info("   📌 Total: 18 handlers registered (OLD handlers overwritten)")
+	log.Info("   📌 Total: 19 handlers registered (OLD handlers overwritten)")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler

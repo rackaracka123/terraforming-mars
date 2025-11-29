@@ -13,8 +13,7 @@ import (
 // This is Phase 1: creates pending card selection for player to choose which cards to sell
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SellPatentsAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewSellPatentsAction creates a new sell patents action
@@ -23,51 +22,33 @@ func NewSellPatentsAction(
 	logger *zap.Logger,
 ) *SellPatentsAction {
 	return &SellPatentsAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
 // Execute performs the sell patents action (Phase 1: initiate card selection)
 func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "sell_patents"),
-	)
+	log := a.InitLogger(gameID, playerID).With(zap.String("action", "sell_patents"))
 	log.Info("🏛️ Initiating sell patents")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
-	// 3. BUSINESS LOGIC: Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		var turnPlayerID string
-		if currentTurn != nil {
-			turnPlayerID = currentTurn.PlayerID()
-		}
-		log.Warn("Not player's turn",
-			zap.String("current_turn_player", turnPlayerID),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("not your turn")
-	}
-
-	// 4. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 3. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 5. BUSINESS LOGIC: Validate player has cards to sell

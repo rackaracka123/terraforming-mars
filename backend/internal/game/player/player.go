@@ -21,11 +21,13 @@ type Player struct {
 	// Corporation reference (quick lookup in playedCards)
 	corporationID string
 
+	// Turn state
+	hasPassed bool
+
 	// Delegated Components (private, exposed via accessors)
 	hand        *Hand
 	playedCards *PlayedCards
 	resources   *PlayerResources
-	turn        *Turn
 	selection   *Selection
 }
 
@@ -42,10 +44,10 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		connected:     true, // Players start as connected when created
 		eventBus:      eventBus,
 		corporationID: "",
+		hasPassed:     false, // Players start not having passed
 		hand:          newHand(eventBus, gameID, playerID),
 		playedCards:   newPlayedCards(eventBus, gameID, playerID),
 		resources:     newResources(eventBus, gameID, playerID),
-		turn:          newTurn(),
 		selection:     newSelection(),
 	}
 }
@@ -108,10 +110,24 @@ func (p *Player) Resources() *PlayerResources {
 	return p.resources
 }
 
-func (p *Player) Turn() *Turn {
-	return p.turn
-}
-
 func (p *Player) Selection() *Selection {
 	return p.selection
+}
+
+// ==================== Turn State ====================
+
+func (p *Player) HasPassed() bool {
+	return p.hasPassed
+}
+
+func (p *Player) SetPassed(passed bool) {
+	p.hasPassed = passed
+
+	// Publish broadcast event to notify clients of pass state change
+	if p.eventBus != nil {
+		events.Publish(p.eventBus, events.BroadcastEvent{
+			GameID:    p.gameID,
+			PlayerIDs: []string{p.id},
+		})
+	}
 }

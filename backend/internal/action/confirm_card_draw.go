@@ -16,9 +16,8 @@ import (
 // MIGRATION: Uses new architecture (GameRepository + EventBus for ForcedActionManager integration)
 // NOTE: EventBus dependency required to publish CardDrawConfirmedEvent for ForcedActionManager
 type ConfirmCardDrawAction struct {
-	gameRepo game.GameRepository
+	BaseAction
 	eventBus *events.EventBusImpl
-	logger   *zap.Logger
 }
 
 // NewConfirmCardDrawAction creates a new confirm card draw action
@@ -28,41 +27,33 @@ func NewConfirmCardDrawAction(
 	logger *zap.Logger,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		gameRepo: gameRepo,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 		eventBus: eventBus,
-		logger:   logger,
 	}
 }
 
 // Execute performs the confirm card draw action
 func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, playerID string, cardsToTake []string, cardsToBuy []string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.String("action", "confirm_card_draw"),
 		zap.Int("cards_to_take", len(cardsToTake)),
 		zap.Int("cards_to_buy", len(cardsToBuy)),
 	)
 	log.Info("🃏 Confirming card draw selection")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
-	}
-
-	// 3. Get player from game
-	player, err := g.GetPlayer(playerID)
+	// 2. Get player from game
+	player, err := a.GetPlayerFromGame(g, playerID, log)
 	if err != nil {
-		log.Error("Player not found in game", zap.Error(err))
-		return fmt.Errorf("player not found: %s", playerID)
+		return err
 	}
 
 	// 4. BUSINESS LOGIC: Validate pending card draw selection exists (card selection state on Player)

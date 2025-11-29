@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -12,18 +13,23 @@ import (
 // SelectStartingCardsAction handles the business logic for selecting starting cards and corporation
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SelectStartingCardsAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	gameRepo     game.GameRepository
+	cardRegistry cards.CardRegistry
+	corpProc     *cards.CorporationProcessor
+	logger       *zap.Logger
 }
 
 // NewSelectStartingCardsAction creates a new select starting cards action
 func NewSelectStartingCardsAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *SelectStartingCardsAction {
 	return &SelectStartingCardsAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		gameRepo:     gameRepo,
+		cardRegistry: cardRegistry,
+		corpProc:     cards.NewCorporationProcessor(logger),
+		logger:       logger,
 	}
 }
 
@@ -95,32 +101,49 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	// 7. BUSINESS LOGIC: Calculate cost (3 MC per card)
 	cost := len(cardIDs) * 3
 
-	// 8. BUSINESS LOGIC: Apply corporation (assumes 42 MC starting credits for simplicity)
-	// NOTE: In full implementation, corporation effects would be parsed from card data
-	// For now, we just set the corporation and give default starting credits
-	player.SetCorporationID(corporationID)
+	// 8. BUSINESS LOGIC: Fetch corporation card from registry
+	corpCard, err := a.cardRegistry.GetByID(corporationID)
+	if err != nil {
+		log.Error("Failed to fetch corporation card", zap.Error(err))
+		return fmt.Errorf("corporation card not found: %s", corporationID)
+	}
 
+	// Validate it's actually a corporation card
+	if corpCard.Type != game.CardTypeCorporation {
+		log.Error("Card is not a corporation",
+			zap.String("card_type", string(corpCard.Type)))
+		return fmt.Errorf("card %s is not a corporation card", corporationID)
+	}
+
+	// 9. BUSINESS LOGIC: Set corporation ID on player
+	player.SetCorporationID(corporationID)
 	log.Info("✅ Corporation selected", zap.String("corporation_id", corporationID))
 
-	// 9. BUSINESS LOGIC: Set starting resources and deduct card selection cost
-	startingCredits := 42 // Default starting amount
-	if startingCredits < cost {
-		log.Error("Insufficient credits",
+	// 10. BUSINESS LOGIC: Apply corporation starting effects (resources and production)
+	if err := a.corpProc.ApplyStartingEffects(ctx, corpCard, player); err != nil {
+		log.Error("Failed to apply corporation starting effects", zap.Error(err))
+		return fmt.Errorf("failed to apply corporation starting effects: %w", err)
+	}
+
+	// 11. BUSINESS LOGIC: Deduct card selection cost
+	resources := player.Resources().Get()
+	if resources.Credits < cost {
+		log.Error("Insufficient credits after corporation effects",
 			zap.Int("cost", cost),
-			zap.Int("available", startingCredits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", cost, startingCredits)
+			zap.Int("available", resources.Credits))
+		return fmt.Errorf("insufficient credits: need %d, have %d", cost, resources.Credits)
 	}
 
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: startingCredits - cost,
+		shared.ResourceCredits: -cost,
 	})
 
-	resources := player.Resources().Get()
-	log.Info("✅ Resources updated",
+	updatedResources := player.Resources().Get()
+	log.Info("✅ Card selection cost deducted",
 		zap.Int("cost", cost),
-		zap.Int("remaining_credits", resources.Credits))
+		zap.Int("remaining_credits", updatedResources.Credits))
 
-	// 10. BUSINESS LOGIC: Add selected cards to player's hand
+	// 12. BUSINESS LOGIC: Add selected cards to player's hand
 	log.Debug("🃏 Adding cards to player hand",
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
@@ -133,7 +156,13 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Strings("card_ids_added", cardIDs),
 		zap.Int("card_count", len(cardIDs)))
 
-	// 11. BUSINESS LOGIC: Mark selection as complete (phase state managed by Game)
+	// 13. BUSINESS LOGIC: Setup forced first action if corporation requires it
+	if err := a.corpProc.SetupForcedFirstAction(ctx, corpCard, g, playerID); err != nil {
+		log.Error("Failed to setup forced first action", zap.Error(err))
+		return fmt.Errorf("failed to setup forced first action: %w", err)
+	}
+
+	// 14. BUSINESS LOGIC: Mark selection as complete (phase state managed by Game)
 	if err := g.SetSelectStartingCardsPhase(ctx, playerID, nil); err != nil {
 		log.Error("Failed to clear starting cards phase", zap.Error(err))
 		return fmt.Errorf("failed to clear starting cards phase: %w", err)
@@ -141,7 +170,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 
 	log.Info("✅ Starting selection marked complete")
 
-	// 12. BUSINESS LOGIC: Check if all players completed selection
+	// 15. BUSINESS LOGIC: Check if all players completed selection
 	allPlayers := g.GetAllPlayers()
 	allComplete := true
 	for _, p := range allPlayers {
@@ -160,17 +189,31 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 			return fmt.Errorf("failed to transition game phase: %w", err)
 		}
 
-		// Set current turn to first player
-		if len(allPlayers) > 0 {
-			firstPlayerID := allPlayers[0].ID()
-			if err := g.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
+		// Set current turn to first player from turn order (randomized in start_game)
+		turnOrder := g.TurnOrder()
+		if len(turnOrder) > 0 {
+			firstPlayerID := turnOrder[0]
+
+			// Set available actions based on player count
+			availableActions := 2 // Default for multiplayer
+			if len(allPlayers) == 1 {
+				availableActions = -1 // Unlimited for solo mode
+				log.Info("🎮 Solo mode detected - setting unlimited actions")
+			}
+
+			// Set current turn with action count
+			if err := g.SetCurrentTurn(ctx, firstPlayerID, availableActions); err != nil {
 				log.Error("Failed to set current turn", zap.Error(err))
 				return fmt.Errorf("failed to set current turn: %w", err)
 			}
+
+			log.Info("✅ Set first player turn with actions",
+				zap.String("first_player_id", firstPlayerID),
+				zap.Int("available_actions", availableActions))
 		}
 	}
 
-	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	// 16. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//    - player.SetCorporationID() publishes events
 	//    - player.Resources().Add() publishes ResourcesChangedEvent
 	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent

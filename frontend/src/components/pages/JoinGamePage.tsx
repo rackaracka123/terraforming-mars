@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiService } from "../../services/apiService";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager";
 import { skyboxCache } from "../../services/SkyboxCache.ts";
+import { saveGameSession } from "../../utils/sessionStorage.ts";
 import LoadingOverlay from "../ui/overlay/LoadingOverlay";
 import GameIcon from "../ui/display/GameIcon.tsx";
 
@@ -198,16 +199,12 @@ const JoinGamePage: React.FC = () => {
 
         if (connectedPlayer) {
           // Store game data
-          const storedData = {
+          saveGameSession({
             gameId: validatedGame.id,
             playerId: connectedPlayer.id,
             playerName: playerName.trim(),
             joinedAt: new Date().toISOString(),
-          };
-          localStorage.setItem(
-            "terraforming-mars-game",
-            JSON.stringify(storedData),
-          );
+          });
 
           // Navigate to game
           navigate("/game", {

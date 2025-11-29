@@ -5,6 +5,7 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
 import { GameDto } from "../../types/generated/api-types.ts";
 import { getCorporationLogo } from "../../utils/corporationLogos.tsx";
+import { clearGameSession } from "../../utils/sessionStorage.ts";
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const GameLandingPage: React.FC = () => {
       } catch (err: any) {
         void err;
         // Clear invalid saved game data
-        localStorage.removeItem("terraforming-mars-game");
+        clearGameSession();
         setError("Unable to load previous game");
       }
     };

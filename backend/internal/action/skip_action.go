@@ -13,8 +13,7 @@ import (
 // SkipActionAction handles the business logic for skipping/passing player turns
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SkipActionAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewSkipActionAction creates a new skip action action
@@ -23,44 +22,27 @@ func NewSkipActionAction(
 	logger *zap.Logger,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo: gameRepo,
+			logger:   logger,
+		},
 	}
 }
 
 // Execute performs the skip action
 func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
-		zap.String("action", "skip_action"),
-	)
+	log := a.InitLogger(gameID, playerID).With(zap.String("action", "skip_action"))
 	log.Info("⏭️ Skipping player turn")
 
-	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	// 1. Fetch game from repository and validate it's active
+	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
-		log.Error("Failed to get game", zap.Error(err))
-		return fmt.Errorf("game not found: %s", gameID)
+		return err
 	}
 
-	// 2. BUSINESS LOGIC: Validate game is active
-	if g.Status() != game.GameStatusActive {
-		log.Warn("Game is not active", zap.String("status", string(g.Status())))
-		return fmt.Errorf("game is not active: %s", g.Status())
-	}
-
-	// 3. BUSINESS LOGIC: Validate it's the player's turn
-	currentTurn := g.CurrentTurn()
-	if currentTurn == nil || currentTurn.PlayerID() != playerID {
-		var turnPlayerID string
-		if currentTurn != nil {
-			turnPlayerID = currentTurn.PlayerID()
-		}
-		log.Warn("Not player's turn",
-			zap.String("current_turn_player", turnPlayerID),
-			zap.String("requesting_player", playerID))
-		return fmt.Errorf("not your turn")
+	// 2. Validate it's the player's turn
+	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+		return err
 	}
 
 	// 4. Get all players
@@ -85,18 +67,23 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	// 6. Count active players (not passed)
 	activePlayerCount := 0
 	for _, p := range players {
-		if !p.Turn().Passed() {
+		if !p.HasPassed() {
 			activePlayerCount++
 		}
 	}
 
 	// 7. BUSINESS LOGIC: Determine PASS vs SKIP behavior
 	// Solo games: skip always means pass (player is done with generation)
-	availableActions := currentPlayer.Turn().AvailableActions()
+	currentTurn := g.CurrentTurn()
+	if currentTurn == nil {
+		log.Error("No current turn set")
+		return fmt.Errorf("no current turn set")
+	}
+	availableActions := currentTurn.ActionsRemaining()
 	isPassing := availableActions == 2 || availableActions == -1 || len(players) == 1
 	if isPassing {
 		// PASS: Player hasn't done any actions or has unlimited actions
-		currentPlayer.Turn().SetPassed(true)
+		currentPlayer.SetPassed(true)
 
 		log.Debug("Player PASSED (marked as passed for generation)",
 			zap.String("player_id", playerID),
@@ -105,8 +92,12 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		// If only one active player remains, grant them unlimited actions
 		if activePlayerCount == 2 {
 			for _, p := range players {
-				if !p.Turn().Passed() && p.ID() != playerID {
-					p.Turn().SetAvailableActions(-1)
+				if !p.HasPassed() && p.ID() != playerID {
+					// Set the next player's turn with unlimited actions
+					if err := g.SetCurrentTurn(ctx, p.ID(), -1); err != nil {
+						log.Error("Failed to grant unlimited actions to last player", zap.Error(err))
+						return fmt.Errorf("failed to grant unlimited actions: %w", err)
+					}
 					log.Info("🏃 Last active player granted unlimited actions due to others passing",
 						zap.String("player_id", p.ID()))
 				}
@@ -123,25 +114,19 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	players = g.GetAllPlayers()
 
 	// 9. BUSINESS LOGIC: Check if all players have finished their actions
-	allPlayersFinished := true
+	// Since actions are now at game level (only current player has actions),
+	// we check if all players have passed
 	passedCount := 0
-	playersWithNoActions := 0
 	for _, p := range players {
-		if p.Turn().Passed() {
+		if p.HasPassed() {
 			passedCount++
-			continue // Skip remaining checks - this player is done
-		}
-		pActions := p.Turn().AvailableActions()
-		if pActions == 0 {
-			playersWithNoActions++
-		} else if pActions > 0 || pActions == -1 {
-			allPlayersFinished = false
 		}
 	}
 
+	allPlayersFinished := passedCount == len(players)
+
 	log.Debug("Checking generation end condition",
 		zap.Int("passed_count", passedCount),
-		zap.Int("players_with_no_actions", playersWithNoActions),
 		zap.Int("total_players", len(players)),
 		zap.Bool("all_players_finished", allPlayersFinished))
 
@@ -150,8 +135,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		log.Info("🏭 All players finished their turns - executing production phase",
 			zap.String("game_id", gameID),
 			zap.Int("generation", g.Generation()),
-			zap.Int("passed_players", passedCount),
-			zap.Int("players_with_no_actions", playersWithNoActions))
+			zap.Int("passed_players", passedCount))
 
 		// Execute production phase inline
 		err = a.executeProductionPhase(ctx, g, players)
@@ -168,15 +152,15 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	nextPlayerIndex := (currentPlayerIndex + 1) % len(players)
 	for i := 0; i < len(players); i++ {
 		nextPlayer := players[nextPlayerIndex]
-		if !nextPlayer.Turn().Passed() {
+		if !nextPlayer.HasPassed() {
 			break
 		}
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(players)
 	}
 
-	// 12. Update current turn
+	// 12. Update current turn with 2 actions (normal turn)
 	nextPlayerID := players[nextPlayerIndex].ID()
-	err = g.SetCurrentTurn(ctx, nextPlayerID, []game.ActionType{})
+	err = g.SetCurrentTurn(ctx, nextPlayerID, 2)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)
@@ -229,14 +213,7 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 		p.Resources().Set(newResources)
 
 		// E. Reset player state for new generation
-		p.Turn().SetPassed(false)
-
-		// Set available actions (2 for normal, -1 for solo)
-		availableActions := 2
-		if len(players) == 1 {
-			availableActions = -1 // Unlimited for solo
-		}
-		p.Turn().SetAvailableActions(availableActions)
+		p.SetPassed(false)
 
 		// F. Draw 4 cards for production phase selection
 		drawnCards := []string{}
@@ -281,10 +258,14 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 	}
 	newGeneration := gameInstance.Generation()
 
-	// 3. Set current turn to first player
+	// 3. Set current turn to first player with 2 actions (or -1 for solo)
 	if len(players) > 0 {
 		firstPlayerID := players[0].ID()
-		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID, []game.ActionType{}); err != nil {
+		actionsForNewGeneration := 2
+		if len(players) == 1 {
+			actionsForNewGeneration = -1 // Unlimited for solo
+		}
+		if err := gameInstance.SetCurrentTurn(ctx, firstPlayerID, actionsForNewGeneration); err != nil {
 			return fmt.Errorf("failed to set current turn: %w", err)
 		}
 	}
