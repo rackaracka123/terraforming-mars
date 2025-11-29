@@ -428,31 +428,20 @@ func (g *Game) SetHostPlayerID(ctx context.Context, playerID string) error {
 // ================== Turn Management ==================
 
 // NextPlayer returns the next player ID in turn order based on current turn
-// Returns nil if CurrentTurn is nil or no players exist
-// TODO: Implement proper turn order mechanism (currently uses map iteration order which is non-deterministic)
+// Returns nil if CurrentTurn is nil, turnOrder is empty, or no players exist
 func (g *Game) NextPlayer() *string {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	if g.currentTurn == nil || len(g.players) == 0 {
+	if g.currentTurn == nil || len(g.turnOrder) == 0 {
 		return nil
 	}
 
 	currentPlayerID := g.currentTurn.PlayerID()
 
-	// Get ordered list of player IDs (for now, simple iteration)
-	playerIDs := make([]string, 0, len(g.players))
-	for id := range g.players {
-		playerIDs = append(playerIDs, id)
-	}
-
-	if len(playerIDs) == 0 {
-		return nil
-	}
-
-	// Find current player index
+	// Find current player index in turn order
 	currentIndex := -1
-	for i, playerID := range playerIDs {
+	for i, playerID := range g.turnOrder {
 		if playerID == currentPlayerID {
 			currentIndex = i
 			break
@@ -460,13 +449,13 @@ func (g *Game) NextPlayer() *string {
 	}
 
 	if currentIndex == -1 {
-		// Current turn player not found, return first player
-		return &playerIDs[0]
+		// Current turn player not found in turn order, return first player
+		return &g.turnOrder[0]
 	}
 
 	// Calculate next player index (wrap around)
-	nextIndex := (currentIndex + 1) % len(playerIDs)
-	return &playerIDs[nextIndex]
+	nextIndex := (currentIndex + 1) % len(g.turnOrder)
+	return &g.turnOrder[nextIndex]
 }
 
 // ================== Player Non-Card Phase State Management ==================
@@ -661,9 +650,6 @@ func (g *Game) SetSelectStartingCardsPhase(ctx context.Context, playerID string,
 	} else {
 		phaseCopy := *phase
 		g.selectStartingCardsPhases[playerID] = &phaseCopy
-		// DEBUG: Log what we're setting
-		fmt.Printf("🔧 SetSelectStartingCardsPhase: playerID=%s, cards=%d, corps=%v\n",
-			playerID, len(phase.AvailableCards), phase.AvailableCorporations)
 	}
 	g.updatedAt = time.Now()
 	g.mu.Unlock()

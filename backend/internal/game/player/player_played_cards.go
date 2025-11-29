@@ -3,6 +3,7 @@ package player
 import (
 	"sync"
 	"terraforming-mars-backend/internal/events"
+	"time"
 )
 
 // PlayedCards manages all cards a player has played, including corporation
@@ -45,13 +46,28 @@ func (pc *PlayedCards) Contains(cardID string) bool {
 }
 
 // AddCard adds a card to played cards (used for both corporation and project cards)
-func (pc *PlayedCards) AddCard(cardID string) {
+// Parameters:
+//   - cardID: The unique identifier of the card
+//   - cardName: The display name of the card
+//   - cardType: The type of card (event, automated, active, corporation, prelude)
+func (pc *PlayedCards) AddCard(cardID, cardName, cardType string) {
 	pc.mu.Lock()
 	pc.cards = append(pc.cards, cardID)
 	pc.mu.Unlock()
 
-	// Publish broadcast event after adding card
+	// Publish domain events after adding card
 	if pc.eventBus != nil {
+		// Publish CardPlayedEvent for passive card effects and game logging
+		events.Publish(pc.eventBus, events.CardPlayedEvent{
+			GameID:    pc.gameID,
+			PlayerID:  pc.playerID,
+			CardID:    cardID,
+			CardName:  cardName,
+			CardType:  cardType,
+			Timestamp: time.Now(),
+		})
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(pc.eventBus, events.BroadcastEvent{
 			GameID:    pc.gameID,
 			PlayerIDs: []string{pc.playerID},

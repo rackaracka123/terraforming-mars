@@ -3,6 +3,7 @@ package player
 import (
 	"sync"
 	"terraforming-mars-backend/internal/events"
+	"time"
 )
 
 // Hand manages player card hand (cards currently held)
@@ -62,10 +63,29 @@ func (h *Hand) SetCards(cards []string) {
 func (h *Hand) AddCard(cardID string) {
 	h.mu.Lock()
 	h.cards = append(h.cards, cardID)
+	cardsCopy := make([]string, len(h.cards))
+	copy(cardsCopy, h.cards)
 	h.mu.Unlock()
 
-	// Publish broadcast event after adding card
+	// Publish domain events after adding card
 	if h.eventBus != nil {
+		// Publish CardAddedToHandEvent for passive card effects
+		events.Publish(h.eventBus, events.CardAddedToHandEvent{
+			GameID:    h.gameID,
+			PlayerID:  h.playerID,
+			CardID:    cardID,
+			Timestamp: time.Now(),
+		})
+
+		// Publish CardHandUpdatedEvent with current hand state
+		events.Publish(h.eventBus, events.CardHandUpdatedEvent{
+			GameID:    h.gameID,
+			PlayerID:  h.playerID,
+			CardIDs:   cardsCopy,
+			Timestamp: time.Now(),
+		})
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(h.eventBus, events.BroadcastEvent{
 			GameID:    h.gameID,
 			PlayerIDs: []string{h.playerID},
@@ -83,10 +103,21 @@ func (h *Hand) RemoveCard(cardID string) bool {
 			break
 		}
 	}
+	cardsCopy := make([]string, len(h.cards))
+	copy(cardsCopy, h.cards)
 	h.mu.Unlock()
 
-	// Publish broadcast event after removing card (only if card was found)
+	// Publish domain events after removing card (only if card was found)
 	if removed && h.eventBus != nil {
+		// Publish CardHandUpdatedEvent with current hand state
+		events.Publish(h.eventBus, events.CardHandUpdatedEvent{
+			GameID:    h.gameID,
+			PlayerID:  h.playerID,
+			CardIDs:   cardsCopy,
+			Timestamp: time.Now(),
+		})
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(h.eventBus, events.BroadcastEvent{
 			GameID:    h.gameID,
 			PlayerIDs: []string{h.playerID},

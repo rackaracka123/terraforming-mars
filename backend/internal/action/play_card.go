@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/cardtypes"
+	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -95,8 +96,12 @@ func (a *PlayCardAction) Execute(
 		zap.Int("base_cost", card.Cost))
 
 	// 7. BUSINESS LOGIC: Validate card requirements (temperature, oxygen, tags, etc.)
-	// TODO: Implement full requirement validation when card requirements system is ready
-	// For now, skip requirement validation
+	if err := validateCardRequirements(card, g, player); err != nil {
+		log.Error("Card requirements not met", zap.Error(err))
+		return fmt.Errorf("cannot play card: %w", err)
+	}
+
+	log.Debug("✅ Card requirements validated")
 
 	// 8. BUSINESS LOGIC: Calculate effective cost with discounts
 	effectiveCost := card.Cost
@@ -164,8 +169,8 @@ func (a *PlayCardAction) Execute(
 
 	log.Info("✅ Card removed from hand")
 
-	// 12. STATE UPDATE: Add card to played cards
-	player.PlayedCards().AddCard(cardID)
+	// 12. STATE UPDATE: Add card to played cards (publishes CardPlayedEvent)
+	player.PlayedCards().AddCard(cardID, card.Name, string(card.Type))
 
 	log.Info("✅ Card added to played cards")
 
@@ -207,4 +212,119 @@ func hasTag(card *cardtypes.Card, tag shared.CardTag) bool {
 		}
 	}
 	return false
+}
+
+// validateCardRequirements validates that the player and game state meet all card requirements
+func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player.Player) error {
+	if len(card.Requirements) == 0 {
+		return nil // No requirements to validate
+	}
+
+	for _, req := range card.Requirements {
+		switch req.Type {
+		case cardtypes.RequirementTemperature:
+			temp := g.GlobalParameters().Temperature()
+			if req.Min != nil && temp < *req.Min {
+				return fmt.Errorf("temperature requirement not met: need %d°C, current %d°C", *req.Min, temp)
+			}
+			if req.Max != nil && temp > *req.Max {
+				return fmt.Errorf("temperature requirement not met: max %d°C, current %d°C", *req.Max, temp)
+			}
+
+		case cardtypes.RequirementOxygen:
+			oxygen := g.GlobalParameters().Oxygen()
+			if req.Min != nil && oxygen < *req.Min {
+				return fmt.Errorf("oxygen requirement not met: need %d%%, current %d%%", *req.Min, oxygen)
+			}
+			if req.Max != nil && oxygen > *req.Max {
+				return fmt.Errorf("oxygen requirement not met: max %d%%, current %d%%", *req.Max, oxygen)
+			}
+
+		case cardtypes.RequirementOceans:
+			oceans := g.GlobalParameters().Oceans()
+			if req.Min != nil && oceans < *req.Min {
+				return fmt.Errorf("ocean requirement not met: need %d, current %d", *req.Min, oceans)
+			}
+			if req.Max != nil && oceans > *req.Max {
+				return fmt.Errorf("ocean requirement not met: max %d, current %d", *req.Max, oceans)
+			}
+
+		case cardtypes.RequirementTR:
+			tr := player.Resources().TerraformRating()
+			if req.Min != nil && tr < *req.Min {
+				return fmt.Errorf("terraform rating requirement not met: need %d, current %d", *req.Min, tr)
+			}
+			if req.Max != nil && tr > *req.Max {
+				return fmt.Errorf("terraform rating requirement not met: max %d, current %d", *req.Max, tr)
+			}
+
+		case cardtypes.RequirementTags:
+			if req.Tag == nil {
+				return fmt.Errorf("tag requirement missing tag specification")
+			}
+
+			// Count tags across all played cards (including corporation)
+			tagCount := 0
+			for _, playedCardID := range player.PlayedCards().Cards() {
+				// TODO: Get card from registry and check if it has the tag
+				// This requires injecting CardRegistry into this function
+				// For now, skip tag validation
+				_ = playedCardID
+			}
+
+			if req.Min != nil && tagCount < *req.Min {
+				return fmt.Errorf("tag requirement not met: need %d %s tags, have %d", *req.Min, *req.Tag, tagCount)
+			}
+			if req.Max != nil && tagCount > *req.Max {
+				return fmt.Errorf("tag requirement not met: max %d %s tags, have %d", *req.Max, *req.Tag, tagCount)
+			}
+
+		case cardtypes.RequirementProduction:
+			if req.Resource == nil {
+				return fmt.Errorf("production requirement missing resource specification")
+			}
+			// TODO: Implement production requirement validation
+			// This requires checking player's production values
+			// For now, skip production validation
+
+		case cardtypes.RequirementResource:
+			if req.Resource == nil {
+				return fmt.Errorf("resource requirement missing resource specification")
+			}
+			resources := player.Resources().Get()
+			var currentAmount int
+
+			switch *req.Resource {
+			case shared.ResourceCredits:
+				currentAmount = resources.Credits
+			case shared.ResourceSteel:
+				currentAmount = resources.Steel
+			case shared.ResourceTitanium:
+				currentAmount = resources.Titanium
+			case shared.ResourcePlants:
+				currentAmount = resources.Plants
+			case shared.ResourceEnergy:
+				currentAmount = resources.Energy
+			case shared.ResourceHeat:
+				currentAmount = resources.Heat
+			}
+
+			if req.Min != nil && currentAmount < *req.Min {
+				return fmt.Errorf("resource requirement not met: need %d %s, have %d", *req.Min, *req.Resource, currentAmount)
+			}
+			if req.Max != nil && currentAmount > *req.Max {
+				return fmt.Errorf("resource requirement not met: max %d %s, have %d", *req.Max, *req.Resource, currentAmount)
+			}
+
+		case cardtypes.RequirementCities, cardtypes.RequirementGreeneries:
+			// TODO: Implement tile-based requirements when Board tile counting is ready
+			// For now, skip these validations
+
+		case cardtypes.RequirementVenus:
+			// TODO: Implement Venus track when expansion is supported
+			// For now, skip Venus validation
+		}
+	}
+
+	return nil
 }

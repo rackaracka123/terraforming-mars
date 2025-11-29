@@ -3,6 +3,7 @@ package player
 import (
 	"sync"
 	"terraforming-mars-backend/internal/game/shared"
+	"time"
 
 	"terraforming-mars-backend/internal/events"
 )
@@ -129,8 +130,23 @@ func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {
 	}
 	r.mu.Unlock()
 
-	// Publish event
+	// Publish domain events
 	if r.eventBus != nil {
+		// Convert changes map to string keys for event
+		changesMap := make(map[string]int, len(changes))
+		for resourceType, amount := range changes {
+			changesMap[string(resourceType)] = amount
+		}
+
+		// Publish ResourcesChangedEvent for passive card effects
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			Changes:   changesMap,
+			Timestamp: time.Now(),
+		})
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(r.eventBus, events.BroadcastEvent{
 			GameID:    r.gameID,
 			PlayerIDs: []string{r.playerID},
@@ -139,7 +155,9 @@ func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {
 }
 
 func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
+	// Store old values before modifications
 	r.mu.Lock()
+	oldProduction := r.production
 	for resourceType, amount := range changes {
 		switch resourceType {
 		case shared.ResourceCreditsProduction:
@@ -156,10 +174,54 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 			r.production.Heat += amount
 		}
 	}
+	newProduction := r.production
 	r.mu.Unlock()
 
-	// Publish event
+	// Publish domain events
 	if r.eventBus != nil {
+		// Publish ProductionChangedEvent for each resource type that changed
+		for resourceType := range changes {
+			var oldValue, newValue int
+			resourceName := string(resourceType)
+
+			switch resourceType {
+			case shared.ResourceCreditsProduction:
+				oldValue = oldProduction.Credits
+				newValue = newProduction.Credits
+				resourceName = "credits"
+			case shared.ResourceSteelProduction:
+				oldValue = oldProduction.Steel
+				newValue = newProduction.Steel
+				resourceName = "steel"
+			case shared.ResourceTitaniumProduction:
+				oldValue = oldProduction.Titanium
+				newValue = newProduction.Titanium
+				resourceName = "titanium"
+			case shared.ResourcePlantsProduction:
+				oldValue = oldProduction.Plants
+				newValue = newProduction.Plants
+				resourceName = "plants"
+			case shared.ResourceEnergyProduction:
+				oldValue = oldProduction.Energy
+				newValue = newProduction.Energy
+				resourceName = "energy"
+			case shared.ResourceHeatProduction:
+				oldValue = oldProduction.Heat
+				newValue = newProduction.Heat
+				resourceName = "heat"
+			}
+
+			events.Publish(r.eventBus, events.ProductionChangedEvent{
+				GameID:        r.gameID,
+				PlayerID:      r.playerID,
+				ResourceType:  resourceName,
+				OldProduction: oldValue,
+				NewProduction: newValue,
+				Timestamp:     time.Now(),
+			})
+		}
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(r.eventBus, events.BroadcastEvent{
 			GameID:    r.gameID,
 			PlayerIDs: []string{r.playerID},
@@ -169,11 +231,23 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 
 func (r *PlayerResources) UpdateTerraformRating(delta int) {
 	r.mu.Lock()
+	oldRating := r.terraformRating
 	r.terraformRating += delta
+	newRating := r.terraformRating
 	r.mu.Unlock()
 
-	// Publish event
+	// Publish domain events
 	if r.eventBus != nil {
+		// Publish TerraformRatingChangedEvent for passive card effects
+		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			OldRating: oldRating,
+			NewRating: newRating,
+			Timestamp: time.Now(),
+		})
+
+		// Publish broadcast event to trigger client updates
 		events.Publish(r.eventBus, events.BroadcastEvent{
 			GameID:    r.gameID,
 			PlayerIDs: []string{r.playerID},
