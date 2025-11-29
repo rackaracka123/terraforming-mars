@@ -29,6 +29,8 @@ type Player struct {
 	playedCards *PlayedCards
 	resources   *PlayerResources
 	selection   *Selection
+	actions     *Actions
+	effects     *Effects
 }
 
 // NewPlayer creates a new player with initialized components
@@ -49,6 +51,8 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		playedCards:   newPlayedCards(eventBus, gameID, playerID),
 		resources:     newResources(eventBus, gameID, playerID),
 		selection:     newSelection(),
+		actions:       NewActions(),
+		effects:       NewEffects(),
 	}
 }
 
@@ -112,6 +116,14 @@ func (p *Player) Resources() *PlayerResources {
 
 func (p *Player) Selection() *Selection {
 	return p.selection
+}
+
+func (p *Player) Actions() *Actions {
+	return p.actions
+}
+
+func (p *Player) Effects() *Effects {
+	return p.effects
 }
 
 // ==================== Turn State ====================

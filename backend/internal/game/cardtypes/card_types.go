@@ -1,7 +1,10 @@
-package game
+package cardtypes
 
-import "terraforming-mars-backend/internal/game/shared"
-import "fmt"
+import (
+	"fmt"
+
+	"terraforming-mars-backend/internal/game/shared"
+)
 
 // ==================== Card Type ====================
 
@@ -329,23 +332,23 @@ const (
 	VPConditionFixed VPConditionType = "fixed"
 )
 
-// ==================== Player Effects and Actions ====================
+// ==================== Card Effects and Actions ====================
 
-// PlayerEffect represents ongoing effects that a player has active
-type PlayerEffect struct {
+// CardEffect represents an ongoing effect defined by a card
+type CardEffect struct {
 	CardID        string
 	CardName      string
 	BehaviorIndex int
 	Behavior      CardBehavior
 }
 
-// DeepCopy creates a deep copy of the PlayerEffect
-func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
+// DeepCopy creates a deep copy of the CardEffect
+func (pe *CardEffect) DeepCopy() *CardEffect {
 	if pe == nil {
 		return nil
 	}
 
-	return &PlayerEffect{
+	return &CardEffect{
 		CardID:        pe.CardID,
 		CardName:      pe.CardName,
 		BehaviorIndex: pe.BehaviorIndex,
@@ -353,8 +356,8 @@ func (pe *PlayerEffect) DeepCopy() *PlayerEffect {
 	}
 }
 
-// PlayerAction represents a manual action that can be activated
-type PlayerAction struct {
+// CardAction represents a repeatable manual action defined by a card
+type CardAction struct {
 	CardID        string
 	CardName      string
 	BehaviorIndex int
@@ -362,13 +365,13 @@ type PlayerAction struct {
 	PlayCount     int
 }
 
-// DeepCopy creates a deep copy of the PlayerAction
-func (pa *PlayerAction) DeepCopy() *PlayerAction {
+// DeepCopy creates a deep copy of the CardAction
+func (pa *CardAction) DeepCopy() *CardAction {
 	if pa == nil {
 		return nil
 	}
 
-	return &PlayerAction{
+	return &CardAction{
 		CardID:        pa.CardID,
 		CardName:      pa.CardName,
 		BehaviorIndex: pa.BehaviorIndex,

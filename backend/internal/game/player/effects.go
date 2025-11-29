@@ -1,21 +1,23 @@
-package game
+package player
 
 import (
 	"sync"
+
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // Effects manages passive effects and requirement modifiers
 type Effects struct {
 	mu                   sync.RWMutex
-	effects              []PlayerEffect
+	effects              []cardtypes.CardEffect
 	requirementModifiers []shared.RequirementModifier
 }
 
 // NewEffects creates a new Effects instance
 func NewEffects() *Effects {
 	return &Effects{
-		effects:              []PlayerEffect{},
+		effects:              []cardtypes.CardEffect{},
 		requirementModifiers: []shared.RequirementModifier{},
 	}
 }
@@ -24,10 +26,10 @@ func newEffects() *Effects {
 	return NewEffects()
 }
 
-func (e *Effects) List() []PlayerEffect {
+func (e *Effects) List() []cardtypes.CardEffect {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-	effectsCopy := make([]PlayerEffect, len(e.effects))
+	effectsCopy := make([]cardtypes.CardEffect, len(e.effects))
 	copy(effectsCopy, e.effects)
 	return effectsCopy
 }
@@ -40,18 +42,18 @@ func (e *Effects) RequirementModifiers() []shared.RequirementModifier {
 	return modifiersCopy
 }
 
-func (e *Effects) SetEffects(effects []PlayerEffect) {
+func (e *Effects) SetEffects(effects []cardtypes.CardEffect) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if effects == nil {
-		e.effects = []PlayerEffect{}
+		e.effects = []cardtypes.CardEffect{}
 	} else {
-		e.effects = make([]PlayerEffect, len(effects))
+		e.effects = make([]cardtypes.CardEffect, len(effects))
 		copy(e.effects, effects)
 	}
 }
 
-func (e *Effects) AddEffect(effect PlayerEffect) {
+func (e *Effects) AddEffect(effect cardtypes.CardEffect) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.effects = append(e.effects, effect)

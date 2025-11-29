@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -25,7 +27,7 @@ func NewCorporationProcessor(logger *zap.Logger) *CorporationProcessor {
 // ApplyStartingEffects processes auto-corporation-start behaviors and applies starting resources/production
 func (p *CorporationProcessor) ApplyStartingEffects(
 	ctx context.Context,
-	card *game.Card,
+	card *cardtypes.Card,
 	pl *player.Player,
 ) error {
 	log := p.logger.With(
@@ -39,7 +41,7 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 	// Process behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == game.ResourceTriggerAutoCorporationStart {
+			if trigger.Type == cardtypes.ResourceTriggerAutoCorporationStart {
 				log.Info("✨ Found auto-corporation-start behavior",
 					zap.Int("outputs", len(behavior.Outputs)))
 
@@ -60,7 +62,7 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 // SetupForcedFirstAction processes auto-corporation-first-action behaviors and sets forced actions
 func (p *CorporationProcessor) SetupForcedFirstAction(
 	ctx context.Context,
-	card *game.Card,
+	card *cardtypes.Card,
 	g *game.Game,
 	playerID string,
 ) error {
@@ -75,7 +77,7 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	// Process behaviors with auto-corporation-first-action trigger
 	for _, behavior := range card.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == game.ResourceTriggerAutoCorporationFirstAction {
+			if trigger.Type == cardtypes.ResourceTriggerAutoCorporationFirstAction {
 				log.Info("✨ Found auto-corporation-first-action behavior",
 					zap.Int("outputs", len(behavior.Outputs)))
 
@@ -95,7 +97,7 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 // applyOutput applies a single output to the player
 func (p *CorporationProcessor) applyOutput(
 	ctx context.Context,
-	output game.ResourceCondition,
+	output cardtypes.ResourceCondition,
 	pl *player.Player,
 	log *zap.Logger,
 ) error {
@@ -189,8 +191,8 @@ func (p *CorporationProcessor) applyOutput(
 // createForcedAction creates a forced first action based on the output
 func (p *CorporationProcessor) createForcedAction(
 	ctx context.Context,
-	output game.ResourceCondition,
-	card *game.Card,
+	output cardtypes.ResourceCondition,
+	card *cardtypes.Card,
 	g *game.Game,
 	playerID string,
 	log *zap.Logger,

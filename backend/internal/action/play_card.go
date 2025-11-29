@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -198,7 +200,7 @@ func (a *PlayCardAction) Execute(
 }
 
 // hasTag checks if a card has a specific tag
-func hasTag(card *game.Card, tag shared.CardTag) bool {
+func hasTag(card *cardtypes.Card, tag shared.CardTag) bool {
 	for _, cardTag := range card.Tags {
 		if cardTag == tag {
 			return true

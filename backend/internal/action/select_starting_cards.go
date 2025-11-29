@@ -5,8 +5,10 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -109,7 +111,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	}
 
 	// Validate it's actually a corporation card
-	if corpCard.Type != game.CardTypeCorporation {
+	if corpCard.Type != cardtypes.CardTypeCorporation {
 		log.Error("Card is not a corporation",
 			zap.String("card_type", string(corpCard.Type)))
 		return fmt.Errorf("card %s is not a corporation card", corporationID)

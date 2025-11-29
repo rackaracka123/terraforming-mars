@@ -3,13 +3,14 @@ package action
 import (
 	"context"
 
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/deck"
-
-	"github.com/google/uuid"
-	"go.uber.org/zap"
 )
 
 // CreateGameAction handles the business logic for creating new games
@@ -119,10 +120,10 @@ func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corp
 		}
 
 		switch card.Type {
-		case game.CardTypeCorporation:
+		case cardtypes.CardTypeCorporation:
 			corps = append(corps, card.ID)
 			log.Debug("   Found corporation", zap.String("id", card.ID), zap.String("name", card.Name))
-		case game.CardTypePrelude:
+		case cardtypes.CardTypePrelude:
 			preludes = append(preludes, card.ID)
 		default:
 			// All other card types are project cards (Automated, Active, Event)

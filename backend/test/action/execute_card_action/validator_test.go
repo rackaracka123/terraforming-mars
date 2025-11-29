@@ -67,7 +67,7 @@ func TestValidator_ValidateActionInputs_SufficientResources(t *testing.T) {
 	sess.AddPlayer(playerData)
 
 	// Create action with inputs
-	action := &types.PlayerAction{
+	action := &types.CardAction{
 		CardID: "card1",
 		Behavior: types.CardBehavior{
 			Inputs: []types.ResourceCondition{
@@ -130,7 +130,7 @@ func TestValidator_ValidateActionInputs_InsufficientResources(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			action := &types.PlayerAction{
+			action := &types.CardAction{
 				CardID: "card1",
 				Behavior: types.CardBehavior{
 					Inputs: tt.inputs,
@@ -167,7 +167,7 @@ func TestValidator_ValidateActionInputs_WithChoiceIndex(t *testing.T) {
 
 	// Create action with base inputs and choice-specific inputs
 	choiceIndex := 0
-	action := &types.PlayerAction{
+	action := &types.CardAction{
 		CardID: "card1",
 		Behavior: types.CardBehavior{
 			Inputs: []types.ResourceCondition{
@@ -229,7 +229,7 @@ func TestValidator_ValidateActionInputs_CardStorage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			action := &types.PlayerAction{
+			action := &types.CardAction{
 				CardID: "card1",
 				Behavior: types.CardBehavior{
 					Inputs: []types.ResourceCondition{
@@ -256,7 +256,7 @@ func TestValidator_ValidateActionInputs_PlayerNotFound(t *testing.T) {
 	sessionFactory := newTestSessionFactory()
 	validator := execute_card_action.NewValidator(sessionFactory)
 
-	action := &types.PlayerAction{
+	action := &types.CardAction{
 		CardID: "card1",
 		Behavior: types.CardBehavior{
 			Inputs: []types.ResourceCondition{},

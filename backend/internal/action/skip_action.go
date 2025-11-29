@@ -182,7 +182,9 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 // executeProductionPhase handles the production phase when all players have passed
 func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInstance *game.Game, players []*playerPkg.Player) error {
 	log := a.logger.With(zap.String("game_id", gameInstance.ID()))
-	log.Info("🏭 Starting production phase")
+	log.Info("🏭 Starting production phase",
+		zap.Int("player_count", len(players)),
+		zap.Int("generation", gameInstance.Generation()))
 
 	deck := gameInstance.Deck()
 	if deck == nil {
@@ -239,12 +241,17 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 			CreditsIncome:     production.Credits + tr,
 		}
 
+		log.Info("📋 Setting production phase data for player",
+			zap.String("player_id", p.ID()),
+			zap.Int("available_cards", len(drawnCards)))
+
 		err := gameInstance.SetProductionPhase(ctx, p.ID(), productionPhaseData)
 		if err != nil {
+			log.Error("❌ Failed to set production phase", zap.Error(err))
 			return fmt.Errorf("failed to set production phase: %w", err)
 		}
 
-		log.Debug("✅ Production applied for player",
+		log.Info("✅ Production phase data set successfully",
 			zap.String("player_id", p.ID()),
 			zap.Int("cards_drawn", len(drawnCards)),
 			zap.Int("credits_income", productionPhaseData.CreditsIncome),
@@ -271,10 +278,18 @@ func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInsta
 	}
 
 	// 4. Set phase to production and card draw
+	log.Info("🔄 Updating game phase to production_and_card_draw",
+		zap.String("current_phase", string(gameInstance.CurrentPhase())),
+		zap.String("new_phase", string(game.GamePhaseProductionAndCardDraw)))
+
 	err := gameInstance.UpdatePhase(ctx, game.GamePhaseProductionAndCardDraw)
 	if err != nil {
+		log.Error("❌ Failed to update phase", zap.Error(err))
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
+
+	log.Info("✅ Game phase updated successfully",
+		zap.String("phase", string(gameInstance.CurrentPhase())))
 
 	log.Info("🎉 Production phase complete, generation advanced",
 		zap.Int("old_generation", oldGeneration),

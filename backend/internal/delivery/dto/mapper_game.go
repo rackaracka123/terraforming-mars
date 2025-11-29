@@ -2,14 +2,16 @@ package dto
 
 import (
 	"fmt"
+
+	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
+	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // ToGameDto converts migration Game to GameDto with personalized view
@@ -131,7 +133,7 @@ func convertTileBonuses(bonuses []board.TileBonus) []TileBonusDto {
 }
 
 // ToCardDto converts a Card to CardDto
-func ToCardDto(card game.Card) CardDto {
+func ToCardDto(card cardtypes.Card) CardDto {
 	// Convert tags
 	tags := make([]CardTag, len(card.Tags))
 	for i, tag := range card.Tags {
@@ -189,7 +191,7 @@ func ToCardDto(card game.Card) CardDto {
 
 // Helper functions for nested DTO conversions
 
-func toRequirementDto(req game.Requirement) RequirementDto {
+func toRequirementDto(req cardtypes.Requirement) RequirementDto {
 	var location *CardApplyLocation
 	if req.Location != nil {
 		loc := CardApplyLocation(*req.Location)
@@ -218,7 +220,7 @@ func toRequirementDto(req game.Requirement) RequirementDto {
 	}
 }
 
-func toCardBehaviorDto(behavior game.CardBehavior) CardBehaviorDto {
+func toCardBehaviorDto(behavior cardtypes.CardBehavior) CardBehaviorDto {
 	var triggers []TriggerDto
 	if len(behavior.Triggers) > 0 {
 		triggers = make([]TriggerDto, len(behavior.Triggers))
@@ -259,7 +261,7 @@ func toCardBehaviorDto(behavior game.CardBehavior) CardBehaviorDto {
 	}
 }
 
-func toTriggerDto(trigger game.Trigger) TriggerDto {
+func toTriggerDto(trigger cardtypes.Trigger) TriggerDto {
 	var condition *ResourceTriggerConditionDto
 	if trigger.Condition != nil {
 		cond := toResourceTriggerConditionDto(*trigger.Condition)
@@ -272,7 +274,7 @@ func toTriggerDto(trigger game.Trigger) TriggerDto {
 	}
 }
 
-func toResourceTriggerConditionDto(cond game.ResourceTriggerCondition) ResourceTriggerConditionDto {
+func toResourceTriggerConditionDto(cond cardtypes.ResourceTriggerCondition) ResourceTriggerConditionDto {
 	var location *CardApplyLocation
 	if cond.Location != nil {
 		loc := CardApplyLocation(*cond.Location)
@@ -333,7 +335,7 @@ func toResourceTriggerConditionDto(cond game.ResourceTriggerCondition) ResourceT
 	}
 }
 
-func toResourceConditionDto(rc game.ResourceCondition) ResourceConditionDto {
+func toResourceConditionDto(rc cardtypes.ResourceCondition) ResourceConditionDto {
 	var affectedTags []CardTag
 	if len(rc.AffectedTags) > 0 {
 		affectedTags = make([]CardTag, len(rc.AffectedTags))
@@ -376,7 +378,7 @@ func toResourceConditionDto(rc game.ResourceCondition) ResourceConditionDto {
 	}
 }
 
-func toChoiceDto(choice game.Choice) ChoiceDto {
+func toChoiceDto(choice cardtypes.Choice) ChoiceDto {
 	var inputs []ResourceConditionDto
 	if len(choice.Inputs) > 0 {
 		inputs = make([]ResourceConditionDto, len(choice.Inputs))
@@ -399,7 +401,7 @@ func toChoiceDto(choice game.Choice) ChoiceDto {
 	}
 }
 
-func toPerConditionDto(pc game.PerCondition) PerConditionDto {
+func toPerConditionDto(pc cardtypes.PerCondition) PerConditionDto {
 	var location *CardApplyLocation
 	if pc.Location != nil {
 		loc := CardApplyLocation(*pc.Location)
@@ -427,7 +429,7 @@ func toPerConditionDto(pc game.PerCondition) PerConditionDto {
 	}
 }
 
-func toResourceStorageDto(storage game.ResourceStorage) ResourceStorageDto {
+func toResourceStorageDto(storage cardtypes.ResourceStorage) ResourceStorageDto {
 	return ResourceStorageDto{
 		Type:     ResourceType(storage.Type),
 		Capacity: storage.Capacity,
@@ -435,7 +437,7 @@ func toResourceStorageDto(storage game.ResourceStorage) ResourceStorageDto {
 	}
 }
 
-func toVPConditionDto(vp game.VictoryPointCondition) VPConditionDto {
+func toVPConditionDto(vp cardtypes.VictoryPointCondition) VPConditionDto {
 	var per *PerConditionDto
 	if vp.Per != nil {
 		p := toPerConditionDto(*vp.Per)
@@ -534,11 +536,11 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		Passed:           p.HasPassed(),
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
-		Effects:          convertPlayerEffects(g.GetPlayerEffects(p.ID()).List()),
-		Actions:          convertPlayerActions(g.GetPlayerActions(p.ID()).List()),
+		Effects:          convertPlayerEffects(p.Effects().List()),
+		Actions:          convertPlayerActions(p.Actions().List()),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
-		ProductionPhase:          nil, // TODO: Implement production phase mapping
+		ProductionPhase:          convertProductionPhase(g.GetProductionPhase(p.ID()), cardRegistry),
 		StartingCards:            []CardDto{},
 		PendingTileSelection:     convertPendingTileSelection(g.GetPendingTileSelection(p.ID())),
 		PendingCardSelection:     convertPendingCardSelection(p.Selection().GetPendingCardSelection(), cardRegistry),
@@ -546,7 +548,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		ForcedFirstAction:        convertForcedFirstAction(g.GetForcedFirstAction(p.ID())),
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
-		RequirementModifiers:     convertRequirementModifiers(g.GetPlayerEffects(p.ID()).RequirementModifiers()),
+		RequirementModifiers:     convertRequirementModifiers(p.Effects().RequirementModifiers()),
 	}
 }
 
@@ -594,11 +596,11 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 		Passed:           p.HasPassed(),
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
-		Effects:          convertPlayerEffects(g.GetPlayerEffects(p.ID()).List()),
-		Actions:          convertPlayerActions(g.GetPlayerActions(p.ID()).List()),
+		Effects:          convertPlayerEffects(p.Effects().List()),
+		Actions:          convertPlayerActions(p.Actions().List()),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhaseForOtherPlayer(g.GetSelectStartingCardsPhase(p.ID())),
-		ProductionPhase:          nil, // TODO: Implement production phase mapping
+		ProductionPhase:          convertProductionPhaseForOtherPlayer(g.GetProductionPhase(p.ID())),
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
 	}
@@ -641,8 +643,103 @@ func convertSelectStartingCardsPhaseForOtherPlayer(phase *player.SelectStartingC
 	return &SelectStartingCardsOtherPlayerDto{}
 }
 
-// convertPlayerEffects converts PlayerEffect slice to PlayerEffectDto slice
-func convertPlayerEffects(effects []game.PlayerEffect) []PlayerEffectDto {
+// convertProductionPhase converts production phase data to DTO for current player
+func convertProductionPhase(phase *player.ProductionPhase, cardRegistry cards.CardRegistry) *ProductionPhaseDto {
+	if phase == nil {
+		return nil
+	}
+
+	// Get full card details for available cards
+	availableCards := getPlayedCards(phase.AvailableCards, cardRegistry)
+
+	// Convert resources
+	beforeResources := ResourcesDto{
+		Credits:  phase.BeforeResources.Credits,
+		Steel:    phase.BeforeResources.Steel,
+		Titanium: phase.BeforeResources.Titanium,
+		Plants:   phase.BeforeResources.Plants,
+		Energy:   phase.BeforeResources.Energy,
+		Heat:     phase.BeforeResources.Heat,
+	}
+
+	afterResources := ResourcesDto{
+		Credits:  phase.AfterResources.Credits,
+		Steel:    phase.AfterResources.Steel,
+		Titanium: phase.AfterResources.Titanium,
+		Plants:   phase.AfterResources.Plants,
+		Energy:   phase.AfterResources.Energy,
+		Heat:     phase.AfterResources.Heat,
+	}
+
+	// Calculate resource delta
+	resourceDelta := ResourcesDto{
+		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
+		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
+		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
+		Plants:   phase.AfterResources.Plants - phase.BeforeResources.Plants,
+		Energy:   phase.AfterResources.Energy - phase.BeforeResources.Energy,
+		Heat:     phase.AfterResources.Heat - phase.BeforeResources.Heat,
+	}
+
+	return &ProductionPhaseDto{
+		AvailableCards:    availableCards,
+		SelectionComplete: phase.SelectionComplete,
+		BeforeResources:   beforeResources,
+		AfterResources:    afterResources,
+		ResourceDelta:     resourceDelta,
+		EnergyConverted:   phase.EnergyConverted,
+		CreditsIncome:     phase.CreditsIncome,
+	}
+}
+
+// convertProductionPhaseForOtherPlayer converts production phase data to DTO for other players
+func convertProductionPhaseForOtherPlayer(phase *player.ProductionPhase) *ProductionPhaseOtherPlayerDto {
+	if phase == nil {
+		return nil
+	}
+
+	// Convert resources
+	beforeResources := ResourcesDto{
+		Credits:  phase.BeforeResources.Credits,
+		Steel:    phase.BeforeResources.Steel,
+		Titanium: phase.BeforeResources.Titanium,
+		Plants:   phase.BeforeResources.Plants,
+		Energy:   phase.BeforeResources.Energy,
+		Heat:     phase.BeforeResources.Heat,
+	}
+
+	afterResources := ResourcesDto{
+		Credits:  phase.AfterResources.Credits,
+		Steel:    phase.AfterResources.Steel,
+		Titanium: phase.AfterResources.Titanium,
+		Plants:   phase.AfterResources.Plants,
+		Energy:   phase.AfterResources.Energy,
+		Heat:     phase.AfterResources.Heat,
+	}
+
+	// Calculate resource delta
+	resourceDelta := ResourcesDto{
+		Credits:  phase.AfterResources.Credits - phase.BeforeResources.Credits,
+		Steel:    phase.AfterResources.Steel - phase.BeforeResources.Steel,
+		Titanium: phase.AfterResources.Titanium - phase.BeforeResources.Titanium,
+		Plants:   phase.AfterResources.Plants - phase.BeforeResources.Plants,
+		Energy:   phase.AfterResources.Energy - phase.BeforeResources.Energy,
+		Heat:     phase.AfterResources.Heat - phase.BeforeResources.Heat,
+	}
+
+	// Other players don't see available cards
+	return &ProductionPhaseOtherPlayerDto{
+		SelectionComplete: phase.SelectionComplete,
+		BeforeResources:   beforeResources,
+		AfterResources:    afterResources,
+		ResourceDelta:     resourceDelta,
+		EnergyConverted:   phase.EnergyConverted,
+		CreditsIncome:     phase.CreditsIncome,
+	}
+}
+
+// convertPlayerEffects converts CardEffect slice to PlayerEffectDto slice
+func convertPlayerEffects(effects []cardtypes.CardEffect) []PlayerEffectDto {
 	if len(effects) == 0 {
 		return []PlayerEffectDto{}
 	}
@@ -659,8 +756,8 @@ func convertPlayerEffects(effects []game.PlayerEffect) []PlayerEffectDto {
 	return dtos
 }
 
-// convertPlayerActions converts PlayerAction slice to PlayerActionDto slice
-func convertPlayerActions(actions []game.PlayerAction) []PlayerActionDto {
+// convertPlayerActions converts CardAction slice to PlayerActionDto slice
+func convertPlayerActions(actions []cardtypes.CardAction) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}
