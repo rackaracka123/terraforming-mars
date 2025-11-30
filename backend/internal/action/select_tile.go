@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/shared"
@@ -106,6 +108,9 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	} else if len(placedTile.Bonuses) > 0 {
 		log.Info("🎁 Tile has bonuses", zap.Int("bonus_count", len(placedTile.Bonuses)))
 
+		// Track resource bonuses for event publication
+		resourceBonuses := make(map[string]int)
+
 		// Apply each bonus to the player
 		for _, bonus := range placedTile.Bonuses {
 			switch bonus.Type {
@@ -117,6 +122,9 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 				log.Info("💰 Awarded resource bonus",
 					zap.String("resource", string(bonus.Type)),
 					zap.Int("amount", bonus.Amount))
+
+				// Track for event publication
+				resourceBonuses[string(bonus.Type)] = bonus.Amount
 
 			case shared.ResourceCardDraw:
 				// Draw cards from deck and add to player's hand
@@ -142,15 +150,28 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 					zap.Int("amount", bonus.Amount))
 			}
 		}
+
+		// Publish PlacementBonusGainedEvent if any resource bonuses were awarded
+		if len(resourceBonuses) > 0 {
+			events.Publish(g.EventBus(), events.PlacementBonusGainedEvent{
+				GameID:    gameID,
+				PlayerID:  playerID,
+				Resources: resourceBonuses,
+				Q:         coords.Q,
+				R:         coords.R,
+				S:         coords.S,
+				Timestamp: time.Now(),
+			})
+			log.Info("📢 Published PlacementBonusGainedEvent",
+				zap.Any("resources", resourceBonuses))
+		}
 	}
 
 	// 9. BUSINESS LOGIC: Apply placement bonuses based on tile type
 	switch tileType {
 	case "city":
-		// City: increase terraform rating by 1
-		currentTR := player.Resources().TerraformRating()
-		player.Resources().SetTerraformRating(currentTR + 1)
-		log.Info("📈 Increased TR for city placement", zap.Int("new_tr", currentTR+1))
+		// Cities do not affect global parameters and therefore do not grant TR
+		log.Info("🏙️ City placed (no TR bonus)")
 
 	case "greenery":
 		// Greenery: increase oxygen by 1 (if not maxed)

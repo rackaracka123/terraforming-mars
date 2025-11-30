@@ -29,6 +29,7 @@ func RegisterHandlers(
 	joinGameAction *action.JoinGameAction,
 	// Card actions
 	playCardAction *action.PlayCardAction,
+	useCardActionAction *action.UseCardActionAction,
 	// Standard projects
 	launchAsteroidAction *action.LaunchAsteroidAction,
 	buildPowerPlantAction *action.BuildPowerPlantAction,
@@ -66,6 +67,9 @@ func RegisterHandlers(
 	// ========== Card Actions ==========
 	playCardHandler := card.NewPlayCardHandler(playCardAction)
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, playCardHandler)
+
+	useCardActionHandler := card.NewUseCardActionHandler(useCardActionAction)
+	hub.RegisterHandler(dto.MessageTypeActionCardAction, useCardActionHandler)
 
 	// ========== Standard Projects ==========
 	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction)
@@ -130,14 +134,14 @@ func RegisterHandlers(
 
 	log.Info("🎯 Migration handlers registered successfully")
 	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect (handles both join & reconnect)")
-	log.Info("   ✅ Card Actions (1): PlayCard")
+	log.Info("   ✅ Card Actions (2): PlayCard, UseCardAction")
 	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")
 	log.Info("   ✅ Tile Selection (1): SelectTile")
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
-	log.Info("   📌 Total: 19 handlers registered (OLD handlers overwritten)")
+	log.Info("   📌 Total: 20 handlers registered (OLD handlers overwritten)")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler

@@ -133,6 +133,12 @@ func (g *Game) HostPlayerID() string {
 	return g.hostPlayerID
 }
 
+// EventBus returns the event bus for publishing domain events
+func (g *Game) EventBus() *events.EventBusImpl {
+	// EventBus is set once at creation and never modified, no lock needed
+	return g.eventBus
+}
+
 // CurrentPhase returns the current game phase
 func (g *Game) CurrentPhase() GamePhase {
 	g.mu.RLock()
@@ -541,6 +547,60 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 
 	// Automatically process first tile if queue is not empty
 	if queue != nil && len(queue.Items) > 0 {
+		if err := g.ProcessNextTile(ctx, playerID); err != nil {
+			return fmt.Errorf("failed to auto-process first queued tile: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// AppendToPendingTileSelectionQueue atomically appends tile types to a player's tile selection queue
+// This is thread-safe and prevents race conditions when multiple tiles need to be queued
+func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID string, tileTypes []string, source string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	if len(tileTypes) == 0 {
+		return nil // Nothing to append
+	}
+
+	g.mu.Lock()
+	// Get existing queue or create new one
+	existingQueue, exists := g.pendingTileSelectionQueues[playerID]
+	var items []string
+	var queueSource string
+
+	if exists && existingQueue != nil {
+		items = existingQueue.Items
+		queueSource = existingQueue.Source
+	} else {
+		items = []string{}
+		queueSource = source
+	}
+
+	// Append new tiles
+	items = append(items, tileTypes...)
+
+	// Update queue
+	g.pendingTileSelectionQueues[playerID] = &player.PendingTileSelectionQueue{
+		Items:  items,
+		Source: queueSource,
+	}
+	g.updatedAt = time.Now()
+	g.mu.Unlock()
+
+	// Trigger client broadcast to specific player
+	if g.eventBus != nil {
+		events.Publish(g.eventBus, events.BroadcastEvent{
+			GameID:    g.id,
+			PlayerIDs: []string{playerID},
+		})
+	}
+
+	// Automatically process first tile if this was the first tile added to an empty queue
+	if !exists || existingQueue == nil || len(existingQueue.Items) == 0 {
 		if err := g.ProcessNextTile(ctx, playerID); err != nil {
 			return fmt.Errorf("failed to auto-process first queued tile: %w", err)
 		}

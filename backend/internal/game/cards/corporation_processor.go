@@ -93,6 +93,51 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	return nil
 }
 
+// GetPassiveEffects returns all passive effects (conditional triggers) from a corporation card
+// This is a READ-ONLY helper that parses the card behaviors and returns CardEffect structs
+// The action layer is responsible for adding these effects to the player
+func (p *CorporationProcessor) GetPassiveEffects(card *Card) []player.CardEffect {
+	var effects []player.CardEffect
+
+	// Iterate through all behaviors and find conditional triggers
+	for behaviorIndex, behavior := range card.Behaviors {
+		if HasConditionalTrigger(behavior) {
+			effect := player.CardEffect{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			}
+			effects = append(effects, effect)
+		}
+	}
+
+	return effects
+}
+
+// GetManualActions returns all manual actions (manual triggers) from a corporation card
+// This is a READ-ONLY helper that parses the card behaviors and returns CardAction structs
+// The action layer is responsible for adding these actions to the player
+func (p *CorporationProcessor) GetManualActions(card *Card) []player.CardAction {
+	var actions []player.CardAction
+
+	// Iterate through all behaviors and find manual triggers
+	for behaviorIndex, behavior := range card.Behaviors {
+		if HasManualTrigger(behavior) {
+			action := player.CardAction{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+				PlayCount:     0,
+			}
+			actions = append(actions, action)
+		}
+	}
+
+	return actions
+}
+
 // applyOutput applies a single output to the player
 func (p *CorporationProcessor) applyOutput(
 	ctx context.Context,
@@ -211,6 +256,16 @@ func (p *CorporationProcessor) createForcedAction(
 		log.Info("🏙️ Set forced city placement action",
 			zap.String("description", action.Description))
 
+		// Create tile placement queue to trigger actual placement UI
+		queue := &player.PendingTileSelectionQueue{
+			Items:  []string{"city"},
+			Source: "corporation-starting-action",
+		}
+		if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+			return fmt.Errorf("failed to queue tile placement: %w", err)
+		}
+		log.Info("🎯 Queued city tile for placement")
+
 	case shared.ResourceGreeneryPlacement:
 		action := &player.ForcedFirstAction{
 			ActionType:    "greenery-placement",
@@ -225,6 +280,16 @@ func (p *CorporationProcessor) createForcedAction(
 		log.Info("🌳 Set forced greenery placement action",
 			zap.String("description", action.Description))
 
+		// Create tile placement queue to trigger actual placement UI
+		queue := &player.PendingTileSelectionQueue{
+			Items:  []string{"greenery"},
+			Source: "corporation-starting-action",
+		}
+		if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+			return fmt.Errorf("failed to queue tile placement: %w", err)
+		}
+		log.Info("🎯 Queued greenery tile for placement")
+
 	case shared.ResourceOceanPlacement:
 		action := &player.ForcedFirstAction{
 			ActionType:    "ocean-placement",
@@ -238,6 +303,16 @@ func (p *CorporationProcessor) createForcedAction(
 		}
 		log.Info("🌊 Set forced ocean placement action",
 			zap.String("description", action.Description))
+
+		// Create tile placement queue to trigger actual placement UI
+		queue := &player.PendingTileSelectionQueue{
+			Items:  []string{"ocean"},
+			Source: "corporation-starting-action",
+		}
+		if err := g.SetPendingTileSelectionQueue(ctx, playerID, queue); err != nil {
+			return fmt.Errorf("failed to queue tile placement: %w", err)
+		}
+		log.Info("🎯 Queued ocean tile for placement")
 
 	default:
 		log.Warn("⚠️ Unhandled forced action type",

@@ -127,6 +127,41 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		return fmt.Errorf("failed to apply corporation starting effects: %w", err)
 	}
 
+	// 10b. BUSINESS LOGIC: Register corporation passive effects
+	// The helper returns CardEffect structs (read-only), we add them to player state (mutation)
+	passiveEffects := a.corpProc.GetPassiveEffects(corpCard)
+	if len(passiveEffects) > 0 {
+		log.Info("⚡ Registering corporation passive effects",
+			zap.Int("effect_count", len(passiveEffects)))
+
+		for _, effect := range passiveEffects {
+			player.Effects().AddEffect(effect)
+			log.Debug("✅ Registered passive effect",
+				zap.String("card_id", effect.CardID),
+				zap.String("card_name", effect.CardName),
+				zap.Int("behavior_index", effect.BehaviorIndex))
+
+			// Subscribe passive effects to relevant events
+			subscribePassiveEffectToEvents(ctx, g, player, effect, log)
+		}
+	}
+
+	// 10c. BUSINESS LOGIC: Register corporation manual actions
+	// The helper returns CardAction structs (read-only), we add them to player state (mutation)
+	manualActions := a.corpProc.GetManualActions(corpCard)
+	if len(manualActions) > 0 {
+		log.Info("🎯 Registering corporation manual actions",
+			zap.Int("action_count", len(manualActions)))
+
+		for _, action := range manualActions {
+			player.Actions().AddAction(action)
+			log.Debug("✅ Registered manual action",
+				zap.String("card_id", action.CardID),
+				zap.String("card_name", action.CardName),
+				zap.Int("behavior_index", action.BehaviorIndex))
+		}
+	}
+
 	// 11. BUSINESS LOGIC: Deduct card selection cost
 	resources := player.Resources().Get()
 	if resources.Credits < cost {

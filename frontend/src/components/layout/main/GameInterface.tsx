@@ -77,41 +77,6 @@ export default function GameInterface() {
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
   const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Played cards state
-  const [playedCards, setPlayedCards] = useState<CardDto[]>([]);
-
-  // Fetch and resolve played cards when currentPlayer changes
-  useEffect(() => {
-    const loadPlayedCards = async () => {
-      if (
-        !currentPlayer?.playedCards ||
-        currentPlayer.playedCards.length === 0
-      ) {
-        setPlayedCards([]);
-        return;
-      }
-
-      try {
-        const allCards = await fetchAllCards();
-        const resolvedCards: CardDto[] = [];
-
-        for (const cardId of currentPlayer.playedCards) {
-          const card = allCards.get(cardId);
-          if (card) {
-            resolvedCards.push(card);
-          }
-        }
-
-        setPlayedCards(resolvedCards);
-      } catch (error) {
-        console.error("Failed to load played cards:", error);
-        setPlayedCards([]);
-      }
-    };
-
-    void loadPlayedCards();
-  }, [currentPlayer?.playedCards]);
-
   // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
     if (currentPlayer?.corporation) {
@@ -1248,7 +1213,7 @@ export default function GameInterface() {
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
-        playedCards={playedCards}
+        playedCards={currentPlayer?.playedCards || []}
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
@@ -1271,7 +1236,7 @@ export default function GameInterface() {
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
-        cards={playedCards}
+        cards={currentPlayer?.playedCards || []}
       />
 
       <VictoryPointsModal
@@ -1434,7 +1399,7 @@ export default function GameInterface() {
         <CardStorageSelectionPopover
           resourceType={pendingCardStorage.resourceType}
           amount={pendingCardStorage.amount}
-          playedCards={playedCards}
+          playedCards={currentPlayer?.playedCards || []}
           resourceStorage={currentPlayer?.resourceStorage}
           onCardSelect={handleCardStorageSelect}
           onCancel={handleCardStorageCancel}
@@ -1461,7 +1426,7 @@ export default function GameInterface() {
         <CardStorageSelectionPopover
           resourceType={pendingActionStorage.resourceType}
           amount={pendingActionStorage.amount}
-          playedCards={playedCards}
+          playedCards={currentPlayer?.playedCards || []}
           resourceStorage={currentPlayer?.resourceStorage}
           onCardSelect={handleActionStorageSelect}
           onCancel={handleActionStorageCancel}

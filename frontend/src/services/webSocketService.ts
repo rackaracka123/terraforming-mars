@@ -24,6 +24,7 @@ import {
   MessageTypeActionCardAction,
   MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionConfirmSellPatents,
   MessageTypeActionConfirmProductionCards,
   MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
@@ -288,7 +289,9 @@ export class WebSocketService {
   }
 
   selectCards(cardIds: string[]): string {
-    return this.send(MessageTypeActionSelectCards, { cardIds });
+    return this.send(MessageTypeActionConfirmSellPatents, {
+      selectedCardIds: cardIds,
+    });
   }
 
   confirmProductionCards(cardIds: string[]): string {

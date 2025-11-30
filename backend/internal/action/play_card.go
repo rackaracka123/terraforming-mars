@@ -187,7 +187,7 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", payment.Titanium))
 
 	// 14. BUSINESS LOGIC: Apply card immediate effects and register behaviors
-	if err := a.applyCardBehaviors(ctx, card, player, log); err != nil {
+	if err := a.applyCardBehaviors(ctx, g, card, player, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
@@ -333,6 +333,7 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 // applyCardBehaviors processes all card behaviors and applies immediate effects or registers actions/effects
 func (a *PlayCardAction) applyCardBehaviors(
 	ctx context.Context,
+	g *game.Game,
 	card *gamecards.Card,
 	p *player.Player,
 	log *zap.Logger,
@@ -356,7 +357,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			log.Info("✨ Found auto-trigger behavior, applying outputs immediately",
 				zap.Int("output_count", len(behavior.Outputs)))
 
-			if err := a.applyBehaviorOutputs(ctx, behavior.Outputs, p, log); err != nil {
+			if err := a.applyBehaviorOutputs(ctx, g, behavior.Outputs, p, card.Name, log); err != nil {
 				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}
 		}
@@ -379,12 +380,16 @@ func (a *PlayCardAction) applyCardBehaviors(
 			log.Info("⚡ Found conditional-trigger behavior, registering as passive effect",
 				zap.Int("trigger_count", len(behavior.Triggers)))
 
-			p.Effects().AddEffect(player.CardEffect{
+			effect := player.CardEffect{
 				CardID:        card.ID,
 				CardName:      card.Name,
 				BehaviorIndex: behaviorIndex,
 				Behavior:      behavior,
-			})
+			}
+			p.Effects().AddEffect(effect)
+
+			// Subscribe passive effects to relevant events
+			subscribePassiveEffectToEvents(ctx, g, p, effect, log)
 		}
 	}
 
@@ -395,8 +400,10 @@ func (a *PlayCardAction) applyCardBehaviors(
 // applyBehaviorOutputs applies resource and production outputs to a player
 func (a *PlayCardAction) applyBehaviorOutputs(
 	ctx context.Context,
+	g *game.Game,
 	outputs []shared.ResourceCondition,
 	p *player.Player,
+	cardName string,
 	log *zap.Logger,
 ) error {
 	for _, output := range outputs {
@@ -479,11 +486,34 @@ func (a *PlayCardAction) applyBehaviorOutputs(
 			p.Resources().UpdateTerraformRating(output.Amount)
 			log.Info("🌍 Added terraform rating", zap.Int("amount", output.Amount))
 
-		// TODO: Handle tile placements, card draws, etc.
+		// Tile placements - append to queue for user selection
 		case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
-			log.Warn("⚠️  Tile placement outputs not yet implemented, will require user action",
-				zap.String("type", string(output.ResourceType)))
-			// These will need to be handled through a separate flow that creates pending tile selections
+			// Map resource type to tile type string
+			var tileType string
+			switch output.ResourceType {
+			case shared.ResourceCityPlacement:
+				tileType = "city"
+			case shared.ResourceGreeneryPlacement:
+				tileType = "greenery"
+			case shared.ResourceOceanPlacement:
+				tileType = "ocean"
+			}
+
+			// Build array of tile types to append (for multiple placements)
+			tileTypes := make([]string, output.Amount)
+			for i := 0; i < output.Amount; i++ {
+				tileTypes[i] = tileType
+			}
+
+			// Atomically append to queue (thread-safe)
+			if err := g.AppendToPendingTileSelectionQueue(ctx, p.ID(), tileTypes, cardName); err != nil {
+				return fmt.Errorf("failed to append to pending tile selection queue: %w", err)
+			}
+
+			log.Info("🏗️ Added tile placements to queue",
+				zap.String("tile_type", tileType),
+				zap.Int("count", output.Amount),
+				zap.String("source", cardName))
 
 		default:
 			log.Warn("⚠️  Unhandled output type in card behavior",
