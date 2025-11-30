@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/cardtypes"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -17,7 +17,7 @@ import (
 type SelectStartingCardsAction struct {
 	gameRepo     game.GameRepository
 	cardRegistry cards.CardRegistry
-	corpProc     *cards.CorporationProcessor
+	corpProc     *gamecards.CorporationProcessor
 	logger       *zap.Logger
 }
 
@@ -30,7 +30,7 @@ func NewSelectStartingCardsAction(
 	return &SelectStartingCardsAction{
 		gameRepo:     gameRepo,
 		cardRegistry: cardRegistry,
-		corpProc:     cards.NewCorporationProcessor(logger),
+		corpProc:     gamecards.NewCorporationProcessor(logger),
 		logger:       logger,
 	}
 }
@@ -111,7 +111,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	}
 
 	// Validate it's actually a corporation card
-	if corpCard.Type != cardtypes.CardTypeCorporation {
+	if corpCard.Type != gamecards.CardTypeCorporation {
 		log.Error("Card is not a corporation",
 			zap.String("card_type", string(corpCard.Type)))
 		return fmt.Errorf("card %s is not a corporation card", corporationID)

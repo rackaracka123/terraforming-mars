@@ -91,7 +91,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
-	log.Info("📋 Created tile queue for ocean placement")
+	log.Info("📋 Created tile queue for ocean placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)

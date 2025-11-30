@@ -8,7 +8,7 @@ import (
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/cardtypes"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -186,10 +186,11 @@ func (a *PlayCardAction) Execute(
 		zap.Int("steel", payment.Steel),
 		zap.Int("titanium", payment.Titanium))
 
-	// 14. BUSINESS LOGIC: Apply card immediate effects
-	// TODO: Implement card effect application when effect system is ready
-	// For now, skip immediate effects
-	log.Debug("⚠️  Card effect application not yet implemented")
+	// 14. BUSINESS LOGIC: Apply card immediate effects and register behaviors
+	if err := a.applyCardBehaviors(ctx, card, player, log); err != nil {
+		log.Error("Failed to apply card behaviors", zap.Error(err))
+		return fmt.Errorf("failed to apply card behaviors: %w", err)
+	}
 
 	// 15. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//     - player.Hand().RemoveCard() publishes CardHandUpdatedEvent
@@ -205,7 +206,7 @@ func (a *PlayCardAction) Execute(
 }
 
 // hasTag checks if a card has a specific tag
-func hasTag(card *cardtypes.Card, tag shared.CardTag) bool {
+func hasTag(card *gamecards.Card, tag shared.CardTag) bool {
 	for _, cardTag := range card.Tags {
 		if cardTag == tag {
 			return true
@@ -215,14 +216,14 @@ func hasTag(card *cardtypes.Card, tag shared.CardTag) bool {
 }
 
 // validateCardRequirements validates that the player and game state meet all card requirements
-func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player.Player) error {
+func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player) error {
 	if len(card.Requirements) == 0 {
 		return nil // No requirements to validate
 	}
 
 	for _, req := range card.Requirements {
 		switch req.Type {
-		case cardtypes.RequirementTemperature:
+		case gamecards.RequirementTemperature:
 			temp := g.GlobalParameters().Temperature()
 			if req.Min != nil && temp < *req.Min {
 				return fmt.Errorf("temperature requirement not met: need %d°C, current %d°C", *req.Min, temp)
@@ -231,7 +232,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("temperature requirement not met: max %d°C, current %d°C", *req.Max, temp)
 			}
 
-		case cardtypes.RequirementOxygen:
+		case gamecards.RequirementOxygen:
 			oxygen := g.GlobalParameters().Oxygen()
 			if req.Min != nil && oxygen < *req.Min {
 				return fmt.Errorf("oxygen requirement not met: need %d%%, current %d%%", *req.Min, oxygen)
@@ -240,7 +241,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("oxygen requirement not met: max %d%%, current %d%%", *req.Max, oxygen)
 			}
 
-		case cardtypes.RequirementOceans:
+		case gamecards.RequirementOceans:
 			oceans := g.GlobalParameters().Oceans()
 			if req.Min != nil && oceans < *req.Min {
 				return fmt.Errorf("ocean requirement not met: need %d, current %d", *req.Min, oceans)
@@ -249,7 +250,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("ocean requirement not met: max %d, current %d", *req.Max, oceans)
 			}
 
-		case cardtypes.RequirementTR:
+		case gamecards.RequirementTR:
 			tr := player.Resources().TerraformRating()
 			if req.Min != nil && tr < *req.Min {
 				return fmt.Errorf("terraform rating requirement not met: need %d, current %d", *req.Min, tr)
@@ -258,7 +259,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("terraform rating requirement not met: max %d, current %d", *req.Max, tr)
 			}
 
-		case cardtypes.RequirementTags:
+		case gamecards.RequirementTags:
 			if req.Tag == nil {
 				return fmt.Errorf("tag requirement missing tag specification")
 			}
@@ -279,7 +280,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("tag requirement not met: max %d %s tags, have %d", *req.Max, *req.Tag, tagCount)
 			}
 
-		case cardtypes.RequirementProduction:
+		case gamecards.RequirementProduction:
 			if req.Resource == nil {
 				return fmt.Errorf("production requirement missing resource specification")
 			}
@@ -287,7 +288,7 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 			// This requires checking player's production values
 			// For now, skip production validation
 
-		case cardtypes.RequirementResource:
+		case gamecards.RequirementResource:
 			if req.Resource == nil {
 				return fmt.Errorf("resource requirement missing resource specification")
 			}
@@ -316,13 +317,177 @@ func validateCardRequirements(card *cardtypes.Card, g *game.Game, player *player
 				return fmt.Errorf("resource requirement not met: max %d %s, have %d", *req.Max, *req.Resource, currentAmount)
 			}
 
-		case cardtypes.RequirementCities, cardtypes.RequirementGreeneries:
+		case gamecards.RequirementCities, gamecards.RequirementGreeneries:
 			// TODO: Implement tile-based requirements when Board tile counting is ready
 			// For now, skip these validations
 
-		case cardtypes.RequirementVenus:
+		case gamecards.RequirementVenus:
 			// TODO: Implement Venus track when expansion is supported
 			// For now, skip Venus validation
+		}
+	}
+
+	return nil
+}
+
+// applyCardBehaviors processes all card behaviors and applies immediate effects or registers actions/effects
+func (a *PlayCardAction) applyCardBehaviors(
+	ctx context.Context,
+	card *gamecards.Card,
+	p *player.Player,
+	log *zap.Logger,
+) error {
+	if len(card.Behaviors) == 0 {
+		log.Debug("No card behaviors to apply")
+		return nil
+	}
+
+	log.Info("🎴 Processing card behaviors",
+		zap.String("card_id", card.ID),
+		zap.Int("behavior_count", len(card.Behaviors)))
+
+	for behaviorIndex, behavior := range card.Behaviors {
+		log.Debug("Processing behavior",
+			zap.Int("index", behaviorIndex),
+			zap.Int("trigger_count", len(behavior.Triggers)))
+
+		// Apply auto-trigger behaviors immediately
+		if gamecards.HasAutoTrigger(behavior) {
+			log.Info("✨ Found auto-trigger behavior, applying outputs immediately",
+				zap.Int("output_count", len(behavior.Outputs)))
+
+			if err := a.applyBehaviorOutputs(ctx, behavior.Outputs, p, log); err != nil {
+				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
+			}
+		}
+
+		// Register manual-trigger behaviors as player actions
+		if gamecards.HasManualTrigger(behavior) {
+			log.Info("🎯 Found manual-trigger behavior, registering as player action")
+
+			p.Actions().AddAction(player.CardAction{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+				PlayCount:     0,
+			})
+		}
+
+		// Register conditional-trigger behaviors as passive effects
+		if gamecards.HasConditionalTrigger(behavior) {
+			log.Info("⚡ Found conditional-trigger behavior, registering as passive effect",
+				zap.Int("trigger_count", len(behavior.Triggers)))
+
+			p.Effects().AddEffect(player.CardEffect{
+				CardID:        card.ID,
+				CardName:      card.Name,
+				BehaviorIndex: behaviorIndex,
+				Behavior:      behavior,
+			})
+		}
+	}
+
+	log.Info("✅ All card behaviors processed successfully")
+	return nil
+}
+
+// applyBehaviorOutputs applies resource and production outputs to a player
+func (a *PlayCardAction) applyBehaviorOutputs(
+	ctx context.Context,
+	outputs []shared.ResourceCondition,
+	p *player.Player,
+	log *zap.Logger,
+) error {
+	for _, output := range outputs {
+		switch output.ResourceType {
+		// Basic resources
+		case shared.ResourceCredits:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourceCredits: output.Amount,
+			})
+			log.Info("💰 Added credits", zap.Int("amount", output.Amount))
+
+		case shared.ResourceSteel:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourceSteel: output.Amount,
+			})
+			log.Info("🔩 Added steel", zap.Int("amount", output.Amount))
+
+		case shared.ResourceTitanium:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourceTitanium: output.Amount,
+			})
+			log.Info("⚙️ Added titanium", zap.Int("amount", output.Amount))
+
+		case shared.ResourcePlants:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourcePlants: output.Amount,
+			})
+			log.Info("🌱 Added plants", zap.Int("amount", output.Amount))
+
+		case shared.ResourceEnergy:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourceEnergy: output.Amount,
+			})
+			log.Info("⚡ Added energy", zap.Int("amount", output.Amount))
+
+		case shared.ResourceHeat:
+			p.Resources().Add(map[shared.ResourceType]int{
+				shared.ResourceHeat: output.Amount,
+			})
+			log.Info("🔥 Added heat", zap.Int("amount", output.Amount))
+
+		// Production resources
+		case shared.ResourceCreditsProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourceCreditsProduction: output.Amount,
+			})
+			log.Info("💰 Added credits production", zap.Int("amount", output.Amount))
+
+		case shared.ResourceSteelProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourceSteelProduction: output.Amount,
+			})
+			log.Info("🔩 Added steel production", zap.Int("amount", output.Amount))
+
+		case shared.ResourceTitaniumProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourceTitaniumProduction: output.Amount,
+			})
+			log.Info("⚙️ Added titanium production", zap.Int("amount", output.Amount))
+
+		case shared.ResourcePlantsProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourcePlantsProduction: output.Amount,
+			})
+			log.Info("🌱 Added plants production", zap.Int("amount", output.Amount))
+
+		case shared.ResourceEnergyProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourceEnergyProduction: output.Amount,
+			})
+			log.Info("⚡ Added energy production", zap.Int("amount", output.Amount))
+
+		case shared.ResourceHeatProduction:
+			p.Resources().AddProduction(map[shared.ResourceType]int{
+				shared.ResourceHeatProduction: output.Amount,
+			})
+			log.Info("🔥 Added heat production", zap.Int("amount", output.Amount))
+
+		case shared.ResourceTR:
+			p.Resources().UpdateTerraformRating(output.Amount)
+			log.Info("🌍 Added terraform rating", zap.Int("amount", output.Amount))
+
+		// TODO: Handle tile placements, card draws, etc.
+		case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
+			log.Warn("⚠️  Tile placement outputs not yet implemented, will require user action",
+				zap.String("type", string(output.ResourceType)))
+			// These will need to be handled through a separate flow that creates pending tile selections
+
+		default:
+			log.Warn("⚠️  Unhandled output type in card behavior",
+				zap.String("type", string(output.ResourceType)))
 		}
 	}
 

@@ -50,7 +50,7 @@ func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Pl
 		hand:          newHand(eventBus, gameID, playerID),
 		playedCards:   newPlayedCards(eventBus, gameID, playerID),
 		resources:     newResources(eventBus, gameID, playerID),
-		selection:     newSelection(),
+		selection:     newSelection(eventBus, gameID, playerID),
 		actions:       NewActions(),
 		effects:       NewEffects(),
 	}

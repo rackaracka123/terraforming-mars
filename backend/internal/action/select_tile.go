@@ -98,7 +98,53 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		zap.String("tile_type", tileType),
 		zap.String("position", selectedHex))
 
-	// 8. BUSINESS LOGIC: Apply placement bonuses based on tile type
+	// 8. BUSINESS LOGIC: Award tile position bonuses (steel, titanium, plants, card draw)
+	placedTile, err := g.Board().GetTile(*coords)
+	if err != nil {
+		log.Warn("Failed to get placed tile for bonus check", zap.Error(err))
+		// Continue execution - tile was placed successfully, just couldn't check for bonuses
+	} else if len(placedTile.Bonuses) > 0 {
+		log.Info("🎁 Tile has bonuses", zap.Int("bonus_count", len(placedTile.Bonuses)))
+
+		// Apply each bonus to the player
+		for _, bonus := range placedTile.Bonuses {
+			switch bonus.Type {
+			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlants:
+				// Award resource bonuses directly
+				player.Resources().Add(map[shared.ResourceType]int{
+					bonus.Type: bonus.Amount,
+				})
+				log.Info("💰 Awarded resource bonus",
+					zap.String("resource", string(bonus.Type)),
+					zap.Int("amount", bonus.Amount))
+
+			case shared.ResourceCardDraw:
+				// Draw cards from deck and add to player's hand
+				deck := g.Deck()
+				cardIDs, err := deck.DrawProjectCards(ctx, bonus.Amount)
+				if err != nil {
+					log.Warn("Failed to draw cards for bonus", zap.Error(err))
+					// Continue - other bonuses may still be valid
+					continue
+				}
+
+				for _, cardID := range cardIDs {
+					player.Hand().AddCard(cardID)
+				}
+
+				log.Info("🃏 Awarded card draw bonus",
+					zap.Int("cards_drawn", len(cardIDs)),
+					zap.Strings("card_ids", cardIDs))
+
+			default:
+				log.Warn("⚠️  Unhandled tile bonus type",
+					zap.String("type", string(bonus.Type)),
+					zap.Int("amount", bonus.Amount))
+			}
+		}
+	}
+
+	// 9. BUSINESS LOGIC: Apply placement bonuses based on tile type
 	switch tileType {
 	case "city":
 		// City: increase terraform rating by 1
@@ -140,18 +186,20 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		}
 	}
 
-	// 9. Clear current pending tile selection
+	// 10. Clear current pending tile selection
 	if err := g.SetPendingTileSelection(ctx, playerID, nil); err != nil {
 		return fmt.Errorf("failed to clear pending tile selection: %w", err)
 	}
 
-	// 10. Process next tile in queue if any
+	// 11. Process next tile in queue if any
 	if err := g.ProcessNextTile(ctx, playerID); err != nil {
 		return fmt.Errorf("failed to process next tile: %w", err)
 	}
 
-	// 11. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	// 12. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//     - g.Board().UpdateTileOccupancy() publishes TilePlacedEvent and BroadcastEvent
+	//     - player.Resources().Add() publishes ResourcesChangedEvent (for bonuses)
+	//     - player.Hand().AddCard() publishes CardHandUpdatedEvent (for card draw bonuses)
 	//     - g.GlobalParameters().IncreaseOxygen/IncreaseOceans() publishes events
 	//     - g.SetPendingTileSelection() publishes BroadcastEvent
 	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates

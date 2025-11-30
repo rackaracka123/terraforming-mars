@@ -521,6 +521,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
+  affectedCardTypes?: CardType[];
   affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;

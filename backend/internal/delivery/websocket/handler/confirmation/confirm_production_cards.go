@@ -50,7 +50,7 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 
 	// Extract selectedCardIDs
 	var selectedCardIDs []string
-	if cardIDsInterface, ok := payloadMap["selectedCardIds"].([]interface{}); ok {
+	if cardIDsInterface, ok := payloadMap["cardIds"].([]interface{}); ok {
 		selectedCardIDs = make([]string, len(cardIDsInterface))
 		for i, cardID := range cardIDsInterface {
 			if cardIDStr, ok := cardID.(string); ok {

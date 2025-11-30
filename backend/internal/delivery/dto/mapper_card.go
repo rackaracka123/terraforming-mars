@@ -4,13 +4,14 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/game/cardtypes"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 )
 
 // ToCardDto converts a Card to CardDto
-func ToCardDto(card cardtypes.Card) CardDto {
+func ToCardDto(card gamecards.Card) CardDto {
 	// Convert tags
 	tags := make([]CardTag, len(card.Tags))
 	for i, tag := range card.Tags {
@@ -107,7 +108,7 @@ func getPlayedCards(cardIDs []string, cardRegistry cards.CardRegistry) []CardDto
 
 // Card-related helper functions for nested DTO conversions
 
-func toRequirementDto(req cardtypes.Requirement) RequirementDto {
+func toRequirementDto(req gamecards.Requirement) RequirementDto {
 	var location *CardApplyLocation
 	if req.Location != nil {
 		loc := CardApplyLocation(*req.Location)
@@ -136,7 +137,7 @@ func toRequirementDto(req cardtypes.Requirement) RequirementDto {
 	}
 }
 
-func toCardBehaviorDto(behavior cardtypes.CardBehavior) CardBehaviorDto {
+func toCardBehaviorDto(behavior shared.CardBehavior) CardBehaviorDto {
 	var triggers []TriggerDto
 	if len(behavior.Triggers) > 0 {
 		triggers = make([]TriggerDto, len(behavior.Triggers))
@@ -177,7 +178,7 @@ func toCardBehaviorDto(behavior cardtypes.CardBehavior) CardBehaviorDto {
 	}
 }
 
-func toTriggerDto(trigger cardtypes.Trigger) TriggerDto {
+func toTriggerDto(trigger shared.Trigger) TriggerDto {
 	var condition *ResourceTriggerConditionDto
 	if trigger.Condition != nil {
 		cond := toResourceTriggerConditionDto(*trigger.Condition)
@@ -190,7 +191,7 @@ func toTriggerDto(trigger cardtypes.Trigger) TriggerDto {
 	}
 }
 
-func toResourceTriggerConditionDto(cond cardtypes.ResourceTriggerCondition) ResourceTriggerConditionDto {
+func toResourceTriggerConditionDto(cond shared.ResourceTriggerCondition) ResourceTriggerConditionDto {
 	var location *CardApplyLocation
 	if cond.Location != nil {
 		loc := CardApplyLocation(*cond.Location)
@@ -205,53 +206,22 @@ func toResourceTriggerConditionDto(cond cardtypes.ResourceTriggerCondition) Reso
 		}
 	}
 
-	var affectedCardTypes []CardType
-	if len(cond.AffectedCardTypes) > 0 {
-		affectedCardTypes = make([]CardType, len(cond.AffectedCardTypes))
-		for i, ct := range cond.AffectedCardTypes {
-			affectedCardTypes[i] = CardType(ct)
-		}
-	}
-
 	var target *TargetType
 	if cond.Target != nil {
 		t := TargetType(*cond.Target)
 		target = &t
 	}
 
-	var requiredOriginalCost *MinMaxValueDto
-	if cond.RequiredOriginalCost != nil {
-		cost := MinMaxValueDto{
-			Min: cond.RequiredOriginalCost.Min,
-			Max: cond.RequiredOriginalCost.Max,
-		}
-		requiredOriginalCost = &cost
-	}
-
-	var requiredResourceChange map[ResourceType]MinMaxValueDto
-	if len(cond.RequiredResourceChange) > 0 {
-		requiredResourceChange = make(map[ResourceType]MinMaxValueDto)
-		for k, v := range cond.RequiredResourceChange {
-			requiredResourceChange[ResourceType(k)] = MinMaxValueDto{
-				Min: v.Min,
-				Max: v.Max,
-			}
-		}
-	}
-
 	return ResourceTriggerConditionDto{
-		Type:                   TriggerType(cond.Type),
-		Location:               location,
-		AffectedTags:           affectedTags,
-		AffectedResources:      cond.AffectedResources,
-		AffectedCardTypes:      affectedCardTypes,
-		Target:                 target,
-		RequiredOriginalCost:   requiredOriginalCost,
-		RequiredResourceChange: requiredResourceChange,
+		Type:              TriggerType(cond.Type),
+		Location:          location,
+		AffectedTags:      affectedTags,
+		AffectedResources: cond.AffectedResources,
+		Target:            target,
 	}
 }
 
-func toResourceConditionDto(rc cardtypes.ResourceCondition) ResourceConditionDto {
+func toResourceConditionDto(rc shared.ResourceCondition) ResourceConditionDto {
 	var affectedTags []CardTag
 	if len(rc.AffectedTags) > 0 {
 		affectedTags = make([]CardTag, len(rc.AffectedTags))
@@ -283,18 +253,19 @@ func toResourceConditionDto(rc cardtypes.ResourceCondition) ResourceConditionDto
 	}
 
 	return ResourceConditionDto{
-		Type:                     ResourceType(rc.Type),
+		Type:                     ResourceType(rc.ResourceType),
 		Amount:                   rc.Amount,
 		Target:                   TargetType(rc.Target),
 		AffectedResources:        rc.AffectedResources,
 		AffectedTags:             affectedTags,
+		AffectedCardTypes:        affectedCardTypes,
 		AffectedStandardProjects: affectedStandardProjects,
 		MaxTrigger:               rc.MaxTrigger,
 		Per:                      per,
 	}
 }
 
-func toChoiceDto(choice cardtypes.Choice) ChoiceDto {
+func toChoiceDto(choice shared.Choice) ChoiceDto {
 	var inputs []ResourceConditionDto
 	if len(choice.Inputs) > 0 {
 		inputs = make([]ResourceConditionDto, len(choice.Inputs))
@@ -317,7 +288,7 @@ func toChoiceDto(choice cardtypes.Choice) ChoiceDto {
 	}
 }
 
-func toPerConditionDto(pc cardtypes.PerCondition) PerConditionDto {
+func toPerConditionDto(pc shared.PerCondition) PerConditionDto {
 	var location *CardApplyLocation
 	if pc.Location != nil {
 		loc := CardApplyLocation(*pc.Location)
@@ -337,7 +308,7 @@ func toPerConditionDto(pc cardtypes.PerCondition) PerConditionDto {
 	}
 
 	return PerConditionDto{
-		Type:     ResourceType(pc.Type),
+		Type:     ResourceType(pc.ResourceType),
 		Amount:   pc.Amount,
 		Location: location,
 		Target:   target,
@@ -345,7 +316,7 @@ func toPerConditionDto(pc cardtypes.PerCondition) PerConditionDto {
 	}
 }
 
-func toResourceStorageDto(storage cardtypes.ResourceStorage) ResourceStorageDto {
+func toResourceStorageDto(storage gamecards.ResourceStorage) ResourceStorageDto {
 	return ResourceStorageDto{
 		Type:     ResourceType(storage.Type),
 		Capacity: storage.Capacity,
@@ -353,11 +324,36 @@ func toResourceStorageDto(storage cardtypes.ResourceStorage) ResourceStorageDto 
 	}
 }
 
-func toVPConditionDto(vp cardtypes.VictoryPointCondition) VPConditionDto {
+func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
 	var per *PerConditionDto
 	if vp.Per != nil {
-		p := toPerConditionDto(*vp.Per)
-		per = &p
+		// Convert gamecards.PerCondition to PerConditionDto
+		var location *CardApplyLocation
+		if vp.Per.Location != nil {
+			loc := CardApplyLocation(*vp.Per.Location)
+			location = &loc
+		}
+
+		var target *TargetType
+		if vp.Per.Target != nil {
+			t := TargetType(*vp.Per.Target)
+			target = &t
+		}
+
+		var tag *CardTag
+		if vp.Per.Tag != nil {
+			t := CardTag(*vp.Per.Tag)
+			tag = &t
+		}
+
+		perDto := PerConditionDto{
+			Type:     ResourceType(vp.Per.Type),
+			Amount:   vp.Per.Amount,
+			Location: location,
+			Target:   target,
+			Tag:      tag,
+		}
+		per = &perDto
 	}
 
 	return VPConditionDto{

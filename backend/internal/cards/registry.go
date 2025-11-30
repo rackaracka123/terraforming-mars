@@ -3,27 +3,27 @@ package cards
 import (
 	"fmt"
 
-	"terraforming-mars-backend/internal/game/cardtypes"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 )
 
 // CardRegistry provides lookup functionality for card data
 type CardRegistry interface {
 	// GetByID retrieves a card by its ID
-	GetByID(cardID string) (*cardtypes.Card, error)
+	GetByID(cardID string) (*gamecards.Card, error)
 
 	// GetAll returns all cards in the registry
-	GetAll() []cardtypes.Card
+	GetAll() []gamecards.Card
 }
 
 // InMemoryCardRegistry implements CardRegistry with an in-memory map
 type InMemoryCardRegistry struct {
-	cards map[string]cardtypes.Card
+	cards map[string]gamecards.Card
 }
 
 // NewInMemoryCardRegistry creates a new card registry from a slice of cards
-func NewInMemoryCardRegistry(cards []cardtypes.Card) *InMemoryCardRegistry {
-	cardMap := make(map[string]cardtypes.Card, len(cards))
-	for _, card := range cards {
+func NewInMemoryCardRegistry(cardList []gamecards.Card) *InMemoryCardRegistry {
+	cardMap := make(map[string]gamecards.Card, len(cardList))
+	for _, card := range cardList {
 		cardMap[card.ID] = card
 	}
 
@@ -33,7 +33,7 @@ func NewInMemoryCardRegistry(cards []cardtypes.Card) *InMemoryCardRegistry {
 }
 
 // GetByID retrieves a card by its ID, returning a copy to prevent mutation
-func (r *InMemoryCardRegistry) GetByID(cardID string) (*cardtypes.Card, error) {
+func (r *InMemoryCardRegistry) GetByID(cardID string) (*gamecards.Card, error) {
 	card, exists := r.cards[cardID]
 	if !exists {
 		return nil, fmt.Errorf("card not found: %s", cardID)
@@ -45,10 +45,10 @@ func (r *InMemoryCardRegistry) GetByID(cardID string) (*cardtypes.Card, error) {
 }
 
 // GetAll returns all cards in the registry
-func (r *InMemoryCardRegistry) GetAll() []cardtypes.Card {
-	cards := make([]cardtypes.Card, 0, len(r.cards))
+func (r *InMemoryCardRegistry) GetAll() []gamecards.Card {
+	cardList := make([]gamecards.Card, 0, len(r.cards))
 	for _, card := range r.cards {
-		cards = append(cards, card.DeepCopy())
+		cardList = append(cardList, card.DeepCopy())
 	}
-	return cards
+	return cardList
 }

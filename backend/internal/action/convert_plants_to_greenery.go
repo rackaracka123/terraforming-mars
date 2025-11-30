@@ -92,7 +92,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
-	log.Info("📋 Created tile queue for greenery placement")
+	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	// Note: Terraform rating increase and oxygen increase happen when the greenery is placed (via SelectTileAction)
 

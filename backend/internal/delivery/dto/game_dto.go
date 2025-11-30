@@ -214,6 +214,7 @@ type ResourceConditionDto struct {
 	Target                   TargetType        `json:"target" ts:"TargetType"`
 	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`
 	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`
 	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
 	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`
 	Per                      *PerConditionDto  `json:"per,omitempty" ts:"PerConditionDto | undefined"`

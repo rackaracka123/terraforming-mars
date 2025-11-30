@@ -81,7 +81,7 @@ func (a *BuildPowerPlantAction) Execute(
 
 	// 7. Increase energy production by 1 (publishes ProductionChangedEvent)
 	player.Resources().AddProduction(map[shared.ResourceType]int{
-		shared.ResourceEnergy: 1,
+		shared.ResourceEnergyProduction: 1,
 	})
 
 	production := player.Resources().Production() // Refresh after update

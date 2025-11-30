@@ -539,6 +539,13 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 		})
 	}
 
+	// Automatically process first tile if queue is not empty
+	if queue != nil && len(queue.Items) > 0 {
+		if err := g.ProcessNextTile(ctx, playerID); err != nil {
+			return fmt.Errorf("failed to auto-process first queued tile: %w", err)
+		}
+	}
+
 	return nil
 }
 

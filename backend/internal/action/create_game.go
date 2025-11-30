@@ -9,7 +9,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/cardtypes"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 )
 
@@ -120,10 +120,10 @@ func (a *CreateGameAction) getCardIDsByPacks(packs []string) (projectCards, corp
 		}
 
 		switch card.Type {
-		case cardtypes.CardTypeCorporation:
+		case gamecards.CardTypeCorporation:
 			corps = append(corps, card.ID)
 			log.Debug("   Found corporation", zap.String("id", card.ID), zap.String("name", card.Name))
-		case cardtypes.CardTypePrelude:
+		case gamecards.CardTypePrelude:
 			preludes = append(preludes, card.ID)
 		default:
 			// All other card types are project cards (Automated, Active, Event)

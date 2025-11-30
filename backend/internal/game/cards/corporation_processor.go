@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -27,7 +26,7 @@ func NewCorporationProcessor(logger *zap.Logger) *CorporationProcessor {
 // ApplyStartingEffects processes auto-corporation-start behaviors and applies starting resources/production
 func (p *CorporationProcessor) ApplyStartingEffects(
 	ctx context.Context,
-	card *cardtypes.Card,
+	card *Card,
 	pl *player.Player,
 ) error {
 	log := p.logger.With(
@@ -41,7 +40,7 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 	// Process behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == cardtypes.ResourceTriggerAutoCorporationStart {
+			if trigger.Type == string(ResourceTriggerAutoCorporationStart) {
 				log.Info("✨ Found auto-corporation-start behavior",
 					zap.Int("outputs", len(behavior.Outputs)))
 
@@ -62,7 +61,7 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 // SetupForcedFirstAction processes auto-corporation-first-action behaviors and sets forced actions
 func (p *CorporationProcessor) SetupForcedFirstAction(
 	ctx context.Context,
-	card *cardtypes.Card,
+	card *Card,
 	g *game.Game,
 	playerID string,
 ) error {
@@ -77,7 +76,7 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	// Process behaviors with auto-corporation-first-action trigger
 	for _, behavior := range card.Behaviors {
 		for _, trigger := range behavior.Triggers {
-			if trigger.Type == cardtypes.ResourceTriggerAutoCorporationFirstAction {
+			if trigger.Type == string(ResourceTriggerAutoCorporationFirstAction) {
 				log.Info("✨ Found auto-corporation-first-action behavior",
 					zap.Int("outputs", len(behavior.Outputs)))
 
@@ -97,11 +96,11 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 // applyOutput applies a single output to the player
 func (p *CorporationProcessor) applyOutput(
 	ctx context.Context,
-	output cardtypes.ResourceCondition,
+	output shared.ResourceCondition,
 	pl *player.Player,
 	log *zap.Logger,
 ) error {
-	switch output.Type {
+	switch output.ResourceType {
 	// Basic resources
 	case shared.ResourceCredits:
 		pl.Resources().Add(map[shared.ResourceType]int{
@@ -182,7 +181,7 @@ func (p *CorporationProcessor) applyOutput(
 
 	default:
 		log.Warn("⚠️ Unhandled output type in corporation starting effects",
-			zap.String("type", string(output.Type)))
+			zap.String("type", string(output.ResourceType)))
 	}
 
 	return nil
@@ -191,13 +190,13 @@ func (p *CorporationProcessor) applyOutput(
 // createForcedAction creates a forced first action based on the output
 func (p *CorporationProcessor) createForcedAction(
 	ctx context.Context,
-	output cardtypes.ResourceCondition,
-	card *cardtypes.Card,
+	output shared.ResourceCondition,
+	card *Card,
 	g *game.Game,
 	playerID string,
 	log *zap.Logger,
 ) error {
-	switch output.Type {
+	switch output.ResourceType {
 	case shared.ResourceCityPlacement:
 		action := &player.ForcedFirstAction{
 			ActionType:    "city-placement",
@@ -242,7 +241,7 @@ func (p *CorporationProcessor) createForcedAction(
 
 	default:
 		log.Warn("⚠️ Unhandled forced action type",
-			zap.String("type", string(output.Type)))
+			zap.String("type", string(output.ResourceType)))
 	}
 
 	return nil

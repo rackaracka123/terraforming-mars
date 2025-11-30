@@ -3,7 +3,6 @@ package dto
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/cardtypes"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -249,7 +248,7 @@ func convertProductionPhaseForOtherPlayer(phase *player.ProductionPhase) *Produc
 }
 
 // convertPlayerEffects converts CardEffect slice to PlayerEffectDto slice
-func convertPlayerEffects(effects []cardtypes.CardEffect) []PlayerEffectDto {
+func convertPlayerEffects(effects []player.CardEffect) []PlayerEffectDto {
 	if len(effects) == 0 {
 		return []PlayerEffectDto{}
 	}
@@ -267,7 +266,7 @@ func convertPlayerEffects(effects []cardtypes.CardEffect) []PlayerEffectDto {
 }
 
 // convertPlayerActions converts CardAction slice to PlayerActionDto slice
-func convertPlayerActions(actions []cardtypes.CardAction) []PlayerActionDto {
+func convertPlayerActions(actions []player.CardAction) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}

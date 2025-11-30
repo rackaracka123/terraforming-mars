@@ -78,7 +78,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 6. BUSINESS LOGIC: Increase credit production by 1 using domain method
 	player.Resources().AddProduction(map[shared.ResourceType]int{
-		shared.ResourceCredits: 1,
+		shared.ResourceCreditsProduction: 1,
 	})
 
 	production := player.Resources().Production() // Refresh after update
@@ -94,14 +94,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
-	log.Info("📋 Created tile queue for city placement")
-
-	// 8. Process the queue to create PendingTileSelection with available hexes
-	if err := g.ProcessNextTile(ctx, playerID); err != nil {
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
-
-	log.Info("🎯 Processed tile queue into pending tile selection")
+	log.Info("📋 Created tile queue for city placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)

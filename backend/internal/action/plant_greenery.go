@@ -84,14 +84,7 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 		return fmt.Errorf("failed to queue tile placement: %w", err)
 	}
 
-	log.Info("📋 Created tile queue for greenery placement")
-
-	// 8. Process the queue to create PendingTileSelection with available hexes
-	if err := g.ProcessNextTile(ctx, playerID); err != nil {
-		return fmt.Errorf("failed to process tile queue: %w", err)
-	}
-
-	log.Info("🎯 Processed tile queue into pending tile selection")
+	log.Info("📋 Created tile queue for greenery placement (auto-processed by SetPendingTileSelectionQueue)")
 
 	// Note: Terraform rating increase happens when the greenery is placed (via SelectTileAction)
 	// Note: Oxygen increase happens when greenery is placed (by SelectTileAction)

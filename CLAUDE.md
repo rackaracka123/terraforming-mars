@@ -57,7 +57,7 @@ The Go backend follows Clean Architecture with an action-based pattern where eac
 backend/
 ├── cmd/server/            # Application entry point with dependency injection
 ├── internal/
-│   ├── action/            # Business logic actions (single responsibility)
+│   ├── action/            # Business logic actions (ONLY place for state mutation)
 │   │   ├── base.go        # BaseAction with common dependencies
 │   │   ├── query/         # Read-only HTTP GET operations
 │   │   └── admin/         # Admin operations for testing/debugging
@@ -66,9 +66,10 @@ backend/
 │   │   ├── player/        # Player entity and components
 │   │   ├── board/         # Board and Tile types
 │   │   ├── deck/          # Deck management
+│   │   ├── cards/         # Card effect helpers (NO state mutation)
 │   │   ├── shared/        # Shared types (Resources, HexPosition, etc.)
 │   │   └── global_parameters/  # GlobalParameters with terraforming state
-│   ├── cards/             # Card system, validation, registry
+│   ├── cards/             # Card data (registry, JSON loading, validation)
 │   ├── delivery/          # Presentation layer
 │   │   ├── dto/           # Data Transfer Objects and mappers
 │   │   ├── http/          # HTTP handlers (delegate to actions)
@@ -112,6 +113,20 @@ func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
 - Passive card effects subscribe to domain events automatically
 - No manual polling or effect checking in services
 - **Core Rule**: Services do ONLY what the action says. Effects trigger via events.
+
+**State Mutation Rule**
+- **ONLY actions** in `/internal/action/` may mutate game state
+- All other packages provide helpers, parse data, or subscribe to events
+- Actions call game state methods: `player.Resources().AddCredits()`, `game.GlobalParameters().IncreaseTemperature()`
+- `/internal/game/cards/` provides helper functions to interpret card behaviors, but does NOT apply them
+- Actions use helpers to understand WHAT to do, then actions apply the changes
+
+**Card System Architecture**
+- **`/internal/cards/`**: Card data outside game context (registry, JSON loading, validation)
+- **`/internal/game/cards/`**: Card effect helpers for game context (behavior parsing, NO state mutation)
+- **Card behaviors** defined in JSON (`terraforming_mars_cards.json`) with triggers, inputs, outputs
+- **Actions** read card behaviors and apply effects to game state
+- **90%+ of cards** added via JSON only, no Go code required
 
 **Broadcaster**
 Subscribes to BroadcastEvent and sends personalized game state to WebSocket clients:
@@ -226,14 +241,33 @@ import GameIcon from '../ui/display/GameIcon.tsx';
 6. **Frontend**: Import generated types, implement UI
 7. **Format and lint**: Run `make format` and `make lint`
 
-### Adding Card Effects (Event-Driven)
+### Adding Card Effects (JSON-Driven)
 
-For passive effects (e.g., "Gain 2 MC when any city is placed"):
+**Most cards require ONLY JSON edits, no Go code!**
 
-1. Define behavior in card JSON with triggers and outputs
-2. Ensure repository publishes the domain event (usually already exists)
-3. CardEffectSubscriber automatically subscribes when card is played
-4. Test by playing card, triggering event, verifying effect
+1. **Immediate effects** (auto trigger):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "auto"}],
+     "outputs": [{"type": "steel-production", "amount": 2}]}]}
+   ```
+   PlayCardAction applies automatically when card is played.
+
+2. **Manual actions** (blue cards):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "manual"}],
+     "inputs": [{"type": "energy", "amount": 4}],
+     "outputs": [{"type": "steel", "amount": 2}]}]}
+   ```
+   Registered to Player.Actions(), executed via UseCardAction.
+
+3. **Passive effects** (conditional trigger):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
+     "outputs": [{"type": "credits", "amount": 2}]}]}
+   ```
+   CardEffectSubscriber listens for events, applies outputs automatically.
+
+See `CARD_SYSTEM.md` for complete card architecture documentation.
 
 ### Backend Development Patterns
 

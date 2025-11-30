@@ -88,6 +88,20 @@ const GameLandingPage: React.FC = () => {
     setIsFadingOut(true);
     setTimeout(async () => {
       try {
+        // Verify game still exists before attempting reconnection
+        const game = await apiService.getGame(savedGameData.game.id);
+        if (!game) {
+          // Game no longer exists, clear storage and show error
+          console.log(
+            "Game no longer exists, clearing session and showing error",
+          );
+          clearGameSession();
+          setError("Game no longer exists");
+          setIsFadingOut(false);
+          setSavedGameData(null);
+          return;
+        }
+
         // Reconnect to the game using global WebSocket manager
         await globalWebSocketManager.playerConnect(
           savedGameData.playerName,

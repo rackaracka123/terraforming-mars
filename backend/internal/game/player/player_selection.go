@@ -4,6 +4,7 @@ import "terraforming-mars-backend/internal/game/shared"
 
 import (
 	"sync"
+	"terraforming-mars-backend/internal/events"
 )
 
 // Selection manages player-specific card selection state
@@ -12,10 +13,17 @@ type Selection struct {
 	selectStartingCardsPhase *SelectStartingCardsPhase
 	pendingCardSelection     *PendingCardSelection
 	pendingCardDrawSelection *PendingCardDrawSelection
+	eventBus                 *events.EventBusImpl
+	gameID                   string
+	playerID                 string
 }
 
-func newSelection() *Selection {
-	return &Selection{}
+func newSelection(eventBus *events.EventBusImpl, gameID, playerID string) *Selection {
+	return &Selection{
+		eventBus: eventBus,
+		gameID:   gameID,
+		playerID: playerID,
+	}
 }
 
 func (s *Selection) GetSelectStartingCardsPhase() *SelectStartingCardsPhase {
@@ -26,8 +34,16 @@ func (s *Selection) GetSelectStartingCardsPhase() *SelectStartingCardsPhase {
 
 func (s *Selection) SetSelectStartingCardsPhase(phase *SelectStartingCardsPhase) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.selectStartingCardsPhase = phase
+	s.mu.Unlock()
+
+	// Publish broadcast event to trigger client updates
+	if s.eventBus != nil {
+		events.Publish(s.eventBus, events.BroadcastEvent{
+			GameID:    s.gameID,
+			PlayerIDs: []string{s.playerID},
+		})
+	}
 }
 
 func (s *Selection) GetPendingCardSelection() *PendingCardSelection {
@@ -38,8 +54,16 @@ func (s *Selection) GetPendingCardSelection() *PendingCardSelection {
 
 func (s *Selection) SetPendingCardSelection(selection *PendingCardSelection) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.pendingCardSelection = selection
+	s.mu.Unlock()
+
+	// Publish broadcast event to trigger client updates
+	if s.eventBus != nil {
+		events.Publish(s.eventBus, events.BroadcastEvent{
+			GameID:    s.gameID,
+			PlayerIDs: []string{s.playerID},
+		})
+	}
 }
 
 func (s *Selection) GetPendingCardDrawSelection() *PendingCardDrawSelection {
@@ -50,8 +74,16 @@ func (s *Selection) GetPendingCardDrawSelection() *PendingCardDrawSelection {
 
 func (s *Selection) SetPendingCardDrawSelection(selection *PendingCardDrawSelection) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.pendingCardDrawSelection = selection
+	s.mu.Unlock()
+
+	// Publish broadcast event to trigger client updates
+	if s.eventBus != nil {
+		events.Publish(s.eventBus, events.BroadcastEvent{
+			GameID:    s.gameID,
+			PlayerIDs: []string{s.playerID},
+		})
+	}
 }
 
 // ==================== Phase State Types ====================
