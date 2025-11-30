@@ -60,6 +60,13 @@ type GameStatusChangedEvent struct {
 	Timestamp time.Time
 }
 
+// GameStateChangedEvent is a generic event for state changes that don't need specific event types
+// Used to trigger automatic broadcasting without defining specialized events
+type GameStateChangedEvent struct {
+	GameID    string
+	Timestamp time.Time
+}
+
 // TilePlacedEvent is published when a tile is placed on the board
 type TilePlacedEvent struct {
 	GameID    string
@@ -95,6 +102,14 @@ type PlayerJoinedEvent struct {
 	GameID     string
 	PlayerID   string
 	PlayerName string
+	Timestamp  time.Time
+}
+
+// ConnectionRegisteredEvent is published when a WebSocket connection is registered with a player
+// This triggers broadcasting AFTER the connection is ready to receive messages
+type ConnectionRegisteredEvent struct {
+	GameID     string
+	PlayerID   string
 	Timestamp  time.Time
 }
 

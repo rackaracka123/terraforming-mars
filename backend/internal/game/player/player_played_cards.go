@@ -67,11 +67,6 @@ func (pc *PlayedCards) AddCard(cardID, cardName, cardType string) {
 			Timestamp: time.Now(),
 		})
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(pc.eventBus, events.BroadcastEvent{
-			GameID:    pc.gameID,
-			PlayerIDs: []string{pc.playerID},
-		})
 	}
 }
 

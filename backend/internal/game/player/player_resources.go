@@ -85,10 +85,6 @@ func (r *PlayerResources) Set(resources shared.Resources) {
 
 	// Publish event
 	if r.eventBus != nil {
-		events.Publish(r.eventBus, events.BroadcastEvent{
-			GameID:    r.gameID,
-			PlayerIDs: []string{r.playerID},
-		})
 	}
 }
 
@@ -146,11 +142,6 @@ func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {
 			Timestamp: time.Now(),
 		})
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(r.eventBus, events.BroadcastEvent{
-			GameID:    r.gameID,
-			PlayerIDs: []string{r.playerID},
-		})
 	}
 }
 
@@ -221,11 +212,6 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 			})
 		}
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(r.eventBus, events.BroadcastEvent{
-			GameID:    r.gameID,
-			PlayerIDs: []string{r.playerID},
-		})
 	}
 }
 
@@ -247,10 +233,5 @@ func (r *PlayerResources) UpdateTerraformRating(delta int) {
 			Timestamp: time.Now(),
 		})
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(r.eventBus, events.BroadcastEvent{
-			GameID:    r.gameID,
-			PlayerIDs: []string{r.playerID},
-		})
 	}
 }

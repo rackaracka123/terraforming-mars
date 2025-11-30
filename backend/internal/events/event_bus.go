@@ -23,20 +23,30 @@ type subscription struct {
 	handlerFunc func(event any) // Type-erased execution wrapper
 }
 
+// BroadcastFunc is a callback function for automatic broadcasting
+// Called after every event is published to notify clients of state changes
+type BroadcastFunc func(gameID string, playerIDs []string)
+
 // EventBusImpl implements EventBus with thread-safe operations
 type EventBusImpl struct {
 	subscriptions map[SubscriptionID]*subscription
 	nextID        uint64
 	mutex         sync.RWMutex
 	logger        *zap.Logger
+	gameID        string        // Game ID for automatic broadcasting
+	broadcaster   BroadcastFunc // Callback for automatic broadcasting (optional)
 }
 
 // NewEventBus creates a new type-safe event bus
-func NewEventBus() *EventBusImpl {
+// gameID: The game this event bus belongs to (empty string for non-game event buses)
+// broadcaster: Optional callback for automatic broadcasting (nil to disable)
+func NewEventBus(gameID string, broadcaster BroadcastFunc) *EventBusImpl {
 	return &EventBusImpl{
 		subscriptions: make(map[SubscriptionID]*subscription),
 		nextID:        1,
 		logger:        logger.Get(),
+		gameID:        gameID,
+		broadcaster:   broadcaster,
 	}
 }
 
@@ -77,7 +87,14 @@ func Subscribe[T any](eb *EventBusImpl, handler EventHandler[T]) SubscriptionID 
 	return id
 }
 
+// PlayerTargetable is an optional interface events can implement
+// to specify which players should receive broadcast updates
+type PlayerTargetable interface {
+	GetPlayerIDs() []string // nil = broadcast to all players
+}
+
 // Publish publishes a type-safe event to all matching subscribers
+// Automatically triggers broadcast if broadcaster is configured
 func Publish[T any](eb *EventBusImpl, event T) {
 	eb.mutex.RLock()
 	defer eb.mutex.RUnlock()
@@ -96,18 +113,33 @@ func Publish[T any](eb *EventBusImpl, event T) {
 	if len(matchingHandlers) == 0 {
 		eb.logger.Debug("📭 No subscribers for event",
 			zap.String("event_type", eventType))
-		return
+	} else {
+		eb.logger.Debug("📢 Publishing event to subscribers",
+			zap.String("event_type", eventType),
+			zap.Int("subscriber_count", len(matchingHandlers)))
+
+		// Execute all matching handlers
+		// Note: Handlers are executed synchronously for now
+		// Future optimization: execute asynchronously with goroutines
+		for _, handlerFunc := range matchingHandlers {
+			handlerFunc(event)
+		}
 	}
 
-	eb.logger.Debug("📢 Publishing event to subscribers",
-		zap.String("event_type", eventType),
-		zap.Int("subscriber_count", len(matchingHandlers)))
+	// Automatic broadcasting: Call broadcaster after event handlers execute
+	// Skip if this IS a BroadcastEvent (avoid infinite recursion)
+	if eb.broadcaster != nil && eventType != "events.BroadcastEvent" {
+		// Extract player IDs if event implements PlayerTargetable
+		var playerIDs []string
+		if targetable, ok := any(event).(PlayerTargetable); ok {
+			playerIDs = targetable.GetPlayerIDs()
+		}
 
-	// Execute all matching handlers
-	// Note: Handlers are executed synchronously for now
-	// Future optimization: execute asynchronously with goroutines
-	for _, handlerFunc := range matchingHandlers {
-		handlerFunc(event)
+		eb.logger.Debug("🔄 Auto-broadcasting after event",
+			zap.String("event_type", eventType),
+			zap.String("game_id", eb.gameID))
+
+		eb.broadcaster(eb.gameID, playerIDs)
 	}
 }
 

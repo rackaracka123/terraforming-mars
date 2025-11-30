@@ -37,12 +37,7 @@ func (s *Selection) SetSelectStartingCardsPhase(phase *SelectStartingCardsPhase)
 	s.selectStartingCardsPhase = phase
 	s.mu.Unlock()
 
-	// Publish broadcast event to trigger client updates
 	if s.eventBus != nil {
-		events.Publish(s.eventBus, events.BroadcastEvent{
-			GameID:    s.gameID,
-			PlayerIDs: []string{s.playerID},
-		})
 	}
 }
 
@@ -57,12 +52,7 @@ func (s *Selection) SetPendingCardSelection(selection *PendingCardSelection) {
 	s.pendingCardSelection = selection
 	s.mu.Unlock()
 
-	// Publish broadcast event to trigger client updates
 	if s.eventBus != nil {
-		events.Publish(s.eventBus, events.BroadcastEvent{
-			GameID:    s.gameID,
-			PlayerIDs: []string{s.playerID},
-		})
 	}
 }
 
@@ -77,12 +67,7 @@ func (s *Selection) SetPendingCardDrawSelection(selection *PendingCardDrawSelect
 	s.pendingCardDrawSelection = selection
 	s.mu.Unlock()
 
-	// Publish broadcast event to trigger client updates
 	if s.eventBus != nil {
-		events.Publish(s.eventBus, events.BroadcastEvent{
-			GameID:    s.gameID,
-			PlayerIDs: []string{s.playerID},
-		})
 	}
 }
 

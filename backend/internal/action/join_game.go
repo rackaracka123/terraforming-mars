@@ -3,11 +3,10 @@ package action
 import (
 	"context"
 	"fmt"
-
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+
 	playerPkg "terraforming-mars-backend/internal/game/player"
 
 	"go.uber.org/zap"
@@ -17,7 +16,6 @@ import (
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type JoinGameAction struct {
 	gameRepo     game.GameRepository
-	eventBus     *events.EventBusImpl
 	cardRegistry cards.CardRegistry
 	logger       *zap.Logger
 }
@@ -31,30 +29,24 @@ type JoinGameResult struct {
 // NewJoinGameAction creates a new join game action
 func NewJoinGameAction(
 	gameRepo game.GameRepository,
-	eventBus *events.EventBusImpl,
 	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *JoinGameAction {
 	return &JoinGameAction{
 		gameRepo:     gameRepo,
-		eventBus:     eventBus,
 		cardRegistry: cardRegistry,
 		logger:       logger,
 	}
 }
 
 // Execute performs the join game action
-// playerID is optional - if empty, a new UUID will be generated
+// playerID is required and must be generated at handler level for proper connection registration
 func (a *JoinGameAction) Execute(
 	ctx context.Context,
 	gameID string,
 	playerName string,
-	playerID ...string,
+	playerID string,
 ) (*JoinGameResult, error) {
-	var pid string
-	if len(playerID) > 0 {
-		pid = playerID[0]
-	}
 
 	log := a.logger.With(
 		zap.String("game_id", gameID),
@@ -101,14 +93,24 @@ func (a *JoinGameAction) Execute(
 		return nil, fmt.Errorf("game is full")
 	}
 
-	// 5. Create new player
-	newPlayer := playerPkg.NewPlayer(a.eventBus, gameID, pid, playerName)
+	// 5. Create new player (using Game's EventBus for automatic broadcasting)
+	newPlayer := playerPkg.NewPlayer(g.EventBus(), gameID, playerID, playerName)
 	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID()))
 
 	// 6. Check if this will be the first player (before adding)
 	isFirstPlayer := len(existingPlayers) == 0
 
-	// 7. Add player to game (publishes PlayerJoinedEvent)
+	// 7. If first player, set as host BEFORE adding (so auto-broadcast includes hostPlayerID)
+	if isFirstPlayer {
+		err = g.SetHostPlayerID(ctx, newPlayer.ID())
+		if err != nil {
+			log.Error("Failed to set host player", zap.Error(err))
+			return nil, fmt.Errorf("failed to set host player: %w", err)
+		}
+		log.Info("👑 Player set as host")
+	}
+
+	// 8. Add player to game (publishes PlayerJoinedEvent which auto-broadcasts)
 	err = g.AddPlayer(ctx, newPlayer)
 	if err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
@@ -116,17 +118,6 @@ func (a *JoinGameAction) Execute(
 	}
 
 	log.Info("✅ Player added to game")
-
-	// 8. If first player, set as host
-	if isFirstPlayer {
-		err = g.SetHostPlayerID(ctx, newPlayer.ID())
-		if err != nil {
-			log.Error("Failed to set host player", zap.Error(err))
-			// Non-fatal, continue
-		} else {
-			log.Info("👑 Player set as host")
-		}
-	}
 
 	// 9. Convert to DTO with personalized view for the joining player
 	gameDto := dto.ToGameDto(g, a.cardRegistry, newPlayer.ID())

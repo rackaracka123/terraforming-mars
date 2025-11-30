@@ -17,21 +17,26 @@ import (
 // MIGRATION: Uses new architecture (GameRepository only, no board repository)
 type CreateGameAction struct {
 	gameRepo     game.GameRepository
-	eventBus     *events.EventBusImpl
+	broadcaster  BroadcasterProvider
 	cardRegistry cards.CardRegistry
 	logger       *zap.Logger
+}
+
+// BroadcasterProvider provides the broadcast function for automatic broadcasting
+type BroadcasterProvider interface {
+	GetBroadcastFunc() events.BroadcastFunc
 }
 
 // NewCreateGameAction creates a new create game action
 func NewCreateGameAction(
 	gameRepo game.GameRepository,
-	eventBus *events.EventBusImpl,
+	broadcaster BroadcasterProvider,
 	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *CreateGameAction {
 	return &CreateGameAction{
 		gameRepo:     gameRepo,
-		eventBus:     eventBus,
+		broadcaster:  broadcaster,
 		cardRegistry: cardRegistry,
 		logger:       logger,
 	}
@@ -59,10 +64,11 @@ func (a *CreateGameAction) Execute(
 		settings.CardPacks = game.DefaultCardPacks()
 	}
 
-	// 3. Create game entity
+	// 3. Create game entity with automatic broadcasting
 	// Note: hostPlayerID is empty initially, will be set when first player joins
 	// Board is automatically created by NewGame
-	newGame := game.NewGame(gameID, "", settings, a.eventBus)
+	// EventBus is created per-game with automatic broadcasting callback
+	newGame := game.NewGame(gameID, "", settings, a.broadcaster.GetBroadcastFunc())
 
 	// 4. Initialize deck with cards from selected packs
 	projectCardIDs, corpIDs, preludeIDs := a.getCardIDsByPacks(settings.CardPacks)

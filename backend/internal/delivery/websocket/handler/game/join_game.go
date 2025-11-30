@@ -6,27 +6,24 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 // JoinGameHandler handles join game requests using the migrated architecture
 type JoinGameHandler struct {
 	joinGameAction *action.JoinGameAction
-	eventBus       *events.EventBusImpl
 	logger         *zap.Logger
 }
 
 // NewJoinGameHandler creates a new join game handler for migrated actions
 func NewJoinGameHandler(
 	joinGameAction *action.JoinGameAction,
-	eventBus *events.EventBusImpl,
 ) *JoinGameHandler {
 	return &JoinGameHandler{
 		joinGameAction: joinGameAction,
-		eventBus:       eventBus,
 		logger:         logger.Get(),
 	}
 }
@@ -65,43 +62,36 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 		return
 	}
 
+	// Generate playerID for new players (session-level identifier)
+	// PlayerID persists across games and enables reconnection
+	if playerID == "" {
+		playerID = uuid.New().String()
+		log.Debug("Generated new playerID for session",
+			zap.String("player_id", playerID))
+	}
+
 	log.Debug("Parsed join game request",
 		zap.String("game_id", gameID),
 		zap.String("player_name", playerName),
 		zap.String("player_id", playerID))
 
-	// CRITICAL: Register connection with game BEFORE executing action
-	// This ensures Broadcaster can find the connection when BroadcastEvent fires
-	if playerID != "" {
-		// For reconnection, set the existing player ID first
-		connection.SetPlayer(playerID, gameID)
-	}
+	// CRITICAL: Register connection BEFORE executing action
+	// This ensures automatic broadcasting works (connection is findable when events fire)
+	connection.SetPlayer(playerID, gameID)
 
-	// Execute the migrated join game action
-	var result *action.JoinGameResult
-	var err error
-
-	if playerID != "" {
-		result, err = h.joinGameAction.Execute(ctx, gameID, playerName, playerID)
-	} else {
-		result, err = h.joinGameAction.Execute(ctx, gameID, playerName)
-	}
-
+	// Execute the migrated join game action with pre-generated playerID
+	result, err := h.joinGameAction.Execute(ctx, gameID, playerName, playerID)
 	if err != nil {
 		log.Error("Failed to execute join game action", zap.Error(err))
 		h.sendError(connection, err.Error())
 		return
 	}
 
-	// For new players, register connection now that we have the player ID
-	if playerID == "" {
-		connection.SetPlayer(result.PlayerID, gameID)
-	}
-
 	log.Info("✅ Join game action completed successfully",
 		zap.String("player_id", result.PlayerID))
 
 	// Send minimal success response confirming join
+	// Note: Full game state was already broadcast via automatic broadcasting (PlayerJoinedEvent)
 	response := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnected,
 		GameID: gameID,
@@ -114,16 +104,7 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	connection.Send <- response
 	log.Info("📤 Sent player connected confirmation")
-
-	// CRITICAL: Publish BroadcastEvent AFTER connection is registered
-	// This ensures Broadcaster can find the connection when it tries to send
-	if h.eventBus != nil {
-		events.Publish(h.eventBus, events.BroadcastEvent{
-			GameID:    gameID,
-			PlayerIDs: nil, // Broadcast to all players
-		})
-		log.Info("📢 Published BroadcastEvent for game state update")
-	}
+	log.Debug("📡 Automatic broadcast already sent game state to all players")
 }
 
 // sendError sends an error message to the client

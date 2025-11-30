@@ -104,17 +104,13 @@ func (gp *GlobalParameters) IncreaseTemperature(ctx context.Context, steps int) 
 	actualSteps = (newTemp - oldTemp) / 2
 	gp.mu.Unlock()
 
-	// Publish events AFTER releasing lock to avoid deadlocks
+	// Publish event AFTER releasing lock to avoid deadlocks
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldTemp != newTemp {
 		events.Publish(gp.eventBus, events.TemperatureChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldTemp,
 			NewValue: newTemp,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -141,17 +137,13 @@ func (gp *GlobalParameters) IncreaseOxygen(ctx context.Context, steps int) (int,
 	actualSteps := newOxygen - oldOxygen
 	gp.mu.Unlock()
 
-	// Publish events AFTER releasing lock
+	// Publish event AFTER releasing lock
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldOxygen != newOxygen {
 		events.Publish(gp.eventBus, events.OxygenChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldOxygen,
 			NewValue: newOxygen,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -180,17 +172,13 @@ func (gp *GlobalParameters) PlaceOcean(ctx context.Context) (bool, error) {
 	newOceans = gp.oceans
 	gp.mu.Unlock()
 
-	// Publish events AFTER releasing lock
+	// Publish event AFTER releasing lock
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldOceans != newOceans {
 		events.Publish(gp.eventBus, events.OceansChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldOceans,
 			NewValue: newOceans,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -211,16 +199,12 @@ func (gp *GlobalParameters) SetTemperature(ctx context.Context, newTemp int) err
 	gp.temperature = newTemp
 	gp.mu.Unlock()
 
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldTemp != newTemp {
 		events.Publish(gp.eventBus, events.TemperatureChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldTemp,
 			NewValue: newTemp,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -241,16 +225,12 @@ func (gp *GlobalParameters) SetOxygen(ctx context.Context, newOxygen int) error 
 	gp.oxygen = newOxygen
 	gp.mu.Unlock()
 
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldOxygen != newOxygen {
 		events.Publish(gp.eventBus, events.OxygenChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldOxygen,
 			NewValue: newOxygen,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -271,16 +251,12 @@ func (gp *GlobalParameters) SetOceans(ctx context.Context, newOceans int) error 
 	gp.oceans = newOceans
 	gp.mu.Unlock()
 
+	// Automatic broadcasting handled by EventBus
 	if gp.eventBus != nil && oldOceans != newOceans {
 		events.Publish(gp.eventBus, events.OceansChangedEvent{
 			GameID:   gp.gameID,
 			OldValue: oldOceans,
 			NewValue: newOceans,
-		})
-		// Trigger client broadcast
-		events.Publish(gp.eventBus, events.BroadcastEvent{
-			GameID:    gp.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 

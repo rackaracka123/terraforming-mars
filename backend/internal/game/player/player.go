@@ -1,7 +1,6 @@
 package player
 
 import (
-	"github.com/google/uuid"
 	"terraforming-mars-backend/internal/events"
 )
 
@@ -34,11 +33,8 @@ type Player struct {
 }
 
 // NewPlayer creates a new player with initialized components
+// playerID must be provided (generated at handler level for session persistence)
 func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Player {
-	if playerID == "" {
-		playerID = uuid.New().String()
-	}
-
 	return &Player{
 		id:            playerID,
 		name:          name,
@@ -79,12 +75,7 @@ func (p *Player) IsConnected() bool {
 func (p *Player) SetConnected(connected bool) {
 	p.connected = connected
 
-	// Publish broadcast event to notify clients of connection status change
 	if p.eventBus != nil {
-		events.Publish(p.eventBus, events.BroadcastEvent{
-			GameID:    p.gameID,
-			PlayerIDs: []string{p.id},
-		})
 	}
 }
 
@@ -135,11 +126,6 @@ func (p *Player) HasPassed() bool {
 func (p *Player) SetPassed(passed bool) {
 	p.hasPassed = passed
 
-	// Publish broadcast event to notify clients of pass state change
 	if p.eventBus != nil {
-		events.Publish(p.eventBus, events.BroadcastEvent{
-			GameID:    p.gameID,
-			PlayerIDs: []string{p.id},
-		})
 	}
 }

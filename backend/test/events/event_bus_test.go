@@ -10,7 +10,7 @@ import (
 
 // TestEventBusSubscribeAndPublish tests basic subscribe and publish functionality
 func TestEventBusSubscribeAndPublish(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	// Track if handler was called
 	var handlerCalled bool
@@ -51,7 +51,7 @@ func TestEventBusSubscribeAndPublish(t *testing.T) {
 
 // TestEventBusMultipleSubscribers tests that multiple subscribers receive the same event
 func TestEventBusMultipleSubscribers(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	// Track calls for each handler
 	var handler1Called, handler2Called, handler3Called bool
@@ -91,7 +91,7 @@ func TestEventBusMultipleSubscribers(t *testing.T) {
 
 // TestEventBusTypeSafety tests that only matching event types trigger handlers
 func TestEventBusTypeSafety(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	var tempHandlerCalled bool
 	var oxygenHandlerCalled bool
@@ -142,7 +142,7 @@ func TestEventBusTypeSafety(t *testing.T) {
 
 // TestEventBusUnsubscribe tests that unsubscribed handlers don't receive events
 func TestEventBusUnsubscribe(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	var handlerCalled bool
 
@@ -182,7 +182,7 @@ func TestEventBusUnsubscribe(t *testing.T) {
 
 // TestEventBusConcurrentPublish tests thread-safety with concurrent publishers
 func TestEventBusConcurrentPublish(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	// Track received events
 	var mu sync.Mutex
@@ -224,7 +224,7 @@ func TestEventBusConcurrentPublish(t *testing.T) {
 
 // TestEventBusConcurrentSubscribe tests thread-safety with concurrent subscriptions
 func TestEventBusConcurrentSubscribe(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	const numSubscribers = 10
 	var wg sync.WaitGroup
@@ -272,7 +272,7 @@ func TestEventBusConcurrentSubscribe(t *testing.T) {
 
 // TestEventBusDifferentEventTypes tests multiple different event types
 func TestEventBusDifferentEventTypes(t *testing.T) {
-	bus := events.NewEventBus()
+	bus := events.NewEventBus("test-game", nil)
 
 	var tempEventReceived events.TemperatureChangedEvent
 	var resourceEventReceived events.ResourcesChangedEvent

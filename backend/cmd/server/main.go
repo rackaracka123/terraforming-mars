@@ -16,7 +16,6 @@ import (
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
@@ -62,10 +61,6 @@ func main() {
 	cardRegistry := cards.NewInMemoryCardRegistry(cardData)
 	log.Info("🃏 Card registry initialized", zap.Int("card_count", len(cardData)))
 
-	// ========== Initialize Event Bus ==========
-	eventBus := events.NewEventBus()
-	log.Info("🎆 Event bus initialized")
-
 	// ========== Initialize Game Repository (Single Source of Truth) ==========
 	gameRepo := game.NewInMemoryGameRepository()
 	log.Info("🎮 Game repository initialized")
@@ -74,16 +69,15 @@ func main() {
 	hub := core.NewHub()
 	log.Info("🔌 WebSocket hub initialized")
 
-	// ========== Initialize Game State Broadcaster (Event-Driven Broadcasting) ==========
-	broadcaster := wsHandler.NewBroadcaster(gameRepo, eventBus, hub, cardRegistry)
-	log.Info("📡 Game state broadcaster initialized and subscribed to BroadcastEvent")
-	_ = broadcaster // Silence unused warning
+	// ========== Initialize Game State Broadcaster (Automatic Broadcasting) ==========
+	broadcaster := wsHandler.NewBroadcaster(gameRepo, hub, cardRegistry)
+	log.Info("📡 Game state broadcaster initialized (provides automatic broadcasting for all games)")
 
 	// ========== Initialize Game Actions ==========
 
 	// Game lifecycle (2)
-	createGameAction := action.NewCreateGameAction(gameRepo, eventBus, cardRegistry, log)
-	joinGameAction := action.NewJoinGameAction(gameRepo, eventBus, cardRegistry, log)
+	createGameAction := action.NewCreateGameAction(gameRepo, broadcaster, cardRegistry, log)
+	joinGameAction := action.NewJoinGameAction(gameRepo, cardRegistry, log)
 
 	// Card actions (2)
 	playCardAction := action.NewPlayCardAction(gameRepo, cardRegistry, log)
@@ -112,7 +106,7 @@ func main() {
 	// Confirmations (3)
 	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
 	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, log)
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, eventBus, log)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, log)
 
 	// Connection management (2)
 	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
@@ -145,7 +139,6 @@ func main() {
 	// ========== Register Migration Handlers with WebSocket Hub ==========
 	wsHandler.RegisterHandlers(
 		hub,
-		eventBus,
 		// Game lifecycle
 		createGameAction,
 		joinGameAction,

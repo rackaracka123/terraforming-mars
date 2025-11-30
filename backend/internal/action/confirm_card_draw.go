@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 
@@ -13,17 +12,14 @@ import (
 )
 
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
-// MIGRATION: Uses new architecture (GameRepository + EventBus for ForcedActionManager integration)
-// NOTE: EventBus dependency required to publish CardDrawConfirmedEvent for ForcedActionManager
+// MIGRATION: Uses new architecture (GameRepository only, automatic broadcasting via EventBus)
 type ConfirmCardDrawAction struct {
 	BaseAction
-	eventBus *events.EventBusImpl
 }
 
 // NewConfirmCardDrawAction creates a new confirm card draw action
 func NewConfirmCardDrawAction(
 	gameRepo game.GameRepository,
-	eventBus *events.EventBusImpl,
 	logger *zap.Logger,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
@@ -31,7 +27,6 @@ func NewConfirmCardDrawAction(
 			gameRepo: gameRepo,
 			logger:   logger,
 		},
-		eventBus: eventBus,
 	}
 }
 
@@ -163,7 +158,6 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	// 15. Event publishing - domain events automatically published by repository updates
 	// NOTE: CardDrawConfirmedEvent not yet migrated to new architecture
 	// BroadcastEvent will be triggered by repository updates above
-	_ = a.eventBus // Keep eventBus for future event integration
 
 	// 16. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//    - player.Resources().Add() publishes ResourcesChangedEvent

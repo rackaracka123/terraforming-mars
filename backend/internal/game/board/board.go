@@ -228,6 +228,7 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 	}
 
 	// Publish event AFTER releasing lock
+	// Automatic broadcasting handled by EventBus
 	if b.eventBus != nil {
 		events.Publish(b.eventBus, events.TilePlacedEvent{
 			GameID:   b.gameID,
@@ -236,11 +237,6 @@ func (b *Board) UpdateTileOccupancy(ctx context.Context, coords shared.HexPositi
 			Q:        coords.Q,
 			R:        coords.R,
 			S:        coords.S,
-		})
-		// Trigger client broadcast
-		events.Publish(b.eventBus, events.BroadcastEvent{
-			GameID:    b.gameID,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 

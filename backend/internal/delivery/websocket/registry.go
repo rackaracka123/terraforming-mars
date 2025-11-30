@@ -12,7 +12,6 @@ import (
 	"terraforming-mars-backend/internal/delivery/websocket/handler/standard_project"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/tile"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/turn_management"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -23,7 +22,6 @@ import (
 // Eventually this will replace RegisterHandlers entirely
 func RegisterHandlers(
 	hub *core.Hub,
-	eventBus *events.EventBusImpl,
 	// Game lifecycle
 	createGameAction *action.CreateGameAction,
 	joinGameAction *action.JoinGameAction,
@@ -61,7 +59,7 @@ func RegisterHandlers(
 	createGameHandler := game.NewCreateGameHandler(createGameAction)
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
-	joinGameHandler := game.NewJoinGameHandler(joinGameAction, eventBus)
+	joinGameHandler := game.NewJoinGameHandler(joinGameAction)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Overwrites old handler
 
 	// ========== Card Actions ==========

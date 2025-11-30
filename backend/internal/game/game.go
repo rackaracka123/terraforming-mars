@@ -44,13 +44,17 @@ type Game struct {
 }
 
 // NewGame creates a new game with the given settings
+// Creates its own EventBus with automatic broadcasting support
 func NewGame(
 	id string,
 	hostPlayerID string,
 	settings GameSettings,
-	eventBus *events.EventBusImpl,
+	broadcaster events.BroadcastFunc,
 ) *Game {
 	now := time.Now()
+
+	// Create per-game event bus with automatic broadcasting
+	eventBus := events.NewEventBus(id, broadcaster)
 
 	// Get initial global parameter values from settings or use defaults
 	initTemp := DefaultTemperature
@@ -298,11 +302,6 @@ func (g *Game) UpdateStatus(ctx context.Context, newStatus GameStatus) error {
 			OldStatus: string(oldStatus),
 			NewStatus: string(newStatus),
 		})
-		// Trigger client broadcast
-		events.Publish(g.eventBus, events.BroadcastEvent{
-			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
-		})
 	}
 
 	return nil
@@ -328,11 +327,6 @@ func (g *Game) UpdatePhase(ctx context.Context, newPhase GamePhase) error {
 			GameID:   g.id,
 			OldPhase: string(oldPhase),
 			NewPhase: string(newPhase),
-		})
-		// Trigger client broadcast
-		events.Publish(g.eventBus, events.BroadcastEvent{
-			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
 		})
 	}
 
@@ -361,11 +355,6 @@ func (g *Game) AdvanceGeneration(ctx context.Context) error {
 			OldGeneration: oldGeneration,
 			NewGeneration: newGeneration,
 		})
-		// Trigger client broadcast
-		events.Publish(g.eventBus, events.BroadcastEvent{
-			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
-		})
 	}
 
 	return nil
@@ -382,11 +371,10 @@ func (g *Game) SetCurrentTurn(ctx context.Context, playerID string, actionsRemai
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast for turn change
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -406,11 +394,10 @@ func (g *Game) SetTurnOrder(ctx context.Context, turnOrder []string) error {
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast for turn order update
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: nil, // Broadcast to all players
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -496,11 +483,10 @@ func (g *Game) SetPendingTileSelection(ctx context.Context, playerID string, sel
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -537,11 +523,10 @@ func (g *Game) SetPendingTileSelectionQueue(ctx context.Context, playerID string
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -591,11 +576,10 @@ func (g *Game) AppendToPendingTileSelectionQueue(ctx context.Context, playerID s
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID},
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -639,11 +623,10 @@ func (g *Game) SetForcedFirstAction(ctx context.Context, playerID string, action
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -680,11 +663,10 @@ func (g *Game) SetProductionPhase(ctx context.Context, playerID string, phase *p
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -721,11 +703,10 @@ func (g *Game) SetSelectStartingCardsPhase(ctx context.Context, playerID string,
 	g.updatedAt = time.Now()
 	g.mu.Unlock()
 
-	// Trigger client broadcast to specific player
 	if g.eventBus != nil {
-		events.Publish(g.eventBus, events.BroadcastEvent{
+		events.Publish(g.eventBus, events.GameStateChangedEvent{
 			GameID:    g.id,
-			PlayerIDs: []string{playerID}, // Broadcast only to this player
+			Timestamp: time.Now(),
 		})
 	}
 

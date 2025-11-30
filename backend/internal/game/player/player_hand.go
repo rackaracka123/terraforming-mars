@@ -85,11 +85,6 @@ func (h *Hand) AddCard(cardID string) {
 			Timestamp: time.Now(),
 		})
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(h.eventBus, events.BroadcastEvent{
-			GameID:    h.gameID,
-			PlayerIDs: []string{h.playerID},
-		})
 	}
 }
 
@@ -117,11 +112,6 @@ func (h *Hand) RemoveCard(cardID string) bool {
 			Timestamp: time.Now(),
 		})
 
-		// Publish broadcast event to trigger client updates
-		events.Publish(h.eventBus, events.BroadcastEvent{
-			GameID:    h.gameID,
-			PlayerIDs: []string{h.playerID},
-		})
 	}
 
 	return removed
