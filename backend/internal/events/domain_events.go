@@ -108,9 +108,9 @@ type PlayerJoinedEvent struct {
 // ConnectionRegisteredEvent is published when a WebSocket connection is registered with a player
 // This triggers broadcasting AFTER the connection is ready to receive messages
 type ConnectionRegisteredEvent struct {
-	GameID     string
-	PlayerID   string
-	Timestamp  time.Time
+	GameID    string
+	PlayerID  string
+	Timestamp time.Time
 }
 
 // ============================================================================

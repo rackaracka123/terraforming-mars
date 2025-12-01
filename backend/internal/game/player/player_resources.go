@@ -85,25 +85,90 @@ func (r *PlayerResources) Set(resources shared.Resources) {
 
 	// Publish event
 	if r.eventBus != nil {
+		// Publish ResourcesChangedEvent for state synchronization
+		// Note: Changes map is empty since this is a full replacement (not a delta)
+		events.Publish(r.eventBus, events.ResourcesChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			Changes:   make(map[string]int),
+			Timestamp: time.Now(),
+		})
 	}
 }
 
 func (r *PlayerResources) SetProduction(production shared.Production) {
+	// Store old values before modification
 	r.mu.Lock()
+	oldProduction := r.production
 	r.production = production
+	newProduction := r.production
 	r.mu.Unlock()
+
+	// Publish domain events for each resource type
+	if r.eventBus != nil {
+		resourceTypes := []struct {
+			name     string
+			oldValue int
+			newValue int
+		}{
+			{"credits", oldProduction.Credits, newProduction.Credits},
+			{"steel", oldProduction.Steel, newProduction.Steel},
+			{"titanium", oldProduction.Titanium, newProduction.Titanium},
+			{"plants", oldProduction.Plants, newProduction.Plants},
+			{"energy", oldProduction.Energy, newProduction.Energy},
+			{"heat", oldProduction.Heat, newProduction.Heat},
+		}
+
+		for _, rt := range resourceTypes {
+			events.Publish(r.eventBus, events.ProductionChangedEvent{
+				GameID:        r.gameID,
+				PlayerID:      r.playerID,
+				ResourceType:  rt.name,
+				OldProduction: rt.oldValue,
+				NewProduction: rt.newValue,
+				Timestamp:     time.Now(),
+			})
+		}
+	}
 }
 
 func (r *PlayerResources) SetTerraformRating(tr int) {
 	r.mu.Lock()
+	oldRating := r.terraformRating
 	r.terraformRating = tr
+	newRating := r.terraformRating
 	r.mu.Unlock()
+
+	// Publish domain event
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, events.TerraformRatingChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			OldRating: oldRating,
+			NewRating: newRating,
+			Timestamp: time.Now(),
+		})
+	}
 }
 
 func (r *PlayerResources) SetVictoryPoints(vp int) {
 	r.mu.Lock()
+	oldPoints := r.victoryPoints
 	r.victoryPoints = vp
+	newPoints := r.victoryPoints
 	r.mu.Unlock()
+
+	// Publish domain event
+	if r.eventBus != nil {
+		events.Publish(r.eventBus, events.VictoryPointsChangedEvent{
+			GameID:    r.gameID,
+			PlayerID:  r.playerID,
+			OldPoints: oldPoints,
+			NewPoints: newPoints,
+			Source:    "direct", // Direct setter without specific source context
+			Timestamp: time.Now(),
+		})
+	}
 }
 
 func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {

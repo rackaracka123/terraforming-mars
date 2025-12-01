@@ -93,8 +93,8 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	// 8. BUSINESS LOGIC: Increase terraform rating (only if temperature actually increased)
 	if stepsRaised > 0 {
 		oldTR := player.Resources().TerraformRating()
-		newTR := oldTR + 1
-		player.Resources().SetTerraformRating(newTR)
+		player.Resources().UpdateTerraformRating(1)
+		newTR := player.Resources().TerraformRating()
 
 		log.Info("🏆 Increased terraform rating",
 			zap.Int("old_tr", oldTR),
@@ -107,7 +107,7 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//    - player.Resources().Add() publishes ResourcesChangedEvent
 	//    - g.GlobalParameters().IncreaseTemperature() publishes TemperatureChangedEvent + BroadcastEvent
-	//    - player.Resources().SetTerraformRating() publishes TerraformRatingChangedEvent
+	//    - player.Resources().UpdateTerraformRating() publishes TerraformRatingChangedEvent
 	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
 
 	log.Info("✅ Asteroid launched successfully",

@@ -182,7 +182,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		if actualSteps > 0 {
 			// Oxygen was increased, grant terraform rating increase
 			currentTR := player.Resources().TerraformRating()
-			player.Resources().SetTerraformRating(currentTR + 1)
+			player.Resources().UpdateTerraformRating(1)
 			log.Info("🌿 Increased oxygen and TR for greenery placement",
 				zap.Int("oxygen_steps", actualSteps),
 				zap.Int("new_tr", currentTR+1))
@@ -199,7 +199,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		if success {
 			// Ocean was placed, grant terraform rating increase
 			currentTR := player.Resources().TerraformRating()
-			player.Resources().SetTerraformRating(currentTR + 1)
+			player.Resources().UpdateTerraformRating(1)
 			log.Info("🌊 Placed ocean and increased TR",
 				zap.Int("new_tr", currentTR+1))
 		} else {

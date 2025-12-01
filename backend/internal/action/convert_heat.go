@@ -102,8 +102,8 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 
 			// 9. Award TR if temperature was raised (publishes TerraformRatingChangedEvent)
 			oldTR := player.Resources().TerraformRating()
-			newTR := oldTR + 1
-			player.Resources().SetTerraformRating(newTR)
+			player.Resources().UpdateTerraformRating(1)
+			newTR := player.Resources().TerraformRating()
 
 			log.Info("🏆 Increased terraform rating",
 				zap.Int("old_tr", oldTR),

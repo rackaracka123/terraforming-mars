@@ -17,7 +17,6 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
-
   const handleStartGame = () => {
     // Start Game button clicked, ishost: isHost
 
