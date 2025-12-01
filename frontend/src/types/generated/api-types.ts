@@ -1028,6 +1028,7 @@ export type MessageType = string;
  * Existing Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
+export const MessageTypeJoinGame: MessageType = "join-game"; // Alternative to player-connect for backwards compatibility
 /**
  * Existing Server -> Client messages
  */

@@ -6,6 +6,7 @@ type MessageType string
 const (
 	// Existing Client -> Server messages
 	MessageTypePlayerConnect MessageType = "player-connect"
+	MessageTypeJoinGame      MessageType = "join-game" // Alternative to player-connect for backwards compatibility
 
 	// Existing Server -> Client messages
 	MessageTypeGameUpdated            MessageType = "game-updated"

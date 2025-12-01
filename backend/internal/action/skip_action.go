@@ -108,6 +108,12 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		log.Debug("Player SKIPPED (turn advanced, not passed)",
 			zap.String("player_id", playerID),
 			zap.Int("available_actions", availableActions))
+
+		// Consume remaining actions before advancing turn
+		consumed := a.ConsumePlayerAction(g, log)
+		if !consumed {
+			log.Warn("⚠️ Could not consume action during skip (unlimited actions or already at 0)")
+		}
 	}
 
 	// 8. Refresh player list to reflect status changes
@@ -158,9 +164,19 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		nextPlayerIndex = (nextPlayerIndex + 1) % len(players)
 	}
 
-	// 12. Update current turn with 2 actions (normal turn)
+	// 12. Update current turn - determine action count based on whether it's the same player
 	nextPlayerID := players[nextPlayerIndex].ID()
-	err = g.SetCurrentTurn(ctx, nextPlayerID, 2)
+	nextActions := 2 // Default for new turn
+
+	// If the turn is returning to the same player (after forced action or in solo mode),
+	// preserve their remaining action count instead of resetting to 2
+	if nextPlayerID == playerID && !isPassing {
+		// Player skipped but didn't pass - they should keep their current action count
+		// (which was already decremented by ConsumePlayerAction above)
+		nextActions = currentTurn.ActionsRemaining()
+	}
+
+	err = g.SetCurrentTurn(ctx, nextPlayerID, nextActions)
 	if err != nil {
 		log.Error("Failed to update current turn", zap.Error(err))
 		return fmt.Errorf("failed to update game: %w", err)

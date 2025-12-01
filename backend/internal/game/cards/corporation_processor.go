@@ -3,9 +3,11 @@ package cards
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
@@ -266,6 +268,9 @@ func (p *CorporationProcessor) createForcedAction(
 		}
 		log.Info("🎯 Queued city tile for placement")
 
+		// Subscribe to TilePlacedEvent to handle completion and action consumption
+		p.subscribeForcedActionCompletion(ctx, g, playerID, "corporation-starting-action", log)
+
 	case shared.ResourceGreeneryPlacement:
 		action := &player.ForcedFirstAction{
 			ActionType:    "greenery-placement",
@@ -289,6 +294,9 @@ func (p *CorporationProcessor) createForcedAction(
 			return fmt.Errorf("failed to queue tile placement: %w", err)
 		}
 		log.Info("🎯 Queued greenery tile for placement")
+
+		// Subscribe to TilePlacedEvent to handle completion and action consumption
+		p.subscribeForcedActionCompletion(ctx, g, playerID, "corporation-starting-action", log)
 
 	case shared.ResourceOceanPlacement:
 		action := &player.ForcedFirstAction{
@@ -314,10 +322,86 @@ func (p *CorporationProcessor) createForcedAction(
 		}
 		log.Info("🎯 Queued ocean tile for placement")
 
+		// Subscribe to TilePlacedEvent to handle completion and action consumption
+		p.subscribeForcedActionCompletion(ctx, g, playerID, "corporation-starting-action", log)
+
 	default:
 		log.Warn("⚠️ Unhandled forced action type",
 			zap.String("type", string(output.ResourceType)))
 	}
 
 	return nil
+}
+
+// subscribeForcedActionCompletion subscribes to TilePlacedEvent to handle forced action completion
+// When the last tile in a forced action is placed, this consumes 1 player action and clears the forced action
+func (p *CorporationProcessor) subscribeForcedActionCompletion(
+	ctx context.Context,
+	g *game.Game,
+	playerID string,
+	source string,
+	log *zap.Logger,
+) {
+	eventBus := g.EventBus()
+	if eventBus == nil {
+		log.Warn("⚠️ No event bus available, cannot subscribe to forced action completion")
+		return
+	}
+
+	// Subscribe to TilePlacedEvent
+	events.Subscribe(eventBus, func(event events.TilePlacedEvent) {
+		// Only handle events for this player
+		if event.PlayerID != playerID {
+			return
+		}
+
+		log.Debug("📡 Received TilePlacedEvent for forced action check",
+			zap.String("player_id", event.PlayerID),
+			zap.String("tile_type", event.TileType))
+
+		// Check if there's a forced first action for this player
+		forcedAction := g.GetForcedFirstAction(playerID)
+		if forcedAction == nil {
+			log.Debug("No forced first action, ignoring event")
+			return
+		}
+
+		// Check if the queue is now empty (last tile was placed)
+		queue := g.GetPendingTileSelectionQueue(playerID)
+		if queue != nil && len(queue.Items) > 0 {
+			log.Debug("🔄 Tile queue still has items, waiting for more tiles",
+				zap.Int("remaining_tiles", len(queue.Items)))
+			return
+		}
+
+		// Queue is empty - forced action is complete!
+		log.Info("✅ Forced first action completed, consuming player action",
+			zap.String("action_type", forcedAction.ActionType),
+			zap.String("corporation_id", forcedAction.CorporationID))
+
+		// Consume player action
+		currentTurn := g.CurrentTurn()
+		if currentTurn != nil && currentTurn.PlayerID() == playerID {
+			consumed := currentTurn.ConsumeAction()
+			if consumed {
+				log.Info("✅ Action consumed for forced first action completion",
+					zap.Int("remaining_actions", currentTurn.ActionsRemaining()))
+
+				// Publish GameStateChangedEvent to trigger broadcast
+				events.Publish(eventBus, events.GameStateChangedEvent{
+					GameID:    g.ID(),
+					Timestamp: time.Now(),
+				})
+			}
+		}
+
+		// Clear forced first action
+		if err := g.SetForcedFirstAction(ctx, playerID, nil); err != nil {
+			log.Error("Failed to clear forced first action", zap.Error(err))
+		}
+	})
+
+	log.Info("👂 Subscribed to TilePlacedEvent for forced action completion",
+		zap.String("player_id", playerID),
+		zap.String("source", source))
 }

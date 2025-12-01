@@ -24,6 +24,15 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	handCardIDs := p.Hand().Cards()
 	handCards := getPlayedCards(handCardIDs, cardRegistry)
 
+	// Only include turn-specific data if it's this player's turn
+	var pendingTileSelection *PendingTileSelectionDto
+	var forcedFirstAction *ForcedFirstActionDto
+	currentTurn := g.CurrentTurn()
+	if currentTurn != nil && currentTurn.PlayerID() == p.ID() {
+		pendingTileSelection = convertPendingTileSelection(g.GetPendingTileSelection(p.ID()))
+		forcedFirstAction = convertForcedFirstAction(g.GetForcedFirstAction(p.ID()))
+	}
+
 	return PlayerDto{
 		ID:   p.ID(),
 		Name: p.Name(),
@@ -58,10 +67,10 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
 		ProductionPhase:          convertProductionPhase(g.GetProductionPhase(p.ID()), cardRegistry),
 		StartingCards:            []CardDto{},
-		PendingTileSelection:     convertPendingTileSelection(g.GetPendingTileSelection(p.ID())),
+		PendingTileSelection:     pendingTileSelection,
 		PendingCardSelection:     convertPendingCardSelection(p.Selection().GetPendingCardSelection(), cardRegistry),
 		PendingCardDrawSelection: convertPendingCardDrawSelection(p.Selection().GetPendingCardDrawSelection(), cardRegistry),
-		ForcedFirstAction:        convertForcedFirstAction(g.GetForcedFirstAction(p.ID())),
+		ForcedFirstAction:        forcedFirstAction,
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
 		RequirementModifiers:     convertRequirementModifiers(p.Effects().RequirementModifiers()),

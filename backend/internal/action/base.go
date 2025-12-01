@@ -2,8 +2,10 @@ package action
 
 import (
 	"fmt"
+	"time"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/logger"
@@ -76,6 +78,15 @@ func (b *BaseAction) ConsumePlayerAction(g *game.Game, log *zap.Logger) bool {
 	consumed := currentTurn.ConsumeAction()
 	if consumed {
 		log.Debug("✅ Action consumed", zap.Int("remaining_actions", currentTurn.ActionsRemaining()))
+
+		// Publish GameStateChangedEvent to trigger broadcast
+		// This ensures all clients see the updated action count immediately
+		if eventBus := g.EventBus(); eventBus != nil {
+			events.Publish(eventBus, events.GameStateChangedEvent{
+				GameID:    g.ID(),
+				Timestamp: time.Now(),
+			})
+		}
 	}
 
 	return consumed

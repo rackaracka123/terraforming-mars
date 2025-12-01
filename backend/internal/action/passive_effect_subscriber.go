@@ -217,7 +217,8 @@ func subscribeCityPlacedEffect(
 		}
 
 		// Only process city tile placements
-		if event.TileType != "city" {
+		// TileType is ResourceCityTile constant value: "city-tile"
+		if event.TileType != string(shared.ResourceCityTile) {
 			return
 		}
 
@@ -256,7 +257,7 @@ func subscribeCityPlacedEffect(
 			// Production resources
 			case shared.ResourceSteelProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceSteel: output.Amount,
+					shared.ResourceSteelProduction: output.Amount,
 				})
 				log.Info("🔩 Passive effect added steel production",
 					zap.Int("amount", output.Amount),
@@ -264,7 +265,7 @@ func subscribeCityPlacedEffect(
 
 			case shared.ResourceTitaniumProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceTitanium: output.Amount,
+					shared.ResourceTitaniumProduction: output.Amount,
 				})
 				log.Info("⚙️ Passive effect added titanium production",
 					zap.Int("amount", output.Amount),
@@ -272,7 +273,7 @@ func subscribeCityPlacedEffect(
 
 			case shared.ResourceCreditsProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceCredits: output.Amount,
+					shared.ResourceCreditsProduction: output.Amount,
 				})
 				log.Info("💰 Passive effect added credits production",
 					zap.Int("amount", output.Amount),
@@ -280,7 +281,7 @@ func subscribeCityPlacedEffect(
 
 			case shared.ResourcePlantsProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourcePlants: output.Amount,
+					shared.ResourcePlantsProduction: output.Amount,
 				})
 				log.Info("🌱 Passive effect added plants production",
 					zap.Int("amount", output.Amount),
@@ -288,7 +289,7 @@ func subscribeCityPlacedEffect(
 
 			case shared.ResourceEnergyProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceEnergy: output.Amount,
+					shared.ResourceEnergyProduction: output.Amount,
 				})
 				log.Info("⚡ Passive effect added energy production",
 					zap.Int("amount", output.Amount),
@@ -296,7 +297,7 @@ func subscribeCityPlacedEffect(
 
 			case shared.ResourceHeatProduction:
 				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceHeat: output.Amount,
+					shared.ResourceHeatProduction: output.Amount,
 				})
 				log.Info("🔥 Passive effect added heat production",
 					zap.Int("amount", output.Amount),

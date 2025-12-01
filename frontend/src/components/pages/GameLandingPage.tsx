@@ -39,8 +39,18 @@ const GameLandingPage: React.FC = () => {
               throw new Error("Saved game not found on server");
             }
 
-            // Store the game data in state instead of auto-navigating
-            setSavedGameData({ game, playerId, playerName });
+            // Automatically reconnect to the game
+            setIsFadingOut(true);
+            setTimeout(() => {
+              navigate("/game", {
+                state: {
+                  game: game,
+                  playerId: playerId,
+                  playerName: playerName,
+                  isReconnection: true,
+                },
+              });
+            }, 300);
           }
         }
       } catch (err: any) {
@@ -52,7 +62,7 @@ const GameLandingPage: React.FC = () => {
     };
 
     void checkExistingGame();
-  }, [preloadSkybox]);
+  }, [preloadSkybox, navigate]);
 
   const handleCreateGame = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab

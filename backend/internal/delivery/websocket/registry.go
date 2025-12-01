@@ -60,7 +60,8 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
 	joinGameHandler := game.NewJoinGameHandler(joinGameAction)
-	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Overwrites old handler
+	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Primary handler
+	hub.RegisterHandler(dto.MessageTypeJoinGame, joinGameHandler)      // Alternative for backwards compatibility
 
 	// ========== Card Actions ==========
 	playCardHandler := card.NewPlayCardHandler(playCardAction)
@@ -131,7 +132,7 @@ func RegisterHandlers(
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
 	log.Info("🎯 Migration handlers registered successfully")
-	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect (handles both join & reconnect)")
+	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect/join-game (both supported)")
 	log.Info("   ✅ Card Actions (2): PlayCard, UseCardAction")
 	log.Info("   ✅ Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
 	log.Info("   ✅ Resource Conversions (2): ConvertHeat, ConvertPlants")

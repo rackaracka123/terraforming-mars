@@ -60,9 +60,14 @@ func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
 	// Convert to DTO (HTTP GET has no authenticated player, use first player as fallback)
 	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
+	// Wrap in response structure
+	response := dto.GetGameResponse{
+		Game: gameDto,
+	}
+
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(gameDto); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Error("Failed to encode response", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

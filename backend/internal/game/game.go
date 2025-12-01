@@ -6,12 +6,15 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game/board"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
+	"terraforming-mars-backend/internal/logger"
 )
 
 // Game represents a unified game entity containing all game state
@@ -786,11 +789,30 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 			// Check if any neighbor has a city
 			hasAdjacentCity := false
 			neighbors := tile.Coordinates.GetNeighbors()
+
+			logger.Get().Debug("🔍 Checking city placement",
+				zap.String("tile", tile.Coordinates.String()),
+				zap.Int("neighbor_count", len(neighbors)))
+
 			for _, neighborPos := range neighbors {
 				for _, neighborTile := range tiles {
 					if neighborTile.Coordinates.Equals(neighborPos) {
+						occupantType := ""
+						if neighborTile.OccupiedBy != nil {
+							occupantType = string(neighborTile.OccupiedBy.Type)
+						}
+
+						logger.Get().Debug("🔎 Checking neighbor",
+							zap.String("neighbor_pos", neighborPos.String()),
+							zap.String("neighbor_tile", neighborTile.Coordinates.String()),
+							zap.Bool("occupied", neighborTile.OccupiedBy != nil),
+							zap.String("occupant_type", occupantType))
+
 						if neighborTile.OccupiedBy != nil && neighborTile.OccupiedBy.Type == shared.ResourceCityTile {
 							hasAdjacentCity = true
+							logger.Get().Info("🚫 City adjacency violation detected",
+								zap.String("tile", tile.Coordinates.String()),
+								zap.String("adjacent_city", neighborTile.Coordinates.String()))
 							break
 						}
 					}
@@ -802,6 +824,11 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 
 			if !hasAdjacentCity {
 				availableHexes = append(availableHexes, tile.Coordinates.String())
+				logger.Get().Debug("✅ Tile available for city",
+					zap.String("tile", tile.Coordinates.String()))
+			} else {
+				logger.Get().Debug("❌ Tile unavailable for city (adjacent city)",
+					zap.String("tile", tile.Coordinates.String()))
 			}
 
 		case "greenery":
