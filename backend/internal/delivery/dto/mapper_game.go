@@ -38,8 +38,9 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 	// Get settings
 	settings := g.Settings()
 	settingsDto := GameSettingsDto{
-		MaxPlayers: settings.MaxPlayers,
-		CardPacks:  settings.CardPacks,
+		MaxPlayers:      settings.MaxPlayers,
+		DevelopmentMode: settings.DevelopmentMode,
+		CardPacks:       settings.CardPacks,
 	}
 
 	// Convert global parameters
