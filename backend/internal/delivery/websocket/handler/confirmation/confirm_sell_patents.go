@@ -13,15 +13,17 @@ import (
 
 // ConfirmSellPatentsHandler handles confirm sell patents requests
 type ConfirmSellPatentsHandler struct {
-	action *action.ConfirmSellPatentsAction
-	logger *zap.Logger
+	action      *action.ConfirmSellPatentsAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewConfirmSellPatentsHandler creates a new confirm sell patents handler
-func NewConfirmSellPatentsHandler(action *action.ConfirmSellPatentsAction) *ConfirmSellPatentsHandler {
+func NewConfirmSellPatentsHandler(action *action.ConfirmSellPatentsAction, broadcaster Broadcaster) *ConfirmSellPatentsHandler {
 	return &ConfirmSellPatentsHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -70,6 +72,10 @@ func (h *ConfirmSellPatentsHandler) HandleMessage(ctx context.Context, connectio
 	}
 
 	log.Info("✅ Confirm sell patents action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

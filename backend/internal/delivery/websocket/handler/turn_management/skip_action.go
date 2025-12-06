@@ -13,15 +13,17 @@ import (
 
 // SkipActionHandler handles skip action requests
 type SkipActionHandler struct {
-	action *action.SkipActionAction
-	logger *zap.Logger
+	action      *action.SkipActionAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewSkipActionHandler creates a new skip action handler
-func NewSkipActionHandler(action *action.SkipActionAction) *SkipActionHandler {
+func NewSkipActionHandler(action *action.SkipActionAction, broadcaster Broadcaster) *SkipActionHandler {
 	return &SkipActionHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *SkipActionHandler) HandleMessage(ctx context.Context, connection *core.
 	}
 
 	log.Info("✅ Skip action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

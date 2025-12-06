@@ -13,15 +13,22 @@ import (
 
 // ConvertHeatHandler handles convert heat to temperature requests
 type ConvertHeatHandler struct {
-	action *action.ConvertHeatToTemperatureAction
-	logger *zap.Logger
+	action      *action.ConvertHeatToTemperatureAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewConvertHeatHandler creates a new convert heat handler
-func NewConvertHeatHandler(action *action.ConvertHeatToTemperatureAction) *ConvertHeatHandler {
+func NewConvertHeatHandler(action *action.ConvertHeatToTemperatureAction, broadcaster Broadcaster) *ConvertHeatHandler {
 	return &ConvertHeatHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +55,10 @@ func (h *ConvertHeatHandler) HandleMessage(ctx context.Context, connection *core
 	}
 
 	log.Info("✅ Convert heat action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

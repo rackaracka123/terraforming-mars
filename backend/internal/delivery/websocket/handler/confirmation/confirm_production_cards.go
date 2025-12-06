@@ -13,15 +13,17 @@ import (
 
 // ConfirmProductionCardsHandler handles confirm production cards requests
 type ConfirmProductionCardsHandler struct {
-	action *action.ConfirmProductionCardsAction
-	logger *zap.Logger
+	action      *action.ConfirmProductionCardsAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewConfirmProductionCardsHandler creates a new confirm production cards handler
-func NewConfirmProductionCardsHandler(action *action.ConfirmProductionCardsAction) *ConfirmProductionCardsHandler {
+func NewConfirmProductionCardsHandler(action *action.ConfirmProductionCardsAction, broadcaster Broadcaster) *ConfirmProductionCardsHandler {
 	return &ConfirmProductionCardsHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -70,6 +72,10 @@ func (h *ConfirmProductionCardsHandler) HandleMessage(ctx context.Context, conne
 	}
 
 	log.Info("✅ Confirm production cards action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

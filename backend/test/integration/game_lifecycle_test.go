@@ -16,12 +16,11 @@ func TestGameLifecycle_CreateJoinStartPlay(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
 	// Create actions
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 	startAction := action.NewStartGameAction(repo, logger)
 
@@ -82,9 +81,6 @@ func TestGameLifecycle_CreateJoinStartPlay(t *testing.T) {
 	testutil.AssertTrue(t, globalParams != nil, "Global parameters should be initialized")
 	testutil.AssertTrue(t, globalParams.Temperature() < 8, "Temperature should be below max")
 	testutil.AssertTrue(t, globalParams.Oxygen() >= 0, "Oxygen should be initialized")
-
-	// Verify broadcasting happened
-	testutil.AssertTrue(t, broadcaster.CallCount() > 0, "Broadcasts should have occurred")
 }
 
 // TestGameLifecycle_MultipleGames tests multiple games running concurrently
@@ -92,11 +88,10 @@ func TestGameLifecycle_MultipleGames(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create 3 games
@@ -136,11 +131,10 @@ func TestGameLifecycle_PlayerReconnection(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game
@@ -169,11 +163,10 @@ func TestGameLifecycle_SoloMode(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 	startAction := action.NewStartGameAction(repo, logger)
 
@@ -206,11 +199,10 @@ func TestGameLifecycle_GameStateConsistency(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game

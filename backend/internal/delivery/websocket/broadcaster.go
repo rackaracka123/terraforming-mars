@@ -6,15 +6,14 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
 )
 
-// Broadcaster handles automatic broadcasting for the new architecture
-// Provides broadcast functions that Games inject into their EventBus instances
+// Broadcaster handles game state broadcasting to WebSocket clients
+// Called explicitly by WebSocket handlers after actions complete
 type Broadcaster struct {
 	gameRepo     game.GameRepository
 	hub          *core.Hub
@@ -22,7 +21,7 @@ type Broadcaster struct {
 	logger       *zap.Logger
 }
 
-// NewBroadcaster creates a broadcaster for the migration architecture
+// NewBroadcaster creates a broadcaster for explicit broadcasting
 func NewBroadcaster(
 	gameRepo game.GameRepository,
 	hub *core.Hub,
@@ -35,22 +34,14 @@ func NewBroadcaster(
 		logger:       logger.Get(),
 	}
 
-	broadcaster.logger.Info("📡 Broadcaster initialized (automatic broadcasting via EventBus)")
+	broadcaster.logger.Info("📡 Broadcaster initialized")
 
 	return broadcaster
 }
 
-// GetBroadcastFunc returns a broadcast function for automatic broadcasting
-// This function is injected into each Game's EventBus
-func (b *Broadcaster) GetBroadcastFunc() events.BroadcastFunc {
-	return func(gameID string, playerIDs []string) {
-		b.broadcastGameState(gameID, playerIDs)
-	}
-}
-
-// broadcastGameState broadcasts game state to specified players
-// Called automatically by EventBus after any event is published
-func (b *Broadcaster) broadcastGameState(gameID string, playerIDs []string) {
+// BroadcastGameState broadcasts game state to specified players (nil = all players)
+// Called explicitly by WebSocket handlers after action execution completes
+func (b *Broadcaster) BroadcastGameState(gameID string, playerIDs []string) {
 	ctx := context.Background()
 	log := b.logger.With(zap.String("game_id", gameID))
 
@@ -85,7 +76,7 @@ func (b *Broadcaster) broadcastGameState(gameID string, playerIDs []string) {
 		}
 	}
 
-	log.Debug("✅ Broadcast completed")
+	log.Debug("✅ Broadcast completed", zap.Int("player_count", len(playerIDs)))
 }
 
 // sendToPlayer creates a personalized DTO for a player and sends it via WebSocket

@@ -15,13 +15,20 @@ import (
 // CreateGameHandler handles create game requests using the migrated architecture
 type CreateGameHandler struct {
 	createGameAction *action.CreateGameAction
+	broadcaster      Broadcaster
 	logger           *zap.Logger
 }
 
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
+}
+
 // NewCreateGameHandler creates a new create game handler for migrated actions
-func NewCreateGameHandler(createGameAction *action.CreateGameAction) *CreateGameHandler {
+func NewCreateGameHandler(createGameAction *action.CreateGameAction, broadcaster Broadcaster) *CreateGameHandler {
 	return &CreateGameHandler{
 		createGameAction: createGameAction,
+		broadcaster:      broadcaster,
 		logger:           logger.Get(),
 	}
 }
@@ -74,6 +81,10 @@ func (h *CreateGameHandler) HandleMessage(ctx context.Context, connection *core.
 
 	log.Info("✅ Create game action completed successfully",
 		zap.String("game_id", game.ID()))
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(game.ID(), nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	// Send simple success response with game ID
 	// Frontend will then call playerConnect to join the game

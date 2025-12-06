@@ -13,15 +13,17 @@ import (
 
 // StartGameHandler handles start game requests
 type StartGameHandler struct {
-	action *action.StartGameAction
-	logger *zap.Logger
+	action      *action.StartGameAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewStartGameHandler creates a new start game handler
-func NewStartGameHandler(action *action.StartGameAction) *StartGameHandler {
+func NewStartGameHandler(action *action.StartGameAction, broadcaster Broadcaster) *StartGameHandler {
 	return &StartGameHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *StartGameHandler) HandleMessage(ctx context.Context, connection *core.C
 	}
 
 	log.Info("✅ Start game action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
@@ -28,8 +27,10 @@ func TestLogger() *zap.Logger {
 	return logger.Get()
 }
 
-// MockBroadcaster provides a simple broadcaster for testing
+// MockBroadcaster is a placeholder for backward compatibility with test code
+// Deprecated: No longer used in tests as broadcasting is now handled explicitly
 type MockBroadcaster struct {
+	// Deprecated: No longer tracked with automatic broadcasting removed
 	BroadcastCalls []BroadcastCall
 }
 
@@ -42,16 +43,6 @@ type BroadcastCall struct {
 func NewMockBroadcaster() *MockBroadcaster {
 	return &MockBroadcaster{
 		BroadcastCalls: make([]BroadcastCall, 0),
-	}
-}
-
-func (m *MockBroadcaster) GetBroadcastFunc() events.BroadcastFunc {
-	return func(gameID string, playerIDs []string) {
-		m.BroadcastCalls = append(m.BroadcastCalls, BroadcastCall{
-			GameID:    gameID,
-			PlayerIDs: playerIDs,
-			Timestamp: time.Now(),
-		})
 	}
 }
 
@@ -454,7 +445,7 @@ func CreateTestGameWithPlayers(t *testing.T, numPlayers int, broadcaster *MockBr
 		CardPacks:  []string{"base"},
 	}
 
-	testGame := game.NewGame("test-game-id", "", settings, broadcaster.GetBroadcastFunc())
+	testGame := game.NewGame("test-game-id", "", settings)
 	allCards := cardRegistry.GetAll()
 
 	// Separate cards by type

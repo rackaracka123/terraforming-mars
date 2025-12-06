@@ -13,15 +13,22 @@ import (
 
 // PlayCardHandler handles play card requests
 type PlayCardHandler struct {
-	action *action.PlayCardAction
-	logger *zap.Logger
+	action      *action.PlayCardAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewPlayCardHandler creates a new play card handler
-func NewPlayCardHandler(action *action.PlayCardAction) *PlayCardHandler {
+func NewPlayCardHandler(action *action.PlayCardAction, broadcaster Broadcaster) *PlayCardHandler {
 	return &PlayCardHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -88,6 +95,10 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 	}
 
 	log.Info("✅ Play card action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

@@ -7,36 +7,26 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 )
 
 // CreateGameAction handles the business logic for creating new games
-// MIGRATION: Uses new architecture (GameRepository only, no board repository)
 type CreateGameAction struct {
 	gameRepo     game.GameRepository
-	broadcaster  BroadcasterProvider
 	cardRegistry cards.CardRegistry
 	logger       *zap.Logger
-}
-
-// BroadcasterProvider provides the broadcast function for automatic broadcasting
-type BroadcasterProvider interface {
-	GetBroadcastFunc() events.BroadcastFunc
 }
 
 // NewCreateGameAction creates a new create game action
 func NewCreateGameAction(
 	gameRepo game.GameRepository,
-	broadcaster BroadcasterProvider,
 	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *CreateGameAction {
 	return &CreateGameAction{
 		gameRepo:     gameRepo,
-		broadcaster:  broadcaster,
 		cardRegistry: cardRegistry,
 		logger:       logger,
 	}
@@ -64,11 +54,11 @@ func (a *CreateGameAction) Execute(
 		settings.CardPacks = game.DefaultCardPacks()
 	}
 
-	// 3. Create game entity with automatic broadcasting
+	// 3. Create game entity
 	// Note: hostPlayerID is empty initially, will be set when first player joins
 	// Board is automatically created by NewGame
-	// EventBus is created per-game with automatic broadcasting callback
-	newGame := game.NewGame(gameID, "", settings, a.broadcaster.GetBroadcastFunc())
+	// EventBus is created per-game for synchronous event handling
+	newGame := game.NewGame(gameID, "", settings)
 
 	// 4. Initialize deck with cards from selected packs
 	projectCardIDs, corpIDs, preludeIDs := a.getCardIDsByPacks(settings.CardPacks)

@@ -13,15 +13,17 @@ import (
 
 // SellPatentsHandler handles sell patents standard project requests
 type SellPatentsHandler struct {
-	action *action.SellPatentsAction
-	logger *zap.Logger
+	action      *action.SellPatentsAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewSellPatentsHandler creates a new sell patents handler
-func NewSellPatentsHandler(action *action.SellPatentsAction) *SellPatentsHandler {
+func NewSellPatentsHandler(action *action.SellPatentsAction, broadcaster Broadcaster) *SellPatentsHandler {
 	return &SellPatentsHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *SellPatentsHandler) HandleMessage(ctx context.Context, connection *core
 	}
 
 	log.Info("✅ Sell patents action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

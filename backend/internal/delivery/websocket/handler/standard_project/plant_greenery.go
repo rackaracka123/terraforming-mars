@@ -13,15 +13,17 @@ import (
 
 // PlantGreeneryHandler handles plant greenery standard project requests
 type PlantGreeneryHandler struct {
-	action *action.PlantGreeneryAction
-	logger *zap.Logger
+	action      *action.PlantGreeneryAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewPlantGreeneryHandler creates a new plant greenery handler
-func NewPlantGreeneryHandler(action *action.PlantGreeneryAction) *PlantGreeneryHandler {
+func NewPlantGreeneryHandler(action *action.PlantGreeneryAction, broadcaster Broadcaster) *PlantGreeneryHandler {
 	return &PlantGreeneryHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *PlantGreeneryHandler) HandleMessage(ctx context.Context, connection *co
 	}
 
 	log.Info("✅ Plant greenery action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

@@ -13,15 +13,22 @@ import (
 
 // ConfirmCardDrawHandler handles confirm card draw requests
 type ConfirmCardDrawHandler struct {
-	action *action.ConfirmCardDrawAction
-	logger *zap.Logger
+	action      *action.ConfirmCardDrawAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewConfirmCardDrawHandler creates a new confirm card draw handler
-func NewConfirmCardDrawHandler(action *action.ConfirmCardDrawAction) *ConfirmCardDrawHandler {
+func NewConfirmCardDrawHandler(action *action.ConfirmCardDrawAction, broadcaster Broadcaster) *ConfirmCardDrawHandler {
 	return &ConfirmCardDrawHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -82,6 +89,10 @@ func (h *ConfirmCardDrawHandler) HandleMessage(ctx context.Context, connection *
 	}
 
 	log.Info("✅ Confirm card draw action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

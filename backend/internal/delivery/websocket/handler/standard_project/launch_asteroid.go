@@ -13,15 +13,17 @@ import (
 
 // LaunchAsteroidHandler handles launch asteroid standard project requests
 type LaunchAsteroidHandler struct {
-	action *action.LaunchAsteroidAction
-	logger *zap.Logger
+	action      *action.LaunchAsteroidAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewLaunchAsteroidHandler creates a new launch asteroid handler
-func NewLaunchAsteroidHandler(action *action.LaunchAsteroidAction) *LaunchAsteroidHandler {
+func NewLaunchAsteroidHandler(action *action.LaunchAsteroidAction, broadcaster Broadcaster) *LaunchAsteroidHandler {
 	return &LaunchAsteroidHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -51,6 +53,10 @@ func (h *LaunchAsteroidHandler) HandleMessage(ctx context.Context, connection *c
 
 	log.Info("✅ Launch asteroid action completed successfully")
 
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
+
 	// Send success response
 	response := dto.WebSocketMessage{
 		Type:   "action-success",
@@ -62,7 +68,6 @@ func (h *LaunchAsteroidHandler) HandleMessage(ctx context.Context, connection *c
 	}
 
 	connection.Send <- response
-	// Note: BroadcastEvent is published by the action, Broadcaster will handle game state updates
 }
 
 // sendError sends an error message to the client

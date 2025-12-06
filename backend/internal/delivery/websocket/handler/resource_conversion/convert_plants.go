@@ -13,15 +13,17 @@ import (
 
 // ConvertPlantsHandler handles convert plants to greenery requests
 type ConvertPlantsHandler struct {
-	action *action.ConvertPlantsToGreeneryAction
-	logger *zap.Logger
+	action      *action.ConvertPlantsToGreeneryAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewConvertPlantsHandler creates a new convert plants handler
-func NewConvertPlantsHandler(action *action.ConvertPlantsToGreeneryAction) *ConvertPlantsHandler {
+func NewConvertPlantsHandler(action *action.ConvertPlantsToGreeneryAction, broadcaster Broadcaster) *ConvertPlantsHandler {
 	return &ConvertPlantsHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *ConvertPlantsHandler) HandleMessage(ctx context.Context, connection *co
 	}
 
 	log.Info("✅ Convert plants action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

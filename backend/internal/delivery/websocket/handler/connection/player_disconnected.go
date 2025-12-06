@@ -13,15 +13,22 @@ import (
 
 // PlayerDisconnectedHandler handles player disconnection requests
 type PlayerDisconnectedHandler struct {
-	action *action.PlayerDisconnectedAction
-	logger *zap.Logger
+	action      *action.PlayerDisconnectedAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewPlayerDisconnectedHandler creates a new player disconnected handler
-func NewPlayerDisconnectedHandler(action *action.PlayerDisconnectedAction) *PlayerDisconnectedHandler {
+func NewPlayerDisconnectedHandler(action *action.PlayerDisconnectedAction, broadcaster Broadcaster) *PlayerDisconnectedHandler {
 	return &PlayerDisconnectedHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -47,6 +54,9 @@ func (h *PlayerDisconnectedHandler) HandleMessage(ctx context.Context, connectio
 
 	log.Info("✅ Player disconnected action completed successfully")
 
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
+
 	// NOTE: Do NOT send response on connection.Send - the connection is being closed
-	// The BroadcastEvent from PlayerDisconnectedAction will notify other players
 }

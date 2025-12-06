@@ -13,10 +13,9 @@ func TestCreateGameAction_Success(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{
@@ -42,10 +41,9 @@ func TestCreateGameAction_DefaultSettings(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute with empty settings
 	settings := game.GameSettings{}
@@ -61,10 +59,9 @@ func TestCreateGameAction_DeckInitialization(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{
@@ -88,10 +85,9 @@ func TestCreateGameAction_MultipleCardPacks(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute with multiple packs
 	settings := game.GameSettings{
@@ -110,10 +106,9 @@ func TestCreateGameAction_BoardInitialization(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
-	broadcaster := testutil.NewMockBroadcaster()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{

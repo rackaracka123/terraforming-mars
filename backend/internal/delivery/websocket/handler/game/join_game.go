@@ -15,15 +15,18 @@ import (
 // JoinGameHandler handles join game requests using the migrated architecture
 type JoinGameHandler struct {
 	joinGameAction *action.JoinGameAction
+	broadcaster    Broadcaster
 	logger         *zap.Logger
 }
 
 // NewJoinGameHandler creates a new join game handler for migrated actions
 func NewJoinGameHandler(
 	joinGameAction *action.JoinGameAction,
+	broadcaster Broadcaster,
 ) *JoinGameHandler {
 	return &JoinGameHandler{
 		joinGameAction: joinGameAction,
+		broadcaster:    broadcaster,
 		logger:         logger.Get(),
 	}
 }
@@ -90,8 +93,11 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 	log.Info("✅ Join game action completed successfully",
 		zap.String("player_id", result.PlayerID))
 
+	// Explicitly broadcast game state to all players after action completes
+	h.broadcaster.BroadcastGameState(gameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
+
 	// Send minimal success response confirming join
-	// Note: Full game state was already broadcast via automatic broadcasting (PlayerJoinedEvent)
 	response := dto.WebSocketMessage{
 		Type:   dto.MessageTypePlayerConnected,
 		GameID: gameID,
@@ -104,7 +110,6 @@ func (h *JoinGameHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	connection.Send <- response
 	log.Info("📤 Sent player connected confirmation")
-	log.Debug("📡 Automatic broadcast already sent game state to all players")
 }
 
 // sendError sends an error message to the client

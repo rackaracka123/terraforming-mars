@@ -13,15 +13,22 @@ import (
 
 // BuildAquiferHandler handles build aquifer standard project requests
 type BuildAquiferHandler struct {
-	action *action.BuildAquiferAction
-	logger *zap.Logger
+	action      *action.BuildAquiferAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewBuildAquiferHandler creates a new build aquifer handler
-func NewBuildAquiferHandler(action *action.BuildAquiferAction) *BuildAquiferHandler {
+func NewBuildAquiferHandler(action *action.BuildAquiferAction, broadcaster Broadcaster) *BuildAquiferHandler {
 	return &BuildAquiferHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +55,10 @@ func (h *BuildAquiferHandler) HandleMessage(ctx context.Context, connection *cor
 	}
 
 	log.Info("✅ Build aquifer action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

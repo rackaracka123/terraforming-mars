@@ -18,10 +18,10 @@ import (
 )
 
 // RegisterHandlers registers migrated action handlers with the hub
-// This is a parallel registry for the new architecture, allowing gradual migration
-// Eventually this will replace RegisterHandlers entirely
+// Handlers call broadcaster explicitly after actions complete
 func RegisterHandlers(
 	hub *core.Hub,
+	broadcaster *Broadcaster,
 	// Game lifecycle
 	createGameAction *action.CreateGameAction,
 	joinGameAction *action.JoinGameAction,
@@ -53,71 +53,71 @@ func RegisterHandlers(
 	playerDisconnectedAction *action.PlayerDisconnectedAction,
 ) {
 	log := logger.Get()
-	log.Info("🔄 Registering migration handlers for new architecture")
+	log.Info("🔄 Registering migration handlers with explicit broadcasting")
 
 	// ========== Game Lifecycle ==========
-	createGameHandler := game.NewCreateGameHandler(createGameAction)
+	createGameHandler := game.NewCreateGameHandler(createGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeCreateGame, createGameHandler)
 
-	joinGameHandler := game.NewJoinGameHandler(joinGameAction)
+	joinGameHandler := game.NewJoinGameHandler(joinGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerConnect, joinGameHandler) // Primary handler
 	hub.RegisterHandler(dto.MessageTypeJoinGame, joinGameHandler)      // Alternative for backwards compatibility
 
 	// ========== Card Actions ==========
-	playCardHandler := card.NewPlayCardHandler(playCardAction)
+	playCardHandler := card.NewPlayCardHandler(playCardAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionPlayCard, playCardHandler)
 
-	useCardActionHandler := card.NewUseCardActionHandler(useCardActionAction)
+	useCardActionHandler := card.NewUseCardActionHandler(useCardActionAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionCardAction, useCardActionHandler)
 
 	// ========== Standard Projects ==========
-	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction)
+	launchAsteroidHandler := standard_project.NewLaunchAsteroidHandler(launchAsteroidAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionLaunchAsteroid, launchAsteroidHandler)
 
-	buildPowerPlantHandler := standard_project.NewBuildPowerPlantHandler(buildPowerPlantAction)
+	buildPowerPlantHandler := standard_project.NewBuildPowerPlantHandler(buildPowerPlantAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionBuildPowerPlant, buildPowerPlantHandler)
 
-	buildAquiferHandler := standard_project.NewBuildAquiferHandler(buildAquiferAction)
+	buildAquiferHandler := standard_project.NewBuildAquiferHandler(buildAquiferAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionBuildAquifer, buildAquiferHandler)
 
-	buildCityHandler := standard_project.NewBuildCityHandler(buildCityAction)
+	buildCityHandler := standard_project.NewBuildCityHandler(buildCityAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionBuildCity, buildCityHandler)
 
-	plantGreeneryHandler := standard_project.NewPlantGreeneryHandler(plantGreeneryAction)
+	plantGreeneryHandler := standard_project.NewPlantGreeneryHandler(plantGreeneryAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionPlantGreenery, plantGreeneryHandler)
 
-	sellPatentsHandler := standard_project.NewSellPatentsHandler(sellPatentsAction)
+	sellPatentsHandler := standard_project.NewSellPatentsHandler(sellPatentsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSellPatents, sellPatentsHandler)
 
 	// ========== Resource Conversions ==========
-	convertHeatHandler := resource_conversion.NewConvertHeatHandler(convertHeatAction)
+	convertHeatHandler := resource_conversion.NewConvertHeatHandler(convertHeatAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConvertHeatToTemperature, convertHeatHandler)
 
-	convertPlantsHandler := resource_conversion.NewConvertPlantsHandler(convertPlantsAction)
+	convertPlantsHandler := resource_conversion.NewConvertPlantsHandler(convertPlantsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConvertPlantsToGreenery, convertPlantsHandler)
 
 	// ========== Tile Selection ==========
-	selectTileHandler := tile.NewSelectTileHandler(selectTileAction)
+	selectTileHandler := tile.NewSelectTileHandler(selectTileAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionTileSelected, selectTileHandler)
 
 	// ========== Turn Management ==========
-	startGameHandler := turn_management.NewStartGameHandler(startGameAction)
+	startGameHandler := turn_management.NewStartGameHandler(startGameAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionStartGame, startGameHandler)
 
-	skipActionHandler := turn_management.NewSkipActionHandler(skipActionAction)
+	skipActionHandler := turn_management.NewSkipActionHandler(skipActionAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSkipAction, skipActionHandler)
 
-	selectStartingCardsHandler := turn_management.NewSelectStartingCardsHandler(selectStartingCardsAction)
+	selectStartingCardsHandler := turn_management.NewSelectStartingCardsHandler(selectStartingCardsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionSelectStartingCard, selectStartingCardsHandler)
 
 	// ========== Confirmations ==========
-	confirmSellPatentsHandler := confirmation.NewConfirmSellPatentsHandler(confirmSellPatentsAction)
+	confirmSellPatentsHandler := confirmation.NewConfirmSellPatentsHandler(confirmSellPatentsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmSellPatents, confirmSellPatentsHandler)
 
-	confirmProductionCardsHandler := confirmation.NewConfirmProductionCardsHandler(confirmProductionCardsAction)
+	confirmProductionCardsHandler := confirmation.NewConfirmProductionCardsHandler(confirmProductionCardsAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionConfirmProductionCards, confirmProductionCardsHandler)
 
-	confirmCardDrawHandler := confirmation.NewConfirmCardDrawHandler(confirmCardDrawAction)
+	confirmCardDrawHandler := confirmation.NewConfirmCardDrawHandler(confirmCardDrawAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypeActionCardDrawConfirmed, confirmCardDrawHandler)
 
 	// ========== Connection Management ==========
@@ -128,7 +128,7 @@ func RegisterHandlers(
 	// If reconnection logic needs to be different, integrate it into JoinGameHandler
 	_ = playerReconnectedAction // Keep action available for future use
 
-	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction)
+	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
 	log.Info("🎯 Migration handlers registered successfully")

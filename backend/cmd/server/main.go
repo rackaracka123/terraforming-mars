@@ -76,7 +76,7 @@ func main() {
 	// ========== Initialize Game Actions ==========
 
 	// Game lifecycle (2)
-	createGameAction := action.NewCreateGameAction(gameRepo, broadcaster, cardRegistry, log)
+	createGameAction := action.NewCreateGameAction(gameRepo, cardRegistry, log)
 	joinGameAction := action.NewJoinGameAction(gameRepo, cardRegistry, log)
 
 	// Card actions (2)
@@ -139,6 +139,7 @@ func main() {
 	// ========== Register Migration Handlers with WebSocket Hub ==========
 	wsHandler.RegisterHandlers(
 		hub,
+		broadcaster,
 		// Game lifecycle
 		createGameAction,
 		joinGameAction,

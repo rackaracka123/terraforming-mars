@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/cards"
-	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/test/testutil"
@@ -39,13 +38,6 @@ func NewBroadcaster(
 		hub:          hub,
 		cardRegistry: cardRegistry,
 		logger:       logger,
-	}
-}
-
-// GetBroadcastFunc returns broadcast function
-func (b *Broadcaster) GetBroadcastFunc() events.BroadcastFunc {
-	return func(gameID string, playerIDs []string) {
-		b.BroadcastToPlayers(context.Background(), gameID, playerIDs)
 	}
 }
 
@@ -269,8 +261,8 @@ func TestBroadcaster_ConcurrentBroadcasts(t *testing.T) {
 	testutil.AssertEqual(t, 10, len(hub.SentMessages), "Should send messages for all concurrent broadcasts")
 }
 
-// TestBroadcaster_BroadcastFunc tests the broadcast function callback
-func TestBroadcaster_BroadcastFunc(t *testing.T) {
+// TestBroadcaster_DirectBroadcast tests direct call to BroadcastToPlayers
+func TestBroadcaster_DirectBroadcast(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
@@ -279,13 +271,8 @@ func TestBroadcaster_BroadcastFunc(t *testing.T) {
 
 	broadcaster := NewBroadcaster(hub, repo, cardRegistry, logger)
 
-	// Get broadcast function
-	broadcastFunc := broadcaster.GetBroadcastFunc()
-	testutil.AssertTrue(t, broadcastFunc != nil, "Should return broadcast function")
-
 	// Create game
-	mockBroadcaster := testutil.NewMockBroadcaster()
-	testGame, _ := testutil.CreateTestGameWithPlayers(t, 2, mockBroadcaster)
+	testGame, _ := testutil.CreateTestGameWithPlayers(t, 2, nil)
 	ctx := context.Background()
 	repo.Create(ctx, testGame)
 
@@ -295,47 +282,31 @@ func TestBroadcaster_BroadcastFunc(t *testing.T) {
 		playerIDs[i] = p.ID()
 	}
 
-	// Call broadcast function
-	broadcastFunc(testGame.ID(), playerIDs)
-
-	time.Sleep(10 * time.Millisecond)
+	// Call broadcast directly
+	broadcaster.BroadcastToPlayers(ctx, testGame.ID(), playerIDs)
 
 	// Should have sent messages
-	testutil.AssertTrue(t, len(hub.SentMessages) > 0, "Broadcast function should send messages")
+	testutil.AssertTrue(t, len(hub.SentMessages) > 0, "BroadcastToPlayers should send messages")
 }
 
 // TestBroadcaster_GameStateChanges tests broadcasting on state changes
 func TestBroadcaster_GameStateChanges(t *testing.T) {
 	// Setup
-	repo := game.NewInMemoryGameRepository()
-	cardRegistry := testutil.CreateTestCardRegistry()
-	hub := NewMockHub()
-	logger := testutil.TestLogger()
-
-	broadcaster := NewBroadcaster(hub, repo, cardRegistry, logger)
-
-	// Create game with broadcaster integrated
 	settings := game.GameSettings{
 		MaxPlayers: 2,
 		CardPacks:  []string{"base"},
 	}
 
-	testGame := game.NewGame("test-game", "", settings, broadcaster.GetBroadcastFunc())
+	testGame := game.NewGame("test-game", "", settings)
 	ctx := context.Background()
-	repo.Create(ctx, testGame)
-
-	hub.Reset()
 
 	// Trigger state change
 	newPlayer := player.NewPlayer(testGame.EventBus(), testGame.ID(), "test-player-1", "TestPlayer")
-	testGame.AddPlayer(ctx, newPlayer)
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, newPlayer), "Failed to add player")
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Should have broadcast
-	if len(hub.SentMessages) > 0 {
-		t.Logf("✓ State change triggered broadcast: %d messages", len(hub.SentMessages))
-	}
+	// Verify player was added
+	players := testGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should have 1 player")
 }
 
 // TestBroadcaster_CorrectGameID tests messages have correct game ID

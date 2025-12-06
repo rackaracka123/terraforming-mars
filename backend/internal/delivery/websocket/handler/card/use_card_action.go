@@ -13,15 +13,17 @@ import (
 
 // UseCardActionHandler handles card action execution requests
 type UseCardActionHandler struct {
-	action *action.UseCardActionAction
-	logger *zap.Logger
+	action      *action.UseCardActionAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewUseCardActionHandler creates a new use card action handler
-func NewUseCardActionHandler(action *action.UseCardActionAction) *UseCardActionHandler {
+func NewUseCardActionHandler(action *action.UseCardActionAction, broadcaster Broadcaster) *UseCardActionHandler {
 	return &UseCardActionHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -79,6 +81,10 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 	}
 
 	log.Info("✅ Use card action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	// Send success response
 	response := dto.WebSocketMessage{

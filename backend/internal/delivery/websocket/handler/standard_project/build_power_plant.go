@@ -13,15 +13,17 @@ import (
 
 // BuildPowerPlantHandler handles build power plant standard project requests
 type BuildPowerPlantHandler struct {
-	action *action.BuildPowerPlantAction
-	logger *zap.Logger
+	action      *action.BuildPowerPlantAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewBuildPowerPlantHandler creates a new build power plant handler
-func NewBuildPowerPlantHandler(action *action.BuildPowerPlantAction) *BuildPowerPlantHandler {
+func NewBuildPowerPlantHandler(action *action.BuildPowerPlantAction, broadcaster Broadcaster) *BuildPowerPlantHandler {
 	return &BuildPowerPlantHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *BuildPowerPlantHandler) HandleMessage(ctx context.Context, connection *
 	}
 
 	log.Info("✅ Build power plant action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

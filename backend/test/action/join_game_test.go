@@ -111,7 +111,6 @@ func TestJoinGameAction_GameNotInLobby(t *testing.T) {
 
 func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 	repo := game.NewInMemoryGameRepository()
@@ -122,7 +121,7 @@ func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
 		CardPacks:  []string{"base"},
 	}
 
-	testGame := game.NewGame("test-game", "", settings, broadcaster.GetBroadcastFunc())
+	testGame := game.NewGame("test-game", "", settings)
 	repo.Create(context.Background(), testGame)
 
 	// Add 2 players

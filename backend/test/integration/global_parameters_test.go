@@ -10,17 +10,16 @@ import (
 	"terraforming-mars-backend/test/testutil"
 )
 
-func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameRepository, string, *testutil.MockBroadcaster) {
+func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameRepository, string) {
 	t.Helper()
 
-	broadcaster := testutil.NewMockBroadcaster()
 	repo := game.NewInMemoryGameRepository()
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
 	// Create and start game
-	createAction := action.NewCreateGameAction(repo, broadcaster, cardRegistry, logger)
+	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
 	startAction := action.NewStartGameAction(repo, logger)
 
@@ -48,13 +47,13 @@ func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameReposito
 	startAction.Execute(ctx, gameID, gameState.HostPlayerID())
 
 	gameAfterStart, _ := repo.Get(ctx, gameID)
-	return gameAfterStart, repo, player1ID, broadcaster
+	return gameAfterStart, repo, player1ID
 }
 
 // TestGlobalParameters_TemperatureProgression tests temperature increases
 func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 	// Setup
-	testGame, repo, playerID, _ := setupActiveGameForGlobalParams(t)
+	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get player and give heat
@@ -95,7 +94,7 @@ func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 // TestGlobalParameters_TemperatureMax tests temperature cannot exceed maximum
 func TestGlobalParameters_TemperatureMax(t *testing.T) {
 	// Setup
-	testGame, repo, playerID, _ := setupActiveGameForGlobalParams(t)
+	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Set temperature near max
@@ -129,7 +128,7 @@ func TestGlobalParameters_TemperatureMax(t *testing.T) {
 // TestGlobalParameters_AllParametersInitialized tests all global parameters are set on game start
 func TestGlobalParameters_AllParametersInitialized(t *testing.T) {
 	// Setup
-	testGame, _, _, _ := setupActiveGameForGlobalParams(t)
+	testGame, _, _ := setupActiveGameForGlobalParams(t)
 
 	globalParams := testGame.GlobalParameters()
 	testutil.AssertTrue(t, globalParams != nil, "Global parameters should exist")
@@ -151,11 +150,8 @@ func TestGlobalParameters_AllParametersInitialized(t *testing.T) {
 // TestGlobalParameters_EventsPublished tests that events are published on parameter changes
 func TestGlobalParameters_EventsPublished(t *testing.T) {
 	// Setup
-	testGame, repo, playerID, broadcaster := setupActiveGameForGlobalParams(t)
+	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
-
-	// Reset broadcast count
-	broadcaster.Reset()
 
 	// Give player heat
 	player, _ := testGame.GetPlayer(playerID)
@@ -167,22 +163,22 @@ func TestGlobalParameters_EventsPublished(t *testing.T) {
 	logger := testutil.TestLogger()
 	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
 
-	initialBroadcasts := broadcaster.CallCount()
+	initialTemp := testGame.GlobalParameters().Temperature()
 
-	// Convert heat (should trigger broadcasts)
+	// Convert heat (should increase temperature)
 	err := convertAction.Execute(ctx, testGame.ID(), playerID)
 
-	if err == nil {
-		// Verify broadcasts occurred
-		finalBroadcasts := broadcaster.CallCount()
-		testutil.AssertTrue(t, finalBroadcasts > initialBroadcasts, "Broadcasts should occur after parameter change")
-	}
+	testutil.AssertNoError(t, err, "Failed to convert heat")
+
+	// Verify temperature increased
+	finalTemp := testGame.GlobalParameters().Temperature()
+	testutil.AssertTrue(t, finalTemp > initialTemp, "Temperature should increase after converting heat")
 }
 
 // TestGlobalParameters_TRIncreasesWithTerraforming tests TR increases when terraforming
 func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 	// Setup
-	testGame, repo, playerID, _ := setupActiveGameForGlobalParams(t)
+	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get initial TR
@@ -211,7 +207,7 @@ func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 // TestGlobalParameters_MultiplePlayers tests multiple players can terraform
 func TestGlobalParameters_MultiplePlayers(t *testing.T) {
 	// Setup
-	testGame, repo, player1ID, _ := setupActiveGameForGlobalParams(t)
+	testGame, repo, player1ID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get second player

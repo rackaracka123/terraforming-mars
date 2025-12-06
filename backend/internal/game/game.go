@@ -47,17 +47,16 @@ type Game struct {
 }
 
 // NewGame creates a new game with the given settings
-// Creates its own EventBus with automatic broadcasting support
+// Creates its own EventBus for synchronous event handling
 func NewGame(
 	id string,
 	hostPlayerID string,
 	settings GameSettings,
-	broadcaster events.BroadcastFunc,
 ) *Game {
 	now := time.Now()
 
-	// Create per-game event bus with automatic broadcasting
-	eventBus := events.NewEventBus(id, broadcaster)
+	// Create per-game event bus for synchronous event handling
+	eventBus := events.NewEventBus()
 
 	// Get initial global parameter values from settings or use defaults
 	initTemp := DefaultTemperature

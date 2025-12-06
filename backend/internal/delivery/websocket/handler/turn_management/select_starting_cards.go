@@ -13,15 +13,22 @@ import (
 
 // SelectStartingCardsHandler handles select starting cards requests
 type SelectStartingCardsHandler struct {
-	action *action.SelectStartingCardsAction
-	logger *zap.Logger
+	action      *action.SelectStartingCardsAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewSelectStartingCardsHandler creates a new select starting cards handler
-func NewSelectStartingCardsHandler(action *action.SelectStartingCardsAction) *SelectStartingCardsHandler {
+func NewSelectStartingCardsHandler(action *action.SelectStartingCardsAction, broadcaster Broadcaster) *SelectStartingCardsHandler {
 	return &SelectStartingCardsHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -74,6 +81,10 @@ func (h *SelectStartingCardsHandler) HandleMessage(ctx context.Context, connecti
 	}
 
 	log.Info("✅ Select starting cards action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

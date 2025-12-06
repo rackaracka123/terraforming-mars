@@ -13,15 +13,22 @@ import (
 
 // SelectTileHandler handles tile selection requests
 type SelectTileHandler struct {
-	action *action.SelectTileAction
-	logger *zap.Logger
+	action      *action.SelectTileAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
+}
+
+// Broadcaster interface for explicit broadcasting
+type Broadcaster interface {
+	BroadcastGameState(gameID string, playerIDs []string)
 }
 
 // NewSelectTileHandler creates a new select tile handler
-func NewSelectTileHandler(action *action.SelectTileAction) *SelectTileHandler {
+func NewSelectTileHandler(action *action.SelectTileAction, broadcaster Broadcaster) *SelectTileHandler {
 	return &SelectTileHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -66,6 +73,10 @@ func (h *SelectTileHandler) HandleMessage(ctx context.Context, connection *core.
 	}
 
 	log.Info("✅ Select tile action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

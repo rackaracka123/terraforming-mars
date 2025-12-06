@@ -13,15 +13,17 @@ import (
 
 // BuildCityHandler handles build city standard project requests
 type BuildCityHandler struct {
-	action *action.BuildCityAction
-	logger *zap.Logger
+	action      *action.BuildCityAction
+	broadcaster Broadcaster
+	logger      *zap.Logger
 }
 
 // NewBuildCityHandler creates a new build city handler
-func NewBuildCityHandler(action *action.BuildCityAction) *BuildCityHandler {
+func NewBuildCityHandler(action *action.BuildCityAction, broadcaster Broadcaster) *BuildCityHandler {
 	return &BuildCityHandler{
-		action: action,
-		logger: logger.Get(),
+		action:      action,
+		broadcaster: broadcaster,
+		logger:      logger.Get(),
 	}
 }
 
@@ -48,6 +50,10 @@ func (h *BuildCityHandler) HandleMessage(ctx context.Context, connection *core.C
 	}
 
 	log.Info("✅ Build city action completed successfully")
+
+	// Explicitly broadcast game state after action completes
+	h.broadcaster.BroadcastGameState(connection.GameID, nil)
+	log.Debug("📡 Broadcasted game state to all players")
 
 	response := dto.WebSocketMessage{
 		Type:   "action-success",

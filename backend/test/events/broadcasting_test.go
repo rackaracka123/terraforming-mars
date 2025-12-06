@@ -3,127 +3,101 @@ package events_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/test/testutil"
 )
 
-// TestBroadcasting_AutomaticOnStateChange tests that broadcasts happen automatically
+// TestBroadcasting_AutomaticOnStateChange tests that AddPlayer executes successfully
 func TestBroadcasting_AutomaticOnStateChange(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
 	settings := game.GameSettings{
 		MaxPlayers: 2,
 		CardPacks:  []string{"base"},
 	}
 
-	// Create game with broadcaster
-	testGame := game.NewGame("test-game", "", settings, broadcaster.GetBroadcastFunc())
+	// Create game without broadcaster
+	testGame := game.NewGame("test-game", "", settings)
 
-	initialCount := broadcaster.CallCount()
-
-	// Add a player (should trigger broadcast)
+	// Add a player
 	ctx := context.Background()
 	newPlayer := player.NewPlayer(testGame.EventBus(), testGame.ID(), "test-player-1", "TestPlayer")
-	testGame.AddPlayer(ctx, newPlayer)
+	err := testGame.AddPlayer(ctx, newPlayer)
 
-	// Give some time for async operations
-	time.Sleep(10 * time.Millisecond)
-
-	// Verify broadcast occurred
-	finalCount := broadcaster.CallCount()
-	if finalCount <= initialCount {
-		t.Logf("Warning: Broadcast count did not increase (initial: %d, final: %d)", initialCount, finalCount)
-	}
+	// Verify player was added
+	testutil.AssertNoError(t, err, "Failed to add player")
+	players := testGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should have 1 player")
 }
 
-// TestBroadcasting_MultipleStateChanges tests multiple broadcasts
+// TestBroadcasting_MultipleStateChanges tests adding multiple players
 func TestBroadcasting_MultipleStateChanges(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
 	settings := game.GameSettings{
 		MaxPlayers: 4,
 		CardPacks:  []string{"base"},
 	}
 
-	testGame := game.NewGame("test-game", "", settings, broadcaster.GetBroadcastFunc())
+	testGame := game.NewGame("test-game", "", settings)
 	ctx := context.Background()
 
-	broadcaster.Reset()
-
-	// Perform multiple state changes
+	// Add multiple players
 	p1 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-1", "Player1")
 	p2 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-2", "Player2")
 	p3 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-3", "Player3")
-	testGame.AddPlayer(ctx, p1)
-	testGame.AddPlayer(ctx, p2)
-	testGame.AddPlayer(ctx, p3)
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, p1), "Failed to add player 1")
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, p2), "Failed to add player 2")
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, p3), "Failed to add player 3")
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Multiple broadcasts should have occurred
-	if broadcaster.CallCount() > 0 {
-		t.Logf("✓ Broadcasts occurred: %d", broadcaster.CallCount())
-	}
+	// Verify all players were added
+	players := testGame.GetAllPlayers()
+	testutil.AssertEqual(t, 3, len(players), "Should have 3 players")
 }
 
-// TestBroadcasting_CorrectGameID tests that broadcasts include correct game ID
+// TestBroadcasting_CorrectGameID tests that game ID is correct
 func TestBroadcasting_CorrectGameID(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
 	gameID := "test-game-123"
 	settings := game.GameSettings{
 		MaxPlayers: 2,
 		CardPacks:  []string{"base"},
 	}
 
-	testGame := game.NewGame(gameID, "", settings, broadcaster.GetBroadcastFunc())
+	testGame := game.NewGame(gameID, "", settings)
 	ctx := context.Background()
 
-	broadcaster.Reset()
-
-	// Trigger state change
+	// Add player and verify game ID
 	newPlayer := player.NewPlayer(testGame.EventBus(), testGame.ID(), "test-player-1", "TestPlayer")
-	testGame.AddPlayer(ctx, newPlayer)
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, newPlayer), "Failed to add player")
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Verify broadcasts have correct game ID
-	for _, call := range broadcaster.BroadcastCalls {
-		testutil.AssertEqual(t, gameID, call.GameID, "Broadcast should have correct game ID")
-	}
+	// Verify game has correct ID
+	testutil.AssertEqual(t, gameID, testGame.ID(), "Game should have correct game ID")
 }
 
-// TestBroadcasting_ResourceChanges tests broadcasts on resource changes
+// TestBroadcasting_ResourceChanges tests resource changes execute successfully
 func TestBroadcasting_ResourceChanges(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
-	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
+	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, nil)
 	ctx := context.Background()
 
 	players := testGame.GetAllPlayers()
-	player := players[0]
+	playerObj := players[0]
 
-	broadcaster.Reset()
+	initialCredits := playerObj.Resources().Get().Credits
 
-	// Change player resources (should trigger broadcast via events)
-	testutil.AddPlayerCredits(ctx, player, 5)
+	// Change player resources
+	testutil.AddPlayerCredits(ctx, playerObj, 5)
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Broadcasts should occur
-	if broadcaster.CallCount() > 0 {
-		t.Logf("✓ Resource change triggered %d broadcasts", broadcaster.CallCount())
-	}
+	// Verify resource change
+	finalCredits := playerObj.Resources().Get().Credits
+	testutil.AssertEqual(t, initialCredits+5, finalCredits, "Player should have 5 more credits")
 }
 
-// TestBroadcasting_GlobalParameterChanges tests broadcasts on global parameter changes
+// TestBroadcasting_GlobalParameterChanges tests global parameter changes execute successfully
 func TestBroadcasting_GlobalParameterChanges(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
-	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
+	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, nil)
 	ctx := context.Background()
 
 	// Start game first
@@ -131,103 +105,82 @@ func TestBroadcasting_GlobalParameterChanges(t *testing.T) {
 	players[0].SetCorporationID("corp-tharsis-republic")
 	testutil.StartTestGame(t, testGame)
 
-	broadcaster.Reset()
-
-	// Change temperature (should trigger broadcast)
+	// Change temperature
 	_, err := testGame.GlobalParameters().IncreaseTemperature(ctx, 1)
-	if err != nil {
-		t.Logf("Temperature increase failed (might be at max): %v", err)
-	}
+	testutil.AssertNoError(t, err, "Temperature increase should succeed")
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Broadcasts should occur
-	if broadcaster.CallCount() > 0 {
-		t.Logf("✓ Temperature change triggered %d broadcasts", broadcaster.CallCount())
-	}
+	// Verify temperature changed
+	finalTemp := testGame.GlobalParameters().Temperature()
+	testutil.AssertTrue(t, finalTemp >= -29, "Temperature should not go below -29")
 }
 
-// TestBroadcasting_PerGameIsolation tests that broadcasts are isolated per game
+// TestBroadcasting_PerGameIsolation tests that game states are isolated
 func TestBroadcasting_PerGameIsolation(t *testing.T) {
 	// Setup
-	broadcaster1 := testutil.NewMockBroadcaster()
-	broadcaster2 := testutil.NewMockBroadcaster()
-
 	settings := game.GameSettings{
 		MaxPlayers: 2,
 		CardPacks:  []string{"base"},
 	}
 
-	game1 := game.NewGame("game-1", "", settings, broadcaster1.GetBroadcastFunc())
-	game2 := game.NewGame("game-2", "", settings, broadcaster2.GetBroadcastFunc())
+	game1 := game.NewGame("game-1", "", settings)
+	game2 := game.NewGame("game-2", "", settings)
 
 	ctx := context.Background()
 
-	// Change game1 (should only broadcast on broadcaster1)
-	broadcaster1.Reset()
-	broadcaster2.Reset()
-
+	// Add player to game1
 	p1 := player.NewPlayer(game1.EventBus(), game1.ID(), "player-1", "Player1")
-	game1.AddPlayer(ctx, p1)
+	testutil.AssertNoError(t, game1.AddPlayer(ctx, p1), "Failed to add player to game1")
 
-	time.Sleep(10 * time.Millisecond)
+	// Verify game1 has player
+	game1Players := game1.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(game1Players), "Game 1 should have 1 player")
 
-	// Only broadcaster1 should have broadcasts
-	if broadcaster1.CallCount() > 0 {
-		t.Logf("✓ Game 1 broadcaster has %d calls", broadcaster1.CallCount())
-	}
-	testutil.AssertEqual(t, 0, broadcaster2.CallCount(), "Game 2 broadcaster should have no calls")
+	// Verify game2 has no players (isolated)
+	game2Players := game2.GetAllPlayers()
+	testutil.AssertEqual(t, 0, len(game2Players), "Game 2 should have 0 players")
 
-	// Change game2 (should only broadcast on broadcaster2)
-	broadcaster1.Reset()
-	broadcaster2.Reset()
-
+	// Add player to game2
 	p2 := player.NewPlayer(game2.EventBus(), game2.ID(), "player-1", "Player1")
-	game2.AddPlayer(ctx, p2)
+	testutil.AssertNoError(t, game2.AddPlayer(ctx, p2), "Failed to add player to game2")
 
-	time.Sleep(10 * time.Millisecond)
-
-	// Only broadcaster2 should have broadcasts
-	testutil.AssertEqual(t, 0, broadcaster1.CallCount(), "Game 1 broadcaster should have no calls")
-	if broadcaster2.CallCount() > 0 {
-		t.Logf("✓ Game 2 broadcaster has %d calls", broadcaster2.CallCount())
-	}
+	// Verify final state
+	game1Players = game1.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(game1Players), "Game 1 should still have 1 player")
+	game2Players = game2.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(game2Players), "Game 2 should have 1 player")
 }
 
-// TestBroadcasting_NilBroadcasterDoesNotPanic tests that nil broadcaster doesn't cause panics
-func TestBroadcasting_NilBroadcasterDoesNotPanic(t *testing.T) {
-	// Setup - nil broadcaster function
+// TestBroadcasting_WithoutBroadcaster tests that operations work without broadcaster
+func TestBroadcasting_WithoutBroadcaster(t *testing.T) {
+	// Setup - no broadcaster function
 	settings := game.GameSettings{
 		MaxPlayers: 2,
 		CardPacks:  []string{"base"},
 	}
 
-	// This should not panic
-	testGame := game.NewGame("test-game", "", settings, nil)
+	// Create game without broadcaster
+	testGame := game.NewGame("test-game", "", settings)
 	ctx := context.Background()
 
-	// Perform operations (should not panic)
+	// Perform operations
 	p1 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-1", "Player1")
-	testGame.AddPlayer(ctx, p1)
+	testutil.AssertNoError(t, testGame.AddPlayer(ctx, p1), "Failed to add player")
+
 	players := testGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should have 1 player")
 
-	if len(players) > 0 {
-		testutil.AddPlayerCredits(ctx, players[0], 10)
-	}
-
-	// If we got here without panicking, test passes
-	t.Logf("✓ Operations with nil broadcaster completed without panic")
+	// Verify resource changes work
+	testutil.AddPlayerCredits(ctx, players[0], 10)
+	testutil.AssertEqual(t, 10, players[0].Resources().Get().Credits, "Player should have 10 credits")
 }
 
-// TestBroadcasting_ConcurrentStateChanges tests thread-safety of broadcasting
+// TestBroadcasting_ConcurrentStateChanges tests thread-safety of state changes
 func TestBroadcasting_ConcurrentStateChanges(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
-	testGame, _ := testutil.CreateTestGameWithPlayers(t, 3, broadcaster)
+	testGame, _ := testutil.CreateTestGameWithPlayers(t, 3, nil)
 	ctx := context.Background()
 
 	players := testGame.GetAllPlayers()
-	broadcaster.Reset()
 
 	// Concurrent state changes
 	done := make(chan bool, len(players))
@@ -236,7 +189,6 @@ func TestBroadcasting_ConcurrentStateChanges(t *testing.T) {
 		go func(pl *player.Player) {
 			for i := 0; i < 10; i++ {
 				testutil.AddPlayerCredits(ctx, pl, 1)
-				time.Sleep(1 * time.Millisecond)
 			}
 			done <- true
 		}(p)
@@ -247,37 +199,29 @@ func TestBroadcasting_ConcurrentStateChanges(t *testing.T) {
 		<-done
 	}
 
-	time.Sleep(20 * time.Millisecond)
-
-	// Broadcasts should have occurred without panicking
-	t.Logf("✓ Concurrent state changes completed. Total broadcasts: %d", broadcaster.CallCount())
+	// Verify concurrent changes completed successfully
+	expectedCredits := 10 // Each player adds 10 credits in their goroutine
+	for _, p := range players {
+		testutil.AssertEqual(t, expectedCredits, p.Resources().Get().Credits, "Player should have correct credits after concurrent updates")
+	}
 }
 
-// TestBroadcasting_Timestamps tests that broadcast calls have timestamps
-func TestBroadcasting_Timestamps(t *testing.T) {
+// TestBroadcasting_MultipleStateUpdates tests multiple resource updates
+func TestBroadcasting_MultipleStateUpdates(t *testing.T) {
 	// Setup
-	broadcaster := testutil.NewMockBroadcaster()
-	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
+	testGame, _ := testutil.CreateTestGameWithPlayers(t, 1, nil)
 	ctx := context.Background()
 
-	broadcaster.Reset()
-
-	// Trigger broadcasts
 	players := testGame.GetAllPlayers()
-	testutil.AddPlayerCredits(ctx, players[0], 5)
-	time.Sleep(5 * time.Millisecond)
-	testutil.AddPlayerCredits(ctx, players[0], 10)
+	player := players[0]
 
-	time.Sleep(10 * time.Millisecond)
+	initialCredits := player.Resources().Get().Credits
 
-	// Verify timestamps exist and are sequential
-	for i, call := range broadcaster.BroadcastCalls {
-		testutil.AssertTrue(t, !call.Timestamp.IsZero(), "Broadcast should have timestamp")
+	// Multiple updates
+	testutil.AddPlayerCredits(ctx, player, 5)
+	testutil.AddPlayerCredits(ctx, player, 10)
 
-		if i > 0 {
-			prevTimestamp := broadcaster.BroadcastCalls[i-1].Timestamp
-			testutil.AssertTrue(t, call.Timestamp.After(prevTimestamp) || call.Timestamp.Equal(prevTimestamp),
-				"Timestamps should be sequential")
-		}
-	}
+	// Verify final state
+	finalCredits := player.Resources().Get().Credits
+	testutil.AssertEqual(t, initialCredits+15, finalCredits, "Player should have 15 more credits after two updates")
 }
