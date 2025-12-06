@@ -1,0 +1,166 @@
+package action_test
+
+import (
+	"context"
+	"testing"
+
+	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/test/testutil"
+
+	"github.com/google/uuid"
+)
+
+func TestJoinGameAction_Success(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 0, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Execute
+	playerID := uuid.New().String()
+	result, err := joinAction.Execute(context.Background(), testGame.ID(), "Alice", playerID)
+
+	// Assert
+	testutil.AssertNoError(t, err, "Failed to join game")
+	testutil.AssertEqual(t, playerID, result.PlayerID, "Player ID should match")
+	testutil.AssertNotEqual(t, "", result.GameDto.ID, "Game DTO should have ID")
+
+	// Verify player was added to game
+	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())
+	players := fetchedGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should have 1 player")
+	testutil.AssertEqual(t, "Alice", players[0].Name(), "Player name should be Alice")
+}
+
+func TestJoinGameAction_IdempotentJoin(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 0, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Join first time
+	playerID1 := uuid.New().String()
+	result1, err1 := joinAction.Execute(context.Background(), testGame.ID(), "Bob", playerID1)
+	testutil.AssertNoError(t, err1, "First join failed")
+
+	// Join second time with same name but different ID
+	playerID2 := uuid.New().String()
+	result2, err2 := joinAction.Execute(context.Background(), testGame.ID(), "Bob", playerID2)
+	testutil.AssertNoError(t, err2, "Idempotent join failed")
+
+	// Assert - should return the original player ID
+	testutil.AssertEqual(t, result1.PlayerID, result2.PlayerID, "Should return existing player ID")
+
+	// Verify only one player exists
+	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())
+	players := fetchedGame.GetAllPlayers()
+	testutil.AssertEqual(t, 1, len(players), "Should still have only 1 player")
+}
+
+func TestJoinGameAction_GameNotFound(t *testing.T) {
+	// Setup
+	repo := game.NewInMemoryGameRepository()
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Execute with non-existent game ID
+	playerID := uuid.New().String()
+	_, err := joinAction.Execute(context.Background(), "non-existent-game", "Charlie", playerID)
+
+	// Assert
+	testutil.AssertError(t, err, "Should fail when game doesn't exist")
+}
+
+func TestJoinGameAction_GameNotInLobby(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	// Start the game (move it out of lobby status)
+	players := testGame.GetAllPlayers()
+	if len(players) >= 2 {
+		// Set corporations for players
+		for _, p := range players {
+			p.SetCorporationID("corp-tharsis-republic")
+		}
+	}
+
+	testutil.StartTestGame(t, testGame)
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Try to join an active game
+	playerID := uuid.New().String()
+	_, err := joinAction.Execute(context.Background(), testGame.ID(), "Late Joiner", playerID)
+
+	// Assert
+	testutil.AssertError(t, err, "Should not allow joining non-lobby game")
+}
+
+func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+	repo := game.NewInMemoryGameRepository()
+
+	// Create game with max 2 players
+	settings := game.GameSettings{
+		MaxPlayers: 2,
+		CardPacks:  []string{"base"},
+	}
+
+	testGame := game.NewGame("test-game", "", settings, broadcaster.GetBroadcastFunc())
+	repo.Create(context.Background(), testGame)
+
+	// Add 2 players
+	ctx := context.Background()
+	p1 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-1", "Player1")
+	p2 := player.NewPlayer(testGame.EventBus(), testGame.ID(), "player-2", "Player2")
+	testGame.AddPlayer(ctx, p1)
+	testGame.AddPlayer(ctx, p2)
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Try to add 3rd player
+	playerID := uuid.New().String()
+	_, err := joinAction.Execute(context.Background(), testGame.ID(), "Player3", playerID)
+
+	// Assert
+	testutil.AssertError(t, err, "Should not allow joining when max players reached")
+}
+
+func TestJoinGameAction_SetHostForFirstPlayer(t *testing.T) {
+	// Setup
+	broadcaster := testutil.NewMockBroadcaster()
+	testGame, repo := testutil.CreateTestGameWithPlayers(t, 0, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
+	logger := testutil.TestLogger()
+
+	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+
+	// Verify no host initially
+	testutil.AssertEqual(t, "", testGame.HostPlayerID(), "Host should be empty initially")
+
+	// First player joins
+	playerID := uuid.New().String()
+	result, err := joinAction.Execute(context.Background(), testGame.ID(), "Host Player", playerID)
+
+	// Assert
+	testutil.AssertNoError(t, err, "Failed to join as first player")
+
+	fetchedGame, _ := repo.Get(context.Background(), testGame.ID())
+	testutil.AssertEqual(t, result.PlayerID, fetchedGame.HostPlayerID(), "First player should be host")
+}
