@@ -2,8 +2,10 @@ package websocket
 
 import (
 	"terraforming-mars-backend/internal/action"
+	adminAction "terraforming-mars-backend/internal/action/admin"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/delivery/websocket/handler/admin"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/card"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/confirmation"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/connection"
@@ -51,6 +53,15 @@ func RegisterHandlers(
 	// Connection
 	playerReconnectedAction *action.PlayerReconnectedAction,
 	playerDisconnectedAction *action.PlayerDisconnectedAction,
+	// Admin actions
+	adminSetPhaseAction *adminAction.SetPhaseAction,
+	adminSetCurrentTurnAction *adminAction.SetCurrentTurnAction,
+	adminSetResourcesAction *adminAction.SetResourcesAction,
+	adminSetProductionAction *adminAction.SetProductionAction,
+	adminSetGlobalParametersAction *adminAction.SetGlobalParametersAction,
+	adminGiveCardAction *adminAction.GiveCardAction,
+	adminSetCorporationAction *adminAction.SetCorporationAction,
+	adminStartTileSelectionAction *adminAction.StartTileSelectionAction,
 ) {
 	log := logger.Get()
 	log.Info("🔄 Registering migration handlers with explicit broadcasting")
@@ -131,6 +142,20 @@ func RegisterHandlers(
 	playerDisconnectedHandler := connection.NewPlayerDisconnectedHandler(playerDisconnectedAction, broadcaster)
 	hub.RegisterHandler(dto.MessageTypePlayerDisconnected, playerDisconnectedHandler)
 
+	// ========== Admin Commands (Development Mode) ==========
+	adminCommandHandler := admin.NewAdminCommandHandler(
+		adminSetPhaseAction,
+		adminSetCurrentTurnAction,
+		adminSetResourcesAction,
+		adminSetProductionAction,
+		adminSetGlobalParametersAction,
+		adminGiveCardAction,
+		adminSetCorporationAction,
+		adminStartTileSelectionAction,
+		broadcaster,
+	)
+	hub.RegisterHandler(dto.MessageTypeAdminCommand, adminCommandHandler)
+
 	log.Info("🎯 Migration handlers registered successfully")
 	log.Info("   ✅ Game Lifecycle (2): create-game, player-connect/join-game (both supported)")
 	log.Info("   ✅ Card Actions (2): PlayCard, UseCardAction")
@@ -140,7 +165,8 @@ func RegisterHandlers(
 	log.Info("   ✅ Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   ✅ Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   ✅ Connection (1): PlayerDisconnected")
-	log.Info("   📌 Total: 20 handlers registered (OLD handlers overwritten)")
+	log.Info("   ✅ Admin (1): AdminCommand (routes to 8 sub-commands)")
+	log.Info("   📌 Total: 21 handlers registered (OLD handlers overwritten)")
 }
 
 // MigrateSingleHandler migrates a specific message type from old to new handler
@@ -157,21 +183,22 @@ func MigrateSingleHandler(
 	log.Info("✅ Handler migration complete")
 }
 
-// TODO: Add more migration handlers as they are implemented:
-// - ConvertHeatHandler
-// - ConvertPlantsHandler
-// - BuildPowerPlantHandler
-// - BuildCityHandler
-// - BuildAquiferHandler
-// - PlantGreeneryHandler
-// - LaunchAsteroidHandler
-// - SellPatentsHandler
-// - ConfirmSellPatentsHandler
-// - SkipActionHandler
-// - StartGameHandler
-// - SelectStartingCardsHandler
-// - ConfirmProductionCardsHandler
-// - ConfirmCardDrawHandler
-// - PlayerReconnectedHandler
-// - PlayerDisconnectedHandler
-// - Admin handlers (SetPhase, SetResources, SetProduction, SetGlobalParameters)
+// NOTE: All handlers have been migrated. The TODO list below is preserved for reference.
+// Completed migrations:
+// - ConvertHeatHandler ✓
+// - ConvertPlantsHandler ✓
+// - BuildPowerPlantHandler ✓
+// - BuildCityHandler ✓
+// - BuildAquiferHandler ✓
+// - PlantGreeneryHandler ✓
+// - LaunchAsteroidHandler ✓
+// - SellPatentsHandler ✓
+// - ConfirmSellPatentsHandler ✓
+// - SkipActionHandler ✓
+// - StartGameHandler ✓
+// - SelectStartingCardsHandler ✓
+// - ConfirmProductionCardsHandler ✓
+// - ConfirmCardDrawHandler ✓
+// - PlayerReconnectedHandler ✓ (handled by JoinGameHandler)
+// - PlayerDisconnectedHandler ✓
+// - Admin handlers (SetPhase, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, SetCurrentTurn) ✓

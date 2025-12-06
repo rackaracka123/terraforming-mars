@@ -112,12 +112,15 @@ func main() {
 	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
 	playerDisconnectedAction := action.NewPlayerDisconnectedAction(gameRepo, log)
 
-	// Admin actions (5)
+	// Admin actions (8)
 	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)
 	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(gameRepo, log)
 	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
 	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
 	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
+	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, log)
+	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, log)
+	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
 
 	// Query actions for HTTP (4)
 	getGameAction := query.NewGetGameAction(gameRepo, log)
@@ -134,7 +137,7 @@ func main() {
 	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
 	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
-	log.Info("   📌 Admin Actions (5): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters")
+	log.Info("   📌 Admin Actions (8): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection")
 	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
 
 	// ========== Register Migration Handlers with WebSocket Hub ==========
@@ -170,16 +173,18 @@ func main() {
 		// Connection
 		playerReconnectedAction,
 		playerDisconnectedAction,
+		// Admin actions
+		adminSetPhaseAction,
+		adminSetCurrentTurnAction,
+		adminSetResourcesAction,
+		adminSetProductionAction,
+		adminSetGlobalParametersAction,
+		adminGiveCardAction,
+		adminSetCorporationAction,
+		adminStartTileSelectionAction,
 	)
 
-	log.Info("🎯 Migration handlers registered with WebSocket hub (20 handlers)")
-
-	// Silence unused admin actions (HTTP-only, not yet wired)
-	_ = adminSetPhaseAction
-	_ = adminSetCurrentTurnAction
-	_ = adminSetResourcesAction
-	_ = adminSetProductionAction
-	_ = adminSetGlobalParametersAction
+	log.Info("🎯 Migration handlers registered with WebSocket hub (21 handlers)")
 
 	// ========== Start WebSocket Hub ==========
 	ctx, cancel := context.WithCancel(context.Background())
