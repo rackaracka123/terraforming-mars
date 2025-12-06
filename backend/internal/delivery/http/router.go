@@ -17,11 +17,12 @@ func SetupRouter(
 	createGameAction *action.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
+	listCardsAction *query.ListCardsAction,
 	getPlayerAction *query.GetPlayerAction,
 	cardRegistry cards.CardRegistry,
 ) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction, cardRegistry)
+	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction, listCardsAction, cardRegistry)
 	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction, cardRegistry)
 	healthHandler := NewHealthHandler()
 
@@ -51,6 +52,9 @@ func SetupRouter(
 	// Player routes (query only)
 	playerRoutes := api.PathPrefix("/games/{gameId}/players").Subrouter()
 	playerRoutes.HandleFunc("/{playerId}", playerHandler.GetPlayer).Methods(http.MethodGet)
+
+	// Card routes
+	api.HandleFunc("/cards", gameHandler.ListCards).Methods(http.MethodGet)
 
 	return router
 }

@@ -119,9 +119,10 @@ func main() {
 	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
 	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
 
-	// Query actions for HTTP (3)
+	// Query actions for HTTP (4)
 	getGameAction := query.NewGetGameAction(gameRepo, log)
 	listGamesAction := query.NewListGamesAction(gameRepo, log)
+	listCardsAction := query.NewListCardsAction(cardRegistry, log)
 	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
 
 	log.Info("✅ All migration actions initialized")
@@ -134,7 +135,7 @@ func main() {
 	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
 	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
 	log.Info("   📌 Admin Actions (5): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters")
-	log.Info("   📌 Query Actions (3): GetGame, ListGames, GetPlayer")
+	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
 
 	// ========== Register Migration Handlers with WebSocket Hub ==========
 	wsHandler.RegisterHandlers(
@@ -196,6 +197,7 @@ func main() {
 		createGameAction,
 		getGameAction,
 		listGamesAction,
+		listCardsAction,
 		getPlayerAction,
 		cardRegistry,
 	)
@@ -213,6 +215,7 @@ func main() {
 	log.Info("   📌 POST /api/v1/games - Create game")
 	log.Info("   📌 GET  /api/v1/games - List games")
 	log.Info("   📌 GET  /api/v1/games/{gameId} - Get game")
+	log.Info("   📌 GET  /api/v1/cards - List cards")
 	log.Info("   📌 GET  /api/v1/games/{gameId}/players/{playerId} - Get player")
 	log.Info("   📌 WS   /ws - WebSocket endpoint")
 	log.Info("   ℹ️  Game creation available via both HTTP POST and WebSocket 'create-game'")

@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"terraforming-mars-backend/internal/action"
@@ -20,6 +21,7 @@ type GameHandler struct {
 	createGameAction *action.CreateGameAction
 	getGameAction    *query.GetGameAction
 	listGamesAction  *query.ListGamesAction
+	listCardsAction  *query.ListCardsAction
 	cardRegistry     cards.CardRegistry
 }
 
@@ -28,12 +30,14 @@ func NewGameHandler(
 	createGameAction *action.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
+	listCardsAction *query.ListCardsAction,
 	cardRegistry cards.CardRegistry,
 ) *GameHandler {
 	return &GameHandler{
 		createGameAction: createGameAction,
 		getGameAction:    getGameAction,
 		listGamesAction:  listGamesAction,
+		listCardsAction:  listCardsAction,
 		cardRegistry:     cardRegistry,
 	}
 }
@@ -156,4 +160,63 @@ func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Info("✅ Game created successfully", zap.String("game_id", game.ID()))
+}
+
+// ListCards handles GET /api/v1/cards
+func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP GET /api/v1/cards")
+
+	// Parse query parameters
+	queryParams := r.URL.Query()
+	offset := 0
+	limit := 100 // Default limit
+
+	if offsetParam := queryParams.Get("offset"); offsetParam != "" {
+		var parsedOffset int
+		if _, err := fmt.Sscanf(offsetParam, "%d", &parsedOffset); err == nil {
+			offset = parsedOffset
+		}
+	}
+
+	if limitParam := queryParams.Get("limit"); limitParam != "" {
+		var parsedLimit int
+		if _, err := fmt.Sscanf(limitParam, "%d", &parsedLimit); err == nil {
+			limit = parsedLimit
+		}
+	}
+
+	// Execute query action
+	result, err := h.listCardsAction.Execute(ctx, offset, limit)
+	if err != nil {
+		log.Error("Failed to list cards", zap.Error(err))
+		http.Error(w, "Failed to list cards", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to DTOs
+	cardDtos := make([]dto.CardDto, len(result.Cards))
+	for i, card := range result.Cards {
+		cardDtos[i] = dto.ToCardDto(card)
+	}
+
+	// Wrap in response structure
+	response := dto.ListCardsResponse{
+		Cards:      cardDtos,
+		TotalCount: result.TotalCount,
+		Offset:     result.Offset,
+		Limit:      result.Limit,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Cards listed successfully", zap.Int("count", len(cardDtos)))
 }
