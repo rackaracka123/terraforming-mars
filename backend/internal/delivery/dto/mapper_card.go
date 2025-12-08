@@ -52,18 +52,46 @@ func ToCardDto(card gamecards.Card) CardDto {
 		}
 	}
 
+	// Convert starting resources (corporation-specific)
+	var startingResources *ResourceSet
+	if card.StartingResources != nil {
+		startingResources = &ResourceSet{
+			Credits:  card.StartingResources.Credits,
+			Steel:    card.StartingResources.Steel,
+			Titanium: card.StartingResources.Titanium,
+			Plants:   card.StartingResources.Plants,
+			Energy:   card.StartingResources.Energy,
+			Heat:     card.StartingResources.Heat,
+		}
+	}
+
+	// Convert starting production (corporation-specific)
+	var startingProduction *ResourceSet
+	if card.StartingProduction != nil {
+		startingProduction = &ResourceSet{
+			Credits:  card.StartingProduction.Credits,
+			Steel:    card.StartingProduction.Steel,
+			Titanium: card.StartingProduction.Titanium,
+			Plants:   card.StartingProduction.Plants,
+			Energy:   card.StartingProduction.Energy,
+			Heat:     card.StartingProduction.Heat,
+		}
+	}
+
 	return CardDto{
-		ID:              card.ID,
-		Name:            card.Name,
-		Type:            CardType(card.Type),
-		Cost:            card.Cost,
-		Description:     card.Description,
-		Pack:            card.Pack,
-		Tags:            tags,
-		Requirements:    requirements,
-		Behaviors:       behaviors,
-		ResourceStorage: resourceStorage,
-		VPConditions:    vpConditions,
+		ID:                 card.ID,
+		Name:               card.Name,
+		Type:               CardType(card.Type),
+		Cost:               card.Cost,
+		Description:        card.Description,
+		Pack:               card.Pack,
+		Tags:               tags,
+		Requirements:       requirements,
+		Behaviors:          behaviors,
+		ResourceStorage:    resourceStorage,
+		VPConditions:       vpConditions,
+		StartingResources:  startingResources,
+		StartingProduction: startingProduction,
 	}
 }
 

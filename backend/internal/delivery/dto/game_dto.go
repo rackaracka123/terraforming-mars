@@ -311,6 +311,10 @@ type CardDto struct {
 	Behaviors       []CardBehaviorDto   `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
 	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
 	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
+
+	// Corporation-specific fields (nil for non-corporation cards)
+	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`
+	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"`
 }
 
 type SelectStartingCardsPhaseDto struct {
