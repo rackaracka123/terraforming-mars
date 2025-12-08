@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/deck"
 	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // TestContext provides a reusable test context
@@ -426,6 +427,37 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Name: "Allied Banks",
 			Type: gamecards.CardTypePrelude,
 			Pack: "prelude",
+		},
+		// Cards with discount effects for testing requirement modifiers
+		{
+			ID:          "card-space-station",
+			Name:        "Space Station",
+			Type:        gamecards.CardTypeActive,
+			Pack:        "corporate-era",
+			Cost:        10,
+			Tags:        []shared.CardTag{shared.TagSpace},
+			Description: "Effect: When you play a space card, you pay 2 M€ less for it.",
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: "auto"}},
+					Outputs: []shared.ResourceCondition{
+						{
+							ResourceType: shared.ResourceDiscount,
+							Amount:       2,
+							AffectedTags: []shared.CardTag{shared.TagSpace},
+						},
+					},
+				},
+			},
+		},
+		{
+			ID:          "card-space-mirrors",
+			Name:        "Space Mirrors",
+			Type:        gamecards.CardTypeActive,
+			Pack:        "base",
+			Cost:        3,
+			Tags:        []shared.CardTag{shared.TagSpace, shared.TagPower},
+			Description: "Action: Spend 7 M€ to increase your energy production 1 step.",
 		},
 	}
 

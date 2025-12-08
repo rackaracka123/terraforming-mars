@@ -86,3 +86,16 @@ func GetPassiveBehaviors(card *Card) []shared.CardBehavior {
 	}
 	return passive
 }
+
+// HasPersistentEffects checks if a behavior has persistent outputs that should be
+// registered as effects (e.g., discount, payment-substitute)
+// These are different from immediate resource gains - they modify future actions
+func HasPersistentEffects(behavior shared.CardBehavior) bool {
+	for _, output := range behavior.Outputs {
+		switch output.ResourceType {
+		case shared.ResourceDiscount, shared.ResourcePaymentSubstitute:
+			return true
+		}
+	}
+	return false
+}

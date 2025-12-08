@@ -358,6 +358,16 @@ func (a *BehaviorApplier) applyOutput(
 			log.Warn("⚠️ payment-substitute output missing affectedResources")
 		}
 
+	// ========== Discounts ==========
+	case shared.ResourceDiscount:
+		// Discounts are registered as effects and handled by RequirementModifierCalculator
+		// The effect registration happens when the card is played (auto effects are added to player.Effects)
+		// The calculator then computes the actual modifiers from all effects
+		log.Info("🏷️ Discount effect registered",
+			zap.Int("amount", output.Amount),
+			zap.Any("affected_tags", output.AffectedTags),
+			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
+
 	default:
 		log.Warn("⚠️ Unhandled output type",
 			zap.String("type", string(output.ResourceType)))

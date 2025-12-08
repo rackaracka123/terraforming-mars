@@ -180,6 +180,13 @@ func (a *PlayCardAction) Execute(
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
 
+	// 14a. BUSINESS LOGIC: Recalculate requirement modifiers (card played may have discount effects, hand changed)
+	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	modifiers := calculator.Calculate(player)
+	player.Effects().SetRequirementModifiers(modifiers)
+	log.Debug("📊 Recalculated requirement modifiers",
+		zap.Int("modifier_count", len(modifiers)))
+
 	// 15. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//     - player.Hand().RemoveCard() publishes CardHandUpdatedEvent
 	//     - player.PlayedCards().AddCard() publishes CardPlayedEvent
@@ -346,8 +353,25 @@ func (a *PlayCardAction) applyCardBehaviors(
 			log.Info("✨ Found auto-trigger behavior, applying outputs immediately",
 				zap.Int("output_count", len(behavior.Outputs)))
 
-			if err := a.applyBehaviorOutputs(ctx, g, behavior.Outputs, p, card.Name, log); err != nil {
+			// Use BehaviorApplier for consistent output handling
+			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log)
+			if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
 				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
+			}
+
+			// Also register as effect if it has persistent outputs (discount, payment-substitute)
+			// These need to show in the effects list for display and for modifier calculations
+			if gamecards.HasPersistentEffects(behavior) {
+				log.Info("🏷️ Registering auto-trigger behavior with persistent effects",
+					zap.String("card_name", card.Name))
+
+				effect := player.CardEffect{
+					CardID:        card.ID,
+					CardName:      card.Name,
+					BehaviorIndex: behaviorIndex,
+					Behavior:      behavior,
+				}
+				p.Effects().AddEffect(effect)
 			}
 		}
 
@@ -386,129 +410,3 @@ func (a *PlayCardAction) applyCardBehaviors(
 	return nil
 }
 
-// applyBehaviorOutputs applies resource and production outputs to a player
-func (a *PlayCardAction) applyBehaviorOutputs(
-	ctx context.Context,
-	g *game.Game,
-	outputs []shared.ResourceCondition,
-	p *player.Player,
-	cardName string,
-	log *zap.Logger,
-) error {
-	for _, output := range outputs {
-		switch output.ResourceType {
-		// Basic resources
-		case shared.ResourceCredits:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceCredits: output.Amount,
-			})
-			log.Info("💰 Added credits", zap.Int("amount", output.Amount))
-
-		case shared.ResourceSteel:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceSteel: output.Amount,
-			})
-			log.Info("🔩 Added steel", zap.Int("amount", output.Amount))
-
-		case shared.ResourceTitanium:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceTitanium: output.Amount,
-			})
-			log.Info("⚙️ Added titanium", zap.Int("amount", output.Amount))
-
-		case shared.ResourcePlants:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourcePlants: output.Amount,
-			})
-			log.Info("🌱 Added plants", zap.Int("amount", output.Amount))
-
-		case shared.ResourceEnergy:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceEnergy: output.Amount,
-			})
-			log.Info("⚡ Added energy", zap.Int("amount", output.Amount))
-
-		case shared.ResourceHeat:
-			p.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceHeat: output.Amount,
-			})
-			log.Info("🔥 Added heat", zap.Int("amount", output.Amount))
-
-		// Production resources
-		case shared.ResourceCreditsProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourceCreditsProduction: output.Amount,
-			})
-			log.Info("💰 Added credits production", zap.Int("amount", output.Amount))
-
-		case shared.ResourceSteelProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourceSteelProduction: output.Amount,
-			})
-			log.Info("🔩 Added steel production", zap.Int("amount", output.Amount))
-
-		case shared.ResourceTitaniumProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourceTitaniumProduction: output.Amount,
-			})
-			log.Info("⚙️ Added titanium production", zap.Int("amount", output.Amount))
-
-		case shared.ResourcePlantsProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourcePlantsProduction: output.Amount,
-			})
-			log.Info("🌱 Added plants production", zap.Int("amount", output.Amount))
-
-		case shared.ResourceEnergyProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourceEnergyProduction: output.Amount,
-			})
-			log.Info("⚡ Added energy production", zap.Int("amount", output.Amount))
-
-		case shared.ResourceHeatProduction:
-			p.Resources().AddProduction(map[shared.ResourceType]int{
-				shared.ResourceHeatProduction: output.Amount,
-			})
-			log.Info("🔥 Added heat production", zap.Int("amount", output.Amount))
-
-		case shared.ResourceTR:
-			p.Resources().UpdateTerraformRating(output.Amount)
-			log.Info("🌍 Added terraform rating", zap.Int("amount", output.Amount))
-
-		// Tile placements - append to queue for user selection
-		case shared.ResourceCityPlacement, shared.ResourceGreeneryPlacement, shared.ResourceOceanPlacement:
-			// Map resource type to tile type string
-			var tileType string
-			switch output.ResourceType {
-			case shared.ResourceCityPlacement:
-				tileType = "city"
-			case shared.ResourceGreeneryPlacement:
-				tileType = "greenery"
-			case shared.ResourceOceanPlacement:
-				tileType = "ocean"
-			}
-
-			// Build array of tile types to append (for multiple placements)
-			tileTypes := make([]string, output.Amount)
-			for i := 0; i < output.Amount; i++ {
-				tileTypes[i] = tileType
-			}
-
-			// Atomically append to queue (thread-safe)
-			if err := g.AppendToPendingTileSelectionQueue(ctx, p.ID(), tileTypes, cardName); err != nil {
-				return fmt.Errorf("failed to append to pending tile selection queue: %w", err)
-			}
-
-			log.Info("🏗️ Added tile placements to queue",
-				zap.String("tile_type", tileType),
-				zap.Int("count", output.Amount),
-				zap.String("source", cardName))
-
-		default:
-			log.Warn("⚠️  Unhandled output type in card behavior",
-				zap.String("type", string(output.ResourceType)))
-		}
-	}
-
-	return nil
-}
