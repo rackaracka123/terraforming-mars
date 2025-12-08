@@ -6,6 +6,7 @@ import (
 	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
+	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
 
 	"go.uber.org/zap"
@@ -65,9 +66,10 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 
 	// Extract payment (optional, defaults to 0)
 	payment := action.PaymentRequest{
-		Credits:  0,
-		Steel:    0,
-		Titanium: 0,
+		Credits:     0,
+		Steel:       0,
+		Titanium:    0,
+		Substitutes: make(map[shared.ResourceType]int),
 	}
 
 	if paymentData, ok := payload["payment"].(map[string]interface{}); ok {
@@ -80,12 +82,22 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 		if titanium, ok := paymentData["titanium"].(float64); ok {
 			payment.Titanium = int(titanium)
 		}
+		// Parse substitutes (e.g., heat for Helion)
+		if substitutesData, ok := paymentData["substitutes"].(map[string]interface{}); ok {
+			for resourceTypeStr, amountVal := range substitutesData {
+				if amount, ok := amountVal.(float64); ok && amount > 0 {
+					resourceType := shared.ResourceType(resourceTypeStr)
+					payment.Substitutes[resourceType] = int(amount)
+				}
+			}
+		}
 	}
 
 	log.Debug("Payment extracted",
 		zap.Int("credits", payment.Credits),
 		zap.Int("steel", payment.Steel),
-		zap.Int("titanium", payment.Titanium))
+		zap.Int("titanium", payment.Titanium),
+		zap.Any("substitutes", payment.Substitutes))
 
 	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, payment)
 	if err != nil {

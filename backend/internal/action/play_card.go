@@ -37,9 +37,10 @@ func NewPlayCardAction(
 
 // PaymentRequest represents the payment resources provided by the player
 type PaymentRequest struct {
-	Credits  int `json:"credits"`
-	Steel    int `json:"steel"`
-	Titanium int `json:"titanium"`
+	Credits     int                         `json:"credits"`
+	Steel       int                         `json:"steel"`
+	Titanium    int                         `json:"titanium"`
+	Substitutes map[shared.ResourceType]int `json:"substitutes"`
 }
 
 // Execute performs the play card action
@@ -103,62 +104,41 @@ func (a *PlayCardAction) Execute(
 
 	log.Debug("✅ Card requirements validated")
 
-	// 8. BUSINESS LOGIC: Calculate effective cost with discounts
-	effectiveCost := card.Cost
-	steelDiscount := 0
-	titaniumDiscount := 0
-
-	// Steel reduces building costs by 2 MC per steel
-	if hasTag(card, shared.TagBuilding) {
-		steelDiscount = payment.Steel * 2
+	// 8. BUSINESS LOGIC: Convert payment request to CardPayment for validation
+	cardPayment := gamecards.CardPayment{
+		Credits:     payment.Credits,
+		Steel:       payment.Steel,
+		Titanium:    payment.Titanium,
+		Substitutes: payment.Substitutes,
 	}
 
-	// Titanium reduces space costs by 3 MC per titanium
-	if hasTag(card, shared.TagSpace) {
-		titaniumDiscount = payment.Titanium * 3
+	// Get player's payment substitutes (e.g., Helion can use heat as credits)
+	playerSubstitutes := player.Resources().PaymentSubstitutes()
+
+	// Check if card allows steel/titanium
+	allowSteel := hasTag(card, shared.TagBuilding)
+	allowTitanium := hasTag(card, shared.TagSpace)
+
+	// 9. BUSINESS LOGIC: Validate payment covers card cost (including steel/titanium/substitutes)
+	if err := cardPayment.CoversCardCost(card.Cost, allowSteel, allowTitanium, playerSubstitutes); err != nil {
+		log.Error("Payment validation failed", zap.Error(err))
+		return err
 	}
 
-	effectiveCost -= steelDiscount + titaniumDiscount
-
-	if effectiveCost < 0 {
-		effectiveCost = 0
-	}
-
-	log.Debug("Cost calculated",
-		zap.Int("base_cost", card.Cost),
-		zap.Int("steel_discount", steelDiscount),
-		zap.Int("titanium_discount", titaniumDiscount),
-		zap.Int("effective_cost", effectiveCost))
-
-	// 9. BUSINESS LOGIC: Validate payment covers effective cost
-	if payment.Credits < effectiveCost {
-		log.Error("Insufficient credits",
-			zap.Int("required", effectiveCost),
-			zap.Int("provided", payment.Credits))
-		return fmt.Errorf("insufficient credits: need %d, provided %d", effectiveCost, payment.Credits)
-	}
+	totalValue := cardPayment.TotalValue(playerSubstitutes)
+	log.Debug("Payment validated",
+		zap.Int("card_cost", card.Cost),
+		zap.Int("payment_value", totalValue),
+		zap.Int("credits", payment.Credits),
+		zap.Int("steel", payment.Steel),
+		zap.Int("titanium", payment.Titanium),
+		zap.Any("substitutes", payment.Substitutes))
 
 	// 10. BUSINESS LOGIC: Validate player has the resources they're trying to spend
 	resources := player.Resources().Get()
-	if resources.Credits < payment.Credits {
-		log.Error("Player doesn't have enough credits",
-			zap.Int("has", resources.Credits),
-			zap.Int("trying_to_spend", payment.Credits))
-		return fmt.Errorf("insufficient credits: have %d, trying to spend %d", resources.Credits, payment.Credits)
-	}
-
-	if resources.Steel < payment.Steel {
-		log.Error("Player doesn't have enough steel",
-			zap.Int("has", resources.Steel),
-			zap.Int("trying_to_spend", payment.Steel))
-		return fmt.Errorf("insufficient steel: have %d, trying to spend %d", resources.Steel, payment.Steel)
-	}
-
-	if resources.Titanium < payment.Titanium {
-		log.Error("Player doesn't have enough titanium",
-			zap.Int("has", resources.Titanium),
-			zap.Int("trying_to_spend", payment.Titanium))
-		return fmt.Errorf("insufficient titanium: have %d, trying to spend %d", resources.Titanium, payment.Titanium)
+	if err := cardPayment.CanAfford(resources); err != nil {
+		log.Error("Player can't afford payment", zap.Error(err))
+		return err
 	}
 
 	// 11. STATE UPDATE: Remove card from hand
@@ -175,16 +155,24 @@ func (a *PlayCardAction) Execute(
 	log.Info("✅ Card added to played cards")
 
 	// 13. STATE UPDATE: Deduct payment from player resources (using negative values)
-	player.Resources().Add(map[shared.ResourceType]int{
+	deductions := map[shared.ResourceType]int{
 		shared.ResourceCredits:  -payment.Credits,
 		shared.ResourceSteel:    -payment.Steel,
 		shared.ResourceTitanium: -payment.Titanium,
-	})
+	}
+
+	// Also deduct substitute resources (e.g., heat for Helion)
+	for resourceType, amount := range payment.Substitutes {
+		deductions[resourceType] = -amount
+	}
+
+	player.Resources().Add(deductions)
 
 	log.Info("✅ Payment deducted",
 		zap.Int("credits", payment.Credits),
 		zap.Int("steel", payment.Steel),
-		zap.Int("titanium", payment.Titanium))
+		zap.Int("titanium", payment.Titanium),
+		zap.Any("substitutes", payment.Substitutes))
 
 	// 14. BUSINESS LOGIC: Apply card immediate effects and register behaviors
 	if err := a.applyCardBehaviors(ctx, g, card, player, log); err != nil {
@@ -200,7 +188,8 @@ func (a *PlayCardAction) Execute(
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),
-		zap.Int("cost_paid", effectiveCost))
+		zap.Int("card_cost", card.Cost),
+		zap.Int("payment_value", totalValue))
 
 	return nil
 }
