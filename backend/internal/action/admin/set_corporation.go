@@ -5,26 +5,31 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 )
 
 // SetCorporationAction handles the admin action to set a player's corporation
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
-// NOTE: Corporation validation is skipped (admin action with trusted input)
-// NOTE: Uses SetID instead of SetCard since we don't have card repository access
 type SetCorporationAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	gameRepo     game.GameRepository
+	cardRegistry cards.CardRegistry
+	corpProc     *gamecards.CorporationProcessor
+	logger       *zap.Logger
 }
 
 // NewSetCorporationAction creates a new set corporation admin action
 func NewSetCorporationAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *SetCorporationAction {
 	return &SetCorporationAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		gameRepo:     gameRepo,
+		cardRegistry: cardRegistry,
+		corpProc:     gamecards.NewCorporationProcessor(logger),
+		logger:       logger,
 	}
 }
 
@@ -39,30 +44,75 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 	log.Info("🏢 Admin: Setting player corporation")
 
 	// 1. Fetch game from repository
-	game, err := a.gameRepo.Get(ctx, gameID)
+	g, err := a.gameRepo.Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
 	}
 
 	// 2. Get player from game
-	player, err := game.GetPlayer(playerID)
+	player, err := g.GetPlayer(playerID)
 	if err != nil {
 		log.Error("Player not found in game", zap.Error(err))
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update player corporation
-	// NOTE: Corporation validation is skipped - admin actions are trusted to provide valid corporation IDs
-	// In production, you might want to validate the corporation ID exists
+	// 3. Fetch corporation card from registry
+	corpCard, err := a.cardRegistry.GetByID(corporationID)
+	if err != nil {
+		log.Error("Failed to fetch corporation card", zap.Error(err))
+		return fmt.Errorf("corporation card not found: %s", corporationID)
+	}
+
+	// Validate it's actually a corporation card
+	if corpCard.Type != gamecards.CardTypeCorporation {
+		log.Error("Card is not a corporation", zap.String("card_type", string(corpCard.Type)))
+		return fmt.Errorf("card %s is not a corporation card", corporationID)
+	}
+
+	// 4. Set corporation ID on player
 	player.SetCorporationID(corporationID)
+	log.Info("✅ Corporation ID set", zap.String("corporation_name", corpCard.Name))
 
-	log.Info("✅ Player corporation updated")
+	// 5. Apply corporation starting effects (resources, production)
+	if err := a.corpProc.ApplyStartingEffects(ctx, corpCard, player, g); err != nil {
+		log.Error("Failed to apply corporation starting effects", zap.Error(err))
+		return fmt.Errorf("failed to apply corporation starting effects: %w", err)
+	}
 
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.SetCorporationID() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
+	// 5a. Apply corporation auto effects (e.g., payment substitutes for Helion)
+	if err := a.corpProc.ApplyAutoEffects(ctx, corpCard, player, g); err != nil {
+		log.Error("Failed to apply corporation auto effects", zap.Error(err))
+		return fmt.Errorf("failed to apply corporation auto effects: %w", err)
+	}
 
-	log.Info("✅ Admin set corporation completed")
+	// 6. Register corporation trigger effects
+	triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
+	for _, effect := range triggerEffects {
+		player.Effects().AddEffect(effect)
+		log.Debug("✅ Registered trigger effect",
+			zap.String("card_name", effect.CardName),
+			zap.Int("behavior_index", effect.BehaviorIndex))
+	}
+
+	// 7. Register corporation manual actions
+	manualActions := a.corpProc.GetManualActions(corpCard)
+	for _, action := range manualActions {
+		player.Actions().AddAction(action)
+		log.Debug("✅ Registered manual action",
+			zap.String("card_name", action.CardName),
+			zap.Int("behavior_index", action.BehaviorIndex))
+	}
+
+	// 8. Setup forced first action if corporation requires it
+	if err := a.corpProc.SetupForcedFirstAction(ctx, corpCard, g, playerID); err != nil {
+		log.Error("Failed to setup forced first action", zap.Error(err))
+		return fmt.Errorf("failed to setup forced first action: %w", err)
+	}
+
+	// NO MANUAL BROADCAST - BroadcastEvent automatically triggered by state changes
+
+	log.Info("✅ Admin set corporation completed with all effects applied",
+		zap.String("corporation_name", corpCard.Name))
 	return nil
 }

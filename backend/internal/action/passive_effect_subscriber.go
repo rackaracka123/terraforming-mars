@@ -7,6 +7,7 @@ import (
 
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -81,118 +82,17 @@ func subscribePlacementBonusEffect(
 			}
 		}
 
-		// Condition matched! Apply the effect outputs
+		// Condition matched! Apply the effect outputs using BehaviorApplier
 		log.Info("🎴 Passive effect triggered",
 			zap.String("card_name", effect.CardName),
 			zap.String("trigger_type", trigger.Condition.Type),
 			zap.Any("resources_gained", event.Resources))
 
-		// Apply outputs (similar to applyOutputs in use_card_action.go)
-		for _, output := range effect.Behavior.Outputs {
-			switch output.ResourceType {
-			// Production resources
-			case shared.ResourceSteelProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceSteelProduction: output.Amount,
-				})
-				log.Info("🔩 Passive effect added steel production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceTitaniumProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceTitaniumProduction: output.Amount,
-				})
-				log.Info("⚙️ Passive effect added titanium production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceCreditsProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceCreditsProduction: output.Amount,
-				})
-				log.Info("💰 Passive effect added credits production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourcePlantsProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourcePlantsProduction: output.Amount,
-				})
-				log.Info("🌱 Passive effect added plants production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceEnergyProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceEnergyProduction: output.Amount,
-				})
-				log.Info("⚡ Passive effect added energy production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceHeatProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceHeatProduction: output.Amount,
-				})
-				log.Info("🔥 Passive effect added heat production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			// Basic resources
-			case shared.ResourceCredits:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceCredits: output.Amount,
-				})
-				log.Info("💰 Passive effect added credits",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceSteel:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceSteel: output.Amount,
-				})
-				log.Info("🔩 Passive effect added steel",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceTitanium:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceTitanium: output.Amount,
-				})
-				log.Info("⚙️ Passive effect added titanium",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourcePlants:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourcePlants: output.Amount,
-				})
-				log.Info("🌱 Passive effect added plants",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceEnergy:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceEnergy: output.Amount,
-				})
-				log.Info("⚡ Passive effect added energy",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceHeat:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceHeat: output.Amount,
-				})
-				log.Info("🔥 Passive effect added heat",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			default:
-				log.Warn("⚠️ Unhandled output type in passive effect",
-					zap.String("type", string(output.ResourceType)),
-					zap.String("card", effect.CardName))
-			}
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
+			log.Error("Failed to apply passive effect outputs",
+				zap.String("card_name", effect.CardName),
+				zap.Error(err))
 		}
 	})
 
@@ -244,119 +144,18 @@ func subscribeCityPlacedEffect(
 			return // Location doesn't match
 		}
 
-		// Condition matched! Apply the effect outputs
+		// Condition matched! Apply the effect outputs using BehaviorApplier
 		log.Info("🎴 Passive effect triggered (city placement)",
 			zap.String("card_name", effect.CardName),
 			zap.String("player_id", p.ID()),
 			zap.String("placed_by", event.PlayerID),
 			zap.String("tile_type", event.TileType))
 
-		// Apply outputs (same pattern as placement bonus)
-		for _, output := range effect.Behavior.Outputs {
-			switch output.ResourceType {
-			// Production resources
-			case shared.ResourceSteelProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceSteelProduction: output.Amount,
-				})
-				log.Info("🔩 Passive effect added steel production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceTitaniumProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceTitaniumProduction: output.Amount,
-				})
-				log.Info("⚙️ Passive effect added titanium production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceCreditsProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceCreditsProduction: output.Amount,
-				})
-				log.Info("💰 Passive effect added credits production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourcePlantsProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourcePlantsProduction: output.Amount,
-				})
-				log.Info("🌱 Passive effect added plants production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceEnergyProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceEnergyProduction: output.Amount,
-				})
-				log.Info("⚡ Passive effect added energy production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceHeatProduction:
-				p.Resources().AddProduction(map[shared.ResourceType]int{
-					shared.ResourceHeatProduction: output.Amount,
-				})
-				log.Info("🔥 Passive effect added heat production",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			// Basic resources
-			case shared.ResourceCredits:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceCredits: output.Amount,
-				})
-				log.Info("💰 Passive effect added credits",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceSteel:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceSteel: output.Amount,
-				})
-				log.Info("🔩 Passive effect added steel",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceTitanium:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceTitanium: output.Amount,
-				})
-				log.Info("⚙️ Passive effect added titanium",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourcePlants:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourcePlants: output.Amount,
-				})
-				log.Info("🌱 Passive effect added plants",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceEnergy:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceEnergy: output.Amount,
-				})
-				log.Info("⚡ Passive effect added energy",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			case shared.ResourceHeat:
-				p.Resources().Add(map[shared.ResourceType]int{
-					shared.ResourceHeat: output.Amount,
-				})
-				log.Info("🔥 Passive effect added heat",
-					zap.Int("amount", output.Amount),
-					zap.String("card", effect.CardName))
-
-			default:
-				log.Warn("⚠️ Unhandled output type in passive effect",
-					zap.String("type", string(output.ResourceType)),
-					zap.String("card", effect.CardName))
-			}
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
+			log.Error("Failed to apply passive effect outputs",
+				zap.String("card_name", effect.CardName),
+				zap.Error(err))
 		}
 	})
 

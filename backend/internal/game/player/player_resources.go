@@ -78,6 +78,15 @@ func (r *PlayerResources) PaymentSubstitutes() []shared.PaymentSubstitute {
 	return substitutesCopy
 }
 
+func (r *PlayerResources) AddPaymentSubstitute(resourceType shared.ResourceType, conversionRate int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.paymentSubstitutes = append(r.paymentSubstitutes, shared.PaymentSubstitute{
+		ResourceType:   resourceType,
+		ConversionRate: conversionRate,
+	})
+}
+
 func (r *PlayerResources) Set(resources shared.Resources) {
 	r.mu.Lock()
 	r.resources = resources

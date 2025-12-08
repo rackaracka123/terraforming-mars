@@ -122,26 +122,32 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	log.Info("✅ Corporation selected", zap.String("corporation_id", corporationID))
 
 	// 10. BUSINESS LOGIC: Apply corporation starting effects (resources and production)
-	if err := a.corpProc.ApplyStartingEffects(ctx, corpCard, player); err != nil {
+	if err := a.corpProc.ApplyStartingEffects(ctx, corpCard, player, g); err != nil {
 		log.Error("Failed to apply corporation starting effects", zap.Error(err))
 		return fmt.Errorf("failed to apply corporation starting effects: %w", err)
 	}
 
-	// 10b. BUSINESS LOGIC: Register corporation passive effects
-	// The helper returns CardEffect structs (read-only), we add them to player state (mutation)
-	passiveEffects := a.corpProc.GetPassiveEffects(corpCard)
-	if len(passiveEffects) > 0 {
-		log.Info("⚡ Registering corporation passive effects",
-			zap.Int("effect_count", len(passiveEffects)))
+	// 10a. BUSINESS LOGIC: Apply corporation auto effects (e.g., payment substitutes for Helion)
+	if err := a.corpProc.ApplyAutoEffects(ctx, corpCard, player, g); err != nil {
+		log.Error("Failed to apply corporation auto effects", zap.Error(err))
+		return fmt.Errorf("failed to apply corporation auto effects: %w", err)
+	}
 
-		for _, effect := range passiveEffects {
+	// 10b. BUSINESS LOGIC: Register corporation trigger effects
+	// The helper returns CardEffect structs (read-only), we add them to player state (mutation)
+	triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
+	if len(triggerEffects) > 0 {
+		log.Info("⚡ Registering corporation trigger effects",
+			zap.Int("effect_count", len(triggerEffects)))
+
+		for _, effect := range triggerEffects {
 			player.Effects().AddEffect(effect)
-			log.Debug("✅ Registered passive effect",
+			log.Debug("✅ Registered trigger effect",
 				zap.String("card_id", effect.CardID),
 				zap.String("card_name", effect.CardName),
 				zap.Int("behavior_index", effect.BehaviorIndex))
 
-			// Subscribe passive effects to relevant events
+			// Subscribe trigger effects to relevant events
 			subscribePassiveEffectToEvents(ctx, g, player, effect, log)
 		}
 	}

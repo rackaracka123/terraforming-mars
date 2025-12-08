@@ -119,7 +119,7 @@ func main() {
 	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
 	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
 	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, log)
-	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, log)
+	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, cardRegistry, log)
 	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
 
 	// Query actions for HTTP (4)

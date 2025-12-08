@@ -25,11 +25,13 @@ func NewCorporationProcessor(logger *zap.Logger) *CorporationProcessor {
 	}
 }
 
-// ApplyStartingEffects processes auto-corporation-start behaviors and applies starting resources/production
+// ApplyStartingEffects processes ONLY auto-corporation-start behaviors
+// and applies starting resources/production
 func (p *CorporationProcessor) ApplyStartingEffects(
 	ctx context.Context,
 	card *Card,
 	pl *player.Player,
+	g *game.Game,
 ) error {
 	log := p.logger.With(
 		zap.String("corporation_id", card.ID),
@@ -39,24 +41,61 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 
 	log.Info("💼 Applying corporation starting effects")
 
-	// Process behaviors with auto-corporation-start trigger
+	applier := NewBehaviorApplier(pl, g, card.Name, p.logger)
+
+	// Process ONLY behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
 		for _, trigger := range behavior.Triggers {
 			if trigger.Type == string(ResourceTriggerAutoCorporationStart) {
 				log.Info("✨ Found auto-corporation-start behavior",
 					zap.Int("outputs", len(behavior.Outputs)))
 
-				// Apply all outputs
-				for _, output := range behavior.Outputs {
-					if err := p.applyOutput(ctx, output, pl, log); err != nil {
-						return fmt.Errorf("failed to apply output: %w", err)
-					}
+				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
+					return fmt.Errorf("failed to apply starting effects: %w", err)
 				}
 			}
 		}
 	}
 
 	log.Info("✅ Corporation starting effects applied successfully")
+	return nil
+}
+
+// ApplyAutoEffects processes auto triggers WITHOUT conditions
+// (e.g., payment-substitute for Helion)
+func (p *CorporationProcessor) ApplyAutoEffects(
+	ctx context.Context,
+	card *Card,
+	pl *player.Player,
+	g *game.Game,
+) error {
+	log := p.logger.With(
+		zap.String("corporation_id", card.ID),
+		zap.String("corporation_name", card.Name),
+		zap.String("player_id", pl.ID()),
+	)
+
+	log.Info("💼 Applying corporation auto effects")
+
+	applier := NewBehaviorApplier(pl, g, card.Name, p.logger)
+
+	// Process behaviors with auto trigger WITHOUT conditions
+	for _, behavior := range card.Behaviors {
+		for _, trigger := range behavior.Triggers {
+			// Handle auto trigger WITHOUT conditions (immediate effects like payment-substitute)
+			// Auto triggers WITH conditions are passive effects handled separately
+			if trigger.Type == string(ResourceTriggerAuto) && trigger.Condition == nil {
+				log.Info("✨ Found auto behavior (no condition)",
+					zap.Int("outputs", len(behavior.Outputs)))
+
+				if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
+					return fmt.Errorf("failed to apply auto effects: %w", err)
+				}
+			}
+		}
+	}
+
+	log.Info("✅ Corporation auto effects applied successfully")
 	return nil
 }
 
@@ -95,10 +134,11 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	return nil
 }
 
-// GetPassiveEffects returns all passive effects (conditional triggers) from a corporation card
+// GetTriggerEffects returns all trigger effects (conditional triggers) from a corporation card
+// These are behaviors with auto triggers that have conditions, for event subscription
 // This is a READ-ONLY helper that parses the card behaviors and returns CardEffect structs
 // The action layer is responsible for adding these effects to the player
-func (p *CorporationProcessor) GetPassiveEffects(card *Card) []player.CardEffect {
+func (p *CorporationProcessor) GetTriggerEffects(card *Card) []player.CardEffect {
 	var effects []player.CardEffect
 
 	// Iterate through all behaviors and find conditional triggers
@@ -138,100 +178,6 @@ func (p *CorporationProcessor) GetManualActions(card *Card) []player.CardAction 
 	}
 
 	return actions
-}
-
-// applyOutput applies a single output to the player
-func (p *CorporationProcessor) applyOutput(
-	ctx context.Context,
-	output shared.ResourceCondition,
-	pl *player.Player,
-	log *zap.Logger,
-) error {
-	switch output.ResourceType {
-	// Basic resources
-	case shared.ResourceCredits:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: output.Amount,
-		})
-		log.Info("💰 Added credits", zap.Int("amount", output.Amount))
-
-	case shared.ResourceSteel:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceSteel: output.Amount,
-		})
-		log.Info("🔩 Added steel", zap.Int("amount", output.Amount))
-
-	case shared.ResourceTitanium:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceTitanium: output.Amount,
-		})
-		log.Info("⚙️ Added titanium", zap.Int("amount", output.Amount))
-
-	case shared.ResourcePlants:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourcePlants: output.Amount,
-		})
-		log.Info("🌱 Added plants", zap.Int("amount", output.Amount))
-
-	case shared.ResourceEnergy:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceEnergy: output.Amount,
-		})
-		log.Info("⚡ Added energy", zap.Int("amount", output.Amount))
-
-	case shared.ResourceHeat:
-		pl.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceHeat: output.Amount,
-		})
-		log.Info("🔥 Added heat", zap.Int("amount", output.Amount))
-
-	// Production resources
-	case shared.ResourceCreditsProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceCredits: output.Amount,
-		})
-		log.Info("💰 Added credits production", zap.Int("amount", output.Amount))
-
-	case shared.ResourceSteelProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceSteel: output.Amount,
-		})
-		log.Info("🔩 Added steel production", zap.Int("amount", output.Amount))
-
-	case shared.ResourceTitaniumProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceTitanium: output.Amount,
-		})
-		log.Info("⚙️ Added titanium production", zap.Int("amount", output.Amount))
-
-	case shared.ResourcePlantsProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourcePlants: output.Amount,
-		})
-		log.Info("🌱 Added plants production", zap.Int("amount", output.Amount))
-
-	case shared.ResourceEnergyProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceEnergy: output.Amount,
-		})
-		log.Info("⚡ Added energy production", zap.Int("amount", output.Amount))
-
-	case shared.ResourceHeatProduction:
-		pl.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceHeat: output.Amount,
-		})
-		log.Info("🔥 Added heat production", zap.Int("amount", output.Amount))
-
-	case shared.ResourceTR:
-		pl.Resources().UpdateTerraformRating(output.Amount)
-		log.Info("🌍 Added terraform rating", zap.Int("amount", output.Amount))
-
-	default:
-		log.Warn("⚠️ Unhandled output type in corporation starting effects",
-			zap.String("type", string(output.ResourceType)))
-	}
-
-	return nil
 }
 
 // createForcedAction creates a forced first action based on the output
