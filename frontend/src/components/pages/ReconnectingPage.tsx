@@ -59,43 +59,35 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         }
 
         // Ensure WebSocket is ready and attempt reconnection
-        // Attempting to reconnect: playerName, gameId, playerId
-        const reconnectionResult = await globalWebSocketManager.playerConnect(
-          playerName,
-          gameId,
-          playerId,
+        // playerConnect sends the reconnect message, game state updates come via WebSocket
+        await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+
+        // CRITICAL FIX: Set the current player ID in globalWebSocketManager
+        // This ensures the GameInterface component knows which player this client represents
+        globalWebSocketManager.setCurrentPlayerId(playerId);
+
+        // Update localStorage with fresh data
+        localStorage.setItem(
+          "terraforming-mars-game",
+          JSON.stringify({
+            gameId: game.id,
+            playerId: playerId,
+            playerName: playerName,
+            timestamp: Date.now(),
+          }),
         );
-        // Reconnection successful
 
-        if (reconnectionResult.game) {
-          // CRITICAL FIX: Set the current player ID in globalWebSocketManager
-          // This ensures the GameInterface component knows which player this client represents
-          globalWebSocketManager.setCurrentPlayerId(
-            reconnectionResult.playerId,
-          );
-
-          // Update localStorage with fresh data
-          localStorage.setItem(
-            "terraforming-mars-game",
-            JSON.stringify({
-              gameId: reconnectionResult.game.id,
-              playerId: reconnectionResult.playerId,
-              playerName: reconnectionResult.playerName,
-              timestamp: Date.now(),
-            }),
-          );
-
-          // Navigate to game with reconnected state
-          navigate("/game", {
-            state: {
-              game: reconnectionResult.game,
-              playerId: reconnectionResult.playerId,
-              playerName: reconnectionResult.playerName,
-              isReconnection: true,
-            },
-            replace: true,
-          });
-        }
+        // Navigate to game with reconnected state
+        // Game state will be updated reactively via WebSocket game-updated events
+        navigate("/game", {
+          state: {
+            game: game,
+            playerId: playerId,
+            playerName: playerName,
+            isReconnection: true,
+          },
+          replace: true,
+        });
       } catch (error: any) {
         console.error("Reconnection failed:", error);
         setError(error.message || "Reconnection failed");

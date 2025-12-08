@@ -22,7 +22,6 @@ import {
   MessageTypeActionSkipAction,
   MessageTypeActionPlayCard,
   MessageTypeActionCardAction,
-  MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
   MessageTypeActionConfirmSellPatents,
   MessageTypeActionConfirmProductionCards,
@@ -48,7 +47,6 @@ export class WebSocketService {
   private reconnectDelay = 1000;
   private currentGameId: string | null = null;
   private currentPlayerId: string | null = null;
-  private isConnecting = false;
   private pendingConnection: Promise<void> | null = null;
   private shouldReconnect = true;
 
@@ -68,7 +66,6 @@ export class WebSocketService {
     }
 
     // Create new connection promise
-    this.isConnecting = true;
     this.pendingConnection = new Promise((resolve, reject) => {
       try {
         // Close existing connection if it exists
@@ -80,7 +77,6 @@ export class WebSocketService {
 
         this.ws.onopen = () => {
           this.isConnected = true;
-          this.isConnecting = false;
           this.pendingConnection = null;
           this.reconnectAttempts = 0;
           this.emit("connect");
@@ -106,7 +102,6 @@ export class WebSocketService {
         this.ws.onclose = (event) => {
           // WebSocket connection closed
           this.isConnected = false;
-          this.isConnecting = false;
           this.emit("disconnect");
 
           // Only attempt reconnect if it was an unexpected closure and we should reconnect
@@ -117,7 +112,6 @@ export class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error("WebSocket error:", error);
-          this.isConnecting = false;
           this.pendingConnection = null;
           this.emit("error", error);
           if (!this.isConnected) {
@@ -361,7 +355,6 @@ export class WebSocketService {
       this.ws = null;
     }
     this.isConnected = false;
-    this.isConnecting = false;
     this.currentGameId = null;
     this.currentPlayerId = null;
   }

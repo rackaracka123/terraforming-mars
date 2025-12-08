@@ -101,19 +101,14 @@ export interface UnplayableReason {
 /**
  * Counts tags from a player's played cards
  */
-async function countPlayerTags(
-  player: PlayerDto,
-  tagType?: string,
-): Promise<number> {
+function countPlayerTags(player: PlayerDto, tagType?: string): number {
   if (!player.playedCards || player.playedCards.length === 0) {
     return 0;
   }
 
-  const cards = await fetchAllCards();
   let count = 0;
 
-  for (const cardId of player.playedCards) {
-    const card = cards.get(cardId);
+  for (const card of player.playedCards) {
     if (card && card.tags) {
       if (tagType) {
         count += card.tags.filter(
@@ -508,7 +503,7 @@ async function checkRequirement(
 
     case "tags": {
       if (tag) {
-        const tagCount = await countPlayerTags(player, tag);
+        const tagCount = countPlayerTags(player, tag);
         const requiredCount = min || 1;
         if (tagCount < requiredCount) {
           return {

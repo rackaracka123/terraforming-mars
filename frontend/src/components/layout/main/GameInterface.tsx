@@ -42,10 +42,7 @@ import {
   PlayerActionDto,
   ResourceType,
 } from "@/types/generated/api-types.ts";
-import {
-  UnplayableReason,
-  fetchAllCards,
-} from "@/utils/cardPlayabilityUtils.ts";
+import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import {
   shouldShowPaymentModal,
   createDefaultPayment,
