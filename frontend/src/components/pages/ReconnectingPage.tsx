@@ -60,7 +60,11 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
 
         // Ensure WebSocket is ready and attempt reconnection
         // playerConnect sends the reconnect message, game state updates come via WebSocket
-        await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+        await globalWebSocketManager.playerConnect(
+          playerName,
+          gameId,
+          playerId,
+        );
 
         // CRITICAL FIX: Set the current player ID in globalWebSocketManager
         // This ensures the GameInterface component knows which player this client represents

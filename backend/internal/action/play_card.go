@@ -409,4 +409,3 @@ func (a *PlayCardAction) applyCardBehaviors(
 	log.Info("✅ All card behaviors processed successfully")
 	return nil
 }
-
