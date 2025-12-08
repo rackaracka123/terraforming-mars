@@ -95,6 +95,13 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 			zap.Int("behavior_index", effect.BehaviorIndex))
 	}
 
+	// 5c. Recalculate requirement modifiers (discounts from corporation effects)
+	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	modifiers := calculator.Calculate(player)
+	player.Effects().SetRequirementModifiers(modifiers)
+	log.Debug("📊 Calculated requirement modifiers",
+		zap.Int("modifier_count", len(modifiers)))
+
 	// 6. Register corporation trigger effects
 	triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
 	for _, effect := range triggerEffects {

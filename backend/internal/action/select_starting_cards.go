@@ -215,6 +215,13 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Strings("card_ids_added", cardIDs),
 		zap.Int("card_count", len(cardIDs)))
 
+	// 12a. BUSINESS LOGIC: Recalculate requirement modifiers (discounts from corporation effects + cards in hand)
+	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	modifiers := calculator.Calculate(player)
+	player.Effects().SetRequirementModifiers(modifiers)
+	log.Info("📊 Calculated requirement modifiers",
+		zap.Int("modifier_count", len(modifiers)))
+
 	// 13. BUSINESS LOGIC: Setup forced first action if corporation requires it
 	if err := a.corpProc.SetupForcedFirstAction(ctx, corpCard, g, playerID); err != nil {
 		log.Error("Failed to setup forced first action", zap.Error(err))

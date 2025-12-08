@@ -57,3 +57,14 @@ func (e *Effects) AddEffect(effect CardEffect) {
 	defer e.mu.Unlock()
 	e.effects = append(e.effects, effect)
 }
+
+func (e *Effects) SetRequirementModifiers(modifiers []shared.RequirementModifier) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if modifiers == nil {
+		e.requirementModifiers = []shared.RequirementModifier{}
+	} else {
+		e.requirementModifiers = make([]shared.RequirementModifier, len(modifiers))
+		copy(e.requirementModifiers, modifiers)
+	}
+}

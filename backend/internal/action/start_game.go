@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 )
@@ -15,18 +17,21 @@ import (
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	gameRepo         game.GameRepository
+	globalSubscriber *GlobalSubscriber
+	logger           *zap.Logger
 }
 
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *StartGameAction {
 	return &StartGameAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		gameRepo:         gameRepo,
+		globalSubscriber: NewGlobalSubscriber(cardRegistry, logger),
+		logger:           logger,
 	}
 }
 
@@ -118,7 +123,10 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 
 	log.Info("✅ Starting cards distributed to all players")
 
-	// 11. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
+	// 11. Setup global event subscriptions for this game
+	a.globalSubscriber.SetupGlobalSubscribers(g)
+
+	// 12. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
 	//    - g.SetTurnOrder() publishes BroadcastEvent
 	//    - game.UpdateStatus() publishes GameStatusChangedEvent + BroadcastEvent
 	//    - g.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
