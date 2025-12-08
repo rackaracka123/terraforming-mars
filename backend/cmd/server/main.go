@@ -99,7 +99,7 @@ func main() {
 	selectTileAction := action.NewSelectTileAction(gameRepo, log)
 
 	// Turn management (3)
-	startGameAction := action.NewStartGameAction(gameRepo, log)
+	startGameAction := action.NewStartGameAction(gameRepo, cardRegistry, log)
 	skipActionAction := action.NewSkipActionAction(gameRepo, log)
 	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
 
