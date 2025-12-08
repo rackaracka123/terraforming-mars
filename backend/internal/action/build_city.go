@@ -99,12 +99,6 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//     - g.ProcessNextTile() -> g.SetPendingTileSelection() publishes BroadcastEvent
-	//     - player.Resources().Add() publishes ResourcesChangedEvent
-	//     - player.Resources().AddProduction() publishes ProductionChangedEvent
-	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ City built successfully, tile selection ready",
 		zap.Int("new_credit_production", production.Credits),
 		zap.Int("remaining_credits", resources.Credits))

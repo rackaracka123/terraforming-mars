@@ -78,14 +78,6 @@ func (a *SetGlobalParametersAction) Execute(ctx context.Context, gameID string, 
 		}
 	}
 
-	log.Info("✅ Global parameters updated")
-
-	// 5. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - game.GlobalParameters().SetTemperature() publishes TemperatureChangedEvent + BroadcastEvent
-	//    - game.GlobalParameters().SetOxygen() publishes OxygenChangedEvent + BroadcastEvent
-	//    - game.GlobalParameters().SetOceans() publishes OceansChangedEvent + BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin set global parameters completed")
 	return nil
 }

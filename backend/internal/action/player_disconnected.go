@@ -52,12 +52,6 @@ func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, p
 	// 3. Update player connection status to disconnected
 	player.SetConnected(false)
 
-	log.Info("✅ Player connection status updated to disconnected")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Turn().SetConnectionStatus() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Player disconnected successfully")
 	return nil
 }

@@ -99,11 +99,6 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - g.SetPendingTileSelectionQueue() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Plants converted successfully, greenery tile queued for placement",
 		zap.Int("plants_spent", requiredPlants))
 	return nil

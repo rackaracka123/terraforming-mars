@@ -82,10 +82,6 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 	log.Info("📋 Created pending card selection for sell patents",
 		zap.Int("available_cards", len(playerCards)))
 
-	// 8. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Selection().SetPendingCardSelection() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	// Note: DO NOT consume action here - happens in Phase 2 (confirm_sell_patents)
 
 	log.Info("✅ Sell patents initiated successfully, awaiting card selection")

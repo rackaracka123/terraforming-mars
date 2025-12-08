@@ -279,15 +279,6 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		}
 	}
 
-	// 16. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.SetCorporationID() publishes events
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent
-	//    - g.SetSelectStartingCardsPhase() publishes BroadcastEvent
-	//    - g.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
-	//    - g.SetCurrentTurn() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("🎉 Starting card selection completed successfully")
 	return nil
 }

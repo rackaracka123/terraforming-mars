@@ -182,14 +182,6 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		}
 	}
 
-	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent
-	//    - g.SetProductionPhase() publishes BroadcastEvent
-	//    - g.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
-	//    - g.SetCurrentTurn() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("🎉 Production card selection completed successfully")
 	return nil
 }

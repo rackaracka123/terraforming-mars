@@ -56,12 +56,6 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID st
 	// In production, you might want to add card existence validation via a card repository
 	player.Hand().AddCard(cardID)
 
-	log.Info("✅ Card added to player's hand")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin give card completed")
 	return nil
 }

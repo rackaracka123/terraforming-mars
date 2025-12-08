@@ -91,10 +91,6 @@ func (a *BuildPowerPlantAction) Execute(
 	// 8. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 9. NO MANUAL BROADCAST - Events automatically trigger:
-	//     - ResourcesChangedEvent → SessionManager → WebSocket broadcast
-	//     - ProductionChangedEvent → SessionManager → WebSocket broadcast
-
 	log.Info("✅ Power plant built successfully",
 		zap.Int("new_energy_production", production.Energy),
 		zap.Int("remaining_credits", resources.Credits))

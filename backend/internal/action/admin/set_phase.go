@@ -49,12 +49,6 @@ func (a *SetPhaseAction) Execute(ctx context.Context, gameID string, phase game.
 		return fmt.Errorf("failed to update phase: %w", err)
 	}
 
-	log.Info("✅ Game phase updated")
-
-	// 3. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - game.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin set phase completed")
 	return nil
 }

@@ -59,12 +59,6 @@ func (a *SetResourcesAction) Execute(ctx context.Context, gameID string, playerI
 	// 3. Update player resources
 	player.Resources().Set(resources)
 
-	log.Info("✅ Player resources updated")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Set() publishes ResourcesChangedEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin set resources completed")
 	return nil
 }

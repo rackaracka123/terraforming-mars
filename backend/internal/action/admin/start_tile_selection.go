@@ -74,13 +74,6 @@ func (a *StartTileSelectionAction) Execute(ctx context.Context, gameID string, p
 		return fmt.Errorf("failed to start tile selection: %w", err)
 	}
 
-	log.Info("✅ Tile selection started")
-
-	// 6. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - g.SetPendingTileSelectionQueue() publishes GameStateChangedEvent
-	//    - g.ProcessNextTile() sets PendingTileSelection and publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin start tile selection completed")
 	return nil
 }

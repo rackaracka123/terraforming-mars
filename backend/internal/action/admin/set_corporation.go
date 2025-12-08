@@ -126,8 +126,6 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("failed to setup forced first action: %w", err)
 	}
 
-	// NO MANUAL BROADCAST - BroadcastEvent automatically triggered by state changes
-
 	log.Info("✅ Admin set corporation completed with all effects applied",
 		zap.String("corporation_name", corpCard.Name))
 	return nil

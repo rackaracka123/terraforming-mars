@@ -186,12 +186,6 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 		zap.String("previous_player", playerID),
 		zap.String("current_player", nextPlayerID))
 
-	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - currentPlayer.Turn().SetPassed() publishes events
-	//    - g.SetCurrentTurn() publishes BroadcastEvent
-	//    - (or production phase publishes many events)
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	return nil
 }
 

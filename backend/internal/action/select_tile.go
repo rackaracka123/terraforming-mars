@@ -217,14 +217,6 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		return fmt.Errorf("failed to process next tile: %w", err)
 	}
 
-	// 12. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//     - g.Board().UpdateTileOccupancy() publishes TilePlacedEvent and BroadcastEvent
-	//     - player.Resources().Add() publishes ResourcesChangedEvent (for bonuses)
-	//     - player.Hand().AddCard() publishes CardHandUpdatedEvent (for card draw bonuses)
-	//     - g.GlobalParameters().IncreaseOxygen/IncreaseOceans() publishes events
-	//     - g.SetPendingTileSelection() publishes BroadcastEvent
-	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Tile selected and placed successfully",
 		zap.String("tile_type", tileType),
 		zap.String("position", selectedHex))

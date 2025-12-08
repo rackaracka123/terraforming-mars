@@ -104,12 +104,6 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - g.GlobalParameters().IncreaseTemperature() publishes TemperatureChangedEvent + BroadcastEvent
-	//    - player.Resources().UpdateTerraformRating() publishes TerraformRatingChangedEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Asteroid launched successfully",
 		zap.Int("remaining_credits", resources.Credits))
 	return nil

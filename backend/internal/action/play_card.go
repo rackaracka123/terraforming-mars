@@ -187,12 +187,6 @@ func (a *PlayCardAction) Execute(
 	log.Debug("📊 Recalculated requirement modifiers",
 		zap.Int("modifier_count", len(modifiers)))
 
-	// 15. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//     - player.Hand().RemoveCard() publishes CardHandUpdatedEvent
-	//     - player.PlayedCards().AddCard() publishes CardPlayedEvent
-	//     - player.Resources().Subtract() publishes ResourcesChangedEvent
-	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),
 		zap.Int("card_cost", card.Cost),

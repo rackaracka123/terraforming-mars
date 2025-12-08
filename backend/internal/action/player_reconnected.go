@@ -52,16 +52,6 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, pl
 	// 3. Update player connection status to connected
 	player.SetConnected(true)
 
-	log.Info("✅ Player connection status updated to connected")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Turn().SetConnectionStatus() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-	//
-	// NOTE: In old architecture, this action explicitly sent state to reconnected player first,
-	// then broadcast to all. In new architecture, the event-driven broadcast handles both.
-	// The Broadcaster will send personalized state to all players including the reconnected one.
-
 	log.Info("✅ Player reconnected successfully")
 	return nil
 }

@@ -56,12 +56,6 @@ func (a *SetCurrentTurnAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("failed to update current turn: %w", err)
 	}
 
-	log.Info("✅ Current turn updated")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - game.SetCurrentTurn() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin set current turn completed")
 	return nil
 }

@@ -155,16 +155,6 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	// 14. Clear pending card draw selection (card selection state on Player)
 	player.Selection().SetPendingCardDrawSelection(nil)
 
-	// 15. Event publishing - domain events automatically published by repository updates
-	// NOTE: CardDrawConfirmedEvent not yet migrated to new architecture
-	// BroadcastEvent will be triggered by repository updates above
-
-	// 16. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - player.Hand().AddCard() publishes CardHandUpdatedEvent
-	//    - player.Selection().SetPendingCardDrawSelection() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Card draw confirmation completed",
 		zap.String("source", selection.Source),
 		zap.Int("cards_taken", len(cardsToTake)),

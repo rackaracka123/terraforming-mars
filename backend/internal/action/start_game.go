@@ -126,14 +126,6 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	// 11. Setup global event subscriptions for this game
 	a.globalSubscriber.SetupGlobalSubscribers(g)
 
-	// 12. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - g.SetTurnOrder() publishes BroadcastEvent
-	//    - game.UpdateStatus() publishes GameStatusChangedEvent + BroadcastEvent
-	//    - g.UpdatePhase() publishes GamePhaseChangedEvent + BroadcastEvent
-	//    - g.SetCurrentTurn() publishes BroadcastEvent
-	//    - g.SetSelectStartingCardsPhase() publishes BroadcastEvent (called in distributeStartingCards)
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("🎉 Game started successfully")
 	return nil
 }

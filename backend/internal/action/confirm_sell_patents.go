@@ -132,12 +132,6 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 		a.ConsumePlayerAction(g, log)
 	}
 
-	// 13. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - player.Hand().RemoveCard() publishes CardHandUpdatedEvent
-	//    - player.Selection().SetPendingCardSelection() publishes events
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Sell patents completed successfully",
 		zap.Int("cards_sold", len(selectedCardIDs)),
 		zap.Int("credits_earned", totalReward))

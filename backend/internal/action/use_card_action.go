@@ -104,12 +104,6 @@ func (a *UseCardActionAction) Execute(
 		log.Warn("⚠️ Action not consumed (unlimited actions or already at 0)")
 	}
 
-	// NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - p.Resources().Add/Deduct() publishes ResourcesChangedEvent
-	//    - g.GlobalParameters() methods publish domain events
-	//    - CurrentTurn().ConsumeAction() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("🎉 Card action executed successfully")
 	return nil
 }

@@ -116,12 +116,6 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	// 10. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 11. NO MANUAL BROADCAST - Events automatically trigger:
-	//     - TemperatureChangedEvent → SessionManager → WebSocket broadcast
-	//     - ResourcesChangedEvent → SessionManager → WebSocket broadcast
-	//     - TerraformRatingChangedEvent → SessionManager → WebSocket broadcast
-	//     - Any passive card effects triggered by temperature change
-
 	log.Info("✅ Heat converted successfully",
 		zap.Int("heat_spent", requiredHeat))
 	return nil

@@ -92,11 +92,6 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//     - g.ProcessNextTile() -> g.SetPendingTileSelection() publishes BroadcastEvent
-	//     - player.Resources().Add() publishes ResourcesChangedEvent
-	//     Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Greenery tile selection ready",
 		zap.Int("remaining_credits", resources.Credits))
 	return nil

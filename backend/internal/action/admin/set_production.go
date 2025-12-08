@@ -59,12 +59,6 @@ func (a *SetProductionAction) Execute(ctx context.Context, gameID string, player
 	// 3. Update player production
 	player.Resources().SetProduction(production)
 
-	log.Info("✅ Player production updated")
-
-	// 4. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().SetProduction() publishes ProductionChangedEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Admin set production completed")
 	return nil
 }

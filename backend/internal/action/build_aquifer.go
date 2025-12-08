@@ -96,12 +96,6 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 	// 9. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
-	// 10. NO MANUAL BROADCAST - BroadcastEvent automatically triggered by:
-	//    - player.Resources().Add() publishes ResourcesChangedEvent
-	//    - player.Resources().UpdateTerraformRating() publishes TerraformRatingChangedEvent
-	//    - g.SetPendingTileSelectionQueue() publishes BroadcastEvent
-	//    Broadcaster subscribes to BroadcastEvent and handles WebSocket updates
-
 	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",
 		zap.Int("new_terraform_rating", newTR),
 		zap.Int("remaining_credits", resources.Credits))
