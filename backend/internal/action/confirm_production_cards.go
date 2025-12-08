@@ -165,6 +165,13 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				zap.Int("available_actions", availableActions))
 		}
 
+		// Reset manual action play counts for all players (new generation)
+		for _, p := range allPlayers {
+			p.Actions().ResetPlayCounts()
+			log.Debug("🔄 Reset action play counts for player",
+				zap.String("player_id", p.ID()))
+		}
+
 		// Clear production phase data for all players (triggers frontend modal to close)
 		for _, p := range allPlayers {
 			if err := g.SetProductionPhase(ctx, p.ID(), nil); err != nil {

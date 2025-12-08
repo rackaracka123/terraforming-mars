@@ -45,3 +45,13 @@ func (a *Actions) AddAction(action CardAction) {
 	defer a.mu.Unlock()
 	a.actions = append(a.actions, action)
 }
+
+// ResetPlayCounts resets the PlayCount for all actions to 0
+// Called at the start of each new generation
+func (a *Actions) ResetPlayCounts() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i := range a.actions {
+		a.actions[i].PlayCount = 0
+	}
+}
