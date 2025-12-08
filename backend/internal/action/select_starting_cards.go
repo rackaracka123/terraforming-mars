@@ -133,7 +133,23 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		return fmt.Errorf("failed to apply corporation auto effects: %w", err)
 	}
 
-	// 10b. BUSINESS LOGIC: Register corporation trigger effects
+	// 10b. BUSINESS LOGIC: Register corporation auto effects for display
+	// These are permanent effects like payment substitutes that should show in the effects list
+	autoEffects := a.corpProc.GetAutoEffects(corpCard)
+	if len(autoEffects) > 0 {
+		log.Info("✨ Registering corporation auto effects for display",
+			zap.Int("effect_count", len(autoEffects)))
+
+		for _, effect := range autoEffects {
+			player.Effects().AddEffect(effect)
+			log.Debug("✅ Registered auto effect",
+				zap.String("card_id", effect.CardID),
+				zap.String("card_name", effect.CardName),
+				zap.Int("behavior_index", effect.BehaviorIndex))
+		}
+	}
+
+	// 10d. BUSINESS LOGIC: Register corporation trigger effects
 	// The helper returns CardEffect structs (read-only), we add them to player state (mutation)
 	triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
 	if len(triggerEffects) > 0 {
@@ -152,7 +168,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		}
 	}
 
-	// 10c. BUSINESS LOGIC: Register corporation manual actions
+	// 10e. BUSINESS LOGIC: Register corporation manual actions
 	// The helper returns CardAction structs (read-only), we add them to player state (mutation)
 	manualActions := a.corpProc.GetManualActions(corpCard)
 	if len(manualActions) > 0 {

@@ -134,6 +134,33 @@ func (p *CorporationProcessor) SetupForcedFirstAction(
 	return nil
 }
 
+// GetAutoEffects returns all auto effects (without conditions) from a corporation card
+// These are behaviors with auto triggers without conditions (e.g., payment-substitute for Helion)
+// They are applied immediately AND registered in effects list for display purposes
+// This is a READ-ONLY helper that parses the card behaviors and returns CardEffect structs
+// The action layer is responsible for adding these effects to the player
+func (p *CorporationProcessor) GetAutoEffects(card *Card) []player.CardEffect {
+	var effects []player.CardEffect
+
+	// Iterate through all behaviors and find auto triggers without conditions
+	for behaviorIndex, behavior := range card.Behaviors {
+		for _, trigger := range behavior.Triggers {
+			// Auto triggers WITHOUT conditions are immediate/permanent effects
+			if trigger.Type == string(ResourceTriggerAuto) && trigger.Condition == nil {
+				effect := player.CardEffect{
+					CardID:        card.ID,
+					CardName:      card.Name,
+					BehaviorIndex: behaviorIndex,
+					Behavior:      behavior,
+				}
+				effects = append(effects, effect)
+			}
+		}
+	}
+
+	return effects
+}
+
 // GetTriggerEffects returns all trigger effects (conditional triggers) from a corporation card
 // These are behaviors with auto triggers that have conditions, for event subscription
 // This is a READ-ONLY helper that parses the card behaviors and returns CardEffect structs

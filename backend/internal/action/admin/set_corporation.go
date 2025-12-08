@@ -86,6 +86,15 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 		return fmt.Errorf("failed to apply corporation auto effects: %w", err)
 	}
 
+	// 5b. Register corporation auto effects for display
+	autoEffects := a.corpProc.GetAutoEffects(corpCard)
+	for _, effect := range autoEffects {
+		player.Effects().AddEffect(effect)
+		log.Debug("✅ Registered auto effect",
+			zap.String("card_name", effect.CardName),
+			zap.Int("behavior_index", effect.BehaviorIndex))
+	}
+
 	// 6. Register corporation trigger effects
 	triggerEffects := a.corpProc.GetTriggerEffects(corpCard)
 	for _, effect := range triggerEffects {
