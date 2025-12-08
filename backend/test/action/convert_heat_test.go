@@ -18,9 +18,8 @@ func setupActiveGame(t *testing.T) (*game.Game, game.GameRepository, string) {
 	// Start game
 	testutil.StartTestGame(t, testGame)
 
-	// Get first player ID
-	players := testGame.GetAllPlayers()
-	playerID := players[0].ID()
+	// Get the current turn player ID (set by StartTestGame)
+	playerID := testGame.CurrentTurn().PlayerID()
 
 	return testGame, repo, playerID
 }

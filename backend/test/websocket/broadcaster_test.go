@@ -2,6 +2,7 @@ package websocket_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 // MockHub implements a simple hub for testing
 type MockHub struct {
 	SentMessages []MockMessage
+	mu           sync.Mutex
 }
 
 // Broadcaster for testing
@@ -75,6 +77,8 @@ func NewMockHub() *MockHub {
 }
 
 func (h *MockHub) SendToPlayer(gameID, playerID string, message interface{}) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.SentMessages = append(h.SentMessages, MockMessage{
 		GameID:      gameID,
 		PlayerID:    playerID,
