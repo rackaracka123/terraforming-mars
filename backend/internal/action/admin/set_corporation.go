@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	playerPkg "terraforming-mars-backend/internal/game/player"
 )
 
 // SetCorporationAction handles the admin action to set a player's corporation
@@ -111,13 +113,29 @@ func (a *SetCorporationAction) Execute(ctx context.Context, gameID string, playe
 			zap.Int("behavior_index", effect.BehaviorIndex))
 	}
 
-	// 7. Register corporation manual actions
-	manualActions := a.corpProc.GetManualActions(corpCard)
-	for _, action := range manualActions {
-		player.Actions().AddAction(action)
-		log.Debug("✅ Registered manual action",
-			zap.String("card_name", action.CardName),
-			zap.Int("behavior_index", action.BehaviorIndex))
+	// 7. Register corporation manual actions with self-contained availability checking
+	for behaviorIndex, behavior := range corpCard.Behaviors {
+		if gamecards.HasManualTrigger(behavior) {
+			log.Debug("🎯 Found corporation manual-trigger behavior, registering as player action")
+
+			// Create availability checker closure (same pattern as select_starting_cards.go)
+			checkFunc := action.CreateActionAvailabilityChecker(g, player, corpCard, behaviorIndex, a.cardRegistry)
+
+			// Create and add the action with self-contained availability checking
+			cardAction := playerPkg.NewCardAction(
+				corpCard.ID,
+				corpCard.Name,
+				behaviorIndex,
+				behavior,
+				checkFunc,
+			)
+
+			player.Actions().AddAction(cardAction)
+			log.Debug("✅ Registered corporation manual action",
+				zap.String("card_id", cardAction.CardID),
+				zap.String("card_name", cardAction.CardName),
+				zap.Int("behavior_index", cardAction.BehaviorIndex))
+		}
 	}
 
 	// 8. Setup forced first action if corporation requires it

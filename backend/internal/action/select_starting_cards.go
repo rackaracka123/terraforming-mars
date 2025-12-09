@@ -9,6 +9,7 @@ import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -168,16 +169,26 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		}
 	}
 
-	// 10e. BUSINESS LOGIC: Register corporation manual actions
-	// The helper returns CardAction structs (read-only), we add them to player state (mutation)
-	manualActions := a.corpProc.GetManualActions(corpCard)
-	if len(manualActions) > 0 {
-		log.Info("🎯 Registering corporation manual actions",
-			zap.Int("action_count", len(manualActions)))
+	// 10e. BUSINESS LOGIC: Register corporation manual actions with self-contained availability checking
+	// Find manual behaviors in corporation card
+	for behaviorIndex, behavior := range corpCard.Behaviors {
+		if gamecards.HasManualTrigger(behavior) {
+			log.Info("🎯 Found corporation manual-trigger behavior, registering as player action")
 
-		for _, action := range manualActions {
+			// Create availability checker closure (same as play_card.go)
+			checkFunc := CreateActionAvailabilityChecker(g, player, corpCard, behaviorIndex, a.cardRegistry)
+
+			// Create and add the action with self-contained availability checking
+			action := playerPkg.NewCardAction(
+				corpCard.ID,
+				corpCard.Name,
+				behaviorIndex,
+				behavior,
+				checkFunc,
+			)
+
 			player.Actions().AddAction(action)
-			log.Debug("✅ Registered manual action",
+			log.Debug("✅ Registered corporation manual action",
 				zap.String("card_id", action.CardID),
 				zap.String("card_name", action.CardName),
 				zap.Int("behavior_index", action.BehaviorIndex))

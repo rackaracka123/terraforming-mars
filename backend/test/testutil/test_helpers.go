@@ -571,3 +571,88 @@ func AssertFalse(t *testing.T, condition bool, message string) {
 		t.Fatalf("%s: expected false, got true", message)
 	}
 }
+
+// CreateTestGame creates a game with specified number of players (simplified without broadcaster)
+func CreateTestGame(t *testing.T, numPlayers int) *game.Game {
+	t.Helper()
+
+	cardRegistry := CreateTestCardRegistry()
+
+	// Create game
+	settings := game.GameSettings{
+		MaxPlayers: 4,
+		CardPacks:  []string{"base"},
+	}
+
+	testGame := game.NewGame("test-game-id", "", settings)
+	allCards := cardRegistry.GetAll()
+
+	// Separate cards by type
+	projectCards := make([]string, 0)
+	corpCards := make([]string, 0)
+	preludeCards := make([]string, 0)
+
+	for _, card := range allCards {
+		switch card.Type {
+		case gamecards.CardTypeCorporation:
+			corpCards = append(corpCards, card.ID)
+		case gamecards.CardTypePrelude:
+			preludeCards = append(preludeCards, card.ID)
+		default:
+			projectCards = append(projectCards, card.ID)
+		}
+	}
+
+	// Create and set deck
+	gameDeck := deck.NewDeck(testGame.ID(), projectCards, corpCards, preludeCards)
+	testGame.SetDeck(gameDeck)
+
+	// Add players
+	ctx := context.Background()
+	for i := 0; i < numPlayers; i++ {
+		playerID := fmt.Sprintf("player-%d", i+1)
+		playerName := "Player " + string(rune('A'+i))
+
+		// Create player
+		newPlayer := player.NewPlayer(testGame.EventBus(), testGame.ID(), playerID, playerName)
+
+		// Add to game
+		err := testGame.AddPlayer(ctx, newPlayer)
+		if err != nil {
+			t.Fatalf("Failed to add player %d: %v", i, err)
+		}
+	}
+
+	return testGame
+}
+
+// CreateMockCardRegistry creates a simple mock card registry for testing
+func CreateMockCardRegistry() cards.CardRegistry {
+	// Reuse existing test card registry
+	return CreateTestCardRegistry()
+}
+
+// CreateTestCardAction creates a test card action for testing action playability
+func CreateTestCardAction() player.CardAction {
+	return player.CardAction{
+		CardID:        "test-action-card",
+		CardName:      "Test Action Card",
+		BehaviorIndex: 0,
+		Behavior: shared.CardBehavior{
+			Triggers: []shared.Trigger{{Type: "manual"}},
+			Inputs: []shared.ResourceCondition{
+				{
+					ResourceType: shared.ResourceEnergy,
+					Amount:       2,
+				},
+			},
+			Outputs: []shared.ResourceCondition{
+				{
+					ResourceType: shared.ResourceHeat,
+					Amount:       2,
+				},
+			},
+		},
+		PlayCount: 0,
+	}
+}

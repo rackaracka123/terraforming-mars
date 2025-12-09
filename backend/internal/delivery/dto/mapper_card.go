@@ -3,7 +3,6 @@ package dto
 import (
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/action/validator"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -396,12 +395,14 @@ func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
 
 // ToCardDtoWithPlayability converts a Card to CardDto with playability information
 // This is used for cards in a player's hand to indicate if they can be played
+// Reads playability state that is maintained by PlayabilityManager via events
 func ToCardDtoWithPlayability(card gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry) CardDto {
 	// Start with base card DTO
 	dto := ToCardDto(card)
 
-	// Calculate playability
-	result := validator.CanPlayCard(&card, g, p, cardRegistry)
+	// Read playability state from Hand component
+	// PlayabilityManager keeps this up-to-date via event subscriptions
+	result := p.Hand().GetPlayability(card.ID)
 
 	// Add playability fields
 	dto.IsPlayable = &result.IsPlayable

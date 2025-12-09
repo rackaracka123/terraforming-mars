@@ -24,31 +24,37 @@ type Player struct {
 	hasPassed bool
 
 	// Delegated Components (private, exposed via accessors)
-	hand        *Hand
-	playedCards *PlayedCards
-	resources   *PlayerResources
-	selection   *Selection
-	actions     *Actions
-	effects     *Effects
+	hand             *Hand
+	playedCards      *PlayedCards
+	resources        *PlayerResources
+	selection        *Selection
+	actions          *Actions
+	effects          *Effects
+	standardProjects *StandardProjects
 }
 
 // NewPlayer creates a new player with initialized components
 // playerID must be provided (generated at handler level for session persistence)
 func NewPlayer(eventBus *events.EventBusImpl, gameID, playerID, name string) *Player {
+	// Initialize actions component
+	actions := NewActions()
+	actions.SetInfrastructure(eventBus, playerID)
+
 	return &Player{
-		id:            playerID,
-		name:          name,
-		gameID:        gameID,
-		connected:     true, // Players start as connected when created
-		eventBus:      eventBus,
-		corporationID: "",
-		hasPassed:     false, // Players start not having passed
-		hand:          newHand(eventBus, gameID, playerID),
-		playedCards:   newPlayedCards(eventBus, gameID, playerID),
-		resources:     newResources(eventBus, gameID, playerID),
-		selection:     newSelection(eventBus, gameID, playerID),
-		actions:       NewActions(),
-		effects:       NewEffects(),
+		id:               playerID,
+		name:             name,
+		gameID:           gameID,
+		connected:        true, // Players start as connected when created
+		eventBus:         eventBus,
+		corporationID:    "",
+		hasPassed:        false, // Players start not having passed
+		hand:             newHand(eventBus, gameID, playerID),
+		playedCards:      newPlayedCards(eventBus, gameID, playerID),
+		resources:        newResources(eventBus, gameID, playerID),
+		selection:        newSelection(eventBus, gameID, playerID),
+		actions:          actions,
+		effects:          NewEffects(),
+		standardProjects: newStandardProjects(),
 	}
 }
 
@@ -115,6 +121,10 @@ func (p *Player) Actions() *Actions {
 
 func (p *Player) Effects() *Effects {
 	return p.effects
+}
+
+func (p *Player) StandardProjects() *StandardProjects {
+	return p.standardProjects
 }
 
 // ==================== Turn State ====================

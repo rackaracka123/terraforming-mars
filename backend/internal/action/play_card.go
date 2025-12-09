@@ -207,183 +207,12 @@ func hasTag(card *gamecards.Card, tag shared.CardTag) bool {
 
 // validateCardRequirements validates that the player and game state meet all card requirements
 func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player, cardRegistry cards.CardRegistry) error {
-	if len(card.Requirements) == 0 {
-		return nil // No requirements to validate
+	// Use shared requirement validator
+	errors := gamecards.ValidateCardRequirements(card, g, player, cardRegistry)
+	if len(errors) > 0 {
+		// Return first error for fail-fast validation
+		return errors[0]
 	}
-
-	for _, req := range card.Requirements {
-		switch req.Type {
-		case gamecards.RequirementTemperature:
-			temp := g.GlobalParameters().Temperature()
-			if req.Min != nil && temp < *req.Min {
-				return fmt.Errorf("temperature requirement not met: need %d°C, current %d°C", *req.Min, temp)
-			}
-			if req.Max != nil && temp > *req.Max {
-				return fmt.Errorf("temperature requirement not met: max %d°C, current %d°C", *req.Max, temp)
-			}
-
-		case gamecards.RequirementOxygen:
-			oxygen := g.GlobalParameters().Oxygen()
-			if req.Min != nil && oxygen < *req.Min {
-				return fmt.Errorf("oxygen requirement not met: need %d%%, current %d%%", *req.Min, oxygen)
-			}
-			if req.Max != nil && oxygen > *req.Max {
-				return fmt.Errorf("oxygen requirement not met: max %d%%, current %d%%", *req.Max, oxygen)
-			}
-
-		case gamecards.RequirementOceans:
-			oceans := g.GlobalParameters().Oceans()
-			if req.Min != nil && oceans < *req.Min {
-				return fmt.Errorf("ocean requirement not met: need %d, current %d", *req.Min, oceans)
-			}
-			if req.Max != nil && oceans > *req.Max {
-				return fmt.Errorf("ocean requirement not met: max %d, current %d", *req.Max, oceans)
-			}
-
-		case gamecards.RequirementTR:
-			tr := player.Resources().TerraformRating()
-			if req.Min != nil && tr < *req.Min {
-				return fmt.Errorf("terraform rating requirement not met: need %d, current %d", *req.Min, tr)
-			}
-			if req.Max != nil && tr > *req.Max {
-				return fmt.Errorf("terraform rating requirement not met: max %d, current %d", *req.Max, tr)
-			}
-
-		case gamecards.RequirementTags:
-			if req.Tag == nil {
-				return fmt.Errorf("tag requirement missing tag specification")
-			}
-
-			// Count tags across all played cards (including corporation)
-			tagCount := 0
-			for _, playedCardID := range player.PlayedCards().Cards() {
-				playedCard, err := cardRegistry.GetByID(playedCardID)
-				if err != nil {
-					// Skip cards that can't be found (shouldn't happen in normal gameplay)
-					continue
-				}
-				if hasTag(playedCard, *req.Tag) {
-					tagCount++
-				}
-			}
-
-			// Also count corporation tags if player has a corporation
-			if corpID := player.CorporationID(); corpID != "" {
-				corpCard, err := cardRegistry.GetByID(corpID)
-				if err == nil && hasTag(corpCard, *req.Tag) {
-					tagCount++
-				}
-			}
-
-			if req.Min != nil && tagCount < *req.Min {
-				return fmt.Errorf("tag requirement not met: need %d %s tags, have %d", *req.Min, *req.Tag, tagCount)
-			}
-			if req.Max != nil && tagCount > *req.Max {
-				return fmt.Errorf("tag requirement not met: max %d %s tags, have %d", *req.Max, *req.Tag, tagCount)
-			}
-
-		case gamecards.RequirementProduction:
-			if req.Resource == nil {
-				return fmt.Errorf("production requirement missing resource specification")
-			}
-			production := player.Resources().Production()
-			var currentProduction int
-
-			switch *req.Resource {
-			case shared.ResourceCreditsProduction:
-				currentProduction = production.Credits
-			case shared.ResourceSteelProduction:
-				currentProduction = production.Steel
-			case shared.ResourceTitaniumProduction:
-				currentProduction = production.Titanium
-			case shared.ResourcePlantsProduction:
-				currentProduction = production.Plants
-			case shared.ResourceEnergyProduction:
-				currentProduction = production.Energy
-			case shared.ResourceHeatProduction:
-				currentProduction = production.Heat
-			default:
-				return fmt.Errorf("invalid production resource type: %s", *req.Resource)
-			}
-
-			if req.Min != nil && currentProduction < *req.Min {
-				return fmt.Errorf("production requirement not met: need %d %s production, have %d", *req.Min, *req.Resource, currentProduction)
-			}
-			if req.Max != nil && currentProduction > *req.Max {
-				return fmt.Errorf("production requirement not met: max %d %s production, have %d", *req.Max, *req.Resource, currentProduction)
-			}
-
-		case gamecards.RequirementResource:
-			if req.Resource == nil {
-				return fmt.Errorf("resource requirement missing resource specification")
-			}
-			resources := player.Resources().Get()
-			var currentAmount int
-
-			switch *req.Resource {
-			case shared.ResourceCredits:
-				currentAmount = resources.Credits
-			case shared.ResourceSteel:
-				currentAmount = resources.Steel
-			case shared.ResourceTitanium:
-				currentAmount = resources.Titanium
-			case shared.ResourcePlants:
-				currentAmount = resources.Plants
-			case shared.ResourceEnergy:
-				currentAmount = resources.Energy
-			case shared.ResourceHeat:
-				currentAmount = resources.Heat
-			}
-
-			if req.Min != nil && currentAmount < *req.Min {
-				return fmt.Errorf("resource requirement not met: need %d %s, have %d", *req.Min, *req.Resource, currentAmount)
-			}
-			if req.Max != nil && currentAmount > *req.Max {
-				return fmt.Errorf("resource requirement not met: max %d %s, have %d", *req.Max, *req.Resource, currentAmount)
-			}
-
-		case gamecards.RequirementCities:
-			// Count cities owned by the player on the board
-			cityCount := 0
-			for _, tile := range g.Board().Tiles() {
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceCityTile {
-					if tile.OwnerID != nil && *tile.OwnerID == player.ID() {
-						cityCount++
-					}
-				}
-			}
-
-			if req.Min != nil && cityCount < *req.Min {
-				return fmt.Errorf("city requirement not met: need %d cities, have %d", *req.Min, cityCount)
-			}
-			if req.Max != nil && cityCount > *req.Max {
-				return fmt.Errorf("city requirement not met: max %d cities, have %d", *req.Max, cityCount)
-			}
-
-		case gamecards.RequirementGreeneries:
-			// Count greeneries owned by the player on the board
-			greeneryCount := 0
-			for _, tile := range g.Board().Tiles() {
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceGreeneryTile {
-					if tile.OwnerID != nil && *tile.OwnerID == player.ID() {
-						greeneryCount++
-					}
-				}
-			}
-
-			if req.Min != nil && greeneryCount < *req.Min {
-				return fmt.Errorf("greenery requirement not met: need %d greeneries, have %d", *req.Min, greeneryCount)
-			}
-			if req.Max != nil && greeneryCount > *req.Max {
-				return fmt.Errorf("greenery requirement not met: max %d greeneries, have %d", *req.Max, greeneryCount)
-			}
-
-		case gamecards.RequirementVenus:
-			// TODO: Implement Venus track when expansion is supported
-			// For now, skip Venus validation
-		}
-	}
-
 	return nil
 }
 
@@ -440,13 +269,19 @@ func (a *PlayCardAction) applyCardBehaviors(
 		if gamecards.HasManualTrigger(behavior) {
 			log.Info("🎯 Found manual-trigger behavior, registering as player action")
 
-			p.Actions().AddAction(player.CardAction{
-				CardID:        card.ID,
-				CardName:      card.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-				PlayCount:     0,
-			})
+			// Create availability checker closure that captures game state and player references
+			checkFunc := CreateActionAvailabilityChecker(g, p, card, behaviorIndex, a.cardRegistry)
+
+			// Create and add the action with self-contained availability checking
+			action := player.NewCardAction(
+				card.ID,
+				card.Name,
+				behaviorIndex,
+				behavior,
+				checkFunc,
+			)
+
+			p.Actions().AddAction(action)
 		}
 
 		// Register conditional-trigger behaviors as passive effects

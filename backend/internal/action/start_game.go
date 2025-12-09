@@ -18,6 +18,7 @@ import (
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
 	gameRepo         game.GameRepository
+	cardRegistry     cards.CardRegistry
 	globalSubscriber *GlobalSubscriber
 	logger           *zap.Logger
 }
@@ -30,6 +31,7 @@ func NewStartGameAction(
 ) *StartGameAction {
 	return &StartGameAction{
 		gameRepo:         gameRepo,
+		cardRegistry:     cardRegistry,
 		globalSubscriber: NewGlobalSubscriber(cardRegistry, logger),
 		logger:           logger,
 	}
@@ -125,6 +127,12 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 11. Setup global event subscriptions for this game
 	a.globalSubscriber.SetupGlobalSubscribers(g)
+
+	// 12. Register standard projects for all players (self-contained event subscriptions)
+	for _, p := range players {
+		playerPkg.RegisterStandardProjects(g.GlobalParameters(), p, g.EventBus())
+		log.Info("✅ Standard projects registered for player", zap.String("player_id", p.ID()))
+	}
 
 	log.Info("🎉 Game started successfully")
 	return nil

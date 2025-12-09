@@ -44,6 +44,9 @@ type Game struct {
 	forcedFirstActions         map[string]*player.ForcedFirstAction
 	productionPhases           map[string]*player.ProductionPhase
 	selectStartingCardsPhases  map[string]*player.SelectStartingCardsPhase
+
+	// Cached playability state (maintained by DTO layer)
+	playabilityState *PlayabilityState
 }
 
 // NewGame creates a new game with the given settings
@@ -93,6 +96,8 @@ func NewGame(
 		forcedFirstActions:         make(map[string]*player.ForcedFirstAction),
 		productionPhases:           make(map[string]*player.ProductionPhase),
 		selectStartingCardsPhases:  make(map[string]*player.SelectStartingCardsPhase),
+		// Initialize playability state
+		playabilityState: NewPlayabilityState(),
 	}
 }
 
@@ -143,6 +148,13 @@ func (g *Game) HostPlayerID() string {
 func (g *Game) EventBus() *events.EventBusImpl {
 	// EventBus is set once at creation and never modified, no lock needed
 	return g.eventBus
+}
+
+// PlayabilityState returns the cached playability state for all players
+func (g *Game) PlayabilityState() *PlayabilityState {
+	// PlayabilityState is set once at creation, no lock needed for read access
+	// Individual PlayerPlayabilityState access is thread-safe via PlayabilityState's mutex
+	return g.playabilityState
 }
 
 // CurrentPhase returns the current game phase

@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"terraforming-mars-backend/internal/action/validator"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
@@ -276,15 +275,17 @@ func convertPlayerEffects(effects []player.CardEffect) []PlayerEffectDto {
 }
 
 // convertPlayerActions converts CardAction slice to PlayerActionDto slice with playability
-func convertPlayerActions(actions []player.CardAction, g *game.Game, p *player.Player) []PlayerActionDto {
+// Reads playability state from each self-contained CardAction
+func convertPlayerActions(actions []*player.CardAction, g *game.Game, p *player.Player) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}
 
+	// Convert to DTOs
 	dtos := make([]PlayerActionDto, len(actions))
 	for i, action := range actions {
-		// Calculate playability for this action
-		result := validator.CanUseCardAction(&action, p, g)
+		// Get playability result from the action itself (self-contained)
+		result := action.GetAvailability()
 
 		dtos[i] = PlayerActionDto{
 			CardID:              action.CardID,

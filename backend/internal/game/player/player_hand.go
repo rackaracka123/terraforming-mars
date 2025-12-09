@@ -3,24 +3,27 @@ package player
 import (
 	"sync"
 	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game/playability"
 	"time"
 )
 
 // Hand manages player card hand (cards currently held)
 type Hand struct {
-	mu       sync.RWMutex
-	cards    []string
-	eventBus *events.EventBusImpl
-	gameID   string
-	playerID string
+	mu          sync.RWMutex
+	cards       []string
+	playability map[string]playability.PlayabilityResult
+	eventBus    *events.EventBusImpl
+	gameID      string
+	playerID    string
 }
 
 func newHand(eventBus *events.EventBusImpl, gameID, playerID string) *Hand {
 	return &Hand{
-		cards:    []string{},
-		eventBus: eventBus,
-		gameID:   gameID,
-		playerID: playerID,
+		cards:       []string{},
+		playability: make(map[string]playability.PlayabilityResult),
+		eventBus:    eventBus,
+		gameID:      gameID,
+		playerID:    playerID,
 	}
 }
 
@@ -115,4 +118,56 @@ func (h *Hand) RemoveCard(cardID string) bool {
 	}
 
 	return removed
+}
+
+// ==================== Playability Management ====================
+
+// GetPlayability returns the playability result for a specific card
+func (h *Hand) GetPlayability(cardID string) playability.PlayabilityResult {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if result, exists := h.playability[cardID]; exists {
+		return result
+	}
+	// Return unplayable result if no cached playability
+	return playability.NewPlayabilityResult(false, []playability.ValidationError{
+		{
+			Type:    playability.ValidationErrorTypeGameState,
+			Message: "Playability not calculated",
+		},
+	})
+}
+
+// GetAllPlayability returns playability for all cards in hand
+func (h *Hand) GetAllPlayability() map[string]playability.PlayabilityResult {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	playabilityCopy := make(map[string]playability.PlayabilityResult, len(h.playability))
+	for cardID, result := range h.playability {
+		playabilityCopy[cardID] = result
+	}
+	return playabilityCopy
+}
+
+// SetPlayability updates playability for a specific card
+// This is called by the DTO layer after calculating playability
+func (h *Hand) SetPlayability(cardID string, result playability.PlayabilityResult) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.playability[cardID] = result
+}
+
+// ClearStalePlayability removes playability for cards no longer in hand
+// This can be called periodically to clean up stale cache entries
+func (h *Hand) ClearStalePlayability() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	// Create new map with only cards still in hand
+	newPlayability := make(map[string]playability.PlayabilityResult)
+	for _, cardID := range h.cards {
+		if result, exists := h.playability[cardID]; exists {
+			newPlayability[cardID] = result
+		}
+	}
+	h.playability = newPlayability
 }

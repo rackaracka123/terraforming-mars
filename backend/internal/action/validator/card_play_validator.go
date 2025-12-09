@@ -43,276 +43,21 @@ func CanPlayCard(card *gamecards.Card, g *game.Game, p *player.Player, cardRegis
 		return result
 	}
 
-	// Validate card requirements
-	validateCardRequirements(card, g, p, cardRegistry, &result)
+	// Validate card requirements using shared validator
+	requirementErrors := gamecards.ValidateCardRequirements(card, g, p, cardRegistry)
+	for _, err := range requirementErrors {
+		result.AddError(playability.ValidationError{
+			Type:          playability.ValidationErrorTypeRequirement,
+			Message:       err.Message,
+			RequiredValue: err.RequiredValue,
+			CurrentValue:  err.CurrentValue,
+		})
+	}
 
 	// Validate payment affordability (basic cost check)
 	validateCardCost(card, p, &result)
 
 	return result
-}
-
-// validateCardRequirements validates all card requirements using domain primitives
-func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry, result *playability.PlayabilityResult) {
-	if len(card.Requirements) == 0 {
-		return
-	}
-
-	for _, req := range card.Requirements {
-		switch req.Type {
-		case gamecards.RequirementTemperature:
-			temp := g.GlobalParameters().Temperature()
-			if req.Min != nil && temp < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Temperature requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  temp,
-				})
-			}
-			if req.Max != nil && temp > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Temperature exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  temp,
-				})
-			}
-
-		case gamecards.RequirementOxygen:
-			oxygen := g.GlobalParameters().Oxygen()
-			if req.Min != nil && oxygen < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Oxygen requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  oxygen,
-				})
-			}
-			if req.Max != nil && oxygen > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Oxygen exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  oxygen,
-				})
-			}
-
-		case gamecards.RequirementOceans:
-			oceans := g.GlobalParameters().Oceans()
-			if req.Min != nil && oceans < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Oceans requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  oceans,
-				})
-			}
-			if req.Max != nil && oceans > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Oceans exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  oceans,
-				})
-			}
-
-		case gamecards.RequirementTR:
-			tr := p.Resources().TerraformRating()
-			if req.Min != nil && tr < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Terraform rating requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  tr,
-				})
-			}
-			if req.Max != nil && tr > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Terraform rating exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  tr,
-				})
-			}
-
-		case gamecards.RequirementTags:
-			if req.Tag == nil {
-				continue
-			}
-
-			// Count tags across all played cards (including corporation)
-			tagCount := 0
-			for _, playedCardID := range p.PlayedCards().Cards() {
-				playedCard, err := cardRegistry.GetByID(playedCardID)
-				if err != nil {
-					continue
-				}
-				if hasTag(playedCard, *req.Tag) {
-					tagCount++
-				}
-			}
-
-			// Also count corporation tags
-			if corpID := p.CorporationID(); corpID != "" {
-				corpCard, err := cardRegistry.GetByID(corpID)
-				if err == nil && hasTag(corpCard, *req.Tag) {
-					tagCount++
-				}
-			}
-
-			if req.Min != nil && tagCount < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Tag requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  tagCount,
-				})
-			}
-			if req.Max != nil && tagCount > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Tag count exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  tagCount,
-				})
-			}
-
-		case gamecards.RequirementProduction:
-			if req.Resource == nil {
-				continue
-			}
-			production := p.Resources().Production()
-			var currentProduction int
-
-			switch *req.Resource {
-			case shared.ResourceCreditsProduction:
-				currentProduction = production.Credits
-			case shared.ResourceSteelProduction:
-				currentProduction = production.Steel
-			case shared.ResourceTitaniumProduction:
-				currentProduction = production.Titanium
-			case shared.ResourcePlantsProduction:
-				currentProduction = production.Plants
-			case shared.ResourceEnergyProduction:
-				currentProduction = production.Energy
-			case shared.ResourceHeatProduction:
-				currentProduction = production.Heat
-			}
-
-			if req.Min != nil && currentProduction < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Production requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  currentProduction,
-				})
-			}
-			if req.Max != nil && currentProduction > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Production exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  currentProduction,
-				})
-			}
-
-		case gamecards.RequirementResource:
-			if req.Resource == nil {
-				continue
-			}
-			resources := p.Resources().Get()
-			var currentAmount int
-
-			switch *req.Resource {
-			case shared.ResourceCredits:
-				currentAmount = resources.Credits
-			case shared.ResourceSteel:
-				currentAmount = resources.Steel
-			case shared.ResourceTitanium:
-				currentAmount = resources.Titanium
-			case shared.ResourcePlants:
-				currentAmount = resources.Plants
-			case shared.ResourceEnergy:
-				currentAmount = resources.Energy
-			case shared.ResourceHeat:
-				currentAmount = resources.Heat
-			}
-
-			if req.Min != nil && currentAmount < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Resource requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  currentAmount,
-				})
-			}
-			if req.Max != nil && currentAmount > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Resource exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  currentAmount,
-				})
-			}
-
-		case gamecards.RequirementCities:
-			// Count cities owned by the player on the board
-			cityCount := 0
-			for _, tile := range g.Board().Tiles() {
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceCityTile {
-					if tile.OwnerID != nil && *tile.OwnerID == p.ID() {
-						cityCount++
-					}
-				}
-			}
-
-			if req.Min != nil && cityCount < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "City requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  cityCount,
-				})
-			}
-			if req.Max != nil && cityCount > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "City count exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  cityCount,
-				})
-			}
-
-		case gamecards.RequirementGreeneries:
-			// Count greeneries owned by the player on the board
-			greeneryCount := 0
-			for _, tile := range g.Board().Tiles() {
-				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceGreeneryTile {
-					if tile.OwnerID != nil && *tile.OwnerID == p.ID() {
-						greeneryCount++
-					}
-				}
-			}
-
-			if req.Min != nil && greeneryCount < *req.Min {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Greenery requirement not met",
-					RequiredValue: *req.Min,
-					CurrentValue:  greeneryCount,
-				})
-			}
-			if req.Max != nil && greeneryCount > *req.Max {
-				result.AddError(playability.ValidationError{
-					Type:          playability.ValidationErrorTypeRequirement,
-					Message:       "Greenery count exceeds maximum",
-					RequiredValue: *req.Max,
-					CurrentValue:  greeneryCount,
-				})
-			}
-		}
-	}
 }
 
 // validateCardCost validates that the player can afford the card's base cost
@@ -324,8 +69,8 @@ func validateCardCost(card *gamecards.Card, p *player.Player, result *playabilit
 	// (We don't check steel/titanium discounts here - that's more complex payment validation)
 	if resources.Credits < cost {
 		// Check if steel/titanium could help (for building/space cards)
-		canUseSteel := hasTag(card, shared.TagBuilding) && resources.Steel > 0
-		canUseTitanium := hasTag(card, shared.TagSpace) && resources.Titanium > 0
+		canUseSteel := cardHasTag(card, shared.TagBuilding) && resources.Steel > 0
+		canUseTitanium := cardHasTag(card, shared.TagSpace) && resources.Titanium > 0
 
 		if !canUseSteel && !canUseTitanium {
 			result.AddError(playability.ValidationError{
@@ -339,8 +84,8 @@ func validateCardCost(card *gamecards.Card, p *player.Player, result *playabilit
 	}
 }
 
-// hasTag checks if a card has a specific tag
-func hasTag(card *gamecards.Card, tag shared.CardTag) bool {
+// cardHasTag checks if a card has a specific tag
+func cardHasTag(card *gamecards.Card, tag shared.CardTag) bool {
 	for _, cardTag := range card.Tags {
 		if cardTag == tag {
 			return true

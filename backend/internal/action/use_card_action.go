@@ -119,7 +119,7 @@ func (a *UseCardActionAction) findCardAction(
 
 	for i := range actions {
 		if actions[i].CardID == cardID && actions[i].BehaviorIndex == behaviorIndex {
-			return &actions[i], nil
+			return actions[i], nil
 		}
 	}
 
