@@ -97,7 +97,7 @@ func (a *PlayCardAction) Execute(
 		zap.Int("base_cost", card.Cost))
 
 	// 7. BUSINESS LOGIC: Validate card requirements (temperature, oxygen, tags, etc.)
-	if err := validateCardRequirements(card, g, player); err != nil {
+	if err := validateCardRequirements(card, g, player, a.cardRegistry); err != nil {
 		log.Error("Card requirements not met", zap.Error(err))
 		return fmt.Errorf("cannot play card: %w", err)
 	}
@@ -206,7 +206,7 @@ func hasTag(card *gamecards.Card, tag shared.CardTag) bool {
 }
 
 // validateCardRequirements validates that the player and game state meet all card requirements
-func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player) error {
+func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player.Player, cardRegistry cards.CardRegistry) error {
 	if len(card.Requirements) == 0 {
 		return nil // No requirements to validate
 	}
@@ -257,10 +257,22 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 			// Count tags across all played cards (including corporation)
 			tagCount := 0
 			for _, playedCardID := range player.PlayedCards().Cards() {
-				// TODO: Get card from registry and check if it has the tag
-				// This requires injecting CardRegistry into this function
-				// For now, skip tag validation
-				_ = playedCardID
+				playedCard, err := cardRegistry.GetByID(playedCardID)
+				if err != nil {
+					// Skip cards that can't be found (shouldn't happen in normal gameplay)
+					continue
+				}
+				if hasTag(playedCard, *req.Tag) {
+					tagCount++
+				}
+			}
+
+			// Also count corporation tags if player has a corporation
+			if corpID := player.CorporationID(); corpID != "" {
+				corpCard, err := cardRegistry.GetByID(corpID)
+				if err == nil && hasTag(corpCard, *req.Tag) {
+					tagCount++
+				}
 			}
 
 			if req.Min != nil && tagCount < *req.Min {
@@ -274,9 +286,32 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 			if req.Resource == nil {
 				return fmt.Errorf("production requirement missing resource specification")
 			}
-			// TODO: Implement production requirement validation
-			// This requires checking player's production values
-			// For now, skip production validation
+			production := player.Resources().Production()
+			var currentProduction int
+
+			switch *req.Resource {
+			case shared.ResourceCreditsProduction:
+				currentProduction = production.Credits
+			case shared.ResourceSteelProduction:
+				currentProduction = production.Steel
+			case shared.ResourceTitaniumProduction:
+				currentProduction = production.Titanium
+			case shared.ResourcePlantsProduction:
+				currentProduction = production.Plants
+			case shared.ResourceEnergyProduction:
+				currentProduction = production.Energy
+			case shared.ResourceHeatProduction:
+				currentProduction = production.Heat
+			default:
+				return fmt.Errorf("invalid production resource type: %s", *req.Resource)
+			}
+
+			if req.Min != nil && currentProduction < *req.Min {
+				return fmt.Errorf("production requirement not met: need %d %s production, have %d", *req.Min, *req.Resource, currentProduction)
+			}
+			if req.Max != nil && currentProduction > *req.Max {
+				return fmt.Errorf("production requirement not met: max %d %s production, have %d", *req.Max, *req.Resource, currentProduction)
+			}
 
 		case gamecards.RequirementResource:
 			if req.Resource == nil {
@@ -307,9 +342,41 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 				return fmt.Errorf("resource requirement not met: max %d %s, have %d", *req.Max, *req.Resource, currentAmount)
 			}
 
-		case gamecards.RequirementCities, gamecards.RequirementGreeneries:
-			// TODO: Implement tile-based requirements when Board tile counting is ready
-			// For now, skip these validations
+		case gamecards.RequirementCities:
+			// Count cities owned by the player on the board
+			cityCount := 0
+			for _, tile := range g.Board().Tiles() {
+				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceCityTile {
+					if tile.OwnerID != nil && *tile.OwnerID == player.ID() {
+						cityCount++
+					}
+				}
+			}
+
+			if req.Min != nil && cityCount < *req.Min {
+				return fmt.Errorf("city requirement not met: need %d cities, have %d", *req.Min, cityCount)
+			}
+			if req.Max != nil && cityCount > *req.Max {
+				return fmt.Errorf("city requirement not met: max %d cities, have %d", *req.Max, cityCount)
+			}
+
+		case gamecards.RequirementGreeneries:
+			// Count greeneries owned by the player on the board
+			greeneryCount := 0
+			for _, tile := range g.Board().Tiles() {
+				if tile.OccupiedBy != nil && tile.OccupiedBy.Type == shared.ResourceGreeneryTile {
+					if tile.OwnerID != nil && *tile.OwnerID == player.ID() {
+						greeneryCount++
+					}
+				}
+			}
+
+			if req.Min != nil && greeneryCount < *req.Min {
+				return fmt.Errorf("greenery requirement not met: need %d greeneries, have %d", *req.Min, greeneryCount)
+			}
+			if req.Max != nil && greeneryCount > *req.Max {
+				return fmt.Errorf("greenery requirement not met: max %d greeneries, have %d", *req.Max, greeneryCount)
+			}
 
 		case gamecards.RequirementVenus:
 			// TODO: Implement Venus track when expansion is supported

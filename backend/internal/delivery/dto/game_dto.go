@@ -298,6 +298,32 @@ type VPConditionDto struct {
 	Per        *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
 }
 
+// ValidationErrorDto represents a validation failure reason
+type ValidationErrorDto struct {
+	Type          string      `json:"type" ts:"string"`
+	Message       string      `json:"message" ts:"string"`
+	RequiredValue interface{} `json:"requiredValue,omitempty" ts:"any"`
+	CurrentValue  interface{} `json:"currentValue,omitempty" ts:"any"`
+}
+
+// ChoicePlayabilityDto represents playability for a single choice in a card action
+type ChoicePlayabilityDto struct {
+	ChoiceIndex        int                  `json:"choiceIndex" ts:"number"`
+	IsAffordable       bool                 `json:"isAffordable" ts:"boolean"`
+	UnaffordableErrors []ValidationErrorDto `json:"unaffordableErrors" ts:"ValidationErrorDto[]"`
+}
+
+// StandardProjectDto represents a standard project with availability information
+type StandardProjectDto struct {
+	ID                 string               `json:"id" ts:"string"`
+	Name               string               `json:"name" ts:"string"`
+	Type               string               `json:"type" ts:"string"`
+	Cost               int                  `json:"cost" ts:"number"`
+	Description        string               `json:"description" ts:"string"`
+	IsAvailable        bool                 `json:"isAvailable" ts:"boolean"`
+	UnavailableReasons []ValidationErrorDto `json:"unavailableReasons" ts:"ValidationErrorDto[]"`
+}
+
 // CardDto represents a card for client consumption
 type CardDto struct {
 	ID              string              `json:"id" ts:"string"`
@@ -315,6 +341,10 @@ type CardDto struct {
 	// Corporation-specific fields (nil for non-corporation cards)
 	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`
 	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"`
+
+	// Playability fields (only present for cards in player's hand)
+	IsPlayable       *bool                `json:"isPlayable,omitempty" ts:"boolean | undefined"`
+	UnplayableErrors []ValidationErrorDto `json:"unplayableErrors,omitempty" ts:"ValidationErrorDto[] | undefined"`
 }
 
 type SelectStartingCardsPhaseDto struct {
@@ -412,6 +442,12 @@ type PlayerActionDto struct {
 	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this action represents
 	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
 	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
+
+	// Playability fields
+	IsAffordable        bool                   `json:"isAffordable" ts:"boolean"`
+	PlayableChoices     []int                  `json:"playableChoices" ts:"number[]"`
+	ChoicePlayabilities []ChoicePlayabilityDto `json:"choicePlayabilities" ts:"ChoicePlayabilityDto[]"`
+	UnaffordableErrors  []ValidationErrorDto   `json:"unaffordableErrors" ts:"ValidationErrorDto[]"`
 }
 
 // ForcedFirstActionDto represents an action that must be completed as the player's first turn action
@@ -523,20 +559,21 @@ type OtherPlayerDto struct {
 
 // GameDto represents a game for client consumption (clean architecture)
 type GameDto struct {
-	ID               string              `json:"id" ts:"string"`
-	Status           GameStatus          `json:"status" ts:"GameStatus"`
-	Settings         GameSettingsDto     `json:"settings" ts:"GameSettingsDto"`
-	HostPlayerID     string              `json:"hostPlayerId" ts:"string"`
-	CurrentPhase     GamePhase           `json:"currentPhase" ts:"GamePhase"`
-	GlobalParameters GlobalParametersDto `json:"globalParameters" ts:"GlobalParametersDto"`
-	CurrentPlayer    PlayerDto           `json:"currentPlayer" ts:"PlayerDto"`       // Viewing player's full data
-	OtherPlayers     []OtherPlayerDto    `json:"otherPlayers" ts:"OtherPlayerDto[]"` // Other players' limited data
-	ViewingPlayerID  string              `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
-	CurrentTurn      *string             `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
-	Generation       int                 `json:"generation" ts:"number"`
-	TurnOrder        []string            `json:"turnOrder" ts:"string[]"`                   // Turn order of all players in game
-	Board            BoardDto            `json:"board" ts:"BoardDto"`                       // Game board with tiles and occupancy state
-	PaymentConstants PaymentConstantsDto `json:"paymentConstants" ts:"PaymentConstantsDto"` // Conversion rates for alternative payments
+	ID               string               `json:"id" ts:"string"`
+	Status           GameStatus           `json:"status" ts:"GameStatus"`
+	Settings         GameSettingsDto      `json:"settings" ts:"GameSettingsDto"`
+	HostPlayerID     string               `json:"hostPlayerId" ts:"string"`
+	CurrentPhase     GamePhase            `json:"currentPhase" ts:"GamePhase"`
+	GlobalParameters GlobalParametersDto  `json:"globalParameters" ts:"GlobalParametersDto"`
+	CurrentPlayer    PlayerDto            `json:"currentPlayer" ts:"PlayerDto"`       // Viewing player's full data
+	OtherPlayers     []OtherPlayerDto     `json:"otherPlayers" ts:"OtherPlayerDto[]"` // Other players' limited data
+	ViewingPlayerID  string               `json:"viewingPlayerId" ts:"string"`        // The player viewing this game state
+	CurrentTurn      *string              `json:"currentTurn" ts:"string|null"`       // Whose turn it is (nullable)
+	Generation       int                  `json:"generation" ts:"number"`
+	TurnOrder        []string             `json:"turnOrder" ts:"string[]"`                    // Turn order of all players in game
+	Board            BoardDto             `json:"board" ts:"BoardDto"`                        // Game board with tiles and occupancy state
+	PaymentConstants PaymentConstantsDto  `json:"paymentConstants" ts:"PaymentConstantsDto"`  // Conversion rates for alternative payments
+	StandardProjects []StandardProjectDto `json:"standardProjects" ts:"StandardProjectDto[]"` // Available standard projects with playability
 }
 
 // Board-related DTOs for tygo generation

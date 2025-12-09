@@ -2,15 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import {
   CardDto,
-  GameDto,
   PlayerDto,
   RequirementModifierDto,
   ResourceType,
+  ValidationErrorDto,
 } from "@/types/generated/api-types.ts";
-import {
-  checkCardPlayability,
-  UnplayableReason,
-} from "@/utils/cardPlayabilityUtils.ts";
 
 /**
  * Calculate the total discount applicable to a specific card from player's requirement modifiers
@@ -31,20 +27,18 @@ function calculateCardDiscount(
 
 interface CardFanOverlayProps {
   cards: CardDto[];
-  game: GameDto;
   player: PlayerDto;
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
   onPlayCard?: (cardId: string) => Promise<void>;
   onUnplayableCard?: (
     card: CardDto | null,
-    reason: UnplayableReason | null,
+    reason: ValidationErrorDto | null,
   ) => void;
 }
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   cards,
-  game,
   player,
   hideWhenModalOpen = false,
   onCardSelect,
@@ -64,20 +58,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   const [cardRotations, setCardRotations] = useState<Record<string, number>>(
     {},
   );
-  const [cardPlayability, setCardPlayability] = useState<
-    Map<string, { playable: boolean; reason?: UnplayableReason }>
-  >(new Map());
   const [isHoveringMars, setIsHoveringMars] = useState(false);
   const [returningCard, setReturningCard] = useState<string | null>(null);
   const handRef = useRef<HTMLDivElement>(null);
-  const cardPlayabilityRef = useRef(cardPlayability);
   const cardsRef = useRef(cards);
 
-  // Update refs when props change
-  useEffect(() => {
-    cardPlayabilityRef.current = cardPlayability;
-  }, [cardPlayability]);
-
+  // Update ref when cards change
   useEffect(() => {
     cardsRef.current = cards;
   }, [cards]);
@@ -105,23 +91,14 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
     );
   };
 
-  // Check card playability whenever cards, game state, or player state changes
-  useEffect(() => {
-    const checkAllCards = async () => {
-      const playabilityMap = new Map();
-
-      for (const card of cards) {
-        const result = await checkCardPlayability(card, game, player);
-        playabilityMap.set(card.id, result);
-      }
-
-      setCardPlayability(playabilityMap);
+  // Helper to get card playability from backend data
+  const getCardPlayability = (cardId: string) => {
+    const card = cardsRef.current.find((c) => c.id === cardId);
+    return {
+      playable: card?.isPlayable ?? false,
+      reason: card?.unplayableErrors?.[0] ?? null,
     };
-
-    if (cards.length > 0 && game && player) {
-      void checkAllCards();
-    }
-  }, [cards, game, player]);
+  };
 
   // Calculate card positions with neighbor spreading for hovered or highlighted cards
   const calculateCardPosition = (
@@ -306,9 +283,9 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
       // Handle throw action first - but only if card is playable
       if (isThrowDetected && onPlayCard) {
         // Check if card is playable before attempting to play it
-        const playabilityInfo = cardPlayabilityRef.current.get(draggedCardId);
+        const playabilityInfo = getCardPlayability(draggedCardId);
 
-        if (playabilityInfo?.playable) {
+        if (playabilityInfo.playable) {
           // Card is playable, proceed with playing it
           try {
             await onPlayCard(draggedCardId);
@@ -438,13 +415,12 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
           const currentCard = cardsRef.current.find(
             (c) => c.id === draggedCard,
           );
-          const currentPlayabilityInfo =
-            cardPlayabilityRef.current.get(draggedCard);
+          const currentPlayabilityInfo = getCardPlayability(draggedCard);
 
           if (
-            !currentPlayabilityInfo?.playable &&
+            !currentPlayabilityInfo.playable &&
             currentCard &&
-            currentPlayabilityInfo?.reason
+            currentPlayabilityInfo.reason
           ) {
             // Don't show shield for phase restrictions (only visual dimming)
             // EXCEPT for pending tile selection which should always show the shield
@@ -459,7 +435,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
             } else {
               onUnplayableCard(currentCard, currentPlayabilityInfo.reason);
             }
-          } else if (currentPlayabilityInfo?.playable) {
+          } else if (currentPlayabilityInfo.playable) {
             // Clear feedback if card is actually playable
             onUnplayableCard(null, null);
           }
@@ -533,11 +509,11 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
         const isDraggedCard = draggedCard === card.id;
         const isHovered = hoveredCard === card.id;
         const isReturning = returningCard === card.id;
-        const playabilityInfo = cardPlayability.get(card.id);
+        const playabilityInfo = getCardPlayability(card.id);
         const isUnplayableInThrowZone =
-          isDraggedCard && isInThrowZone && !playabilityInfo?.playable;
+          isDraggedCard && isInThrowZone && !playabilityInfo.playable;
         const isUnplayableOverMars =
-          isDraggedCard && isHoveringMars && !playabilityInfo?.playable;
+          isDraggedCard && isHoveringMars && !playabilityInfo.playable;
 
         let finalX = position.x;
         let finalY = position.y;
@@ -593,7 +569,7 @@ const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
                 isHovered ||
                 (isDraggedCard &&
                   isInThrowZone &&
-                  playabilityInfo?.playable === true)
+                  playabilityInfo.playable === true)
               }
               onSelect={() => {}} // Handled by parent div click
               animationDelay={0}

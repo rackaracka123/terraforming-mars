@@ -4,7 +4,9 @@ import (
 	"go.uber.org/zap"
 
 	"terraforming-mars-backend/internal/cards"
+	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
@@ -390,4 +392,40 @@ func toVPConditionDto(vp gamecards.VictoryPointCondition) VPConditionDto {
 		MaxTrigger: vp.MaxTrigger,
 		Per:        per,
 	}
+}
+
+// ToCardDtoWithPlayability converts a Card to CardDto with playability information
+// This is used for cards in a player's hand to indicate if they can be played
+func ToCardDtoWithPlayability(card gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry) CardDto {
+	// Start with base card DTO
+	dto := ToCardDto(card)
+
+	// Calculate playability
+	result := playability.CanPlayCard(&card, g, p, cardRegistry)
+
+	// Add playability fields
+	dto.IsPlayable = &result.IsPlayable
+	dto.UnplayableErrors = ToValidationErrorDtos(result.Errors)
+
+	return dto
+}
+
+// getHandCardsWithPlayability converts a slice of card IDs to CardDto objects with playability
+// This is used specifically for cards in a player's hand
+func getHandCardsWithPlayability(cardIDs []string, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry) []CardDto {
+	cardDtos := make([]CardDto, 0, len(cardIDs))
+	log := logger.Get()
+
+	for _, cardID := range cardIDs {
+		card, err := cardRegistry.GetByID(cardID)
+		if err != nil {
+			log.Warn("Failed to fetch hand card",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			continue // Skip cards that can't be found
+		}
+		cardDtos = append(cardDtos, ToCardDtoWithPlayability(*card, g, p, cardRegistry))
+	}
+
+	return cardDtos
 }

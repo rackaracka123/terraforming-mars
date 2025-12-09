@@ -41,8 +41,8 @@ import {
   PlayerDto,
   PlayerActionDto,
   ResourceType,
+  ValidationErrorDto,
 } from "@/types/generated/api-types.ts";
-import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import {
   shouldShowPaymentModal,
   createDefaultPayment,
@@ -105,7 +105,7 @@ export default function GameInterface() {
   // Unplayable card feedback state
   const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
   const [unplayableReason, setUnplayableReason] =
-    useState<UnplayableReason | null>(null);
+    useState<ValidationErrorDto | null>(null);
 
   // Choice selection state (for card play)
   const [showChoiceSelection, setShowChoiceSelection] = useState(false);
@@ -368,8 +368,9 @@ export default function GameInterface() {
             setUnplayableCard(card);
             setUnplayableReason({
               type: "phase",
-              requirement: null,
               message: "Complete tile placement first",
+              requiredValue: undefined,
+              currentValue: undefined,
             });
           }
           return;
@@ -707,7 +708,7 @@ export default function GameInterface() {
   }, []);
 
   const handleUnplayableCard = useCallback(
-    (card: CardDto | null, reason: UnplayableReason | null) => {
+    (card: CardDto | null, reason: ValidationErrorDto | null) => {
       setUnplayableCard(card);
       setUnplayableReason(reason);
     },
@@ -852,7 +853,8 @@ export default function GameInterface() {
 
   // Standard project selection handler
   const handleStandardProjectSelect = useCallback(
-    (project: StandardProject) => {
+    (project: string) => {
+      const projectType = project as StandardProject;
       // Block standard projects when tile selection is pending
       if (currentPlayer?.pendingTileSelection) {
         return;
@@ -863,7 +865,7 @@ export default function GameInterface() {
 
       // All standard projects execute immediately
       // Backend will create tile queue for projects requiring placement
-      switch (project) {
+      switch (projectType) {
         case StandardProject.SELL_PATENTS:
           // Initiate sell patents - backend will create pendingCardSelection
           void globalWebSocketManager.sellPatents();
@@ -1337,7 +1339,6 @@ export default function GameInterface() {
       {game && currentPlayer && (
         <CardFanOverlay
           cards={currentPlayer.cards || []}
-          game={game}
           player={currentPlayer}
           hideWhenModalOpen={
             showCardSelection ||

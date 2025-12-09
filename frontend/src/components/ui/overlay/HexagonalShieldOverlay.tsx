@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import {
   CardDto,
   ResourceTypeCredits,
-  ResourceTypeCreditsProduction,
+  ValidationErrorDto,
 } from "@/types/generated/api-types.ts";
-import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
 interface HexagonalShieldOverlayProps {
   card: CardDto | null;
-  reason: UnplayableReason | null;
+  reason: ValidationErrorDto | null;
   isVisible: boolean;
 }
 
@@ -23,19 +22,14 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
   const [lastValidCard, setLastValidCard] = useState<CardDto | null>(null);
   const [lastValidReason, setLastValidReason] =
-    useState<UnplayableReason | null>(null);
-  const [isPendingTileSelection, setIsPendingTileSelection] = useState(false);
+    useState<ValidationErrorDto | null>(null);
 
   useEffect(() => {
     if (isVisible && card && reason) {
-      // Check if this is a pending tile selection message
-      const isTileSelection = reason.message === "Pending tile selection";
-
       // Mount first
       setShouldRender(true);
       setLastValidCard(card);
       setLastValidReason(reason);
-      setIsPendingTileSelection(isTileSelection);
 
       // Next tick → trigger fade-in
       requestAnimationFrame(() => {
@@ -53,7 +47,6 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
         setIsAnimatingOut(false);
         setLastValidCard(null);
         setLastValidReason(null);
-        setIsPendingTileSelection(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -80,29 +73,33 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   }
 
   // Extract the icon type from requirement data - GameIcon handles all the mapping
-  const getRequirementIconType = (reason: UnplayableReason): string | null => {
+  const getRequirementIconType = (reason: ValidationErrorDto): string | null => {
     if (reason.type === "cost") return ResourceTypeCredits;
-    if (reason.type === "global-param") return reason.requirement?.type || null;
-    if (reason.type === "tag")
-      return reason.requirement?.tag?.toLowerCase() || null;
+    if (reason.type === "global-param") {
+      // For backend validation errors, message might contain the type info
+      // Parse from message if needed, or use requiredValue
+      return "temperature"; // TODO: Extract from message or add field to backend
+    }
+    if (reason.type === "requirement") {
+      // Backend sends requirement type in message
+      return null; // Will show message text
+    }
     if (reason.type === "production" || reason.type === "resource") {
-      return reason.requirement?.resource || null;
+      // Extract resource type from message if needed
+      return null;
     }
     return null;
   };
 
   // Get the amount to display inside the icon (for credits)
   const getRequirementAmount = (
-    reason: UnplayableReason,
+    reason: ValidationErrorDto,
   ): number | undefined => {
     if (reason.type === "cost" && typeof reason.requiredValue === "number") {
-      return reason.requiredValue;
+      return reason.requiredValue as number;
     }
-    if (
-      reason.requirement?.resource === ResourceTypeCreditsProduction &&
-      typeof reason.requiredValue === "number"
-    ) {
-      return reason.requiredValue;
+    if (typeof reason.requiredValue === "number") {
+      return reason.requiredValue as number;
     }
 
     return undefined;
@@ -112,14 +109,12 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   const iconAmount = getRequirementAmount(displayReason);
 
   // Determine which global parameters are affected
-  const getAffectedParameters = (reason: UnplayableReason): string[] => {
-    if (reason.type === "multiple" && reason.failedRequirements) {
-      // Get all global parameters from failed requirements
-      return reason.failedRequirements
-        .filter((req) => req.type === "global-param" && req.requirement?.type)
-        .map((req) => req.requirement.type);
-    } else if (reason.type === "global-param" && reason.requirement?.type) {
-      return [reason.requirement.type];
+  const getAffectedParameters = (reason: ValidationErrorDto): string[] => {
+    // Backend doesn't send multiple errors in a single ValidationErrorDto
+    // Each error is separate, so just check if this is a global-param error
+    if (reason.type === "global-param") {
+      // Extract parameter type from message if needed
+      return []; // TODO: Extract from message or add field to backend
     }
     return [];
   };
@@ -250,63 +245,23 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
           <div
             className={`text-center max-w-[80%] transition-all duration-300 ${overlayClass === "visible" ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}
           >
-            {/* If pending tile selection, ONLY show that message - ignore all other requirements */}
-            {isPendingTileSelection ? (
-              <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
+            {/* Display validation error message */}
+            <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
+              {displayReason.type !== "cost" && (
                 <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
                   {displayReason.message}
                 </span>
-              </div>
-            ) : displayReason.type === "multiple" &&
-              displayReason.failedRequirements ? (
-              <div className="flex flex-col gap-4 items-center">
-                {displayReason.failedRequirements.map((req, index) => {
-                  const reqIconType = getRequirementIconType(req);
-                  const reqIconAmount = getRequirementAmount(req);
-                  const showMessage =
-                    req.type !== "cost" &&
-                    req.requirement?.resource !== ResourceTypeCreditsProduction;
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]"
-                    >
-                      {showMessage && (
-                        <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
-                          {req.message}
-                        </span>
-                      )}
-                      {reqIconType && (
-                        <div className="flex-shrink-0">
-                          <GameIcon
-                            iconType={reqIconType}
-                            size="medium"
-                            amount={reqIconAmount}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 bg-black/70 py-3 px-5 rounded-xl border-2 border-[rgba(255,152,0,0.6)] backdrop-blur-[8px] shadow-[0_0_24px_rgba(255,152,0,0.6)]">
-                {displayReason.type !== "cost" && (
-                  <span className="text-white text-lg font-medium [text-shadow:2px_2px_4px_rgba(0,0,0,0.9)] leading-[1.3]">
-                    {displayReason.message}
-                  </span>
-                )}
-                {iconType && (
-                  <div className="flex-shrink-0">
-                    <GameIcon
-                      iconType={iconType}
-                      size="medium"
-                      amount={iconAmount}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+              {iconType && (
+                <div className="flex-shrink-0">
+                  <GameIcon
+                    iconType={iconType}
+                    size="medium"
+                    amount={iconAmount}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

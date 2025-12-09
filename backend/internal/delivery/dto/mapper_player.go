@@ -3,6 +3,7 @@ package dto
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -20,9 +21,9 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	playedCardIDs := p.PlayedCards().Cards()
 	playedCards := getPlayedCards(playedCardIDs, cardRegistry)
 
-	// Get hand cards with full card details
+	// Get hand cards with full card details and playability
 	handCardIDs := p.Hand().Cards()
-	handCards := getPlayedCards(handCardIDs, cardRegistry)
+	handCards := getHandCardsWithPlayability(handCardIDs, g, p, cardRegistry)
 
 	// Only include turn-specific data if it's this player's turn
 	var pendingTileSelection *PendingTileSelectionDto
@@ -62,7 +63,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
 		Effects:          convertPlayerEffects(p.Effects().List()),
-		Actions:          convertPlayerActions(p.Actions().List()),
+		Actions:          convertPlayerActions(p.Actions().List(), g, p),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhase(g.GetSelectStartingCardsPhase(p.ID()), cardRegistry),
 		ProductionPhase:          convertProductionPhase(g.GetProductionPhase(p.ID()), cardRegistry),
@@ -122,7 +123,7 @@ func ToOtherPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardReg
 		AvailableActions: getAvailableActionsForPlayer(g, p.ID()),
 		IsConnected:      p.IsConnected(),
 		Effects:          convertPlayerEffects(p.Effects().List()),
-		Actions:          convertPlayerActions(p.Actions().List()),
+		Actions:          convertPlayerActions(p.Actions().List(), g, p),
 
 		SelectStartingCardsPhase: convertSelectStartingCardsPhaseForOtherPlayer(g.GetSelectStartingCardsPhase(p.ID())),
 		ProductionPhase:          convertProductionPhaseForOtherPlayer(g.GetProductionPhase(p.ID())),
@@ -274,20 +275,27 @@ func convertPlayerEffects(effects []player.CardEffect) []PlayerEffectDto {
 	return dtos
 }
 
-// convertPlayerActions converts CardAction slice to PlayerActionDto slice
-func convertPlayerActions(actions []player.CardAction) []PlayerActionDto {
+// convertPlayerActions converts CardAction slice to PlayerActionDto slice with playability
+func convertPlayerActions(actions []player.CardAction, g *game.Game, p *player.Player) []PlayerActionDto {
 	if len(actions) == 0 {
 		return []PlayerActionDto{}
 	}
 
 	dtos := make([]PlayerActionDto, len(actions))
 	for i, action := range actions {
+		// Calculate playability for this action
+		result := playability.CanUseCardAction(&action, p, g)
+
 		dtos[i] = PlayerActionDto{
-			CardID:        action.CardID,
-			CardName:      action.CardName,
-			BehaviorIndex: action.BehaviorIndex,
-			Behavior:      toCardBehaviorDto(action.Behavior),
-			PlayCount:     action.PlayCount,
+			CardID:              action.CardID,
+			CardName:            action.CardName,
+			BehaviorIndex:       action.BehaviorIndex,
+			Behavior:            toCardBehaviorDto(action.Behavior),
+			PlayCount:           action.PlayCount,
+			IsAffordable:        result.IsAffordable,
+			PlayableChoices:     result.PlayableChoices,
+			ChoicePlayabilities: ToChoicePlayabilityDtos(result.ChoicePlayabilities),
+			UnaffordableErrors:  ToValidationErrorDtos(result.Errors),
 		}
 	}
 	return dtos

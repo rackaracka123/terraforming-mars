@@ -55,6 +55,15 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 		return err
 	}
 
+	// 4. BUSINESS LOGIC: Validate temperature hasn't reached maximum
+	currentTemp := g.GlobalParameters().Temperature()
+	if currentTemp >= 8 { // MaxTemperature constant from global_parameters
+		log.Warn("Cannot launch asteroid: temperature already at maximum",
+			zap.Int("current_temperature", currentTemp),
+			zap.Int("max_temperature", 8))
+		return fmt.Errorf("cannot launch asteroid: temperature already at maximum (%d°C)", currentTemp)
+	}
+
 	// 5. BUSINESS LOGIC: Validate cost (14 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < LaunchAsteroidCost {

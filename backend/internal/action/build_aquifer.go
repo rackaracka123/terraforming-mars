@@ -56,7 +56,16 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return err
 	}
 
-	// 5. BUSINESS LOGIC: Validate cost (18 M€)
+	// 5. BUSINESS LOGIC: Validate ocean count hasn't reached maximum
+	currentOceans := g.GlobalParameters().Oceans()
+	if currentOceans >= 9 { // MaxOceans constant from global_parameters
+		log.Warn("Cannot build aquifer: oceans already at maximum",
+			zap.Int("current_oceans", currentOceans),
+			zap.Int("max_oceans", 9))
+		return fmt.Errorf("cannot build aquifer: oceans already at maximum (%d/%d)", currentOceans, 9)
+	}
+
+	// 6. BUSINESS LOGIC: Validate cost (18 M€)
 	resources := player.Resources().Get()
 	if resources.Credits < BuildAquiferCost {
 		log.Warn("Insufficient credits for aquifer",
@@ -65,7 +74,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		return fmt.Errorf("insufficient credits: need %d, have %d", BuildAquiferCost, resources.Credits)
 	}
 
-	// 6. BUSINESS LOGIC: Deduct cost using domain method
+	// 7. BUSINESS LOGIC: Deduct cost using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
 		shared.ResourceCredits: -BuildAquiferCost,
 	})
@@ -75,14 +84,14 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 		zap.Int("cost", BuildAquiferCost),
 		zap.Int("remaining_credits", resources.Credits))
 
-	// 7. BUSINESS LOGIC: Increase terraform rating (for placing ocean)
+	// 8. BUSINESS LOGIC: Increase terraform rating (for placing ocean)
 	player.Resources().UpdateTerraformRating(1)
 
 	newTR := player.Resources().TerraformRating()
 	log.Info("🏆 Increased terraform rating",
 		zap.Int("new_tr", newTR))
 
-	// 8. Queue ocean tile for placement on Game (phase state managed by Game)
+	// 9. Queue ocean tile for placement on Game (phase state managed by Game)
 	queue := &playerPkg.PendingTileSelectionQueue{
 		Items:  []string{"ocean"},
 		Source: "standard-project-aquifer",
@@ -93,7 +102,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 
 	log.Info("📋 Created tile queue for ocean placement (auto-processed by SetPendingTileSelectionQueue)")
 
-	// 9. Consume action (only if not unlimited actions)
+	// 10. Consume action (only if not unlimited actions)
 	a.ConsumePlayerAction(g, log)
 
 	log.Info("✅ Aquifer built successfully, ocean tile queued for placement",

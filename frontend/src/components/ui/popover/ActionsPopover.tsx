@@ -10,83 +10,6 @@ import {
 } from "../../../utils/actionUtils.ts";
 import GameIcon from "../display/GameIcon.tsx";
 
-// Utility function to check if an action is affordable and available
-const isActionAvailable = (
-  action: PlayerActionDto,
-  gameState?: GameDto,
-): boolean => {
-  // Check if action has been played this generation
-  if (action.playCount > 0) {
-    return false;
-  }
-
-  // Check if player can afford the action's input costs
-  if (!gameState?.currentPlayer) {
-    return false;
-  }
-
-  const playerResources = gameState.currentPlayer.resources;
-  const resourceStorage = gameState.currentPlayer.resourceStorage || {};
-
-  // Helper to check if a set of inputs is affordable
-  const areInputsAffordable = (inputs: any[]): boolean => {
-    for (const input of inputs) {
-      switch (input.type) {
-        case "credits":
-          if (playerResources.credits < input.amount) return false;
-          break;
-        case "steel":
-          if (playerResources.steel < input.amount) return false;
-          break;
-        case "titanium":
-          if (playerResources.titanium < input.amount) return false;
-          break;
-        case "plants":
-          if (playerResources.plants < input.amount) return false;
-          break;
-        case "energy":
-          if (playerResources.energy < input.amount) return false;
-          break;
-        case "heat":
-          if (playerResources.heat < input.amount) return false;
-          break;
-
-        // Card storage resources
-        case "animals":
-        case "microbes":
-        case "floaters":
-        case "science":
-        case "asteroid":
-          if (input.target === "self-card") {
-            const cardStorage = resourceStorage[action.cardId] || 0;
-            if (cardStorage < input.amount) return false;
-          }
-          break;
-      }
-    }
-    return true;
-  };
-
-  // Check if action has choices
-  if (action.behavior.choices && action.behavior.choices.length > 0) {
-    // For choice-based actions, at least ONE choice must be affordable
-    for (const choice of action.behavior.choices) {
-      const choiceInputs = [
-        ...(action.behavior.inputs || []),
-        ...(choice.inputs || []),
-      ];
-      if (areInputsAffordable(choiceInputs)) {
-        return true; // At least one choice is affordable
-      }
-    }
-    return false; // No choice is affordable
-  } else {
-    // For non-choice actions, check behavior inputs
-    const actionInputs = action.behavior.inputs || [];
-    return areInputsAffordable(actionInputs);
-  }
-};
-
 interface ActionsPopoverProps {
   isVisible: boolean;
   onClose: () => void;
@@ -226,8 +149,8 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
         ) : (
           <div className="p-2 flex flex-col gap-2">
             {actions.map((action, index) => {
-              const isAvailable = isActionAvailable(action, gameState);
-              const isActionPlayable = canPlayActions && isAvailable;
+              const isAffordable = action.isAffordable && action.playCount === 0;
+              const isActionPlayable = canPlayActions && isAffordable;
 
               return (
                 <div
@@ -247,10 +170,12 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                           : !hasActionsLeft
                             ? "No actions remaining"
                             : "Actions not available in this phase"
-                        : !isAvailable
+                        : !isAffordable
                           ? action.playCount > 0
                             ? "Already played this generation"
-                            : "Cannot afford this action"
+                            : action.unaffordableErrors.length > 0
+                              ? action.unaffordableErrors[0].message
+                              : "Cannot afford this action"
                           : "Click to play this action"
                   }
                 >
