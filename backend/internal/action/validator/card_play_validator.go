@@ -1,21 +1,23 @@
-package playability
+package validator
 
 import (
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
+	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// CanPlayCard checks if a player can play a card and returns detailed validation results
-func CanPlayCard(card *gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry) PlayabilityResult {
-	result := NewPlayabilityResult(true, nil)
+// CanPlayCard checks if a player can play a card and returns detailed validation results.
+// This orchestrates validation by checking game phase, turn state, hand state, requirements, and cost.
+func CanPlayCard(card *gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry) playability.PlayabilityResult {
+	result := playability.NewPlayabilityResult(true, nil)
 
 	// Check if game is in action phase
 	if g.CurrentPhase() != game.GamePhaseAction {
-		result.AddError(ValidationError{
-			Type:          ValidationErrorTypePhase,
+		result.AddError(playability.ValidationError{
+			Type:          playability.ValidationErrorTypePhase,
 			Message:       "Not in action phase",
 			RequiredValue: game.GamePhaseAction,
 			CurrentValue:  g.CurrentPhase(),
@@ -25,16 +27,16 @@ func CanPlayCard(card *gamecards.Card, g *game.Game, p *player.Player, cardRegis
 	// Check if it's player's turn
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil || currentTurn.PlayerID() != p.ID() {
-		result.AddError(ValidationError{
-			Type:    ValidationErrorTypeTurn,
+		result.AddError(playability.ValidationError{
+			Type:    playability.ValidationErrorTypeTurn,
 			Message: "Not player's turn",
 		})
 	}
 
 	// Check if card is in player's hand
 	if !p.Hand().HasCard(card.ID) {
-		result.AddError(ValidationError{
-			Type:    ValidationErrorTypeGameState,
+		result.AddError(playability.ValidationError{
+			Type:    playability.ValidationErrorTypeGameState,
 			Message: "Card not in player's hand",
 		})
 		// If card is not in hand, no point checking further
@@ -50,8 +52,8 @@ func CanPlayCard(card *gamecards.Card, g *game.Game, p *player.Player, cardRegis
 	return result
 }
 
-// validateCardRequirements validates all card requirements
-func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry, result *PlayabilityResult) {
+// validateCardRequirements validates all card requirements using domain primitives
+func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Player, cardRegistry cards.CardRegistry, result *playability.PlayabilityResult) {
 	if len(card.Requirements) == 0 {
 		return
 	}
@@ -61,16 +63,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 		case gamecards.RequirementTemperature:
 			temp := g.GlobalParameters().Temperature()
 			if req.Min != nil && temp < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Temperature requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  temp,
 				})
 			}
 			if req.Max != nil && temp > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Temperature exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  temp,
@@ -80,16 +82,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 		case gamecards.RequirementOxygen:
 			oxygen := g.GlobalParameters().Oxygen()
 			if req.Min != nil && oxygen < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Oxygen requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  oxygen,
 				})
 			}
 			if req.Max != nil && oxygen > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Oxygen exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  oxygen,
@@ -99,16 +101,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 		case gamecards.RequirementOceans:
 			oceans := g.GlobalParameters().Oceans()
 			if req.Min != nil && oceans < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Oceans requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  oceans,
 				})
 			}
 			if req.Max != nil && oceans > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Oceans exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  oceans,
@@ -118,16 +120,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 		case gamecards.RequirementTR:
 			tr := p.Resources().TerraformRating()
 			if req.Min != nil && tr < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Terraform rating requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  tr,
 				})
 			}
 			if req.Max != nil && tr > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Terraform rating exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  tr,
@@ -160,16 +162,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 			}
 
 			if req.Min != nil && tagCount < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Tag requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  tagCount,
 				})
 			}
 			if req.Max != nil && tagCount > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Tag count exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  tagCount,
@@ -199,16 +201,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 			}
 
 			if req.Min != nil && currentProduction < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Production requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  currentProduction,
 				})
 			}
 			if req.Max != nil && currentProduction > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Production exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  currentProduction,
@@ -238,16 +240,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 			}
 
 			if req.Min != nil && currentAmount < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Resource requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  currentAmount,
 				})
 			}
 			if req.Max != nil && currentAmount > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Resource exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  currentAmount,
@@ -266,16 +268,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 			}
 
 			if req.Min != nil && cityCount < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "City requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  cityCount,
 				})
 			}
 			if req.Max != nil && cityCount > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "City count exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  cityCount,
@@ -294,16 +296,16 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 			}
 
 			if req.Min != nil && greeneryCount < *req.Min {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Greenery requirement not met",
 					RequiredValue: *req.Min,
 					CurrentValue:  greeneryCount,
 				})
 			}
 			if req.Max != nil && greeneryCount > *req.Max {
-				result.AddError(ValidationError{
-					Type:          ValidationErrorTypeRequirement,
+				result.AddError(playability.ValidationError{
+					Type:          playability.ValidationErrorTypeRequirement,
 					Message:       "Greenery count exceeds maximum",
 					RequiredValue: *req.Max,
 					CurrentValue:  greeneryCount,
@@ -314,7 +316,7 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, p *player.Play
 }
 
 // validateCardCost validates that the player can afford the card's base cost
-func validateCardCost(card *gamecards.Card, p *player.Player, result *PlayabilityResult) {
+func validateCardCost(card *gamecards.Card, p *player.Player, result *playability.PlayabilityResult) {
 	resources := p.Resources().Get()
 	cost := card.Cost
 
@@ -326,8 +328,8 @@ func validateCardCost(card *gamecards.Card, p *player.Player, result *Playabilit
 		canUseTitanium := hasTag(card, shared.TagSpace) && resources.Titanium > 0
 
 		if !canUseSteel && !canUseTitanium {
-			result.AddError(ValidationError{
-				Type:          ValidationErrorTypeCost,
+			result.AddError(playability.ValidationError{
+				Type:          playability.ValidationErrorTypeCost,
 				Message:       "Insufficient credits",
 				RequiredValue: cost,
 				CurrentValue:  resources.Credits,

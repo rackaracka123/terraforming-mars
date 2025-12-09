@@ -1,9 +1,9 @@
 package dto
 
 import (
+	"terraforming-mars-backend/internal/action/validator"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -284,7 +284,7 @@ func convertPlayerActions(actions []player.CardAction, g *game.Game, p *player.P
 	dtos := make([]PlayerActionDto, len(actions))
 	for i, action := range actions {
 		// Calculate playability for this action
-		result := playability.CanUseCardAction(&action, p, g)
+		result := validator.CanUseCardAction(&action, p, g)
 
 		dtos[i] = PlayerActionDto{
 			CardID:              action.CardID,

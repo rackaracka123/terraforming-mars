@@ -3,10 +3,10 @@ package dto
 import (
 	"go.uber.org/zap"
 
+	"terraforming-mars-backend/internal/action/validator"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
-	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/internal/logger"
@@ -401,7 +401,7 @@ func ToCardDtoWithPlayability(card gamecards.Card, g *game.Game, p *player.Playe
 	dto := ToCardDto(card)
 
 	// Calculate playability
-	result := playability.CanPlayCard(&card, g, p, cardRegistry)
+	result := validator.CanPlayCard(&card, g, p, cardRegistry)
 
 	// Add playability fields
 	dto.IsPlayable = &result.IsPlayable

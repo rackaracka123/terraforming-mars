@@ -1,19 +1,21 @@
-package playability
+package validator
 
 import (
 	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// CanUseCardAction checks if a player can use a card action and returns which choices are affordable
-func CanUseCardAction(action *player.CardAction, p *player.Player, g *game.Game) ActionPlayabilityResult {
-	result := NewActionPlayabilityResult()
+// CanUseCardAction checks if a player can use a card action and returns which choices are affordable.
+// This orchestrates validation by checking game phase, turn state, and resource affordability.
+func CanUseCardAction(action *player.CardAction, p *player.Player, g *game.Game) playability.ActionPlayabilityResult {
+	result := playability.NewActionPlayabilityResult()
 
 	// Check if game is in action phase
 	if g.CurrentPhase() != game.GamePhaseAction {
-		result.Errors = append(result.Errors, ValidationError{
-			Type:          ValidationErrorTypePhase,
+		result.Errors = append(result.Errors, playability.ValidationError{
+			Type:          playability.ValidationErrorTypePhase,
 			Message:       "Not in action phase",
 			RequiredValue: game.GamePhaseAction,
 			CurrentValue:  g.CurrentPhase(),
@@ -24,8 +26,8 @@ func CanUseCardAction(action *player.CardAction, p *player.Player, g *game.Game)
 	// Check if it's player's turn
 	currentTurn := g.CurrentTurn()
 	if currentTurn == nil || currentTurn.PlayerID() != p.ID() {
-		result.Errors = append(result.Errors, ValidationError{
-			Type:    ValidationErrorTypeTurn,
+		result.Errors = append(result.Errors, playability.ValidationError{
+			Type:    playability.ValidationErrorTypeTurn,
 			Message: "Not player's turn",
 		})
 		return result
@@ -58,9 +60,10 @@ func CanUseCardAction(action *player.CardAction, p *player.Player, g *game.Game)
 	return result
 }
 
-// validateActionInputs validates that a player has sufficient resources for the inputs
-func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) []ValidationError {
-	errors := []ValidationError{}
+// validateActionInputs validates that a player has sufficient resources for the inputs.
+// This is a primitive helper that checks resource affordability.
+func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) []playability.ValidationError {
+	errors := []playability.ValidationError{}
 	resources := p.Resources().Get()
 	storage := p.Resources().Storage()
 
@@ -68,8 +71,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 		switch input.ResourceType {
 		case shared.ResourceCredits:
 			if resources.Credits < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient credits",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Credits,
@@ -78,8 +81,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 
 		case shared.ResourceSteel:
 			if resources.Steel < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient steel",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Steel,
@@ -88,8 +91,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 
 		case shared.ResourceTitanium:
 			if resources.Titanium < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient titanium",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Titanium,
@@ -98,8 +101,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 
 		case shared.ResourcePlants:
 			if resources.Plants < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient plants",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Plants,
@@ -108,8 +111,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 
 		case shared.ResourceEnergy:
 			if resources.Energy < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient energy",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Energy,
@@ -118,8 +121,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 
 		case shared.ResourceHeat:
 			if resources.Heat < input.Amount {
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient heat",
 					RequiredValue: input.Amount,
 					CurrentValue:  resources.Heat,
@@ -135,8 +138,8 @@ func validateActionInputs(inputs []shared.ResourceCondition, p *player.Player) [
 				if exists {
 					currentAmount = storedAmount
 				}
-				errors = append(errors, ValidationError{
-					Type:          ValidationErrorTypeResource,
+				errors = append(errors, playability.ValidationError{
+					Type:          playability.ValidationErrorTypeResource,
 					Message:       "Insufficient " + storageKey,
 					RequiredValue: input.Amount,
 					CurrentValue:  currentAmount,

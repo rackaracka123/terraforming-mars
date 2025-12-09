@@ -73,7 +73,9 @@ const HexagonalShieldOverlay: React.FC<HexagonalShieldOverlayProps> = ({
   }
 
   // Extract the icon type from requirement data - GameIcon handles all the mapping
-  const getRequirementIconType = (reason: ValidationErrorDto): string | null => {
+  const getRequirementIconType = (
+    reason: ValidationErrorDto,
+  ): string | null => {
     if (reason.type === "cost") return ResourceTypeCredits;
     if (reason.type === "global-param") {
       // For backend validation errors, message might contain the type info

@@ -1,10 +1,10 @@
 package dto
 
 import (
+	"terraforming-mars-backend/internal/action/validator"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
-	"terraforming-mars-backend/internal/game/playability"
 	"terraforming-mars-backend/internal/game/player"
 )
 
@@ -88,7 +88,7 @@ func ToGameDto(g *game.Game, cardRegistry cards.CardRegistry, playerID string) G
 	// Get standard projects with playability for the viewing player
 	var standardProjects []StandardProjectDto
 	if viewingPlayer != nil {
-		projects := playability.GetAllStandardProjects(g, viewingPlayer)
+		projects := validator.GetAllStandardProjects(g, viewingPlayer)
 		standardProjects = ToStandardProjectDtos(projects)
 	}
 

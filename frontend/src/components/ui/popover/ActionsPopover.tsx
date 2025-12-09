@@ -149,7 +149,8 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
         ) : (
           <div className="p-2 flex flex-col gap-2">
             {actions.map((action, index) => {
-              const isAffordable = action.isAffordable && action.playCount === 0;
+              const isAffordable =
+                action.isAffordable && action.playCount === 0;
               const isActionPlayable = canPlayActions && isAffordable;
 
               return (
