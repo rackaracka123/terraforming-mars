@@ -61,13 +61,27 @@ func (a *JoinGameAction) Execute(
 		return nil, fmt.Errorf("game not found: %w", err)
 	}
 
-	// 2. Validate game is in lobby status
+	// 2. Check for reconnection (playerID provided and player exists in game)
+	existingPlayer, err := g.GetPlayer(playerID)
+	if err == nil && existingPlayer != nil {
+		// Reconnection case - skip lobby check, just update connection status
+		log.Info("🔄 Player reconnecting", zap.String("player_id", playerID))
+		existingPlayer.SetConnected(true)
+
+		gameDto := dto.ToGameDto(g, a.cardRegistry, playerID)
+		return &JoinGameResult{
+			PlayerID: playerID,
+			GameDto:  gameDto,
+		}, nil
+	}
+
+	// 3. Validate game is in lobby status (only for new joins)
 	if g.Status() != game.GameStatusLobby {
 		log.Warn("Game is not in lobby", zap.String("status", string(g.Status())))
 		return nil, fmt.Errorf("game is not in lobby: %s", g.Status())
 	}
 
-	// 3. Check if player with same name already exists (idempotent join)
+	// 4. Check if player with same name already exists (idempotent join)
 	existingPlayers := g.GetAllPlayers()
 	for _, p := range existingPlayers {
 		if p.Name() == playerName {
@@ -83,7 +97,7 @@ func (a *JoinGameAction) Execute(
 		}
 	}
 
-	// 4. Check max players only for new players
+	// 5. Check max players only for new players
 	maxPlayers := g.Settings().MaxPlayers
 	if maxPlayers == 0 {
 		maxPlayers = game.DefaultMaxPlayers
@@ -93,14 +107,14 @@ func (a *JoinGameAction) Execute(
 		return nil, fmt.Errorf("game is full")
 	}
 
-	// 5. Create new player (using Game's EventBus for automatic broadcasting)
+	// 6. Create new player (using Game's EventBus for automatic broadcasting)
 	newPlayer := playerPkg.NewPlayer(g.EventBus(), gameID, playerID, playerName)
 	log.Info("✅ New player created", zap.String("player_id", newPlayer.ID()))
 
-	// 6. Check if this will be the first player (before adding)
+	// 7. Check if this will be the first player (before adding)
 	isFirstPlayer := len(existingPlayers) == 0
 
-	// 7. If first player, set as host BEFORE adding (so auto-broadcast includes hostPlayerID)
+	// 8. If first player, set as host BEFORE adding (so auto-broadcast includes hostPlayerID)
 	if isFirstPlayer {
 		err = g.SetHostPlayerID(ctx, newPlayer.ID())
 		if err != nil {
@@ -110,7 +124,7 @@ func (a *JoinGameAction) Execute(
 		log.Info("👑 Player set as host")
 	}
 
-	// 8. Add player to game (publishes PlayerJoinedEvent which auto-broadcasts)
+	// 9. Add player to game (publishes PlayerJoinedEvent which auto-broadcasts)
 	err = g.AddPlayer(ctx, newPlayer)
 	if err != nil {
 		log.Error("Failed to add player to game", zap.Error(err))
@@ -119,7 +133,7 @@ func (a *JoinGameAction) Execute(
 
 	log.Info("✅ Player added to game")
 
-	// 9. Convert to DTO with personalized view for the joining player
+	// 10. Convert to DTO with personalized view for the joining player
 	gameDto := dto.ToGameDto(g, a.cardRegistry, newPlayer.ID())
 
 	// Note: Broadcasting handled automatically via PlayerJoinedEvent
