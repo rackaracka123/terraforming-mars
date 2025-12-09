@@ -5,6 +5,7 @@ import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts
 import { useSpaceBackground } from "../../contexts/SpaceBackgroundContext.tsx";
 import { GameDto } from "../../types/generated/api-types.ts";
 import { getCorporationLogo } from "../../utils/corporationLogos.tsx";
+import { clearGameSession } from "../../utils/sessionStorage.ts";
 
 const GameLandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,20 +39,30 @@ const GameLandingPage: React.FC = () => {
               throw new Error("Saved game not found on server");
             }
 
-            // Store the game data in state instead of auto-navigating
-            setSavedGameData({ game, playerId, playerName });
+            // Automatically reconnect to the game
+            setIsFadingOut(true);
+            setTimeout(() => {
+              navigate("/game", {
+                state: {
+                  game: game,
+                  playerId: playerId,
+                  playerName: playerName,
+                  isReconnection: true,
+                },
+              });
+            }, 300);
           }
         }
       } catch (err: any) {
         void err;
         // Clear invalid saved game data
-        localStorage.removeItem("terraforming-mars-game");
+        clearGameSession();
         setError("Unable to load previous game");
       }
     };
 
     void checkExistingGame();
-  }, [preloadSkybox]);
+  }, [preloadSkybox, navigate]);
 
   const handleCreateGame = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Allow CTRL+Click, CMD+Click, and middle mouse button to open in new tab
@@ -87,6 +98,20 @@ const GameLandingPage: React.FC = () => {
     setIsFadingOut(true);
     setTimeout(async () => {
       try {
+        // Verify game still exists before attempting reconnection
+        const game = await apiService.getGame(savedGameData.game.id);
+        if (!game) {
+          // Game no longer exists, clear storage and show error
+          console.log(
+            "Game no longer exists, clearing session and showing error",
+          );
+          clearGameSession();
+          setError("Game no longer exists");
+          setIsFadingOut(false);
+          setSavedGameData(null);
+          return;
+        }
+
         // Reconnect to the game using global WebSocket manager
         await globalWebSocketManager.playerConnect(
           savedGameData.playerName,

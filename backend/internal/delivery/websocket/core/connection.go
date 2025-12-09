@@ -36,7 +36,9 @@ type Connection struct {
 	// Callbacks for hub communication
 	onMessage    func(HubMessage)
 	onDisconnect func(*Connection)
-	onPlayerSet  func(*Connection, string) // Called when player ID is set
+
+	// Direct reference to manager for game association
+	manager *Manager
 
 	// Synchronization
 	mu         sync.RWMutex
@@ -47,14 +49,14 @@ type Connection struct {
 }
 
 // NewConnection creates a new WebSocket connection
-func NewConnection(id string, conn *websocket.Conn, onMessage func(HubMessage), onDisconnect func(*Connection), onPlayerSet func(*Connection, string)) *Connection {
+func NewConnection(id string, conn *websocket.Conn, manager *Manager, onMessage func(HubMessage), onDisconnect func(*Connection)) *Connection {
 	return &Connection{
 		ID:           id,
 		Conn:         conn,
 		Send:         make(chan dto.WebSocketMessage, 256),
 		onMessage:    onMessage,
 		onDisconnect: onDisconnect,
-		onPlayerSet:  onPlayerSet,
+		manager:      manager,
 		logger:       logger.Get(),
 		Done:         make(chan struct{}),
 	}
@@ -67,9 +69,9 @@ func (c *Connection) SetPlayer(playerID, gameID string) {
 	c.GameID = gameID
 	c.mu.Unlock()
 
-	// Notify Hub that this connection now has a player/game association
-	if c.onPlayerSet != nil && gameID != "" {
-		c.onPlayerSet(c, gameID)
+	// Register connection with game in manager (synchronous - no race condition)
+	if c.manager != nil && gameID != "" {
+		c.manager.AddToGame(c, gameID)
 	}
 }
 

@@ -48,9 +48,9 @@ func (h *Handler) ServeWS(w http.ResponseWriter, r *http.Request) {
 	// Create connection ID and connection object
 	connectionID := uuid.New().String()
 	connection := NewConnection(connectionID, conn,
-		func(msg HubMessage) { h.hub.Messages <- msg },                                           // onMessage callback
-		func(conn *Connection) { h.hub.Unregister <- conn },                                      // onDisconnect callback
-		func(conn *Connection, gameID string) { h.hub.RegisterConnectionWithGame(conn, gameID) }) // onPlayerSet callback
+		h.hub.GetManager(), // Direct manager reference
+		func(msg HubMessage) { h.hub.Messages <- msg },      // onMessage callback
+		func(conn *Connection) { h.hub.Unregister <- conn }) // onDisconnect callback
 
 	h.logger.Info("✅ New WebSocket connection established",
 		zap.String("connection_id", connectionID),

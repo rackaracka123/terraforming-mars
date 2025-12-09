@@ -5,19 +5,20 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
+	"terraforming-mars-backend/internal/action"
+	admin "terraforming-mars-backend/internal/action/admin"
+	query "terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
-	"terraforming-mars-backend/internal/delivery/websocket/session"
-	"terraforming-mars-backend/internal/events"
+	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/logger"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
+	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -43,108 +44,188 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Initialize event bus for domain events
-	eventBus := events.NewEventBus()
-	log.Info("🎆 Event bus initialized")
-
-	// Initialize individual repositories with event bus
-	playerRepo := repository.NewPlayerRepository(eventBus)
-	log.Info("Player repository initialized")
-
-	gameRepo := repository.NewGameRepository(eventBus)
-	log.Info("Game repository initialized")
-
-	// Initialize card repository and load cards
-	cardRepo := repository.NewCardRepository()
-	if err := cardRepo.LoadCards(context.Background()); err != nil {
-		log.Warn("Failed to load card data, using fallback cards", zap.Error(err))
-	} else {
-		allCards, _ := cardRepo.GetAllCards(context.Background())
-		projectCards, _ := cardRepo.GetProjectCards(context.Background())
-		corporationCards, _ := cardRepo.GetCorporationCards(context.Background())
-		preludeCards, _ := cardRepo.GetPreludeCards(context.Background())
-		log.Info("📚 Card data loaded successfully",
-			zap.Int("project_cards", len(projectCards)),
-			zap.Int("corporation_cards", len(corporationCards)),
-			zap.Int("prelude_cards", len(preludeCards)),
-			zap.Int("total_cards", len(allCards)))
-	}
-
-	// Initialize new service architecture
-	cardDeckRepo := repository.NewCardDeckRepository()
-
-	// Create Hub first (no dependencies)
-	hub := core.NewHub()
-
-	// Initialize SessionManager for WebSocket broadcasting with Hub
-	sessionManager := session.NewSessionManager(gameRepo, playerRepo, cardRepo, hub)
-
-	// Initialize services in dependency order
-	boardService := service.NewBoardService()
-	tileService := service.NewTileService(gameRepo, playerRepo, boardService)
-
-	// Initialize card effect subscriber for passive effects
-	effectSubscriber := cards.NewCardEffectSubscriber(eventBus, playerRepo, gameRepo, cardRepo)
-	log.Info("🎆 Card effect subscriber initialized")
-
-	// Initialize forced action manager for corporation forced first actions
-	forcedActionManager := cards.NewForcedActionManager(eventBus, cardRepo, playerRepo, gameRepo, cardDeckRepo)
-	forcedActionManager.SubscribeToPhaseChanges()
-	log.Info("🎯 Forced action manager initialized and subscribed to phase changes")
-
-	// CardService needs TileService for tile queue processing and effect subscriber for passive effects
-	cardService := service.NewCardService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, tileService, effectSubscriber, forcedActionManager)
-	log.Info("SessionManager initialized for service-level broadcasting")
-
-	// PlayerService needs TileService for processing queues after tile placement
-	playerService := service.NewPlayerService(gameRepo, playerRepo, sessionManager, boardService, tileService, forcedActionManager, eventBus)
-
-	gameService := service.NewGameService(gameRepo, playerRepo, cardRepo, cardService, cardDeckRepo, boardService, sessionManager)
-
-	standardProjectService := service.NewStandardProjectService(gameRepo, playerRepo, sessionManager, tileService)
-	resourceConversionService := service.NewResourceConversionService(gameRepo, playerRepo, boardService, sessionManager, eventBus)
-	adminService := service.NewAdminService(gameRepo, playerRepo, cardRepo, cardDeckRepo, sessionManager, effectSubscriber, forcedActionManager)
-
-	log.Info("Services initialized with new architecture and reconnection system")
-
-	// Log service initialization
-	log.Info("Player service ready", zap.Any("service", playerService != nil))
-	log.Info("Game service ready", zap.Any("service", gameService != nil))
-
-	log.Info("Game management service initialized and ready")
-	log.Info("Consolidated repositories working correctly")
-
-	// Show that the service is working by testing it
-	ctx := context.Background()
-	testGame, err := gameService.CreateGame(ctx, model.GameSettings{MaxPlayers: 4})
+	// ========== Initialize Card Registry ==========
+	// Get working directory to build absolute path
+	wd, err := os.Getwd()
 	if err != nil {
-		log.Error("Failed to create test game", zap.Error(err))
-	} else {
-		log.Info("Test game created", zap.String("game_id", testGame.ID))
+		log.Fatal("Failed to get working directory", zap.Error(err))
 	}
 
-	// Initialize WebSocket service with shared Hub
-	webSocketService := wsHandler.NewWebSocketService(gameService, playerService, standardProjectService, cardService, adminService, resourceConversionService, gameRepo, playerRepo, cardRepo, hub)
+	cardPath := filepath.Join(wd, "assets", "terraforming_mars_cards.json")
+	log.Info("📂 Loading cards from", zap.String("path", cardPath))
 
-	// Start WebSocket service in background
-	wsCtx, wsCancel := context.WithCancel(ctx)
-	defer wsCancel()
-	go webSocketService.Run(wsCtx)
-	log.Info("WebSocket hub started")
+	cardData, err := cards.LoadCardsFromJSON(cardPath)
+	if err != nil {
+		log.Fatal("Failed to load cards", zap.Error(err))
+	}
+	cardRegistry := cards.NewInMemoryCardRegistry(cardData)
+	log.Info("🃏 Card registry initialized", zap.Int("card_count", len(cardData)))
 
-	// Setup main router without middleware for WebSocket
+	// ========== Initialize Game Repository (Single Source of Truth) ==========
+	gameRepo := game.NewInMemoryGameRepository()
+	log.Info("🎮 Game repository initialized")
+
+	// ========== Initialize WebSocket Hub ==========
+	hub := core.NewHub()
+	log.Info("🔌 WebSocket hub initialized")
+
+	// ========== Initialize Game State Broadcaster (Automatic Broadcasting) ==========
+	broadcaster := wsHandler.NewBroadcaster(gameRepo, hub, cardRegistry)
+	log.Info("📡 Game state broadcaster initialized (provides automatic broadcasting for all games)")
+
+	// ========== Initialize Game Actions ==========
+
+	// Game lifecycle (2)
+	createGameAction := action.NewCreateGameAction(gameRepo, cardRegistry, log)
+	joinGameAction := action.NewJoinGameAction(gameRepo, cardRegistry, log)
+
+	// Card actions (2)
+	playCardAction := action.NewPlayCardAction(gameRepo, cardRegistry, log)
+	useCardActionAction := action.NewUseCardActionAction(gameRepo, cardRegistry, log)
+
+	// Standard projects (6)
+	launchAsteroidAction := action.NewLaunchAsteroidAction(gameRepo, log)
+	buildPowerPlantAction := action.NewBuildPowerPlantAction(gameRepo, log)
+	buildAquiferAction := action.NewBuildAquiferAction(gameRepo, log)
+	buildCityAction := action.NewBuildCityAction(gameRepo, log)
+	plantGreeneryAction := action.NewPlantGreeneryAction(gameRepo, log)
+	sellPatentsAction := action.NewSellPatentsAction(gameRepo, log)
+
+	// Resource conversions (2)
+	convertHeatAction := action.NewConvertHeatToTemperatureAction(gameRepo, log)
+	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(gameRepo, log)
+
+	// Tile selection (1)
+	selectTileAction := action.NewSelectTileAction(gameRepo, log)
+
+	// Turn management (3)
+	startGameAction := action.NewStartGameAction(gameRepo, cardRegistry, log)
+	skipActionAction := action.NewSkipActionAction(gameRepo, log)
+	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
+
+	// Confirmations (3)
+	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, log)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, log)
+
+	// Connection management (2)
+	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
+	playerDisconnectedAction := action.NewPlayerDisconnectedAction(gameRepo, log)
+
+	// Admin actions (8)
+	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)
+	adminSetCurrentTurnAction := admin.NewSetCurrentTurnAction(gameRepo, log)
+	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
+	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
+	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
+	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, log)
+	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, cardRegistry, log)
+	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
+
+	// Query actions for HTTP (4)
+	getGameAction := query.NewGetGameAction(gameRepo, log)
+	listGamesAction := query.NewListGamesAction(gameRepo, log)
+	listCardsAction := query.NewListCardsAction(cardRegistry, log)
+	getPlayerAction := query.NewGetPlayerAction(gameRepo, log)
+
+	log.Info("✅ All migration actions initialized")
+	log.Info("   📌 Game Lifecycle (2): CreateGame, JoinGame")
+	log.Info("   📌 Card Actions (2): PlayCard, UseCardAction")
+	log.Info("   📌 Standard Projects (6): LaunchAsteroid, BuildPowerPlant, BuildAquifer, BuildCity, PlantGreenery, SellPatents")
+	log.Info("   📌 Resource Conversions (2): ConvertHeat, ConvertPlants")
+	log.Info("   📌 Tile Selection (1): SelectTile")
+	log.Info("   📌 Turn Management (3): StartGame, SkipAction, SelectStartingCards")
+	log.Info("   📌 Confirmations (3): ConfirmSellPatents, ConfirmProductionCards, ConfirmCardDraw")
+	log.Info("   📌 Connection Management (2): PlayerReconnected, PlayerDisconnected")
+	log.Info("   📌 Admin Actions (8): SetPhase, SetCurrentTurn, SetResources, SetProduction, SetGlobalParameters, GiveCard, SetCorporation, StartTileSelection")
+	log.Info("   📌 Query Actions (4): GetGame, ListGames, ListCards, GetPlayer")
+
+	// ========== Register Migration Handlers with WebSocket Hub ==========
+	wsHandler.RegisterHandlers(
+		hub,
+		broadcaster,
+		// Game lifecycle
+		createGameAction,
+		joinGameAction,
+		// Card actions
+		playCardAction,
+		useCardActionAction,
+		// Standard projects
+		launchAsteroidAction,
+		buildPowerPlantAction,
+		buildAquiferAction,
+		buildCityAction,
+		plantGreeneryAction,
+		sellPatentsAction,
+		// Resource conversions
+		convertHeatAction,
+		convertPlantsAction,
+		// Tile selection
+		selectTileAction,
+		// Turn management
+		startGameAction,
+		skipActionAction,
+		selectStartingCardsAction,
+		// Confirmations
+		confirmSellPatentsAction,
+		confirmProductionCardsAction,
+		confirmCardDrawAction,
+		// Connection
+		playerReconnectedAction,
+		playerDisconnectedAction,
+		// Admin actions
+		adminSetPhaseAction,
+		adminSetCurrentTurnAction,
+		adminSetResourcesAction,
+		adminSetProductionAction,
+		adminSetGlobalParametersAction,
+		adminGiveCardAction,
+		adminSetCorporationAction,
+		adminStartTileSelectionAction,
+	)
+
+	log.Info("🎯 Migration handlers registered with WebSocket hub (21 handlers)")
+
+	// ========== Start WebSocket Hub ==========
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go hub.Run(ctx)
+	log.Info("🔌 WebSocket hub running")
+
+	// ========== Setup HTTP Router ==========
 	mainRouter := mux.NewRouter()
+	mainRouter.Use(httpmiddleware.CORS) // Apply CORS to all routes
 
-	// Setup API router with middleware
-	apiRouter := httpHandler.SetupRouter(gameService, playerService, cardService, playerRepo, cardRepo)
+	// Setup API router with migration actions
+	apiRouter := httpHandler.SetupRouter(
+		createGameAction,
+		getGameAction,
+		listGamesAction,
+		listCardsAction,
+		getPlayerAction,
+		cardRegistry,
+	)
 
 	// Mount API router
 	mainRouter.PathPrefix("/api/v1").Handler(apiRouter)
 
-	// Add WebSocket endpoint directly to main router (no middleware)
-	mainRouter.HandleFunc("/ws", webSocketService.ServeWS)
+	// Create WebSocket handler
+	wsHttpHandler := core.NewHandler(hub)
 
-	// Setup HTTP server
+	// Add WebSocket endpoint
+	mainRouter.HandleFunc("/ws", wsHttpHandler.ServeWS)
+
+	log.Info("🌐 HTTP routes configured")
+	log.Info("   📌 POST /api/v1/games - Create game")
+	log.Info("   📌 GET  /api/v1/games - List games")
+	log.Info("   📌 GET  /api/v1/games/{gameId} - Get game")
+	log.Info("   📌 GET  /api/v1/cards - List cards")
+	log.Info("   📌 GET  /api/v1/games/{gameId}/players/{playerId} - Get player")
+	log.Info("   📌 WS   /ws - WebSocket endpoint")
+	log.Info("   ℹ️  Game creation available via both HTTP POST and WebSocket 'create-game'")
+
+	// ========== Setup HTTP Server ==========
 	server := &http.Server{
 		Addr:         ":3001",
 		Handler:      mainRouter,
@@ -155,15 +236,14 @@ func main() {
 
 	// Start HTTP server in background
 	go func() {
-		log.Info("Starting HTTP server on :3001")
+		log.Info("🌍 HTTP server listening on :3001")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start HTTP server", zap.Error(err))
 		}
 	}()
 
-	log.Info("✅ Server started")
-	log.Info("🌍 HTTP server listening on :3001")
-	log.Info("🔌 WebSocket endpoint available at /ws")
+	log.Info("✅ Server started successfully")
+	log.Info("🎮 Using migration architecture - all old code removed")
 
 	// Wait for shutdown signal
 	<-quit
@@ -181,9 +261,9 @@ func main() {
 		log.Info("✅ HTTP server stopped")
 	}
 
-	// Cancel WebSocket service context
-	wsCancel()
-	log.Info("✅ WebSocket service stopped")
+	// Cancel WebSocket hub context
+	cancel()
+	log.Info("✅ WebSocket hub stopped")
 
 	log.Info("✅ Server shutdown complete")
 }

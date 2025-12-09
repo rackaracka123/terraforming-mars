@@ -2,19 +2,28 @@ package http
 
 import (
 	"net/http"
+
+	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
 
 	"github.com/gorilla/mux"
 )
 
-// SetupRouter creates and configures the HTTP router
-func SetupRouter(gameService service.GameService, playerService service.PlayerService, cardService service.CardService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *mux.Router {
+// SetupRouter creates HTTP router
+// Includes both query (GET) and mutation (POST) endpoints
+func SetupRouter(
+	createGameAction *action.CreateGameAction,
+	getGameAction *query.GetGameAction,
+	listGamesAction *query.ListGamesAction,
+	listCardsAction *query.ListCardsAction,
+	getPlayerAction *query.GetPlayerAction,
+	cardRegistry cards.CardRegistry,
+) *mux.Router {
 	// Create handlers
-	gameHandler := NewGameHandler(gameService, playerRepo, cardRepo)
-	playerHandler := NewPlayerHandler(playerService, gameService)
-	cardHandler := NewCardHandler(cardService)
+	gameHandler := NewGameHandler(createGameAction, getGameAction, listGamesAction, listCardsAction, cardRegistry)
+	playerHandler := NewPlayerHandler(getPlayerAction, getGameAction, cardRegistry)
 	healthHandler := NewHealthHandler()
 
 	// Create router
@@ -27,6 +36,7 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
+
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 
@@ -39,17 +49,12 @@ func SetupRouter(gameService service.GameService, playerService service.PlayerSe
 	gameRoutes.HandleFunc("", gameHandler.ListGames).Methods(http.MethodGet)
 	gameRoutes.HandleFunc("/{gameId}", gameHandler.GetGame).Methods(http.MethodGet)
 
-	// Player routes
+	// Player routes (query only)
 	playerRoutes := api.PathPrefix("/games/{gameId}/players").Subrouter()
-	playerRoutes.HandleFunc("", playerHandler.JoinGame).Methods(http.MethodPost)
 	playerRoutes.HandleFunc("/{playerId}", playerHandler.GetPlayer).Methods(http.MethodGet)
 
 	// Card routes
-	cardRoutes := api.PathPrefix("/cards").Subrouter()
-	cardRoutes.HandleFunc("", cardHandler.ListCards).Methods(http.MethodGet)
-
-	// Corporation routes
-	api.HandleFunc("/corporations", cardHandler.GetCorporations).Methods(http.MethodGet)
+	api.HandleFunc("/cards", gameHandler.ListCards).Methods(http.MethodGet)
 
 	return router
 }

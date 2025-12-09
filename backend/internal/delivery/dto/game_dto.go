@@ -1,7 +1,5 @@
 package dto
 
-import "terraforming-mars-backend/internal/model"
-
 // GamePhase represents the current phase of the game
 type GamePhase string
 
@@ -71,7 +69,7 @@ const (
 )
 
 // ResourceType represents different types of resources for client consumption
-// This is a 1:1 mapping from model.ResourceType
+// This is a 1:1 mapping from types.ResourceType
 type ResourceType string
 
 const (
@@ -151,6 +149,31 @@ const (
 	CardApplyLocationMars     CardApplyLocation = "mars"
 )
 
+// RequirementType represents different card requirement types for client consumption
+type RequirementType string
+
+const (
+	RequirementTemperature RequirementType = "temperature"
+	RequirementOxygen      RequirementType = "oxygen"
+	RequirementOceans      RequirementType = "oceans"
+	RequirementVenus       RequirementType = "venus"
+	RequirementCities      RequirementType = "cities"
+	RequirementGreeneries  RequirementType = "greeneries"
+	RequirementTags        RequirementType = "tags"
+	RequirementProduction  RequirementType = "production"
+	RequirementTR          RequirementType = "tr"
+	RequirementResource    RequirementType = "resource"
+)
+
+// VPConditionType represents different types of VP conditions for client consumption
+type VPConditionType string
+
+const (
+	VPConditionFixed       VPConditionType = "fixed"
+	VPConditionPer         VPConditionType = "per"
+	VPConditionResourcesOn VPConditionType = "resources-on"
+)
+
 // TriggerType represents different trigger conditions for client consumption
 type TriggerType string
 
@@ -191,6 +214,7 @@ type ResourceConditionDto struct {
 	Target                   TargetType        `json:"target" ts:"TargetType"`
 	AffectedResources        []string          `json:"affectedResources,omitempty" ts:"string[] | undefined"`
 	AffectedTags             []CardTag         `json:"affectedTags,omitempty" ts:"CardTag[] | undefined"`
+	AffectedCardTypes        []CardType        `json:"affectedCardTypes,omitempty" ts:"CardType[] | undefined"`
 	AffectedStandardProjects []StandardProject `json:"affectedStandardProjects,omitempty" ts:"StandardProject[] | undefined"`
 	MaxTrigger               *int              `json:"maxTrigger,omitempty" ts:"number | undefined"`
 	Per                      *PerConditionDto  `json:"per,omitempty" ts:"PerConditionDto | undefined"`
@@ -243,40 +267,63 @@ type CardBehaviorDto struct {
 	Choices  []ChoiceDto            `json:"choices,omitempty" ts:"ChoiceDto[] | undefined"`
 }
 
-// ResourceStorageDto represents a card's resource storage capability for client consumption
+// PaymentConstantsDto represents payment conversion rates
+type PaymentConstantsDto struct {
+	SteelValue    int `json:"steelValue" ts:"number"`
+	TitaniumValue int `json:"titaniumValue" ts:"number"`
+}
+
+// RequirementDto represents a card requirement for client consumption
+type RequirementDto struct {
+	Type     RequirementType    `json:"type" ts:"RequirementType"`
+	Min      *int               `json:"min,omitempty" ts:"number | undefined"`
+	Max      *int               `json:"max,omitempty" ts:"number | undefined"`
+	Location *CardApplyLocation `json:"location,omitempty" ts:"CardApplyLocation | undefined"`
+	Tag      *CardTag           `json:"tag,omitempty" ts:"CardTag | undefined"`
+	Resource *ResourceType      `json:"resource,omitempty" ts:"ResourceType | undefined"`
+}
+
+// ResourceStorageDto represents a card's resource storage for client consumption
 type ResourceStorageDto struct {
-	Type     model.ResourceType `json:"type" ts:"ResourceType"`
-	Capacity *int               `json:"capacity,omitempty" ts:"number | undefined"`
-	Starting int                `json:"starting" ts:"number"`
+	Type     ResourceType `json:"type" ts:"ResourceType"`
+	Capacity *int         `json:"capacity,omitempty" ts:"number | undefined"`
+	Starting int          `json:"starting" ts:"number"`
+}
+
+// VPConditionDto represents a victory point condition for client consumption
+type VPConditionDto struct {
+	Amount     int              `json:"amount" ts:"number"`
+	Condition  VPConditionType  `json:"condition" ts:"VPConditionType"`
+	MaxTrigger *int             `json:"maxTrigger,omitempty" ts:"number | undefined"`
+	Per        *PerConditionDto `json:"per,omitempty" ts:"PerConditionDto | undefined"`
 }
 
 // CardDto represents a card for client consumption
 type CardDto struct {
-	ID              string                        `json:"id" ts:"string"`
-	Name            string                        `json:"name" ts:"string"`
-	Type            CardType                      `json:"type" ts:"CardType"`
-	Cost            int                           `json:"cost" ts:"number"`
-	Description     string                        `json:"description" ts:"string"`
-	Pack            string                        `json:"pack" ts:"string"`
-	Tags            []CardTag                     `json:"tags,omitempty" ts:"CardTag[] | undefined"`
-	Requirements    []model.Requirement           `json:"requirements,omitempty" ts:"Requirement[] | undefined"`
-	Behaviors       []CardBehaviorDto             `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
-	ResourceStorage *ResourceStorageDto           `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
-	VPConditions    []model.VictoryPointCondition `json:"vpConditions,omitempty" ts:"VictoryPointCondition[] | undefined"`
+	ID              string              `json:"id" ts:"string"`
+	Name            string              `json:"name" ts:"string"`
+	Type            CardType            `json:"type" ts:"CardType"`
+	Cost            int                 `json:"cost" ts:"number"`
+	Description     string              `json:"description" ts:"string"`
+	Pack            string              `json:"pack" ts:"string"`
+	Tags            []CardTag           `json:"tags,omitempty" ts:"CardTag[] | undefined"`
+	Requirements    []RequirementDto    `json:"requirements,omitempty" ts:"RequirementDto[] | undefined"`
+	Behaviors       []CardBehaviorDto   `json:"behaviors,omitempty" ts:"CardBehaviorDto[] | undefined"`
+	ResourceStorage *ResourceStorageDto `json:"resourceStorage,omitempty" ts:"ResourceStorageDto | undefined"`
+	VPConditions    []VPConditionDto    `json:"vpConditions,omitempty" ts:"VPConditionDto[] | undefined"`
 
 	// Corporation-specific fields (nil for non-corporation cards)
-	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`  // Parsed from first auto behavior (corporations only)
-	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"` // Parsed from first auto behavior (corporations only)
+	StartingResources  *ResourceSet `json:"startingResources,omitempty" ts:"ResourceSet | undefined"`
+	StartingProduction *ResourceSet `json:"startingProduction,omitempty" ts:"ResourceSet | undefined"`
 }
 
 type SelectStartingCardsPhaseDto struct {
-	AvailableCards        []CardDto `json:"availableCards" ts:"CardDto[]"`       // Cards available for selection
-	AvailableCorporations []string  `json:"availableCorporations" ts:"string[]"` // Corporation IDs available for selection (2 corporations)
-	SelectionComplete     bool      `json:"selectionComplete" ts:"boolean"`      // Whether player completed card selection
+	AvailableCards        []CardDto `json:"availableCards" ts:"CardDto[]"`        // Cards available for selection
+	AvailableCorporations []CardDto `json:"availableCorporations" ts:"CardDto[]"` // Corporation cards available for selection (2 corporations)
 }
 
 type SelectStartingCardsOtherPlayerDto struct {
-	SelectionComplete bool `json:"selectionComplete" ts:"boolean"` // Whether player completed card selection
+	// Empty - other players don't see any selection details
 }
 
 // ProductionPhaseDto represents card selection and production phase state for a player
@@ -421,7 +468,7 @@ type PlayerDto struct {
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
-	PlayedCards      []string          `json:"playedCards" ts:"string[]"`
+	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Full card details for all played cards
 	Passed           bool              `json:"passed" ts:"boolean"`
 	AvailableActions int               `json:"availableActions" ts:"number"`
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
@@ -458,7 +505,7 @@ type OtherPlayerDto struct {
 	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
 	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
 	TerraformRating  int               `json:"terraformRating" ts:"number"`
-	PlayedCards      []string          `json:"playedCards" ts:"string[]"` // Played cards are public
+	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Played cards are public - full card details
 	Passed           bool              `json:"passed" ts:"boolean"`
 	AvailableActions int               `json:"availableActions" ts:"number"`
 	VictoryPoints    int               `json:"victoryPoints" ts:"number"`

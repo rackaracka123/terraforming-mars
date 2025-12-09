@@ -6,6 +6,7 @@ type MessageType string
 const (
 	// Existing Client -> Server messages
 	MessageTypePlayerConnect MessageType = "player-connect"
+	MessageTypeJoinGame      MessageType = "join-game" // Alternative to player-connect for backwards compatibility
 
 	// Existing Server -> Client messages
 	MessageTypeGameUpdated            MessageType = "game-updated"
@@ -17,18 +18,20 @@ const (
 	MessageTypeProductionPhaseStarted MessageType = "production-phase-started"
 
 	// Standard project message types
-	MessageTypeActionSellPatents     MessageType = "action.standard-project.sell-patents"
-	MessageTypeActionLaunchAsteroid  MessageType = "action.standard-project.launch-asteroid"
-	MessageTypeActionBuildPowerPlant MessageType = "action.standard-project.build-power-plant"
-	MessageTypeActionBuildAquifer    MessageType = "action.standard-project.build-aquifer"
-	MessageTypeActionPlantGreenery   MessageType = "action.standard-project.plant-greenery"
-	MessageTypeActionBuildCity       MessageType = "action.standard-project.build-city"
+	MessageTypeActionSellPatents        MessageType = "action.standard-project.sell-patents"
+	MessageTypeActionConfirmSellPatents MessageType = "action.standard-project.confirm-sell-patents"
+	MessageTypeActionLaunchAsteroid     MessageType = "action.standard-project.launch-asteroid"
+	MessageTypeActionBuildPowerPlant    MessageType = "action.standard-project.build-power-plant"
+	MessageTypeActionBuildAquifer       MessageType = "action.standard-project.build-aquifer"
+	MessageTypeActionPlantGreenery      MessageType = "action.standard-project.plant-greenery"
+	MessageTypeActionBuildCity          MessageType = "action.standard-project.build-city"
 
 	// Resource conversion message types
 	MessageTypeActionConvertPlantsToGreenery  MessageType = "action.resource-conversion.convert-plants-to-greenery"
 	MessageTypeActionConvertHeatToTemperature MessageType = "action.resource-conversion.convert-heat-to-temperature"
 
 	// Game management message types
+	MessageTypeCreateGame       MessageType = "create-game"
 	MessageTypeActionStartGame  MessageType = "action.game-management.start-game"
 	MessageTypeActionSkipAction MessageType = "action.game-management.skip-action"
 
@@ -36,11 +39,12 @@ const (
 	MessageTypeActionTileSelected MessageType = "action.tile-selection.tile-selected"
 
 	// Card message types
-	MessageTypeActionPlayCard           MessageType = "action.card.play-card"
-	MessageTypeActionCardAction         MessageType = "action.card.card-action"
-	MessageTypeActionSelectStartingCard MessageType = "action.card.select-starting-card"
-	MessageTypeActionSelectCards        MessageType = "action.card.select-cards"
-	MessageTypeActionCardDrawConfirmed  MessageType = "action.card.card-draw-confirmed"
+	MessageTypeActionPlayCard               MessageType = "action.card.play-card"
+	MessageTypeActionCardAction             MessageType = "action.card.card-action"
+	MessageTypeActionSelectStartingCard     MessageType = "action.card.select-starting-card"
+	MessageTypeActionSelectCards            MessageType = "action.card.select-cards"
+	MessageTypeActionConfirmProductionCards MessageType = "action.card.confirm-production-cards"
+	MessageTypeActionCardDrawConfirmed      MessageType = "action.card.card-draw-confirmed"
 
 	// Admin message types (development mode only)
 	MessageTypeAdminCommand MessageType = "admin-command"

@@ -36,7 +36,7 @@ run:
 	@echo "🚀 Starting both servers..."
 	@echo "Frontend: http://localhost:3000"
 	@echo "Backend: http://localhost:3001 (with auto-reload)"
-	cd frontend && npm start & cd backend && air
+	cd frontend && npm start & cd backend && $(shell go env GOPATH)/bin/air
 
 frontend:
 	@echo "🎨 Starting frontend development server..."
@@ -45,7 +45,7 @@ frontend:
 backend:
 	@echo "🔄 Starting backend development server with auto-restart..."
 	@echo "   Watching for changes in backend/ directory"
-	cd backend && air
+	cd backend && $(shell go env GOPATH)/bin/air
 
 kill:
 	@echo "🛑 Killing all development servers..."

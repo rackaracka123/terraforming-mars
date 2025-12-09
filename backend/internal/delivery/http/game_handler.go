@@ -1,142 +1,222 @@
 package http
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/action/query"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
-	"terraforming-mars-backend/internal/model"
-	"terraforming-mars-backend/internal/repository"
-	"terraforming-mars-backend/internal/service"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/logger"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
-// GameHandler handles HTTP requests related to game operations
+// GameHandler handles HTTP requests for games
 type GameHandler struct {
-	*BaseHandler
-	gameService service.GameService
-	playerRepo  repository.PlayerRepository
-	cardRepo    repository.CardRepository
+	createGameAction *action.CreateGameAction
+	getGameAction    *query.GetGameAction
+	listGamesAction  *query.ListGamesAction
+	listCardsAction  *query.ListCardsAction
+	cardRegistry     cards.CardRegistry
 }
 
 // NewGameHandler creates a new game handler
-func NewGameHandler(gameService service.GameService, playerRepo repository.PlayerRepository, cardRepo repository.CardRepository) *GameHandler {
+func NewGameHandler(
+	createGameAction *action.CreateGameAction,
+	getGameAction *query.GetGameAction,
+	listGamesAction *query.ListGamesAction,
+	listCardsAction *query.ListCardsAction,
+	cardRegistry cards.CardRegistry,
+) *GameHandler {
 	return &GameHandler{
-		BaseHandler: NewBaseHandler(),
-		gameService: gameService,
-		playerRepo:  playerRepo,
-		cardRepo:    cardRepo,
+		createGameAction: createGameAction,
+		getGameAction:    getGameAction,
+		listGamesAction:  listGamesAction,
+		listCardsAction:  listCardsAction,
+		cardRegistry:     cardRegistry,
 	}
 }
 
-// CreateGame creates a new game
-func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
-	var req dto.CreateGameRequest
-	if err := h.ParseJSONRequest(r, &req); err != nil {
-		h.WriteErrorResponse(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Delegate to service
-	gameSettings := model.GameSettings{
-		MaxPlayers:      req.MaxPlayers,
-		DevelopmentMode: req.DevelopmentMode,
-	}
-
-	game, err := h.gameService.CreateGame(r.Context(), gameSettings)
-	if err != nil {
-		h.logger.Error("Failed to create game", zap.Error(err))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to create game")
-		return
-	}
-
-	// Convert to DTO and respond
-	gameDto := dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
-	response := dto.CreateGameResponse{
-		Game: gameDto,
-	}
-	h.WriteJSONResponse(w, http.StatusCreated, response)
-}
-
-// GetGame retrieves a game by ID
+// GetGame handles GET /api/v1/games/{gameId}
 func (h *GameHandler) GetGame(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	// Extract gameId from URL
 	vars := mux.Vars(r)
 	gameID := vars["gameId"]
 
-	if gameID == "" {
-		h.WriteErrorResponse(w, http.StatusBadRequest, "Game ID is required")
-		return
-	}
+	log.Info("📡 HTTP GET /api/v1/games/:gameId", zap.String("game_id", gameID))
 
-	// Check for optional playerId query parameter for personalized view
-	playerID := r.URL.Query().Get("playerId")
-
-	// Delegate to service
-	game, err := h.gameService.GetGame(r.Context(), gameID)
+	// Execute query action
+	game, err := h.getGameAction.Execute(ctx, gameID)
 	if err != nil {
-		h.logger.Error("Failed to get game", zap.Error(err), zap.String("game_id", gameID))
-		h.WriteErrorResponse(w, http.StatusNotFound, "Game not found")
+		log.Error("Failed to get game", zap.Error(err))
+		http.Error(w, "Game not found", http.StatusNotFound)
 		return
 	}
 
-	var gameDto dto.GameDto
-	if playerID != "" {
-		// Return personalized view with full player data
-		players, err := h.playerRepo.ListByGameID(r.Context(), gameID)
-		if err != nil {
-			h.logger.Error("Failed to get players", zap.Error(err), zap.String("game_id", gameID))
-			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to get players")
-			return
-		}
+	// Convert to DTO (HTTP GET has no authenticated player, use first player as fallback)
+	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
 
-		// Collect all card IDs that need resolution
-		allCardIds := make(map[string]struct{})
-		for _, player := range players {
-			if player.Corporation != nil {
-				allCardIds[player.Corporation.ID] = struct{}{}
-			}
-			for _, cardID := range player.PlayedCards {
-				allCardIds[cardID] = struct{}{}
-			}
-			for _, cardID := range player.Cards {
-				allCardIds[cardID] = struct{}{}
-			}
-		}
-
-		resolvedCards, err := h.cardRepo.ListCardsByIdMap(r.Context(), allCardIds)
-		if err != nil {
-			h.logger.Error("Failed to resolve cards", zap.Error(err), zap.String("game_id", gameID))
-			h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to resolve cards")
-			return
-		}
-
-		gameDto = dto.ToGameDto(game, players, playerID, resolvedCards, dto.GetPaymentConstants())
-	} else {
-		// Return basic non-personalized view
-		gameDto = dto.ToGameDtoBasic(game, dto.GetPaymentConstants())
-	}
-
+	// Wrap in response structure
 	response := dto.GetGameResponse{
 		Game: gameDto,
 	}
-	h.WriteJSONResponse(w, http.StatusOK, response)
-}
 
-// ListGames retrieves all games
-func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
-	// Delegate to service (list all games by passing empty status)
-	games, err := h.gameService.ListGames(r.Context(), "")
-	if err != nil {
-		h.logger.Error("Failed to list games", zap.Error(err))
-		h.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to list games")
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Convert to DTOs and respond
-	gameDtos := dto.ToGameDtoSlice(games, dto.GetPaymentConstants())
-	response := dto.ListGamesResponse{
-		Games: gameDtos,
+	log.Info("✅ Game retrieved successfully", zap.String("game_id", gameID))
+}
+
+// ListGames handles GET /api/v1/games
+func (h *GameHandler) ListGames(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP GET /api/v1/games")
+
+	// Execute query action (no status filter for now)
+	games, err := h.listGamesAction.Execute(ctx, nil)
+	if err != nil {
+		log.Error("Failed to list games", zap.Error(err))
+		http.Error(w, "Failed to list games", http.StatusInternalServerError)
+		return
 	}
-	h.WriteJSONResponse(w, http.StatusOK, response)
+
+	// Convert to DTOs (HTTP GET has no authenticated player, use first player as fallback)
+	gameDtos := make([]dto.GameDto, len(games))
+	for i, game := range games {
+		gameDtos[i] = dto.ToGameDto(game, h.cardRegistry, "")
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(gameDtos); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Games listed successfully", zap.Int("count", len(games)))
+}
+
+// CreateGame handles POST /api/v1/games
+func (h *GameHandler) CreateGame(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP POST /api/v1/games")
+
+	// Parse request body
+	var req dto.CreateGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Error("Failed to decode request", zap.Error(err))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Convert to GameSettings
+	settings := game.GameSettings{
+		MaxPlayers:      req.MaxPlayers,
+		DevelopmentMode: req.DevelopmentMode,
+		CardPacks:       req.CardPacks,
+	}
+
+	// Execute create game action
+	game, err := h.createGameAction.Execute(ctx, settings)
+	if err != nil {
+		log.Error("Failed to create game", zap.Error(err))
+		http.Error(w, "Failed to create game", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to DTO (HTTP POST has no authenticated player yet, use first player as fallback)
+	gameDto := dto.ToGameDto(game, h.cardRegistry, "")
+
+	// Wrap in response structure
+	response := dto.CreateGameResponse{
+		Game: gameDto,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Game created successfully", zap.String("game_id", game.ID()))
+}
+
+// ListCards handles GET /api/v1/cards
+func (h *GameHandler) ListCards(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+	ctx := r.Context()
+
+	log.Info("📡 HTTP GET /api/v1/cards")
+
+	// Parse query parameters
+	queryParams := r.URL.Query()
+	offset := 0
+	limit := 100 // Default limit
+
+	if offsetParam := queryParams.Get("offset"); offsetParam != "" {
+		var parsedOffset int
+		if _, err := fmt.Sscanf(offsetParam, "%d", &parsedOffset); err == nil {
+			offset = parsedOffset
+		}
+	}
+
+	if limitParam := queryParams.Get("limit"); limitParam != "" {
+		var parsedLimit int
+		if _, err := fmt.Sscanf(limitParam, "%d", &parsedLimit); err == nil {
+			limit = parsedLimit
+		}
+	}
+
+	// Execute query action
+	result, err := h.listCardsAction.Execute(ctx, offset, limit)
+	if err != nil {
+		log.Error("Failed to list cards", zap.Error(err))
+		http.Error(w, "Failed to list cards", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to DTOs
+	cardDtos := make([]dto.CardDto, len(result.Cards))
+	for i, card := range result.Cards {
+		cardDtos[i] = dto.ToCardDto(card)
+	}
+
+	// Wrap in response structure
+	response := dto.ListCardsResponse{
+		Cards:      cardDtos,
+		TotalCount: result.TotalCount,
+		Offset:     result.Offset,
+		Limit:      result.Limit,
+	}
+
+	// Return response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error("Failed to encode response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("✅ Cards listed successfully", zap.Int("count", len(cardDtos)))
 }

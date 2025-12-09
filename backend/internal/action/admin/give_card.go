@@ -1,0 +1,61 @@
+package admin
+
+import (
+	"context"
+	"fmt"
+
+	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/game"
+)
+
+// GiveCardAction handles the admin action to give a card to a player
+// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
+// NOTE: Card validation is skipped (admin action with trusted input)
+type GiveCardAction struct {
+	gameRepo game.GameRepository
+	logger   *zap.Logger
+}
+
+// NewGiveCardAction creates a new give card admin action
+func NewGiveCardAction(
+	gameRepo game.GameRepository,
+	logger *zap.Logger,
+) *GiveCardAction {
+	return &GiveCardAction{
+		gameRepo: gameRepo,
+		logger:   logger,
+	}
+}
+
+// Execute performs the give card admin action
+func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID string, cardID string) error {
+	log := a.logger.With(
+		zap.String("game_id", gameID),
+		zap.String("player_id", playerID),
+		zap.String("action", "admin_give_card"),
+		zap.String("card_id", cardID),
+	)
+	log.Info("🎴 Admin: Giving card to player")
+
+	// 1. Fetch game from repository
+	game, err := a.gameRepo.Get(ctx, gameID)
+	if err != nil {
+		log.Error("Failed to get game", zap.Error(err))
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+
+	// 2. Get player from game
+	player, err := game.GetPlayer(playerID)
+	if err != nil {
+		log.Error("Player not found in game", zap.Error(err))
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// 3. Add card to player's hand
+	// NOTE: Card validation is skipped - admin actions are trusted to provide valid card IDs
+	// In production, you might want to add card existence validation via a card repository
+	player.Hand().AddCard(cardID)
+
+	log.Info("✅ Admin give card completed")
+	return nil
+}

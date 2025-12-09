@@ -20,6 +20,7 @@ export class ApiService {
       const request: CreateGameRequest = {
         maxPlayers: settings.maxPlayers,
         developmentMode: settings.developmentMode,
+        cardPacks: settings.cardPacks,
       };
 
       const response = await fetch(`${this.baseUrl}/games`, {

@@ -9,6 +9,7 @@ import {
   MessageTypeFullState,
   MessageTypeGameUpdated,
   MessageTypePlayerConnect,
+  MessageTypePlayerConnected,
   MessageTypePlayerDisconnected,
   // New message types
   MessageTypeActionSellPatents,
@@ -21,13 +22,15 @@ import {
   MessageTypeActionSkipAction,
   MessageTypeActionPlayCard,
   MessageTypeActionCardAction,
-  MessageTypeActionSelectCards,
   MessageTypeActionSelectStartingCard,
+  MessageTypeActionConfirmSellPatents,
+  MessageTypeActionConfirmProductionCards,
   MessageTypeActionCardDrawConfirmed,
   MessageTypeActionTileSelected,
   MessageTypeActionConvertPlantsToGreenery,
   MessageTypeActionConvertHeatToTemperature,
   // Payload types
+  PlayerConnectedPayload,
   PlayerDisconnectedPayload,
   WebSocketMessage,
 } from "../types/generated/api-types.ts";
@@ -44,7 +47,7 @@ export class WebSocketService {
   private reconnectDelay = 1000;
   private currentGameId: string | null = null;
   private currentPlayerId: string | null = null;
-  private isConnecting = false;
+  private pendingConnection: Promise<void> | null = null;
   private shouldReconnect = true;
 
   constructor(url: string = "ws://localhost:3001/ws") {
@@ -52,26 +55,19 @@ export class WebSocketService {
   }
 
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    // If already connected, resolve immediately
+    if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
+    }
+
+    // If already connecting, return the existing pending promise
+    if (this.pendingConnection) {
+      return this.pendingConnection;
+    }
+
+    // Create new connection promise
+    this.pendingConnection = new Promise((resolve, reject) => {
       try {
-        // If already connected, resolve immediately
-        if (
-          this.isConnected &&
-          this.ws &&
-          this.ws.readyState === WebSocket.OPEN
-        ) {
-          resolve();
-          return;
-        }
-
-        // Prevent multiple concurrent connection attempts
-        if (this.isConnecting) {
-          resolve();
-          return;
-        }
-
-        this.isConnecting = true;
-
         // Close existing connection if it exists
         if (this.ws) {
           this.ws.close();
@@ -81,7 +77,7 @@ export class WebSocketService {
 
         this.ws.onopen = () => {
           this.isConnected = true;
-          this.isConnecting = false;
+          this.pendingConnection = null;
           this.reconnectAttempts = 0;
           this.emit("connect");
           resolve();
@@ -106,7 +102,6 @@ export class WebSocketService {
         this.ws.onclose = (event) => {
           // WebSocket connection closed
           this.isConnected = false;
-          this.isConnecting = false;
           this.emit("disconnect");
 
           // Only attempt reconnect if it was an unexpected closure and we should reconnect
@@ -117,16 +112,19 @@ export class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error("WebSocket error:", error);
-          this.isConnecting = false;
+          this.pendingConnection = null;
           this.emit("error", error);
           if (!this.isConnected) {
             reject(error);
           }
         };
       } catch (error) {
+        this.pendingConnection = null;
         reject(error);
       }
     });
+
+    return this.pendingConnection;
   }
 
   private handleMessage(message: WebSocketMessage) {
@@ -136,6 +134,13 @@ export class WebSocketService {
         // Handle both direct game data and nested structure
         const gameData = gamePayload.game || gamePayload;
         this.emit("game-updated", gameData);
+        break;
+      }
+      case MessageTypePlayerConnected: {
+        const connectedPayload = message.payload as PlayerConnectedPayload;
+        // This is a confirmation that player joined successfully
+        // The full game state will arrive via game-updated from broadcaster
+        this.emit("player-connected", connectedPayload);
         break;
       }
       case MessageTypePlayerDisconnected: {
@@ -180,74 +185,16 @@ export class WebSocketService {
     return reqId;
   }
 
-  playerConnect(
-    playerName: string,
-    gameId: string,
-    playerId?: string,
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      // Send the connect message with playerId if available (for reconnection)
-      const payload: any = { playerName, gameId };
-      if (playerId) {
-        payload.playerId = playerId;
-      }
+  playerConnect(playerName: string, gameId: string, playerId?: string): void {
+    // Simple send-and-forget pattern - WebSocket guarantees delivery
+    // UI will update reactively when backend sends game-updated event
+    const payload: any = { playerName, gameId };
+    if (playerId) {
+      payload.playerId = playerId;
+    }
 
-      this.send(MessageTypePlayerConnect, payload, gameId);
-      this.currentGameId = gameId;
-
-      // Set up timeout
-      const timeout = setTimeout(() => {
-        this.off("game-updated", gameUpdatedHandler);
-        this.off("error", errorHandler);
-        reject(new Error("Timeout waiting for player connection confirmation"));
-      }, 10000); // 10 second timeout
-
-      // Handler for game updates (which indicate successful connection)
-      const gameUpdatedHandler = (payload: any) => {
-        // Extract the actual game data from the payload
-        const gameData = payload.game || payload;
-
-        // GameDto has currentPlayer and otherPlayers instead of players array
-        const allPlayers = [];
-        if (gameData.currentPlayer) {
-          allPlayers.push(gameData.currentPlayer);
-        }
-        if (gameData.otherPlayers) {
-          allPlayers.push(...gameData.otherPlayers);
-        }
-
-        const connectedPlayer = allPlayers.find(
-          (p: any) => p.name === playerName,
-        );
-
-        if (connectedPlayer) {
-          clearTimeout(timeout);
-          this.off("game-updated", gameUpdatedHandler);
-          this.off("error", errorHandler);
-          this.currentPlayerId = connectedPlayer.id;
-
-          // Return data similar to the old PlayerConnectedPayload format
-          resolve({
-            playerId: connectedPlayer.id,
-            playerName: connectedPlayer.name,
-            gameId: gameId,
-            game: gameData, // Use 'game' instead of 'gameData' for consistency
-          });
-        }
-      };
-
-      // Error handler
-      const errorHandler = (errorPayload: ErrorPayload) => {
-        clearTimeout(timeout);
-        this.off("game-updated", gameUpdatedHandler);
-        this.off("error", errorHandler);
-        reject(new Error(errorPayload.message || "Connection failed"));
-      };
-
-      // Listen for game updates and errors
-      this.on("game-updated", gameUpdatedHandler);
-      this.on("error", errorHandler);
-    });
+    this.send(MessageTypePlayerConnect, payload, gameId);
+    this.currentGameId = gameId;
   }
 
   // Standard project actions
@@ -336,7 +283,13 @@ export class WebSocketService {
   }
 
   selectCards(cardIds: string[]): string {
-    return this.send(MessageTypeActionSelectCards, { cardIds });
+    return this.send(MessageTypeActionConfirmSellPatents, {
+      selectedCardIds: cardIds,
+    });
+  }
+
+  confirmProductionCards(cardIds: string[]): string {
+    return this.send(MessageTypeActionConfirmProductionCards, { cardIds });
   }
 
   confirmCardDraw(cardsToTake: string[], cardsToBuy: string[]): string {
@@ -348,7 +301,9 @@ export class WebSocketService {
 
   // Tile selection actions
   selectTile(coordinate: { q: number; r: number; s: number }): string {
-    return this.send(MessageTypeActionTileSelected, { coordinate });
+    // Convert coordinate object to "q,r,s" string format expected by backend
+    const hex = `${coordinate.q},${coordinate.r},${coordinate.s}`;
+    return this.send(MessageTypeActionTileSelected, { hex });
   }
 
   on(event: string, callback: EventCallback) {
@@ -400,7 +355,6 @@ export class WebSocketService {
       this.ws = null;
     }
     this.isConnected = false;
-    this.isConnecting = false;
     this.currentGameId = null;
     this.currentPlayerId = null;
   }

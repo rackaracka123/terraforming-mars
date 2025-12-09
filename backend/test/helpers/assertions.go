@@ -3,13 +3,16 @@ package helpers
 import (
 	"testing"
 
-	"terraforming-mars-backend/internal/model"
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/global_parameters"
+	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // AssertResourcesEqual checks if actual resources match expected resources
-func AssertResourcesEqual(t *testing.T, expected, actual model.Resources, msgAndArgs ...interface{}) {
+func AssertResourcesEqual(t *testing.T, expected, actual shared.Resources, msgAndArgs ...interface{}) {
 	assert.Equal(t, expected.Credits, actual.Credits, "credits mismatch")
 	assert.Equal(t, expected.Steel, actual.Steel, "steel mismatch")
 	assert.Equal(t, expected.Titanium, actual.Titanium, "titanium mismatch")
@@ -19,7 +22,7 @@ func AssertResourcesEqual(t *testing.T, expected, actual model.Resources, msgAnd
 }
 
 // AssertProductionEqual checks if actual production matches expected production
-func AssertProductionEqual(t *testing.T, expected, actual model.Production, msgAndArgs ...interface{}) {
+func AssertProductionEqual(t *testing.T, expected, actual shared.Production, msgAndArgs ...interface{}) {
 	assert.Equal(t, expected.Credits, actual.Credits, "credits production mismatch")
 	assert.Equal(t, expected.Steel, actual.Steel, "steel production mismatch")
 	assert.Equal(t, expected.Titanium, actual.Titanium, "titanium production mismatch")
@@ -29,44 +32,46 @@ func AssertProductionEqual(t *testing.T, expected, actual model.Production, msgA
 }
 
 // AssertGlobalParametersEqual checks if actual global parameters match expected
-func AssertGlobalParametersEqual(t *testing.T, expected, actual model.GlobalParameters) {
-	assert.Equal(t, expected.Temperature, actual.Temperature, "temperature mismatch")
-	assert.Equal(t, expected.Oxygen, actual.Oxygen, "oxygen mismatch")
-	assert.Equal(t, expected.Oceans, actual.Oceans, "oceans mismatch")
+func AssertGlobalParametersEqual(t *testing.T, expected, actual *global_parameters.GlobalParameters) {
+	assert.Equal(t, expected.Temperature(), actual.Temperature(), "temperature mismatch")
+	assert.Equal(t, expected.Oxygen(), actual.Oxygen(), "oxygen mismatch")
+	assert.Equal(t, expected.Oceans(), actual.Oceans(), "oceans mismatch")
 }
 
 // AssertGamePhase checks if game is in expected phase
-func AssertGamePhase(t *testing.T, expected model.GamePhase, actual model.GamePhase) {
+func AssertGamePhase(t *testing.T, expected game.GamePhase, actual game.GamePhase) {
 	assert.Equal(t, expected, actual, "game phase mismatch")
 }
 
 // AssertGameStatus checks if game is in expected status
-func AssertGameStatus(t *testing.T, expected model.GameStatus, actual model.GameStatus) {
+func AssertGameStatus(t *testing.T, expected game.GameStatus, actual game.GameStatus) {
 	assert.Equal(t, expected, actual, "game status mismatch")
 }
 
 // AssertPlayerHasCard checks if player has a specific card in their played cards
-func AssertPlayerHasCard(t *testing.T, player model.Player, cardID string) {
-	for _, playedCardID := range player.PlayedCards {
+func AssertPlayerHasCard(t *testing.T, p *player.Player, cardID string) {
+	playedCards := p.PlayedCards().Cards()
+	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
 			return
 		}
 	}
-	t.Errorf("Player %s does not have card %s in played cards", player.ID, cardID)
+	t.Errorf("Player %s does not have card %s in played cards", p.ID(), cardID)
 }
 
 // AssertPlayerDoesNotHaveCard checks if player does NOT have a specific card
-func AssertPlayerDoesNotHaveCard(t *testing.T, player model.Player, cardID string) {
-	for _, playedCardID := range player.PlayedCards {
+func AssertPlayerDoesNotHaveCard(t *testing.T, p *player.Player, cardID string) {
+	playedCards := p.PlayedCards().Cards()
+	for _, playedCardID := range playedCards {
 		if playedCardID == cardID {
-			t.Errorf("Player %s should not have card %s in played cards", player.ID, cardID)
+			t.Errorf("Player %s should not have card %s in played cards", p.ID(), cardID)
 			return
 		}
 	}
 }
 
 // AssertPlayerTags checks if player has expected tag counts
-func AssertPlayerTags(t *testing.T, expected map[model.CardTag]int, actual map[model.CardTag]int) {
+func AssertPlayerTags(t *testing.T, expected map[shared.CardTag]int, actual map[shared.CardTag]int) {
 	for tag, expectedCount := range expected {
 		actualCount, ok := actual[tag]
 		if !ok {
@@ -84,7 +89,7 @@ func AssertResourceChange(t *testing.T, resourceName string, expectedChange int,
 }
 
 // AssertCreditsChange checks if credits changed by expected amount
-func AssertCreditsChange(t *testing.T, expectedChange int, beforeResources, afterResources model.Resources) {
+func AssertCreditsChange(t *testing.T, expectedChange int, beforeResources, afterResources shared.Resources) {
 	AssertResourceChange(t, "credits", expectedChange, beforeResources.Credits, afterResources.Credits)
 }
 

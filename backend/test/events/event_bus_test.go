@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"terraforming-mars-backend/internal/events"
-	"terraforming-mars-backend/internal/repository"
 )
 
 // TestEventBusSubscribeAndPublish tests basic subscribe and publish functionality
@@ -15,16 +14,16 @@ func TestEventBusSubscribeAndPublish(t *testing.T) {
 
 	// Track if handler was called
 	var handlerCalled bool
-	var receivedEvent repository.TemperatureChangedEvent
+	var receivedEvent events.TemperatureChangedEvent
 
 	// Subscribe to TemperatureChangedEvent
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		handlerCalled = true
 		receivedEvent = event
 	})
 
 	// Publish event
-	testEvent := repository.TemperatureChangedEvent{
+	testEvent := events.TemperatureChangedEvent{
 		GameID:    "game-123",
 		OldValue:  -30,
 		NewValue:  -28,
@@ -58,20 +57,20 @@ func TestEventBusMultipleSubscribers(t *testing.T) {
 	var handler1Called, handler2Called, handler3Called bool
 
 	// Subscribe multiple handlers
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		handler1Called = true
 	})
 
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		handler2Called = true
 	})
 
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		handler3Called = true
 	})
 
 	// Publish event
-	testEvent := repository.TemperatureChangedEvent{
+	testEvent := events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		OldValue: -30,
 		NewValue: -28,
@@ -98,16 +97,16 @@ func TestEventBusTypeSafety(t *testing.T) {
 	var oxygenHandlerCalled bool
 
 	// Subscribe to different event types
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		tempHandlerCalled = true
 	})
 
-	_ = events.Subscribe(bus, func(event repository.OxygenChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.OxygenChangedEvent) {
 		oxygenHandlerCalled = true
 	})
 
 	// Publish TemperatureChangedEvent
-	events.Publish(bus, repository.TemperatureChangedEvent{
+	events.Publish(bus, events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		OldValue: -30,
 		NewValue: -28,
@@ -126,7 +125,7 @@ func TestEventBusTypeSafety(t *testing.T) {
 	oxygenHandlerCalled = false
 
 	// Publish OxygenChangedEvent
-	events.Publish(bus, repository.OxygenChangedEvent{
+	events.Publish(bus, events.OxygenChangedEvent{
 		GameID:   "game-123",
 		OldValue: 0,
 		NewValue: 2,
@@ -148,12 +147,12 @@ func TestEventBusUnsubscribe(t *testing.T) {
 	var handlerCalled bool
 
 	// Subscribe and get subscription ID
-	subID := events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	subID := events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		handlerCalled = true
 	})
 
 	// Publish event - handler should be called
-	events.Publish(bus, repository.TemperatureChangedEvent{
+	events.Publish(bus, events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		OldValue: -30,
 		NewValue: -28,
@@ -170,7 +169,7 @@ func TestEventBusUnsubscribe(t *testing.T) {
 	handlerCalled = false
 
 	// Publish event again - handler should NOT be called
-	events.Publish(bus, repository.TemperatureChangedEvent{
+	events.Publish(bus, events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		OldValue: -28,
 		NewValue: -26,
@@ -187,10 +186,10 @@ func TestEventBusConcurrentPublish(t *testing.T) {
 
 	// Track received events
 	var mu sync.Mutex
-	receivedEvents := make([]repository.TemperatureChangedEvent, 0)
+	receivedEvents := make([]events.TemperatureChangedEvent, 0)
 
 	// Subscribe handler
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		mu.Lock()
 		receivedEvents = append(receivedEvents, event)
 		mu.Unlock()
@@ -204,7 +203,7 @@ func TestEventBusConcurrentPublish(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(index int) {
 			defer wg.Done()
-			events.Publish(bus, repository.TemperatureChangedEvent{
+			events.Publish(bus, events.TemperatureChangedEvent{
 				GameID:   "game-123",
 				OldValue: index,
 				NewValue: index + 2,
@@ -239,7 +238,7 @@ func TestEventBusConcurrentSubscribe(t *testing.T) {
 	for i := 0; i < numSubscribers; i++ {
 		go func(index int) {
 			defer wg.Done()
-			_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+			_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 				mu.Lock()
 				callCounts[index]++
 				mu.Unlock()
@@ -250,7 +249,7 @@ func TestEventBusConcurrentSubscribe(t *testing.T) {
 	wg.Wait()
 
 	// Publish event
-	events.Publish(bus, repository.TemperatureChangedEvent{
+	events.Publish(bus, events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		OldValue: -30,
 		NewValue: -28,
@@ -275,36 +274,36 @@ func TestEventBusConcurrentSubscribe(t *testing.T) {
 func TestEventBusDifferentEventTypes(t *testing.T) {
 	bus := events.NewEventBus()
 
-	var tempEventReceived repository.TemperatureChangedEvent
-	var resourceEventReceived repository.ResourcesChangedEvent
-	var trEventReceived repository.TerraformRatingChangedEvent
+	var tempEventReceived events.TemperatureChangedEvent
+	var resourceEventReceived events.ResourcesChangedEvent
+	var trEventReceived events.TerraformRatingChangedEvent
 
-	_ = events.Subscribe(bus, func(event repository.TemperatureChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TemperatureChangedEvent) {
 		tempEventReceived = event
 	})
 
-	_ = events.Subscribe(bus, func(event repository.ResourcesChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.ResourcesChangedEvent) {
 		resourceEventReceived = event
 	})
 
-	_ = events.Subscribe(bus, func(event repository.TerraformRatingChangedEvent) {
+	_ = events.Subscribe(bus, func(event events.TerraformRatingChangedEvent) {
 		trEventReceived = event
 	})
 
 	// Publish different event types
-	events.Publish(bus, repository.TemperatureChangedEvent{
+	events.Publish(bus, events.TemperatureChangedEvent{
 		GameID:   "game-123",
 		NewValue: -26,
 	})
 
-	events.Publish(bus, repository.ResourcesChangedEvent{
+	events.Publish(bus, events.ResourcesChangedEvent{
 		GameID:       "game-123",
 		PlayerID:     "player-456",
 		ResourceType: "plants",
 		NewAmount:    5,
 	})
 
-	events.Publish(bus, repository.TerraformRatingChangedEvent{
+	events.Publish(bus, events.TerraformRatingChangedEvent{
 		GameID:    "game-123",
 		PlayerID:  "player-456",
 		NewRating: 25,

@@ -1,0 +1,94 @@
+package testutil
+
+import (
+	"context"
+	"testing"
+
+	"terraforming-mars-backend/internal/game"
+	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
+)
+
+// StartTestGame transitions a game from lobby to active status
+func StartTestGame(t *testing.T, g *game.Game) {
+	t.Helper()
+	ctx := context.Background()
+
+	// Set corporations for all players (required before starting)
+	players := g.GetAllPlayers()
+	for _, p := range players {
+		if !p.HasCorporation() {
+			p.SetCorporationID("corp-tharsis-republic")
+		}
+	}
+
+	// Set turn order
+	playerIDs := make([]string, len(players))
+	for i, p := range players {
+		playerIDs[i] = p.ID()
+	}
+	err := g.SetTurnOrder(ctx, playerIDs)
+	if err != nil {
+		t.Fatalf("Failed to set turn order: %v", err)
+	}
+
+	// Update status to active
+	err = g.UpdateStatus(ctx, game.GameStatusActive)
+	if err != nil {
+		t.Fatalf("Failed to update game status: %v", err)
+	}
+
+	// Update phase
+	err = g.UpdatePhase(ctx, game.GamePhaseAction)
+	if err != nil {
+		t.Fatalf("Failed to update game phase: %v", err)
+	}
+
+	// Set current turn
+	if len(playerIDs) > 0 {
+		err = g.SetCurrentTurn(ctx, playerIDs[0], 2)
+		if err != nil {
+			t.Fatalf("Failed to set current turn: %v", err)
+		}
+	}
+}
+
+// SetPlayerHeat sets a player's heat resource
+func SetPlayerHeat(ctx context.Context, p *player.Player, amount int) {
+	resources := p.Resources().Get()
+	resources.Heat = amount
+	p.Resources().Set(resources)
+}
+
+// GetPlayerHeat gets a player's heat resource
+func GetPlayerHeat(p *player.Player) int {
+	return p.Resources().Get().Heat
+}
+
+// SetPlayerCredits sets a player's credits
+func SetPlayerCredits(ctx context.Context, p *player.Player, amount int) {
+	resources := p.Resources().Get()
+	resources.Credits = amount
+	p.Resources().Set(resources)
+}
+
+// GetPlayerCredits gets a player's credits
+func GetPlayerCredits(p *player.Player) int {
+	return p.Resources().Get().Credits
+}
+
+// AddPlayerCredits adds credits to a player
+func AddPlayerCredits(ctx context.Context, p *player.Player, amount int) {
+	changes := map[shared.ResourceType]int{
+		shared.ResourceCredits: amount,
+	}
+	p.Resources().Add(changes)
+}
+
+// AddPlayerHeat adds heat to a player
+func AddPlayerHeat(ctx context.Context, p *player.Player, amount int) {
+	changes := map[shared.ResourceType]int{
+		shared.ResourceHeat: amount,
+	}
+	p.Resources().Add(changes)
+}

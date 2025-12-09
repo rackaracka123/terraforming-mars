@@ -38,6 +38,7 @@ export interface WebSocketConnection {
   ): Promise<string>;
   selectStartingCard(cardIds: string[], corporationId: string): Promise<string>;
   selectCards(cardIds: string[]): Promise<string>;
+  confirmProductionCards(cardIds: string[]): Promise<string>;
 
   // Tile selection actions
   selectTile(coordinate: { q: number; r: number; s: number }): Promise<string>;

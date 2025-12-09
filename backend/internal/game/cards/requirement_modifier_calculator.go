@@ -1,0 +1,185 @@
+package cards
+
+import (
+	"terraforming-mars-backend/internal/game/player"
+	"terraforming-mars-backend/internal/game/shared"
+)
+
+// CardLookup is a minimal interface for looking up cards by ID
+// This avoids import cycles with internal/cards package
+type CardLookup interface {
+	GetByID(id string) (*Card, error)
+}
+
+// RequirementModifierCalculator computes requirement modifiers from player effects and hand
+type RequirementModifierCalculator struct {
+	cardLookup CardLookup
+}
+
+// NewRequirementModifierCalculator creates a new calculator
+func NewRequirementModifierCalculator(cardLookup CardLookup) *RequirementModifierCalculator {
+	return &RequirementModifierCalculator{
+		cardLookup: cardLookup,
+	}
+}
+
+// Calculate computes all requirement modifiers for a player based on their effects and hand
+func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.RequirementModifier {
+	if p == nil {
+		return []shared.RequirementModifier{}
+	}
+
+	modifiers := []shared.RequirementModifier{}
+
+	effects := p.Effects().List()
+	handCardIDs := p.Hand().Cards()
+
+	for _, effect := range effects {
+		for _, output := range effect.Behavior.Outputs {
+			if output.ResourceType != shared.ResourceDiscount {
+				continue
+			}
+
+			// Case 1: Standard project discount (e.g., Ecoline's plant discount)
+			if len(output.AffectedStandardProjects) > 0 {
+				for _, project := range output.AffectedStandardProjects {
+					projectCopy := project
+					modifier := shared.RequirementModifier{
+						Amount:                output.Amount,
+						AffectedResources:     c.convertAffectedResources(output.AffectedResources),
+						StandardProjectTarget: &projectCopy,
+					}
+					modifiers = append(modifiers, modifier)
+				}
+				continue
+			}
+
+			// Case 2: Tag-based discount (e.g., Space Station's space tag discount)
+			if len(output.AffectedTags) > 0 {
+				for _, cardID := range handCardIDs {
+					card, err := c.cardLookup.GetByID(cardID)
+					if err != nil {
+						continue
+					}
+
+					if c.cardHasMatchingTag(card, output.AffectedTags) {
+						cardIDCopy := cardID
+						modifier := shared.RequirementModifier{
+							Amount:            output.Amount,
+							AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+							CardTarget:        &cardIDCopy,
+						}
+						modifiers = append(modifiers, modifier)
+					}
+				}
+				continue
+			}
+
+			// Case 3: Card type discount
+			if len(output.AffectedCardTypes) > 0 {
+				for _, cardID := range handCardIDs {
+					card, err := c.cardLookup.GetByID(cardID)
+					if err != nil {
+						continue
+					}
+
+					if c.cardHasMatchingType(card, output.AffectedCardTypes) {
+						cardIDCopy := cardID
+						modifier := shared.RequirementModifier{
+							Amount:            output.Amount,
+							AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+							CardTarget:        &cardIDCopy,
+						}
+						modifiers = append(modifiers, modifier)
+					}
+				}
+				continue
+			}
+
+			// Case 4: Global discount (applies to all cards in hand)
+			for _, cardID := range handCardIDs {
+				cardIDCopy := cardID
+				modifier := shared.RequirementModifier{
+					Amount:            output.Amount,
+					AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+					CardTarget:        &cardIDCopy,
+				}
+				modifiers = append(modifiers, modifier)
+			}
+		}
+	}
+
+	return c.mergeModifiers(modifiers)
+}
+
+// convertAffectedResources converts string slice to ResourceType slice
+func (c *RequirementModifierCalculator) convertAffectedResources(resources []string) []shared.ResourceType {
+	if len(resources) == 0 {
+		return []shared.ResourceType{shared.ResourceCredits} // Default to credits discount
+	}
+	result := make([]shared.ResourceType, len(resources))
+	for i, r := range resources {
+		result[i] = shared.ResourceType(r)
+	}
+	return result
+}
+
+// cardHasMatchingTag checks if a card has any of the specified tags
+func (c *RequirementModifierCalculator) cardHasMatchingTag(card *Card, tags []shared.CardTag) bool {
+	for _, cardTag := range card.Tags {
+		for _, targetTag := range tags {
+			if cardTag == targetTag {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// cardHasMatchingType checks if a card matches any of the specified types
+func (c *RequirementModifierCalculator) cardHasMatchingType(card *Card, types []string) bool {
+	cardType := string(card.Type)
+	for _, t := range types {
+		if cardType == t {
+			return true
+		}
+	}
+	return false
+}
+
+// mergeModifiers combines modifiers targeting the same card/project by summing amounts
+func (c *RequirementModifierCalculator) mergeModifiers(modifiers []shared.RequirementModifier) []shared.RequirementModifier {
+	// Map for card-targeted modifiers (key = cardID)
+	cardModifiers := make(map[string]*shared.RequirementModifier)
+	// Map for standard project modifiers (key = project name)
+	projectModifiers := make(map[shared.StandardProject]*shared.RequirementModifier)
+
+	for _, mod := range modifiers {
+		if mod.CardTarget != nil {
+			key := *mod.CardTarget
+			if existing, ok := cardModifiers[key]; ok {
+				existing.Amount += mod.Amount
+			} else {
+				modCopy := mod
+				cardModifiers[key] = &modCopy
+			}
+		} else if mod.StandardProjectTarget != nil {
+			key := *mod.StandardProjectTarget
+			if existing, ok := projectModifiers[key]; ok {
+				existing.Amount += mod.Amount
+			} else {
+				modCopy := mod
+				projectModifiers[key] = &modCopy
+			}
+		}
+	}
+
+	result := make([]shared.RequirementModifier, 0, len(cardModifiers)+len(projectModifiers))
+	for _, mod := range cardModifiers {
+		result = append(result, *mod)
+	}
+	for _, mod := range projectModifiers {
+		result = append(result, *mod)
+	}
+	return result
+}

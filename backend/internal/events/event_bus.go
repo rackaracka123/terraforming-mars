@@ -31,7 +31,7 @@ type EventBusImpl struct {
 	logger        *zap.Logger
 }
 
-// NewEventBus creates a new type-safe event bus
+// NewEventBus creates a new type-safe event bus for synchronous event handling
 func NewEventBus() *EventBusImpl {
 	return &EventBusImpl{
 		subscriptions: make(map[SubscriptionID]*subscription),
@@ -77,7 +77,7 @@ func Subscribe[T any](eb *EventBusImpl, handler EventHandler[T]) SubscriptionID 
 	return id
 }
 
-// Publish publishes a type-safe event to all matching subscribers
+// Publish publishes a type-safe event to all matching subscribers synchronously
 func Publish[T any](eb *EventBusImpl, event T) {
 	eb.mutex.RLock()
 	defer eb.mutex.RUnlock()
@@ -96,18 +96,15 @@ func Publish[T any](eb *EventBusImpl, event T) {
 	if len(matchingHandlers) == 0 {
 		eb.logger.Debug("📭 No subscribers for event",
 			zap.String("event_type", eventType))
-		return
-	}
+	} else {
+		eb.logger.Debug("📢 Publishing event to subscribers",
+			zap.String("event_type", eventType),
+			zap.Int("subscriber_count", len(matchingHandlers)))
 
-	eb.logger.Debug("📢 Publishing event to subscribers",
-		zap.String("event_type", eventType),
-		zap.Int("subscriber_count", len(matchingHandlers)))
-
-	// Execute all matching handlers
-	// Note: Handlers are executed synchronously for now
-	// Future optimization: execute asynchronously with goroutines
-	for _, handlerFunc := range matchingHandlers {
-		handlerFunc(event)
+		// Execute all matching handlers synchronously
+		for _, handlerFunc := range matchingHandlers {
+			handlerFunc(event)
+		}
 	}
 }
 

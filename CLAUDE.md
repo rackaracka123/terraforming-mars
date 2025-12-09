@@ -4,836 +4,408 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Digital implementation of Terraforming Mars board game with real-time multiplayer and 3D game view. The game features drag-to-pan 3D Mars visualization, hexagonal tile system, comprehensive card effects engine, and WebSocket multiplayer with a Go backend and React frontend.
+Digital implementation of Terraforming Mars board game with real-time multiplayer and 3D game view. Features: drag-to-pan 3D Mars visualization, hexagonal tile system, comprehensive card effects engine, WebSocket multiplayer with Go backend and React frontend.
 
-## Development Commands
+## Quick Start
 
-All commands should be run from the **project root directory**. The project now uses a unified Makefile for all development tasks.
-
-### 🚀 Quick Start
 ```bash
-make run         # Run both frontend (3000) and backend (3001) servers with hot reload
-make help        # Show all available commands with descriptions
+make run         # Run both frontend (3000) and backend (3001) with hot reload
+make help        # Show all available commands
 ```
 
-### 🎯 Main Commands
+## Essential Commands
+
+### Development
 ```bash
-make frontend    # Start React development server with hot reload (port 3000)
-make backend     # Start Go backend server with hot reload via Air (port 3001)
+make frontend    # React dev server (port 3000)
+make backend     # Go backend with Air hot reload (port 3001)
+make dev-setup   # Set up environment (go mod tidy + npm install)
 ```
 
-### 🧪 Testing
+### Testing
 ```bash
-make test         # Run all tests (backend only - frontend has no tests)
-make test-verbose # Run backend tests with verbose output
-make test-coverage# Generate test coverage report (backend/coverage.html)
-make test-quick   # Fast test suite for development iteration
-make test-watch   # Watch Go files and run tests on changes (requires entr)
+make test         # Run all backend tests
+make test-verbose # Verbose test output
+make test-coverage# Generate coverage report (backend/coverage.html)
+make test-quick   # Fast test suite for iteration
 ```
 
-**IMPORTANT**: Test files should always be created in the test directory (e.g., `test/middleware/validator_test.go` tests `internal/middleware/validator.go`).
+**IMPORTANT**: Test files go in `test/` directory (e.g., `test/middleware/validator_test.go` tests `internal/middleware/validator.go`).
 
-### 🔧 Code Quality
+### Code Quality
 ```bash
 make lint         # Run all linters (Go fmt + oxlint)
 make format       # Format all code (Go + TypeScript)
 make generate     # Generate TypeScript types from Go structs
-make lint-backend # Go formatting only
-make lint-frontend# oxlint only
 ```
 
-### 🏗️ Build & Deploy
+**CRITICAL**: Always run `make format` and `make lint` after completing any feature. Fix all lint ERRORS immediately - no exceptions.
+
+### Build
 ```bash
-make build        # Build production binaries for both frontend and backend
-make build-backend# Build Go server binary (backend/bin/server)
-make build-frontend# Build React production bundle (frontend/dist/)
-make clean        # Clean all build artifacts
+make build        # Build both frontend and backend
+make clean        # Clean build artifacts
 ```
 
-### 🧰 Development Helpers
-```bash
-make dev-setup    # Set up development environment (go mod tidy + npm install)
-```
+## Backend Architecture
 
-### 🔄 Type Generation
-```bash
-make generate                # Generate TypeScript types from Go structs (recommended)
-cd backend && tygo generate  # Alternative direct command
-```
+The Go backend follows Clean Architecture with an action-based pattern where each business operation is a focused, single-responsibility action (~100-200 lines).
 
-### Legacy Commands (deprecated)
-These commands are no longer needed but mentioned for reference:
-- ~~`npm run backend`~~ → Use `make backend`
-- ~~`npm run frontend`~~ → Use `make frontend`
-- ~~`cd backend && make test`~~ → Use `make test`
-
-
-## Core Architecture
-
-### Clean Architecture Backend (Go)
-The Go backend follows clean architecture principles with clear separation of concerns:
+### Directory Structure
 
 ```
 backend/
-├── cmd/                    # Application entry points
-│   ├── server/            # Main server application with dependency injection
-│   └── watch/             # Development file watching utility
+├── cmd/server/            # Application entry point with dependency injection
 ├── internal/
-│   ├── cards/             # Card system, validation, and registry
+│   ├── action/            # Business logic actions (ONLY place for state mutation)
+│   │   ├── base.go        # BaseAction with common dependencies
+│   │   ├── query/         # Read-only HTTP GET operations
+│   │   └── admin/         # Admin operations for testing/debugging
+│   ├── game/              # Game state repository and domain types
+│   │   ├── game.go        # Core Game type with all game state
+│   │   ├── player/        # Player entity and components
+│   │   ├── board/         # Board and Tile types
+│   │   ├── deck/          # Deck management
+│   │   ├── cards/         # Card effect helpers (NO state mutation)
+│   │   ├── shared/        # Shared types (Resources, HexPosition, etc.)
+│   │   └── global_parameters/  # GlobalParameters with terraforming state
+│   ├── cards/             # Card data (registry, JSON loading, validation)
 │   ├── delivery/          # Presentation layer
 │   │   ├── dto/           # Data Transfer Objects and mappers
-│   │   ├── http/          # HTTP handlers, middleware, and routing
-│   │   └── websocket/     # WebSocket architecture
-│   │       ├── core/      # Hub, connection manager, broadcaster
-│   │       └── handler/   # Action-specific message handlers
-│   ├── events/            # Event bus and domain event definitions
-│   ├── initialization/    # Application setup and card loading
-│   ├── logger/            # Structured logging utilities
-│   ├── model/             # Domain entities and business objects
-│   ├── repository/        # Data access layer with immutable interfaces
-│   └── service/           # Application business logic and use cases
-├── pkg/typegen/           # TypeScript type generation utilities
+│   │   ├── http/          # HTTP handlers (delegate to actions)
+│   │   └── websocket/     # WebSocket hub, handlers, broadcaster
+│   ├── events/            # Event bus and domain events
+│   └── logger/            # Structured logging
 ├── test/                  # Comprehensive test suite
-├── tools/                 # Code generation and development tools
-└── docs/swagger/          # Auto-generated API documentation
+└── tools/                 # Code generation utilities
 ```
 
-### Full-Stack Communication Flow
-1. **Frontend (React)**: UI components with WebSocket client
-2. **WebSocket Hub**: Real-time game state synchronization via `gorilla/websocket`
-3. **Use Cases**: Game business logic in Go (join game, select corporation, etc.)
-4. **Domain Models**: Core game entities with automatic TypeScript generation
+### Core Principles
+
+**Action Pattern**
+- Each action performs ONE operation (join game, play card, raise temperature)
+- Actions extend `BaseAction` with injected dependencies (GameRepository, CardRegistry, logger)
+- Execute method with clear inputs/outputs and error handling
+- HTTP and WebSocket handlers both delegate to the same actions
+
+```go
+type MyAction struct {
+    BaseAction  // gameRepo, cardRegistry, logger
+}
+
+func (a *MyAction) Execute(ctx context.Context, params...) (*Result, error) {
+    // 1. Validate inputs
+    // 2. Fetch game from GameRepository
+    // 3. Call game state methods (Game publishes events automatically)
+    // 4. Return result (Broadcaster receives events and broadcasts)
+}
+```
+
+**Game as State Repository**
+- Single Game type contains all state (Players, Board, Deck, GlobalParameters)
+- Private fields with public accessor methods enforce encapsulation
+- State mutation methods publish domain events to EventBus
+- GameRepository manages collection of active games
+- No separate player/board/deck repositories - all accessed via Game
+
+**Event-Driven Architecture**
+- Actions update Game → Game publishes events → Broadcaster sends to clients
+- Passive card effects subscribe to domain events automatically
+- No manual polling or effect checking in services
+- **Core Rule**: Services do ONLY what the action says. Effects trigger via events.
+
+**State Mutation Rule**
+- **ONLY actions** in `/internal/action/` may mutate game state
+- All other packages provide helpers, parse data, or subscribe to events
+- Actions call game state methods: `player.Resources().AddCredits()`, `game.GlobalParameters().IncreaseTemperature()`
+- `/internal/game/cards/` provides helper functions to interpret card behaviors, but does NOT apply them
+- Actions use helpers to understand WHAT to do, then actions apply the changes
+
+**Card System Architecture**
+- **`/internal/cards/`**: Card data outside game context (registry, JSON loading, validation)
+- **`/internal/game/cards/`**: Card effect helpers for game context (behavior parsing, NO state mutation)
+- **Card behaviors** defined in JSON (`terraforming_mars_cards.json`) with triggers, inputs, outputs
+- **Actions** read card behaviors and apply effects to game state
+- **90%+ of cards** added via JSON only, no Go code required
+
+**Broadcaster**
+Subscribes to BroadcastEvent and sends personalized game state to WebSocket clients:
+```go
+// In internal/delivery/websocket/broadcaster.go
+func (b *Broadcaster) OnBroadcastEvent(event BroadcastEvent) {
+    // Fetch game state and send personalized DTO to each player
+}
+```
+
+### Communication Flow
+
+```
+Frontend → WebSocket Hub → Manager.RouteMessage() → Action Handler
+    ↓
+Action.Execute() → Game State Updates (game methods)
+    ↓
+EventBus (domain events) → Broadcaster → WebSocket Broadcast
+    ↓
+All Clients Receive Personalized Game State
+```
+
+### WebSocket Messages
+
+**Inbound (Client → Server)**
+- `join-game`, `player-reconnect`, `select-corporation`
+- `raise-temperature`, `skip-action`, `start-game`
+
+**Outbound (Server → Client)**
+- `game-updated` (primary event with complete game state)
+- `player-connected`, `player-reconnected`, `player-disconnected`
+
+## Frontend Architecture
+
+### Tech Stack
+- **React + TypeScript**: UI components with generated types from Go
+- **React Three Fiber**: 3D Mars visualization with custom pan controls
+- **WebSocket Client**: Real-time game state synchronization
+- **Tailwind CSS v4**: Utility-first styling with custom theme
 
 ### Type Safety Bridge
-Go structs automatically generate TypeScript interfaces via custom type generator:
-- **Go Domain**: Structs with `ts:` tags define frontend types
-- **Code Generation**: `tygo generate` creates TypeScript interfaces
-- **Frontend Import**: React components use generated types for full type safety
+- Go structs with `ts:` tags generate TypeScript interfaces
+- Run `make generate` after any Go type changes
+- Import types from `src/types/generated/api-types.ts`
 
-### 3D Rendering System
-- **Game3DView.tsx**: Main Three.js Canvas with React Three Fiber
-- **HexGrid.tsx**: Hexagonal tile system for Mars board (42 hexes currently)
-- **PanControls.tsx**: Custom mouse/touch controls (pan + zoom, no orbit rotation)
-- **BackgroundCelestials**: Parallax layers for space environment
-
-## Clean Architecture Implementation
-
-The backend follows Clean Architecture principles with strict separation of concerns and dependency inversion.
-
-### Architectural Layers
-
-**Domain Layer** (`internal/model/`)
-- **Domain Entities**: Core business objects with identity (Player, Game, GlobalParameters)
-- **Value Objects**: Immutable objects defined by their values (Resources, Production)
-- **Domain Events**: Represent significant business occurrences (PlayerTRChanged, ResourcesChanged)
-- **Defensive Copying**: All entities implement `DeepCopy()` to prevent external mutation
-- **No Dependencies**: This layer has no dependencies on other layers
-
-**Application Layer** (`internal/service/`)
-- **Use Cases**: Orchestrate business operations and enforce business rules
-- **Domain Services**: Handle complex domain logic that spans multiple entities
-- **Event Handlers**: Subscribe to and react to domain events
-- **Interface Definitions**: Define contracts for infrastructure dependencies
-- **Dependency Rule**: Depends only on the Domain layer
-
-**Infrastructure Layer** (`internal/repository/`)
-- **Simplified Repositories**: Direct storage of domain models with clean CRUD operations
-- **Immutable Getters**: All repository methods return values, not pointers, to maintain immutability
-- **Granular Updates**: Specific methods for updating individual fields (UpdateResources, UpdateTerraformRating)
-- **Clean Relationships**: Games store PlayerIDs, not embedded Player objects
-- **Event Publishing**: Precise events from specific update methods (temperature changed, resources updated)
-- **No Entity Classes**: Store domain models directly, eliminating conversion complexity
-
-**Presentation Layer** (`internal/delivery/`)
-- **HTTP Endpoints**: Handle REST API requests with middleware and routing
-- **WebSocket System**: Sophisticated hub-manager-handler architecture for real-time communication
-- **Request/Response Models**: DTOs for external communication with proper mapping
-- **Dependency Direction**: Depends on Application layer, not Infrastructure
-
-**Card System Layer** (`internal/cards/`)
-- **Card Registry**: Centralized registration and lookup for all game cards
-- **Card Validation**: Comprehensive validation system for card plays and requirements
-- **Effect Implementation**: Card-specific business logic integrated with game services
-- **Modular Design**: Each card type has dedicated handler with consistent interface
-
-**Event System** (`internal/events/`)
-- **Event Bus**: Type-safe event publishing and subscription system
-- **Domain Events**: Game and player events (TemperatureChanged, TilePlaced, ResourcesChanged, etc.)
-- **CardEffectSubscriber**: Manages passive card effect subscriptions to domain events
-- **Event-Driven Effects**: Card passive effects trigger automatically via events, not manual polling
-- **Decoupled Architecture**: Services execute actions, repositories publish events, effects subscribe
-- **See**: `backend/docs/EVENT_SYSTEM.md` for comprehensive documentation
-
-**Session Management Layer** (`internal/delivery/websocket/session/`)
-- **SessionManager Interface**: Simplified to exactly 2 methods: `Broadcast(gameID)` and `Send(gameID, playerID)`
-- **Complete State Broadcasting**: Both methods send full game state with all data to relevant players
-- **Repository Integration**: Uses repositories directly (GameRepo, PlayerRepo, CardRepo) to avoid circular dependencies
-- **Service Integration Pattern**: Services update repositories first, then use SessionManager for broadcasting
-
-### Clean Architecture Principles
-
-**1. Dependency Inversion**
-- High-level modules (Application) don't depend on low-level modules (Infrastructure)
-- Both depend on abstractions (interfaces)
-- Infrastructure implements interfaces defined in Application layer
-
-**2. Separation of Concerns**
-- **Domain**: Pure business logic with no external dependencies
-- **Application**: Coordinates domain operations and defines use cases  
-- **Infrastructure**: Handles technical concerns (data, events, external APIs)
-- **Presentation**: Manages user interface and external communication
-
-**3. Testability**
-- Business logic isolated in Domain and Application layers
-- Infrastructure dependencies injected via interfaces
-- Easy to mock external dependencies for unit testing
-
-**4. Independence**
-- Business rules independent of frameworks, databases, and UI
-- Domain entities contain core business logic
-- Application services orchestrate domain operations
-
-### Repository Architecture
-
-The backend implements a **Clean Repository Pattern** optimized for real-time game state management:
-
-**Core Design Principles**
-- **Direct Model Storage**: Repositories store domain models (`model.Game`, `model.Player`) without entity classes
-- **Immutable Interface**: All getters return values, not pointers, preventing external mutation
-- **Clean Relationships**: Games reference players via `PlayerIDs []string` instead of embedded objects
-- **Granular Updates**: Specific methods for targeted updates enable precise event handling
-- **Event Integration**: Repository operations automatically trigger domain events via EventBus
-
-**Service-Repository Coordination**
-Services compose data from multiple repositories as needed, maintaining clean separation between business logic and data access while ensuring consistent state management through the event-driven architecture.
-
-### Development Guidelines
-
-**Model and DTO Synchronization**
-- Whenever you update model structs in `/internal/model/`, check if corresponding DTOs in `/internal/delivery/dto/` also need updating
-- Always run `make generate` after model changes to sync TypeScript types
-- Ensure all new fields are properly included in DTO mapping functions in `/internal/delivery/dto/mapper.go`
-
-**Domain Layer**
-- Keep entities focused on business invariants
-- Use defensive copying to protect entity state
-- Implement domain events for significant business occurrences
-- No external dependencies or infrastructure concerns
-
-**Application Layer**  
-- Orchestrate complex business operations
-- Validate business rules before domain operations
-- Handle domain events for cross-cutting functionality
-- Define interfaces for infrastructure dependencies
-
-
-**Presentation Layer**
-- Use Application services for all business operations
-- Never access Infrastructure layer directly  
-- Implement proper error handling and validation
-- Keep presentation logic separate from business logic
-
-**Card System Integration**
-- Use card registry for centralized card management
-- Implement card validation before processing effects
-- Integrate card actions with existing service layer
-- Follow modular design patterns for new card types
-
-**Event-Driven Effect System** (📖 See `backend/docs/EVENT_SYSTEM.md`)
-- **Core Principle**: Services do ONLY what the action says. Passive effects trigger via events.
-- **Repositories Publish Events**: When state changes (tile placed, temperature raised, etc.)
-- **CardEffectSubscriber Listens**: Subscribes card passive effects to relevant domain events
-- **Automatic Triggering**: Effects fire when events match trigger conditions (no manual polling)
-- **Target Filtering**: Effects respect TargetSelfPlayer vs TargetAnyPlayer constraints
-- **Example Flow**: Player places tile → GameRepository publishes TilePlacedEvent → CardEffectSubscriber triggers ocean adjacency bonus → Player gains credits
-
-**When Implementing Game Actions:**
 ```go
-// ✅ CORRECT: Service does only the action
-func (s *PlayerService) PlaceTile(...) {
-    // 1. Update game state
-    gameRepo.UpdateTileOccupancy(...)
-
-    // 2. Award immediate bonuses (from board, not cards)
-    s.awardTilePlacementBonuses(...)
-
-    // 3. Done! CardEffectSubscriber handles passive card effects via events
-}
-
-// ❌ WRONG: Service manually checks for card effects
-func (s *PlayerService) PlaceTile(...) {
-    gameRepo.UpdateTileOccupancy(...)
-
-    // ❌ Don't do this - let events handle it
-    for _, card := range player.Cards {
-        if card.TriggersOnTilePlacement {
-            applyEffect(...)
-        }
-    }
-}
-```
-
-## Game State Flow
-
-### WebSocket Event Architecture
-
-**Modern Handler System**
-The backend uses a sophisticated action handler system for WebSocket messages:
-
-```
-Client Message -> Hub.HandleMessage() -> Manager.RouteMessage() -> ActionHandler.Handle()
-                                                                        ↓
-                                                              Service Layer (Business Logic)
-                                                                        ↓
-                                                              Repository Updates + Events
-                                                                        ↓
-                                                              EventBus -> Hub -> Broadcaster
-                                                                        ↓
-                                                              All Clients Receive Updates
-```
-
-**Handler Registration**
-Each action type has a dedicated handler in `internal/delivery/websocket/handler/`:
-- `JoinGameHandler`: Player joining game sessions
-- `StartGameHandler`: Host starting games from lobby
-- `SelectCorporationHandler`: Corporation selection logic
-- `RaiseTemperatureHandler`: Global parameter modifications
-- `SkipActionHandler`: Turn progression and phase management
-
-**Message Flow Architecture**
-1. **WebSocket Connection**: Client establishes connection -> Hub registers client
-2. **Message Reception**: Hub.HandleMessage() receives raw WebSocket message
-3. **Action Routing**: Manager.RouteMessage() identifies action type and routes to handler
-4. **Handler Processing**: Dedicated ActionHandler validates message and calls services
-5. **Business Logic**: Service layer executes domain operations via repositories
-6. **Session Broadcasting**: Service calls SessionManager.Broadcast() or Send() to notify players
-7. **State Distribution**: SessionManager retrieves complete game state and sends to relevant clients
-8. **Frontend Updates**: React components receive state changes and re-render UI
-
-## Type System Overview
-
-### Go Domain Entities (Backend)
-- **GameState**: Root state with players, parameters, deck, game settings
-- **Player**: Resources, production, corporation, terraform rating, played cards
-- **Corporation**: Asymmetric player powers and starting conditions
-- **GlobalParameters**: Temperature (-30 to +8°C), Oxygen (0-14%), Oceans (0-9)
-- **GamePhase**: Current game phase (setup, corporation_selection, action, production, etc.)
-
-### TypeScript Generation
-Go structs use `ts:` tags to specify TypeScript types:
-```go
+// Backend
 type Player struct {
     ID       string `json:"id" ts:"string"`
     Credits  int    `json:"credits" ts:"number"`
-    IsActive bool   `json:"isActive" ts:"boolean"`
+}
+
+// Frontend (auto-generated)
+interface Player {
+    id: string;
+    credits: number;
 }
 ```
 
-## Terraforming Mars Game Rules Reference
+### 3D Rendering System
+- **Game3DView.tsx**: Main Three.js canvas
+- **HexGrid.tsx**: Hexagonal tile system (cube coordinates: q, r, s where q+r+s=0)
+- **PanControls.tsx**: Custom mouse/touch controls (pan + zoom, no orbit)
+- **BackgroundCelestials**: Parallax space environment
 
-**CRITICAL**: For ANY task that involves Terraforming Mars game mechanics, rules, card effects, or gameplay logic, you MUST consult `TERRAFORMING_MARS_RULES.md` first. This includes:
-- Implementing game rules and logic
-- Validating game state transitions  
-- Creating card effects and interactions
-- Designing UI components for game elements
-- Debugging game behavior
-- Adding new features that interact with existing rules
-- Answering questions about game mechanics
-- Any feature that even SLIGHTLY touches game rules
+### UI Component Standards
 
-The `TERRAFORMING_MARS_RULES.md` file contains the complete, authoritative rulebook reference structured for AI consumption.
+**GameIcon Component (PRIMARY)**
 
-## Key Development Patterns
+**CRITICAL**: ALWAYS use GameIcon for ANY game icon display. NEVER use direct `<img src="/assets/...">` tags.
 
-### Adding New Card Effects (Event-Driven)
+```tsx
+import GameIcon from '../ui/display/GameIcon.tsx';
 
-**For cards with passive effects** (e.g., "Gain 2 MC when any city is placed"):
+// Basic icons
+<GameIcon iconType="steel" size="medium" />
+<GameIcon iconType="space" size="small" />
 
-1. **Define behavior in card JSON:**
-   ```json
-   {
-     "behaviors": [{
-       "triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
-       "outputs": [{"type": "credits", "amount": 2, "target": "any-player"}]
-     }]
-   }
-   ```
+// With amounts
+<GameIcon iconType="credits" amount={25} size="large" />  // Number inside icon
+<GameIcon iconType="steel" amount={5} size="medium" />    // Number in corner
 
-2. **Ensure repository publishes event:**
-   - Check that the relevant repository (e.g., `GameRepository.UpdateTileOccupancy`) publishes the domain event
-   - Usually already implemented for common events (TilePlaced, TemperatureChanged, etc.)
+// Production (automatic brown background)
+<GameIcon iconType="energy-production" amount={3} size="small" />
+```
 
-3. **CardEffectSubscriber handles subscription automatically:**
-   - When card is played, `CardService.OnPlayCard()` calls `effectSubscriber.SubscribeCardEffects()`
-   - No additional service code needed!
+**Sizes**: 'small' (24px), 'medium' (32px), 'large' (40px)
+**Types**: All ResourceType, CardTag, tiles, global parameters
+**Icon Paths**: Centralized in `src/utils/iconStore.ts`
 
-4. **Test the effect:**
-   ```go
-   // Play card with passive effect
-   cardService.OnPlayCard(ctx, gameID, playerID, cardID, nil, nil)
+**Tailwind CSS v4 Styling**
 
-   // Trigger the event (e.g., place a city)
-   gameRepo.UpdateTileOccupancy(ctx, gameID, coord, cityTile, &playerID)
+**CRITICAL**: CSS Modules (`.module.css`) are DEPRECATED. Use only Tailwind utilities.
 
-   // Verify effect applied
-   player, _ := playerRepo.GetByID(ctx, gameID, playerID)
-   assert.Equal(t, expectedCredits, player.Resources.Credits)
-   ```
+- Configuration in `/frontend/src/index.css` (`@theme {}` block)
+- Custom colors: `space-black`, `space-blue-500`, `error-red`
+- Custom utilities: `font-orbitron`, `shadow-glow`, `backdrop-blur-space`
+- Use arbitrary values: `bg-[rgba(10,20,40,0.95)]`
+- Global animations go in index.css as `@keyframes` blocks
 
-**See `backend/docs/EVENT_SYSTEM.md` for complete documentation.**
+## Development Guide
 
 ### Adding New Game Features
-1. **Consult game rules**: Check `TERRAFORMING_MARS_RULES.md` for any game rule implications
-2. **Define domain entities** in `internal/model/` with proper `ts:` tags
-3. **Implement service logic** in `internal/service/`
-4. **Add WebSocket handlers** in `internal/delivery/websocket/handler/`
-5. **Generate types**: Run `tygo generate` to update frontend types
-6. **Frontend integration**: Import generated types and implement UI
-7. **Format and lint**: **ALWAYS** run `make format` and `make lint` after completing any feature
 
-### Backend Development Flow
-1. Modify Go structs -> Add business logic -> Update handlers
-2. Run `tygo generate` for type sync
-3. Frontend automatically gets updated TypeScript interfaces
+**CRITICAL**: Always check `TERRAFORMING_MARS_RULES.md` first for any task involving game mechanics, rules, or card effects.
 
-### 3D Scene Modifications
-- HexGrid positions calculated via hex-to-pixel coordinate conversion
-- Mars visual state driven by GameState.globalParameters
-- Custom materials respond to terraforming progress (color changes)
+1. **Define domain types** in `internal/game/` or subpackages with `json:` and `ts:` tags
+2. **Create action** in `internal/action/` extending BaseAction
+3. **Update Game methods** if new state access methods needed
+4. **Wire handlers** (HTTP or WebSocket) to delegate to action
+5. **Generate types**: Run `make generate`
+6. **Frontend**: Import generated types, implement UI
+7. **Format and lint**: Run `make format` and `make lint`
 
-## Important Implementation Details
+### Adding Card Effects (JSON-Driven)
 
-### Hex Coordinate System
-Uses cube coordinates (q, r, s) where q + r + s = 0. Utilities in `HexMath` class handle conversions and neighbor calculations for tile-based game mechanics.
+**Most cards require ONLY JSON edits, no Go code!**
 
-### Multiplayer State Synchronization
-Game state is authoritative on Go backend. All clients receive full state updates via WebSocket 'game-updated' events. No client-side game logic to prevent desync.
+1. **Immediate effects** (auto trigger):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "auto"}],
+     "outputs": [{"type": "steel-production", "amount": 2}]}]}
+   ```
+   PlayCardAction applies automatically when card is played.
 
-### WebSocket Message System
+2. **Manual actions** (blue cards):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "manual"}],
+     "inputs": [{"type": "energy", "amount": 4}],
+     "outputs": [{"type": "steel", "amount": 2}]}]}
+   ```
+   Registered to Player.Actions(), executed via UseCardAction.
 
-**Inbound Message Types (Client → Server)**
-- `join-game`: Player joins or creates a game session
-- `player-reconnect`: Existing player reconnects to game session
-- `select-corporation`: Choose starting corporation during setup
-- `raise-temperature`: Spend heat to increase global temperature parameter
-- `skip-action`: Pass current turn and advance game phase
-- `start-game`: Host transitions game from lobby to active status
+3. **Passive effects** (conditional trigger):
+   ```json
+   {"behaviors": [{"triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
+     "outputs": [{"type": "credits", "amount": 2}]}]}
+   ```
+   CardEffectSubscriber listens for events, applies outputs automatically.
 
-**Outbound Event Types (Server → Client)**
-- `game-updated`: Complete game state synchronization (primary event)
-- `player-connected`: Notification when new player joins
-- `player-reconnected`: Notification when existing player reconnects  
-- `player-disconnected`: Real-time connection status updates
+See `CARD_SYSTEM.md` for complete card architecture documentation.
 
-**Event-Driven Broadcasting**
-The system uses consolidated event types for efficient state synchronization:
-- **Primary Event**: `EventTypeGameUpdated` carries complete game state
-- **Event Flow**: Service Action → Repository Update → EventBus → Hub → Broadcast
-- **State Consistency**: All clients receive identical state snapshots
-- **Connection Management**: Hub tracks client connections and handles disconnections gracefully
+### Backend Development Patterns
 
-### Go Struct Tags for Type Generation
-Use both `json:` and `ts:` tags on all domain structs:
-```go
-type Resource struct {
-    Amount int `json:"amount" ts:"number"`
-    Production int `json:"production" ts:"number"`
-}
+**Action Development**
+- ONE operation per action (~100-200 lines)
+- Extend BaseAction with explicit dependencies
+- Implement `Execute()` with clear parameters
+- Design for idempotency when possible
+
+**Game State Usage**
+- Access game state via GameRepository: `game, err := a.gameRepo.Get(gameID)`
+- Call Game methods: `game.GlobalParameters().IncreaseTemperature(ctx, steps)`
+- Access players: `player := game.GetPlayer(playerID)`
+- Game methods publish events automatically
+
+**Handler Development**
+- HTTP: Parse request → Call action → Map to DTO → Respond
+- WebSocket: Parse message → Call action → Events trigger broadcasts
+- Always delegate business logic to actions
+
+### Frontend Development Patterns
+
+- **Generated Types**: Always use types from `src/types/generated/api-types.ts`
+- **GameIcon First**: Use GameIcon component for all icon displays
+- **No Emojis**: Use GameIcon or assets instead
+- **Design Consistency**: Inspect existing components for design patterns
+- **Mock Data**: Abstract from UI for easier refactoring
+- **No Defaults**: Fail explicitly if expected data is missing
+- **Promise Handling**: Use `void <function>()` to discard promises in event handlers
+
+### Testing & Debugging
+
+**Backend Tests**
+```bash
+make test              # All tests
+go test -json          # Easier to parse output
+go test -json -v       # Verbose JSON output
 ```
+
+**Frontend Debugging with Playwright**
+
+When asked to "debug frontend", use Playwright MCP to interactively debug:
+1. Ensure backend and frontend are running
+2. Navigate to `http://localhost:3000`
+3. Use MCP tools: snapshot, click, type, screenshot, evaluate
+4. Test user flows, inspect state, monitor WebSocket updates
+
+**Playwright waits**: Max 1 second (everything runs locally)
+
+### Type and DTO Synchronization
+
+When updating types in `/internal/game/`:
+1. Check if DTOs in `/internal/delivery/dto/` need updates
+2. Update mapper functions in `/internal/delivery/dto/mapper.go`
+3. Run `make generate` to sync TypeScript types
+
+### Code Quality Standards
+
+**State Management Rules**
+
+**CRITICAL**: Timeouts and delays ARE NOT solutions to bad state management.
+
+❌ **Bad Approaches:**
+- `setTimeout()` to wait for state updates
+- `sleep()` in tests for timing issues
+- Arbitrary retry loops
+- Polling instead of event-driven updates
+
+✅ **Correct Approaches:**
+- Proper event listeners and callbacks
+- Promise/async-await patterns
+- Deterministic state machines
+- Atomic operations and transaction boundaries
+- Proper synchronization (channels, mutexes)
+
+**Logging Guidelines**
+- Use emojis for visual distinction
+- 🔗 connect, ⛓️‍💥 disconnect
+- 📢 broadcast, 💬 direct message
+- 📡 HTTP requests
+- 🚀 startup, 🛑 shutdown, ✅ completion
 
 ## Current Implementation Status
 
-### Working Systems
-- **Real-time WebSocket multiplayer** with Go backend
-- **3D game view** with hexagonal Mars board (React Three Fiber)
-- **Clean architecture backend** with clear separation of concerns
-- **Automatic type generation** from Go structs to TypeScript
-- **Resource management** and global parameter tracking
-- **Corporation selection** with WebSocket synchronization
-- **Custom pan controls** for 3D Mars view (no orbital rotation)
-- **Waiting room system** with lobby phase management
+### Working Features
+- Real-time WebSocket multiplayer with Go backend
+- 3D game view with hexagonal Mars board
+- Clean architecture with action-based pattern
+- Automatic type generation (Go → TypeScript)
+- Resource management and global parameters
+- Corporation selection with synchronization
+- Waiting room system with lobby management
+- Game state persistence and reconnection (localStorage)
 
 ### Waiting Room System
-- **Game Status Management**: Games start in `GameStatusLobby` and transition to `GameStatusActive` when started
-- **Host Controls**: First player to create/join becomes the host (`game.hostPlayerId`)
-- **Start Game Button**: Only visible to the host, triggers `start-game` WebSocket action
-- **Shareable Join Links**: Generate URLs like `https://domain/join?code={gameId}` with copy functionality
-- **URL Parameter Handling**: JoinGamePage automatically validates and uses `?code` parameter
-- **Real-time Updates**: Players see new joins instantly via WebSocket `game-updated` events
-- **UI Adaptation**: Bottom resource bar and cards are hidden during lobby phase
-- **Mars Background**: 3D Mars view remains visible with translucent overlay for better contrast
-
-### Game State Persistence & Reconnection
-- **localStorage Storage**: Game data automatically saved after create/join with `gameId`, `playerId`, `playerName`
-- **Page Reload Support**: GameInterface checks localStorage when route state is missing
-- **Automatic Reconnection**: Fetches current game state from server and reconnects WebSocket
-- **State Recovery Flow**: API call → WebSocket reconnect → Full state restoration
-- **Fallback Logic**: Redirects to landing page if reconnection fails or data is invalid
-- **Seamless Experience**: Players can reload page without losing game session
-- **Error Handling**: Invalid/expired game data is cleaned up automatically
-- **Unified Connection Behavior**: Page refresh and close/reopen tab both use the same reconnection flow
-
-#### Game Phase Transitions
-1. **Creation**: Game starts in `lobby` status with first player as host
-2. **Joining**: Additional players join via game ID or shareable link
-3. **Starting**: Host clicks "Start Game" → triggers `start-game` action
-4. **Transition**: Backend changes status to `active` and phase to `starting_card_selection`
-5. **Active Game**: Resource bars and cards become visible, game logic begins
-
-### Backend Architecture Complete
-- **Domain models** with comprehensive game entities
-- **Use case layer** for game business logic
-- **WebSocket hub** for real-time communication
-- **HTTP API** with Swagger documentation
-- **In-memory repository** for fast game state access
-
-### Frontend Ready for Extension
-- **Generated TypeScript types** ensure backend/frontend sync
-- **3D rendering system** using Three.js and React Three Fiber
-- **Component architecture** for modular game UI development
-
-### Key Missing Pieces
-- **Tile placement** logic and adjacency bonuses
-- **Advanced turn phases** and complex action state machine
-- **Victory condition** checking and game end detection
-- **Milestones and awards** tracking and validation
-- **Advanced card effects** requiring complex game state interactions
-
-## UI Component Standards
-
-### Icon Display - GameIcon Component (PRIMARY)
-**CRITICAL**: ALWAYS use the GameIcon component for displaying ANY game icon (resources, tags, tiles, global parameters, etc.). NEVER use direct `<img>` tags with asset imports.
-
-#### GameIcon Usage
-```tsx
-import GameIcon from '../ui/display/GameIcon.tsx';
-
-// Basic resource icon
-<GameIcon iconType="steel" size="medium" />
-
-// Credits with amount (number inside icon)
-<GameIcon iconType="credits" amount={25} size="large" />
-
-// Production resource (automatic brown background)
-<GameIcon iconType="energy-production" amount={3} size="small" />
-
-// Card tags
-<GameIcon iconType="space" size="medium" />
-
-// Tiles and global parameters
-<GameIcon iconType="ocean-tile" size="small" />
-<GameIcon iconType="temperature" size="medium" />
-```
-
-**Component**: `src/components/ui/display/GameIcon.tsx`
-**Sizes**: 'small' (24px), 'medium' (32px), 'large' (40px)
-**Supported Types**: All ResourceType, CardTag, tiles, global parameters, and special icons
-
-**Key Features**:
-- Automatic production background for "-production" suffix
-- Special number overlay for megacredits (inside icon)
-- Centralized icon path management via `iconStore.ts`
-- Consistent sizing across all icon types
-- Attack indicator support with red glow animation
-
-### Legacy Display Components
-These components are kept for backward compatibility but GameIcon should be preferred for new code:
-
-#### CostDisplay (for megacredits only)
-```tsx
-import CostDisplay from '../display/CostDisplay.tsx';
-<CostDisplay cost={amount} size="medium" />
-```
-Use when you specifically need the CostDisplay wrapper styling.
-
-### UI Development Patterns
-- **GameIcon First**: ALWAYS use GameIcon component for any icon display - never use `<img src="/assets/...">` directly
-- **Inspect existing design language**: When updating any UI element in the frontend, other components should ALWAYS be inspected for the design language in the codebase
-- **Reuse over creation**: Always check for existing components before creating new ones
-- **Consistent styling**: Use established components to maintain visual consistency
-- **Centralized icons**: All icon paths are managed in `src/utils/iconStore.ts`
-- **Responsive sizing**: Components should support multiple sizes for different contexts
-
-## Code Quality Requirements
-
-**CRITICAL**: Always run these commands after completing any task involving code changes:
-
-### Backend Formatting
-```bash
-cd backend
-make format            # Format Go code with gofmt
-```
-
-### Frontend Formatting
-```bash
-cd frontend
-npm run format:write   # Format code with Prettier
-npm run lint           # Check for oxlint errors
-```
-
-**Note**: These commands must be run from the respective directories (backend/ and frontend/). Always format both backend and frontend code after any changes, even if you only modified one side, to maintain consistent code quality across the entire codebase.
-
-**Lint Error Policy**:
-- All lint ERRORS must be fixed immediately - no exceptions
-- Lint warnings should be addressed when practical
-- Never commit code with lint errors
-- Run these commands after any significant code changes
-
-### Tailwind CSS v4 Styling Architecture
-
-**CRITICAL**: This project uses Tailwind CSS v4 with CSS-based configuration. Traditional CSS Modules and custom `.module.css` files are **DEPRECATED** and should NEVER be used.
-
-#### Tailwind v4 Configuration
-- **Configuration File**: `/frontend/src/index.css` contains the `@theme {}` block
-- **No tailwind.config.js**: The JavaScript config file is **IGNORED** by Tailwind v4
-- **Import Syntax**: Use `@import "tailwindcss";` instead of `@tailwind` directives
-
-#### Custom Theme Utilities
-The project defines custom utilities in `index.css` under `@theme {}`:
-
-**Colors**:
-- `space-black`: #0a0a0f
-- `space-black-darker`: #050509
-- `space-black-light`: #141420
-- `space-blue-500/600/900`: rgba(30, 60, 150, ...) variants
-- `error-red`: #ff6b6b
-
-**Typography**:
-- `font-orbitron`: Orbitron font family (use for titles and headings)
-- `text-shadow-glow-strong`: Blue glow text shadow
-- `tracking-wider-2xl`: Extra wide letter spacing
-
-**Effects**:
-- `shadow-glow/glow-sm/glow-lg`: Blue glow box shadows
-- `backdrop-blur-space/space-light`: Backdrop blur utilities
-
-#### Styling Guidelines
-1. **NEVER create CSS Module files** (`.module.css`)
-2. **Use Tailwind utilities** with arbitrary values: `bg-[rgba(10,20,40,0.95)]`
-3. **Use custom theme classes**: `font-orbitron`, `shadow-glow`, `border-space-blue-500`
-4. **Add new theme values** to `@theme {}` in index.css if needed
-5. **Global animations** go in index.css as `@keyframes` blocks
-
-#### Migration from CSS Modules
-When converting existing CSS Module components:
-1. Create a `.bak` backup of the original component
-2. Remove the CSS module import
-3. Convert all className references to Tailwind utilities
-4. Add any animations to index.css
-5. Delete the `.module.css` file
-6. Run `npm run format:write`
-
-**Logging Guidelines**:
-- Use emojis in log messages where appropriate to make them more visually distinctive
-- Include directional indicators for client/server communication (client→server, server→client)
-- Connection logs: 🔗 for connect, ⛓️‍💥 for disconnect
-- Broadcasting: 📢 for server broadcasts, 💬 for direct messages
-- HTTP requests: 📡 for client requests to server
-- Server lifecycle: 🚀 for startup, 🛑 for shutdown, ✅ for completion
-
-## Development Notes
-
-### Backend Development (Go)
-- **Clean Architecture**: Always implement new features following the domain -> service -> delivery pattern
-- **Type Tags**: Add both `json:` and `ts:` tags to all domain structs for frontend sync
-- **WebSocket Events**: Add new action handlers in `internal/delivery/websocket/handler/` and register in the manager
-- **Testing**: Use `make test` to run all backend tests
-- **API Documentation**: Add Swagger comments to HTTP handlers for auto-generated docs
-
-#### Modern Backend Patterns
-
-**Repository Layer**
-- **Immutable Interfaces**: Return values, not pointers, to prevent external state mutation
-- **Event Integration**: Repository updates automatically trigger EventBus notifications
-- **Clean Relationships**: Use ID references instead of embedded objects for maintainable data flow
-
-**WebSocket Handler Development**
-- **Action Handlers**: Create dedicated handlers in `internal/delivery/websocket/handler/`
-- **Handler Registration**: Register new handlers in the WebSocket manager for message routing
-- **Service Integration**: Use application services for business logic, not direct repository access
-- **No Direct SessionManager Usage**: Handlers should call services, which then use SessionManager for broadcasting
-- **Event Response**: Let the event system handle state broadcasting to clients
-
-**Card System Development** 
-- **Card Registration**: Register new cards in the card registry for centralized management
-- **Effect Implementation**: Create card effects that integrate with existing game services
-- **Validation**: Implement comprehensive validation for card requirements and effects
-- **Modular Design**: Follow established patterns for consistent card behavior
-
-#### Test Debugging
-- **JSON Output**: Use `go test -json` for easier to parse test output when debugging
-- **Verbose with JSON**: Use `go test -json -v` for detailed test output in JSON format
-- **Specific Package**: `cd backend && go test -json ./test/service/` for focused testing
-
-### Frontend Development (React)
-- **Generated Types**: Always use types from `src/types/generated/api-types.ts`
-- **3D Rendering**: Uses React Three Fiber - modify scenes in `Game3DView.tsx`
-- **WebSocket Client**: Game state updates come via WebSocket, no local game state
-- **Component Architecture**: Follow existing patterns for new game UI components
-- **Promise Handling**: Use `void <function>()` to explicitly discard promises in event handlers to avoid IDE warnings
-
-### Full-Stack Development
-- **Both servers** must be running for full functionality (`make run`)
-- **Hot Reload**: Both frontend (Vite) and backend (Air) automatically reload on file changes for rapid development
-- **Type Generation**: Run `make generate` after Go struct changes
-- **State Flow**: All game state changes originate from Go backend via WebSocket
-- **Development Workflow**: Go changes -> generate types -> React implementation
-- When creating mock data, abstract it from the UI to enable easier refactoring later
-- NEVER set default values - if you expect something, fail explicitly if it's missing
-
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-No need to be backwards compatible.
-
-## UI Design Guidelines
-- **No Emojis**: Do not use emojis when building any design. Use GameIcon component or assets instead.
-- **GameIcon First**: ALWAYS use GameIcon component for displaying icons - NEVER use direct `<img src="/assets/...">` tags
-- **Centralized Icons**: All icon paths are managed in `src/utils/iconStore.ts`
-- **Asset Location**: Game assets are in `/frontend/public/assets/` but accessed via GameIcon component
-
-## Icon Display Instructions (UPDATED)
-
-**CRITICAL RULE**: NEVER use `<img src="/assets/...">` for game icons. ALWAYS use the GameIcon component.
-
-### Basic Icons
-```tsx
-import GameIcon from '../ui/display/GameIcon.tsx';
-
-// Resources
-<GameIcon iconType="steel" size="medium" />
-<GameIcon iconType="plants" size="small" />
-<GameIcon iconType="heat" size="large" />
-
-// Card Tags
-<GameIcon iconType="space" size="medium" />
-<GameIcon iconType="science" size="small" />
-<GameIcon iconType="building" size="medium" />
-
-// Global Parameters & Tiles
-<GameIcon iconType="temperature" size="medium" />
-<GameIcon iconType="oxygen" size="small" />
-<GameIcon iconType="ocean-tile" size="medium" />
-```
-
-### Icons with Amounts
-```tsx
-// Megacredits (number displays INSIDE icon)
-<GameIcon iconType="credits" amount={25} size="medium" />
-
-// Other resources (number displays in corner if > 1)
-<GameIcon iconType="steel" amount={5} size="medium" />
-```
-
-### Production Resources
-```tsx
-// Automatic brown production background when using "-production" suffix
-<GameIcon iconType="energy-production" amount={3} size="small" />
-<GameIcon iconType="plants-production" amount={2} size="medium" />
-<GameIcon iconType="credits-production" amount={5} size="large" />
-```
-
-### Adding New Icons to iconStore
-If you need to use an icon that's not yet in the centralized system:
-
-1. Add the icon path to the appropriate category in `src/utils/iconStore.ts`:
-```tsx
-export const RESOURCE_ICONS: { [key: string]: string } = {
-  // ... existing icons
-  newResource: "/assets/resources/new-resource.png",
-};
-
-// Or for tags:
-export const TAG_ICONS: { [key: string]: string } = {
-  // ... existing icons
-  newTag: "/assets/tags/new-tag.png",
-};
-
-// Or for special icons:
-export const SPECIAL_ICONS: { [key: string]: string } = {
-  // ... existing icons
-  newIcon: "/assets/misc/new-icon.png",
-};
-```
-
-2. Use the icon via GameIcon:
-```tsx
-<GameIcon iconType="newResource" size="medium" />
-```
-
-### Legacy Components (Avoid in New Code)
-- **CostDisplay**: Use `<GameIcon iconType="credits" amount={X} />` instead
-- **Direct asset imports**: Use GameIcon instead of `<img src="/assets/resources/...">`
-
-## UI Components
-- **CorporationCard**: Use for displaying corporation options in selection screens
-  ```tsx
-  import CorporationCard from '../cards/CorporationCard.tsx';
-  <CorporationCard corporation={corp} isSelected={selected} onSelect={handler} />
-  ```
-- When working with energy, its refrenced using power.png
-- Use playwright to test UI components.
-- **Local Development**: Everything runs locally, so playwright waits only need to be 1 second max.
-- Whenever you create a new feature in backend. Write a test for it.
-- Whenever you move something that is checked into git. use git mv
-
-## Frontend Debugging with Playwright
-
-**CRITICAL**: When the user asks to "debug frontend", you must launch a Playwright MCP session to interactively debug the application:
-
-### Debugging Protocol
-1. **Preparation**: Make sure backend and frontend are running
-2. **Launch Playwright**: Use the Playwright MCP server to navigate to `http://localhost:3000` (Playwright config automatically starts frontend via webServer)
-3. **Interactive Debugging**: Use Playwright MCP tools to:
-   - Navigate through the application
-   - Interact with UI elements (click, type, etc.)
-   - Take snapshots to inspect page state
-   - Capture screenshots for documentation
-   - Examine console messages and errors
-   - Test user flows and game mechanics
-
-### Playwright MCP Tools Available
-- `mcp__playwright__browser_navigate`: Navigate to URLs
-- `mcp__playwright__browser_snapshot`: Capture page accessibility snapshot
-- `mcp__playwright__browser_click`: Click on UI elements
-- `mcp__playwright__browser_type`: Type into form fields
-- `mcp__playwright__browser_take_screenshot`: Capture visual screenshots
-- `mcp__playwright__browser_evaluate`: Execute JavaScript in browser context
-
-### Debugging Use Cases
-- **UI Issues**: Inspect component rendering and layout problems
-- **State Problems**: Use the Debug panel to examine real-time game state
-- **User Flow Testing**: Navigate through game creation, joining, and gameplay
-- **WebSocket Debugging**: Monitor real-time game state updates
-- **Performance Issues**: Identify rendering bottlenecks or slow interactions
-- **Visual Regressions**: Compare screenshots across different states
-
-**Important**: This is different from writing Playwright tests. When debugging, you should actively use the MCP server to interact with the live application and provide real-time insights about its behavior.
-
-## Code Quality and Architecture Principles
-
-### State Management Rules
-
-**CRITICAL**: Timeouts and temporary fixes ARE NOT SOLUTIONS TO BAD STATE MANAGEMENT.
-
-- **Race Conditions**: Fix the root cause, don't add delays
-- **State Synchronization Issues**: Implement proper event handling and state flow
-- **Timing Problems**: Design deterministic state transitions
-- **Async Coordination**: Use proper synchronization primitives, not arbitrary waits
-
-**Examples of BAD approaches:**
-- Adding `setTimeout()` to wait for state updates
-- Using `sleep()` in tests to "fix" timing issues  
-- Arbitrary retry loops without understanding why they're needed
-- Polling instead of proper event-driven updates
-
-**Correct approaches:**
-- Implement proper event listeners and callbacks
-- Use Promise/async-await patterns correctly
-- Design predictable state machines
-- Create atomic operations and proper transaction boundaries
-- Use proper synchronization (channels, mutexes, etc.) when needed
-- No mocks outside of tests.
-- Do not close frontend after debugging
+- Games start in `lobby` status, transition to `active`
+- Host controls (first player): Start game button
+- Shareable join links with URL parameters
+- Real-time player join updates
+- UI adapts: Resource bar hidden in lobby
+
+### Game State Persistence
+- localStorage: gameId, playerId, playerName
+- Page reload support with automatic reconnection
+- State recovery: API call → WebSocket reconnect
+- Fallback to landing page if reconnection fails
+
+### Missing Features
+- Tile placement logic and adjacency bonuses
+- Advanced turn phases and action state machine
+- Victory condition checking
+- Milestones and awards tracking
+- Advanced card effects with complex state interactions
+
+## Important Notes
+
+### Development Workflow
+- Both servers run with hot reload (`make run`)
+- Type generation: Go changes → `make generate` → React implementation
+- State flow: All changes originate from Go backend via WebSocket
+- No client-side game logic (prevents desync)
+
+### Test Creation
+- Always write tests for new backend features
+- Use `git mv` when moving files checked into git
+
+### Hex Coordinate System
+Cube coordinates (q, r, s) where q + r + s = 0
+Utilities in `HexMath` class for conversions and neighbors
+
+### Energy/Power Reference
+When working with energy, it's referenced as `power.png` in assets
+
+## Important Instruction Reminders
+
+- Do what has been asked; nothing more, nothing less
+- NEVER create files unless absolutely necessary
+- ALWAYS prefer editing existing files over creating new ones
+- NEVER proactively create documentation files (only when explicitly requested)
+- No need to be backwards compatible
+- Write tests for new backend features

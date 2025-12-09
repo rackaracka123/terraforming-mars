@@ -6,12 +6,11 @@ import {
   CardDto,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
-import { fetchCorporations } from "../../../utils/cardPlayabilityUtils.ts";
 
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
   cards: CardDto[];
-  availableCorporations: string[];
+  availableCorporations: CardDto[];
   playerCredits: number;
   onSelectCards: (selectedCardIds: string[], corporationId: string) => void;
 }
@@ -29,36 +28,11 @@ const StartingCardSelectionOverlay: React.FC<
   const [selectedCorporationId, setSelectedCorporationId] = useState<
     string | null
   >(null);
-  const [corporationCards, setCorporationCards] = useState<CardDto[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [currentStep, setCurrentStep] = useState<"corporation" | "cards">(
     "corporation",
   );
-
-  // Fetch corporation cards when corporations are available
-  useEffect(() => {
-    const loadCorporations = async () => {
-      if (availableCorporations.length === 0) {
-        setCorporationCards([]);
-        return;
-      }
-
-      try {
-        const allCorporations = await fetchCorporations();
-        const corps = allCorporations.filter((corp) =>
-          availableCorporations.includes(corp.id),
-        );
-
-        setCorporationCards(corps);
-      } catch (error) {
-        console.error("Failed to load corporation cards:", error);
-        setCorporationCards([]);
-      }
-    };
-
-    void loadCorporations();
-  }, [availableCorporations]);
 
   // Initialize selection when overlay opens
   useEffect(() => {
@@ -174,10 +148,10 @@ const StartingCardSelectionOverlay: React.FC<
         </div>
 
         {/* Step 1: Corporation Selection */}
-        {currentStep === "corporation" && corporationCards.length > 0 && (
+        {currentStep === "corporation" && availableCorporations.length > 0 && (
           <div className="flex-1 overflow-y-auto p-8 bg-black/20 max-[768px]:p-5">
             <div className="flex gap-4 justify-center flex-wrap">
-              {corporationCards.map((corp) => (
+              {availableCorporations.map((corp) => (
                 <div key={corp.id} className="w-[400px] max-[768px]:w-full">
                   <CorporationCard
                     corporation={{

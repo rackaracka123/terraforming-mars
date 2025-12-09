@@ -1,0 +1,41 @@
+package cards
+
+import (
+	"terraforming-mars-backend/internal/game/shared"
+)
+
+// ==================== Resource Conditions ====================
+
+// TargetType represents different targeting scopes
+type TargetType string
+
+const (
+	TargetSelfPlayer TargetType = "self-player"
+	TargetSelfCard   TargetType = "self-card"
+	TargetAnyCard    TargetType = "any-card"
+	TargetAnyPlayer  TargetType = "any-player"
+	TargetOpponent   TargetType = "opponent"
+	TargetNone       TargetType = "none"
+)
+
+// ResourceCondition represents a resource amount (input or output)
+type ResourceCondition struct {
+	Type                     shared.ResourceType      `json:"type"`
+	Amount                   int                      `json:"amount"`
+	Target                   TargetType               `json:"target"`
+	AffectedResources        []string                 `json:"affectedResources,omitempty"`
+	AffectedTags             []shared.CardTag         `json:"affectedTags,omitempty"`
+	AffectedCardTypes        []CardType               `json:"affectedCardTypes,omitempty"`
+	AffectedStandardProjects []shared.StandardProject `json:"affectedStandardProjects,omitempty"`
+	MaxTrigger               *int                     `json:"maxTrigger,omitempty"`
+	Per                      *PerCondition            `json:"per,omitempty"`
+}
+
+// PerCondition represents what to count for conditional resource gains
+type PerCondition struct {
+	Type     shared.ResourceType `json:"type"`
+	Amount   int                 `json:"amount"`
+	Location *CardApplyLocation  `json:"location,omitempty"`
+	Target   *TargetType         `json:"target,omitempty"`
+	Tag      *shared.CardTag     `json:"tag,omitempty"`
+}

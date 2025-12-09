@@ -104,6 +104,11 @@ func (h *Hub) RegisterHandler(messageType dto.MessageType, handler MessageHandle
 	h.handlers[messageType] = handler
 }
 
+// GetManager returns the connection manager
+func (h *Hub) GetManager() *Manager {
+	return h.manager
+}
+
 // SendToPlayer sends a message to a specific player via their connection
 func (h *Hub) SendToPlayer(gameID, playerID string, message dto.WebSocketMessage) error {
 	connection := h.manager.GetConnectionByPlayerID(gameID, playerID)

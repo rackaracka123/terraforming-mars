@@ -58,41 +58,98 @@ const CreateGamePage: React.FC = () => {
 
       const game = await apiService.createGame(gameSettings);
 
-      // Connect player to the game via WebSocket
-      const playerConnectedResult = await globalWebSocketManager.playerConnect(
-        playerName.trim(),
-        game.id,
-      );
+      // Step 2: Load 3D environment if not already loaded
+      if (!skyboxReady) {
+        setLoadingStep("environment");
+        await skyboxCache.preload();
+      }
 
-      if (playerConnectedResult.game) {
-        // Step 2: Load 3D environment if not already loaded
-        if (!skyboxReady) {
-          setLoadingStep("environment");
-          await skyboxCache.preload();
-        }
+      // Step 3: Ensure WebSocket is connected BEFORE setting up listener
+      setLoadingStep("game");
+      await globalWebSocketManager.initialize();
 
-        const gameData = {
-          gameId: playerConnectedResult.game.id,
-          playerId: playerConnectedResult.playerId,
-          playerName: playerName.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        localStorage.setItem(
-          "terraforming-mars-game",
-          JSON.stringify(gameData),
+      // Step 4: Set up one-time listener for game-updated event
+      const handleGameUpdated = (gameData: any) => {
+        console.log("🎯 [CreateGamePage] game-updated event fired");
+        console.log("🎯 [CreateGamePage] Full gameData:", gameData);
+        console.log(
+          "🎯 [CreateGamePage] currentPlayer:",
+          gameData.currentPlayer,
+        );
+        console.log("🎯 [CreateGamePage] otherPlayers:", gameData.otherPlayers);
+        console.log(
+          "🎯 [CreateGamePage] Looking for player name:",
+          playerName.trim(),
         );
 
-        // Navigate to the main game interface with the complete game state
-        navigate("/game", {
-          state: {
-            game: playerConnectedResult.game,
-            playerId: playerConnectedResult.playerId,
+        // Extract player info from game data
+        const allPlayers = [
+          gameData.currentPlayer,
+          ...(gameData.otherPlayers || []),
+        ].filter(Boolean);
+
+        console.log("🎯 [CreateGamePage] allPlayers array:", allPlayers);
+
+        const connectedPlayer = allPlayers.find(
+          (p: any) => p.name === playerName.trim(),
+        );
+
+        console.log(
+          "🎯 [CreateGamePage] connectedPlayer found:",
+          connectedPlayer,
+        );
+
+        if (connectedPlayer) {
+          console.log("✅ [CreateGamePage] Navigating to game interface");
+
+          // Store game data
+          const storedData = {
+            gameId: gameData.id,
+            playerId: connectedPlayer.id,
             playerName: playerName.trim(),
-          },
-        });
-      } else {
-        setError("Failed to connect to the game");
-      }
+            createdAt: new Date().toISOString(),
+          };
+          localStorage.setItem(
+            "terraforming-mars-game",
+            JSON.stringify(storedData),
+          );
+
+          // Navigate to the main game interface with the complete game state
+          navigate("/game", {
+            state: {
+              game: gameData,
+              playerId: connectedPlayer.id,
+              playerName: playerName.trim(),
+            },
+          });
+
+          // Clean up listener
+          globalWebSocketManager.off("game-updated", handleGameUpdated);
+        } else {
+          console.error(
+            "❌ [CreateGamePage] connectedPlayer NOT FOUND - navigation blocked",
+          );
+          console.error(
+            "❌ [CreateGamePage] Expected name:",
+            playerName.trim(),
+          );
+          console.error(
+            "❌ [CreateGamePage] Available player names:",
+            allPlayers.map((p) => p.name),
+          );
+        }
+      };
+
+      // Register listener BEFORE sending connect message
+      console.log("🔧 [CreateGamePage] Registering game-updated listener");
+      globalWebSocketManager.on("game-updated", handleGameUpdated);
+
+      // Step 5: Connect player to the game via WebSocket (non-blocking)
+      console.log("🔧 [CreateGamePage] Sending player-connect message", {
+        playerName: playerName.trim(),
+        gameId: game.id,
+      });
+      globalWebSocketManager.playerConnect(playerName.trim(), game.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create game");
     } finally {

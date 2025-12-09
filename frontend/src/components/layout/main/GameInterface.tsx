@@ -25,6 +25,11 @@ import { getTabManager } from "@/utils/tabManager.ts";
 import audioService from "../../../services/audioService.ts";
 import { skyboxCache } from "@/services/SkyboxCache.ts";
 import {
+  clearGameSession,
+  getGameSession,
+  saveGameSession,
+} from "@/utils/sessionStorage.ts";
+import {
   CardDto,
   CardPaymentDto,
   FullStatePayload,
@@ -37,10 +42,7 @@ import {
   PlayerActionDto,
   ResourceType,
 } from "@/types/generated/api-types.ts";
-import {
-  UnplayableReason,
-  fetchAllCards,
-} from "@/utils/cardPlayabilityUtils.ts";
+import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import {
   shouldShowPaymentModal,
   createDefaultPayment,
@@ -71,41 +73,6 @@ export default function GameInterface() {
     useState(false);
   const [showDebugDropdown, setShowDebugDropdown] = useState(false);
   const standardProjectsButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Played cards state
-  const [playedCards, setPlayedCards] = useState<CardDto[]>([]);
-
-  // Fetch and resolve played cards when currentPlayer changes
-  useEffect(() => {
-    const loadPlayedCards = async () => {
-      if (
-        !currentPlayer?.playedCards ||
-        currentPlayer.playedCards.length === 0
-      ) {
-        setPlayedCards([]);
-        return;
-      }
-
-      try {
-        const allCards = await fetchAllCards();
-        const resolvedCards: CardDto[] = [];
-
-        for (const cardId of currentPlayer.playedCards) {
-          const card = allCards.get(cardId);
-          if (card) {
-            resolvedCards.push(card);
-          }
-        }
-
-        setPlayedCards(resolvedCards);
-      } catch (error) {
-        console.error("Failed to load played cards:", error);
-        setPlayedCards([]);
-      }
-    };
-
-    void loadPlayedCards();
-  }, [currentPlayer?.playedCards]);
 
   // Set corporation data directly from player (backend now sends full CardDto)
   useEffect(() => {
@@ -265,12 +232,13 @@ export default function GameInterface() {
       // Start in-place reconnection instead of redirecting
       setIsReconnecting(true);
 
-      const savedGameData = localStorage.getItem("terraforming-mars-game");
+      const savedGameData = getGameSession();
       if (savedGameData) {
         // Attempt to reconnect in place
         void attemptReconnection();
       } else {
         // No saved game data, go to main menu
+        clearGameSession();
         navigate("/", { replace: true });
       }
     }
@@ -749,14 +717,17 @@ export default function GameInterface() {
   // Attempt reconnection to the game
   const attemptReconnection = useCallback(async () => {
     try {
-      const savedGameData = localStorage.getItem("terraforming-mars-game");
+      const savedGameData = getGameSession();
       if (!savedGameData) {
-        console.error("No saved game data for reconnection");
+        console.log(
+          "No saved game data for reconnection, returning to landing page",
+        );
+        clearGameSession();
         navigate("/", { replace: true });
         return;
       }
 
-      const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+      const { gameId, playerId, playerName } = savedGameData;
 
       // Step 1: Reconnect to game
       setReconnectionStep("game");
@@ -766,7 +737,13 @@ export default function GameInterface() {
         `http://localhost:3001/api/v1/games/${gameId}?playerId=${playerId}`,
       );
       if (!response.ok) {
-        throw new Error(`Game not found: ${response.status}`);
+        // Game doesn't exist, automatically clear storage and redirect
+        console.log(
+          `Game not found (status: ${response.status}), clearing session and returning to landing page`,
+        );
+        clearGameSession();
+        navigate("/", { replace: true });
+        return;
       }
 
       const gameData = await response.json();
@@ -788,8 +765,8 @@ export default function GameInterface() {
         await skyboxCache.preload();
       }
 
-      // Now establish WebSocket connection
-      await globalWebSocketManager.playerConnect(playerName, gameId, playerId);
+      // Now establish WebSocket connection (non-blocking)
+      globalWebSocketManager.playerConnect(playerName, gameId, playerId);
     } catch (error) {
       console.error("❌ Reconnection failed:", error);
       setIsReconnecting(false);
@@ -950,15 +927,12 @@ export default function GameInterface() {
         setIsConnected(true);
 
         // Store game data for reconnection
-        localStorage.setItem(
-          "terraforming-mars-game",
-          JSON.stringify({
-            gameId: routeState.game.id,
-            playerId: routeState.playerId,
-            playerName: routeState.playerName,
-            timestamp: Date.now(),
-          }),
-        );
+        saveGameSession({
+          gameId: routeState.game.id,
+          playerId: routeState.playerId,
+          playerName: routeState.playerName,
+          timestamp: Date.now(),
+        });
 
         // Set current player from game data
         const player = routeState.game.currentPlayer;
@@ -994,7 +968,7 @@ export default function GameInterface() {
         !routeState?.playerName
       ) {
         // No route state, check if we should attempt reconnection
-        const savedGameData = localStorage.getItem("terraforming-mars-game");
+        const savedGameData = getGameSession();
         if (savedGameData) {
           // Start in-place reconnection instead of redirecting
           setIsReconnecting(true);
@@ -1003,6 +977,7 @@ export default function GameInterface() {
         }
 
         // No saved data, return to main menu
+        clearGameSession();
         navigate("/", { replace: true });
         return;
       }
@@ -1029,15 +1004,12 @@ export default function GameInterface() {
       setIsConnected(true);
 
       // Store game data for reconnection
-      localStorage.setItem(
-        "terraforming-mars-game",
-        JSON.stringify({
-          gameId: routeState.game.id,
-          playerId: routeState.playerId,
-          playerName: routeState.playerName,
-          timestamp: Date.now(),
-        }),
-      );
+      saveGameSession({
+        gameId: routeState.game.id,
+        playerId: routeState.playerId,
+        playerName: routeState.playerName,
+        timestamp: Date.now(),
+      });
 
       // Set current player from game data
       const player = routeState.game.currentPlayer;
@@ -1238,7 +1210,7 @@ export default function GameInterface() {
       <GameLayout
         gameState={game}
         currentPlayer={currentPlayer}
-        playedCards={playedCards}
+        playedCards={currentPlayer?.playedCards || []}
         corporationCard={corporationData}
         isAnyModalOpen={isAnyModalOpen}
         isLobbyPhase={isLobbyPhase}
@@ -1261,7 +1233,7 @@ export default function GameInterface() {
       <CardsPlayedModal
         isVisible={showCardsPlayedModal}
         onClose={() => setShowCardsPlayedModal(false)}
-        cards={playedCards}
+        cards={currentPlayer?.playedCards || []}
       />
 
       <VictoryPointsModal
@@ -1424,7 +1396,7 @@ export default function GameInterface() {
         <CardStorageSelectionPopover
           resourceType={pendingCardStorage.resourceType}
           amount={pendingCardStorage.amount}
-          playedCards={playedCards}
+          playedCards={currentPlayer?.playedCards || []}
           resourceStorage={currentPlayer?.resourceStorage}
           onCardSelect={handleCardStorageSelect}
           onCancel={handleCardStorageCancel}
@@ -1451,7 +1423,7 @@ export default function GameInterface() {
         <CardStorageSelectionPopover
           resourceType={pendingActionStorage.resourceType}
           amount={pendingActionStorage.amount}
-          playedCards={playedCards}
+          playedCards={currentPlayer?.playedCards || []}
           resourceStorage={currentPlayer?.resourceStorage}
           onCardSelect={handleActionStorageSelect}
           onCancel={handleActionStorageCancel}

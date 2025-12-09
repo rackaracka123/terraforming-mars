@@ -375,7 +375,7 @@ export const TagWildlife: CardTag = "wildlife";
 export const TagWild: CardTag = "wild";
 /**
  * ResourceType represents different types of resources for client consumption
- * This is a 1:1 mapping from model.ResourceType
+ * This is a 1:1 mapping from types.ResourceType
  */
 export type ResourceType = string;
 /**
@@ -460,6 +460,27 @@ export type CardApplyLocation = string;
 export const CardApplyLocationAnywhere: CardApplyLocation = "anywhere";
 export const CardApplyLocationMars: CardApplyLocation = "mars";
 /**
+ * RequirementType represents different card requirement types for client consumption
+ */
+export type RequirementType = string;
+export const RequirementTemperature: RequirementType = "temperature";
+export const RequirementOxygen: RequirementType = "oxygen";
+export const RequirementOceans: RequirementType = "oceans";
+export const RequirementVenus: RequirementType = "venus";
+export const RequirementCities: RequirementType = "cities";
+export const RequirementGreeneries: RequirementType = "greeneries";
+export const RequirementTags: RequirementType = "tags";
+export const RequirementProduction: RequirementType = "production";
+export const RequirementTR: RequirementType = "tr";
+export const RequirementResource: RequirementType = "resource";
+/**
+ * VPConditionType represents different types of VP conditions for client consumption
+ */
+export type VPConditionType = string;
+export const VPConditionFixed: VPConditionType = "fixed";
+export const VPConditionPer: VPConditionType = "per";
+export const VPConditionResourcesOn: VPConditionType = "resources-on";
+/**
  * TriggerType represents different trigger conditions for client consumption
  */
 export type TriggerType = string;
@@ -500,6 +521,7 @@ export interface ResourceConditionDto {
   target: TargetType;
   affectedResources?: string[];
   affectedTags?: CardTag[];
+  affectedCardTypes?: CardType[];
   affectedStandardProjects?: StandardProject[];
   maxTrigger?: number /* int */;
   per?: PerConditionDto;
@@ -558,12 +580,39 @@ export interface CardBehaviorDto {
   choices?: ChoiceDto[];
 }
 /**
- * ResourceStorageDto represents a card's resource storage capability for client consumption
+ * PaymentConstantsDto represents payment conversion rates
+ */
+export interface PaymentConstantsDto {
+  steelValue: number /* int */;
+  titaniumValue: number /* int */;
+}
+/**
+ * RequirementDto represents a card requirement for client consumption
+ */
+export interface RequirementDto {
+  type: RequirementType;
+  min?: number /* int */;
+  max?: number /* int */;
+  location?: CardApplyLocation;
+  tag?: CardTag;
+  resource?: ResourceType;
+}
+/**
+ * ResourceStorageDto represents a card's resource storage for client consumption
  */
 export interface ResourceStorageDto {
-  type: any /* model.ResourceType */;
+  type: ResourceType;
   capacity?: number /* int */;
   starting: number /* int */;
+}
+/**
+ * VPConditionDto represents a victory point condition for client consumption
+ */
+export interface VPConditionDto {
+  amount: number /* int */;
+  condition: VPConditionType;
+  maxTrigger?: number /* int */;
+  per?: PerConditionDto;
 }
 /**
  * CardDto represents a card for client consumption
@@ -576,24 +625,21 @@ export interface CardDto {
   description: string;
   pack: string;
   tags?: CardTag[];
-  requirements?: any /* model.Requirement */[];
+  requirements?: RequirementDto[];
   behaviors?: CardBehaviorDto[];
   resourceStorage?: ResourceStorageDto;
-  vpConditions?: any /* model.VictoryPointCondition */[];
+  vpConditions?: VPConditionDto[];
   /**
    * Corporation-specific fields (nil for non-corporation cards)
    */
-  startingResources?: ResourceSet; // Parsed from first auto behavior (corporations only)
-  startingProduction?: ResourceSet; // Parsed from first auto behavior (corporations only)
+  startingResources?: ResourceSet;
+  startingProduction?: ResourceSet;
 }
 export interface SelectStartingCardsPhaseDto {
   availableCards: CardDto[]; // Cards available for selection
-  availableCorporations: string[]; // Corporation IDs available for selection (2 corporations)
-  selectionComplete: boolean; // Whether player completed card selection
+  availableCorporations: CardDto[]; // Corporation cards available for selection (2 corporations)
 }
-export interface SelectStartingCardsOtherPlayerDto {
-  selectionComplete: boolean; // Whether player completed card selection
-}
+export interface SelectStartingCardsOtherPlayerDto {}
 /**
  * ProductionPhaseDto represents card selection and production phase state for a player
  */
@@ -749,7 +795,7 @@ export interface PlayerDto {
   resources: ResourcesDto;
   production: ProductionDto;
   terraformRating: number /* int */;
-  playedCards: string[];
+  playedCards: CardDto[]; // Full card details for all played cards
   passed: boolean;
   availableActions: number /* int */;
   victoryPoints: number /* int */;
@@ -800,7 +846,7 @@ export interface OtherPlayerDto {
   resources: ResourcesDto;
   production: ProductionDto;
   terraformRating: number /* int */;
-  playedCards: string[]; // Played cards are public
+  playedCards: CardDto[]; // Played cards are public - full card details
   passed: boolean;
   availableActions: number /* int */;
   victoryPoints: number /* int */;
@@ -919,6 +965,7 @@ export interface BoardDto {
 export interface CreateGameRequest {
   maxPlayers: number /* int */;
   developmentMode: boolean;
+  cardPacks?: string[];
 }
 /**
  * CreateGameResponse represents the response for creating a game
@@ -986,6 +1033,7 @@ export type MessageType = string;
  * Existing Client -> Server messages
  */
 export const MessageTypePlayerConnect: MessageType = "player-connect";
+export const MessageTypeJoinGame: MessageType = "join-game"; // Alternative to player-connect for backwards compatibility
 /**
  * Existing Server -> Client messages
  */
@@ -1002,6 +1050,8 @@ export const MessageTypeProductionPhaseStarted: MessageType =
  */
 export const MessageTypeActionSellPatents: MessageType =
   "action.standard-project.sell-patents";
+export const MessageTypeActionConfirmSellPatents: MessageType =
+  "action.standard-project.confirm-sell-patents";
 export const MessageTypeActionLaunchAsteroid: MessageType =
   "action.standard-project.launch-asteroid";
 export const MessageTypeActionBuildPowerPlant: MessageType =
@@ -1022,6 +1072,7 @@ export const MessageTypeActionConvertHeatToTemperature: MessageType =
 /**
  * Game management message types
  */
+export const MessageTypeCreateGame: MessageType = "create-game";
 export const MessageTypeActionStartGame: MessageType =
   "action.game-management.start-game";
 export const MessageTypeActionSkipAction: MessageType =
@@ -1041,24 +1092,14 @@ export const MessageTypeActionSelectStartingCard: MessageType =
   "action.card.select-starting-card";
 export const MessageTypeActionSelectCards: MessageType =
   "action.card.select-cards";
+export const MessageTypeActionConfirmProductionCards: MessageType =
+  "action.card.confirm-production-cards";
 export const MessageTypeActionCardDrawConfirmed: MessageType =
   "action.card.card-draw-confirmed";
 /**
  * Admin message types (development mode only)
  */
 export const MessageTypeAdminCommand: MessageType = "admin-command";
-
-//////////
-// source: payment_constants_dto.go
-
-/**
- * PaymentConstantsDto contains the conversion rates for alternative payment methods
- * These values are sent to the frontend so it knows how much each resource is worth
- */
-export interface PaymentConstantsDto {
-  steelValue: number /* int */; // How many MC each steel is worth (2)
-  titaniumValue: number /* int */; // How many MC each titanium is worth (3)
-}
 
 //////////
 // source: websocket_dto.go

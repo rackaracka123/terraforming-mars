@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { globalWebSocketManager } from "../../services/globalWebSocketManager.ts";
 import { apiService } from "../../services/apiService.ts";
+import {
+  clearGameSession,
+  getGameSession,
+} from "../../utils/sessionStorage.ts";
 
 interface ReconnectingPageProps {
   // Add any props if needed
@@ -26,60 +30,68 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
         setIsReconnecting(true);
 
         // Check localStorage for saved game data
-        const savedGameData = localStorage.getItem("terraforming-mars-game");
+        const savedGameData = getGameSession();
         if (!savedGameData) {
-          throw new Error("No saved game data found");
+          // No saved data, clear storage and go to landing page
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
-        const { gameId, playerId, playerName } = JSON.parse(savedGameData);
+        const { gameId, playerId, playerName } = savedGameData;
         if (!gameId || !playerName || !playerId) {
-          throw new Error("Invalid saved game data - missing required fields");
+          // Invalid data, clear storage and go to landing page
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
         // Verify game still exists
         const game = await apiService.getGame(gameId);
         if (!game) {
-          throw new Error("Game no longer exists");
+          // Game no longer exists, automatically clear storage and redirect
+          console.log(
+            "Game no longer exists, clearing session and returning to landing page",
+          );
+          clearGameSession();
+          navigate("/", { replace: true });
+          return;
         }
 
         // Ensure WebSocket is ready and attempt reconnection
-        // Attempting to reconnect: playerName, gameId, playerId
-        const reconnectionResult = await globalWebSocketManager.playerConnect(
+        // playerConnect sends the reconnect message, game state updates come via WebSocket
+        await globalWebSocketManager.playerConnect(
           playerName,
           gameId,
           playerId,
         );
-        // Reconnection successful
 
-        if (reconnectionResult.game) {
-          // CRITICAL FIX: Set the current player ID in globalWebSocketManager
-          // This ensures the GameInterface component knows which player this client represents
-          globalWebSocketManager.setCurrentPlayerId(
-            reconnectionResult.playerId,
-          );
+        // CRITICAL FIX: Set the current player ID in globalWebSocketManager
+        // This ensures the GameInterface component knows which player this client represents
+        globalWebSocketManager.setCurrentPlayerId(playerId);
 
-          // Update localStorage with fresh data
-          localStorage.setItem(
-            "terraforming-mars-game",
-            JSON.stringify({
-              gameId: reconnectionResult.game.id,
-              playerId: reconnectionResult.playerId,
-              playerName: reconnectionResult.playerName,
-              timestamp: Date.now(),
-            }),
-          );
+        // Update localStorage with fresh data
+        localStorage.setItem(
+          "terraforming-mars-game",
+          JSON.stringify({
+            gameId: game.id,
+            playerId: playerId,
+            playerName: playerName,
+            timestamp: Date.now(),
+          }),
+        );
 
-          // Navigate to game with reconnected state
-          navigate("/game", {
-            state: {
-              game: reconnectionResult.game,
-              playerId: reconnectionResult.playerId,
-              playerName: reconnectionResult.playerName,
-              isReconnection: true,
-            },
-            replace: true,
-          });
-        }
+        // Navigate to game with reconnected state
+        // Game state will be updated reactively via WebSocket game-updated events
+        navigate("/game", {
+          state: {
+            game: game,
+            playerId: playerId,
+            playerName: playerName,
+            isReconnection: true,
+          },
+          replace: true,
+        });
       } catch (error: any) {
         console.error("Reconnection failed:", error);
         setError(error.message || "Reconnection failed");
@@ -92,7 +104,7 @@ const ReconnectingPage: React.FC<ReconnectingPageProps> = () => {
   }, [navigate]);
 
   const handleReturnToMenu = () => {
-    localStorage.removeItem("terraforming-mars-game");
+    clearGameSession();
     navigate("/", { replace: true });
   };
 

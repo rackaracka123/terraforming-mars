@@ -1,397 +1,528 @@
-# Event-Driven Effect System
+# Event System Architecture
 
 ## Overview
 
-The event-driven effect system decouples game actions from their side effects using a publish-subscribe pattern. This architecture ensures that **services only do what the action explicitly says** - all passive effects and bonuses are handled automatically through domain events.
+The Terraforming Mars backend uses an event-driven architecture to decouple game state changes from WebSocket broadcasting and passive card effects. This document explains how the event system works and how to use it correctly.
 
-### Core Principle
+## Core Concepts
 
-> **Services execute actions. Events trigger effects.**
+### Event Types
 
-When a player performs an action (e.g., places a tile), the service:
-1. ✅ Updates the game state (place the tile)
-2. ✅ Awards immediate bonuses (tile placement bonuses from the board)
-3. ❌ Does NOT manually check for card effects
-4. ❌ Does NOT trigger passive abilities directly
+The system uses two categories of events:
 
-Instead, the **repository publishes an event** when state changes, and **CardEffectSubscriber listens for events** to trigger passive card effects automatically.
-
-## Architecture Components
-
-### 1. EventBus (`internal/events/event_bus.go`)
-
-Type-safe event publishing and subscription system.
-
+**1. Domain Events** - Represent specific game state changes
 ```go
-// Subscribe to an event type
-subID := events.Subscribe(eventBus, func(event repository.TilePlacedEvent) {
-    // Handle event
-})
-
-// Publish an event
-events.Publish(eventBus, repository.TilePlacedEvent{
-    GameID:   gameID,
-    PlayerID: playerID,
-    TileType: "city-tile",
-    Q: 0, R: 0, S: 0,
-})
-
-// Unsubscribe when done
-eventBus.Unsubscribe(subID)
-```
-
-### 2. Domain Events (`internal/repository/*_events.go`)
-
-Events published by repositories when game state changes:
-
-**Game Events:**
-- `TemperatureChangedEvent` - Global temperature parameter changed
-- `OxygenChangedEvent` - Global oxygen parameter changed
-- `OceansChangedEvent` - Global ocean count changed
-- `TilePlacedEvent` - Tile placed on the Mars board
-- `GamePhaseChangedEvent` - Game phase transition
-- `GenerationAdvancedEvent` - New generation started
-
-**Player Events:**
-- `ResourcesChangedEvent` - Player resource amounts changed
-- `ProductionChangedEvent` - Player production changed
-- `TerraformRatingChangedEvent` - Player TR changed
-- `CardPlayedEvent` - Card played by player
-- `CorporationSelectedEvent` - Corporation selected
-
-### 3. CardEffectSubscriber (`internal/cards/effect_subscriber.go`)
-
-Manages passive card effect subscriptions. When a card is played:
-
-```go
-// Subscribe card's passive effects
-effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, cardID, card)
-
-// CardEffectSubscriber automatically:
-// 1. Analyzes card behaviors for auto-triggers with conditions
-// 2. Subscribes to appropriate domain events
-// 3. Executes behavior outputs when events fire
-// 4. Filters by Target (self-player vs any-player)
-```
-
-## Event Flow Example
-
-### Example: Ocean Adjacency Bonus
-
-**Scenario:** Player places a greenery tile adjacent to an ocean and should gain 2 MC per adjacent ocean.
-
-#### Traditional Approach (❌ Old System)
-```go
-// PlayerService.placeTile() - WRONG
-func (s *PlayerServiceImpl) placeTile(...) {
-    gameRepo.UpdateTileOccupancy(...)
-
-    // ❌ BAD: Service manually checks for effects
-    adjacentOceans := s.calculateAdjacentOceans(...)
-    if adjacentOceans > 0 {
-        player.Resources.Credits += adjacentOceans * 2
-        playerRepo.UpdateResources(...)
-    }
+type TemperatureChangedEvent struct {
+    GameID   string
+    OldValue int
+    NewValue int
+    Steps    int
 }
-```
 
-**Problems:**
-- Service has too many responsibilities
-- Hard to add new card effects
-- Business logic scattered across services
-
-#### Event-Driven Approach (✅ New System)
-
-```go
-// PlayerService.placeTile() - CORRECT
-func (s *PlayerServiceImpl) placeTile(...) {
-    // 1. Do ONLY what the action says: place the tile
-    gameRepo.UpdateTileOccupancy(ctx, gameID, coordinate, occupant, &playerID)
-
-    // 2. Award immediate board bonuses (defined by board, not cards)
-    s.awardTilePlacementBonuses(ctx, gameID, playerID, coordinate)
-
-    // 3. That's it! Event system handles the rest
-}
-```
-
-```go
-// GameRepository.UpdateTileOccupancy() - Publishes event
-func (r *GameRepositoryImpl) UpdateTileOccupancy(...) error {
-    // Update game state
-    tile.Occupant = occupant
-
-    // Publish domain event
-    if r.eventBus != nil && occupant != nil {
-        events.Publish(r.eventBus, TilePlacedEvent{
-            GameID:    gameID,
-            PlayerID:  playerID,
-            TileType:  string(occupant.Type),
-            Q: coord.Q, R: coord.R, S: coord.S,
-        })
-    }
-    return nil
-}
-```
-
-```go
-// CardEffectSubscriber - Automatically handles ocean adjacency
-// When greenery is placed, TilePlacedEvent fires
-// Subscriber calculates adjacent oceans and awards bonus
-// No manual service logic needed!
-```
-
-## Supported Trigger Types
-
-CardEffectSubscriber currently supports these trigger conditions:
-
-| Trigger Type | Domain Event | Description |
-|--------------|--------------|-------------|
-| `TriggerTemperatureRaise` | `TemperatureChangedEvent` | Temperature increased |
-| `TriggerOxygenRaise` | `OxygenChangedEvent` | Oxygen increased |
-| `TriggerOceanPlaced` | `OceansChangedEvent` | Ocean tile placed |
-| `TriggerCityPlaced` | `TilePlacedEvent` | City tile placed (any player or self) |
-| `TriggerGreeneryPlaced` | `TilePlacedEvent` | Greenery tile placed (any player or self) |
-| `TriggerTilePlaced` | `TilePlacedEvent` | Any tile placed |
-
-### Target Filtering
-
-Effects can target different players:
-
-```go
-// Effect that only triggers for the card owner
-output.Target = model.TargetSelfPlayer
-// Example: Tharsis Republic +3 MC when YOU place a city
-
-// Effect that triggers for any player
-output.Target = model.TargetAnyPlayer
-// Example: Rover Construction +2 MC when ANY city is placed
-```
-
-CardEffectSubscriber automatically filters events by target:
-- **TargetSelfPlayer**: Only applies if `event.PlayerID == cardOwnerID`
-- **TargetAnyPlayer**: Applies for any player's action
-
-## Adding New Card Effects
-
-### Step 1: Define Card Behavior in JSON
-
-```json
-{
-  "id": "038",
-  "name": "Rover Construction",
-  "behaviors": [{
-    "triggers": [{
-      "type": "auto",
-      "condition": {"type": "city-placed"}
-    }],
-    "outputs": [{
-      "type": "credits",
-      "amount": 2,
-      "target": "self-player"
-    }]
-  }]
-}
-```
-
-### Step 2: Ensure Event is Published
-
-Check that the relevant repository publishes the event:
-
-```go
-// Example: GameRepository.UpdateTileOccupancy already publishes TilePlacedEvent
-// No additional code needed for city-placed trigger!
-```
-
-### Step 3: Subscribe Effects When Card is Played
-
-```go
-// CardService.OnPlayCard() already calls:
-effectSubscriber.SubscribeCardEffects(ctx, gameID, playerID, cardID, card)
-
-// CardEffectSubscriber automatically:
-// - Detects the city-placed trigger
-// - Subscribes to TilePlacedEvent
-// - Filters by target
-// - Applies credits when triggered
-```
-
-### Step 4: Test with Integration Test
-
-```go
-func TestRoverConstruction_PassiveEffect(t *testing.T) {
-    // 1. Play Rover Construction card
-    cardService.OnPlayCard(ctx, gameID, playerID, "038", nil, nil)
-
-    // 2. Place a city tile
-    gameRepo.UpdateTileOccupancy(ctx, gameID, coord, cityTile, &playerID)
-
-    // 3. Verify credits increased by 2
-    player, _ := playerRepo.GetByID(ctx, gameID, playerID)
-    assert.Equal(t, expectedCredits+2, player.Resources.Credits)
-}
-```
-
-## Adding New Domain Events
-
-To add support for a new trigger type:
-
-### 1. Define the Event Struct
-
-```go
-// internal/repository/new_events.go
-type CardPlayedWithTagEvent struct {
+type ResourcesChangedEvent struct {
     GameID    string
     PlayerID  string
-    CardID    string
-    Tags      []string
-    Timestamp time.Time
+    Resources shared.Resources
 }
 ```
 
-### 2. Publish Event from Repository
+**2. BroadcastEvent** - Signals that clients need game state updates
+```go
+type BroadcastEvent struct {
+    GameID    string
+    PlayerIDs []string  // nil = broadcast to all players
+}
+```
+
+### EventBus
+
+Type-safe publish-subscribe system for all events:
 
 ```go
-// PlayerRepository.MarkCardAsPlayed()
-func (r *PlayerRepositoryImpl) MarkCardAsPlayed(...) error {
-    // Update state
-    player.PlayedCards = append(player.PlayedCards, cardID)
+type EventBusImpl struct {
+    subscribers map[SubscriptionID]*subscription
+    mu          sync.RWMutex
+}
 
-    // Publish event
-    if r.eventBus != nil {
-        events.Publish(r.eventBus, CardPlayedWithTagEvent{
-            GameID:   gameID,
-            PlayerID: playerID,
-            CardID:   cardID,
-            Tags:     card.Tags,
-        })
+// Subscribe to specific event type
+func Subscribe[T any](eb *EventBusImpl, handler EventHandler[T]) SubscriptionID
+
+// Publish event to all subscribers
+func Publish[T any](eb *EventBusImpl, event T)
+```
+
+## Architecture Flow
+
+### Complete Message Flow
+
+```
+1. Client Action
+   └─> WebSocket Hub receives message
+
+2. Handler Delegation
+   └─> Manager routes to WebSocket Handler
+       └─> Handler calls Action.Execute()
+
+3. State Mutation
+   └─> Action calls Game state methods
+       └─> Game methods update private fields
+           └─> Game publishes domain events (TemperatureChanged, ResourcesChanged, etc.)
+               └─> Game publishes BroadcastEvent
+
+4. Event Broadcasting
+   └─> EventBus notifies all subscribers
+       ├─> Broadcaster receives BroadcastEvent
+       │   └─> Fetches game state from GameRepository
+       │       └─> Creates personalized DTO for each player
+       │           └─> Sends to WebSocket clients
+       │
+       └─> CardEffectSubscriber receives domain events
+           └─> Triggers passive card effects
+               └─> Effects may update game state (loop back to step 3)
+```
+
+### Visual Diagram
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ ACTION LAYER                                                │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ Action.Execute()                                       │ │
+│ │   ├─> Validate inputs                                 │ │
+│ │   ├─> Fetch game from GameRepository                  │ │
+│ │   └─> Call game state methods                         │ │
+│ └────────────────────────────────────────────────────────┘ │
+└─────────────────────────┬──────────────────────────────────┘
+                          │
+                          ▼
+┌────────────────────────────────────────────────────────────┐
+│ DOMAIN LAYER                                                │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ Game State Method (e.g., IncreaseTemperature)         │ │
+│ │   ├─> Lock mutex                                      │ │
+│ │   ├─> Update private fields                           │ │
+│ │   ├─> Unlock mutex                                    │ │
+│ │   ├─> Publish domain event (TemperatureChanged)       │ │
+│ │   └─> Publish BroadcastEvent                          │ │
+│ └────────────────────────────────────────────────────────┘ │
+└─────────────────────────┬──────────────────────────────────┘
+                          │
+                          ▼
+┌────────────────────────────────────────────────────────────┐
+│ EVENT BUS                                                   │
+│ Notifies all subscribers of published events               │
+└─────────────┬─────────────────────────────┬────────────────┘
+              │                             │
+              ▼                             ▼
+┌─────────────────────────┐   ┌─────────────────────────────┐
+│ BROADCASTER             │   │ CARD EFFECT SUBSCRIBER      │
+│ ├─> On BroadcastEvent   │   │ ├─> On TemperatureChanged   │
+│ ├─> Fetch game state    │   │ ├─> Find passive effects    │
+│ ├─> Create DTOs         │   │ └─> Trigger effect actions  │
+│ └─> Send to clients     │   └─────────────────────────────┘
+└─────────────────────────┘
+```
+
+## Implementation Patterns
+
+### Pattern 1: Game State Method with Events
+
+All Game state mutation methods follow this pattern:
+
+```go
+func (g *Game) IncreaseTemperature(ctx context.Context, steps int) {
+    // CRITICAL: Capture values while holding lock
+    var oldTemp, newTemp int
+
+    g.mu.Lock()
+    oldTemp = g.globalParameters.temperature
+    g.globalParameters.temperature += steps
+    newTemp = g.globalParameters.temperature
+    g.mu.Unlock()
+
+    // CRITICAL: Publish events AFTER releasing lock
+    // This prevents deadlocks
+
+    // 1. Publish domain event for passive card effects
+    events.Publish(g.eventBus, events.TemperatureChangedEvent{
+        GameID:   g.id,
+        OldValue: oldTemp,
+        NewValue: newTemp,
+        Steps:    steps,
+    })
+
+    // 2. Publish broadcast event for client updates
+    events.Publish(g.eventBus, events.BroadcastEvent{
+        GameID:    g.id,
+        PlayerIDs: nil,  // nil = all players
+    })
+}
+```
+
+### Pattern 2: Broadcaster Subscriber
+
+The Broadcaster subscribes to BroadcastEvent and sends personalized game state:
+
+```go
+// In internal/delivery/websocket/broadcaster.go
+func (b *Broadcaster) OnBroadcastEvent(event events.BroadcastEvent) {
+    game, err := b.gameRepo.Get(event.GameID)
+    if err != nil {
+        b.logger.Error("Failed to get game", "gameID", event.GameID, "error", err)
+        return
     }
+
+    if event.PlayerIDs == nil {
+        // Broadcast to all players - each gets personalized view
+        for _, player := range game.Players() {
+            dto := mapper.ToPersonalizedGameDTO(game, player.ID())
+            b.sendToPlayer(event.GameID, player.ID(), dto)
+        }
+    } else {
+        // Send to specific players
+        for _, playerID := range event.PlayerIDs {
+            dto := mapper.ToPersonalizedGameDTO(game, playerID)
+            b.sendToPlayer(event.GameID, playerID, dto)
+        }
+    }
+}
+```
+
+### Pattern 3: Action Publishing Events
+
+Actions SHOULD NOT manually publish BroadcastEvent - Game methods do this automatically:
+
+```go
+// ✅ CORRECT
+func (a *StandardProjectAsteroidAction) Execute(
+    ctx context.Context,
+    gameID string,
+    playerID string,
+) error {
+    game, _ := a.gameRepo.Get(gameID)
+    player := game.GetPlayer(playerID)
+
+    // Validate
+    if player.Resources().Credits() < 14 {
+        return errors.New("insufficient credits")
+    }
+
+    // Update state - Game methods publish events automatically
+    player.Resources().SubtractCredits(14)
+    game.GlobalParameters().IncreaseTemperature(ctx, 1)
+
+    return nil  // Events already published by state methods
+}
+
+// ❌ WRONG - Don't manually publish BroadcastEvent
+func (a *SomeAction) Execute(ctx context.Context, gameID, playerID string) error {
+    game, _ := a.gameRepo.Get(gameID)
+
+    // Update state
+    player.Resources().AddCredits(10)
+
+    // ❌ WRONG: Don't do this - state methods already publish
+    events.Publish(a.eventBus, events.BroadcastEvent{
+        GameID: gameID,
+    })
+
     return nil
 }
 ```
 
-### 3. Add Handler to CardEffectSubscriber
+## Personalized DTOs
+
+Each player receives a personalized view of the game state:
 
 ```go
-// internal/cards/effect_subscriber.go
-func (ces *CardEffectSubscriberImpl) subscribeEffectByTriggerType(...) {
-    switch triggerType {
-    case model.TriggerTagPlayed:
-        subID := events.Subscribe(ces.eventBus, func(event repository.CardPlayedWithTagEvent) {
-            // Check if event matches card's trigger condition
-            if event.GameID == gameID && hasRequiredTag(event.Tags, trigger.Condition) {
-                ces.executePassiveEffect(gameID, playerID, cardID, cardName, behavior, event)
+func ToPersonalizedGameDTO(game *game.Game, receivingPlayerID string) *GameDTO {
+    dto := &GameDTO{
+        ID:     game.ID(),
+        Status: string(game.Status()),
+        // ... other game fields
+    }
+
+    // Current player gets full data
+    currentPlayer := game.GetPlayer(receivingPlayerID)
+    dto.Player = &PlayerDTO{
+        ID:    currentPlayer.ID(),
+        Name:  currentPlayer.Name(),
+        Hand:  currentPlayer.Hand().Cards(),  // Full hand visible
+        // ... all player data
+    }
+
+    // Other players get limited data
+    dto.OtherPlayers = []*OtherPlayerDTO{}
+    for _, p := range game.Players() {
+        if p.ID() != receivingPlayerID {
+            dto.OtherPlayers = append(dto.OtherPlayers, &OtherPlayerDTO{
+                ID:       p.ID(),
+                Name:     p.Name(),
+                HandSize: len(p.Hand().Cards()),  // Count only, no cards
+                // ... limited data
+            })
+        }
+    }
+
+    return dto
+}
+```
+
+## Thread Safety
+
+### Critical Rules
+
+1. **Never publish events while holding a lock**
+   ```go
+   // ❌ WRONG
+   g.mu.Lock()
+   g.temperature++
+   events.Publish(g.eventBus, SomeEvent{})  // Deadlock risk!
+   g.mu.Unlock()
+
+   // ✅ CORRECT
+   g.mu.Lock()
+   g.temperature++
+   newTemp := g.temperature
+   g.mu.Unlock()
+
+   events.Publish(g.eventBus, TemperatureChangedEvent{
+       NewValue: newTemp,
+   })
+   ```
+
+2. **Capture values before releasing lock**
+   ```go
+   g.mu.Lock()
+   oldValue := g.someField
+   g.someField = newValue
+   capturedValue := g.someField
+   g.mu.Unlock()
+
+   // Use captured values in events
+   events.Publish(g.eventBus, SomeEvent{
+       OldValue: oldValue,
+       NewValue: capturedValue,
+   })
+   ```
+
+3. **EventBus is thread-safe**
+   - Subscribe/Publish can be called concurrently
+   - Internal mutex protects subscriber map
+
+## Event Catalog
+
+### Game State Events
+
+```go
+type GenerationChangedEvent struct {
+    GameID   string
+    OldValue int
+    NewValue int
+}
+
+type PhaseChangedEvent struct {
+    GameID   string
+    OldPhase game.GamePhase
+    NewPhase game.GamePhase
+}
+
+type TurnChangedEvent struct {
+    GameID        string
+    OldPlayerID   string
+    NewPlayerID   string
+    GenerationEnd bool
+}
+```
+
+### Global Parameter Events
+
+```go
+type TemperatureChangedEvent struct {
+    GameID   string
+    OldValue int
+    NewValue int
+    Steps    int
+}
+
+type OxygenChangedEvent struct {
+    GameID   string
+    OldValue int
+    NewValue int
+    Steps    int
+}
+
+type OceansChangedEvent struct {
+    GameID   string
+    OldValue int
+    NewValue int
+    Count    int
+}
+```
+
+### Player Events
+
+```go
+type ResourcesChangedEvent struct {
+    GameID    string
+    PlayerID  string
+    Resources shared.Resources
+}
+
+type ProductionChangedEvent struct {
+    GameID     string
+    PlayerID   string
+    Production shared.Production
+}
+
+type CardPlayedEvent struct {
+    GameID   string
+    PlayerID string
+    CardID   string
+}
+```
+
+### Broadcast Events
+
+```go
+type BroadcastEvent struct {
+    GameID    string
+    PlayerIDs []string  // nil = all players, otherwise specific players
+}
+```
+
+## Passive Card Effects
+
+Card effects subscribe to domain events via CardEffectSubscriber:
+
+```go
+// Example: "Gain 2 MC when temperature is raised"
+type TemperatureBonusEffect struct {
+    gameRepo game.GameRepository
+}
+
+func (e *TemperatureBonusEffect) OnTemperatureChanged(event events.TemperatureChangedEvent) {
+    game, _ := e.gameRepo.Get(event.GameID)
+
+    // Find players with cards granting temperature bonuses
+    for _, player := range game.Players() {
+        for _, cardID := range player.PlayedCards().Cards() {
+            // Check if card grants temperature bonus
+            if hasTemperatureBonus(cardID) {
+                player.Resources().AddCredits(2 * event.Steps)
             }
-        })
-        return subID, nil
+        }
     }
 }
 ```
 
 ## Best Practices
 
-### ✅ DO
+### DO
 
-1. **Publish events in repositories** when state changes
-2. **Use CardEffectSubscriber** for passive card effects
-3. **Keep services focused** on their primary action
-4. **Filter by target** when effects should only apply to specific players
-5. **Subscribe on card play**, unsubscribe on card removal
+✅ Call Game state methods and let them publish events
+✅ Subscribe to specific event types you care about
+✅ Publish domain events for game state changes
+✅ Publish BroadcastEvent from Game state methods
+✅ Release locks before publishing events
+✅ Capture values while holding lock for event payloads
 
-### ❌ DON'T
+### DON'T
 
-1. **Don't trigger effects manually** in service layer
-2. **Don't check player.Effects** directly (removed in migration)
-3. **Don't add business logic** to event handlers (keep them thin)
-4. **Don't forget to unsubscribe** when cards are removed
-5. **Don't publish events** from service layer (only repositories)
+❌ Manually publish BroadcastEvent from Actions
+❌ Publish events while holding a lock
+❌ Directly access private fields without mutex
+❌ Create circular event dependencies
+❌ Publish events without capturing necessary data
 
 ## Debugging Events
 
-Enable debug logging to see event flow:
+### Logging Events
 
 ```go
-// Logs show event lifecycle
-DEBUG: 📬 Event handler subscribed (subscription_id: sub-1, event_type: TilePlacedEvent)
-DEBUG: 📢 Publishing event to subscribers (event_type: TilePlacedEvent, subscriber_count: 2)
-INFO:  🌟 Passive effect triggered (card_name: Rover Construction)
-INFO:  ✨ Passive effect applied (resource_type: credits, amount: 2)
+// In Game state method
+func (g *Game) SomeStateChange() {
+    // ... state update ...
+
+    g.logger.Debug("Publishing domain event",
+        "event", "SomeEvent",
+        "gameID", g.id,
+        "details", someDetails,
+    )
+
+    events.Publish(g.eventBus, SomeEvent{...})
+}
 ```
 
-## Migration from Old System
+### Tracing Event Flow
 
-The old system used `player.Effects` field to store passive effects and manually polled them. This has been completely replaced:
-
-### Old System (Removed)
-- ❌ `player.Effects []PlayerEffect` - Removed from model
-- ❌ `extractAndAddEffects()` - Removed from CardProcessor
-- ❌ `triggerTilePlacementEffects()` - Removed from PlayerService
-- ❌ `UpdateEffects()` - Removed from PlayerRepository
-
-### New System
-- ✅ `CardEffectSubscriber` - Event-driven subscription manager
-- ✅ Domain Events - Published by repositories
-- ✅ EventBus - Type-safe pub/sub system
-- ✅ Target Filtering - Self vs any player
+1. Check action execution logs
+2. Verify Game state method was called
+3. Confirm event was published
+4. Check Broadcaster received BroadcastEvent
+5. Verify DTO was created and sent
 
 ## Common Patterns
 
-### Pattern 1: Global Parameter Effects
+### Pattern: Targeted Broadcast
+
+Send updates only to specific players:
 
 ```go
-// Card: "Gain 1 heat production when temperature is raised"
-{
-  "triggers": [{"type": "auto", "condition": {"type": "temperature-raise"}}],
-  "outputs": [{"type": "heat-production", "amount": 1}]
-}
-
-// EventBus: TemperatureChangedEvent published when temperature changes
-// CardEffectSubscriber: Automatically subscribes and applies heat production
+// Only notify the player who drew cards
+events.Publish(g.eventBus, events.BroadcastEvent{
+    GameID:    g.id,
+    PlayerIDs: []string{playerID},
+})
 ```
 
-### Pattern 2: Tile Placement Effects
+### Pattern: Chained Events
+
+One event can trigger actions that publish more events:
 
 ```go
-// Card: "Gain 2 MC when any city is placed"
-{
-  "triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
-  "outputs": [{"type": "credits", "amount": 2, "target": "any-player"}]
-}
-
-// EventBus: TilePlacedEvent published when tile placed
-// CardEffectSubscriber: Filters for city tiles, applies credits
+// Temperature increase triggers passive effects
+events.Publish(g.eventBus, TemperatureChangedEvent{...})
+  └─> CardEffectSubscriber
+      └─> Triggers passive effect
+          └─> Updates resources
+              └─> Publishes ResourcesChangedEvent{...}
+                  └─> Publishes BroadcastEvent{...}
 ```
 
-### Pattern 3: Self-Only Effects
+### Pattern: Multiple Events
+
+State methods can publish multiple events:
 
 ```go
-// Card: "Gain 3 MC when YOU place a city"
-{
-  "triggers": [{"type": "auto", "condition": {"type": "city-placed"}}],
-  "outputs": [{"type": "credits", "amount": 3, "target": "self-player"}]
+func (g *Game) PlaceTile(ctx context.Context, tile Tile) {
+    // ... update board ...
+
+    // Publish domain event
+    events.Publish(g.eventBus, TilePlacedEvent{
+        GameID:   g.id,
+        Position: tile.Position,
+        Type:     tile.Type,
+    })
+
+    // If tile placement raised global parameter
+    if tile.RaisesOxygen {
+        events.Publish(g.eventBus, OxygenChangedEvent{...})
+    }
+
+    // Always broadcast state change
+    events.Publish(g.eventBus, BroadcastEvent{
+        GameID: g.id,
+    })
 }
-
-// EventBus: TilePlacedEvent includes event.PlayerID
-// CardEffectSubscriber: Checks event.PlayerID == cardOwnerID before applying
 ```
-
-## Future Enhancements
-
-Potential improvements to the event system:
-
-1. **Async Event Handling** - Execute handlers in goroutines for performance
-2. **Event Replay** - Store and replay events for undo/redo
-3. **Event Sourcing** - Build game state from event log
-4. **More Trigger Types** - card-played, tag-played, production-increased, etc.
-5. **Complex Conditions** - Per-resource modifiers, conditional multipliers
 
 ## Summary
 
-The event-driven effect system provides:
-- ✅ **Separation of Concerns** - Services focus on actions, effects handled separately
-- ✅ **Extensibility** - Add new cards without modifying service layer
-- ✅ **Testability** - Easy to test events and effects in isolation
-- ✅ **Maintainability** - Business logic centralized in CardEffectSubscriber
-- ✅ **Type Safety** - Compiler-checked event types
+The event system provides:
+- **Decoupling**: Actions don't know about WebSocket broadcasting
+- **Extensibility**: Add new event subscribers without changing actions
+- **Thread Safety**: Clear patterns for lock management
+- **Traceability**: Events document all state changes
 
-Remember: **Services do what the action says. Events trigger the rest.**
+Key principle: **Game state methods are the single source of truth for events**. Actions update state, Game publishes events, subscribers react.
