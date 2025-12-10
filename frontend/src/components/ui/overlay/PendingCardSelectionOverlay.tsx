@@ -1,10 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   PendingCardSelectionDto,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
+import { useCardSelection } from "../../../hooks/useCardSelection.ts";
+import {
+  OVERLAY_BACKGROUND_CLASS,
+  OVERLAY_CONTAINER_CLASS,
+  OVERLAY_HEADER_CLASS,
+  OVERLAY_TITLE_CLASS,
+  OVERLAY_DESCRIPTION_CLASS,
+  OVERLAY_CARDS_CONTAINER_CLASS,
+  OVERLAY_CARDS_INNER_CLASS,
+  OVERLAY_FOOTER_CLASS,
+  PRIMARY_BUTTON_CLASS,
+  SECONDARY_BUTTON_CLASS,
+  RESOURCE_LABEL_CLASS,
+} from "./overlayStyles.ts";
 
 /**
  * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
@@ -28,44 +42,24 @@ interface TitleInfo {
 const PendingCardSelectionOverlay: React.FC<
   PendingCardSelectionOverlayProps
 > = ({ isOpen, selection, playerCredits, onSelectCards, onCancel }) => {
-  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-  const [totalCost, setTotalCost] = useState(0);
-  const [totalReward, setTotalReward] = useState(0);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-
-  // Initialize selection when overlay opens
-  useEffect(() => {
-    if (isOpen && selection.availableCards.length > 0) {
-      setSelectedCardIds([]);
-      setShowConfirmation(false);
-      setTotalCost(0);
-      setTotalReward(0);
-    }
-  }, [isOpen, selection.availableCards]);
-
-  // Calculate total cost and reward whenever selection changes
-  useEffect(() => {
-    const cost = selectedCardIds.reduce((sum, cardId) => {
-      return sum + (selection.cardCosts[cardId] || 0);
-    }, 0);
-
-    const reward = selectedCardIds.reduce((sum, cardId) => {
-      return sum + (selection.cardRewards[cardId] || 0);
-    }, 0);
-
-    setTotalCost(cost);
-    setTotalReward(reward);
-
-    // Reset confirmation state when cards are selected
-    if (selectedCardIds.length > 0 && showConfirmation) {
-      setShowConfirmation(false);
-    }
-  }, [
+  const {
     selectedCardIds,
-    selection.cardCosts,
-    selection.cardRewards,
+    totalCost,
+    totalReward,
     showConfirmation,
-  ]);
+    isValidSelection,
+    handleCardSelect,
+    handleConfirm: handleCardConfirm,
+    canAffordCard,
+  } = useCardSelection({
+    cards: selection.availableCards,
+    isOpen,
+    playerCredits,
+    getCardCost: (cardId) => selection.cardCosts[cardId] || 0,
+    getCardReward: (cardId) => selection.cardRewards[cardId] || 0,
+    minCards: selection.minCards,
+    maxCards: selection.maxCards,
+  });
 
   if (!isOpen || selection.availableCards.length === 0) return null;
 
@@ -105,50 +99,8 @@ const PendingCardSelectionOverlay: React.FC<
     return null;
   };
 
-  const canAffordCard = (cardId: string): boolean => {
-    const currentTotalCost = selectedCardIds.reduce((sum, id) => {
-      return sum + (selection.cardCosts[id] || 0);
-    }, 0);
-    const cardCost = selection.cardCosts[cardId] || 0;
-    return currentTotalCost + cardCost <= playerCredits;
-  };
-
-  const handleCardSelect = (cardId: string) => {
-    setSelectedCardIds((prev) => {
-      if (prev.includes(cardId)) {
-        // Deselect card
-        return prev.filter((id) => id !== cardId);
-      } else {
-        // Select card - check if player can afford it
-        if (canAffordCard(cardId)) {
-          return [...prev, cardId];
-        } else {
-          return prev;
-        }
-      }
-    });
-  };
-
   const handleConfirm = () => {
-    const minCards = selection.minCards;
-    const maxCards = selection.maxCards;
-    const selectedCount = selectedCardIds.length;
-
-    // Validate selection bounds
-    if (selectedCount < minCards || selectedCount > maxCards) {
-      return; // Invalid selection
-    }
-
-    if (selectedCount > 0) {
-      // Player has selected cards - commit immediately
-      onSelectCards(selectedCardIds);
-    } else if (minCards === 0 && !showConfirmation) {
-      // First click with no selection when 0 is allowed - show confirmation
-      setShowConfirmation(true);
-    } else if (minCards === 0 && showConfirmation) {
-      // Second click with no selection - confirm with empty selection
-      onSelectCards([]);
-    }
+    handleCardConfirm(onSelectCards);
   };
 
   const handleCancel = () => {
@@ -164,30 +116,23 @@ const PendingCardSelectionOverlay: React.FC<
 
   const titleInfo = getTitleAndDescription(selection.source);
   const netGain = totalReward - totalCost;
-  const isValidSelection =
-    selectedCardIds.length >= selection.minCards &&
-    selectedCardIds.length <= selection.maxCards;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
       {/* Translucent background */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className={OVERLAY_BACKGROUND_CLASS} />
 
       {/* Content container */}
-      <div className="relative z-[1] w-[90%] max-w-[1400px] max-h-[90vh] flex flex-col bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_60px_rgba(30,60,150,0.5)] max-[768px]:w-full max-[768px]:h-screen max-[768px]:max-h-screen max-[768px]:rounded-none">
+      <div className={OVERLAY_CONTAINER_CLASS}>
         {/* Header */}
-        <div className="py-6 px-8 bg-black/40 border-b border-space-blue-600 max-[768px]:p-5">
-          <h2 className="m-0 font-orbitron text-[28px] font-bold text-white text-shadow-glow tracking-wider max-[768px]:text-2xl">
-            {titleInfo.title}
-          </h2>
-          <p className="mt-2 mb-0 text-base text-white/80 max-[768px]:text-sm">
-            {titleInfo.description}
-          </p>
+        <div className={OVERLAY_HEADER_CLASS}>
+          <h2 className={OVERLAY_TITLE_CLASS}>{titleInfo.title}</h2>
+          <p className={OVERLAY_DESCRIPTION_CLASS}>{titleInfo.description}</p>
         </div>
 
         {/* Cards display */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center bg-[radial-gradient(ellipse_at_center,rgba(139,69,19,0.1)_0%,transparent_70%)] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-white/30 max-[768px]:p-5">
-          <div className="flex gap-6 mx-auto py-5 max-[768px]:gap-4">
+        <div className={OVERLAY_CARDS_CONTAINER_CLASS}>
+          <div className={OVERLAY_CARDS_INNER_CLASS}>
             {selection.availableCards.map((card, index) => {
               const isSelected = selectedCardIds.includes(card.id);
               const badge = getCardBadge(card.id);
@@ -235,12 +180,10 @@ const PendingCardSelectionOverlay: React.FC<
         </div>
 
         {/* Footer with cost and confirm button */}
-        <div className="py-6 px-8 bg-black/40 border-t border-space-blue-600 flex justify-between items-center max-[768px]:p-5 max-[768px]:flex-col max-[768px]:gap-5">
+        <div className={OVERLAY_FOOTER_CLASS}>
           <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between max-[768px]:flex-wrap">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                Your Credits:
-              </span>
+              <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
               <GameIcon
                 iconType={ResourceTypeCredits}
                 amount={playerCredits}
@@ -249,9 +192,7 @@ const PendingCardSelectionOverlay: React.FC<
             </div>
             {totalCost > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                  Total Cost:
-                </span>
+                <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
                 <GameIcon
                   iconType={ResourceTypeCredits}
                   amount={totalCost}
@@ -261,9 +202,7 @@ const PendingCardSelectionOverlay: React.FC<
             )}
             {totalReward > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                  Total Reward:
-                </span>
+                <span className={RESOURCE_LABEL_CLASS}>Total Reward:</span>
                 <div className="flex items-center gap-1">
                   <span className="text-[#4caf50] font-bold text-lg">+</span>
                   <GameIcon
@@ -276,9 +215,7 @@ const PendingCardSelectionOverlay: React.FC<
             )}
             {netGain !== 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                  Net Gain:
-                </span>
+                <span className={RESOURCE_LABEL_CLASS}>Net Gain:</span>
                 <div className="flex items-center gap-1">
                   <span
                     className={`font-bold text-lg ${
@@ -314,14 +251,14 @@ const PendingCardSelectionOverlay: React.FC<
             <div className="flex gap-3 items-center">
               {(onCancel || selection.minCards === 0) && (
                 <button
-                  className="py-3 px-6 bg-space-black-darker/60 border-2 border-space-blue-800/60 rounded-lg text-white font-medium cursor-pointer transition-all duration-200 whitespace-nowrap hover:-translate-y-px hover:bg-space-black-darker/80 hover:border-space-blue-600 active:translate-y-0"
+                  className={SECONDARY_BUTTON_CLASS}
                   onClick={handleCancel}
                 >
                   {onCancel ? "Cancel" : "Skip"}
                 </button>
               )}
               <button
-                className="py-4 px-8 bg-space-black-darker/90 border-2 border-space-blue-800 rounded-xl text-xl font-bold text-white cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_20px_rgba(30,60,150,0.3)] whitespace-nowrap hover:enabled:bg-space-black-darker/95 hover:enabled:border-space-blue-600 hover:enabled:-translate-y-0.5 hover:enabled:shadow-glow active:enabled:translate-y-0 disabled:bg-gray-700/50 disabled:border-gray-500/30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:opacity-60 max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
+                className={PRIMARY_BUTTON_CLASS}
                 onClick={handleConfirm}
                 disabled={!isValidSelection || totalCost > playerCredits}
               >

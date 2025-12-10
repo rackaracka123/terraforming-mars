@@ -115,20 +115,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Strings("card_ids", selectedCardIDs),
 		zap.Int("count", len(selectedCardIDs)))
 
-	for _, cardID := range selectedCardIDs {
-		// Add card ID to hand (triggers events)
-		player.Hand().AddCard(cardID)
-
-		// Create PlayerCard with state and event listeners, cache in hand
-		card, err := a.CardRegistry().GetByID(cardID)
-		if err != nil {
-			log.Warn("Failed to get card from registry, skipping PlayerCard creation",
-				zap.String("card_id", cardID),
-				zap.Error(err))
-			continue
-		}
-		CreateAndCachePlayerCard(card, player, g, a.CardRegistry())
-	}
+	AddCardsToPlayerHand(selectedCardIDs, player, g, a.CardRegistry(), log)
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", selectedCardIDs),

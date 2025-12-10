@@ -6,6 +6,8 @@ import (
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/player"
+
+	"go.uber.org/zap"
 )
 
 // CreateAndCachePlayerCard creates a PlayerCard with event listeners and initial state,
@@ -106,4 +108,34 @@ func recalculatePlayerCard(
 	}
 	state := CalculatePlayerCardState(card, p, g, cardRegistry)
 	pc.UpdateState(state)
+}
+
+// AddCardsToPlayerHand adds multiple cards to a player's hand and creates PlayerCard instances.
+// This is a convenience function that consolidates the common pattern of:
+// 1. Adding card ID to hand (triggers events)
+// 2. Fetching card from registry
+// 3. Creating and caching PlayerCard with state and event listeners
+//
+// Used by actions that give cards to players (card draws, purchases, admin commands, etc.)
+func AddCardsToPlayerHand(
+	cardIDs []string,
+	p *player.Player,
+	g *game.Game,
+	cardRegistry cards.CardRegistry,
+	logger *zap.Logger,
+) {
+	for _, cardID := range cardIDs {
+		// First add card ID to hand (triggers CardHandUpdatedEvent)
+		p.Hand().AddCard(cardID)
+
+		// Then create PlayerCard with state and event listeners, cache in hand
+		card, err := cardRegistry.GetByID(cardID)
+		if err != nil {
+			logger.Warn("Failed to get card from registry, skipping PlayerCard creation",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			continue
+		}
+		CreateAndCachePlayerCard(card, p, g, cardRegistry)
+	}
 }

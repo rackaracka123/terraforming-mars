@@ -58,18 +58,7 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID st
 
 	// 3. Add card to player's hand
 	// NOTE: Card validation is skipped - admin actions are trusted to provide valid card IDs
-	player.Hand().AddCard(cardID)
-
-	// 4. Create PlayerCard with state and event listeners, cache in hand
-	card, err := a.cardRegistry.GetByID(cardID)
-	if err != nil {
-		log.Warn("Failed to get card from registry, skipping PlayerCard creation",
-			zap.String("card_id", cardID),
-			zap.Error(err))
-		// Continue anyway since admin action succeeded
-	} else {
-		action.CreateAndCachePlayerCard(card, player, game, a.cardRegistry)
-	}
+	action.AddCardsToPlayerHand([]string{cardID}, player, game, a.cardRegistry, log)
 
 	log.Info("✅ Admin give card completed")
 	return nil

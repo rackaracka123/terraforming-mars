@@ -132,20 +132,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	}
 
 	// 12. BUSINESS LOGIC: Add all selected cards to player's hand
-	for _, cardID := range allSelectedCards {
-		// First add card ID to hand (triggers events)
-		player.Hand().AddCard(cardID)
-
-		// Then create PlayerCard with state and event listeners, cache in hand
-		card, err := a.CardRegistry().GetByID(cardID)
-		if err != nil {
-			log.Warn("Failed to get card from registry, skipping PlayerCard creation",
-				zap.String("card_id", cardID),
-				zap.Error(err))
-			continue
-		}
-		CreateAndCachePlayerCard(card, player, g, a.CardRegistry())
-	}
+	AddCardsToPlayerHand(allSelectedCards, player, g, a.CardRegistry(), log)
 
 	log.Info("🃏 Added selected cards to hand",
 		zap.Int("cards_taken", len(cardsToTake)),
