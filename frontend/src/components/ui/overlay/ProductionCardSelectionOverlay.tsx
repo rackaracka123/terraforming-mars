@@ -2,48 +2,27 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
-  CardDto,
-  RequirementModifierDto,
-  ResourceType,
+  PlayerCardDto,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
 
 /**
- * Calculate the total discount applicable to a specific card from player's requirement modifiers
+ * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
+ * Playability and discounts are provided by the Player-Scoped Card Architecture.
+ * No frontend calculation needed!
  */
-function calculateCardDiscount(
-  cardId: string,
-  requirementModifiers: RequirementModifierDto[],
-): number {
-  return requirementModifiers
-    .filter(
-      (mod) =>
-        mod.affectedResources.includes("credits" as ResourceType) &&
-        (!mod.cardTarget || mod.cardTarget === cardId) &&
-        !mod.standardProjectTarget,
-    )
-    .reduce((total, mod) => total + mod.amount, 0);
-}
 
 interface ProductionCardSelectionOverlayProps {
   isOpen: boolean;
-  cards: CardDto[];
+  cards: PlayerCardDto[]; // Now receives PlayerCardDto with state from backend
   playerCredits: number;
-  requirementModifiers?: RequirementModifierDto[];
   onSelectCards: (selectedCardIds: string[]) => void;
   onReturn: () => void;
 }
 
 const ProductionCardSelectionOverlay: React.FC<
   ProductionCardSelectionOverlayProps
-> = ({
-  isOpen,
-  cards,
-  playerCredits,
-  requirementModifiers = [],
-  onSelectCards,
-  onReturn,
-}) => {
+> = ({ isOpen, cards, playerCredits, onSelectCards, onReturn }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -134,10 +113,6 @@ const ProductionCardSelectionOverlay: React.FC<
                   onSelect={handleCardSelect}
                   animationDelay={index * 100}
                   showCheckbox={true}
-                  discountAmount={calculateCardDiscount(
-                    card.id,
-                    requirementModifiers,
-                  )}
                 />
               );
             })}

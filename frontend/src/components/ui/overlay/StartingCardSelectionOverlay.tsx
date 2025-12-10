@@ -4,13 +4,20 @@ import CorporationCard from "../cards/CorporationCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   CardDto,
+  PlayerCardDto,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
 
+/**
+ * @deprecated Cards now use PlayerCardDto with backend-calculated state.
+ * Playability and discounts are provided by the Player-Scoped Card Architecture.
+ * No frontend calculation needed!
+ */
+
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
-  cards: CardDto[];
-  availableCorporations: CardDto[];
+  cards: PlayerCardDto[]; // Now receives PlayerCardDto with state from backend
+  availableCorporations: CardDto[]; // Corporations remain as CardDto
   playerCredits: number;
   onSelectCards: (selectedCardIds: string[], corporationId: string) => void;
 }

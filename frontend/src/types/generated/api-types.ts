@@ -716,6 +716,37 @@ export interface RequirementModifierDto {
   standardProjectTarget?: StandardProject; // Optional: specific standard project this applies to
 }
 /**
+ * StateErrorDto represents a specific reason why an entity (card, action, project) is unavailable
+ * Part of the Player-Scoped Card Architecture for rich error information
+ */
+export interface StateErrorDto {
+  code: string; // Error code (e.g., "INSUFFICIENT_CREDITS", "TEMPERATURE_TOO_LOW")
+  category: string; // Error category (e.g., "phase", "cost", "requirement", "usage")
+  message: string; // Human-readable error message
+}
+/**
+ * PlayerCardDto represents a card in a player's hand with calculated playability state
+ * Part of the Player-Scoped Card Architecture
+ */
+export interface PlayerCardDto {
+  /**
+   * Card data (from immutable Card)
+   */
+  id: string;
+  name: string;
+  type: string;
+  cost: number /* int */;
+  description: string;
+  tags: CardTag[];
+  /**
+   * Player-specific calculated state (from EntityState)
+   */
+  available: boolean; // Computed: len(Errors) == 0
+  errors: StateErrorDto[]; // Single source of truth for availability
+  effectiveCost: number /* int */; // Cost after discounts
+  discounts?: { [key: string]: number /* int */ }; // Tag discounts (if any)
+}
+/**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
  * Aligned with PlayerActionDto structure for consistent behavior handling
  */
@@ -727,13 +758,38 @@ export interface PlayerEffectDto {
 }
 /**
  * PlayerActionDto represents an action that a player can take for client consumption
+ * Enhanced with calculated usability state from Player-Scoped Card Architecture
  */
 export interface PlayerActionDto {
   cardId: string; // ID of the card that provides this action
   cardName: string; // Name of the card for display purposes
   behaviorIndex: number /* int */; // Which behavior on the card this action represents
   behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
-  playCount: number /* int */; // Number of times this action has been played this generation
+  /**
+   * Persistent state (tracked over time)
+   */
+  timesUsedThisTurn: number /* int */; // Times used this turn
+  timesUsedThisGeneration: number /* int */; // Times used this generation
+  playCount: number /* int */; // DEPRECATED: Use TimesUsedThisGeneration
+  /**
+   * Calculated usability state (from EntityState)
+   */
+  available: boolean; // Computed: action is usable
+  errors: StateErrorDto[]; // Reasons why action is not usable
+}
+/**
+ * PlayerStandardProjectDto represents a standard project with availability state
+ * Part of the Player-Scoped Card Architecture
+ */
+export interface PlayerStandardProjectDto {
+  projectType: string; // Standard project type (e.g., "sell_patents", "aquifer")
+  cost: number /* int */; // Base cost in credits
+  /**
+   * Calculated availability state (from EntityState)
+   */
+  available: boolean; // Computed: project is available
+  errors: StateErrorDto[]; // Reasons why project is not available
+  metadata?: { [key: string]: any }; // Project-specific context (e.g., oceansRemaining)
 }
 /**
  * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
@@ -791,7 +847,7 @@ export interface PlayerDto {
   name: string;
   status: PlayerStatus;
   corporation?: CardDto;
-  cards: CardDto[];
+  cards: PlayerCardDto[]; // Hand cards with playability state (Player-Scoped Architecture)
   resources: ResourcesDto;
   production: ProductionDto;
   terraformRating: number /* int */;
@@ -802,6 +858,7 @@ export interface PlayerDto {
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
+  standardProjects: PlayerStandardProjectDto[]; // Standard projects with availability state (Player-Scoped Architecture)
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
   startingCards: CardDto[]; // Cards dealt at game start (from selectStartingCardsPhase.availableCards)

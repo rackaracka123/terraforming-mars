@@ -8,19 +8,21 @@ import (
 
 // Hand manages player card hand (cards currently held)
 type Hand struct {
-	mu       sync.RWMutex
-	cards    []string
-	eventBus *events.EventBusImpl
-	gameID   string
-	playerID string
+	mu          sync.RWMutex
+	cards       []string               // Card IDs
+	playerCards map[string]*PlayerCard // Cached PlayerCard instances (with state)
+	eventBus    *events.EventBusImpl
+	gameID      string
+	playerID    string
 }
 
 func newHand(eventBus *events.EventBusImpl, gameID, playerID string) *Hand {
 	return &Hand{
-		cards:    []string{},
-		eventBus: eventBus,
-		gameID:   gameID,
-		playerID: playerID,
+		cards:       []string{},
+		playerCards: make(map[string]*PlayerCard),
+		eventBus:    eventBus,
+		gameID:      gameID,
+		playerID:    playerID,
 	}
 }
 
@@ -91,6 +93,14 @@ func (h *Hand) AddCard(cardID string) {
 func (h *Hand) RemoveCard(cardID string) bool {
 	var removed bool
 	h.mu.Lock()
+
+	// Clean up event listeners before removing from cache
+	if pc, exists := h.playerCards[cardID]; exists {
+		pc.Cleanup() // Unsubscribe all event listeners
+		delete(h.playerCards, cardID)
+	}
+
+	// Remove from card ID list
 	for i, id := range h.cards {
 		if id == cardID {
 			h.cards = append(h.cards[:i], h.cards[i+1:]...)
@@ -115,4 +125,21 @@ func (h *Hand) RemoveCard(cardID string) bool {
 	}
 
 	return removed
+}
+
+// GetPlayerCard returns a cached PlayerCard instance.
+// Returns nil if the card is not in the cache (actions must create it).
+func (h *Hand) GetPlayerCard(cardID string) (*PlayerCard, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	pc, exists := h.playerCards[cardID]
+	return pc, exists
+}
+
+// AddPlayerCard adds a PlayerCard to the cache.
+// This is called by actions after creating PlayerCard with state and event listeners.
+func (h *Hand) AddPlayerCard(cardID string, pc *PlayerCard) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.playerCards[cardID] = pc
 }

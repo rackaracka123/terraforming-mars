@@ -2,35 +2,20 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
-  CardDto,
   PendingCardSelectionDto,
-  RequirementModifierDto,
-  ResourceType,
   ResourceTypeCredits,
 } from "../../../types/generated/api-types.ts";
 
 /**
- * Calculate the total discount applicable to a specific card from player's requirement modifiers
+ * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
+ * Playability and discounts are provided by the Player-Scoped Card Architecture.
+ * No frontend calculation needed!
  */
-function calculateCardDiscount(
-  cardId: string,
-  requirementModifiers: RequirementModifierDto[],
-): number {
-  return requirementModifiers
-    .filter(
-      (mod) =>
-        mod.affectedResources.includes("credits" as ResourceType) &&
-        (!mod.cardTarget || mod.cardTarget === cardId) &&
-        !mod.standardProjectTarget,
-    )
-    .reduce((total, mod) => total + mod.amount, 0);
-}
 
 interface PendingCardSelectionOverlayProps {
   isOpen: boolean;
-  selection: PendingCardSelectionDto;
+  selection: PendingCardSelectionDto; // Contains PlayerCardDto[] in availableCards
   playerCredits: number;
-  requirementModifiers?: RequirementModifierDto[];
   onSelectCards: (selectedCardIds: string[]) => void;
   onCancel?: () => void;
 }
@@ -42,14 +27,7 @@ interface TitleInfo {
 
 const PendingCardSelectionOverlay: React.FC<
   PendingCardSelectionOverlayProps
-> = ({
-  isOpen,
-  selection,
-  playerCredits,
-  requirementModifiers = [],
-  onSelectCards,
-  onCancel,
-}) => {
+> = ({ isOpen, selection, playerCredits, onSelectCards, onCancel }) => {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [totalCost, setTotalCost] = useState(0);
   const [totalReward, setTotalReward] = useState(0);
@@ -210,7 +188,7 @@ const PendingCardSelectionOverlay: React.FC<
         {/* Cards display */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center bg-[radial-gradient(ellipse_at_center,rgba(139,69,19,0.1)_0%,transparent_70%)] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-white/30 max-[768px]:p-5">
           <div className="flex gap-6 mx-auto py-5 max-[768px]:gap-4">
-            {selection.availableCards.map((card: CardDto, index: number) => {
+            {selection.availableCards.map((card, index) => {
               const isSelected = selectedCardIds.includes(card.id);
               const badge = getCardBadge(card.id);
               const canAfford = canAffordCard(card.id);
@@ -223,10 +201,6 @@ const PendingCardSelectionOverlay: React.FC<
                     onSelect={handleCardSelect}
                     animationDelay={index * 100}
                     showCheckbox={true}
-                    discountAmount={calculateCardDiscount(
-                      card.id,
-                      requirementModifiers,
-                    )}
                   />
                   {/* Cost/Reward Badge */}
                   {badge && (

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/events"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/board"
@@ -23,12 +24,14 @@ type SelectTileAction struct {
 // NewSelectTileAction creates a new select tile action
 func NewSelectTileAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *SelectTileAction {
 	return &SelectTileAction{
 		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
+			gameRepo:     gameRepo,
+			cardRegistry: cardRegistry,
+			logger:       logger,
 		},
 	}
 }

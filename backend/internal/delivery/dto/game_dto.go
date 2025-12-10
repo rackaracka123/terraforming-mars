@@ -395,6 +395,32 @@ type RequirementModifierDto struct {
 	StandardProjectTarget *StandardProject `json:"standardProjectTarget,omitempty" ts:"StandardProject | undefined"` // Optional: specific standard project this applies to
 }
 
+// StateErrorDto represents a specific reason why an entity (card, action, project) is unavailable
+// Part of the Player-Scoped Card Architecture for rich error information
+type StateErrorDto struct {
+	Code     string `json:"code" ts:"string"`     // Error code (e.g., "INSUFFICIENT_CREDITS", "TEMPERATURE_TOO_LOW")
+	Category string `json:"category" ts:"string"` // Error category (e.g., "phase", "cost", "requirement", "usage")
+	Message  string `json:"message" ts:"string"`  // Human-readable error message
+}
+
+// PlayerCardDto represents a card in a player's hand with calculated playability state
+// Part of the Player-Scoped Card Architecture
+type PlayerCardDto struct {
+	// Card data (from immutable Card)
+	ID          string    `json:"id" ts:"string"`
+	Name        string    `json:"name" ts:"string"`
+	Type        string    `json:"type" ts:"string"`
+	Cost        int       `json:"cost" ts:"number"`
+	Description string    `json:"description" ts:"string"`
+	Tags        []CardTag `json:"tags" ts:"CardTag[]"`
+
+	// Player-specific calculated state (from EntityState)
+	Available     bool            `json:"available" ts:"boolean"`                                      // Computed: len(Errors) == 0
+	Errors        []StateErrorDto `json:"errors" ts:"StateErrorDto[]"`                                 // Single source of truth for availability
+	EffectiveCost int             `json:"effectiveCost" ts:"number"`                                   // Cost after discounts
+	Discounts     map[string]int  `json:"discounts,omitempty" ts:"Record<string, number> | undefined"` // Tag discounts (if any)
+}
+
 // PlayerEffectDto represents ongoing effects that a player has active for client consumption
 // Aligned with PlayerActionDto structure for consistent behavior handling
 type PlayerEffectDto struct {
@@ -406,12 +432,33 @@ type PlayerEffectDto struct {
 }
 
 // PlayerActionDto represents an action that a player can take for client consumption
+// Enhanced with calculated usability state from Player-Scoped Card Architecture
 type PlayerActionDto struct {
 	CardID        string          `json:"cardId" ts:"string"`            // ID of the card that provides this action
 	CardName      string          `json:"cardName" ts:"string"`          // Name of the card for display purposes
 	BehaviorIndex int             `json:"behaviorIndex" ts:"number"`     // Which behavior on the card this action represents
 	Behavior      CardBehaviorDto `json:"behavior" ts:"CardBehaviorDto"` // The actual behavior definition with inputs/outputs
-	PlayCount     int             `json:"playCount" ts:"number"`         // Number of times this action has been played this generation
+
+	// Persistent state (tracked over time)
+	TimesUsedThisTurn       int `json:"timesUsedThisTurn" ts:"number"`       // Times used this turn
+	TimesUsedThisGeneration int `json:"timesUsedThisGeneration" ts:"number"` // Times used this generation
+	PlayCount               int `json:"playCount" ts:"number"`               // DEPRECATED: Use TimesUsedThisGeneration
+
+	// Calculated usability state (from EntityState)
+	Available bool            `json:"available" ts:"boolean"`      // Computed: action is usable
+	Errors    []StateErrorDto `json:"errors" ts:"StateErrorDto[]"` // Reasons why action is not usable
+}
+
+// PlayerStandardProjectDto represents a standard project with availability state
+// Part of the Player-Scoped Card Architecture
+type PlayerStandardProjectDto struct {
+	ProjectType string `json:"projectType" ts:"string"` // Standard project type (e.g., "sell_patents", "aquifer")
+	Cost        int    `json:"cost" ts:"number"`        // Base cost in credits
+
+	// Calculated availability state (from EntityState)
+	Available bool                   `json:"available" ts:"boolean"`                                  // Computed: project is available
+	Errors    []StateErrorDto        `json:"errors" ts:"StateErrorDto[]"`                             // Reasons why project is not available
+	Metadata  map[string]interface{} `json:"metadata,omitempty" ts:"Record<string, any> | undefined"` // Project-specific context (e.g., oceansRemaining)
 }
 
 // ForcedFirstActionDto represents an action that must be completed as the player's first turn action
@@ -460,21 +507,22 @@ const (
 
 // PlayerDto represents a player in the game for client consumption
 type PlayerDto struct {
-	ID               string            `json:"id" ts:"string"`
-	Name             string            `json:"name" ts:"string"`
-	Status           PlayerStatus      `json:"status" ts:"PlayerStatus"`
-	Corporation      *CardDto          `json:"corporation" ts:"CardDto | null"`
-	Cards            []CardDto         `json:"cards" ts:"CardDto[]"`
-	Resources        ResourcesDto      `json:"resources" ts:"ResourcesDto"`
-	Production       ProductionDto     `json:"production" ts:"ProductionDto"`
-	TerraformRating  int               `json:"terraformRating" ts:"number"`
-	PlayedCards      []CardDto         `json:"playedCards" ts:"CardDto[]"` // Full card details for all played cards
-	Passed           bool              `json:"passed" ts:"boolean"`
-	AvailableActions int               `json:"availableActions" ts:"number"`
-	VictoryPoints    int               `json:"victoryPoints" ts:"number"`
-	IsConnected      bool              `json:"isConnected" ts:"boolean"`
-	Effects          []PlayerEffectDto `json:"effects" ts:"PlayerEffectDto[]"` // Active ongoing effects (discounts, special abilities, etc.)
-	Actions          []PlayerActionDto `json:"actions" ts:"PlayerActionDto[]"` // Available actions from played cards with manual triggers
+	ID               string                     `json:"id" ts:"string"`
+	Name             string                     `json:"name" ts:"string"`
+	Status           PlayerStatus               `json:"status" ts:"PlayerStatus"`
+	Corporation      *CardDto                   `json:"corporation" ts:"CardDto | null"`
+	Cards            []PlayerCardDto            `json:"cards" ts:"PlayerCardDto[]"` // Hand cards with playability state (Player-Scoped Architecture)
+	Resources        ResourcesDto               `json:"resources" ts:"ResourcesDto"`
+	Production       ProductionDto              `json:"production" ts:"ProductionDto"`
+	TerraformRating  int                        `json:"terraformRating" ts:"number"`
+	PlayedCards      []CardDto                  `json:"playedCards" ts:"CardDto[]"` // Full card details for all played cards
+	Passed           bool                       `json:"passed" ts:"boolean"`
+	AvailableActions int                        `json:"availableActions" ts:"number"`
+	VictoryPoints    int                        `json:"victoryPoints" ts:"number"`
+	IsConnected      bool                       `json:"isConnected" ts:"boolean"`
+	Effects          []PlayerEffectDto          `json:"effects" ts:"PlayerEffectDto[]"`                   // Active ongoing effects (discounts, special abilities, etc.)
+	Actions          []PlayerActionDto          `json:"actions" ts:"PlayerActionDto[]"`                   // Available actions from played cards with manual triggers
+	StandardProjects []PlayerStandardProjectDto `json:"standardProjects" ts:"PlayerStandardProjectDto[]"` // Standard projects with availability state (Player-Scoped Architecture)
 
 	SelectStartingCardsPhase *SelectStartingCardsPhaseDto `json:"selectStartingCardsPhase" ts:"SelectStartingCardsPhaseDto | null"`
 	ProductionPhase          *ProductionPhaseDto          `json:"productionPhase" ts:"ProductionPhaseDto | null"`

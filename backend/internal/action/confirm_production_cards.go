@@ -5,40 +5,43 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmProductionCardsAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	BaseAction
 }
 
 // NewConfirmProductionCardsAction creates a new confirm production cards action
 func NewConfirmProductionCardsAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: BaseAction{
+			gameRepo:     gameRepo,
+			cardRegistry: cardRegistry,
+			logger:       logger,
+		},
 	}
 }
 
 // Execute performs the confirm production cards action
 func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.String("action", "confirm_production_cards"),
 		zap.Strings("selected_card_ids", selectedCardIDs),
 	)
 	log.Info("🃏 Player confirming production card selection")
 
 	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	g, err := a.GameRepository().Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
@@ -113,12 +116,30 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Int("count", len(selectedCardIDs)))
 
 	for _, cardID := range selectedCardIDs {
+		// Add card ID to hand (triggers events)
 		player.Hand().AddCard(cardID)
+
+		// Create PlayerCard with state and event listeners, cache in hand
+		card, err := a.CardRegistry().GetByID(cardID)
+		if err != nil {
+			log.Warn("Failed to get card from registry, skipping PlayerCard creation",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			continue
+		}
+		CreateAndCachePlayerCard(card, player, g, a.CardRegistry())
 	}
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", selectedCardIDs),
 		zap.Int("card_count", len(selectedCardIDs)))
+
+	// 10a. BUSINESS LOGIC: Recalculate requirement modifiers (discounts from effects + cards in hand)
+	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+	modifiers := calculator.Calculate(player)
+	player.Effects().SetRequirementModifiers(modifiers)
+	log.Info("📊 Calculated requirement modifiers",
+		zap.Int("modifier_count", len(modifiers)))
 
 	// 11. BUSINESS LOGIC: Mark production selection as complete (phase state managed by Game)
 	productionPhase.SelectionComplete = true

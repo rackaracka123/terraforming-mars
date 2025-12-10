@@ -96,7 +96,7 @@ func main() {
 	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(gameRepo, log)
 
 	// Tile selection (1)
-	selectTileAction := action.NewSelectTileAction(gameRepo, log)
+	selectTileAction := action.NewSelectTileAction(gameRepo, cardRegistry, log)
 
 	// Turn management (3)
 	startGameAction := action.NewStartGameAction(gameRepo, cardRegistry, log)
@@ -105,8 +105,8 @@ func main() {
 
 	// Confirmations (3)
 	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, log)
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, log)
+	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, cardRegistry, log)
+	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, cardRegistry, log)
 
 	// Connection management (2)
 	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
@@ -118,7 +118,7 @@ func main() {
 	adminSetResourcesAction := admin.NewSetResourcesAction(gameRepo, log)
 	adminSetProductionAction := admin.NewSetProductionAction(gameRepo, log)
 	adminSetGlobalParametersAction := admin.NewSetGlobalParametersAction(gameRepo, log)
-	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, log)
+	adminGiveCardAction := admin.NewGiveCardAction(gameRepo, cardRegistry, log)
 	adminSetCorporationAction := admin.NewSetCorporationAction(gameRepo, cardRegistry, log)
 	adminStartTileSelectionAction := admin.NewStartTileSelectionAction(gameRepo, log)
 

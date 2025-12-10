@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/action"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 )
 
@@ -12,18 +14,21 @@ import (
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 // NOTE: Card validation is skipped (admin action with trusted input)
 type GiveCardAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	gameRepo     game.GameRepository
+	cardRegistry cards.CardRegistry
+	logger       *zap.Logger
 }
 
 // NewGiveCardAction creates a new give card admin action
 func NewGiveCardAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *GiveCardAction {
 	return &GiveCardAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		gameRepo:     gameRepo,
+		cardRegistry: cardRegistry,
+		logger:       logger,
 	}
 }
 
@@ -53,8 +58,18 @@ func (a *GiveCardAction) Execute(ctx context.Context, gameID string, playerID st
 
 	// 3. Add card to player's hand
 	// NOTE: Card validation is skipped - admin actions are trusted to provide valid card IDs
-	// In production, you might want to add card existence validation via a card repository
 	player.Hand().AddCard(cardID)
+
+	// 4. Create PlayerCard with state and event listeners, cache in hand
+	card, err := a.cardRegistry.GetByID(cardID)
+	if err != nil {
+		log.Warn("Failed to get card from registry, skipping PlayerCard creation",
+			zap.String("card_id", cardID),
+			zap.Error(err))
+		// Continue anyway since admin action succeeded
+	} else {
+		action.CreateAndCachePlayerCard(card, player, game, a.cardRegistry)
+	}
 
 	log.Info("✅ Admin give card completed")
 	return nil

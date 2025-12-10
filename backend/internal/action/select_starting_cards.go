@@ -208,7 +208,18 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Int("count", len(cardIDs)))
 
 	for _, cardID := range cardIDs {
+		// Add card ID to hand (triggers events)
 		player.Hand().AddCard(cardID)
+
+		// Create PlayerCard with state and event listeners, cache in hand
+		card, err := a.cardRegistry.GetByID(cardID)
+		if err != nil {
+			log.Warn("Failed to get card from registry, skipping PlayerCard creation",
+				zap.String("card_id", cardID),
+				zap.Error(err))
+			continue
+		}
+		CreateAndCachePlayerCard(card, player, g, a.cardRegistry)
 	}
 
 	log.Info("✅ Cards added to hand",
