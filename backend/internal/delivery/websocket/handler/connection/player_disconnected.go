@@ -3,7 +3,7 @@ package connection
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // PlayerDisconnectedHandler handles player disconnection requests
 type PlayerDisconnectedHandler struct {
-	action      *action.PlayerDisconnectedAction
+	action      *connaction.PlayerDisconnectedAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewPlayerDisconnectedHandler creates a new player disconnected handler
-func NewPlayerDisconnectedHandler(action *action.PlayerDisconnectedAction, broadcaster Broadcaster) *PlayerDisconnectedHandler {
+func NewPlayerDisconnectedHandler(action *connaction.PlayerDisconnectedAction, broadcaster Broadcaster) *PlayerDisconnectedHandler {
 	return &PlayerDisconnectedHandler{
 		action:      action,
 		broadcaster: broadcaster,

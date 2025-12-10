@@ -1,6 +1,7 @@
-package action
+package resource_conversion
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -19,7 +20,7 @@ const (
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 // NOTE: Still uses old gamePackage.CalculateResourceConversionCost until card effects fully migrated
 type ConvertPlantsToGreeneryAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConvertPlantsToGreeneryAction creates a new convert plants to greenery action
@@ -28,10 +29,7 @@ func NewConvertPlantsToGreeneryAction(
 	logger *zap.Logger,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -41,13 +39,13 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	log.Info("🌱 Converting plants to greenery")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

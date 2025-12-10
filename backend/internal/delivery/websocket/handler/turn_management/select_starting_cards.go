@@ -3,7 +3,7 @@ package turn_management
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	turnaction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // SelectStartingCardsHandler handles select starting cards requests
 type SelectStartingCardsHandler struct {
-	action      *action.SelectStartingCardsAction
+	action      *turnaction.SelectStartingCardsAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewSelectStartingCardsHandler creates a new select starting cards handler
-func NewSelectStartingCardsHandler(action *action.SelectStartingCardsAction, broadcaster Broadcaster) *SelectStartingCardsHandler {
+func NewSelectStartingCardsHandler(action *turnaction.SelectStartingCardsAction, broadcaster Broadcaster) *SelectStartingCardsHandler {
 	return &SelectStartingCardsHandler{
 		action:      action,
 		broadcaster: broadcaster,

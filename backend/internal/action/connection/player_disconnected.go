@@ -1,4 +1,4 @@
-package action
+package connection
 
 import (
 	"context"
@@ -8,32 +8,32 @@ import (
 	"terraforming-mars-backend/internal/game"
 )
 
-// PlayerReconnectedAction handles the business logic for player reconnection
+// PlayerDisconnectedAction handles the business logic for player disconnection
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
-type PlayerReconnectedAction struct {
+type PlayerDisconnectedAction struct {
 	gameRepo game.GameRepository
 	logger   *zap.Logger
 }
 
-// NewPlayerReconnectedAction creates a new player reconnected action
-func NewPlayerReconnectedAction(
+// NewPlayerDisconnectedAction creates a new player disconnected action
+func NewPlayerDisconnectedAction(
 	gameRepo game.GameRepository,
 	logger *zap.Logger,
-) *PlayerReconnectedAction {
-	return &PlayerReconnectedAction{
+) *PlayerDisconnectedAction {
+	return &PlayerDisconnectedAction{
 		gameRepo: gameRepo,
 		logger:   logger,
 	}
 }
 
-// Execute performs the player reconnected action
-func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, playerID string) error {
+// Execute performs the player disconnected action
+func (a *PlayerDisconnectedAction) Execute(ctx context.Context, gameID string, playerID string) error {
 	log := a.logger.With(
 		zap.String("game_id", gameID),
 		zap.String("player_id", playerID),
-		zap.String("action", "player_reconnected"),
+		zap.String("action", "player_disconnected"),
 	)
-	log.Info("🔗 Player reconnecting")
+	log.Info("🔌 Player disconnecting")
 
 	// 1. Fetch game from repository
 	g, err := a.gameRepo.Get(ctx, gameID)
@@ -49,9 +49,9 @@ func (a *PlayerReconnectedAction) Execute(ctx context.Context, gameID string, pl
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// 3. Update player connection status to connected
-	player.SetConnected(true)
+	// 3. Update player connection status to disconnected
+	player.SetConnected(false)
 
-	log.Info("✅ Player reconnected successfully")
+	log.Info("✅ Player disconnected successfully")
 	return nil
 }

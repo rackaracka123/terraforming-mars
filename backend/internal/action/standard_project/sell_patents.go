@@ -1,6 +1,7 @@
-package action
+package standard_project
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -13,7 +14,7 @@ import (
 // This is Phase 1: creates pending card selection for player to choose which cards to sell
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SellPatentsAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewSellPatentsAction creates a new sell patents action
@@ -22,10 +23,7 @@ func NewSellPatentsAction(
 	logger *zap.Logger,
 ) *SellPatentsAction {
 	return &SellPatentsAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -35,13 +33,13 @@ func (a *SellPatentsAction) Execute(ctx context.Context, gameID string, playerID
 	log.Info("🏛️ Initiating sell patents")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

@@ -3,7 +3,7 @@ package resource_conversion
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // ConvertHeatHandler handles convert heat to temperature requests
 type ConvertHeatHandler struct {
-	action      *action.ConvertHeatToTemperatureAction
+	action      *resconvaction.ConvertHeatToTemperatureAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewConvertHeatHandler creates a new convert heat handler
-func NewConvertHeatHandler(action *action.ConvertHeatToTemperatureAction, broadcaster Broadcaster) *ConvertHeatHandler {
+func NewConvertHeatHandler(action *resconvaction.ConvertHeatToTemperatureAction, broadcaster Broadcaster) *ConvertHeatHandler {
 	return &ConvertHeatHandler{
 		action:      action,
 		broadcaster: broadcaster,

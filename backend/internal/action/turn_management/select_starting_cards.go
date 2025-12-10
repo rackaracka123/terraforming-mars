@@ -1,6 +1,7 @@
-package action
+package turn_management
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -164,7 +165,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 				zap.Int("behavior_index", effect.BehaviorIndex))
 
 			// Subscribe trigger effects to relevant events
-			subscribePassiveEffectToEvents(ctx, g, player, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
 		}
 	}
 
@@ -207,7 +208,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
 
-	AddCardsToPlayerHand(cardIDs, player, g, a.cardRegistry, log)
+	baseaction.AddCardsToPlayerHand(cardIDs, player, g, a.cardRegistry, log)
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", cardIDs),

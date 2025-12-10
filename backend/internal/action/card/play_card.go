@@ -1,6 +1,7 @@
-package action
+package card
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -17,7 +18,7 @@ import (
 // Card playing involves: validating requirements, calculating costs (with discounts),
 // moving card to played cards, applying immediate effects, and deducting payment
 type PlayCardAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewPlayCardAction creates a new play card action
@@ -27,11 +28,7 @@ func NewPlayCardAction(
 	logger *zap.Logger,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -58,18 +55,18 @@ func (a *PlayCardAction) Execute(
 	log.Info("🃏 Player attempting to play card")
 
 	// 1. Validate game exists and is active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate game is in action phase
-	if err := ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
+	if err := baseaction.ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
 		return err
 	}
 
 	// 3. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -86,7 +83,7 @@ func (a *PlayCardAction) Execute(
 	}
 
 	// 6. BUSINESS LOGIC: Get card data from registry
-	card, err := a.cardRegistry.GetByID(cardID)
+	card, err := a.CardRegistry().GetByID(cardID)
 	if err != nil {
 		log.Error("Card not found in registry", zap.Error(err))
 		return fmt.Errorf("card not found: %w", err)
@@ -181,7 +178,7 @@ func (a *PlayCardAction) Execute(
 	}
 
 	// 14a. BUSINESS LOGIC: Recalculate requirement modifiers (card played may have discount effects, hand changed)
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
 	modifiers := calculator.Calculate(player)
 	player.Effects().SetRequirementModifiers(modifiers)
 	log.Debug("📊 Recalculated requirement modifiers",
@@ -396,7 +393,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			p.Effects().AddEffect(effect)
 
 			// Subscribe passive effects to relevant events
-			subscribePassiveEffectToEvents(ctx, g, p, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
 		}
 	}
 

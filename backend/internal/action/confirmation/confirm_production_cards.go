@@ -1,6 +1,7 @@
-package action
+package confirmation
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -14,7 +15,7 @@ import (
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmProductionCardsAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConfirmProductionCardsAction creates a new confirm production cards action
@@ -24,11 +25,7 @@ func NewConfirmProductionCardsAction(
 	logger *zap.Logger,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -115,7 +112,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Strings("card_ids", selectedCardIDs),
 		zap.Int("count", len(selectedCardIDs)))
 
-	AddCardsToPlayerHand(selectedCardIDs, player, g, a.CardRegistry(), log)
+	baseaction.AddCardsToPlayerHand(selectedCardIDs, player, g, a.CardRegistry(), log)
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", selectedCardIDs),

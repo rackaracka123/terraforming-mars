@@ -3,7 +3,7 @@ package turn_management
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	turnaction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // SkipActionHandler handles skip action requests
 type SkipActionHandler struct {
-	action      *action.SkipActionAction
+	action      *turnaction.SkipActionAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewSkipActionHandler creates a new skip action handler
-func NewSkipActionHandler(action *action.SkipActionAction, broadcaster Broadcaster) *SkipActionHandler {
+func NewSkipActionHandler(action *turnaction.SkipActionAction, broadcaster Broadcaster) *SkipActionHandler {
 	return &SkipActionHandler{
 		action:      action,
 		broadcaster: broadcaster,

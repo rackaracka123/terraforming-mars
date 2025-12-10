@@ -1,6 +1,7 @@
-package action
+package standard_project
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -18,7 +19,7 @@ const (
 // PlantGreeneryAction handles the business logic for the plant greenery standard project
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type PlantGreeneryAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewPlantGreeneryAction creates a new plant greenery action
@@ -27,10 +28,7 @@ func NewPlantGreeneryAction(
 	logger *zap.Logger,
 ) *PlantGreeneryAction {
 	return &PlantGreeneryAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -40,13 +38,13 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 	log.Info("🌱 Planting greenery (standard project)")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

@@ -12,9 +12,9 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// subscribePassiveEffectToEvents subscribes passive effects to relevant domain events
+// SubscribePassiveEffectToEvents subscribes passive effects to relevant domain events
 // This function is called when cards with passive effects are played or corporations are selected
-func subscribePassiveEffectToEvents(
+func SubscribePassiveEffectToEvents(
 	ctx context.Context,
 	g *game.Game,
 	p *player.Player,

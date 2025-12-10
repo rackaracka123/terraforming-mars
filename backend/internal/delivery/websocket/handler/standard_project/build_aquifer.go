@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // BuildAquiferHandler handles build aquifer standard project requests
 type BuildAquiferHandler struct {
-	action      *action.BuildAquiferAction
+	action      *stdprojaction.BuildAquiferAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewBuildAquiferHandler creates a new build aquifer handler
-func NewBuildAquiferHandler(action *action.BuildAquiferAction, broadcaster Broadcaster) *BuildAquiferHandler {
+func NewBuildAquiferHandler(action *stdprojaction.BuildAquiferAction, broadcaster Broadcaster) *BuildAquiferHandler {
 	return &BuildAquiferHandler{
 		action:      action,
 		broadcaster: broadcaster,

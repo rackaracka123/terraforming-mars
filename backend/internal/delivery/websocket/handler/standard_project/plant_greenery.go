@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // PlantGreeneryHandler handles plant greenery standard project requests
 type PlantGreeneryHandler struct {
-	action      *action.PlantGreeneryAction
+	action      *stdprojaction.PlantGreeneryAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewPlantGreeneryHandler creates a new plant greenery handler
-func NewPlantGreeneryHandler(action *action.PlantGreeneryAction, broadcaster Broadcaster) *PlantGreeneryHandler {
+func NewPlantGreeneryHandler(action *stdprojaction.PlantGreeneryAction, broadcaster Broadcaster) *PlantGreeneryHandler {
 	return &PlantGreeneryHandler{
 		action:      action,
 		broadcaster: broadcaster,

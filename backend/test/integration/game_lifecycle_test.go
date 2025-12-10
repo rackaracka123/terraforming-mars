@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	gameAction "terraforming-mars-backend/internal/action/game"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/test/testutil"
 
@@ -20,9 +21,9 @@ func TestGameLifecycle_CreateJoinStartPlay(t *testing.T) {
 	ctx := context.Background()
 
 	// Create actions
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, cardRegistry, logger)
 
 	// Step 1: Create game
 	settings := game.GameSettings{
@@ -91,8 +92,8 @@ func TestGameLifecycle_MultipleGames(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create 3 games
 	game1, err := createAction.Execute(ctx, game.GameSettings{MaxPlayers: 2, CardPacks: []string{"base"}})
@@ -134,8 +135,8 @@ func TestGameLifecycle_PlayerReconnection(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game
 	createdGame, err := createAction.Execute(ctx, game.GameSettings{MaxPlayers: 2, CardPacks: []string{"base"}})
@@ -166,9 +167,9 @@ func TestGameLifecycle_SoloMode(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, cardRegistry, logger)
 
 	// Create game
 	createdGame, err := createAction.Execute(ctx, game.GameSettings{MaxPlayers: 1, CardPacks: []string{"base"}})
@@ -202,8 +203,8 @@ func TestGameLifecycle_GameStateConsistency(t *testing.T) {
 	logger := testutil.TestLogger()
 	ctx := context.Background()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Create game
 	createdGame, err := createAction.Execute(ctx, game.GameSettings{MaxPlayers: 4, CardPacks: []string{"base"}})

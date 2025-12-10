@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"terraforming-mars-backend/internal/action"
+	cardAction "terraforming-mars-backend/internal/action/card"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
@@ -44,8 +45,8 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 	testutil.AssertEqual(t, 0, len(modifiersBefore), "Should have no modifiers initially")
 
 	// Play Space Station
-	playCardAction := action.NewPlayCardAction(repo, cardRegistry, logger)
-	payment := action.PaymentRequest{Credits: 10}
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	payment := cardAction.PaymentRequest{Credits: 10}
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
 
@@ -95,8 +96,8 @@ func TestPlayCardAction_DiscountModifierRecalculatedOnHandChange(t *testing.T) {
 	player.Hand().AddCard("card-space-station")
 
 	// Play Space Station to register the discount effect
-	playCardAction := action.NewPlayCardAction(repo, cardRegistry, logger)
-	payment := action.PaymentRequest{Credits: 10}
+	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
+	payment := cardAction.PaymentRequest{Credits: 10}
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
 

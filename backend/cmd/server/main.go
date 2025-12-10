@@ -9,9 +9,16 @@ import (
 	"syscall"
 	"time"
 
-	"terraforming-mars-backend/internal/action"
 	admin "terraforming-mars-backend/internal/action/admin"
+	cardAction "terraforming-mars-backend/internal/action/card"
+	confirmAction "terraforming-mars-backend/internal/action/confirmation"
+	connAction "terraforming-mars-backend/internal/action/connection"
+	gameAction "terraforming-mars-backend/internal/action/game"
 	query "terraforming-mars-backend/internal/action/query"
+	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
+	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
+	tileAction "terraforming-mars-backend/internal/action/tile"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/cards"
 	httpHandler "terraforming-mars-backend/internal/delivery/http"
 	wsHandler "terraforming-mars-backend/internal/delivery/websocket"
@@ -76,41 +83,41 @@ func main() {
 	// ========== Initialize Game Actions ==========
 
 	// Game lifecycle (2)
-	createGameAction := action.NewCreateGameAction(gameRepo, cardRegistry, log)
-	joinGameAction := action.NewJoinGameAction(gameRepo, cardRegistry, log)
+	createGameAction := gameAction.NewCreateGameAction(gameRepo, cardRegistry, log)
+	joinGameAction := gameAction.NewJoinGameAction(gameRepo, cardRegistry, log)
 
 	// Card actions (2)
-	playCardAction := action.NewPlayCardAction(gameRepo, cardRegistry, log)
-	useCardActionAction := action.NewUseCardActionAction(gameRepo, cardRegistry, log)
+	playCardAction := cardAction.NewPlayCardAction(gameRepo, cardRegistry, log)
+	useCardActionAction := cardAction.NewUseCardActionAction(gameRepo, cardRegistry, log)
 
 	// Standard projects (6)
-	launchAsteroidAction := action.NewLaunchAsteroidAction(gameRepo, log)
-	buildPowerPlantAction := action.NewBuildPowerPlantAction(gameRepo, log)
-	buildAquiferAction := action.NewBuildAquiferAction(gameRepo, log)
-	buildCityAction := action.NewBuildCityAction(gameRepo, log)
-	plantGreeneryAction := action.NewPlantGreeneryAction(gameRepo, log)
-	sellPatentsAction := action.NewSellPatentsAction(gameRepo, log)
+	launchAsteroidAction := stdprojAction.NewLaunchAsteroidAction(gameRepo, log)
+	buildPowerPlantAction := stdprojAction.NewBuildPowerPlantAction(gameRepo, log)
+	buildAquiferAction := stdprojAction.NewBuildAquiferAction(gameRepo, log)
+	buildCityAction := stdprojAction.NewBuildCityAction(gameRepo, log)
+	plantGreeneryAction := stdprojAction.NewPlantGreeneryAction(gameRepo, log)
+	sellPatentsAction := stdprojAction.NewSellPatentsAction(gameRepo, log)
 
 	// Resource conversions (2)
-	convertHeatAction := action.NewConvertHeatToTemperatureAction(gameRepo, log)
-	convertPlantsAction := action.NewConvertPlantsToGreeneryAction(gameRepo, log)
+	convertHeatAction := resconvAction.NewConvertHeatToTemperatureAction(gameRepo, log)
+	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, log)
 
 	// Tile selection (1)
-	selectTileAction := action.NewSelectTileAction(gameRepo, cardRegistry, log)
+	selectTileAction := tileAction.NewSelectTileAction(gameRepo, cardRegistry, log)
 
 	// Turn management (3)
-	startGameAction := action.NewStartGameAction(gameRepo, cardRegistry, log)
-	skipActionAction := action.NewSkipActionAction(gameRepo, log)
-	selectStartingCardsAction := action.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
+	startGameAction := turnAction.NewStartGameAction(gameRepo, cardRegistry, log)
+	skipActionAction := turnAction.NewSkipActionAction(gameRepo, log)
+	selectStartingCardsAction := turnAction.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
 
 	// Confirmations (3)
-	confirmSellPatentsAction := action.NewConfirmSellPatentsAction(gameRepo, log)
-	confirmProductionCardsAction := action.NewConfirmProductionCardsAction(gameRepo, cardRegistry, log)
-	confirmCardDrawAction := action.NewConfirmCardDrawAction(gameRepo, cardRegistry, log)
+	confirmSellPatentsAction := confirmAction.NewConfirmSellPatentsAction(gameRepo, log)
+	confirmProductionCardsAction := confirmAction.NewConfirmProductionCardsAction(gameRepo, cardRegistry, log)
+	confirmCardDrawAction := confirmAction.NewConfirmCardDrawAction(gameRepo, cardRegistry, log)
 
 	// Connection management (2)
-	playerReconnectedAction := action.NewPlayerReconnectedAction(gameRepo, log)
-	playerDisconnectedAction := action.NewPlayerDisconnectedAction(gameRepo, log)
+	playerReconnectedAction := connAction.NewPlayerReconnectedAction(gameRepo, log)
+	playerDisconnectedAction := connAction.NewPlayerDisconnectedAction(gameRepo, log)
 
 	// Admin actions (8)
 	adminSetPhaseAction := admin.NewSetPhaseAction(gameRepo, log)

@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	gameAction "terraforming-mars-backend/internal/action/game"
+	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/test/testutil"
@@ -19,9 +21,9 @@ func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameReposito
 	ctx := context.Background()
 
 	// Create and start game
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, cardRegistry, logger)
 
 	settings := game.GameSettings{
 		MaxPlayers: 2,
@@ -61,7 +63,7 @@ func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 	testutil.SetPlayerHeat(ctx, player, 32) // Enough for 4 conversions
 
 	logger := testutil.TestLogger()
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
 
 	// Set as current turn
 	testGame.SetCurrentTurn(ctx, playerID, 2)
@@ -108,7 +110,7 @@ func TestGlobalParameters_TemperatureMax(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 10)
 
 	logger := testutil.TestLogger()
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
 
 	// Try to raise temperature multiple times
 	for i := 0; i < 5; i++ {
@@ -161,7 +163,7 @@ func TestGlobalParameters_EventsPublished(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 
@@ -190,7 +192,7 @@ func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
 
 	err := convertAction.Execute(ctx, testGame.ID(), playerID)
 	testutil.AssertNoError(t, err, "Heat conversion failed")
@@ -221,7 +223,7 @@ func TestGlobalParameters_MultiplePlayers(t *testing.T) {
 	}
 
 	logger := testutil.TestLogger()
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 

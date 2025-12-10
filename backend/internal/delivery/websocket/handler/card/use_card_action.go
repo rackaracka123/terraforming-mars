@@ -3,7 +3,7 @@ package card
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	cardaction "terraforming-mars-backend/internal/action/card"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // UseCardActionHandler handles card action execution requests
 type UseCardActionHandler struct {
-	action      *action.UseCardActionAction
+	action      *cardaction.UseCardActionAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewUseCardActionHandler creates a new use card action handler
-func NewUseCardActionHandler(action *action.UseCardActionAction, broadcaster Broadcaster) *UseCardActionHandler {
+func NewUseCardActionHandler(action *cardaction.UseCardActionAction, broadcaster Broadcaster) *UseCardActionHandler {
 	return &UseCardActionHandler{
 		action:      action,
 		broadcaster: broadcaster,

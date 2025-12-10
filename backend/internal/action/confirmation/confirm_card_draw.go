@@ -1,6 +1,7 @@
-package action
+package confirmation
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 	"slices"
@@ -15,7 +16,7 @@ import (
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
 // MIGRATION: Uses new architecture (GameRepository only, automatic broadcasting via EventBus)
 type ConfirmCardDrawAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConfirmCardDrawAction creates a new confirm card draw action
@@ -25,11 +26,7 @@ func NewConfirmCardDrawAction(
 	logger *zap.Logger,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -43,7 +40,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	log.Info("🃏 Confirming card draw selection")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
@@ -132,7 +129,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	}
 
 	// 12. BUSINESS LOGIC: Add all selected cards to player's hand
-	AddCardsToPlayerHand(allSelectedCards, player, g, a.CardRegistry(), log)
+	baseaction.AddCardsToPlayerHand(allSelectedCards, player, g, a.CardRegistry(), log)
 
 	log.Info("🃏 Added selected cards to hand",
 		zap.Int("cards_taken", len(cardsToTake)),

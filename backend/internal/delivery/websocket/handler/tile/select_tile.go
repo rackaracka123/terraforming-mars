@@ -3,7 +3,7 @@ package tile
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	tileaction "terraforming-mars-backend/internal/action/tile"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // SelectTileHandler handles tile selection requests
 type SelectTileHandler struct {
-	action      *action.SelectTileAction
+	action      *tileaction.SelectTileAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewSelectTileHandler creates a new select tile handler
-func NewSelectTileHandler(action *action.SelectTileAction, broadcaster Broadcaster) *SelectTileHandler {
+func NewSelectTileHandler(action *tileaction.SelectTileAction, broadcaster Broadcaster) *SelectTileHandler {
 	return &SelectTileHandler{
 		action:      action,
 		broadcaster: broadcaster,

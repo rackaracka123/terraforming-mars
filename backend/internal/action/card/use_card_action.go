@@ -1,6 +1,7 @@
-package action
+package card
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -15,7 +16,7 @@ import (
 // UseCardActionAction handles the business logic for using a card's manual action
 // Card actions are repeatable blue card abilities with inputs and outputs
 type UseCardActionAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewUseCardActionAction creates a new use card action action
@@ -25,11 +26,7 @@ func NewUseCardActionAction(
 	logger *zap.Logger,
 ) *UseCardActionAction {
 	return &UseCardActionAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -49,18 +46,18 @@ func (a *UseCardActionAction) Execute(
 	log.Info("🎯 Player attempting to use card action")
 
 	// 1. Validate game exists and is active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate game is in action phase
-	if err := ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
+	if err := baseaction.ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
 		return err
 	}
 
 	// 3. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

@@ -3,7 +3,7 @@ package game
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -14,14 +14,14 @@ import (
 
 // JoinGameHandler handles join game requests using the migrated architecture
 type JoinGameHandler struct {
-	joinGameAction *action.JoinGameAction
+	joinGameAction *gameaction.JoinGameAction
 	broadcaster    Broadcaster
 	logger         *zap.Logger
 }
 
 // NewJoinGameHandler creates a new join game handler for migrated actions
 func NewJoinGameHandler(
-	joinGameAction *action.JoinGameAction,
+	joinGameAction *gameaction.JoinGameAction,
 	broadcaster Broadcaster,
 ) *JoinGameHandler {
 	return &JoinGameHandler{

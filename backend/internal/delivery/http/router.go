@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"terraforming-mars-backend/internal/action"
+	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/cards"
 	httpmiddleware "terraforming-mars-backend/internal/middleware/http"
@@ -14,7 +14,7 @@ import (
 // SetupRouter creates HTTP router
 // Includes both query (GET) and mutation (POST) endpoints
 func SetupRouter(
-	createGameAction *action.CreateGameAction,
+	createGameAction *gameaction.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,

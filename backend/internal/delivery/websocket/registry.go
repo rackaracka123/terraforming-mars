@@ -1,8 +1,15 @@
 package websocket
 
 import (
-	"terraforming-mars-backend/internal/action"
 	adminAction "terraforming-mars-backend/internal/action/admin"
+	cardAction "terraforming-mars-backend/internal/action/card"
+	confirmAction "terraforming-mars-backend/internal/action/confirmation"
+	connAction "terraforming-mars-backend/internal/action/connection"
+	gameAction "terraforming-mars-backend/internal/action/game"
+	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
+	stdprojAction "terraforming-mars-backend/internal/action/standard_project"
+	tileAction "terraforming-mars-backend/internal/action/tile"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/delivery/websocket/handler/admin"
@@ -25,34 +32,34 @@ func RegisterHandlers(
 	hub *core.Hub,
 	broadcaster *Broadcaster,
 	// Game lifecycle
-	createGameAction *action.CreateGameAction,
-	joinGameAction *action.JoinGameAction,
+	createGameAction *gameAction.CreateGameAction,
+	joinGameAction *gameAction.JoinGameAction,
 	// Card actions
-	playCardAction *action.PlayCardAction,
-	useCardActionAction *action.UseCardActionAction,
+	playCardAction *cardAction.PlayCardAction,
+	useCardActionAction *cardAction.UseCardActionAction,
 	// Standard projects
-	launchAsteroidAction *action.LaunchAsteroidAction,
-	buildPowerPlantAction *action.BuildPowerPlantAction,
-	buildAquiferAction *action.BuildAquiferAction,
-	buildCityAction *action.BuildCityAction,
-	plantGreeneryAction *action.PlantGreeneryAction,
-	sellPatentsAction *action.SellPatentsAction,
+	launchAsteroidAction *stdprojAction.LaunchAsteroidAction,
+	buildPowerPlantAction *stdprojAction.BuildPowerPlantAction,
+	buildAquiferAction *stdprojAction.BuildAquiferAction,
+	buildCityAction *stdprojAction.BuildCityAction,
+	plantGreeneryAction *stdprojAction.PlantGreeneryAction,
+	sellPatentsAction *stdprojAction.SellPatentsAction,
 	// Resource conversions
-	convertHeatAction *action.ConvertHeatToTemperatureAction,
-	convertPlantsAction *action.ConvertPlantsToGreeneryAction,
+	convertHeatAction *resconvAction.ConvertHeatToTemperatureAction,
+	convertPlantsAction *resconvAction.ConvertPlantsToGreeneryAction,
 	// Tile selection
-	selectTileAction *action.SelectTileAction,
+	selectTileAction *tileAction.SelectTileAction,
 	// Turn management
-	startGameAction *action.StartGameAction,
-	skipActionAction *action.SkipActionAction,
-	selectStartingCardsAction *action.SelectStartingCardsAction,
+	startGameAction *turnAction.StartGameAction,
+	skipActionAction *turnAction.SkipActionAction,
+	selectStartingCardsAction *turnAction.SelectStartingCardsAction,
 	// Confirmations
-	confirmSellPatentsAction *action.ConfirmSellPatentsAction,
-	confirmProductionCardsAction *action.ConfirmProductionCardsAction,
-	confirmCardDrawAction *action.ConfirmCardDrawAction,
+	confirmSellPatentsAction *confirmAction.ConfirmSellPatentsAction,
+	confirmProductionCardsAction *confirmAction.ConfirmProductionCardsAction,
+	confirmCardDrawAction *confirmAction.ConfirmCardDrawAction,
 	// Connection
-	playerReconnectedAction *action.PlayerReconnectedAction,
-	playerDisconnectedAction *action.PlayerDisconnectedAction,
+	playerReconnectedAction *connAction.PlayerReconnectedAction,
+	playerDisconnectedAction *connAction.PlayerDisconnectedAction,
 	// Admin actions
 	adminSetPhaseAction *adminAction.SetPhaseAction,
 	adminSetCurrentTurnAction *adminAction.SetCurrentTurnAction,

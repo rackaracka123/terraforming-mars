@@ -1,6 +1,7 @@
-package action
+package standard_project
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -18,7 +19,7 @@ const (
 // BuildPowerPlantAction handles the build power plant standard project
 // New architecture: Uses only GameRepository + logger
 type BuildPowerPlantAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewBuildPowerPlantAction creates a new build power plant action
@@ -27,10 +28,7 @@ func NewBuildPowerPlantAction(
 	logger *zap.Logger,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -44,13 +42,13 @@ func (a *BuildPowerPlantAction) Execute(
 	log.Info("⚡ Building power plant")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

@@ -1,6 +1,7 @@
-package action
+package resource_conversion
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -18,7 +19,7 @@ const (
 // ConvertHeatToTemperatureAction handles converting heat to raise temperature
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type ConvertHeatToTemperatureAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConvertHeatToTemperatureAction creates a new convert heat action
@@ -27,10 +28,7 @@ func NewConvertHeatToTemperatureAction(
 	logger *zap.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -44,13 +42,13 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	log.Info("🔥 Converting heat to temperature")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

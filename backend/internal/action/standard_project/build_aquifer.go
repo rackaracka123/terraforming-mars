@@ -1,6 +1,7 @@
-package action
+package standard_project
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 
@@ -18,7 +19,7 @@ const (
 // BuildAquiferAction handles the business logic for the build aquifer standard project
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type BuildAquiferAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewBuildAquiferAction creates a new build aquifer action
@@ -27,10 +28,7 @@ func NewBuildAquiferAction(
 	logger *zap.Logger,
 ) *BuildAquiferAction {
 	return &BuildAquiferAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -40,13 +38,13 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 	log.Info("💧 Building aquifer (ocean tile)")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

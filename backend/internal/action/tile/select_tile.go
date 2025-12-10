@@ -1,6 +1,7 @@
-package action
+package tile
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 // SelectTileAction handles the business logic for selecting a tile position
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SelectTileAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewSelectTileAction creates a new select tile action
@@ -28,11 +29,7 @@ func NewSelectTileAction(
 	logger *zap.Logger,
 ) *SelectTileAction {
 	return &SelectTileAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -42,13 +39,13 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 	log.Info("🎯 Selecting tile", zap.String("hex", selectedHex))
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	gameAction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/test/testutil"
@@ -19,7 +19,7 @@ func TestJoinGameAction_Success(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	playerID := uuid.New().String()
@@ -44,7 +44,7 @@ func TestJoinGameAction_IdempotentJoin(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Join first time
 	playerID1 := uuid.New().String()
@@ -71,7 +71,7 @@ func TestJoinGameAction_GameNotFound(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Execute with non-existent game ID
 	playerID := uuid.New().String()
@@ -99,7 +99,7 @@ func TestJoinGameAction_GameNotInLobby(t *testing.T) {
 
 	testutil.StartTestGame(t, testGame)
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Try to join an active game
 	playerID := uuid.New().String()
@@ -131,7 +131,7 @@ func TestJoinGameAction_MaxPlayersReached(t *testing.T) {
 	testGame.AddPlayer(ctx, p1)
 	testGame.AddPlayer(ctx, p2)
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Try to add 3rd player
 	playerID := uuid.New().String()
@@ -148,7 +148,7 @@ func TestJoinGameAction_SetHostForFirstPlayer(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	joinAction := action.NewJoinGameAction(repo, cardRegistry, logger)
+	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
 
 	// Verify no host initially
 	testutil.AssertEqual(t, "", testGame.HostPlayerID(), "Host should be empty initially")

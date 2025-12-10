@@ -1,6 +1,7 @@
-package action
+package turn_management
 
 import (
+	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 	"math/rand"
@@ -18,7 +19,7 @@ import (
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
 	gameRepo         game.GameRepository
-	globalSubscriber *GlobalSubscriber
+	globalSubscriber *baseaction.GlobalSubscriber
 	logger           *zap.Logger
 }
 
@@ -30,7 +31,7 @@ func NewStartGameAction(
 ) *StartGameAction {
 	return &StartGameAction{
 		gameRepo:         gameRepo,
-		globalSubscriber: NewGlobalSubscriber(cardRegistry, logger),
+		globalSubscriber: baseaction.NewGlobalSubscriber(cardRegistry, logger),
 		logger:           logger,
 	}
 }
