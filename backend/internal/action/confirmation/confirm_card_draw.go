@@ -1,10 +1,10 @@
 package confirmation
 
 import (
-	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 	"slices"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"

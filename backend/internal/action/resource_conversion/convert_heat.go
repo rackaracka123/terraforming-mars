@@ -1,9 +1,9 @@
 package resource_conversion
 
 import (
-	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/global_parameters"

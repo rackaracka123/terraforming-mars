@@ -1,10 +1,10 @@
 package turn_management
 
 import (
-	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
 	"math/rand"
+	baseaction "terraforming-mars-backend/internal/action"
 	"time"
 
 	"go.uber.org/zap"

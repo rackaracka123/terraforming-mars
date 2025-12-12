@@ -1,9 +1,9 @@
 package standard_project
 
 import (
-	baseaction "terraforming-mars-backend/internal/action"
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
