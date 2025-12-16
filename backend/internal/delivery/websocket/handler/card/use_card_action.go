@@ -67,13 +67,32 @@ func (h *UseCardActionHandler) HandleMessage(ctx context.Context, connection *co
 	}
 	behaviorIndex := int(behaviorIndexFloat)
 
+	// Extract optional choiceIndex for actions with choices
+	var choiceIndex *int
+	if choiceIndexFloat, ok := payload["choiceIndex"].(float64); ok {
+		idx := int(choiceIndexFloat)
+		choiceIndex = &idx
+	}
+
+	// Extract optional cardStorageTarget for resource placement on other cards
+	var cardStorageTarget *string
+	if target, ok := payload["cardStorageTarget"].(string); ok && target != "" {
+		cardStorageTarget = &target
+	}
+
 	log = log.With(
 		zap.String("card_id", cardID),
 		zap.Int("behavior_index", behaviorIndex),
 	)
+	if choiceIndex != nil {
+		log = log.With(zap.Int("choice_index", *choiceIndex))
+	}
+	if cardStorageTarget != nil {
+		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
+	}
 
 	// Execute the action
-	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, behaviorIndex)
+	err := h.action.Execute(ctx, connection.GameID, connection.PlayerID, cardID, behaviorIndex, choiceIndex, cardStorageTarget)
 	if err != nil {
 		log.Error("Failed to execute use card action", zap.Error(err))
 		h.sendError(connection, err.Error())

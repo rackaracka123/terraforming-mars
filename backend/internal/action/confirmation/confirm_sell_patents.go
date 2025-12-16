@@ -102,7 +102,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	// 9. BUSINESS LOGIC: Award credits
 	if totalReward > 0 {
 		player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: totalReward,
+			shared.ResourceCredit: totalReward,
 		})
 
 		resources := player.Resources().Get()

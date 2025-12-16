@@ -4,6 +4,7 @@ import (
 	"context"
 
 	cardaction "terraforming-mars-backend/internal/action/card"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
@@ -25,7 +26,7 @@ type Broadcaster interface {
 }
 
 // NewPlayCardHandler creates a new play card handler
-func NewPlayCardHandler(action *action.PlayCardAction, broadcaster Broadcaster) *PlayCardHandler {
+func NewPlayCardHandler(action *cardaction.PlayCardAction, broadcaster Broadcaster) *PlayCardHandler {
 	return &PlayCardHandler{
 		action:      action,
 		broadcaster: broadcaster,

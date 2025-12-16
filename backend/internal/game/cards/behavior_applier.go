@@ -14,10 +14,12 @@ import (
 // BehaviorApplier handles applying card behavior inputs and outputs
 // This is the single source of truth for all input/output application
 type BehaviorApplier struct {
-	player *player.Player // Player affected by the behavior (may be nil for game-only effects)
-	game   *game.Game     // Game context for global params/tiles (may be nil for player-only effects)
-	source string         // Source identifier for logging (card name, action name, etc.)
-	logger *zap.Logger
+	player       *player.Player // Player affected by the behavior (may be nil for game-only effects)
+	game         *game.Game     // Game context for global params/tiles (may be nil for player-only effects)
+	source       string         // Source identifier for logging (card name, action name, etc.)
+	sourceCardID string         // Card ID for self-card targeting (optional)
+	targetCardID string         // Card ID for any-card targeting (optional, set by caller)
+	logger       *zap.Logger
 }
 
 // NewBehaviorApplier creates a new behavior applier
@@ -34,6 +36,18 @@ func NewBehaviorApplier(
 		source: source,
 		logger: logger,
 	}
+}
+
+// WithSourceCardID sets the source card ID for self-card targeting
+func (a *BehaviorApplier) WithSourceCardID(cardID string) *BehaviorApplier {
+	a.sourceCardID = cardID
+	return a
+}
+
+// WithTargetCardID sets the target card ID for any-card resource placement
+func (a *BehaviorApplier) WithTargetCardID(cardID string) *BehaviorApplier {
+	a.targetCardID = cardID
+	return a
 }
 
 // ApplyInputs validates player has required resources and deducts them
@@ -62,7 +76,7 @@ func (a *BehaviorApplier) ApplyInputs(
 
 	for _, input := range inputs {
 		switch input.ResourceType {
-		case shared.ResourceCredits:
+		case shared.ResourceCredit:
 			if resources.Credits < input.Amount {
 				return fmt.Errorf("insufficient credits: need %d, have %d", input.Amount, resources.Credits)
 			}
@@ -74,7 +88,7 @@ func (a *BehaviorApplier) ApplyInputs(
 			if resources.Titanium < input.Amount {
 				return fmt.Errorf("insufficient titanium: need %d, have %d", input.Amount, resources.Titanium)
 			}
-		case shared.ResourcePlants:
+		case shared.ResourcePlant:
 			if resources.Plants < input.Amount {
 				return fmt.Errorf("insufficient plants: need %d, have %d", input.Amount, resources.Plants)
 			}
@@ -94,9 +108,9 @@ func (a *BehaviorApplier) ApplyInputs(
 	// All validations passed, now deduct resources
 	for _, input := range inputs {
 		switch input.ResourceType {
-		case shared.ResourceCredits:
+		case shared.ResourceCredit:
 			a.player.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourceCredits: -input.Amount,
+				shared.ResourceCredit: -input.Amount,
 			})
 			log.Info("💸 Deducted credits", zap.Int("amount", input.Amount))
 
@@ -112,9 +126,9 @@ func (a *BehaviorApplier) ApplyInputs(
 			})
 			log.Info("⚙️ Deducted titanium", zap.Int("amount", input.Amount))
 
-		case shared.ResourcePlants:
+		case shared.ResourcePlant:
 			a.player.Resources().Add(map[shared.ResourceType]int{
-				shared.ResourcePlants: -input.Amount,
+				shared.ResourcePlant: -input.Amount,
 			})
 			log.Info("🌱 Deducted plants", zap.Int("amount", input.Amount))
 
@@ -169,12 +183,12 @@ func (a *BehaviorApplier) applyOutput(
 ) error {
 	switch output.ResourceType {
 	// ========== Basic Resources ==========
-	case shared.ResourceCredits:
+	case shared.ResourceCredit:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply credits: no player context")
 		}
 		a.player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: output.Amount,
+			shared.ResourceCredit: output.Amount,
 		})
 		log.Info("💰 Added credits", zap.Int("amount", output.Amount))
 
@@ -196,12 +210,12 @@ func (a *BehaviorApplier) applyOutput(
 		})
 		log.Info("⚙️ Added titanium", zap.Int("amount", output.Amount))
 
-	case shared.ResourcePlants:
+	case shared.ResourcePlant:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply plants: no player context")
 		}
 		a.player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourcePlants: output.Amount,
+			shared.ResourcePlant: output.Amount,
 		})
 		log.Info("🌱 Added plants", zap.Int("amount", output.Amount))
 
@@ -224,12 +238,12 @@ func (a *BehaviorApplier) applyOutput(
 		log.Info("🔥 Added heat", zap.Int("amount", output.Amount))
 
 	// ========== Production Resources ==========
-	case shared.ResourceCreditsProduction:
+	case shared.ResourceCreditProduction:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply credits production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceCredits: output.Amount,
+			shared.ResourceCreditProduction: output.Amount,
 		})
 		log.Info("💰 Added credits production", zap.Int("amount", output.Amount))
 
@@ -238,7 +252,7 @@ func (a *BehaviorApplier) applyOutput(
 			return fmt.Errorf("cannot apply steel production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceSteel: output.Amount,
+			shared.ResourceSteelProduction: output.Amount,
 		})
 		log.Info("🔩 Added steel production", zap.Int("amount", output.Amount))
 
@@ -247,16 +261,16 @@ func (a *BehaviorApplier) applyOutput(
 			return fmt.Errorf("cannot apply titanium production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceTitanium: output.Amount,
+			shared.ResourceTitaniumProduction: output.Amount,
 		})
 		log.Info("⚙️ Added titanium production", zap.Int("amount", output.Amount))
 
-	case shared.ResourcePlantsProduction:
+	case shared.ResourcePlantProduction:
 		if a.player == nil {
 			return fmt.Errorf("cannot apply plants production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourcePlants: output.Amount,
+			shared.ResourcePlantProduction: output.Amount,
 		})
 		log.Info("🌱 Added plants production", zap.Int("amount", output.Amount))
 
@@ -265,7 +279,7 @@ func (a *BehaviorApplier) applyOutput(
 			return fmt.Errorf("cannot apply energy production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceEnergy: output.Amount,
+			shared.ResourceEnergyProduction: output.Amount,
 		})
 		log.Info("⚡ Added energy production", zap.Int("amount", output.Amount))
 
@@ -274,7 +288,7 @@ func (a *BehaviorApplier) applyOutput(
 			return fmt.Errorf("cannot apply heat production: no player context")
 		}
 		a.player.Resources().AddProduction(map[shared.ResourceType]int{
-			shared.ResourceHeat: output.Amount,
+			shared.ResourceHeatProduction: output.Amount,
 		})
 		log.Info("🔥 Added heat production", zap.Int("amount", output.Amount))
 
@@ -367,6 +381,56 @@ func (a *BehaviorApplier) applyOutput(
 			zap.Int("amount", output.Amount),
 			zap.Any("affected_tags", output.AffectedTags),
 			zap.Any("affected_standard_projects", output.AffectedStandardProjects))
+
+	// ========== Card Resource Storage (Animals, Microbes, Floaters, etc.) ==========
+	case shared.ResourceAnimal, shared.ResourceMicrobe, shared.ResourceFloater:
+		if a.player == nil {
+			return fmt.Errorf("cannot apply card resource: no player context")
+		}
+
+		target := output.Target
+		switch target {
+		case "self-card":
+			// Place resources on the source card
+			if a.sourceCardID == "" {
+				log.Warn("⚠️ Cannot place resource on self-card: no source card ID",
+					zap.String("resource_type", string(output.ResourceType)))
+				return nil
+			}
+			a.player.Resources().AddToStorage(a.sourceCardID, output.Amount)
+			log.Info("🐾 Added resource to card storage",
+				zap.String("card_id", a.sourceCardID),
+				zap.String("resource_type", string(output.ResourceType)),
+				zap.Int("amount", output.Amount))
+
+		case "any-card":
+			// Add resources to the specified target card
+			if a.targetCardID == "" {
+				log.Warn("⚠️ No target card specified for any-card resource placement",
+					zap.String("resource_type", string(output.ResourceType)),
+					zap.Int("amount", output.Amount))
+				return fmt.Errorf("no target card specified for any-card resource placement")
+			}
+			a.player.Resources().AddToStorage(a.targetCardID, output.Amount)
+			log.Info("🐾 Added resource to target card storage",
+				zap.String("card_id", a.targetCardID),
+				zap.String("resource_type", string(output.ResourceType)),
+				zap.Int("amount", output.Amount))
+
+		default:
+			// Default to self-card if target is empty and sourceCardID is set
+			if a.sourceCardID != "" {
+				a.player.Resources().AddToStorage(a.sourceCardID, output.Amount)
+				log.Info("🐾 Added resource to card storage (default to self)",
+					zap.String("card_id", a.sourceCardID),
+					zap.String("resource_type", string(output.ResourceType)),
+					zap.Int("amount", output.Amount))
+			} else {
+				log.Warn("⚠️ Unhandled target for card resource",
+					zap.String("target", target),
+					zap.String("resource_type", string(output.ResourceType)))
+			}
+		}
 
 	default:
 		log.Warn("⚠️ Unhandled output type",

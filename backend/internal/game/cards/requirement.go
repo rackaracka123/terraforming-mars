@@ -12,10 +12,10 @@ type RequirementType string
 const (
 	RequirementTemperature RequirementType = "temperature"
 	RequirementOxygen      RequirementType = "oxygen"
-	RequirementOceans      RequirementType = "oceans"
+	RequirementOceans      RequirementType = "ocean"
 	RequirementVenus       RequirementType = "venus"
-	RequirementCities      RequirementType = "cities"
-	RequirementGreeneries  RequirementType = "greeneries"
+	RequirementCities      RequirementType = "city"
+	RequirementGreeneries  RequirementType = "greenery"
 	RequirementTags        RequirementType = "tags"
 	RequirementProduction  RequirementType = "production"
 	RequirementTR          RequirementType = "tr"

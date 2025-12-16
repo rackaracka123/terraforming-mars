@@ -37,12 +37,20 @@ func (a *UseCardActionAction) Execute(
 	playerID string,
 	cardID string,
 	behaviorIndex int,
+	choiceIndex *int,
+	cardStorageTarget *string,
 ) error {
 	log := a.InitLogger(gameID, playerID).With(
 		zap.String("card_id", cardID),
 		zap.Int("behavior_index", behaviorIndex),
 		zap.String("action", "use_card_action"),
 	)
+	if choiceIndex != nil {
+		log = log.With(zap.Int("choice_index", *choiceIndex))
+	}
+	if cardStorageTarget != nil {
+		log = log.With(zap.String("card_storage_target", *cardStorageTarget))
+	}
 	log.Info("🎯 Player attempting to use card action")
 
 	// 1. Validate game exists and is active
@@ -75,31 +83,42 @@ func (a *UseCardActionAction) Execute(
 
 	log.Info("✅ Found card action",
 		zap.String("card_name", cardAction.CardName),
-		zap.Int("play_count", cardAction.PlayCount))
+		zap.Int("times_used_this_generation", cardAction.TimesUsedThisGeneration))
 
 	// 6. BUSINESS LOGIC: Use BehaviorApplier for inputs and outputs
-	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log)
+	applier := gamecards.NewBehaviorApplier(p, g, cardAction.CardName, log).
+		WithSourceCardID(cardID)
+	if cardStorageTarget != nil {
+		applier = applier.WithTargetCardID(*cardStorageTarget)
+	}
 
-	// 7. BUSINESS LOGIC: Validate and apply inputs (resource costs)
-	if err := applier.ApplyInputs(ctx, cardAction.Behavior.Inputs); err != nil {
+	// 7. BUSINESS LOGIC: Extract combined inputs and outputs (base + choice if selected)
+	inputs, outputs := cardAction.Behavior.ExtractInputsOutputs(choiceIndex)
+
+	if choiceIndex != nil {
+		log.Info("📋 Using choice-specific behavior",
+			zap.Int("choice_index", *choiceIndex),
+			zap.Int("input_count", len(inputs)),
+			zap.Int("output_count", len(outputs)))
+	}
+
+	// 8. BUSINESS LOGIC: Validate and apply inputs (resource costs)
+	if err := applier.ApplyInputs(ctx, inputs); err != nil {
 		log.Error("Failed to apply inputs", zap.Error(err))
 		return err
 	}
 
-	// 8. BUSINESS LOGIC: Apply outputs (resource gains, etc.)
-	if err := applier.ApplyOutputs(ctx, cardAction.Behavior.Outputs); err != nil {
+	// 9. BUSINESS LOGIC: Apply outputs (resource gains, etc.)
+	if err := applier.ApplyOutputs(ctx, outputs); err != nil {
 		log.Error("Failed to apply outputs", zap.Error(err))
 		return err
 	}
 
-	// 9. BUSINESS LOGIC: Increment play count for the action
-	a.incrementPlayCount(p, cardID, behaviorIndex, log)
+	// 10. BUSINESS LOGIC: Increment usage counts for the action
+	a.incrementUsageCounts(p, cardID, behaviorIndex, log)
 
-	// 10. BUSINESS LOGIC: Consume a player action
-	consumed := a.ConsumePlayerAction(g, log)
-	if !consumed {
-		log.Warn("⚠️ Action not consumed (unlimited actions or already at 0)")
-	}
+	// 11. BUSINESS LOGIC: Consume a player action (skipped for unlimited actions in solo mode)
+	a.ConsumePlayerAction(g, log)
 
 	log.Info("🎉 Card action executed successfully")
 	return nil
@@ -126,8 +145,8 @@ func (a *UseCardActionAction) findCardAction(
 	return nil, fmt.Errorf("card action not found: %s[%d]", cardID, behaviorIndex)
 }
 
-// incrementPlayCount increments the play count for a card action
-func (a *UseCardActionAction) incrementPlayCount(
+// incrementUsageCounts increments the usage counts for a card action
+func (a *UseCardActionAction) incrementUsageCounts(
 	p *player.Player,
 	cardID string,
 	behaviorIndex int,
@@ -135,12 +154,14 @@ func (a *UseCardActionAction) incrementPlayCount(
 ) {
 	actions := p.Actions().List()
 
-	// Find and increment play count
+	// Find and increment both turn and generation counts
 	for i := range actions {
 		if actions[i].CardID == cardID && actions[i].BehaviorIndex == behaviorIndex {
-			actions[i].PlayCount++
-			log.Debug("📊 Incremented action play count",
-				zap.Int("new_count", actions[i].PlayCount))
+			actions[i].TimesUsedThisTurn++
+			actions[i].TimesUsedThisGeneration++
+			log.Debug("📊 Incremented action usage counts",
+				zap.Int("times_used_this_turn", actions[i].TimesUsedThisTurn),
+				zap.Int("times_used_this_generation", actions[i].TimesUsedThisGeneration))
 			break
 		}
 	}

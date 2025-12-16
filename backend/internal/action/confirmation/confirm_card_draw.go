@@ -118,7 +118,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 		// Deduct credits for bought cards
 		player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: -totalCost,
+			shared.ResourceCredit: -totalCost,
 		})
 
 		newResources := player.Resources().Get()

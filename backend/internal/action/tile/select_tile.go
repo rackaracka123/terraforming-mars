@@ -114,7 +114,7 @@ func (a *SelectTileAction) Execute(ctx context.Context, gameID string, playerID 
 		// Apply each bonus to the player
 		for _, bonus := range placedTile.Bonuses {
 			switch bonus.Type {
-			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlants:
+			case shared.ResourceSteel, shared.ResourceTitanium, shared.ResourcePlant:
 				// Award resource bonuses directly
 				player.Resources().Add(map[shared.ResourceType]int{
 					bonus.Type: bonus.Amount,

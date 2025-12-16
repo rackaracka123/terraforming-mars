@@ -4,35 +4,29 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	baseaction "terraforming-mars-backend/internal/action"
 	"time"
 
 	"go.uber.org/zap"
 
-	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 )
 
 // StartGameAction handles the business logic for starting games
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 // NOTE: Deck initialization is handled separately before calling this action
 type StartGameAction struct {
-	gameRepo         game.GameRepository
-	globalSubscriber *baseaction.GlobalSubscriber
-	logger           *zap.Logger
+	gameRepo game.GameRepository
+	logger   *zap.Logger
 }
 
 // NewStartGameAction creates a new start game action
 func NewStartGameAction(
 	gameRepo game.GameRepository,
-	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *StartGameAction {
 	return &StartGameAction{
-		gameRepo:         gameRepo,
-		globalSubscriber: baseaction.NewGlobalSubscriber(cardRegistry, logger),
-		logger:           logger,
+		gameRepo: gameRepo,
+		logger:   logger,
 	}
 }
 
@@ -123,9 +117,6 @@ func (a *StartGameAction) Execute(ctx context.Context, gameID string, playerID s
 	}
 
 	log.Info("✅ Starting cards distributed to all players")
-
-	// 11. Setup global event subscriptions for this game
-	a.globalSubscriber.SetupGlobalSubscribers(g)
 
 	log.Info("🎉 Game started successfully")
 	return nil

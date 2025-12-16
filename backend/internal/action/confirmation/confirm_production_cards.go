@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
-	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 )
 
@@ -99,7 +98,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 
 	// 9. BUSINESS LOGIC: Deduct card selection cost
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -cost,
+		shared.ResourceCredit: -cost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
@@ -118,12 +117,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Strings("card_ids_added", selectedCardIDs),
 		zap.Int("card_count", len(selectedCardIDs)))
 
-	// 10a. BUSINESS LOGIC: Recalculate requirement modifiers (discounts from effects + cards in hand)
-	calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
-	modifiers := calculator.Calculate(player)
-	player.Effects().SetRequirementModifiers(modifiers)
-	log.Info("📊 Calculated requirement modifiers",
-		zap.Int("modifier_count", len(modifiers)))
+	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
 
 	// 11. BUSINESS LOGIC: Mark production selection as complete (phase state managed by Game)
 	productionPhase.SelectionComplete = true
@@ -170,10 +164,10 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				zap.Int("available_actions", availableActions))
 		}
 
-		// Reset manual action play counts for all players (new generation)
+		// Reset manual action generation counts for all players (new generation)
 		for _, p := range allPlayers {
-			p.Actions().ResetPlayCounts()
-			log.Debug("🔄 Reset action play counts for player",
+			p.Actions().ResetGenerationCounts()
+			log.Debug("🔄 Reset action generation counts for player",
 				zap.String("player_id", p.ID()))
 		}
 
