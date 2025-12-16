@@ -53,7 +53,7 @@ func TestPlayerCard_EventDrivenStateUpdate(t *testing.T) {
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Set temperature BELOW requirement
@@ -68,16 +68,16 @@ func TestPlayerCard_EventDrivenStateUpdate(t *testing.T) {
 		t.Error("Expected card to be unavailable initially")
 	}
 
-	// Verify TEMPERATURE_TOO_LOW error
+	// Verify temperature-too-low error
 	foundTempError := false
 	for _, err := range state.Errors {
-		if err.Code == "TEMPERATURE_TOO_LOW" {
+		if err.Code == player.ErrorCodeTemperatureTooLow {
 			foundTempError = true
 			break
 		}
 	}
 	if !foundTempError {
-		t.Error("Expected TEMPERATURE_TOO_LOW error initially")
+		t.Errorf("Expected %s error initially, got errors: %+v", player.ErrorCodeTemperatureTooLow, state.Errors)
 	}
 
 	// TRIGGER EVENT: Increase temperature to meet requirement
@@ -97,8 +97,8 @@ func TestPlayerCard_EventDrivenStateUpdate(t *testing.T) {
 
 	// Verify no temperature error
 	for _, err := range updatedState.Errors {
-		if err.Code == "TEMPERATURE_TOO_LOW" {
-			t.Error("Expected no TEMPERATURE_TOO_LOW error after temperature increase")
+		if err.Code == player.ErrorCodeTemperatureTooLow {
+			t.Errorf("Expected no %s error after temperature increase", player.ErrorCodeTemperatureTooLow)
 		}
 	}
 }
@@ -139,7 +139,7 @@ func TestPlayerCard_ResourceChangeEventUpdate(t *testing.T) {
 
 	// Give player insufficient credits initially
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 30,
+		shared.ResourceCredit: 30,
 	})
 
 	// Create PlayerCard with event listeners
@@ -151,21 +151,21 @@ func TestPlayerCard_ResourceChangeEventUpdate(t *testing.T) {
 		t.Error("Expected card to be unavailable with insufficient credits")
 	}
 
-	// Verify INSUFFICIENT_CREDITS error
+	// Verify insufficient-credits error
 	foundCreditError := false
 	for _, err := range state.Errors {
-		if err.Code == "INSUFFICIENT_CREDITS" {
+		if err.Code == player.ErrorCodeInsufficientCredits {
 			foundCreditError = true
 			break
 		}
 	}
 	if !foundCreditError {
-		t.Error("Expected INSUFFICIENT_CREDITS error initially")
+		t.Errorf("Expected %s error initially, got errors: %+v", player.ErrorCodeInsufficientCredits, state.Errors)
 	}
 
 	// TRIGGER EVENT: Add credits to player
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 25,
+		shared.ResourceCredit: 25,
 	})
 
 	// Give event handlers time to execute
@@ -179,8 +179,8 @@ func TestPlayerCard_ResourceChangeEventUpdate(t *testing.T) {
 
 	// Verify no credit error
 	for _, err := range updatedState.Errors {
-		if err.Code == "INSUFFICIENT_CREDITS" {
-			t.Error("Expected no INSUFFICIENT_CREDITS error after gaining credits")
+		if err.Code == player.ErrorCodeInsufficientCredits {
+			t.Errorf("Expected no %s error after gaining credits", player.ErrorCodeInsufficientCredits)
 		}
 	}
 }
@@ -221,7 +221,7 @@ func TestPlayerCard_PhaseChangeEventUpdate(t *testing.T) {
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Create PlayerCard with event listeners
@@ -233,16 +233,16 @@ func TestPlayerCard_PhaseChangeEventUpdate(t *testing.T) {
 		t.Error("Expected card to be unavailable in wrong phase")
 	}
 
-	// Verify WRONG_PHASE error
+	// Verify wrong-phase error
 	foundPhaseError := false
 	for _, err := range state.Errors {
-		if err.Code == "WRONG_PHASE" {
+		if err.Code == player.ErrorCodeWrongPhase {
 			foundPhaseError = true
 			break
 		}
 	}
 	if !foundPhaseError {
-		t.Error("Expected WRONG_PHASE error initially")
+		t.Errorf("Expected %s error initially, got errors: %+v", player.ErrorCodeWrongPhase, state.Errors)
 	}
 
 	// TRIGGER EVENT: Change phase to action
@@ -261,8 +261,8 @@ func TestPlayerCard_PhaseChangeEventUpdate(t *testing.T) {
 
 	// Verify no phase error
 	for _, err := range updatedState.Errors {
-		if err.Code == "WRONG_PHASE" {
-			t.Error("Expected no WRONG_PHASE error in action phase")
+		if err.Code == player.ErrorCodeWrongPhase {
+			t.Errorf("Expected no %s error in action phase", player.ErrorCodeWrongPhase)
 		}
 	}
 }
@@ -303,7 +303,7 @@ func TestPlayerCard_CleanupPreventsMemoryLeak(t *testing.T) {
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Create PlayerCard and add to hand
@@ -341,7 +341,7 @@ func TestPlayerCard_CleanupPreventsMemoryLeak(t *testing.T) {
 
 	// Also try triggering resource change (another event type)
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 100,
+		shared.ResourceCredit: 100,
 	})
 	time.Sleep(10 * time.Millisecond)
 
@@ -401,7 +401,7 @@ func TestPlayerCard_MultipleCardsIndependentState(t *testing.T) {
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 30,
+		shared.ResourceCredit: 30,
 	})
 
 	// Set temperature to 0 (meets card1 requirement, not card2)
@@ -426,13 +426,13 @@ func TestPlayerCard_MultipleCardsIndependentState(t *testing.T) {
 	// Verify card2 has temperature error
 	foundTempError := false
 	for _, err := range state2.Errors {
-		if err.Code == "TEMPERATURE_TOO_LOW" {
+		if err.Code == player.ErrorCodeTemperatureTooLow {
 			foundTempError = true
 			break
 		}
 	}
 	if !foundTempError {
-		t.Error("Expected card2 to have TEMPERATURE_TOO_LOW error")
+		t.Errorf("Expected card2 to have %s error, got errors: %+v", player.ErrorCodeTemperatureTooLow, state2.Errors)
 	}
 
 	// Increase temperature to 10 (now both cards should be available)

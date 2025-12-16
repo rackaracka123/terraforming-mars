@@ -80,7 +80,7 @@ func GetPlayerCredits(p *player.Player) int {
 // AddPlayerCredits adds credits to a player
 func AddPlayerCredits(ctx context.Context, p *player.Player, amount int) {
 	changes := map[shared.ResourceType]int{
-		shared.ResourceCredits: amount,
+		shared.ResourceCredit: amount,
 	}
 	p.Resources().Add(changes)
 }

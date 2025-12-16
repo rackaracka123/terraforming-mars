@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
 	cardAction "terraforming-mars-backend/internal/action/card"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 	"terraforming-mars-backend/test/testutil"
 )
@@ -31,18 +31,16 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 
 	// Give player enough credits and add Space Station to hand
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 100,
+		shared.ResourceCredit: 100,
 	})
 	player.Hand().AddCard("card-space-station")
 
 	// Also add a space-tagged card to hand for modifier calculation
 	player.Hand().AddCard("card-space-mirrors")
 
-	// Verify initial state: no effects, no modifiers
+	// Verify initial state: no effects
 	effectsBefore := player.Effects().List()
-	modifiersBefore := player.Effects().RequirementModifiers()
 	testutil.AssertEqual(t, 0, len(effectsBefore), "Should have no effects initially")
-	testutil.AssertEqual(t, 0, len(modifiersBefore), "Should have no modifiers initially")
 
 	// Play Space Station
 	playCardAction := cardAction.NewPlayCardAction(repo, cardRegistry, logger)
@@ -56,18 +54,16 @@ func TestPlayCardAction_DiscountEffectRegistered(t *testing.T) {
 	testutil.AssertEqual(t, "card-space-station", effectsAfter[0].CardID, "Effect should be from Space Station")
 	testutil.AssertEqual(t, "Space Station", effectsAfter[0].CardName, "Effect card name should be Space Station")
 
-	// Verify: requirement modifiers should be calculated for space-mirrors in hand
-	modifiersAfter := player.Effects().RequirementModifiers()
-	testutil.AssertEqual(t, 1, len(modifiersAfter), "Should have 1 modifier for card-space-mirrors")
+	// Verify: discounts are calculated on-demand via RequirementModifierCalculator
+	calculator := gamecards.NewRequirementModifierCalculator(cardRegistry)
+	spaceMirrorsCard, err := cardRegistry.GetByID("card-space-mirrors")
+	testutil.AssertNoError(t, err, "Space Mirrors card should exist")
 
-	// Verify the modifier details
-	modifier := modifiersAfter[0]
-	testutil.AssertEqual(t, 2, modifier.Amount, "Discount should be 2")
-	testutil.AssertTrue(t, modifier.CardTarget != nil, "Modifier should target a card")
-	testutil.AssertEqual(t, "card-space-mirrors", *modifier.CardTarget, "Modifier should target card-space-mirrors")
+	discount := calculator.CalculateCardDiscounts(player, spaceMirrorsCard)
+	testutil.AssertEqual(t, 2, discount, "Space Mirrors should have 2 credit discount from Space Station effect")
 }
 
-func TestPlayCardAction_DiscountModifierRecalculatedOnHandChange(t *testing.T) {
+func TestPlayCardAction_DiscountCalculatedOnDemand(t *testing.T) {
 	// Setup: Create game with Space Station already played (effect registered)
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
@@ -85,13 +81,9 @@ func TestPlayCardAction_DiscountModifierRecalculatedOnHandChange(t *testing.T) {
 	testGame.UpdatePhase(ctx, game.GamePhaseAction)
 	testGame.SetCurrentTurn(ctx, player.ID(), 2)
 
-	// Setup global subscribers (normally done in StartGameAction)
-	globalSubscriber := action.NewGlobalSubscriber(cardRegistry, logger)
-	globalSubscriber.SetupGlobalSubscribers(testGame)
-
 	// Give player credits and add Space Station to hand
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 100,
+		shared.ResourceCredit: 100,
 	})
 	player.Hand().AddCard("card-space-station")
 
@@ -101,24 +93,25 @@ func TestPlayCardAction_DiscountModifierRecalculatedOnHandChange(t *testing.T) {
 	err := playCardAction.Execute(ctx, testGame.ID(), player.ID(), "card-space-station", payment)
 	testutil.AssertNoError(t, err, "Failed to play Space Station")
 
-	// Verify: effect registered, but no modifiers yet (no space cards in hand)
+	// Verify: effect registered
 	effectsAfter := player.Effects().List()
 	testutil.AssertEqual(t, 1, len(effectsAfter), "Should have 1 effect")
 
-	modifiersAfter := player.Effects().RequirementModifiers()
-	testutil.AssertEqual(t, 0, len(modifiersAfter), "Should have no modifiers (no space cards in hand)")
+	// Verify: discounts are calculated on-demand for any space card
+	calculator := gamecards.NewRequirementModifierCalculator(cardRegistry)
 
-	// Now add a space card to hand - this triggers CardHandUpdatedEvent
-	// which should recalculate modifiers via GlobalSubscriber
-	player.Hand().AddCard("card-space-mirrors")
+	// Get Space Mirrors card (has space tag)
+	spaceMirrorsCard, err := cardRegistry.GetByID("card-space-mirrors")
+	testutil.AssertNoError(t, err, "Space Mirrors card should exist")
 
-	// Give the event handler time to process (it's synchronous in tests)
-	modifiersAfterAdd := player.Effects().RequirementModifiers()
-	testutil.AssertEqual(t, 1, len(modifiersAfterAdd), "Should have 1 modifier after adding space card to hand")
+	// Discount should apply regardless of whether card is in hand
+	discount := calculator.CalculateCardDiscounts(player, spaceMirrorsCard)
+	testutil.AssertEqual(t, 2, discount, "Space Mirrors should have 2 credit discount from Space Station effect")
 
-	// Verify the modifier details
-	modifier := modifiersAfterAdd[0]
-	testutil.AssertEqual(t, 2, modifier.Amount, "Discount should be 2")
-	testutil.AssertTrue(t, modifier.CardTarget != nil, "Modifier should target a card")
-	testutil.AssertEqual(t, "card-space-mirrors", *modifier.CardTarget, "Modifier should target card-space-mirrors")
+	// Non-space card should not get discount
+	nonSpaceCard, err := cardRegistry.GetByID("card-arctic-algae")
+	testutil.AssertNoError(t, err, "Arctic Algae card should exist")
+
+	nonSpaceDiscount := calculator.CalculateCardDiscounts(player, nonSpaceCard)
+	testutil.AssertEqual(t, 0, nonSpaceDiscount, "Non-space card should have no discount from Space Station")
 }
