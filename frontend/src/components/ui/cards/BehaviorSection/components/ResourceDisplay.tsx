@@ -1,6 +1,6 @@
 import React from "react";
 import GameIcon from "../../../display/GameIcon.tsx";
-import { getIconPath } from "@/utils/iconStore.ts";
+import { getIconPath, getTagIconPath } from "@/utils/iconStore.ts";
 import BehaviorIcon from "./BehaviorIcon.tsx";
 
 interface IconDisplayInfo {
@@ -37,7 +37,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   const { resourceType, amount, displayMode } = displayInfo;
 
   const isCredits =
-    resourceType === "credits" || resourceType === "credits-production";
+    resourceType === "credit" || resourceType === "credit-production";
   const isDiscount = resourceType === "discount";
   const isProduction = resourceType?.includes("-production");
   const hasPer = resource?.per;
@@ -49,14 +49,14 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
 
     let perIcon = null;
     if (hasPer.tag) {
-      perIcon = getIconPath(hasPer.tag);
+      perIcon = getTagIconPath(hasPer.tag);
     } else if (hasPer.type) {
       perIcon = getIconPath(hasPer.type);
     }
 
     if (perIcon) {
       // Special handling for credits-production - use GameIcon with amount inside
-      if (baseResourceType === "credits") {
+      if (baseResourceType === "credit") {
         const itemClasses = !isAffordable
           ? "flex items-center gap-px relative opacity-40 [filter:grayscale(0.7)_drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
           : "flex items-center gap-px relative";
@@ -65,7 +65,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           <div className="flex flex-wrap gap-[3px] items-center justify-center bg-[linear-gradient(135deg,rgba(160,110,60,0.4)_0%,rgba(139,89,42,0.35)_100%)] border border-[rgba(160,110,60,0.5)] rounded px-1.5 py-[3px] shadow-[0_1px_3px_rgba(0,0,0,0.2)]">
             <div className={itemClasses}>
               <GameIcon
-                iconType="credits"
+                iconType="credit"
                 amount={Math.abs(amount)}
                 size="small"
               />
@@ -122,7 +122,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   if (!isProduction && hasPer) {
     let perIcon = null;
     if (hasPer.tag) {
-      perIcon = getIconPath(hasPer.tag);
+      perIcon = getTagIconPath(hasPer.tag);
     } else if (hasPer.type) {
       perIcon = getIconPath(hasPer.type);
     }
@@ -138,7 +138,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           <div className="flex items-center gap-[3px]">
             <div className={itemClasses}>
               <GameIcon
-                iconType="credits"
+                iconType="credit"
                 amount={Math.abs(amount)}
                 size="small"
               />
@@ -206,7 +206,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
     return (
       <div className={finalCreditsClasses}>
         <GameIcon
-          iconType="credits"
+          iconType="credit"
           amount={showMinusInside ? amount : Math.abs(amount)}
           size="small"
         />
@@ -221,7 +221,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
 
     return (
       <div className={discountClasses}>
-        <GameIcon iconType="credits" amount={-amount} size="small" />
+        <GameIcon iconType="credit" amount={-amount} size="small" />
       </div>
     );
   }
@@ -283,7 +283,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
   if (!iconElement) {
     return (
       <span className="text-xs font-semibold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.6)] max-md:text-[11px]">
-        {isInput ? "-" : "+"}
+        {isInput && "-"}
         {amount} {resourceType}
       </span>
     );
@@ -314,7 +314,7 @@ const ResourceDisplay: React.FC<ResourceDisplayProps> = ({
           </span>
         )}
         <span className="text-[11px] font-bold text-white [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] mr-px">
-          {amount}
+          {isGroupedWithOtherNegatives ? Math.abs(amount) : amount}
         </span>
         {iconElement}
       </div>

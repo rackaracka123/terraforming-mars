@@ -82,7 +82,7 @@ const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
 
       {/* Right side: Credits icon with -amount inside */}
       <div className="relative flex items-center justify-center">
-        <GameIcon iconType="credits" size="small" />
+        <GameIcon iconType="credit" size="small" />
         <span className="absolute inset-0 flex items-center justify-center text-[13px] font-black font-[Prototype,Arial_Black,Arial,sans-serif] text-black [text-shadow:0_0_2px_rgba(255,255,255,0.3)] tracking-[0.5px] [-webkit-font-smoothing:antialiased] [-moz-osx-font-smoothing:grayscale] [text-rendering:optimizeLegibility] pointer-events-none max-md:text-[11px]">
           -{amount}
         </span>

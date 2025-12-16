@@ -28,13 +28,13 @@ export const isResourceAffordable = (
   const target = resource.target;
 
   switch (resourceType) {
-    case "credits":
+    case "credit":
       return playerResources.credits >= amount;
     case "steel":
       return playerResources.steel >= amount;
     case "titanium":
       return playerResources.titanium >= amount;
-    case "plants":
+    case "plant":
       return playerResources.plants >= amount;
     case "energy":
       return playerResources.energy >= amount;

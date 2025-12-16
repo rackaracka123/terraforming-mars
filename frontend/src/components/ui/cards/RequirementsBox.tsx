@@ -138,14 +138,16 @@ const RequirementsBox: React.FC<RequirementsBoxProps> = ({ requirements }) => {
               Array.from({ length: Math.min(iconCount, 4) }, (_, i) => (
                 <GameIcon
                   key={i}
-                  iconType={(cardTag || resourceType) as any}
+                  iconType={
+                    cardTag ? `${cardTag}-tag` : (resourceType as string)
+                  }
                   size="small"
                 />
               ))
             ) : (
               // Show single icon
               <GameIcon
-                iconType={(cardTag || resourceType) as any}
+                iconType={cardTag ? `${cardTag}-tag` : (resourceType as string)}
                 size="small"
               />
             )}

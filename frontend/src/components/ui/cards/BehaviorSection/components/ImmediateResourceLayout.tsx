@@ -3,7 +3,7 @@ import GameIcon from "../../../display/GameIcon.tsx";
 import ResourceDisplay from "./ResourceDisplay.tsx";
 import BehaviorIcon from "./BehaviorIcon.tsx";
 import CardIcon from "./CardIcon.tsx";
-import { getIconPath } from "@/utils/iconStore.ts";
+import { getIconPath, getTagIconPath } from "@/utils/iconStore.ts";
 import { analyzeCardOutputs } from "../utils/displayAnalysis.ts";
 
 interface IconDisplayInfo {
@@ -57,7 +57,7 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
     return (
       type === "temperature" ||
       type === "oxygen" ||
-      type === "oceans" ||
+      type === "ocean" ||
       type === "venus" ||
       type === "tr" ||
       type === "city-tile" ||
@@ -1185,19 +1185,19 @@ const ImmediateResourceLayout: React.FC<ImmediateResourceLayoutProps> = ({
 
               let perIcon = null;
               if (hasPer.tag) {
-                perIcon = getIconPath(hasPer.tag);
+                perIcon = getTagIconPath(hasPer.tag);
               } else if (hasPer.type) {
                 perIcon = getIconPath(hasPer.type);
               }
 
-              if (baseResourceType === "credits") {
+              if (baseResourceType === "credit") {
                 return (
                   <div
                     key={`per-prod-${index}`}
                     className="flex gap-[3px] items-center justify-center"
                   >
                     <GameIcon
-                      iconType="credits"
+                      iconType="credit"
                       amount={Math.abs(output.amount ?? 1)}
                       size="small"
                     />

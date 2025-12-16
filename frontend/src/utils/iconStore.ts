@@ -4,29 +4,22 @@
  */
 
 export const RESOURCE_ICONS: { [key: string]: string } = {
-  credits: "/assets/resources/megacredit.png",
+  credit: "/assets/resources/megacredit.png",
   steel: "/assets/resources/steel.png",
   titanium: "/assets/resources/titanium.png",
-  plants: "/assets/resources/plant.png",
   plant: "/assets/resources/plant.png",
   energy: "/assets/resources/power.png",
   power: "/assets/resources/power.png",
   heat: "/assets/resources/heat.png",
-  microbes: "/assets/resources/microbe.png",
   microbe: "/assets/resources/microbe.png",
-  animals: "/assets/resources/animal.png",
   animal: "/assets/resources/animal.png",
   floater: "/assets/resources/floater.png",
-  floaters: "/assets/resources/floater.png",
   science: "/assets/resources/science.png",
   asteroid: "/assets/resources/asteroid.png",
-  asteroids: "/assets/resources/asteroid.png",
   disease: "/assets/resources/disease.png",
   tr: "/assets/resources/tr.png",
   fighter: "/assets/resources/fighter.png",
-  fighters: "/assets/resources/fighter.png",
   camp: "/assets/resources/camp.png",
-  camps: "/assets/resources/camp.png",
   preservation: "/assets/resources/preservation.png",
   data: "/assets/resources/data.png",
   specialized: "/assets/resources/specialized-robot.png",
@@ -35,10 +28,10 @@ export const RESOURCE_ICONS: { [key: string]: string } = {
   director: "/assets/resources/director.png",
   influence: "/assets/misc/influence.png",
   // Production variants
-  "credits-production": "/assets/resources/megacredit.png",
+  "credit-production": "/assets/resources/megacredit.png",
   "steel-production": "/assets/resources/steel.png",
   "titanium-production": "/assets/resources/titanium.png",
-  "plants-production": "/assets/resources/plant.png",
+  "plant-production": "/assets/resources/plant.png",
   "energy-production": "/assets/resources/power.png",
   "heat-production": "/assets/resources/heat.png",
 };
@@ -79,7 +72,7 @@ export const TILE_ICONS: { [key: string]: string } = {
 export const GLOBAL_PARAMETER_ICONS: { [key: string]: string } = {
   temperature: "/assets/global-parameters/temperature.png",
   oxygen: "/assets/global-parameters/oxygen.png",
-  oceans: "/assets/tiles/ocean.png",
+  ocean: "/assets/tiles/ocean.png",
   venus: "/assets/global-parameters/venus.png",
 };
 
@@ -101,18 +94,20 @@ export const SPECIAL_ICONS: { [key: string]: string } = {
 /**
  * Get the icon path for a given icon type.
  * Searches across all icon categories.
+ * Resources are checked first since card behaviors use resource types,
+ * and tags are checked after for tag displays.
  */
 export function getIconPath(iconType: string): string | null {
   const cleanType = iconType?.toLowerCase().replace(/[_\s]/g, "-");
 
-  // Check tags first (higher priority for overlapping names like "science")
-  if (TAG_ICONS[cleanType]) {
-    return TAG_ICONS[cleanType];
-  }
-
-  // Check resources
+  // Check resources first (used in card behaviors for inputs/outputs)
   if (RESOURCE_ICONS[cleanType]) {
     return RESOURCE_ICONS[cleanType];
+  }
+
+  // Check tags (for tag displays on cards)
+  if (TAG_ICONS[cleanType]) {
+    return TAG_ICONS[cleanType];
   }
 
   // Check tiles
@@ -138,6 +133,14 @@ export function getIconPath(iconType: string): string | null {
     }
   }
 
+  // Handle -tag suffix to force tag icon lookup (e.g., "plant-tag" -> tag icon for plant)
+  if (cleanType.endsWith("-tag")) {
+    const baseTagType = cleanType.replace("-tag", "");
+    if (TAG_ICONS[baseTagType]) {
+      return TAG_ICONS[baseTagType];
+    }
+  }
+
   return null;
 }
 
@@ -147,6 +150,15 @@ export function getIconPath(iconType: string): string | null {
 export function isTagIcon(iconType: string): boolean {
   const cleanType = iconType?.toLowerCase().replace(/[_\s]/g, "-");
   return TAG_ICONS[cleanType] !== undefined;
+}
+
+/**
+ * Get the tag icon path specifically.
+ * Use this when you know you need the tag icon (e.g., for card tag displays).
+ */
+export function getTagIconPath(iconType: string): string | null {
+  const cleanType = iconType?.toLowerCase().replace(/[_\s]/g, "-");
+  return TAG_ICONS[cleanType] || null;
 }
 
 /**

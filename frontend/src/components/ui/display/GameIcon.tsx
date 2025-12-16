@@ -1,7 +1,7 @@
 import React from "react";
 import {
   ResourceType,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
   CardTag,
 } from "@/types/generated/api-types.ts";
 import { getIconPath } from "@/utils/iconStore.ts";
@@ -53,11 +53,11 @@ interface GameIconProps {
  *
  * @example
  * // Basic resource icon
- * <GameIcon iconType={ResourceTypeCredits} />
+ * <GameIcon iconType={ResourceTypeCredit} />
  *
  * @example
  * // Credits with amount (number inside icon)
- * <GameIcon iconType={ResourceTypeCredits} amount={25} size="large" />
+ * <GameIcon iconType={ResourceTypeCredit} amount={25} size="large" />
  *
  * @example
  * // Production resource (automatic brown background)
@@ -69,7 +69,7 @@ interface GameIconProps {
  *
  * @example
  * // Attack indicator (red glow)
- * <GameIcon iconType={ResourceTypePlants} amount={2} isAttack={true} />
+ * <GameIcon iconType={ResourceTypePlant} amount={2} isAttack={true} />
  *
  * @example
  * // Frontend-specific icon
@@ -85,7 +85,7 @@ const GameIcon: React.FC<GameIconProps> = ({
   const isProduction = iconType?.endsWith("-production") || false;
   const baseType =
     isProduction && iconType ? iconType.replace("-production", "") : iconType;
-  const isCredits = baseType === ResourceTypeCredits;
+  const isCredits = baseType === ResourceTypeCredit;
   const isCardType =
     baseType === "card-draw" ||
     baseType === "card-take" ||
