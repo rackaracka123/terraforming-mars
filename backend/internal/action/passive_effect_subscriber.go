@@ -88,7 +88,8 @@ func subscribePlacementBonusEffect(
 			zap.String("trigger_type", trigger.Condition.Type),
 			zap.Any("resources_gained", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
 				zap.String("card_name", effect.CardName),
@@ -151,7 +152,8 @@ func subscribeCityPlacedEffect(
 			zap.String("placed_by", event.PlayerID),
 			zap.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
 				zap.String("card_name", effect.CardName),

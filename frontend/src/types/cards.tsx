@@ -9,6 +9,12 @@ import {
   ResourceTypeEnergy,
   ResourceTypeCardDraw,
   ResourceTypeTemperature,
+  StandardProjectSellPatents,
+  StandardProjectPowerPlant,
+  StandardProjectAsteroid,
+  StandardProjectAquifer,
+  StandardProjectGreenery,
+  StandardProjectCity,
 } from "./generated/api-types.ts";
 import GameIcon from "../components/ui/display/GameIcon.tsx";
 
@@ -39,15 +45,16 @@ export enum CardTag {
   CLONE = "clone",
 }
 
-// Standard Projects enum matching backend definition
-export enum StandardProject {
-  SELL_PATENTS = "SELL_PATENTS",
-  POWER_PLANT = "POWER_PLANT",
-  ASTEROID = "ASTEROID",
-  AQUIFER = "AQUIFER",
-  GREENERY = "GREENERY",
-  CITY = "CITY",
-}
+// Standard Project type - re-export generated constants for convenience
+export type StandardProject = string;
+export const StandardProject = {
+  SELL_PATENTS: StandardProjectSellPatents,
+  POWER_PLANT: StandardProjectPowerPlant,
+  ASTEROID: StandardProjectAsteroid,
+  AQUIFER: StandardProjectAquifer,
+  GREENERY: StandardProjectGreenery,
+  CITY: StandardProjectCity,
+} as const;
 
 // Standard project with icon for UI display
 export interface StandardProjectCard extends CardDto {
@@ -91,7 +98,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         triggers: [{ type: "manual" }],
         inputs: [
           {
-            type: "credits",
+            type: "credit",
             amount: 11,
             target: "self-player",
           },
@@ -121,7 +128,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         triggers: [{ type: "manual" }],
         inputs: [
           {
-            type: "credits",
+            type: "credit",
             amount: 14,
             target: "self-player",
           },
@@ -150,7 +157,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         triggers: [{ type: "manual" }],
         inputs: [
           {
-            type: "credits",
+            type: "credit",
             amount: 18,
             target: "self-player",
           },
@@ -180,7 +187,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         triggers: [{ type: "manual" }],
         inputs: [
           {
-            type: "credits",
+            type: "credit",
             amount: 23,
             target: "self-player",
           },
@@ -210,7 +217,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
         triggers: [{ type: "manual" }],
         inputs: [
           {
-            type: "credits",
+            type: "credit",
             amount: 25,
             target: "self-player",
           },
@@ -222,7 +229,7 @@ export const STANDARD_PROJECTS: Record<StandardProject, StandardProjectCard> = {
             target: "none",
           },
           {
-            type: "credits-production",
+            type: "credit-production",
             amount: 1,
             target: "self-player",
           },
