@@ -69,7 +69,7 @@ func (a *BuildPowerPlantAction) Execute(
 
 	// 6. Deduct cost (publishes ResourcesChangedEvent)
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -BuildPowerPlantCost,
+		shared.ResourceCredit: -BuildPowerPlantCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update

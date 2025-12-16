@@ -65,7 +65,7 @@ func (a *BuildAquiferAction) Execute(ctx context.Context, gameID string, playerI
 
 	// 6. BUSINESS LOGIC: Deduct cost using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -BuildAquiferCost,
+		shared.ResourceCredit: -BuildAquiferCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update

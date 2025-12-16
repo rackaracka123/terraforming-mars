@@ -3,13 +3,10 @@ import {
   GameDto,
   GameStatusActive,
   GamePhaseAction,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
+  PlayerStandardProjectDto,
 } from "@/types/generated/api-types.ts";
-import {
-  StandardProject,
-  STANDARD_PROJECTS,
-  StandardProjectCard,
-} from "@/types/cards.tsx";
+import { StandardProject, STANDARD_PROJECTS } from "@/types/cards.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import { canPerformActions } from "@/utils/actionUtils.ts";
 
@@ -20,92 +17,6 @@ interface StandardProjectsPopoverProps {
   gameState?: GameDto;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
-
-// Check if player can afford a standard project
-const canAffordProject = (
-  project: StandardProjectCard,
-  credits: number,
-): boolean => {
-  return credits >= project.cost;
-};
-
-// Check if a standard project is available (affordability + global parameter limits)
-const isProjectAvailable = (
-  project: StandardProjectCard,
-  gameState?: GameDto,
-): boolean => {
-  if (!gameState?.currentPlayer) return false;
-
-  // Check affordability
-  const canAfford = canAffordProject(
-    project,
-    gameState.currentPlayer.resources.credits,
-  );
-  if (!canAfford) return false;
-
-  // Check if Sell Patents requires cards in hand
-  if (project.id === StandardProject.SELL_PATENTS) {
-    return gameState.currentPlayer.cards.length > 0;
-  }
-
-  // Check global parameter limits for projects that modify them
-  const globalParams = gameState.globalParameters;
-  if (!globalParams) return true;
-
-  // Extract outputs from behaviors to check for global parameter limits
-  const outputs =
-    project.behaviors?.[0]?.outputs?.map((o) => o.type as string) || [];
-
-  if (outputs.includes("temperature")) {
-    return globalParams.temperature < 8;
-  }
-  if (outputs.includes("oceans") || outputs.includes("ocean-tile")) {
-    return globalParams.oceans < 9;
-  }
-  if (outputs.includes("oxygen") || outputs.includes("greenery-tile")) {
-    return globalParams.oxygen < 14;
-  }
-
-  return true;
-};
-
-// Get tooltip message for project based on state
-const getProjectTooltip = (
-  project: StandardProjectCard,
-  canExecuteProjects: boolean,
-  isCurrentPlayerTurn: boolean,
-  isAvailable: boolean,
-  gameState?: GameDto,
-): string => {
-  if (!canExecuteProjects) {
-    if (!isCurrentPlayerTurn) {
-      return "Wait for your turn";
-    }
-    return "Actions not available in this phase";
-  }
-
-  if (!isAvailable) {
-    // Check if Sell Patents is unavailable due to no cards
-    if (
-      project.id === StandardProject.SELL_PATENTS &&
-      gameState?.currentPlayer &&
-      gameState.currentPlayer.cards.length === 0
-    ) {
-      return "No cards to sell";
-    }
-
-    if (
-      project.cost > 0 &&
-      gameState?.currentPlayer &&
-      gameState.currentPlayer.resources.credits < project.cost
-    ) {
-      return `Need ${project.cost - gameState.currentPlayer.resources.credits} more M€`;
-    }
-    return "Global parameter maxed out";
-  }
-
-  return "Click to execute";
-};
 
 const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
   isVisible,
@@ -160,29 +71,28 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
     isCurrentPlayerTurn &&
     canPerformActions(gameState);
 
-  // Get all standard projects as array
-  const projects = Object.values(STANDARD_PROJECTS);
+  // Get standard projects from backend player state
+  const playerProjects = gameState?.currentPlayer?.standardProjects ?? [];
 
-  // Calculate affordable projects count
-  const affordableCount = projects.filter((p) =>
-    isProjectAvailable(p, gameState),
-  ).length;
+  // Calculate available projects count (using backend state)
+  const availableCount = playerProjects.filter((p) => p.available).length;
 
-  const handleProjectClick = (project: StandardProjectCard) => {
+  const handleProjectClick = (project: PlayerStandardProjectDto) => {
     if (!canExecuteProjects) return;
-    if (!isProjectAvailable(project, gameState)) return;
-    onProjectSelect(project.id as StandardProject);
+    if (!project.available) return;
+    onProjectSelect(project.projectType as StandardProject);
   };
 
-  // Render effect icons from behaviors
-  const renderEffects = (project: StandardProjectCard) => {
+  // Render effect icons from behaviors (use static definitions for display)
+  const renderEffects = (projectType: string) => {
     const effects: React.ReactElement[] = [];
+    const staticProject = STANDARD_PROJECTS[projectType as StandardProject];
 
-    if (!project.behaviors || project.behaviors.length === 0) {
+    if (!staticProject?.behaviors || staticProject.behaviors.length === 0) {
       return effects;
     }
 
-    const outputs = project.behaviors[0].outputs || [];
+    const outputs = staticProject.behaviors[0].outputs || [];
 
     outputs.forEach((output, idx) => {
       const outputType = output.type as string;
@@ -199,6 +109,11 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
     return effects;
   };
 
+  // Get static project info for display (name, description, icon)
+  const getStaticProjectInfo = (projectType: string) => {
+    return STANDARD_PROJECTS[projectType as StandardProject];
+  };
+
   return (
     <div
       ref={popoverRef}
@@ -212,7 +127,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
           </h2>
           <div className="flex gap-2 text-xs">
             <span className="bg-[#4a90e2]/20 border border-[#4a90e2]/30 rounded px-2 py-0.5 text-white/80">
-              {affordableCount}/{projects.length} Affordable
+              {availableCount}/{playerProjects.length} Available
             </span>
           </div>
         </div>
@@ -226,39 +141,54 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
 
       {/* Projects List */}
       <div className="max-h-[calc(100vh-140px)] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(74,144,226,0.5)_rgba(10,10,15,0.3)] p-2">
-        {projects.map((project) => {
-          const isAvailable = isProjectAvailable(project, gameState);
-          const isExecutable = canExecuteProjects && isAvailable;
-          const effects = renderEffects(project);
+        {playerProjects.map((project) => {
+          const staticInfo = getStaticProjectInfo(project.projectType);
+          const isExecutable = canExecuteProjects && project.available;
+          const effects = renderEffects(project.projectType);
+
+          // Get effective cost (backend calculates discounts)
+          const effectiveCreditCost = project.effectiveCost["credit"] ?? 0;
+          const baseCreditCost = project.baseCost["credit"] ?? 0;
+          const hasDiscount = effectiveCreditCost < baseCreditCost;
 
           return (
             <div
-              key={project.id}
-              className={`mb-2 last:mb-0 border rounded-lg p-3 transition-all duration-200 ${
-                isAvailable
+              key={project.projectType}
+              className={`relative mb-2 last:mb-0 border rounded-lg p-3 transition-all duration-200 ${
+                project.available
                   ? "border-[#4a90e2] bg-[#4a90e2]/20 hover:bg-[#4a90e2]/30"
                   : "border-[#4a90e2]/30 bg-[#4a90e2]/10 opacity-60"
-              } ${isExecutable ? "cursor-pointer" : "cursor-not-allowed"}`}
+              }`}
               onClick={() => isExecutable && handleProjectClick(project)}
-              title={getProjectTooltip(
-                project,
-                canExecuteProjects,
-                isCurrentPlayerTurn,
-                isAvailable,
-                gameState,
-              )}
             >
+              {/* Unavailable indicator (shows when project cannot be executed) */}
+              {!project.available &&
+                project.errors &&
+                project.errors.length > 0 && (
+                  <div className="absolute top-2 right-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
+                    <span>⚠</span>
+                    <span
+                      className="max-w-[140px] truncate"
+                      title={project.errors.map((e) => e.message).join(", ")}
+                    >
+                      {project.errors[0].message}
+                      {project.errors.length > 1 &&
+                        ` (+${project.errors.length - 1})`}
+                    </span>
+                  </div>
+                )}
+
               <div className="flex items-start justify-between gap-3 mb-2">
                 {/* Left: Name, Cost, Effects */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    {project.icon && (
-                      <div className="opacity-70">{project.icon}</div>
+                    {staticInfo?.icon && (
+                      <div className="opacity-70">{staticInfo.icon}</div>
                     )}
                     <h3 className="text-white text-sm font-bold font-orbitron m-0">
-                      {project.name}
+                      {staticInfo?.name ?? project.projectType}
                     </h3>
-                    {project.behaviors?.[0]?.outputs?.some((o) =>
+                    {staticInfo?.behaviors?.[0]?.outputs?.some((o) =>
                       (o.type as string).includes("-tile"),
                     ) && (
                       <span className="text-[10px] text-white/60 bg-[#4a90e2]/30 px-1.5 py-0.5 rounded">
@@ -268,11 +198,17 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Show effective cost with discount indicator */}
                     <GameIcon
-                      iconType={ResourceTypeCredits}
-                      amount={project.cost}
+                      iconType={ResourceTypeCredit}
+                      amount={effectiveCreditCost}
                       size="small"
                     />
+                    {hasDiscount && (
+                      <span className="text-green-400 text-xs line-through opacity-60">
+                        {baseCreditCost}
+                      </span>
+                    )}
                     {effects.length > 0 && (
                       <>
                         <span className="text-white/60 text-xs">→</span>
@@ -286,15 +222,15 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                 {canExecuteProjects && (
                   <button
                     className={`flex-shrink-0 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                      isAvailable
-                        ? "bg-green-600/80 hover:bg-green-600 text-white shadow-sm hover:shadow-md"
-                        : "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                      project.available
+                        ? "bg-green-600/80 hover:bg-green-600 text-white shadow-sm hover:shadow-md cursor-pointer"
+                        : "bg-gray-600/50 text-gray-400"
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isExecutable) handleProjectClick(project);
                     }}
-                    disabled={!isAvailable}
+                    disabled={!project.available}
                   >
                     Execute
                   </button>
@@ -302,7 +238,7 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
               </div>
 
               <p className="text-white/70 text-xs leading-relaxed m-0 text-left">
-                {project.description}
+                {staticInfo?.description ?? ""}
               </p>
             </div>
           );

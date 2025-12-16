@@ -65,7 +65,7 @@ func (a *PlantGreeneryAction) Execute(ctx context.Context, gameID string, player
 
 	// 6. BUSINESS LOGIC: Deduct cost using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -PlantGreeneryStandardProjectCost,
+		shared.ResourceCredit: -PlantGreeneryStandardProjectCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update

@@ -66,7 +66,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 	// 5. BUSINESS LOGIC: Deduct cost using domain method
 	// Player.game.Resources() is already encapsulated - no changes needed
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -BuildCityCost,
+		shared.ResourceCredit: -BuildCityCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
@@ -76,7 +76,7 @@ func (a *BuildCityAction) Execute(ctx context.Context, gameID string, playerID s
 
 	// 6. BUSINESS LOGIC: Increase credit production by 1 using domain method
 	player.Resources().AddProduction(map[shared.ResourceType]int{
-		shared.ResourceCreditsProduction: 1,
+		shared.ResourceCreditProduction: 1,
 	})
 
 	production := player.Resources().Production() // Refresh after update
