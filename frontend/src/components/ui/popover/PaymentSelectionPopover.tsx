@@ -242,7 +242,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
             <span className="text-sm text-gray-400">Pay for: {card.name}</span>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">Original cost:</span>
-              <GameIcon iconType="credits" amount={card.cost} size="small" />
+              <GameIcon iconType="credit" amount={card.cost} size="small" />
             </div>
           </div>
         </div>
@@ -332,7 +332,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
                 case "energy":
                   available = playerResources.energy;
                   break;
-                case "plants":
+                case "plant":
                   available = playerResources.plants;
                   break;
               }
@@ -455,7 +455,7 @@ const PaymentSelectionPopover: React.FC<PaymentSelectionPopoverProps> = ({
               <div
                 className={`flex items-center gap-2 ${finalCost < 0 ? "opacity-90" : cannotAfford ? "opacity-90" : ""}`}
               >
-                <GameIcon iconType="credits" amount={finalCost} size="medium" />
+                <GameIcon iconType="credit" amount={finalCost} size="medium" />
               </div>
             </div>
             <div

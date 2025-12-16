@@ -2,8 +2,8 @@ import React from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
-  PlayerCardDto,
-  ResourceTypeCredits,
+  CardDto,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
@@ -25,7 +25,7 @@ import {
 
 interface ProductionCardSelectionOverlayProps {
   isOpen: boolean;
-  cards: PlayerCardDto[];
+  cards: CardDto[];
   playerCredits: number;
   onSelectCards: (selectedCardIds: string[]) => void;
   onReturn: () => void;
@@ -93,7 +93,7 @@ const ProductionCardSelectionOverlay: React.FC<
             <div className={RESOURCE_DISPLAY_CLASS}>
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
               <GameIcon
-                iconType={ResourceTypeCredits}
+                iconType={ResourceTypeCredit}
                 amount={playerCredits}
                 size="large"
               />
@@ -102,7 +102,7 @@ const ProductionCardSelectionOverlay: React.FC<
               <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
               {totalCost > 0 ? (
                 <GameIcon
-                  iconType={ResourceTypeCredits}
+                  iconType={ResourceTypeCredit}
                   amount={totalCost}
                   size="large"
                 />

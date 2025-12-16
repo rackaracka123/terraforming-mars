@@ -4,8 +4,7 @@ import CorporationCard from "../cards/CorporationCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   CardDto,
-  PlayerCardDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
@@ -20,16 +19,10 @@ import {
   RESOURCE_DISPLAY_CLASS,
 } from "./overlayStyles.ts";
 
-/**
- * @deprecated Cards now use PlayerCardDto with backend-calculated state.
- * Playability and discounts are provided by the Player-Scoped Card Architecture.
- * No frontend calculation needed!
- */
-
 interface StartingCardSelectionOverlayProps {
   isOpen: boolean;
-  cards: PlayerCardDto[]; // Now receives PlayerCardDto with state from backend
-  availableCorporations: CardDto[]; // Corporations remain as CardDto
+  cards: CardDto[];
+  availableCorporations: CardDto[];
   playerCredits: number;
   onSelectCards: (selectedCardIds: string[], corporationId: string) => void;
 }
@@ -221,7 +214,7 @@ const StartingCardSelectionOverlay: React.FC<
                 <div className={RESOURCE_DISPLAY_CLASS}>
                   <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
                   <GameIcon
-                    iconType={ResourceTypeCredits}
+                    iconType={ResourceTypeCredit}
                     amount={playerCredits}
                     size="large"
                   />
@@ -230,7 +223,7 @@ const StartingCardSelectionOverlay: React.FC<
                   <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
                   {totalCost > 0 ? (
                     <GameIcon
-                      iconType={ResourceTypeCredits}
+                      iconType={ResourceTypeCredit}
                       amount={totalCost}
                       size="large"
                     />

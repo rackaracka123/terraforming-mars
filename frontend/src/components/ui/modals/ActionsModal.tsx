@@ -15,7 +15,7 @@ const isActionAvailable = (
   gameState?: GameDto,
 ): boolean => {
   // Check if action has been played this generation
-  if (action.playCount > 0) {
+  if (action.timesUsedThisGeneration > 0) {
     return false;
   }
 
@@ -29,7 +29,7 @@ const isActionAvailable = (
 
   for (const input of actionInputs) {
     switch (input.type) {
-      case "credits":
+      case "credit":
         if (playerResources.credits < input.amount) return false;
         break;
       case "steel":
@@ -38,7 +38,7 @@ const isActionAvailable = (
       case "titanium":
         if (playerResources.titanium < input.amount) return false;
         break;
-      case "plants":
+      case "plant":
         if (playerResources.plants < input.amount) return false;
         break;
       case "energy":
@@ -220,7 +220,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                     <div className="flex flex-col gap-2.5 flex-1 overflow-hidden">
                       <div className="text-white/90 text-sm font-semibold [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.3] text-center m-0 flex-shrink-0 flex items-center justify-center gap-2 flex-wrap max-md:text-xs">
                         {action.cardName}
-                        {action.playCount > 0 && (
+                        {action.timesUsedThisGeneration > 0 && (
                           <span className="bg-[linear-gradient(135deg,rgba(120,120,120,0.8)_0%,rgba(80,80,80,0.9)_100%)] text-white/90 text-[10px] font-semibold uppercase tracking-[0.3px] py-[3px] px-2 rounded-[10px] border border-[rgba(120,120,120,0.6)] [text-shadow:none] opacity-100">
                             played
                           </span>
@@ -231,7 +231,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                         <BehaviorSection
                           behaviors={[action.behavior]}
                           playerResources={gameState?.currentPlayer?.resources}
-                          greyOutAll={action.playCount > 0}
+                          greyOutAll={action.timesUsedThisGeneration > 0}
                         />
                       </div>
                     </div>
@@ -251,7 +251,7 @@ const ActionsModal: React.FC<ActionsModalProps> = ({
                               : !hasActionsLeft
                                 ? "No actions remaining"
                                 : !isAvailable
-                                  ? action.playCount > 0
+                                  ? action.timesUsedThisGeneration > 0
                                     ? "Already played this generation"
                                     : "Cannot afford this action"
                                   : "Play this action"

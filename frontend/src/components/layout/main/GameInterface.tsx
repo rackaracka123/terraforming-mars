@@ -37,12 +37,12 @@ import {
   GamePhaseStartingCardSelection,
   GameStatusActive,
   GameStatusLobby,
+  PlayerCardDto,
   PlayerDisconnectedPayload,
   PlayerDto,
   PlayerActionDto,
   ResourceType,
 } from "@/types/generated/api-types.ts";
-import { UnplayableReason } from "@/utils/cardPlayabilityUtils.ts";
 import {
   shouldShowPaymentModal,
   createDefaultPayment,
@@ -103,9 +103,10 @@ export default function GameInterface() {
   const [showCardDrawSelection, setShowCardDrawSelection] = useState(false);
 
   // Unplayable card feedback state
-  const [unplayableCard, setUnplayableCard] = useState<CardDto | null>(null);
-  const [unplayableReason, setUnplayableReason] =
-    useState<UnplayableReason | null>(null);
+  const [unplayableCard, setUnplayableCard] = useState<PlayerCardDto | null>(
+    null,
+  );
+  const [unplayableReason, setUnplayableReason] = useState<string | null>(null);
 
   // Choice selection state (for card play)
   const [showChoiceSelection, setShowChoiceSelection] = useState(false);
@@ -334,9 +335,9 @@ export default function GameInterface() {
 
       // Check for any-card targets with storage resource types
       const storageResources = [
-        "animals",
-        "microbes",
-        "floaters",
+        "animal",
+        "microbe",
+        "floater",
         "science",
         "asteroid",
       ] as ResourceType[];
@@ -366,11 +367,7 @@ export default function GameInterface() {
           const card = currentPlayer?.cards.find((c) => c.id === cardId);
           if (card) {
             setUnplayableCard(card);
-            setUnplayableReason({
-              type: "phase",
-              requirement: null,
-              message: "Complete tile placement first",
-            });
+            setUnplayableReason("Complete tile placement first");
           }
           return;
         }
@@ -707,9 +704,9 @@ export default function GameInterface() {
   }, []);
 
   const handleUnplayableCard = useCallback(
-    (card: CardDto | null, reason: UnplayableReason | null) => {
+    (card: PlayerCardDto | null, errorMessage: string | null) => {
       setUnplayableCard(card);
-      setUnplayableReason(reason);
+      setUnplayableReason(errorMessage);
     },
     [],
   );
@@ -1317,7 +1314,6 @@ export default function GameInterface() {
           isOpen={showPendingCardSelection}
           selection={game.currentPlayer.pendingCardSelection}
           playerCredits={currentPlayer?.resources?.credits || 0}
-          requirementModifiers={currentPlayer?.requirementModifiers || []}
           onSelectCards={handlePendingCardSelection}
         />
       )}
@@ -1328,7 +1324,6 @@ export default function GameInterface() {
           isOpen={showCardDrawSelection}
           selection={game.currentPlayer.pendingCardDrawSelection}
           playerCredits={currentPlayer?.resources?.credits || 0}
-          requirementModifiers={currentPlayer?.requirementModifiers || []}
           onConfirm={handleCardDrawConfirm}
         />
       )}
@@ -1337,8 +1332,6 @@ export default function GameInterface() {
       {game && currentPlayer && (
         <CardFanOverlay
           cards={currentPlayer.cards || []}
-          game={game}
-          player={currentPlayer}
           hideWhenModalOpen={
             showCardSelection ||
             showPendingCardSelection ||

@@ -58,13 +58,13 @@ const EffectsModal: React.FC<EffectsModalProps> = ({
           return `Provides ${amount} M€ discount on card purchases`;
         case "tr":
           return `Affects terraform rating by ${amount}`;
-        case "credits":
+        case "credit":
           return `Provides ${amount} credits`;
         case "steel":
           return `Provides ${amount} steel`;
         case "titanium":
           return `Provides ${amount} titanium`;
-        case "plants":
+        case "plant":
           return `Provides ${amount} plants`;
         case "energy":
           return `Provides ${amount} energy`;

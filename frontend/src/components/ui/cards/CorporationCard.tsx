@@ -4,10 +4,10 @@ import BehaviorSection from "./BehaviorSection";
 
 import {
   CardBehaviorDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
   ResourceTypeSteel,
   ResourceTypeTitanium,
-  ResourceTypePlants,
+  ResourceTypePlant,
   ResourceTypeEnergy,
   ResourceTypeHeat,
 } from "../../../types/generated/api-types.ts";
@@ -55,10 +55,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 }) => {
   const renderResource = (type: string, amount: number) => {
     const resourceTypeMap: { [key: string]: string } = {
-      credits: ResourceTypeCredits,
+      credits: ResourceTypeCredit,
       steel: ResourceTypeSteel,
       titanium: ResourceTypeTitanium,
-      plants: ResourceTypePlants,
+      plants: ResourceTypePlant,
       energy: ResourceTypeEnergy,
       heat: ResourceTypeHeat,
     };
@@ -67,7 +67,7 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
     if (!resourceType) return null;
 
     // Use GameIcon for credits (shows amount inside icon)
-    if (type === "credits") {
+    if (type === "credit") {
       return <GameIcon iconType={resourceType} amount={amount} size="large" />;
     }
 
@@ -77,10 +77,10 @@ const CorporationCard: React.FC<CorporationCardProps> = ({
 
   const renderProduction = (type: string, amount: number) => {
     const resourceTypeMap: { [key: string]: string } = {
-      credits: ResourceTypeCredits,
+      credits: ResourceTypeCredit,
       steel: ResourceTypeSteel,
       titanium: ResourceTypeTitanium,
-      plants: ResourceTypePlants,
+      plants: ResourceTypePlant,
       energy: ResourceTypeEnergy,
       heat: ResourceTypeHeat,
     };

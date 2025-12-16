@@ -4,10 +4,10 @@ import {
   PlayerActionDto,
   GameDto,
   CardDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
   ResourceTypeSteel,
   ResourceTypeTitanium,
-  ResourceTypePlants,
+  ResourceTypePlant,
   ResourceTypeEnergy,
   ResourceTypeHeat,
   ResourceTypeGreeneryTile,
@@ -76,10 +76,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Map resource ID to ResourceType constant
   const getResourceType = (resourceId: string): string => {
     const resourceTypeMap: Record<string, string> = {
-      credits: ResourceTypeCredits,
+      credits: ResourceTypeCredit,
       steel: ResourceTypeSteel,
       titanium: ResourceTypeTitanium,
-      plants: ResourceTypePlants,
+      plants: ResourceTypePlant,
       energy: ResourceTypeEnergy,
       heat: ResourceTypeHeat,
     };
@@ -143,7 +143,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
   // Create resources from current player data
   const playerResources: ResourceData[] = [
     {
-      id: "credits",
+      id: "credit",
       name: "Credits",
       current: currentPlayer.resources.credits,
       production: currentPlayer.production.credits,
@@ -164,7 +164,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
       color: "#95a5a6", // Grey
     },
     {
-      id: "plants",
+      id: "plant",
       name: "Plants",
       current: currentPlayer.resources.plants,
       production: currentPlayer.production.plants,
@@ -247,7 +247,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
 
             // Check if this resource has a conversion button
             const showConversionButton =
-              (resource.id === "plants" && canConvertPlants) ||
+              (resource.id === "plant" && canConvertPlants) ||
               (resource.id === "heat" && canConvertHeat);
 
             // Disable conversion buttons during tile placement
@@ -270,7 +270,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                   <div
                     className={`transition-all duration-500 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] ${showConversionButton ? "max-h-[40px] h-auto opacity-100 mb-1" : "max-h-0 h-0 opacity-0 mb-0"}`}
                   >
-                    {(resource.id === "plants" || resource.id === "heat") && (
+                    {(resource.id === "plant" || resource.id === "heat") && (
                       <button
                         disabled={isConversionDisabled || !showConversionButton}
                         className={`flex items-center justify-center gap-0.5 px-2 py-1 bg-space-black-darker/95 border rounded transition-all duration-200 ${isConversionDisabled || !showConversionButton ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
@@ -283,7 +283,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                           if (isConversionDisabled || !showConversionButton)
                             return;
                           // Execute conversion immediately
-                          if (resource.id === "plants") {
+                          if (resource.id === "plant") {
                             void onConvertPlantsToGreenery?.();
                           } else if (resource.id === "heat") {
                             void onConvertHeatToTemperature?.();
@@ -303,7 +303,7 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                         </span>
                         <GameIcon
                           iconType={
-                            resource.id === "plants"
+                            resource.id === "plant"
                               ? ResourceTypeGreeneryTile
                               : ResourceTypeTemperature
                           }
@@ -321,10 +321,10 @@ const BottomResourceBar: React.FC<BottomResourceBarProps> = ({
                     </span>
                   </div>
 
-                  {resource.id === "credits" ? (
+                  {resource.id === "credit" ? (
                     <div className="flex items-center gap-1.5 min-w-[52px] justify-center">
                       <GameIcon
-                        iconType={ResourceTypeCredits}
+                        iconType={ResourceTypeCredit}
                         amount={resource.current}
                         size="medium"
                       />

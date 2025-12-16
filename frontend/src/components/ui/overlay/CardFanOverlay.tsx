@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
-import {
-  PlayerCardDto,
-  GameDto,
-  PlayerDto,
-  StateErrorDto,
-} from "@/types/generated/api-types.ts";
-
-/**
- * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
- * Playability and discounts are provided by the Player-Scoped Card Architecture.
- * No frontend calculation needed!
- */
+import { PlayerCardDto, StateErrorDto } from "@/types/generated/api-types.ts";
 
 /**
  * Convert StateErrorDto to a user-friendly message
@@ -23,9 +12,7 @@ function formatErrorMessage(errors: StateErrorDto[]): string {
 }
 
 interface CardFanOverlayProps {
-  cards: PlayerCardDto[]; // Now receives PlayerCardDto with state from backend
-  game: GameDto;
-  player: PlayerDto;
+  cards: PlayerCardDto[];
   hideWhenModalOpen?: boolean;
   onCardSelect?: (cardId: string) => void;
   onPlayCard?: (cardId: string) => Promise<void>;
@@ -37,8 +24,6 @@ interface CardFanOverlayProps {
 
 const CardFanOverlay: React.FC<CardFanOverlayProps> = ({
   cards,
-  game,
-  player,
   hideWhenModalOpen = false,
   onCardSelect,
   onPlayCard,

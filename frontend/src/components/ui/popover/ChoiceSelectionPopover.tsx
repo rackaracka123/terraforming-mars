@@ -61,7 +61,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
 
     for (const input of inputs) {
       switch (input.type) {
-        case "credits":
+        case "credit":
           if (playerResources.credits < input.amount) return false;
           break;
         case "steel":
@@ -70,7 +70,7 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
         case "titanium":
           if (playerResources.titanium < input.amount) return false;
           break;
-        case "plants":
+        case "plant":
           if (playerResources.plants < input.amount) return false;
           break;
         case "energy":
@@ -81,9 +81,9 @@ const ChoiceSelectionPopover: React.FC<ChoiceSelectionPopoverProps> = ({
           break;
 
         // Card storage resources
-        case "animals":
-        case "microbes":
-        case "floaters":
+        case "animal":
+        case "microbe":
+        case "floater":
         case "science":
         case "asteroid":
           if (input.target === "self-card") {

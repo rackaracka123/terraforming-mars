@@ -16,7 +16,7 @@ const isActionAvailable = (
   gameState?: GameDto,
 ): boolean => {
   // Check if action has been played this generation
-  if (action.playCount > 0) {
+  if (action.timesUsedThisGeneration > 0) {
     return false;
   }
 
@@ -32,7 +32,7 @@ const isActionAvailable = (
   const areInputsAffordable = (inputs: any[]): boolean => {
     for (const input of inputs) {
       switch (input.type) {
-        case "credits":
+        case "credit":
           if (playerResources.credits < input.amount) return false;
           break;
         case "steel":
@@ -41,7 +41,7 @@ const isActionAvailable = (
         case "titanium":
           if (playerResources.titanium < input.amount) return false;
           break;
-        case "plants":
+        case "plant":
           if (playerResources.plants < input.amount) return false;
           break;
         case "energy":
@@ -52,9 +52,9 @@ const isActionAvailable = (
           break;
 
         // Card storage resources
-        case "animals":
-        case "microbes":
-        case "floaters":
+        case "animal":
+        case "microbe":
+        case "floater":
         case "science":
         case "asteroid":
           if (input.target === "self-card") {
@@ -248,7 +248,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                             ? "No actions remaining"
                             : "Actions not available in this phase"
                         : !isAvailable
-                          ? action.playCount > 0
+                          ? action.timesUsedThisGeneration > 0
                             ? "Already played this generation"
                             : "Cannot afford this action"
                           : "Click to play this action"
@@ -261,7 +261,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                   <div className="flex flex-col gap-2 flex-1">
                     <div className="text-white/70 text-[11px] font-medium uppercase tracking-[0.5px] [text-shadow:1px_1px_2px_rgba(0,0,0,0.8)] leading-[1.2] opacity-80 flex items-center gap-2 max-[768px]:text-[10px]">
                       {action.cardName}
-                      {action.playCount > 0 && (
+                      {action.timesUsedThisGeneration > 0 && (
                         <span className="bg-[linear-gradient(135deg,rgba(120,120,120,0.8)_0%,rgba(80,80,80,0.9)_100%)] text-white/90 text-[8px] font-semibold uppercase tracking-[0.3px] py-0.5 px-1.5 rounded-lg border border-[rgba(120,120,120,0.6)] [text-shadow:none] opacity-100">
                           played
                         </span>
@@ -276,7 +276,7 @@ const ActionsPopover: React.FC<ActionsPopoverProps> = ({
                           gameState?.currentPlayer?.resourceStorage
                         }
                         cardId={action.cardId}
-                        greyOutAll={action.playCount > 0}
+                        greyOutAll={action.timesUsedThisGeneration > 0}
                       />
                     </div>
                   </div>

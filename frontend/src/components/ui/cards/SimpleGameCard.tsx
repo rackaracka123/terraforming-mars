@@ -3,19 +3,19 @@ import GameIcon from "../display/GameIcon.tsx";
 import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
 import BehaviorSection from "./BehaviorSection";
 import RequirementsBox from "./RequirementsBox.tsx";
+import { getTagIconPath } from "@/utils/iconStore.ts";
 import {
   CardDto,
   PlayerCardDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "@/types/generated/api-types.ts";
 
 interface SimpleGameCardProps {
-  card: CardDto | PlayerCardDto; // Support both old and new DTO structures
+  card: CardDto | PlayerCardDto;
   isSelected: boolean;
   onSelect: (cardId: string) => void;
   animationDelay?: number;
-  showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
-  discountAmount?: number; // DEPRECATED: Use card.effectiveCost from PlayerCardDto instead
+  showCheckbox?: boolean;
 }
 
 // Type guard to check if card is a PlayerCardDto (has state information)
@@ -29,7 +29,6 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   onSelect,
   animationDelay = 0,
   showCheckbox = false,
-  discountAmount = 0,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -39,11 +38,9 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   const isAvailable = hasState ? card.available : true; // Default to available for CardDto
   const errors = hasState ? card.errors : [];
 
-  // Use effectiveCost if available (from state calculation), otherwise use manual discount
+  // Use effectiveCost from PlayerCardDto state calculation
   const displayCost = card.cost;
-  const effectiveCost = hasState
-    ? card.effectiveCost
-    : Math.max(0, card.cost - discountAmount);
+  const effectiveCost = hasState ? card.effectiveCost : card.cost;
   const actualDiscountAmount = displayCost - effectiveCost;
 
   const handleClick = () => {
@@ -167,14 +164,22 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           {card.tags &&
             card.tags
               .slice(0, card.type === "event" ? 2 : 3)
-              .map((tag, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-                >
-                  <GameIcon iconType={tag.toLowerCase()} size="medium" />
-                </div>
-              ))}
+              .map((tag, index) => {
+                const tagIcon = getTagIconPath(tag.toLowerCase());
+                if (!tagIcon) return null;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+                  >
+                    <img
+                      src={tagIcon}
+                      alt={tag}
+                      className="w-8 h-8 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+                    />
+                  </div>
+                );
+              })}
           {/* Show event tag icon last (right-most) if card type is event */}
           {card.type === "event" && (
             <div className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]">
@@ -191,7 +196,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           {/* Original cost (faded) */}
           <div className="grayscale-[0.7]">
             <GameIcon
-              iconType={ResourceTypeCredits}
+              iconType={ResourceTypeCredit}
               amount={displayCost}
               size="medium"
             />
@@ -213,7 +218,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           {/* Discounted cost (clear) */}
           <div>
             <GameIcon
-              iconType={ResourceTypeCredits}
+              iconType={ResourceTypeCredit}
               amount={effectiveCost}
               size="medium"
             />
@@ -223,7 +228,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         // Single icon when no discount
         <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
           <GameIcon
-            iconType={ResourceTypeCredits}
+            iconType={ResourceTypeCredit}
             amount={effectiveCost}
             size="medium"
           />

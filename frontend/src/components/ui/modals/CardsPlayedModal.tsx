@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   CardDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
 import { CardType } from "../../../types/cards.tsx";
 import GameIcon from "../display/GameIcon.tsx";
@@ -153,7 +153,7 @@ const CardsPlayedModal: React.FC<CardsPlayedModalProps> = ({
               </div>
               <div className="flex flex-col items-center gap-1">
                 <GameIcon
-                  iconType={ResourceTypeCredits}
+                  iconType={ResourceTypeCredit}
                   amount={cardStats.totalCost}
                   size="large"
                 />

@@ -3,7 +3,7 @@ import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   PendingCardSelectionDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
 import { useCardSelection } from "../../../hooks/useCardSelection.ts";
 import {
@@ -20,15 +20,9 @@ import {
   RESOURCE_LABEL_CLASS,
 } from "./overlayStyles.ts";
 
-/**
- * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
- * Playability and discounts are provided by the Player-Scoped Card Architecture.
- * No frontend calculation needed!
- */
-
 interface PendingCardSelectionOverlayProps {
   isOpen: boolean;
-  selection: PendingCardSelectionDto; // Contains PlayerCardDto[] in availableCards
+  selection: PendingCardSelectionDto;
   playerCredits: number;
   onSelectCards: (selectedCardIds: string[]) => void;
   onCancel?: () => void;
@@ -185,7 +179,7 @@ const PendingCardSelectionOverlay: React.FC<
             <div className="flex items-center gap-3">
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
               <GameIcon
-                iconType={ResourceTypeCredits}
+                iconType={ResourceTypeCredit}
                 amount={playerCredits}
                 size="large"
               />
@@ -194,7 +188,7 @@ const PendingCardSelectionOverlay: React.FC<
               <div className="flex items-center gap-3">
                 <span className={RESOURCE_LABEL_CLASS}>Total Cost:</span>
                 <GameIcon
-                  iconType={ResourceTypeCredits}
+                  iconType={ResourceTypeCredit}
                   amount={totalCost}
                   size="large"
                 />
@@ -206,7 +200,7 @@ const PendingCardSelectionOverlay: React.FC<
                 <div className="flex items-center gap-1">
                   <span className="text-[#4caf50] font-bold text-lg">+</span>
                   <GameIcon
-                    iconType={ResourceTypeCredits}
+                    iconType={ResourceTypeCredit}
                     amount={totalReward}
                     size="large"
                   />

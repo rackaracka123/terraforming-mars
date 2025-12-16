@@ -3,7 +3,7 @@ import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
   PendingCardDrawSelectionDto,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
 import {
   OVERLAY_BACKGROUND_CLASS,
@@ -18,15 +18,9 @@ import {
   RESOURCE_LABEL_CLASS,
 } from "./overlayStyles.ts";
 
-/**
- * @deprecated This overlay now uses PlayerCardDto with backend-calculated state.
- * Playability and discounts are provided by the Player-Scoped Card Architecture.
- * No frontend calculation needed!
- */
-
 interface CardDrawSelectionOverlayProps {
   isOpen: boolean;
-  selection: PendingCardDrawSelectionDto; // Contains PlayerCardDto[] in availableCards
+  selection: PendingCardDrawSelectionDto;
   playerCredits: number;
   onConfirm: (cardsToTake: string[], cardsToBuy: string[]) => void;
 }
@@ -244,7 +238,7 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
             <div className="flex items-center gap-3">
               <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
               <GameIcon
-                iconType={ResourceTypeCredits}
+                iconType={ResourceTypeCredit}
                 amount={playerCredits}
                 size="large"
               />
@@ -253,7 +247,7 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
               <div className="flex items-center gap-3">
                 <span className={RESOURCE_LABEL_CLASS}>Buy Cost:</span>
                 <GameIcon
-                  iconType={ResourceTypeCredits}
+                  iconType={ResourceTypeCredit}
                   amount={totalBuyCost}
                   size="large"
                 />

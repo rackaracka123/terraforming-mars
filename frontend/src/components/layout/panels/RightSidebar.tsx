@@ -155,7 +155,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         {/* Ocean Counter */}
         <div className="flex flex-col items-center gap-1 bg-[linear-gradient(135deg,rgba(0,100,200,0.15)_0%,rgba(0,50,150,0.2)_100%)] border border-[rgba(0,150,255,0.3)] rounded-md p-2 w-4/5 mt-0">
           <div className="flex items-center justify-center w-4 h-4 brightness-[1.2]">
-            <GameIcon iconType="oceans" size="small" />
+            <GameIcon iconType="ocean" size="small" />
           </div>
           <div className="text-[6px] font-bold text-[#4da6ff] uppercase tracking-[0.5px]">
             OCEANS
