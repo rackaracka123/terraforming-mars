@@ -94,7 +94,7 @@ func TestCalculatePlayerCardState_Available(t *testing.T) {
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Set temperature to meet requirement
@@ -119,12 +119,12 @@ func TestCalculatePlayerCardState_Available(t *testing.T) {
 		t.Errorf("Expected no errors, got %d errors", len(state.Errors))
 	}
 
-	if state.Cost == nil {
+	if len(state.Cost) == 0 {
 		t.Fatal("Expected cost to be set")
 	}
 
-	if *state.Cost != 10 {
-		t.Errorf("Expected cost 10, got %d", *state.Cost)
+	if state.Cost["credit"] != 10 {
+		t.Errorf("Expected cost 10, got %d", state.Cost["credit"])
 	}
 }
 
@@ -134,7 +134,7 @@ func TestCalculatePlayerCardState_InsufficientCredits(t *testing.T) {
 
 	// Give player insufficient credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 5,
+		shared.ResourceCredit: 5,
 	})
 
 	// Get test card (cost 10)
@@ -151,17 +151,17 @@ func TestCalculatePlayerCardState_InsufficientCredits(t *testing.T) {
 		t.Error("Expected card to be unavailable due to insufficient credits")
 	}
 
-	// Verify INSUFFICIENT_CREDITS error exists
+	// Verify insufficient-credits error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "INSUFFICIENT_CREDITS" && err.Category == "cost" {
+		if err.Code == player.ErrorCodeInsufficientCredits && err.Category == player.ErrorCategoryCost {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected INSUFFICIENT_CREDITS error, got errors: %+v", state.Errors)
+		t.Errorf("Expected insufficient-credits error, got errors: %+v", state.Errors)
 	}
 }
 
@@ -171,7 +171,7 @@ func TestCalculatePlayerCardState_TemperatureRequirement(t *testing.T) {
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Set temperature BELOW requirement
@@ -192,17 +192,17 @@ func TestCalculatePlayerCardState_TemperatureRequirement(t *testing.T) {
 		t.Error("Expected card to be unavailable due to temperature requirement")
 	}
 
-	// Verify TEMPERATURE_TOO_LOW error exists
+	// Verify temperature-too-low error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "TEMPERATURE_TOO_LOW" && err.Category == "requirement" {
+		if err.Code == player.ErrorCodeTemperatureTooLow && err.Category == player.ErrorCategoryRequirement {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected TEMPERATURE_TOO_LOW error, got errors: %+v", state.Errors)
+		t.Errorf("Expected temperature-too-low error, got errors: %+v", state.Errors)
 	}
 }
 
@@ -212,7 +212,7 @@ func TestCalculatePlayerCardState_MultipleRequirements(t *testing.T) {
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Set global parameters to NOT meet requirements
@@ -244,19 +244,19 @@ func TestCalculatePlayerCardState_MultipleRequirements(t *testing.T) {
 	hasOxygenError := false
 	hasOceanError := false
 	for _, err := range state.Errors {
-		if err.Code == "OXYGEN_TOO_LOW" {
+		if err.Code == player.ErrorCodeOxygenTooLow {
 			hasOxygenError = true
 		}
-		if err.Code == "OCEANS_TOO_LOW" {
+		if err.Code == player.ErrorCodeOceansTooLow {
 			hasOceanError = true
 		}
 	}
 
 	if !hasOxygenError {
-		t.Error("Expected OXYGEN_TOO_LOW error")
+		t.Error("Expected oxygen-too-low error")
 	}
 	if !hasOceanError {
-		t.Error("Expected OCEANS_TOO_LOW error")
+		t.Error("Expected oceans-too-low error")
 	}
 }
 
@@ -266,7 +266,7 @@ func TestCalculatePlayerCardState_WrongPhase(t *testing.T) {
 
 	// Give player credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Set game to WRONG phase (waiting for game start instead of action)
@@ -289,17 +289,17 @@ func TestCalculatePlayerCardState_WrongPhase(t *testing.T) {
 		t.Error("Expected card to be unavailable due to wrong phase")
 	}
 
-	// Verify WRONG_PHASE error exists
+	// Verify wrong-phase error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "WRONG_PHASE" && err.Category == "phase" {
+		if err.Code == player.ErrorCodeWrongPhase && err.Category == player.ErrorCategoryPhase {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected WRONG_PHASE error, got errors: %+v", state.Errors)
+		t.Errorf("Expected wrong-phase error, got errors: %+v", state.Errors)
 	}
 }
 
@@ -377,17 +377,17 @@ func TestCalculatePlayerCardActionState_InsufficientResources(t *testing.T) {
 		t.Error("Expected action to be unavailable due to insufficient resources")
 	}
 
-	// Verify INSUFFICIENT_RESOURCES error exists
+	// Verify insufficient-resources error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "INSUFFICIENT_RESOURCES" && err.Category == "input" {
+		if err.Code == player.ErrorCodeInsufficientResources && err.Category == player.ErrorCategoryInput {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected INSUFFICIENT_RESOURCES error, got errors: %+v", state.Errors)
+		t.Errorf("Expected insufficient-resources error, got errors: %+v", state.Errors)
 	}
 }
 
@@ -416,27 +416,27 @@ func TestCalculatePlayerCardActionState_NotPlayerTurn(t *testing.T) {
 		t.Error("Expected action to be unavailable because it's not player's turn")
 	}
 
-	// Verify NOT_YOUR_TURN error exists
+	// Verify not-your-turn error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "NOT_YOUR_TURN" && err.Category == "turn" {
+		if err.Code == player.ErrorCodeNotYourTurn && err.Category == player.ErrorCategoryTurn {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected NOT_YOUR_TURN error, got errors: %+v", state.Errors)
+		t.Errorf("Expected not-your-turn error, got errors: %+v", state.Errors)
 	}
 }
 
 // TestCalculatePlayerStandardProjectState_Available verifies affordable project
 func TestCalculatePlayerStandardProjectState_Available(t *testing.T) {
-	g, p, _ := setupTestEnvironment(t)
+	g, p, cardRegistry := setupTestEnvironment(t)
 
 	// Give player enough credits for asteroid (cost 14)
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Calculate state for asteroid project
@@ -444,6 +444,7 @@ func TestCalculatePlayerStandardProjectState_Available(t *testing.T) {
 		shared.StandardProjectAsteroid,
 		p,
 		g,
+		cardRegistry,
 	)
 
 	// Verify project is available
@@ -456,21 +457,21 @@ func TestCalculatePlayerStandardProjectState_Available(t *testing.T) {
 	}
 
 	expectedCost := shared.StandardProjectCost[shared.StandardProjectAsteroid]
-	if state.Cost == nil {
+	if len(state.Cost) == 0 {
 		t.Fatal("Expected cost to be set")
 	}
-	if *state.Cost != expectedCost {
-		t.Errorf("Expected cost %d, got %d", expectedCost, *state.Cost)
+	if state.Cost["credit"] != expectedCost {
+		t.Errorf("Expected cost %d, got %d", expectedCost, state.Cost["credit"])
 	}
 }
 
 // TestCalculatePlayerStandardProjectState_InsufficientCredits verifies affordability
 func TestCalculatePlayerStandardProjectState_InsufficientCredits(t *testing.T) {
-	g, p, _ := setupTestEnvironment(t)
+	g, p, cardRegistry := setupTestEnvironment(t)
 
 	// Give player insufficient credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 5,
+		shared.ResourceCredit: 5,
 	})
 
 	// Calculate state for asteroid project (cost 14)
@@ -478,6 +479,7 @@ func TestCalculatePlayerStandardProjectState_InsufficientCredits(t *testing.T) {
 		shared.StandardProjectAsteroid,
 		p,
 		g,
+		cardRegistry,
 	)
 
 	// Verify project is NOT available
@@ -485,27 +487,27 @@ func TestCalculatePlayerStandardProjectState_InsufficientCredits(t *testing.T) {
 		t.Error("Expected project to be unavailable due to insufficient credits")
 	}
 
-	// Verify INSUFFICIENT_CREDITS error exists
+	// Verify insufficient-credits error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "INSUFFICIENT_CREDITS" && err.Category == "cost" {
+		if err.Code == player.ErrorCodeInsufficientCredits && err.Category == player.ErrorCategoryCost {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected INSUFFICIENT_CREDITS error, got errors: %+v", state.Errors)
+		t.Errorf("Expected insufficient-credits error, got errors: %+v", state.Errors)
 	}
 }
 
 // TestCalculatePlayerStandardProjectState_NoOceansRemaining verifies ocean availability
 func TestCalculatePlayerStandardProjectState_NoOceansRemaining(t *testing.T) {
-	g, p, _ := setupTestEnvironment(t)
+	g, p, cardRegistry := setupTestEnvironment(t)
 
 	// Give player enough credits
 	p.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: 20,
+		shared.ResourceCredit: 20,
 	})
 
 	// Place all 9 oceans
@@ -521,6 +523,7 @@ func TestCalculatePlayerStandardProjectState_NoOceansRemaining(t *testing.T) {
 		shared.StandardProjectAquifer,
 		p,
 		g,
+		cardRegistry,
 	)
 
 	// Verify project is NOT available
@@ -528,17 +531,17 @@ func TestCalculatePlayerStandardProjectState_NoOceansRemaining(t *testing.T) {
 		t.Error("Expected aquifer project to be unavailable when no oceans remaining")
 	}
 
-	// Verify NO_OCEAN_TILES error exists
+	// Verify no-ocean-tiles error exists
 	found := false
 	for _, err := range state.Errors {
-		if err.Code == "NO_OCEAN_TILES" && err.Category == "availability" {
+		if err.Code == player.ErrorCodeNoOceanTiles && err.Category == player.ErrorCategoryAvailability {
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		t.Errorf("Expected NO_OCEAN_TILES error, got errors: %+v", state.Errors)
+		t.Errorf("Expected no-ocean-tiles error, got errors: %+v", state.Errors)
 	}
 
 	// Verify metadata shows oceansRemaining = 0

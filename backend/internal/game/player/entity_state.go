@@ -9,8 +9,10 @@ type EntityState struct {
 	// Single source of truth - Errors determine availability
 	Errors []StateError
 
-	// Optional cost (nil if not applicable)
-	Cost *int // Effective cost after discounts
+	// Multi-resource cost map (empty map means no cost)
+	// Keys are resource types like "credits", "plants", "heat"
+	// Values are the amounts required
+	Cost map[string]int
 
 	// Minimal entity-specific data (prefer typed fields over metadata when predictable)
 	Metadata map[string]interface{}
@@ -28,11 +30,11 @@ func (e EntityState) Available() bool {
 // StateError represents a specific reason why an entity is unavailable.
 // Errors are categorized for UI filtering and display.
 type StateError struct {
-	// Error code for programmatic handling (e.g., "INSUFFICIENT_CREDITS", "TEMPERATURE_TOO_LOW")
-	Code string
+	// Error code for programmatic handling (e.g., ErrorCodeInsufficientCredits)
+	Code StateErrorCode
 
-	// Category for grouping errors (e.g., "phase", "cost", "requirement", "behavior", "usage")
-	Category string
+	// Category for grouping errors (e.g., ErrorCategoryPhase, ErrorCategoryCost)
+	Category StateErrorCategory
 
 	// Human-readable error message
 	Message string

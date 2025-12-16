@@ -66,7 +66,7 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 						cardIDCopy := cardID
 						modifier := shared.RequirementModifier{
 							Amount:            output.Amount,
-							AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+							AffectedResources: []shared.ResourceType{shared.ResourceCredit},
 							CardTarget:        &cardIDCopy,
 						}
 						modifiers = append(modifiers, modifier)
@@ -87,7 +87,7 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 						cardIDCopy := cardID
 						modifier := shared.RequirementModifier{
 							Amount:            output.Amount,
-							AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+							AffectedResources: []shared.ResourceType{shared.ResourceCredit},
 							CardTarget:        &cardIDCopy,
 						}
 						modifiers = append(modifiers, modifier)
@@ -101,7 +101,7 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 				cardIDCopy := cardID
 				modifier := shared.RequirementModifier{
 					Amount:            output.Amount,
-					AffectedResources: []shared.ResourceType{shared.ResourceCredits},
+					AffectedResources: []shared.ResourceType{shared.ResourceCredit},
 					CardTarget:        &cardIDCopy,
 				}
 				modifiers = append(modifiers, modifier)
@@ -115,7 +115,7 @@ func (c *RequirementModifierCalculator) Calculate(p *player.Player) []shared.Req
 // convertAffectedResources converts string slice to ResourceType slice
 func (c *RequirementModifierCalculator) convertAffectedResources(resources []string) []shared.ResourceType {
 	if len(resources) == 0 {
-		return []shared.ResourceType{shared.ResourceCredits} // Default to credits discount
+		return []shared.ResourceType{shared.ResourceCredit} // Default to credits discount
 	}
 	result := make([]shared.ResourceType, len(resources))
 	for i, r := range resources {
@@ -182,4 +182,95 @@ func (c *RequirementModifierCalculator) mergeModifiers(modifiers []shared.Requir
 		result = append(result, *mod)
 	}
 	return result
+}
+
+// CalculateCardDiscounts computes the total credit discount for a specific card.
+// This is used during EntityState calculation instead of pre-computing all modifiers.
+// Returns the total discount amount in credits that applies to this card.
+func (c *RequirementModifierCalculator) CalculateCardDiscounts(p *player.Player, card *Card) int {
+	if p == nil || card == nil {
+		return 0
+	}
+
+	totalDiscount := 0
+	effects := p.Effects().List()
+
+	for _, effect := range effects {
+		for _, output := range effect.Behavior.Outputs {
+			if output.ResourceType != shared.ResourceDiscount {
+				continue
+			}
+
+			// Skip standard project discounts - those don't apply to cards
+			if len(output.AffectedStandardProjects) > 0 {
+				continue
+			}
+
+			// Case 1: Tag-based discount
+			if len(output.AffectedTags) > 0 {
+				if c.cardHasMatchingTag(card, output.AffectedTags) {
+					totalDiscount += output.Amount
+				}
+				continue
+			}
+
+			// Case 2: Card type discount
+			if len(output.AffectedCardTypes) > 0 {
+				if c.cardHasMatchingType(card, output.AffectedCardTypes) {
+					totalDiscount += output.Amount
+				}
+				continue
+			}
+
+			// Case 3: Global discount (applies to all cards)
+			totalDiscount += output.Amount
+		}
+	}
+
+	return totalDiscount
+}
+
+// CalculateStandardProjectDiscounts computes discounts for a specific standard project.
+// Returns a map of resource type to discount amount.
+// For example, Ecoline's discount on PlantGreenery returns {"plants": 1}.
+func (c *RequirementModifierCalculator) CalculateStandardProjectDiscounts(
+	p *player.Player,
+	projectType shared.StandardProject,
+) map[shared.ResourceType]int {
+	discounts := make(map[shared.ResourceType]int)
+
+	if p == nil {
+		return discounts
+	}
+
+	effects := p.Effects().List()
+
+	for _, effect := range effects {
+		for _, output := range effect.Behavior.Outputs {
+			if output.ResourceType != shared.ResourceDiscount {
+				continue
+			}
+
+			// Only process if this discount affects this standard project
+			projectMatches := false
+			for _, proj := range output.AffectedStandardProjects {
+				if proj == projectType {
+					projectMatches = true
+					break
+				}
+			}
+
+			if !projectMatches {
+				continue
+			}
+
+			// Determine which resources are discounted
+			affectedResources := c.convertAffectedResources(output.AffectedResources)
+			for _, resourceType := range affectedResources {
+				discounts[resourceType] += output.Amount
+			}
+		}
+	}
+
+	return discounts
 }

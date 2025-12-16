@@ -4,16 +4,16 @@ package shared
 type ResourceType string
 
 const (
-	// Basic resources
-	ResourceCredits  ResourceType = "credits"
+	// Basic resources (singular form for grammatically correct error messages)
+	ResourceCredit   ResourceType = "credit"
 	ResourceSteel    ResourceType = "steel"
 	ResourceTitanium ResourceType = "titanium"
-	ResourcePlants   ResourceType = "plants"
+	ResourcePlant    ResourceType = "plant"
 	ResourceEnergy   ResourceType = "energy"
 	ResourceHeat     ResourceType = "heat"
-	ResourceMicrobes ResourceType = "microbes"
-	ResourceAnimals  ResourceType = "animals"
-	ResourceFloaters ResourceType = "floaters"
+	ResourceMicrobe  ResourceType = "microbe"
+	ResourceAnimal   ResourceType = "animal"
+	ResourceFloater  ResourceType = "floater"
 	ResourceScience  ResourceType = "science"
 	ResourceAsteroid ResourceType = "asteroid"
 	ResourceDisease  ResourceType = "disease"
@@ -42,16 +42,16 @@ const (
 	// Global parameters
 	ResourceTemperature     ResourceType = "temperature"
 	ResourceOxygen          ResourceType = "oxygen"
-	ResourceOceans          ResourceType = "oceans"
+	ResourceOcean           ResourceType = "ocean"
 	ResourceVenus           ResourceType = "venus"
 	ResourceTR              ResourceType = "tr"
 	ResourceGlobalParameter ResourceType = "global-parameter"
 
-	// Production resources
-	ResourceCreditsProduction  ResourceType = "credits-production"
+	// Production resources (singular form for grammatically correct error messages)
+	ResourceCreditProduction   ResourceType = "credit-production"
 	ResourceSteelProduction    ResourceType = "steel-production"
 	ResourceTitaniumProduction ResourceType = "titanium-production"
-	ResourcePlantsProduction   ResourceType = "plants-production"
+	ResourcePlantProduction    ResourceType = "plant-production"
 	ResourceEnergyProduction   ResourceType = "energy-production"
 	ResourceHeatProduction     ResourceType = "heat-production"
 	ResourceAnyProduction      ResourceType = "any-production"

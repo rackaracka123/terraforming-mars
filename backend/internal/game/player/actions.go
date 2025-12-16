@@ -46,12 +46,22 @@ func (a *Actions) AddAction(action CardAction) {
 	a.actions = append(a.actions, action)
 }
 
-// ResetPlayCounts resets the PlayCount for all actions to 0
+// ResetGenerationCounts resets the generation counts for all actions to 0
 // Called at the start of each new generation
-func (a *Actions) ResetPlayCounts() {
+func (a *Actions) ResetGenerationCounts() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i := range a.actions {
-		a.actions[i].PlayCount = 0
+		a.actions[i].TimesUsedThisGeneration = 0
+	}
+}
+
+// ResetTurnCounts resets the turn counts for all actions to 0
+// Called at the start of each new turn
+func (a *Actions) ResetTurnCounts() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for i := range a.actions {
+		a.actions[i].TimesUsedThisTurn = 0
 	}
 }

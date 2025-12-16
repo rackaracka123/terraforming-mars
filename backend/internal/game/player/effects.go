@@ -2,22 +2,20 @@ package player
 
 import (
 	"sync"
-
-	"terraforming-mars-backend/internal/game/shared"
 )
 
-// Effects manages passive effects and requirement modifiers
+// Effects manages passive effects from played cards
+// Note: RequirementModifiers have been removed - discounts are now calculated on-demand
+// via RequirementModifierCalculator during EntityState calculation
 type Effects struct {
-	mu                   sync.RWMutex
-	effects              []CardEffect
-	requirementModifiers []shared.RequirementModifier
+	mu      sync.RWMutex
+	effects []CardEffect
 }
 
 // NewEffects creates a new Effects instance
 func NewEffects() *Effects {
 	return &Effects{
-		effects:              []CardEffect{},
-		requirementModifiers: []shared.RequirementModifier{},
+		effects: []CardEffect{},
 	}
 }
 
@@ -31,14 +29,6 @@ func (e *Effects) List() []CardEffect {
 	effectsCopy := make([]CardEffect, len(e.effects))
 	copy(effectsCopy, e.effects)
 	return effectsCopy
-}
-
-func (e *Effects) RequirementModifiers() []shared.RequirementModifier {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	modifiersCopy := make([]shared.RequirementModifier, len(e.requirementModifiers))
-	copy(modifiersCopy, e.requirementModifiers)
-	return modifiersCopy
 }
 
 func (e *Effects) SetEffects(effects []CardEffect) {
@@ -56,15 +46,4 @@ func (e *Effects) AddEffect(effect CardEffect) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.effects = append(e.effects, effect)
-}
-
-func (e *Effects) SetRequirementModifiers(modifiers []shared.RequirementModifier) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if modifiers == nil {
-		e.requirementModifiers = []shared.RequirementModifier{}
-	} else {
-		e.requirementModifiers = make([]shared.RequirementModifier, len(modifiers))
-		copy(e.requirementModifiers, modifiers)
-	}
 }

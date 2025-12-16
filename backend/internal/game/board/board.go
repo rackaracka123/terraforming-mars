@@ -100,8 +100,8 @@ func GenerateMarsBoard() []Tile {
 		{Q: -2, R: 0, S: 2}:  {Type: shared.ResourceSteel, Amount: 2},
 		{Q: 2, R: 1, S: -3}:  {Type: shared.ResourceTitanium, Amount: 3},
 		{Q: 3, R: 0, S: -3}:  {Type: shared.ResourceTitanium, Amount: 3},
-		{Q: -1, R: 2, S: -1}: {Type: shared.ResourcePlants, Amount: 2},
-		{Q: 0, R: 2, S: -2}:  {Type: shared.ResourcePlants, Amount: 2},
+		{Q: -1, R: 2, S: -1}: {Type: shared.ResourcePlant, Amount: 2},
+		{Q: 0, R: 2, S: -2}:  {Type: shared.ResourcePlant, Amount: 2},
 		{Q: 1, R: -3, S: 2}:  {Type: shared.ResourceCardDraw, Amount: 2},
 		{Q: 2, R: -3, S: 1}:  {Type: shared.ResourceCardDraw, Amount: 2},
 	}

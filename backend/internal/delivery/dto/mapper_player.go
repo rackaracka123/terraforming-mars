@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"terraforming-mars-backend/internal/action"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -25,7 +26,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 	handCards := mapPlayerCards(p)
 
 	// Get standard projects with availability state (Player-Scoped Card Architecture)
-	standardProjects := mapPlayerStandardProjects(p)
+	standardProjects := mapPlayerStandardProjects(p, g, cardRegistry)
 
 	// Only include turn-specific data if it's this player's turn
 	var pendingTileSelection *PendingTileSelectionDto
@@ -77,7 +78,7 @@ func ToPlayerDto(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry
 		ForcedFirstAction:        forcedFirstAction,
 		ResourceStorage:          p.Resources().Storage(),
 		PaymentSubstitutes:       convertPaymentSubstitutes(p.Resources().PaymentSubstitutes()),
-		RequirementModifiers:     convertRequirementModifiers(p.Effects().RequirementModifiers()),
+		// Note: RequirementModifiers removed - discounts are now in PlayerCardDto.Discounts and PlayerStandardProjectDto.Discounts
 	}
 }
 
@@ -287,11 +288,12 @@ func convertPlayerActions(actions []player.CardAction) []PlayerActionDto {
 	dtos := make([]PlayerActionDto, len(actions))
 	for i, action := range actions {
 		dtos[i] = PlayerActionDto{
-			CardID:        action.CardID,
-			CardName:      action.CardName,
-			BehaviorIndex: action.BehaviorIndex,
-			Behavior:      toCardBehaviorDto(action.Behavior),
-			PlayCount:     action.PlayCount,
+			CardID:                  action.CardID,
+			CardName:                action.CardName,
+			BehaviorIndex:           action.BehaviorIndex,
+			Behavior:                toCardBehaviorDto(action.Behavior),
+			TimesUsedThisTurn:       action.TimesUsedThisTurn,
+			TimesUsedThisGeneration: action.TimesUsedThisGeneration,
 		}
 	}
 	return dtos
@@ -308,37 +310,6 @@ func convertPaymentSubstitutes(substitutes []shared.PaymentSubstitute) []Payment
 		dtos[i] = PaymentSubstituteDto{
 			ResourceType:   ResourceType(sub.ResourceType),
 			ConversionRate: sub.ConversionRate,
-		}
-	}
-	return dtos
-}
-
-// convertRequirementModifiers converts RequirementModifier slice to RequirementModifierDto slice
-func convertRequirementModifiers(modifiers []shared.RequirementModifier) []RequirementModifierDto {
-	if len(modifiers) == 0 {
-		return []RequirementModifierDto{}
-	}
-
-	dtos := make([]RequirementModifierDto, len(modifiers))
-	for i, mod := range modifiers {
-		// Convert resource types
-		affectedResources := make([]ResourceType, len(mod.AffectedResources))
-		for j, res := range mod.AffectedResources {
-			affectedResources[j] = ResourceType(res)
-		}
-
-		// Convert standard project pointer
-		var standardProjectTarget *StandardProject
-		if mod.StandardProjectTarget != nil {
-			sp := StandardProject(*mod.StandardProjectTarget)
-			standardProjectTarget = &sp
-		}
-
-		dtos[i] = RequirementModifierDto{
-			Amount:                mod.Amount,
-			AffectedResources:     affectedResources,
-			CardTarget:            mod.CardTarget,
-			StandardProjectTarget: standardProjectTarget,
 		}
 	}
 	return dtos
@@ -429,13 +400,14 @@ func getAvailableActionsForPlayer(g *game.Game, playerID string) int {
 // Player-Scoped Card Architecture Mappers
 // ========================================
 
-// convertStateErrors converts EntityState errors to DTOs
+// convertStateErrors converts EntityState errors to DTOs.
+// Since domain and DTO enums have identical string values, we cast between them.
 func convertStateErrors(errors []player.StateError) []StateErrorDto {
 	result := make([]StateErrorDto, len(errors))
 	for i, err := range errors {
 		result[i] = StateErrorDto{
-			Code:     err.Code,
-			Category: err.Category,
+			Code:     StateErrorCode(err.Code),
+			Category: StateErrorCategory(err.Category),
 			Message:  err.Message,
 		}
 	}
@@ -452,17 +424,16 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 	if !ok {
 		// Defensive: return empty DTO if card type is wrong (should not happen)
 		return PlayerCardDto{
-			Available: false,
-			Errors:    []StateErrorDto{{Code: "INVALID_CARD_TYPE", Category: "internal", Message: "Invalid card type"}},
+			Available:     false,
+			Errors:        []StateErrorDto{{Code: ErrorCodeInvalidCardType, Category: ErrorCategoryInternal, Message: "Invalid card type"}},
+			EffectiveCost: 0,
 		}
 	}
 
-	// Extract discounts from metadata
+	// Extract discounts from metadata (stored as map[string]int by state_calculator)
 	discounts := make(map[string]int)
-	if discountData, ok := state.Metadata["discounts"].(map[shared.CardTag]int); ok {
-		for tag, amount := range discountData {
-			discounts[string(tag)] = amount
-		}
+	if discountData, ok := state.Metadata["discounts"].(map[string]int); ok {
+		discounts = discountData
 	}
 
 	// Convert tags
@@ -471,18 +442,62 @@ func ToPlayerCardDto(pc *player.PlayerCard) PlayerCardDto {
 		tags[i] = CardTag(tag)
 	}
 
+	// Convert requirements
+	var requirements []RequirementDto
+	if len(card.Requirements) > 0 {
+		requirements = make([]RequirementDto, len(card.Requirements))
+		for i, req := range card.Requirements {
+			requirements[i] = toRequirementDto(req)
+		}
+	}
+
+	// Convert behaviors
+	var behaviors []CardBehaviorDto
+	if len(card.Behaviors) > 0 {
+		behaviors = make([]CardBehaviorDto, len(card.Behaviors))
+		for i, behavior := range card.Behaviors {
+			behaviors[i] = toCardBehaviorDto(behavior)
+		}
+	}
+
+	// Convert resource storage
+	var resourceStorage *ResourceStorageDto
+	if card.ResourceStorage != nil {
+		storage := toResourceStorageDto(*card.ResourceStorage)
+		resourceStorage = &storage
+	}
+
+	// Convert VP conditions
+	var vpConditions []VPConditionDto
+	if len(card.VPConditions) > 0 {
+		vpConditions = make([]VPConditionDto, len(card.VPConditions))
+		for i, vp := range card.VPConditions {
+			vpConditions[i] = toVPConditionDto(vp)
+		}
+	}
+
+	// Extract effective cost (credits) from EntityState.Cost map
 	effectiveCost := 0
 	if state.Cost != nil {
-		effectiveCost = *state.Cost
+		if credits, ok := state.Cost[string(shared.ResourceCredit)]; ok {
+			effectiveCost = credits
+		}
 	}
 
 	return PlayerCardDto{
-		ID:            card.ID,
-		Name:          card.Name,
-		Type:          string(card.Type),
-		Cost:          card.Cost,
-		Description:   card.Description,
-		Tags:          tags,
+		// Card data (same as CardDto)
+		ID:              card.ID,
+		Name:            card.Name,
+		Type:            CardType(card.Type),
+		Cost:            card.Cost,
+		Description:     card.Description,
+		Pack:            card.Pack,
+		Tags:            tags,
+		Requirements:    requirements,
+		Behaviors:       behaviors,
+		ResourceStorage: resourceStorage,
+		VPConditions:    vpConditions,
+		// Player-specific state
 		Available:     state.Available(),
 		Errors:        convertStateErrors(state.Errors),
 		EffectiveCost: effectiveCost,
@@ -509,9 +524,48 @@ func mapPlayerCards(p *player.Player) []PlayerCardDto {
 	return result
 }
 
-// mapPlayerStandardProjects converts PlayerStandardProject instances to DTOs
-// TODO: Implement when standard projects are integrated into Player
-func mapPlayerStandardProjects(p *player.Player) []PlayerStandardProjectDto {
-	// Placeholder - will be implemented in Phase 7
-	return []PlayerStandardProjectDto{}
+// mapPlayerStandardProjects calculates state for all standard projects and converts to DTOs.
+// Uses the state calculator to compute availability and effective costs for each project.
+// Will be rewritten when standard projects are part of the cards JSON DB as metadata cards (instead of hard coded).
+// NOTE: Conversion projects (plants→greenery, heat→temperature) are NOT included here - they
+// are handled separately via resource buttons in the bottom bar.
+func mapPlayerStandardProjects(p *player.Player, g *game.Game, cardRegistry cards.CardRegistry) []PlayerStandardProjectDto {
+	// Standard project types (excluding resource conversion projects which appear on resource icons)
+	projectTypes := []shared.StandardProject{
+		shared.StandardProjectSellPatents,
+		shared.StandardProjectPowerPlant,
+		shared.StandardProjectAsteroid,
+		shared.StandardProjectAquifer,
+		shared.StandardProjectGreenery,
+		shared.StandardProjectCity,
+	}
+
+	result := make([]PlayerStandardProjectDto, 0, len(projectTypes))
+	for _, projectType := range projectTypes {
+		// Calculate state using the state calculator
+		state := action.CalculatePlayerStandardProjectState(projectType, p, g, cardRegistry)
+
+		// Get base costs for this project
+		baseCost := action.GetStandardProjectBaseCosts(projectType)
+
+		// Extract discounts from metadata
+		discounts := make(map[string]int)
+		if discountData, ok := state.Metadata["discounts"].(map[string]int); ok {
+			discounts = discountData
+		}
+
+		dto := PlayerStandardProjectDto{
+			ProjectType:   string(projectType),
+			BaseCost:      baseCost,
+			Available:     state.Available(),
+			Errors:        convertStateErrors(state.Errors),
+			EffectiveCost: state.Cost,
+			Discounts:     discounts,
+			Metadata:      state.Metadata,
+		}
+
+		result = append(result, dto)
+	}
+
+	return result
 }

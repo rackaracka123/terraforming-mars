@@ -852,3 +852,9 @@ func (g *Game) calculateAvailableHexesForTile(tileType string, playerID string) 
 
 	return availableHexes
 }
+
+// CountAvailableHexesForTile returns the number of valid hex positions for placing a tile
+// This is used by state calculators to determine if tile-placing actions are available
+func (g *Game) CountAvailableHexesForTile(tileType string, playerID string) int {
+	return len(g.calculateAvailableHexesForTile(tileType, playerID))
+}
