@@ -99,14 +99,14 @@ func main() {
 	sellPatentsAction := stdprojAction.NewSellPatentsAction(gameRepo, log)
 
 	// Resource conversions (2)
-	convertHeatAction := resconvAction.NewConvertHeatToTemperatureAction(gameRepo, log)
-	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, log)
+	convertHeatAction := resconvAction.NewConvertHeatToTemperatureAction(gameRepo, cardRegistry, log)
+	convertPlantsAction := resconvAction.NewConvertPlantsToGreeneryAction(gameRepo, cardRegistry, log)
 
 	// Tile selection (1)
 	selectTileAction := tileAction.NewSelectTileAction(gameRepo, cardRegistry, log)
 
 	// Turn management (3)
-	startGameAction := turnAction.NewStartGameAction(gameRepo, cardRegistry, log)
+	startGameAction := turnAction.NewStartGameAction(gameRepo, log)
 	skipActionAction := turnAction.NewSkipActionAction(gameRepo, log)
 	selectStartingCardsAction := turnAction.NewSelectStartingCardsAction(gameRepo, cardRegistry, log)
 

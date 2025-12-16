@@ -7,12 +7,13 @@ import (
 	gameAction "terraforming-mars-backend/internal/action/game"
 	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
 	turnAction "terraforming-mars-backend/internal/action/turn_management"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/global_parameters"
 	"terraforming-mars-backend/test/testutil"
 )
 
-func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameRepository, string) {
+func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameRepository, cards.CardRegistry, string) {
 	t.Helper()
 
 	repo := game.NewInMemoryGameRepository()
@@ -23,7 +24,7 @@ func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameReposito
 	// Create and start game
 	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 	joinAction := gameAction.NewJoinGameAction(repo, cardRegistry, logger)
-	startAction := turnAction.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	settings := game.GameSettings{
 		MaxPlayers: 2,
@@ -49,13 +50,13 @@ func setupActiveGameForGlobalParams(t *testing.T) (*game.Game, game.GameReposito
 	startAction.Execute(ctx, gameID, gameState.HostPlayerID())
 
 	gameAfterStart, _ := repo.Get(ctx, gameID)
-	return gameAfterStart, repo, player1ID
+	return gameAfterStart, repo, cardRegistry, player1ID
 }
 
 // TestGlobalParameters_TemperatureProgression tests temperature increases
 func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get player and give heat
@@ -63,7 +64,7 @@ func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 	testutil.SetPlayerHeat(ctx, player, 32) // Enough for 4 conversions
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Set as current turn
 	testGame.SetCurrentTurn(ctx, playerID, 2)
@@ -96,7 +97,7 @@ func TestGlobalParameters_TemperatureProgression(t *testing.T) {
 // TestGlobalParameters_TemperatureMax tests temperature cannot exceed maximum
 func TestGlobalParameters_TemperatureMax(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Set temperature near max
@@ -110,7 +111,7 @@ func TestGlobalParameters_TemperatureMax(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 10)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Try to raise temperature multiple times
 	for i := 0; i < 5; i++ {
@@ -130,7 +131,7 @@ func TestGlobalParameters_TemperatureMax(t *testing.T) {
 // TestGlobalParameters_AllParametersInitialized tests all global parameters are set on game start
 func TestGlobalParameters_AllParametersInitialized(t *testing.T) {
 	// Setup
-	testGame, _, _ := setupActiveGameForGlobalParams(t)
+	testGame, _, _, _ := setupActiveGameForGlobalParams(t)
 
 	globalParams := testGame.GlobalParameters()
 	testutil.AssertTrue(t, globalParams != nil, "Global parameters should exist")
@@ -152,7 +153,7 @@ func TestGlobalParameters_AllParametersInitialized(t *testing.T) {
 // TestGlobalParameters_EventsPublished tests that events are published on parameter changes
 func TestGlobalParameters_EventsPublished(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Give player heat
@@ -163,7 +164,7 @@ func TestGlobalParameters_EventsPublished(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 
@@ -180,7 +181,7 @@ func TestGlobalParameters_EventsPublished(t *testing.T) {
 // TestGlobalParameters_TRIncreasesWithTerraforming tests TR increases when terraforming
 func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGameForGlobalParams(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get initial TR
@@ -192,7 +193,7 @@ func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 	testGame.SetCurrentTurn(ctx, playerID, 2)
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	err := convertAction.Execute(ctx, testGame.ID(), playerID)
 	testutil.AssertNoError(t, err, "Heat conversion failed")
@@ -209,7 +210,7 @@ func TestGlobalParameters_TRIncreasesWithTerraforming(t *testing.T) {
 // TestGlobalParameters_MultiplePlayers tests multiple players can terraform
 func TestGlobalParameters_MultiplePlayers(t *testing.T) {
 	// Setup
-	testGame, repo, player1ID := setupActiveGameForGlobalParams(t)
+	testGame, repo, cardRegistry, player1ID := setupActiveGameForGlobalParams(t)
 	ctx := context.Background()
 
 	// Get second player
@@ -223,7 +224,7 @@ func TestGlobalParameters_MultiplePlayers(t *testing.T) {
 	}
 
 	logger := testutil.TestLogger()
-	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	initialTemp := testGame.GlobalParameters().Temperature()
 
