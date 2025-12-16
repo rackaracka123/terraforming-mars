@@ -82,12 +82,14 @@ func ToPlayerDto(player model.Player) PlayerDto {
 ❌ **WRONG**: Using DTOs internally in backend (use models instead)
 ❌ **WRONG**: Updating DTO without updating mapper function
 ❌ **WRONG**: Not running `make generate` after DTO changes
+❌ **WRONG**: Adding `// DEPRECATED` comments - delete deprecated fields entirely instead
 
 ✅ **CORRECT**: Every DTO field has both `json:` and `ts:` tags
 ✅ **CORRECT**: Only DTOs listed in `tygo.yaml` config
 ✅ **CORRECT**: DTOs used only at delivery layer boundaries
 ✅ **CORRECT**: Mapper functions updated with all DTO fields
 ✅ **CORRECT**: `make generate` run after every DTO change
+✅ **CORRECT**: When deprecating a field, remove it completely and update all usages
 
 ## DTO Update Checklist
 
