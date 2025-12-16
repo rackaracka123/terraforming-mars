@@ -4,16 +4,18 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	resconvAction "terraforming-mars-backend/internal/action/resource_conversion"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/test/testutil"
 )
 
-func setupActiveGame(t *testing.T) (*game.Game, game.GameRepository, string) {
+func setupActiveGame(t *testing.T) (*game.Game, game.GameRepository, cards.CardRegistry, string) {
 	t.Helper()
 
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
+	cardRegistry := testutil.CreateTestCardRegistry()
 
 	// Start game
 	testutil.StartTestGame(t, testGame)
@@ -21,12 +23,12 @@ func setupActiveGame(t *testing.T) (*game.Game, game.GameRepository, string) {
 	// Get the current turn player ID (set by StartTestGame)
 	playerID := testGame.CurrentTurn().PlayerID()
 
-	return testGame, repo, playerID
+	return testGame, repo, cardRegistry, playerID
 }
 
 func TestConvertHeatAction_Success(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGame(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGame(t)
 	logger := testutil.TestLogger()
 
 	// Give player enough heat
@@ -34,7 +36,7 @@ func TestConvertHeatAction_Success(t *testing.T) {
 	player, _ := testGame.GetPlayer(playerID)
 	testutil.SetPlayerHeat(ctx, player, 8)
 
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Get initial temperature
 	initialTemp := testGame.GlobalParameters().Temperature()
@@ -61,7 +63,7 @@ func TestConvertHeatAction_Success(t *testing.T) {
 
 func TestConvertHeatAction_InsufficientHeat(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGame(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGame(t)
 	logger := testutil.TestLogger()
 
 	// Give player insufficient heat
@@ -69,7 +71,7 @@ func TestConvertHeatAction_InsufficientHeat(t *testing.T) {
 	player, _ := testGame.GetPlayer(playerID)
 	testutil.SetPlayerHeat(ctx, player, 5)
 
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Execute
 	err := convertAction.Execute(context.Background(), testGame.ID(), playerID)
@@ -81,9 +83,10 @@ func TestConvertHeatAction_InsufficientHeat(t *testing.T) {
 func TestConvertHeatAction_GameNotFound(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
+	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Execute
 	err := convertAction.Execute(context.Background(), "non-existent", "player-id")
@@ -94,10 +97,10 @@ func TestConvertHeatAction_GameNotFound(t *testing.T) {
 
 func TestConvertHeatAction_PlayerNotFound(t *testing.T) {
 	// Setup
-	testGame, repo, _ := setupActiveGame(t)
+	testGame, repo, cardRegistry, _ := setupActiveGame(t)
 	logger := testutil.TestLogger()
 
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Execute
 	err := convertAction.Execute(context.Background(), testGame.ID(), "non-existent-player")
@@ -108,7 +111,7 @@ func TestConvertHeatAction_PlayerNotFound(t *testing.T) {
 
 func TestConvertHeatAction_TemperatureMaxed(t *testing.T) {
 	// Setup
-	testGame, repo, playerID := setupActiveGame(t)
+	testGame, repo, cardRegistry, playerID := setupActiveGame(t)
 	logger := testutil.TestLogger()
 
 	// Set temperature to max
@@ -120,7 +123,7 @@ func TestConvertHeatAction_TemperatureMaxed(t *testing.T) {
 	player, _ := testGame.GetPlayer(playerID)
 	testutil.SetPlayerHeat(ctx, player, 8)
 
-	convertAction := action.NewConvertHeatToTemperatureAction(repo, logger)
+	convertAction := resconvAction.NewConvertHeatToTemperatureAction(repo, cardRegistry, logger)
 
 	// Execute - should fail or not increase temperature
 	err := convertAction.Execute(context.Background(), testGame.ID(), playerID)

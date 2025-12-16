@@ -88,6 +88,20 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Name: "Ecoline",
 			Type: gamecards.CardTypeCorporation,
 			Pack: "base",
+			Behaviors: []shared.CardBehavior{
+				{
+					Triggers: []shared.Trigger{{Type: shared.TriggerTypeAuto}},
+					Outputs: []shared.ResourceCondition{
+						{
+							ResourceType:             shared.ResourceDiscount,
+							Amount:                   1,
+							Target:                   "self-player",
+							AffectedResources:        []string{"plant"},
+							AffectedStandardProjects: []shared.StandardProject{shared.StandardProjectConvertPlantsToGreenery},
+						},
+					},
+				},
+			},
 		},
 		{
 			ID:   "corp-helion",
@@ -458,6 +472,15 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Cost:        3,
 			Tags:        []shared.CardTag{shared.TagSpace, shared.TagPower},
 			Description: "Action: Spend 7 M€ to increase your energy production 1 step.",
+		},
+		{
+			ID:          "card-arctic-algae",
+			Name:        "Arctic Algae",
+			Type:        gamecards.CardTypeActive,
+			Pack:        "base",
+			Cost:        12,
+			Tags:        []shared.CardTag{shared.TagPlant},
+			Description: "Test card without space tag for discount testing.",
 		},
 	}
 

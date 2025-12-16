@@ -3,7 +3,7 @@ package confirmation
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,7 +13,7 @@ import (
 
 // ConfirmCardDrawHandler handles confirm card draw requests
 type ConfirmCardDrawHandler struct {
-	action      *action.ConfirmCardDrawAction
+	action      *confirmaction.ConfirmCardDrawAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -24,7 +24,7 @@ type Broadcaster interface {
 }
 
 // NewConfirmCardDrawHandler creates a new confirm card draw handler
-func NewConfirmCardDrawHandler(action *action.ConfirmCardDrawAction, broadcaster Broadcaster) *ConfirmCardDrawHandler {
+func NewConfirmCardDrawHandler(action *confirmaction.ConfirmCardDrawAction, broadcaster Broadcaster) *ConfirmCardDrawHandler {
 	return &ConfirmCardDrawHandler{
 		action:      action,
 		broadcaster: broadcaster,

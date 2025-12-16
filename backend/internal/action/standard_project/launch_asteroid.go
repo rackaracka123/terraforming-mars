@@ -1,8 +1,9 @@
-package action
+package standard_project
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
@@ -17,7 +18,7 @@ const (
 // LaunchAsteroidAction handles the business logic for the launch asteroid standard project
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type LaunchAsteroidAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewLaunchAsteroidAction creates a new launch asteroid action
@@ -26,10 +27,7 @@ func NewLaunchAsteroidAction(
 	logger *zap.Logger,
 ) *LaunchAsteroidAction {
 	return &LaunchAsteroidAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -39,13 +37,13 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 	log.Info("☄️ Launching asteroid")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -66,7 +64,7 @@ func (a *LaunchAsteroidAction) Execute(ctx context.Context, gameID string, playe
 
 	// 6. BUSINESS LOGIC: Deduct cost using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -LaunchAsteroidCost,
+		shared.ResourceCredit: -LaunchAsteroidCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update

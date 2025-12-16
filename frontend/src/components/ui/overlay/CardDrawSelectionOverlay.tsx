@@ -2,35 +2,26 @@ import React, { useEffect, useState } from "react";
 import SimpleGameCard from "../cards/SimpleGameCard.tsx";
 import GameIcon from "../display/GameIcon.tsx";
 import {
-  CardDto,
   PendingCardDrawSelectionDto,
-  RequirementModifierDto,
-  ResourceType,
-  ResourceTypeCredits,
+  ResourceTypeCredit,
 } from "../../../types/generated/api-types.ts";
-
-/**
- * Calculate the total discount applicable to a specific card from player's requirement modifiers
- */
-function calculateCardDiscount(
-  cardId: string,
-  requirementModifiers: RequirementModifierDto[],
-): number {
-  return requirementModifiers
-    .filter(
-      (mod) =>
-        mod.affectedResources.includes("credits" as ResourceType) &&
-        (!mod.cardTarget || mod.cardTarget === cardId) &&
-        !mod.standardProjectTarget,
-    )
-    .reduce((total, mod) => total + mod.amount, 0);
-}
+import {
+  OVERLAY_BACKGROUND_CLASS,
+  OVERLAY_CONTAINER_CLASS,
+  OVERLAY_HEADER_CLASS,
+  OVERLAY_TITLE_CLASS,
+  OVERLAY_DESCRIPTION_CLASS,
+  OVERLAY_CARDS_CONTAINER_CLASS,
+  OVERLAY_CARDS_INNER_CLASS,
+  OVERLAY_FOOTER_CLASS,
+  PRIMARY_BUTTON_CLASS,
+  RESOURCE_LABEL_CLASS,
+} from "./overlayStyles.ts";
 
 interface CardDrawSelectionOverlayProps {
   isOpen: boolean;
   selection: PendingCardDrawSelectionDto;
   playerCredits: number;
-  requirementModifiers?: RequirementModifierDto[];
   onConfirm: (cardsToTake: string[], cardsToBuy: string[]) => void;
 }
 
@@ -38,7 +29,6 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
   isOpen,
   selection,
   playerCredits,
-  requirementModifiers = [],
   onConfirm,
 }) => {
   const [cardsToTake, setCardsToTake] = useState<string[]>([]);
@@ -201,26 +191,22 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center animate-[fadeIn_0.3s_ease]">
       {/* Translucent background */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className={OVERLAY_BACKGROUND_CLASS} />
 
       {/* Content container */}
-      <div className="relative z-[1] w-[90%] max-w-[1400px] max-h-[90vh] flex flex-col bg-space-black-darker/95 border-2 border-space-blue-400 rounded-[20px] overflow-hidden backdrop-blur-space shadow-[0_20px_60px_rgba(0,0,0,0.6),0_0_60px_rgba(30,60,150,0.5)] max-[768px]:w-full max-[768px]:h-screen max-[768px]:max-h-screen max-[768px]:rounded-none">
+      <div className={OVERLAY_CONTAINER_CLASS}>
         {/* Header */}
-        <div className="py-6 px-8 bg-black/40 border-b border-space-blue-600 max-[768px]:p-5">
-          <h2 className="m-0 font-orbitron text-[28px] font-bold text-white text-shadow-glow tracking-wider max-[768px]:text-2xl">
-            {titleInfo.title}
-          </h2>
+        <div className={OVERLAY_HEADER_CLASS}>
+          <h2 className={OVERLAY_TITLE_CLASS}>{titleInfo.title}</h2>
           {titleInfo.description && (
-            <p className="mt-2 mb-0 text-base text-white/80 max-[768px]:text-sm">
-              {titleInfo.description}
-            </p>
+            <p className={OVERLAY_DESCRIPTION_CLASS}>{titleInfo.description}</p>
           )}
         </div>
 
         {/* Cards display */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-8 flex items-center bg-[radial-gradient(ellipse_at_center,rgba(139,69,19,0.1)_0%,transparent_70%)] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-white/30 max-[768px]:p-5">
-          <div className="flex gap-6 mx-auto py-5 max-[768px]:gap-4">
-            {selection.availableCards.map((card: CardDto, index: number) => {
+        <div className={OVERLAY_CARDS_CONTAINER_CLASS}>
+          <div className={OVERLAY_CARDS_INNER_CLASS}>
+            {selection.availableCards.map((card, index) => {
               const isSelected =
                 cardsToTake.includes(card.id) || cardsToBuy.includes(card.id);
               const badge = getCardBadge(card.id);
@@ -233,10 +219,6 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
                     onSelect={handleCardSelect}
                     animationDelay={index * 100}
                     showCheckbox={!isCardDraw}
-                    discountAmount={calculateCardDiscount(
-                      card.id,
-                      requirementModifiers,
-                    )}
                   />
                   {/* FREE Badge - only show for cards in free take list */}
                   {!isCardDraw && badge.type === "free" && (
@@ -251,25 +233,21 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
         </div>
 
         {/* Footer with cost and confirm button */}
-        <div className="py-6 px-8 bg-black/40 border-t border-space-blue-600 flex justify-between items-center max-[768px]:p-5 max-[768px]:flex-col max-[768px]:gap-5">
+        <div className={OVERLAY_FOOTER_CLASS}>
           <div className="flex gap-8 items-center max-[768px]:w-full max-[768px]:justify-between max-[768px]:flex-wrap">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                Your Credits:
-              </span>
+              <span className={RESOURCE_LABEL_CLASS}>Your Credits:</span>
               <GameIcon
-                iconType={ResourceTypeCredits}
+                iconType={ResourceTypeCredit}
                 amount={playerCredits}
                 size="large"
               />
             </div>
             {totalBuyCost > 0 && (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-white/60 uppercase tracking-[0.5px]">
-                  Buy Cost:
-                </span>
+                <span className={RESOURCE_LABEL_CLASS}>Buy Cost:</span>
                 <GameIcon
-                  iconType={ResourceTypeCredits}
+                  iconType={ResourceTypeCredit}
                   amount={totalBuyCost}
                   size="large"
                 />
@@ -309,7 +287,7 @@ const CardDrawSelectionOverlay: React.FC<CardDrawSelectionOverlayProps> = ({
             </div>
             <div className="flex gap-3 items-center">
               <button
-                className="py-4 px-8 bg-space-black-darker/90 border-2 border-space-blue-800 rounded-xl text-xl font-bold text-white cursor-pointer transition-all duration-300 text-shadow-dark shadow-[0_4px_20px_rgba(30,60,150,0.3)] whitespace-nowrap hover:enabled:bg-space-black-darker/95 hover:enabled:border-space-blue-600 hover:enabled:-translate-y-0.5 hover:enabled:shadow-glow active:enabled:translate-y-0 disabled:bg-gray-700/50 disabled:border-gray-500/30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:opacity-60 max-[768px]:w-full max-[768px]:py-3 max-[768px]:px-6 max-[768px]:text-lg"
+                className={PRIMARY_BUTTON_CLASS}
                 onClick={handleConfirm}
                 disabled={!isValidSelection || totalBuyCost > playerCredits}
               >

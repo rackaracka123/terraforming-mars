@@ -1,8 +1,9 @@
-package action
+package confirmation
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
@@ -13,7 +14,7 @@ import (
 // This is Phase 2: processes the selected cards and awards credits
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmSellPatentsAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConfirmSellPatentsAction creates a new confirm sell patents action
@@ -22,10 +23,7 @@ func NewConfirmSellPatentsAction(
 	logger *zap.Logger,
 ) *ConfirmSellPatentsAction {
 	return &ConfirmSellPatentsAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -38,13 +36,13 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	log.Info("🏛️ Confirming sell patents card selection")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -104,7 +102,7 @@ func (a *ConfirmSellPatentsAction) Execute(ctx context.Context, gameID string, p
 	// 9. BUSINESS LOGIC: Award credits
 	if totalReward > 0 {
 		player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: totalReward,
+			shared.ResourceCredit: totalReward,
 		})
 
 		resources := player.Resources().Get()

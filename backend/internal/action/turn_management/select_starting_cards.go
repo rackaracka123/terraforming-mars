@@ -1,8 +1,9 @@
-package action
+package turn_management
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 
@@ -164,7 +165,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 				zap.Int("behavior_index", effect.BehaviorIndex))
 
 			// Subscribe trigger effects to relevant events
-			subscribePassiveEffectToEvents(ctx, g, player, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, player, effect, log)
 		}
 	}
 
@@ -194,7 +195,7 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 	}
 
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -cost,
+		shared.ResourceCredit: -cost,
 	})
 
 	updatedResources := player.Resources().Get()
@@ -207,20 +208,13 @@ func (a *SelectStartingCardsAction) Execute(ctx context.Context, gameID string, 
 		zap.Strings("card_ids", cardIDs),
 		zap.Int("count", len(cardIDs)))
 
-	for _, cardID := range cardIDs {
-		player.Hand().AddCard(cardID)
-	}
+	baseaction.AddCardsToPlayerHand(cardIDs, player, g, a.cardRegistry, log)
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", cardIDs),
 		zap.Int("card_count", len(cardIDs)))
 
-	// 12a. BUSINESS LOGIC: Recalculate requirement modifiers (discounts from corporation effects + cards in hand)
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
-	modifiers := calculator.Calculate(player)
-	player.Effects().SetRequirementModifiers(modifiers)
-	log.Info("📊 Calculated requirement modifiers",
-		zap.Int("modifier_count", len(modifiers)))
+	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
 
 	// 13. BUSINESS LOGIC: Setup forced first action if corporation requires it
 	if err := a.corpProc.SetupForcedFirstAction(ctx, corpCard, g, playerID); err != nil {

@@ -8,6 +8,12 @@ type Trigger struct {
 	Condition *ResourceTriggerCondition `json:"condition,omitempty"`
 }
 
+// TriggerType constants for card behavior triggers
+const (
+	TriggerTypeAuto   = "auto"   // Automatic trigger (immediate effect when card is played)
+	TriggerTypeManual = "manual" // Manual trigger (blue card action, activated by player)
+)
+
 // ResourceTriggerCondition represents what triggers an automatic resource exchange
 type ResourceTriggerCondition struct {
 	Type              string         `json:"type"`

@@ -3,7 +3,7 @@ package game
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game"
@@ -14,7 +14,7 @@ import (
 
 // CreateGameHandler handles create game requests using the migrated architecture
 type CreateGameHandler struct {
-	createGameAction *action.CreateGameAction
+	createGameAction *gameaction.CreateGameAction
 	broadcaster      Broadcaster
 	logger           *zap.Logger
 }
@@ -25,7 +25,7 @@ type Broadcaster interface {
 }
 
 // NewCreateGameHandler creates a new create game handler for migrated actions
-func NewCreateGameHandler(createGameAction *action.CreateGameAction, broadcaster Broadcaster) *CreateGameHandler {
+func NewCreateGameHandler(createGameAction *gameaction.CreateGameAction, broadcaster Broadcaster) *CreateGameHandler {
 	return &CreateGameHandler{
 		createGameAction: createGameAction,
 		broadcaster:      broadcaster,

@@ -1,8 +1,9 @@
-package action
+package card
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 
@@ -17,7 +18,7 @@ import (
 // Card playing involves: validating requirements, calculating costs (with discounts),
 // moving card to played cards, applying immediate effects, and deducting payment
 type PlayCardAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewPlayCardAction creates a new play card action
@@ -27,11 +28,7 @@ func NewPlayCardAction(
 	logger *zap.Logger,
 ) *PlayCardAction {
 	return &PlayCardAction{
-		BaseAction: BaseAction{
-			gameRepo:     gameRepo,
-			cardRegistry: cardRegistry,
-			logger:       logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -58,18 +55,18 @@ func (a *PlayCardAction) Execute(
 	log.Info("🃏 Player attempting to play card")
 
 	// 1. Validate game exists and is active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate game is in action phase
-	if err := ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
+	if err := baseaction.ValidateGamePhase(g, game.GamePhaseAction, log); err != nil {
 		return err
 	}
 
 	// 3. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -86,7 +83,7 @@ func (a *PlayCardAction) Execute(
 	}
 
 	// 6. BUSINESS LOGIC: Get card data from registry
-	card, err := a.cardRegistry.GetByID(cardID)
+	card, err := a.CardRegistry().GetByID(cardID)
 	if err != nil {
 		log.Error("Card not found in registry", zap.Error(err))
 		return fmt.Errorf("card not found: %w", err)
@@ -154,9 +151,18 @@ func (a *PlayCardAction) Execute(
 
 	log.Info("✅ Card added to played cards")
 
-	// 13. STATE UPDATE: Deduct payment from player resources (using negative values)
+	// 13. STATE UPDATE: Initialize resource storage if card can hold resources
+	if card.ResourceStorage != nil {
+		player.Resources().AddToStorage(cardID, card.ResourceStorage.Starting)
+		log.Info("📦 Initialized resource storage",
+			zap.String("card_id", cardID),
+			zap.String("resource_type", string(card.ResourceStorage.Type)),
+			zap.Int("starting_amount", card.ResourceStorage.Starting))
+	}
+
+	// 14. STATE UPDATE: Deduct payment from player resources (using negative values)
 	deductions := map[shared.ResourceType]int{
-		shared.ResourceCredits:  -payment.Credits,
+		shared.ResourceCredit:   -payment.Credits,
 		shared.ResourceSteel:    -payment.Steel,
 		shared.ResourceTitanium: -payment.Titanium,
 	}
@@ -174,18 +180,13 @@ func (a *PlayCardAction) Execute(
 		zap.Int("titanium", payment.Titanium),
 		zap.Any("substitutes", payment.Substitutes))
 
-	// 14. BUSINESS LOGIC: Apply card immediate effects and register behaviors
+	// 15. BUSINESS LOGIC: Apply card immediate effects and register behaviors
 	if err := a.applyCardBehaviors(ctx, g, card, player, log); err != nil {
 		log.Error("Failed to apply card behaviors", zap.Error(err))
 		return fmt.Errorf("failed to apply card behaviors: %w", err)
 	}
 
-	// 14a. BUSINESS LOGIC: Recalculate requirement modifiers (card played may have discount effects, hand changed)
-	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
-	modifiers := calculator.Calculate(player)
-	player.Effects().SetRequirementModifiers(modifiers)
-	log.Debug("📊 Recalculated requirement modifiers",
-		zap.Int("modifier_count", len(modifiers)))
+	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
 
 	log.Info("🎉 Card played successfully",
 		zap.String("card_name", card.Name),
@@ -286,13 +287,13 @@ func validateCardRequirements(card *gamecards.Card, g *game.Game, player *player
 			var currentAmount int
 
 			switch *req.Resource {
-			case shared.ResourceCredits:
+			case shared.ResourceCredit:
 				currentAmount = resources.Credits
 			case shared.ResourceSteel:
 				currentAmount = resources.Steel
 			case shared.ResourceTitanium:
 				currentAmount = resources.Titanium
-			case shared.ResourcePlants:
+			case shared.ResourcePlant:
 				currentAmount = resources.Plants
 			case shared.ResourceEnergy:
 				currentAmount = resources.Energy
@@ -348,7 +349,8 @@ func (a *PlayCardAction) applyCardBehaviors(
 				zap.Int("output_count", len(behavior.Outputs)))
 
 			// Use BehaviorApplier for consistent output handling
-			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log)
+			applier := gamecards.NewBehaviorApplier(p, g, card.Name, log).
+				WithSourceCardID(card.ID)
 			if err := applier.ApplyOutputs(ctx, behavior.Outputs); err != nil {
 				return fmt.Errorf("failed to apply auto behavior %d outputs: %w", behaviorIndex, err)
 			}
@@ -374,11 +376,12 @@ func (a *PlayCardAction) applyCardBehaviors(
 			log.Info("🎯 Found manual-trigger behavior, registering as player action")
 
 			p.Actions().AddAction(player.CardAction{
-				CardID:        card.ID,
-				CardName:      card.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-				PlayCount:     0,
+				CardID:                  card.ID,
+				CardName:                card.Name,
+				BehaviorIndex:           behaviorIndex,
+				Behavior:                behavior,
+				TimesUsedThisTurn:       0,
+				TimesUsedThisGeneration: 0,
 			})
 		}
 
@@ -396,7 +399,7 @@ func (a *PlayCardAction) applyCardBehaviors(
 			p.Effects().AddEffect(effect)
 
 			// Subscribe passive effects to relevant events
-			subscribePassiveEffectToEvents(ctx, g, p, effect, log)
+			baseaction.SubscribePassiveEffectToEvents(ctx, g, p, effect, log)
 		}
 	}
 

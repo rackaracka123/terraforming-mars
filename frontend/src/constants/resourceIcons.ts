@@ -3,10 +3,10 @@
  */
 
 export const RESOURCE_ICONS = {
-  credits: "/assets/resources/megacredit.png",
+  credit: "/assets/resources/megacredit.png",
   steel: "/assets/resources/steel.png",
   titanium: "/assets/resources/titanium.png",
-  plants: "/assets/resources/plants.png",
+  plant: "/assets/resources/plant.png",
   energy: "/assets/resources/power.png",
   heat: "/assets/resources/heat.png",
   oxygen: "/assets/resources/oxygen.png",
@@ -17,7 +17,7 @@ export const RESOURCE_ICONS = {
 export const GLOBAL_PARAM_ICONS = {
   temperature: "/assets/resources/heat.png",
   oxygen: "/assets/resources/oxygen.png",
-  oceans: "/assets/resources/ocean.png",
+  ocean: "/assets/resources/ocean.png",
 } as const;
 
 export const MISC_ICONS = {

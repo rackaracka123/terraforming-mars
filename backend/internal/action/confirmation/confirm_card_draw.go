@@ -1,10 +1,12 @@
-package action
+package confirmation
 
 import (
 	"context"
 	"fmt"
 	"slices"
+	baseaction "terraforming-mars-backend/internal/action"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 
@@ -14,19 +16,17 @@ import (
 // ConfirmCardDrawAction handles the business logic for confirming card draw selection
 // MIGRATION: Uses new architecture (GameRepository only, automatic broadcasting via EventBus)
 type ConfirmCardDrawAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewConfirmCardDrawAction creates a new confirm card draw action
 func NewConfirmCardDrawAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *ConfirmCardDrawAction {
 	return &ConfirmCardDrawAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -40,7 +40,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	log.Info("🃏 Confirming card draw selection")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 
 		// Deduct credits for bought cards
 		player.Resources().Add(map[shared.ResourceType]int{
-			shared.ResourceCredits: -totalCost,
+			shared.ResourceCredit: -totalCost,
 		})
 
 		newResources := player.Resources().Get()
@@ -129,9 +129,7 @@ func (a *ConfirmCardDrawAction) Execute(ctx context.Context, gameID string, play
 	}
 
 	// 12. BUSINESS LOGIC: Add all selected cards to player's hand
-	for _, cardID := range allSelectedCards {
-		player.Hand().AddCard(cardID)
-	}
+	baseaction.AddCardsToPlayerHand(allSelectedCards, player, g, a.CardRegistry(), log)
 
 	log.Info("🃏 Added selected cards to hand",
 		zap.Int("cards_taken", len(cardsToTake)),

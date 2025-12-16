@@ -28,11 +28,12 @@ func (pe *CardEffect) DeepCopy() *CardEffect {
 
 // CardAction represents a repeatable manual action defined by a card
 type CardAction struct {
-	CardID        string
-	CardName      string
-	BehaviorIndex int
-	Behavior      shared.CardBehavior
-	PlayCount     int
+	CardID                  string
+	CardName                string
+	BehaviorIndex           int
+	Behavior                shared.CardBehavior
+	TimesUsedThisTurn       int
+	TimesUsedThisGeneration int
 }
 
 // DeepCopy creates a deep copy of the CardAction
@@ -42,10 +43,11 @@ func (pa *CardAction) DeepCopy() *CardAction {
 	}
 
 	return &CardAction{
-		CardID:        pa.CardID,
-		CardName:      pa.CardName,
-		BehaviorIndex: pa.BehaviorIndex,
-		Behavior:      pa.Behavior.DeepCopy(),
-		PlayCount:     pa.PlayCount,
+		CardID:                  pa.CardID,
+		CardName:                pa.CardName,
+		BehaviorIndex:           pa.BehaviorIndex,
+		Behavior:                pa.Behavior.DeepCopy(),
+		TimesUsedThisTurn:       pa.TimesUsedThisTurn,
+		TimesUsedThisGeneration: pa.TimesUsedThisGeneration,
 	}
 }

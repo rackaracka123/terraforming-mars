@@ -3,7 +3,8 @@ package card
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	cardaction "terraforming-mars-backend/internal/action/card"
+
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/game/shared"
@@ -14,7 +15,7 @@ import (
 
 // PlayCardHandler handles play card requests
 type PlayCardHandler struct {
-	action      *action.PlayCardAction
+	action      *cardaction.PlayCardAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
@@ -25,7 +26,7 @@ type Broadcaster interface {
 }
 
 // NewPlayCardHandler creates a new play card handler
-func NewPlayCardHandler(action *action.PlayCardAction, broadcaster Broadcaster) *PlayCardHandler {
+func NewPlayCardHandler(action *cardaction.PlayCardAction, broadcaster Broadcaster) *PlayCardHandler {
 	return &PlayCardHandler{
 		action:      action,
 		broadcaster: broadcaster,
@@ -65,7 +66,7 @@ func (h *PlayCardHandler) HandleMessage(ctx context.Context, connection *core.Co
 	}
 
 	// Extract payment (optional, defaults to 0)
-	payment := action.PaymentRequest{
+	payment := cardaction.PaymentRequest{
 		Credits:     0,
 		Steel:       0,
 		Titanium:    0,

@@ -168,13 +168,13 @@ func validateProductionRequirement(req Requirement, pl *player.Player) error {
 	var productionAmount int
 
 	switch *req.Resource {
-	case shared.ResourceCredits:
+	case shared.ResourceCredit:
 		productionAmount = production.Credits
 	case shared.ResourceSteel:
 		productionAmount = production.Steel
 	case shared.ResourceTitanium:
 		productionAmount = production.Titanium
-	case shared.ResourcePlants:
+	case shared.ResourcePlant:
 		productionAmount = production.Plants
 	case shared.ResourceEnergy:
 		productionAmount = production.Energy
@@ -220,13 +220,13 @@ func validateResourceRequirement(req Requirement, pl *player.Player) error {
 	var resourceAmount int
 
 	switch *req.Resource {
-	case shared.ResourceCredits:
+	case shared.ResourceCredit:
 		resourceAmount = resources.Credits
 	case shared.ResourceSteel:
 		resourceAmount = resources.Steel
 	case shared.ResourceTitanium:
 		resourceAmount = resources.Titanium
-	case shared.ResourcePlants:
+	case shared.ResourcePlant:
 		resourceAmount = resources.Plants
 	case shared.ResourceEnergy:
 		resourceAmount = resources.Energy

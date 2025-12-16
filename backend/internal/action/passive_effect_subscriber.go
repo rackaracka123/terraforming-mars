@@ -12,9 +12,9 @@ import (
 	"terraforming-mars-backend/internal/game/shared"
 )
 
-// subscribePassiveEffectToEvents subscribes passive effects to relevant domain events
+// SubscribePassiveEffectToEvents subscribes passive effects to relevant domain events
 // This function is called when cards with passive effects are played or corporations are selected
-func subscribePassiveEffectToEvents(
+func SubscribePassiveEffectToEvents(
 	ctx context.Context,
 	g *game.Game,
 	p *player.Player,
@@ -88,7 +88,8 @@ func subscribePlacementBonusEffect(
 			zap.String("trigger_type", trigger.Condition.Type),
 			zap.Any("resources_gained", event.Resources))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
 				zap.String("card_name", effect.CardName),
@@ -151,7 +152,8 @@ func subscribeCityPlacedEffect(
 			zap.String("placed_by", event.PlayerID),
 			zap.String("tile_type", event.TileType))
 
-		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log)
+		applier := gamecards.NewBehaviorApplier(p, g, effect.CardName, log).
+			WithSourceCardID(effect.CardID)
 		if err := applier.ApplyOutputs(context.Background(), effect.Behavior.Outputs); err != nil {
 			log.Error("Failed to apply passive effect outputs",
 				zap.String("card_name", effect.CardName),

@@ -379,17 +379,17 @@ export const TagWild: CardTag = "wild";
  */
 export type ResourceType = string;
 /**
- * Basic resources
+ * Basic resources (singular form to match backend shared.ResourceType)
  */
-export const ResourceTypeCredits: ResourceType = "credits";
+export const ResourceTypeCredit: ResourceType = "credit";
 export const ResourceTypeSteel: ResourceType = "steel";
 export const ResourceTypeTitanium: ResourceType = "titanium";
-export const ResourceTypePlants: ResourceType = "plants";
+export const ResourceTypePlant: ResourceType = "plant";
 export const ResourceTypeEnergy: ResourceType = "energy";
 export const ResourceTypeHeat: ResourceType = "heat";
-export const ResourceTypeMicrobes: ResourceType = "microbes";
-export const ResourceTypeAnimals: ResourceType = "animals";
-export const ResourceTypeFloaters: ResourceType = "floaters";
+export const ResourceTypeMicrobe: ResourceType = "microbe";
+export const ResourceTypeAnimal: ResourceType = "animal";
+export const ResourceTypeFloater: ResourceType = "floater";
 export const ResourceTypeScience: ResourceType = "science";
 export const ResourceTypeAsteroid: ResourceType = "asteroid";
 export const ResourceTypeDisease: ResourceType = "disease";
@@ -420,13 +420,13 @@ export const ResourceTypeOxygen: ResourceType = "oxygen";
 export const ResourceTypeVenus: ResourceType = "venus";
 export const ResourceTypeTR: ResourceType = "tr";
 /**
- * Production resources
+ * Production resources (singular form to match backend shared.ResourceType)
  */
-export const ResourceTypeCreditsProduction: ResourceType = "credits-production";
+export const ResourceTypeCreditProduction: ResourceType = "credit-production";
 export const ResourceTypeSteelProduction: ResourceType = "steel-production";
 export const ResourceTypeTitaniumProduction: ResourceType =
   "titanium-production";
-export const ResourceTypePlantsProduction: ResourceType = "plants-production";
+export const ResourceTypePlantProduction: ResourceType = "plant-production";
 export const ResourceTypeEnergyProduction: ResourceType = "energy-production";
 export const ResourceTypeHeatProduction: ResourceType = "heat-production";
 /**
@@ -706,14 +706,105 @@ export interface PaymentSubstituteDto {
   conversionRate: number /* int */;
 }
 /**
- * RequirementModifierDto represents a discount or lenience that modifies card/standard project requirements
- * These are calculated from player effects and automatically updated when card hand or effects change
+ * StateErrorCode represents error codes for entity state validation.
+ * All codes use kebab-case for consistency with JSON serialization.
  */
-export interface RequirementModifierDto {
-  amount: number /* int */; // Modifier amount (discount/lenience value)
-  affectedResources: ResourceType[]; // Resources affected (e.g., ["credits"] for price discount)
-  cardTarget?: string; // Optional: specific card ID this applies to
-  standardProjectTarget?: StandardProject; // Optional: specific standard project this applies to
+export type StateErrorCode = string;
+/**
+ * Turn/Phase errors
+ */
+export const ErrorCodeNotYourTurn: StateErrorCode = "not-your-turn";
+export const ErrorCodeWrongPhase: StateErrorCode = "wrong-phase";
+/**
+ * Cost errors
+ */
+export const ErrorCodeInsufficientCredits: StateErrorCode =
+  "insufficient-credits";
+/**
+ * Resource errors
+ */
+export const ErrorCodeInsufficientResources: StateErrorCode =
+  "insufficient-resources";
+export const ErrorCodeTooManyResources: StateErrorCode = "too-many-resources";
+/**
+ * Requirement errors - Global parameters
+ */
+export const ErrorCodeTemperatureTooLow: StateErrorCode = "temperature-too-low";
+export const ErrorCodeTemperatureTooHigh: StateErrorCode =
+  "temperature-too-high";
+export const ErrorCodeOxygenTooLow: StateErrorCode = "oxygen-too-low";
+export const ErrorCodeOxygenTooHigh: StateErrorCode = "oxygen-too-high";
+export const ErrorCodeOceansTooLow: StateErrorCode = "oceans-too-low";
+export const ErrorCodeOceansTooHigh: StateErrorCode = "oceans-too-high";
+export const ErrorCodeTRTooLow: StateErrorCode = "tr-too-low";
+export const ErrorCodeTRTooHigh: StateErrorCode = "tr-too-high";
+/**
+ * Requirement errors - Tags/Production
+ */
+export const ErrorCodeInsufficientTags: StateErrorCode = "insufficient-tags";
+export const ErrorCodeTooManyTags: StateErrorCode = "too-many-tags";
+export const ErrorCodeInsufficientProduction: StateErrorCode =
+  "insufficient-production";
+/**
+ * Availability errors
+ */
+export const ErrorCodeNoOceanTiles: StateErrorCode = "no-ocean-tiles";
+export const ErrorCodeInvalidProjectType: StateErrorCode =
+  "invalid-project-type";
+export const ErrorCodeInvalidRequirement: StateErrorCode =
+  "invalid-requirement";
+/**
+ * Internal errors
+ */
+export const ErrorCodeInvalidCardType: StateErrorCode = "invalid-card-type";
+/**
+ * StateErrorCategory represents categories for error grouping.
+ * Categories enable UI filtering and display organization.
+ */
+export type StateErrorCategory = string;
+export const ErrorCategoryTurn: StateErrorCategory = "turn";
+export const ErrorCategoryPhase: StateErrorCategory = "phase";
+export const ErrorCategoryCost: StateErrorCategory = "cost";
+export const ErrorCategoryInput: StateErrorCategory = "input";
+export const ErrorCategoryRequirement: StateErrorCategory = "requirement";
+export const ErrorCategoryAvailability: StateErrorCategory = "availability";
+export const ErrorCategoryConfiguration: StateErrorCategory = "configuration";
+export const ErrorCategoryInternal: StateErrorCategory = "internal";
+/**
+ * StateErrorDto represents a specific reason why an entity (card, action, project) is unavailable
+ * Part of the Player-Scoped Card Architecture for rich error information
+ */
+export interface StateErrorDto {
+  code: StateErrorCode; // Error code (e.g., ErrorCodeInsufficientCredits)
+  category: StateErrorCategory; // Error category (e.g., ErrorCategoryCost)
+  message: string; // Human-readable error message
+}
+/**
+ * PlayerCardDto represents a card in a player's hand with calculated playability state
+ * Part of the Player-Scoped Card Architecture
+ */
+export interface PlayerCardDto {
+  /**
+   * Card data (from immutable Card) - same fields as CardDto for compatibility
+   */
+  id: string;
+  name: string;
+  type: CardType;
+  cost: number /* int */; // Original card cost (same as CardDto.Cost)
+  description: string;
+  pack: string;
+  tags?: CardTag[];
+  requirements?: RequirementDto[];
+  behaviors?: CardBehaviorDto[];
+  resourceStorage?: ResourceStorageDto;
+  vpConditions?: VPConditionDto[];
+  /**
+   * Player-specific calculated state (from EntityState)
+   */
+  available: boolean; // Computed: len(Errors) == 0
+  errors: StateErrorDto[]; // Single source of truth for availability
+  effectiveCost: number /* int */; // Effective cost after discounts (credits)
+  discounts?: { [key: string]: number /* int */ }; // Discount amounts per resource type (if any)
 }
 /**
  * PlayerEffectDto represents ongoing effects that a player has active for client consumption
@@ -727,13 +818,39 @@ export interface PlayerEffectDto {
 }
 /**
  * PlayerActionDto represents an action that a player can take for client consumption
+ * Enhanced with calculated usability state from Player-Scoped Card Architecture
  */
 export interface PlayerActionDto {
   cardId: string; // ID of the card that provides this action
   cardName: string; // Name of the card for display purposes
   behaviorIndex: number /* int */; // Which behavior on the card this action represents
   behavior: CardBehaviorDto; // The actual behavior definition with inputs/outputs
-  playCount: number /* int */; // Number of times this action has been played this generation
+  /**
+   * Persistent state (tracked over time)
+   */
+  timesUsedThisTurn: number /* int */; // Times used this turn
+  timesUsedThisGeneration: number /* int */; // Times used this generation
+  /**
+   * Calculated usability state (from EntityState)
+   */
+  available: boolean; // Computed: action is usable
+  errors: StateErrorDto[]; // Reasons why action is not usable
+}
+/**
+ * PlayerStandardProjectDto represents a standard project with availability state
+ * Part of the Player-Scoped Card Architecture
+ */
+export interface PlayerStandardProjectDto {
+  projectType: string; // Standard project type (e.g., "sell_patents", "aquifer")
+  baseCost: { [key: string]: number /* int */ }; // Base cost per resource type (e.g., {"credits": 23} or {"plants": 8})
+  /**
+   * Calculated availability state (from EntityState)
+   */
+  available: boolean; // Computed: project is available
+  errors: StateErrorDto[]; // Reasons why project is not available
+  effectiveCost: { [key: string]: number /* int */ }; // Cost per resource type after discounts
+  discounts?: { [key: string]: number /* int */ }; // Discount amounts per resource type (if any)
+  metadata?: { [key: string]: any }; // Project-specific context (e.g., oceansRemaining)
 }
 /**
  * ForcedFirstActionDto represents an action that must be completed as the player's first turn action
@@ -791,7 +908,7 @@ export interface PlayerDto {
   name: string;
   status: PlayerStatus;
   corporation?: CardDto;
-  cards: CardDto[];
+  cards: PlayerCardDto[]; // Hand cards with playability state (Player-Scoped Architecture)
   resources: ResourcesDto;
   production: ProductionDto;
   terraformRating: number /* int */;
@@ -802,6 +919,7 @@ export interface PlayerDto {
   isConnected: boolean;
   effects: PlayerEffectDto[]; // Active ongoing effects (discounts, special abilities, etc.)
   actions: PlayerActionDto[]; // Available actions from played cards with manual triggers
+  standardProjects: PlayerStandardProjectDto[]; // Standard projects with availability state (Player-Scoped Architecture)
   selectStartingCardsPhase?: SelectStartingCardsPhaseDto;
   productionPhase?: ProductionPhaseDto;
   startingCards: CardDto[]; // Cards dealt at game start (from selectStartingCardsPhase.availableCards)
@@ -829,10 +947,6 @@ export interface PlayerDto {
    * Payment substitutes - alternative resources usable as payment for credits
    */
   paymentSubstitutes: PaymentSubstituteDto[]; // Alternative resources usable as payment
-  /**
-   * Requirement modifiers - discounts and leniences calculated from effects (auto-updated on card hand/effects changes)
-   */
-  requirementModifiers: RequirementModifierDto[]; // Calculated discounts/leniences for cards and standard projects
 }
 /**
  * OtherPlayerDto represents another player from the viewing player's perspective (limited data)

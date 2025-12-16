@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	turnAction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/test/testutil"
 )
@@ -13,7 +13,6 @@ func TestStartGameAction_Success(t *testing.T) {
 	// Setup
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
 	// Set corporations for all players
@@ -22,7 +21,7 @@ func TestStartGameAction_Success(t *testing.T) {
 		p.SetCorporationID("corp-tharsis-republic")
 	}
 
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	// Execute
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())
@@ -38,10 +37,9 @@ func TestStartGameAction_Success(t *testing.T) {
 func TestStartGameAction_GameNotFound(t *testing.T) {
 	// Setup
 	repo := game.NewInMemoryGameRepository()
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	// Execute
 	err := startAction.Execute(context.Background(), "non-existent-game", "some-player")
@@ -54,7 +52,6 @@ func TestStartGameAction_NotInLobby(t *testing.T) {
 	// Setup
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
 	// Set corporations and start game
@@ -65,7 +62,7 @@ func TestStartGameAction_NotInLobby(t *testing.T) {
 	}
 
 	// Start game once using action
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 	startAction.Execute(ctx, testGame.ID(), testGame.HostPlayerID())
 
 	// Try to start again
@@ -79,7 +76,6 @@ func TestStartGameAction_NotHost(t *testing.T) {
 	// Setup
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
 	// Set corporations
@@ -88,7 +84,7 @@ func TestStartGameAction_NotHost(t *testing.T) {
 		p.SetCorporationID("corp-tharsis-republic")
 	}
 
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	// Get non-host player
 	nonHostPlayer := ""
@@ -110,14 +106,13 @@ func TestStartGameAction_MinimumPlayers(t *testing.T) {
 	// Setup
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 1, broadcaster)
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
 	// Set corporation for single player
 	players := testGame.GetAllPlayers()
 	players[0].SetCorporationID("corp-tharsis-republic")
 
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	// Execute - should allow solo play
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())
@@ -134,7 +129,6 @@ func TestStartGameAction_InitialResourcesSet(t *testing.T) {
 	// Setup
 	broadcaster := testutil.NewMockBroadcaster()
 	testGame, repo := testutil.CreateTestGameWithPlayers(t, 2, broadcaster)
-	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
 	// Set corporations
@@ -143,7 +137,7 @@ func TestStartGameAction_InitialResourcesSet(t *testing.T) {
 		p.SetCorporationID("corp-tharsis-republic")
 	}
 
-	startAction := action.NewStartGameAction(repo, cardRegistry, logger)
+	startAction := turnAction.NewStartGameAction(repo, logger)
 
 	// Execute
 	err := startAction.Execute(context.Background(), testGame.ID(), testGame.HostPlayerID())

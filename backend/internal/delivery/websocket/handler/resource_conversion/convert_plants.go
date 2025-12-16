@@ -3,7 +3,7 @@ package resource_conversion
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	resconvaction "terraforming-mars-backend/internal/action/resource_conversion"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // ConvertPlantsHandler handles convert plants to greenery requests
 type ConvertPlantsHandler struct {
-	action      *action.ConvertPlantsToGreeneryAction
+	action      *resconvaction.ConvertPlantsToGreeneryAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewConvertPlantsHandler creates a new convert plants handler
-func NewConvertPlantsHandler(action *action.ConvertPlantsToGreeneryAction, broadcaster Broadcaster) *ConvertPlantsHandler {
+func NewConvertPlantsHandler(action *resconvaction.ConvertPlantsToGreeneryAction, broadcaster Broadcaster) *ConvertPlantsHandler {
 	return &ConvertPlantsHandler{
 		action:      action,
 		broadcaster: broadcaster,

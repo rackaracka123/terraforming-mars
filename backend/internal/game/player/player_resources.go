@@ -184,13 +184,13 @@ func (r *PlayerResources) Add(changes map[shared.ResourceType]int) {
 	r.mu.Lock()
 	for resourceType, amount := range changes {
 		switch resourceType {
-		case shared.ResourceCredits:
+		case shared.ResourceCredit:
 			r.resources.Credits += amount
 		case shared.ResourceSteel:
 			r.resources.Steel += amount
 		case shared.ResourceTitanium:
 			r.resources.Titanium += amount
-		case shared.ResourcePlants:
+		case shared.ResourcePlant:
 			r.resources.Plants += amount
 		case shared.ResourceEnergy:
 			r.resources.Energy += amount
@@ -225,13 +225,13 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 	oldProduction := r.production
 	for resourceType, amount := range changes {
 		switch resourceType {
-		case shared.ResourceCreditsProduction:
+		case shared.ResourceCreditProduction:
 			r.production.Credits += amount
 		case shared.ResourceSteelProduction:
 			r.production.Steel += amount
 		case shared.ResourceTitaniumProduction:
 			r.production.Titanium += amount
-		case shared.ResourcePlantsProduction:
+		case shared.ResourcePlantProduction:
 			r.production.Plants += amount
 		case shared.ResourceEnergyProduction:
 			r.production.Energy += amount
@@ -250,7 +250,7 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 			resourceName := string(resourceType)
 
 			switch resourceType {
-			case shared.ResourceCreditsProduction:
+			case shared.ResourceCreditProduction:
 				oldValue = oldProduction.Credits
 				newValue = newProduction.Credits
 				resourceName = "credits"
@@ -262,7 +262,7 @@ func (r *PlayerResources) AddProduction(changes map[shared.ResourceType]int) {
 				oldValue = oldProduction.Titanium
 				newValue = newProduction.Titanium
 				resourceName = "titanium"
-			case shared.ResourcePlantsProduction:
+			case shared.ResourcePlantProduction:
 				oldValue = oldProduction.Plants
 				newValue = newProduction.Plants
 				resourceName = "plants"
@@ -308,4 +308,22 @@ func (r *PlayerResources) UpdateTerraformRating(delta int) {
 		})
 
 	}
+}
+
+// AddToStorage adds resources to a specific card's storage
+// cardID is the card ID, amount is the number of resources to add
+func (r *PlayerResources) AddToStorage(cardID string, amount int) {
+	r.mu.Lock()
+	if r.resourceStorage == nil {
+		r.resourceStorage = make(map[string]int)
+	}
+	r.resourceStorage[cardID] += amount
+	r.mu.Unlock()
+}
+
+// GetCardStorage returns the amount of resources stored on a specific card
+func (r *PlayerResources) GetCardStorage(cardID string) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.resourceStorage[cardID]
 }

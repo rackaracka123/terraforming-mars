@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"terraforming-mars-backend/internal/action"
+	gameAction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/test/testutil"
 )
@@ -15,7 +15,7 @@ func TestCreateGameAction_Success(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{
@@ -43,7 +43,7 @@ func TestCreateGameAction_DefaultSettings(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute with empty settings
 	settings := game.GameSettings{}
@@ -61,7 +61,7 @@ func TestCreateGameAction_DeckInitialization(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{
@@ -87,7 +87,7 @@ func TestCreateGameAction_MultipleCardPacks(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute with multiple packs
 	settings := game.GameSettings{
@@ -108,7 +108,7 @@ func TestCreateGameAction_BoardInitialization(t *testing.T) {
 	cardRegistry := testutil.CreateTestCardRegistry()
 	logger := testutil.TestLogger()
 
-	createAction := action.NewCreateGameAction(repo, cardRegistry, logger)
+	createAction := gameAction.NewCreateGameAction(repo, cardRegistry, logger)
 
 	// Execute
 	settings := game.GameSettings{

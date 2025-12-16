@@ -3,7 +3,7 @@ package connection
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	connaction "terraforming-mars-backend/internal/action/connection"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,12 +13,12 @@ import (
 
 // PlayerReconnectedHandler handles player reconnection requests
 type PlayerReconnectedHandler struct {
-	action *action.PlayerReconnectedAction
+	action *connaction.PlayerReconnectedAction
 	logger *zap.Logger
 }
 
 // NewPlayerReconnectedHandler creates a new player reconnected handler
-func NewPlayerReconnectedHandler(action *action.PlayerReconnectedAction) *PlayerReconnectedHandler {
+func NewPlayerReconnectedHandler(action *connaction.PlayerReconnectedAction) *PlayerReconnectedHandler {
 	return &PlayerReconnectedHandler{
 		action: action,
 		logger: logger.Get(),

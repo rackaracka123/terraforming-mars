@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // LaunchAsteroidHandler handles launch asteroid standard project requests
 type LaunchAsteroidHandler struct {
-	action      *action.LaunchAsteroidAction
+	action      *stdprojaction.LaunchAsteroidAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewLaunchAsteroidHandler creates a new launch asteroid handler
-func NewLaunchAsteroidHandler(action *action.LaunchAsteroidAction, broadcaster Broadcaster) *LaunchAsteroidHandler {
+func NewLaunchAsteroidHandler(action *stdprojaction.LaunchAsteroidAction, broadcaster Broadcaster) *LaunchAsteroidHandler {
 	return &LaunchAsteroidHandler{
 		action:      action,
 		broadcaster: broadcaster,

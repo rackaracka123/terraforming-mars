@@ -3,7 +3,7 @@ package confirmation
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	confirmaction "terraforming-mars-backend/internal/action/confirmation"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // ConfirmSellPatentsHandler handles confirm sell patents requests
 type ConfirmSellPatentsHandler struct {
-	action      *action.ConfirmSellPatentsAction
+	action      *confirmaction.ConfirmSellPatentsAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewConfirmSellPatentsHandler creates a new confirm sell patents handler
-func NewConfirmSellPatentsHandler(action *action.ConfirmSellPatentsAction, broadcaster Broadcaster) *ConfirmSellPatentsHandler {
+func NewConfirmSellPatentsHandler(action *confirmaction.ConfirmSellPatentsAction, broadcaster Broadcaster) *ConfirmSellPatentsHandler {
 	return &ConfirmSellPatentsHandler{
 		action:      action,
 		broadcaster: broadcaster,

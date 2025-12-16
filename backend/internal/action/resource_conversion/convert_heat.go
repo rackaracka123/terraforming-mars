@@ -1,11 +1,15 @@
-package action
+package resource_conversion
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/global_parameters"
+	"terraforming-mars-backend/internal/game/shared"
 
 	"go.uber.org/zap"
 )
@@ -18,19 +22,19 @@ const (
 // ConvertHeatToTemperatureAction handles converting heat to raise temperature
 // New architecture: Uses only GameRepository + logger, events handle broadcasting
 type ConvertHeatToTemperatureAction struct {
-	BaseAction
+	baseaction.BaseAction
+	cardRegistry cards.CardRegistry
 }
 
 // NewConvertHeatToTemperatureAction creates a new convert heat action
 func NewConvertHeatToTemperatureAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *ConvertHeatToTemperatureAction {
 	return &ConvertHeatToTemperatureAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction:   baseaction.NewBaseAction(gameRepo, nil),
+		cardRegistry: cardRegistry,
 	}
 }
 
@@ -44,13 +48,13 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	log.Info("🔥 Converting heat to temperature")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -61,10 +65,16 @@ func (a *ConvertHeatToTemperatureAction) Execute(
 	}
 
 	// 5. Calculate required heat (with card discount effects)
-	// TODO: Reimplement card discount effects when card system is migrated
-	requiredHeat := BaseHeatForTemperature
+	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProjectConvertHeatToTemperature)
+	heatDiscount := discounts[shared.ResourceHeat]
+	requiredHeat := BaseHeatForTemperature - heatDiscount
+	if requiredHeat < 1 {
+		requiredHeat = 1 // Minimum cost is 1
+	}
 	log.Debug("💰 Calculated heat cost",
 		zap.Int("base_cost", BaseHeatForTemperature),
+		zap.Int("discount", heatDiscount),
 		zap.Int("final_cost", requiredHeat))
 
 	// 6. Validate player has enough heat

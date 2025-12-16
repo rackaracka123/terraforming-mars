@@ -83,7 +83,7 @@ func (p CardPayment) CanAfford(playerResources shared.Resources) error {
 				available = playerResources.Heat
 			case shared.ResourceEnergy:
 				available = playerResources.Energy
-			case shared.ResourcePlants:
+			case shared.ResourcePlant:
 				available = playerResources.Plants
 			default:
 				return fmt.Errorf("unsupported payment substitute resource type: %s", resourceType)

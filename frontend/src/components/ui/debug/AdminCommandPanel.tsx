@@ -99,19 +99,19 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   const [setPhaseForm, setSetPhaseForm] = useState({ phase: "" });
   const [resourcesForm, setResourcesForm] = useState({
     playerId: "",
-    credits: "",
+    credit: "",
     steel: "",
     titanium: "",
-    plants: "",
+    plant: "",
     energy: "",
     heat: "",
   });
   const [productionForm, setProductionForm] = useState({
     playerId: "",
-    credits: "",
+    credit: "",
     steel: "",
     titanium: "",
-    plants: "",
+    plant: "",
     energy: "",
     heat: "",
   });
@@ -140,10 +140,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       if (selectedPlayer && selectedPlayer.resources) {
         setResourcesForm((prev) => ({
           ...prev,
-          credits: (selectedPlayer.resources.credits || 0).toString(),
+          credit: (selectedPlayer.resources.credits || 0).toString(),
           steel: (selectedPlayer.resources.steel || 0).toString(),
           titanium: (selectedPlayer.resources.titanium || 0).toString(),
-          plants: (selectedPlayer.resources.plants || 0).toString(),
+          plant: (selectedPlayer.resources.plants || 0).toString(),
           energy: (selectedPlayer.resources.energy || 0).toString(),
           heat: (selectedPlayer.resources.heat || 0).toString(),
         }));
@@ -152,10 +152,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       // Reset all fields when no player is selected
       setResourcesForm((prev) => ({
         ...prev,
-        credits: "",
+        credit: "",
         steel: "",
         titanium: "",
-        plants: "",
+        plant: "",
         energy: "",
         heat: "",
       }));
@@ -170,10 +170,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       if (selectedPlayer && selectedPlayer.production) {
         setProductionForm((prev) => ({
           ...prev,
-          credits: (selectedPlayer.production.credits || 0).toString(),
+          credit: (selectedPlayer.production.credits || 0).toString(),
           steel: (selectedPlayer.production.steel || 0).toString(),
           titanium: (selectedPlayer.production.titanium || 0).toString(),
-          plants: (selectedPlayer.production.plants || 0).toString(),
+          plant: (selectedPlayer.production.plants || 0).toString(),
           energy: (selectedPlayer.production.energy || 0).toString(),
           heat: (selectedPlayer.production.heat || 0).toString(),
         }));
@@ -182,10 +182,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       // Reset all fields when no player is selected
       setProductionForm((prev) => ({
         ...prev,
-        credits: "",
+        credit: "",
         steel: "",
         titanium: "",
-        plants: "",
+        plant: "",
         energy: "",
         heat: "",
       }));
@@ -307,10 +307,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
     // Validate that all resource values are valid numbers
     const resourceFields = [
-      "credits",
+      "credit",
       "steel",
       "titanium",
-      "plants",
+      "plant",
       "energy",
       "heat",
     ];
@@ -338,10 +338,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     const command: SetResourcesAdminCommand = {
       playerId: resourcesForm.playerId,
       resources: {
-        credits: parseStringToNumber(resourcesForm.credits),
+        credits: parseStringToNumber(resourcesForm.credit),
         steel: parseStringToNumber(resourcesForm.steel),
         titanium: parseStringToNumber(resourcesForm.titanium),
-        plants: parseStringToNumber(resourcesForm.plants),
+        plants: parseStringToNumber(resourcesForm.plant),
         energy: parseStringToNumber(resourcesForm.energy),
         heat: parseStringToNumber(resourcesForm.heat),
       },
@@ -357,10 +357,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
     // Validate that all production values are valid numbers
     const productionFields = [
-      "credits",
+      "credit",
       "steel",
       "titanium",
-      "plants",
+      "plant",
       "energy",
       "heat",
     ];
@@ -388,10 +388,10 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     const command: SetProductionAdminCommand = {
       playerId: productionForm.playerId,
       production: {
-        credits: parseStringToNumber(productionForm.credits),
+        credits: parseStringToNumber(productionForm.credit),
         steel: parseStringToNumber(productionForm.steel),
         titanium: parseStringToNumber(productionForm.titanium),
-        plants: parseStringToNumber(productionForm.plants),
+        plants: parseStringToNumber(productionForm.plant),
         energy: parseStringToNumber(productionForm.energy),
         heat: parseStringToNumber(productionForm.heat),
       },
@@ -622,7 +622,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credits", "steel", "titanium", "plants", "energy", "heat"].map(
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
               (resource) => (
                 <div key={resource} style={{ minWidth: 0 }}>
                   <label
@@ -702,7 +702,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credits", "steel", "titanium", "plants", "energy", "heat"].map(
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
               (resource) => (
                 <div key={resource} style={{ minWidth: 0 }}>
                   <label

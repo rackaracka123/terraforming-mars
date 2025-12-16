@@ -61,6 +61,38 @@ func (cb CardBehavior) DeepCopy() CardBehavior {
 	return result
 }
 
+// ExtractInputsOutputs extracts the combined inputs and outputs for a behavior,
+// optionally incorporating a selected choice. Returns base + choice inputs/outputs.
+// If choiceIndex is nil or out of range, only base inputs/outputs are returned.
+func (cb CardBehavior) ExtractInputsOutputs(choiceIndex *int) (inputs []ResourceCondition, outputs []ResourceCondition) {
+	// Start with base inputs and outputs (make copies to avoid modifying original)
+	if len(cb.Inputs) > 0 {
+		inputs = make([]ResourceCondition, len(cb.Inputs))
+		copy(inputs, cb.Inputs)
+	}
+	if len(cb.Outputs) > 0 {
+		outputs = make([]ResourceCondition, len(cb.Outputs))
+		copy(outputs, cb.Outputs)
+	}
+
+	// Add choice-specific inputs/outputs if a valid choice is selected
+	if choiceIndex != nil && *choiceIndex >= 0 && *choiceIndex < len(cb.Choices) {
+		selectedChoice := cb.Choices[*choiceIndex]
+
+		// Append choice inputs to base inputs
+		if len(selectedChoice.Inputs) > 0 {
+			inputs = append(inputs, selectedChoice.Inputs...)
+		}
+
+		// Append choice outputs to base outputs
+		if len(selectedChoice.Outputs) > 0 {
+			outputs = append(outputs, selectedChoice.Outputs...)
+		}
+	}
+
+	return inputs, outputs
+}
+
 // deepCopyResourceCondition creates a deep copy of a ResourceCondition
 func deepCopyResourceCondition(rc ResourceCondition) ResourceCondition {
 	result := rc

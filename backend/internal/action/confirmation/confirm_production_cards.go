@@ -1,10 +1,12 @@
-package action
+package confirmation
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -12,33 +14,30 @@ import (
 // ConfirmProductionCardsAction handles the business logic for confirming production card selection
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type ConfirmProductionCardsAction struct {
-	gameRepo game.GameRepository
-	logger   *zap.Logger
+	baseaction.BaseAction
 }
 
 // NewConfirmProductionCardsAction creates a new confirm production cards action
 func NewConfirmProductionCardsAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *ConfirmProductionCardsAction {
 	return &ConfirmProductionCardsAction{
-		gameRepo: gameRepo,
-		logger:   logger,
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
 // Execute performs the confirm production cards action
 func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID string, playerID string, selectedCardIDs []string) error {
-	log := a.logger.With(
-		zap.String("game_id", gameID),
-		zap.String("player_id", playerID),
+	log := a.InitLogger(gameID, playerID).With(
 		zap.String("action", "confirm_production_cards"),
 		zap.Strings("selected_card_ids", selectedCardIDs),
 	)
 	log.Info("🃏 Player confirming production card selection")
 
 	// 1. Fetch game from repository
-	g, err := a.gameRepo.Get(ctx, gameID)
+	g, err := a.GameRepository().Get(ctx, gameID)
 	if err != nil {
 		log.Error("Failed to get game", zap.Error(err))
 		return fmt.Errorf("game not found: %s", gameID)
@@ -99,7 +98,7 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 
 	// 9. BUSINESS LOGIC: Deduct card selection cost
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredits: -cost,
+		shared.ResourceCredit: -cost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
@@ -112,13 +111,13 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 		zap.Strings("card_ids", selectedCardIDs),
 		zap.Int("count", len(selectedCardIDs)))
 
-	for _, cardID := range selectedCardIDs {
-		player.Hand().AddCard(cardID)
-	}
+	baseaction.AddCardsToPlayerHand(selectedCardIDs, player, g, a.CardRegistry(), log)
 
 	log.Info("✅ Cards added to hand",
 		zap.Strings("card_ids_added", selectedCardIDs),
 		zap.Int("card_count", len(selectedCardIDs)))
+
+	// Note: RequirementModifier recalculation removed - discounts are now calculated on-demand during EntityState calculation
 
 	// 11. BUSINESS LOGIC: Mark production selection as complete (phase state managed by Game)
 	productionPhase.SelectionComplete = true
@@ -165,10 +164,10 @@ func (a *ConfirmProductionCardsAction) Execute(ctx context.Context, gameID strin
 				zap.Int("available_actions", availableActions))
 		}
 
-		// Reset manual action play counts for all players (new generation)
+		// Reset manual action generation counts for all players (new generation)
 		for _, p := range allPlayers {
-			p.Actions().ResetPlayCounts()
-			log.Debug("🔄 Reset action play counts for player",
+			p.Actions().ResetGenerationCounts()
+			log.Debug("🔄 Reset action generation counts for player",
 				zap.String("player_id", p.ID()))
 		}
 

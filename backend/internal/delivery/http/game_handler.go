@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"terraforming-mars-backend/internal/action"
+	gameaction "terraforming-mars-backend/internal/action/game"
 	"terraforming-mars-backend/internal/action/query"
 	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/delivery/dto"
@@ -18,7 +18,7 @@ import (
 
 // GameHandler handles HTTP requests for games
 type GameHandler struct {
-	createGameAction *action.CreateGameAction
+	createGameAction *gameaction.CreateGameAction
 	getGameAction    *query.GetGameAction
 	listGamesAction  *query.ListGamesAction
 	listCardsAction  *query.ListCardsAction
@@ -27,7 +27,7 @@ type GameHandler struct {
 
 // NewGameHandler creates a new game handler
 func NewGameHandler(
-	createGameAction *action.CreateGameAction,
+	createGameAction *gameaction.CreateGameAction,
 	getGameAction *query.GetGameAction,
 	listGamesAction *query.ListGamesAction,
 	listCardsAction *query.ListCardsAction,

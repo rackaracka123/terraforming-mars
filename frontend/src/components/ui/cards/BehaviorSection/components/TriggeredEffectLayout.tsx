@@ -94,7 +94,7 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
                             </span>
                           )}
                           <GameIcon
-                            iconType="credits"
+                            iconType="credit"
                             amount={-value}
                             size="small"
                           />
@@ -115,6 +115,40 @@ const TriggeredEffectLayout: React.FC<TriggeredEffectLayoutProps> = ({
                       const hasAffectedCardTypes =
                         trigger.condition?.affectedCardTypes &&
                         trigger.condition.affectedCardTypes.length > 0;
+
+                      // Check if trigger has condition with affectedTags (e.g., card-played with tag filter)
+                      const hasAffectedTags =
+                        trigger.condition?.affectedTags &&
+                        trigger.condition.affectedTags.length > 0;
+
+                      if (hasAffectedTags) {
+                        // Render icons for affected tags (e.g., plant / animal)
+                        // Use -tag suffix to force tag icon lookup (otherwise resource icons are shown)
+                        return (
+                          <div
+                            key={triggerIndex}
+                            className="flex gap-[2px] items-center"
+                          >
+                            {trigger.condition.affectedTags.map(
+                              (tag: string, tagIndex: number) => (
+                                <React.Fragment
+                                  key={`${triggerIndex}-${tagIndex}`}
+                                >
+                                  {tagIndex > 0 && (
+                                    <span className="text-[#e0e0e0] text-xs font-bold mx-[2px]">
+                                      /
+                                    </span>
+                                  )}
+                                  <GameIcon
+                                    iconType={`${tag}-tag`}
+                                    size="small"
+                                  />
+                                </React.Fragment>
+                              ),
+                            )}
+                          </div>
+                        );
+                      }
 
                       if (hasAffectedResources) {
                         // Render icons for affected resources (e.g., steel / titanium)

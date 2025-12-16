@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // BuildPowerPlantHandler handles build power plant standard project requests
 type BuildPowerPlantHandler struct {
-	action      *action.BuildPowerPlantAction
+	action      *stdprojaction.BuildPowerPlantAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewBuildPowerPlantHandler creates a new build power plant handler
-func NewBuildPowerPlantHandler(action *action.BuildPowerPlantAction, broadcaster Broadcaster) *BuildPowerPlantHandler {
+func NewBuildPowerPlantHandler(action *stdprojaction.BuildPowerPlantAction, broadcaster Broadcaster) *BuildPowerPlantHandler {
 	return &BuildPowerPlantHandler{
 		action:      action,
 		broadcaster: broadcaster,

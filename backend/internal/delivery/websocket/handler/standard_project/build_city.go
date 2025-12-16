@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // BuildCityHandler handles build city standard project requests
 type BuildCityHandler struct {
-	action      *action.BuildCityAction
+	action      *stdprojaction.BuildCityAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewBuildCityHandler creates a new build city handler
-func NewBuildCityHandler(action *action.BuildCityAction, broadcaster Broadcaster) *BuildCityHandler {
+func NewBuildCityHandler(action *stdprojaction.BuildCityAction, broadcaster Broadcaster) *BuildCityHandler {
 	return &BuildCityHandler{
 		action:      action,
 		broadcaster: broadcaster,

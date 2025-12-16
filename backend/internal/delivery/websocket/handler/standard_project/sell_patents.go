@@ -3,7 +3,7 @@ package standard_project
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	stdprojaction "terraforming-mars-backend/internal/action/standard_project"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // SellPatentsHandler handles sell patents standard project requests
 type SellPatentsHandler struct {
-	action      *action.SellPatentsAction
+	action      *stdprojaction.SellPatentsAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewSellPatentsHandler creates a new sell patents handler
-func NewSellPatentsHandler(action *action.SellPatentsAction, broadcaster Broadcaster) *SellPatentsHandler {
+func NewSellPatentsHandler(action *stdprojaction.SellPatentsAction, broadcaster Broadcaster) *SellPatentsHandler {
 	return &SellPatentsHandler{
 		action:      action,
 		broadcaster: broadcaster,

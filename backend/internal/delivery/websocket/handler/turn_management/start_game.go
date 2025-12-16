@@ -3,7 +3,7 @@ package turn_management
 import (
 	"context"
 
-	"terraforming-mars-backend/internal/action"
+	turnaction "terraforming-mars-backend/internal/action/turn_management"
 	"terraforming-mars-backend/internal/delivery/dto"
 	"terraforming-mars-backend/internal/delivery/websocket/core"
 	"terraforming-mars-backend/internal/logger"
@@ -13,13 +13,13 @@ import (
 
 // StartGameHandler handles start game requests
 type StartGameHandler struct {
-	action      *action.StartGameAction
+	action      *turnaction.StartGameAction
 	broadcaster Broadcaster
 	logger      *zap.Logger
 }
 
 // NewStartGameHandler creates a new start game handler
-func NewStartGameHandler(action *action.StartGameAction, broadcaster Broadcaster) *StartGameHandler {
+func NewStartGameHandler(action *turnaction.StartGameAction, broadcaster Broadcaster) *StartGameHandler {
 	return &StartGameHandler{
 		action:      action,
 		broadcaster: broadcaster,

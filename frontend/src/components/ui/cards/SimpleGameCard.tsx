@@ -3,15 +3,24 @@ import GameIcon from "../display/GameIcon.tsx";
 import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
 import BehaviorSection from "./BehaviorSection";
 import RequirementsBox from "./RequirementsBox.tsx";
-import { CardDto, ResourceTypeCredits } from "@/types/generated/api-types.ts";
+import { getTagIconPath } from "@/utils/iconStore.ts";
+import {
+  CardDto,
+  PlayerCardDto,
+  ResourceTypeCredit,
+} from "@/types/generated/api-types.ts";
 
 interface SimpleGameCardProps {
-  card: CardDto;
+  card: CardDto | PlayerCardDto;
   isSelected: boolean;
   onSelect: (cardId: string) => void;
   animationDelay?: number;
-  showCheckbox?: boolean; // Whether to show the selection checkbox (default: false)
-  discountAmount?: number; // Optional discount to apply to card cost
+  showCheckbox?: boolean;
+}
+
+// Type guard to check if card is a PlayerCardDto (has state information)
+function isPlayerCardDto(card: CardDto | PlayerCardDto): card is PlayerCardDto {
+  return "available" in card && "effectiveCost" in card;
 }
 
 const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
@@ -20,10 +29,19 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
   onSelect,
   animationDelay = 0,
   showCheckbox = false,
-  discountAmount = 0,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Determine if card has state information (PlayerCardDto)
+  const hasState = isPlayerCardDto(card);
+  const isAvailable = hasState ? card.available : true; // Default to available for CardDto
+  const errors = hasState ? card.errors : [];
+
+  // Use effectiveCost from PlayerCardDto state calculation
+  const displayCost = card.cost;
+  const effectiveCost = hasState ? card.effectiveCost : card.cost;
+  const actualDiscountAmount = displayCost - effectiveCost;
 
   const handleClick = () => {
     onSelect(card.id);
@@ -109,12 +127,31 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   return (
     <div
-      className={`relative w-[200px] min-h-[280px] ${cardBg} border-none rounded-lg p-4 cursor-pointer transition-all duration-200 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] ${isSelected ? `brightness-110 ${cardGlow} hover:${cardGlow}` : "hover:shadow-[0_6px_20px_rgba(30,100,200,0.15)]"} max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group`}
+      className={`relative w-[200px] min-h-[280px] ${cardBg} border-none rounded-lg p-4 transition-all duration-200 opacity-0 translate-y-5 shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1] animate-[fadeInUp_0.5s_ease_forwards] max-md:w-[160px] max-md:min-h-[240px] max-md:p-3 group ${!isAvailable ? "cursor-not-allowed opacity-50 grayscale-[0.4]" : "cursor-pointer"} ${isSelected ? `brightness-110 ${cardGlow} hover:${cardGlow}` : isAvailable ? "hover:shadow-[0_6px_20px_rgba(30,100,200,0.15)]" : ""}`}
       style={{ animationDelay: `${animationDelay}ms` }}
       onClick={handleClick}
+      title={
+        !isAvailable && errors.length > 0
+          ? errors.map((e) => e.message).join(", ")
+          : undefined
+      }
     >
       {/* Requirements box */}
       <RequirementsBox requirements={card.requirements} />
+
+      {/* Unavailable indicator (shows when card cannot be played) */}
+      {!isAvailable && errors.length > 0 && (
+        <div className="absolute top-2 left-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
+          <span>⚠</span>
+          <span
+            className="max-w-[140px] truncate"
+            title={errors.map((e) => e.message).join(", ")}
+          >
+            {errors[0].message}
+            {errors.length > 1 && ` (+${errors.length - 1})`}
+          </span>
+        </div>
+      )}
 
       {/* Futuristic card border */}
       <div
@@ -127,14 +164,22 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           {card.tags &&
             card.tags
               .slice(0, card.type === "event" ? 2 : 3)
-              .map((tag, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-                >
-                  <GameIcon iconType={tag.toLowerCase()} size="medium" />
-                </div>
-              ))}
+              .map((tag, index) => {
+                const tagIcon = getTagIconPath(tag.toLowerCase());
+                if (!tagIcon) return null;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+                  >
+                    <img
+                      src={tagIcon}
+                      alt={tag}
+                      className="w-8 h-8 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+                    />
+                  </div>
+                );
+              })}
           {/* Show event tag icon last (right-most) if card type is event */}
           {card.type === "event" && (
             <div className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]">
@@ -145,14 +190,14 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       )}
 
       {/* Cost in top-left */}
-      {discountAmount > 0 ? (
+      {actualDiscountAmount > 0 ? (
         // Stacked display when discounted
         <div className="absolute -top-3 -left-3 flex flex-col items-center z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
           {/* Original cost (faded) */}
           <div className="grayscale-[0.7]">
             <GameIcon
-              iconType={ResourceTypeCredits}
-              amount={card.cost}
+              iconType={ResourceTypeCredit}
+              amount={displayCost}
               size="medium"
             />
           </div>
@@ -173,8 +218,8 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           {/* Discounted cost (clear) */}
           <div>
             <GameIcon
-              iconType={ResourceTypeCredits}
-              amount={Math.max(0, card.cost - discountAmount)}
+              iconType={ResourceTypeCredit}
+              amount={effectiveCost}
               size="medium"
             />
           </div>
@@ -183,8 +228,8 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         // Single icon when no discount
         <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
           <GameIcon
-            iconType={ResourceTypeCredits}
-            amount={card.cost}
+            iconType={ResourceTypeCredit}
+            amount={effectiveCost}
             size="medium"
           />
         </div>

@@ -85,7 +85,7 @@ export function shouldShowPaymentModal(
           return playerResources.heat > 0;
         case "energy":
           return playerResources.energy > 0;
-        case "plants":
+        case "plant":
           return playerResources.plants > 0;
         default:
           return false;

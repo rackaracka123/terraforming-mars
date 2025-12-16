@@ -41,7 +41,8 @@ func (p *CorporationProcessor) ApplyStartingEffects(
 
 	log.Info("💼 Applying corporation starting effects")
 
-	applier := NewBehaviorApplier(pl, g, card.Name, p.logger)
+	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
+		WithSourceCardID(card.ID)
 
 	// Process ONLY behaviors with auto-corporation-start trigger
 	for _, behavior := range card.Behaviors {
@@ -77,7 +78,8 @@ func (p *CorporationProcessor) ApplyAutoEffects(
 
 	log.Info("💼 Applying corporation auto effects")
 
-	applier := NewBehaviorApplier(pl, g, card.Name, p.logger)
+	applier := NewBehaviorApplier(pl, g, card.Name, p.logger).
+		WithSourceCardID(card.ID)
 
 	// Process behaviors with auto trigger WITHOUT conditions
 	for _, behavior := range card.Behaviors {
@@ -194,11 +196,12 @@ func (p *CorporationProcessor) GetManualActions(card *Card) []player.CardAction 
 	for behaviorIndex, behavior := range card.Behaviors {
 		if HasManualTrigger(behavior) {
 			action := player.CardAction{
-				CardID:        card.ID,
-				CardName:      card.Name,
-				BehaviorIndex: behaviorIndex,
-				Behavior:      behavior,
-				PlayCount:     0,
+				CardID:                  card.ID,
+				CardName:                card.Name,
+				BehaviorIndex:           behaviorIndex,
+				Behavior:                behavior,
+				TimesUsedThisTurn:       0,
+				TimesUsedThisGeneration: 0,
 			}
 			actions = append(actions, action)
 		}

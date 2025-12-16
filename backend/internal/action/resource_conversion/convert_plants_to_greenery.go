@@ -1,11 +1,14 @@
-package action
+package resource_conversion
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	playerPkg "terraforming-mars-backend/internal/game/player"
 	"terraforming-mars-backend/internal/game/shared"
 )
@@ -16,22 +19,21 @@ const (
 )
 
 // ConvertPlantsToGreeneryAction handles the business logic for converting plants to greenery tile
-// MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
-// NOTE: Still uses old gamePackage.CalculateResourceConversionCost until card effects fully migrated
+// Uses RequirementModifierCalculator to apply card discounts (e.g., Ecoline: 7 plants instead of 8)
 type ConvertPlantsToGreeneryAction struct {
-	BaseAction
+	baseaction.BaseAction
+	cardRegistry cards.CardRegistry
 }
 
 // NewConvertPlantsToGreeneryAction creates a new convert plants to greenery action
 func NewConvertPlantsToGreeneryAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *ConvertPlantsToGreeneryAction {
 	return &ConvertPlantsToGreeneryAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction:   baseaction.NewBaseAction(gameRepo, nil),
+		cardRegistry: cardRegistry,
 	}
 }
 
@@ -41,13 +43,13 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	log.Info("🌱 Converting plants to greenery")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -58,10 +60,17 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 	}
 
 	// 5. BUSINESS LOGIC: Calculate required plants (with card discount effects)
-	// TODO: Reimplement card discount effects when card system is migrated
-	requiredPlants := BasePlantsForGreenery
+	// Use RequirementModifierCalculator to apply discounts (e.g., Ecoline: 7 plants instead of 8)
+	calculator := gamecards.NewRequirementModifierCalculator(a.cardRegistry)
+	discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProjectConvertPlantsToGreenery)
+	plantDiscount := discounts[shared.ResourcePlant]
+	requiredPlants := BasePlantsForGreenery - plantDiscount
+	if requiredPlants < 1 {
+		requiredPlants = 1 // Minimum cost is 1
+	}
 	log.Debug("💰 Calculated plants cost",
 		zap.Int("base_cost", BasePlantsForGreenery),
+		zap.Int("discount", plantDiscount),
 		zap.Int("final_cost", requiredPlants))
 
 	// 6. BUSINESS LOGIC: Validate player has enough plants
@@ -75,7 +84,7 @@ func (a *ConvertPlantsToGreeneryAction) Execute(ctx context.Context, gameID stri
 
 	// 7. BUSINESS LOGIC: Deduct plants using domain method
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourcePlants: -requiredPlants,
+		shared.ResourcePlant: -requiredPlants,
 	})
 
 	resources = player.Resources().Get() // Refresh after update

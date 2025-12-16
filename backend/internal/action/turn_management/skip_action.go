@@ -1,8 +1,9 @@
-package action
+package turn_management
 
 import (
 	"context"
 	"fmt"
+	baseaction "terraforming-mars-backend/internal/action"
 
 	"go.uber.org/zap"
 	"terraforming-mars-backend/internal/game"
@@ -13,7 +14,7 @@ import (
 // SkipActionAction handles the business logic for skipping/passing player turns
 // MIGRATION: Uses new architecture (GameRepository only, event-driven broadcasting)
 type SkipActionAction struct {
-	BaseAction
+	baseaction.BaseAction
 }
 
 // NewSkipActionAction creates a new skip action action
@@ -22,10 +23,7 @@ func NewSkipActionAction(
 	logger *zap.Logger,
 ) *SkipActionAction {
 	return &SkipActionAction{
-		BaseAction: BaseAction{
-			gameRepo: gameRepo,
-			logger:   logger,
-		},
+		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
 	}
 }
 
@@ -35,13 +33,13 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 	log.Info("⏭️ Skipping player turn")
 
 	// 1. Fetch game from repository and validate it's active
-	g, err := ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
+	g, err := baseaction.ValidateActiveGame(ctx, a.GameRepository(), gameID, log)
 	if err != nil {
 		return err
 	}
 
 	// 2. Validate it's the player's turn
-	if err := ValidateCurrentTurn(g, playerID, log); err != nil {
+	if err := baseaction.ValidateCurrentTurn(g, playerID, log); err != nil {
 		return err
 	}
 
@@ -191,7 +189,7 @@ func (a *SkipActionAction) Execute(ctx context.Context, gameID string, playerID 
 
 // executeProductionPhase handles the production phase when all players have passed
 func (a *SkipActionAction) executeProductionPhase(ctx context.Context, gameInstance *game.Game, players []*playerPkg.Player) error {
-	log := a.logger.With(zap.String("game_id", gameInstance.ID()))
+	log := a.GetLogger().With(zap.String("game_id", gameInstance.ID()))
 	log.Info("🏭 Starting production phase",
 		zap.Int("player_count", len(players)),
 		zap.Int("generation", gameInstance.Generation()))

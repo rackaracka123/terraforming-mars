@@ -534,7 +534,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
       <div className="w-full">
         <div className="grid grid-cols-3 gap-5 mb-5">
           {renderResourceAnimation(
-            "credits" as ResourceType,
+            "credit" as ResourceType,
             currentPlayerData.beforeResources.credits,
             currentPlayerData.afterResources.credits,
           )}
@@ -549,7 +549,7 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             currentPlayerData.afterResources.titanium,
           )}
           {renderResourceAnimation(
-            "plants" as ResourceType,
+            "plant" as ResourceType,
             currentPlayerData.beforeResources.plants,
             currentPlayerData.afterResources.plants,
           )}
@@ -626,9 +626,6 @@ const ProductionPhaseModal: React.FC<ProductionPhaseModalProps> = ({
             gameState?.currentPlayer?.productionPhase?.availableCards || []
           }
           playerCredits={gameState?.currentPlayer?.resources.credits || 0}
-          requirementModifiers={
-            gameState?.currentPlayer?.requirementModifiers || []
-          }
           onSelectCards={handleCardSelection}
           onReturn={handleReturnFromCardSelection}
         />
