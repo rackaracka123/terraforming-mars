@@ -201,28 +201,27 @@ func (c *RequirementModifierCalculator) CalculateCardDiscounts(p *player.Player,
 				continue
 			}
 
-			// Skip standard project discounts - those don't apply to cards
-			if len(output.AffectedStandardProjects) > 0 {
+			hasCardTargets := len(output.AffectedTags) > 0 || len(output.AffectedCardTypes) > 0
+			hasOnlyStandardProjectTargets := len(output.AffectedStandardProjects) > 0 && !hasCardTargets
+
+			// Skip discounts that only target standard projects (not cards)
+			if hasOnlyStandardProjectTargets {
 				continue
 			}
 
-			// Case 1: Tag-based discount
-			if len(output.AffectedTags) > 0 {
-				if c.cardHasMatchingTag(card, output.AffectedTags) {
+			// Check card-specific targeting (OR logic: tag match OR card type match)
+			if hasCardTargets {
+				// Check if card matches any of the targeting criteria
+				matchesTags := len(output.AffectedTags) > 0 && c.cardHasMatchingTag(card, output.AffectedTags)
+				matchesCardType := len(output.AffectedCardTypes) > 0 && c.cardHasMatchingType(card, output.AffectedCardTypes)
+
+				if matchesTags || matchesCardType {
 					totalDiscount += output.Amount
 				}
 				continue
 			}
 
-			// Case 2: Card type discount
-			if len(output.AffectedCardTypes) > 0 {
-				if c.cardHasMatchingType(card, output.AffectedCardTypes) {
-					totalDiscount += output.Amount
-				}
-				continue
-			}
-
-			// Case 3: Global discount (applies to all cards)
+			// Global discount (no specific targets - applies to all cards)
 			totalDiscount += output.Amount
 		}
 	}
