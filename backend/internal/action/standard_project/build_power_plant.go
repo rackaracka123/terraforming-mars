@@ -5,7 +5,9 @@ import (
 	"fmt"
 	baseaction "terraforming-mars-backend/internal/action"
 
+	"terraforming-mars-backend/internal/cards"
 	"terraforming-mars-backend/internal/game"
+	gamecards "terraforming-mars-backend/internal/game/cards"
 	"terraforming-mars-backend/internal/game/shared"
 
 	"go.uber.org/zap"
@@ -25,10 +27,11 @@ type BuildPowerPlantAction struct {
 // NewBuildPowerPlantAction creates a new build power plant action
 func NewBuildPowerPlantAction(
 	gameRepo game.GameRepository,
+	cardRegistry cards.CardRegistry,
 	logger *zap.Logger,
 ) *BuildPowerPlantAction {
 	return &BuildPowerPlantAction{
-		BaseAction: baseaction.NewBaseAction(gameRepo, nil),
+		BaseAction: baseaction.NewBaseAction(gameRepo, cardRegistry),
 	}
 }
 
@@ -58,23 +61,41 @@ func (a *BuildPowerPlantAction) Execute(
 		return err
 	}
 
-	// 5. Validate cost (11 M€)
+	// 4. Calculate effective cost with discounts (e.g., ThorGate gets -3)
+	effectiveCost := BuildPowerPlantCost
+	if a.CardRegistry() != nil {
+		calculator := gamecards.NewRequirementModifierCalculator(a.CardRegistry())
+		discounts := calculator.CalculateStandardProjectDiscounts(player, shared.StandardProjectPowerPlant)
+		creditDiscount := discounts[shared.ResourceCredit]
+		effectiveCost = BuildPowerPlantCost - creditDiscount
+		if effectiveCost < 0 {
+			effectiveCost = 0
+		}
+		if creditDiscount > 0 {
+			log.Info("💰 Applied power plant discount",
+				zap.Int("base_cost", BuildPowerPlantCost),
+				zap.Int("discount", creditDiscount),
+				zap.Int("effective_cost", effectiveCost))
+		}
+	}
+
+	// 5. Validate cost
 	resources := player.Resources().Get()
-	if resources.Credits < BuildPowerPlantCost {
+	if resources.Credits < effectiveCost {
 		log.Warn("Insufficient credits for power plant",
-			zap.Int("cost", BuildPowerPlantCost),
+			zap.Int("cost", effectiveCost),
 			zap.Int("player_credits", resources.Credits))
-		return fmt.Errorf("insufficient credits: need %d, have %d", BuildPowerPlantCost, resources.Credits)
+		return fmt.Errorf("insufficient credits: need %d, have %d", effectiveCost, resources.Credits)
 	}
 
 	// 6. Deduct cost (publishes ResourcesChangedEvent)
 	player.Resources().Add(map[shared.ResourceType]int{
-		shared.ResourceCredit: -BuildPowerPlantCost,
+		shared.ResourceCredit: -effectiveCost,
 	})
 
 	resources = player.Resources().Get() // Refresh after update
 	log.Info("💰 Deducted power plant cost",
-		zap.Int("cost", BuildPowerPlantCost),
+		zap.Int("cost", effectiveCost),
 		zap.Int("remaining_credits", resources.Credits))
 
 	// 7. Increase energy production by 1 (publishes ProductionChangedEvent)
