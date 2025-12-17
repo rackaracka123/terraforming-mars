@@ -374,3 +374,25 @@ func (r *PlayerResources) GetCardStorage(cardID string) int {
 	defer r.mu.RUnlock()
 	return r.resourceStorage[cardID]
 }
+
+// RemoveCardStorage removes the storage entry for a specific card
+func (r *PlayerResources) RemoveCardStorage(cardID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.resourceStorage, cardID)
+}
+
+// ClearPaymentSubstitutes removes all non-standard payment substitutes
+// (keeps steel and titanium which are always available)
+func (r *PlayerResources) ClearPaymentSubstitutes() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.paymentSubstitutes = []shared.PaymentSubstitute{}
+}
+
+// ClearValueModifiers resets all value modifiers to zero
+func (r *PlayerResources) ClearValueModifiers() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.valueModifiers = make(map[shared.ResourceType]int)
+}
