@@ -39,9 +39,7 @@ const CorporationSelectionModal: React.FC<CorporationSelectionModalProps> = ({
   onSelectCorporation,
   isVisible,
 }) => {
-  const [selectedCorporation, setSelectedCorporation] = useState<string | null>(
-    null,
-  );
+  const [selectedCorporation, setSelectedCorporation] = useState<string | null>(null);
   const [isFlashing, setIsFlashing] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 

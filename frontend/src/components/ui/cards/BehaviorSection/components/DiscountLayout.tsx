@@ -8,15 +8,12 @@ interface DiscountLayoutProps {
 const DiscountLayout: React.FC<DiscountLayoutProps> = ({ behavior }) => {
   if (!behavior.outputs || behavior.outputs.length === 0) return null;
 
-  const discountOutput = behavior.outputs.find(
-    (output: any) => output.type === "discount",
-  );
+  const discountOutput = behavior.outputs.find((output: any) => output.type === "discount");
   if (!discountOutput) return null;
 
   const amount = Math.abs(discountOutput.amount ?? 0);
   const affectedTags = discountOutput.affectedTags || [];
-  const affectedStandardProjects =
-    discountOutput.affectedStandardProjects || [];
+  const affectedStandardProjects = discountOutput.affectedStandardProjects || [];
 
   // Map standard project string to icon type
   const standardProjectIconMap: Record<string, string> = {

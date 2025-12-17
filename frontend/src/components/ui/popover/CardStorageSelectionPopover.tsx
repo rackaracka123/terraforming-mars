@@ -17,9 +17,7 @@ interface CardStorageOption {
   currentStorage: number;
 }
 
-const CardStorageSelectionPopover: React.FC<
-  CardStorageSelectionPopoverProps
-> = ({
+const CardStorageSelectionPopover: React.FC<CardStorageSelectionPopoverProps> = ({
   resourceType,
   amount,
   playedCards,
@@ -33,10 +31,7 @@ const CardStorageSelectionPopover: React.FC<
 
   // Filter played cards to only those with matching resource storage type
   const validCards: CardStorageOption[] = playedCards
-    .filter(
-      (card) =>
-        card.resourceStorage && card.resourceStorage.type === resourceType,
-    )
+    .filter((card) => card.resourceStorage && card.resourceStorage.type === resourceType)
     .map((card) => ({
       card,
       currentStorage: resourceStorage?.[card.id] || 0, // Get actual storage count from player.resourceStorage
@@ -154,8 +149,8 @@ const CardStorageSelectionPopover: React.FC<
                 No {resourceType} storage available
               </div>
               <div className="text-white/70 text-xs mb-4 max-w-[280px]">
-                You don't have any cards with {resourceType} storage. If you
-                continue, the {resourceType} will be lost.
+                You don't have any cards with {resourceType} storage. If you continue, the{" "}
+                {resourceType} will be lost.
               </div>
               <div className="text-white/50 text-xs italic">
                 Play cards with resource storage first to avoid losing resources
@@ -184,13 +179,9 @@ const CardStorageSelectionPopover: React.FC<
                   style={{ animationDelay: `${delay}s` }}
                   onClick={() => handleCardClick(card.id)}
                 >
-                  <div className="text-white font-semibold text-sm">
-                    {card.name}
-                  </div>
+                  <div className="text-white font-semibold text-sm">{card.name}</div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-white/60 text-xs font-medium">
-                      {currentStorage}
-                    </span>
+                    <span className="text-white/60 text-xs font-medium">{currentStorage}</span>
                     <GameIcon iconType={resourceType} size="small" />
                   </div>
                 </div>

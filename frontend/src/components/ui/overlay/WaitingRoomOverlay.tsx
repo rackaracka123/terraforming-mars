@@ -9,11 +9,7 @@ interface WaitingRoomOverlayProps {
   onStartGame?: () => void;
 }
 
-const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
-  game,
-  playerId,
-  onStartGame,
-}) => {
+const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({ game, playerId, onStartGame }) => {
   const isHost = game.hostPlayerId === playerId;
   const joinUrl = `${window.location.origin}/join?code=${game.id}`;
 
@@ -47,8 +43,8 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
               Waiting for players to join...
             </h2>
             <p className="text-white/80 text-lg m-0 mb-8 max-sm:text-base">
-              {(game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0)}{" "}
-              / {game.settings?.maxPlayers || 4} players
+              {(game.currentPlayer ? 1 : 0) + (game.otherPlayers?.length || 0)} /{" "}
+              {game.settings?.maxPlayers || 4} players
             </p>
 
             {/* Player List */}
@@ -77,9 +73,7 @@ const WaitingRoomOverlay: React.FC<WaitingRoomOverlayProps> = ({
                     key={player.id}
                     className="flex justify-between items-center py-3 px-4 bg-black/40 rounded-lg border border-space-blue-600 shadow-[0_0_10px_rgba(30,60,150,0.3)]"
                   >
-                    <span className="text-white text-base font-medium">
-                      {player.name}
-                    </span>
+                    <span className="text-white text-base font-medium">{player.name}</span>
                     <div className="flex gap-2 items-center">
                       {player.id === playerId && (
                         <span className="bg-space-blue-800 text-white py-1 px-2 rounded-md text-xs font-bold uppercase shadow-[0_2px_8px_rgba(30,60,150,0.4)]">

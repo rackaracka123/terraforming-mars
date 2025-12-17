@@ -61,15 +61,11 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
   // Determine if projects can be executed
   const isGameActive = gameState?.status === GameStatusActive;
   const isActionPhase = gameState?.currentPhase === GamePhaseAction;
-  const isCurrentPlayerTurn =
-    gameState?.currentTurn === gameState?.viewingPlayerId;
+  const isCurrentPlayerTurn = gameState?.currentTurn === gameState?.viewingPlayerId;
 
   // Projects should be clickable only if all conditions are met
   const canExecuteProjects =
-    isGameActive &&
-    isActionPhase &&
-    isCurrentPlayerTurn &&
-    canPerformActions(gameState);
+    isGameActive && isActionPhase && isCurrentPlayerTurn && canPerformActions(gameState);
 
   // Get standard projects from backend player state
   const playerProjects = gameState?.currentPlayer?.standardProjects ?? [];
@@ -162,29 +158,24 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
               onClick={() => isExecutable && handleProjectClick(project)}
             >
               {/* Unavailable indicator (shows when project cannot be executed) */}
-              {!project.available &&
-                project.errors &&
-                project.errors.length > 0 && (
-                  <div className="absolute top-2 right-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
-                    <span>⚠</span>
-                    <span
-                      className="max-w-[140px] truncate"
-                      title={project.errors.map((e) => e.message).join(", ")}
-                    >
-                      {project.errors[0].message}
-                      {project.errors.length > 1 &&
-                        ` (+${project.errors.length - 1})`}
-                    </span>
-                  </div>
-                )}
+              {!project.available && project.errors && project.errors.length > 0 && (
+                <div className="absolute top-2 right-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
+                  <span>⚠</span>
+                  <span
+                    className="max-w-[140px] truncate"
+                    title={project.errors.map((e) => e.message).join(", ")}
+                  >
+                    {project.errors[0].message}
+                    {project.errors.length > 1 && ` (+${project.errors.length - 1})`}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-start justify-between gap-3 mb-2">
                 {/* Left: Name, Cost, Effects */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    {staticInfo?.icon && (
-                      <div className="opacity-70">{staticInfo.icon}</div>
-                    )}
+                    {staticInfo?.icon && <div className="opacity-70">{staticInfo.icon}</div>}
                     <h3 className="text-white text-sm font-bold font-orbitron m-0">
                       {staticInfo?.name ?? project.projectType}
                     </h3>

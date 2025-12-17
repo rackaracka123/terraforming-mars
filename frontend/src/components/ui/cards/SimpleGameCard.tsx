@@ -4,11 +4,7 @@ import VictoryPointIcon from "../display/VictoryPointIcon.tsx";
 import BehaviorSection from "./BehaviorSection";
 import RequirementsBox from "./RequirementsBox.tsx";
 import { getTagIconPath } from "@/utils/iconStore.ts";
-import {
-  CardDto,
-  PlayerCardDto,
-  ResourceTypeCredit,
-} from "@/types/generated/api-types.ts";
+import { CardDto, PlayerCardDto, ResourceTypeCredit } from "@/types/generated/api-types.ts";
 
 interface SimpleGameCardProps {
   card: CardDto | PlayerCardDto;
@@ -90,16 +86,11 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   // Card type specific glow colors for selected state (halo effect behind card)
   const cardGlows = {
-    automated:
-      "shadow-[0_4px_20px_rgba(76,175,80,0.3),0_0_40px_rgba(76,175,80,0.2)]", // Green halo
-    active:
-      "shadow-[0_4px_20px_rgba(33,150,243,0.3),0_0_40px_rgba(33,150,243,0.2)]", // Blue halo
-    event:
-      "shadow-[0_4px_20px_rgba(244,67,54,0.3),0_0_40px_rgba(244,67,54,0.2)]", // Red halo
-    corporation:
-      "shadow-[0_4px_20px_rgba(255,193,7,0.3),0_0_40px_rgba(255,193,7,0.2)]", // Yellow halo
-    prelude:
-      "shadow-[0_4px_20px_rgba(233,30,99,0.3),0_0_40px_rgba(233,30,99,0.2)]", // Pink halo
+    automated: "shadow-[0_4px_20px_rgba(76,175,80,0.3),0_0_40px_rgba(76,175,80,0.2)]", // Green halo
+    active: "shadow-[0_4px_20px_rgba(33,150,243,0.3),0_0_40px_rgba(33,150,243,0.2)]", // Blue halo
+    event: "shadow-[0_4px_20px_rgba(244,67,54,0.3),0_0_40px_rgba(244,67,54,0.2)]", // Red halo
+    corporation: "shadow-[0_4px_20px_rgba(255,193,7,0.3),0_0_40px_rgba(255,193,7,0.2)]", // Yellow halo
+    prelude: "shadow-[0_4px_20px_rgba(233,30,99,0.3),0_0_40px_rgba(233,30,99,0.2)]", // Pink halo
   };
 
   // Card type specific checkbox colors (darker background, matching card border)
@@ -113,9 +104,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
 
   const cardType = card.type as keyof typeof borderColors;
   const cardBg =
-    cardType && cardBackgrounds[cardType]
-      ? cardBackgrounds[cardType]
-      : "bg-[rgba(0,0,0,0.9)]";
+    cardType && cardBackgrounds[cardType] ? cardBackgrounds[cardType] : "bg-[rgba(0,0,0,0.9)]";
   const cardGlow =
     cardType && cardGlows[cardType]
       ? cardGlows[cardType]
@@ -131,9 +120,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       style={{ animationDelay: `${animationDelay}ms` }}
       onClick={handleClick}
       title={
-        !isAvailable && errors.length > 0
-          ? errors.map((e) => e.message).join(", ")
-          : undefined
+        !isAvailable && errors.length > 0 ? errors.map((e) => e.message).join(", ") : undefined
       }
     >
       {/* Requirements box */}
@@ -143,10 +130,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
       {!isAvailable && errors.length > 0 && (
         <div className="absolute top-2 left-2 z-[4] bg-[linear-gradient(135deg,#e74c3c,#c0392b)] text-white text-[9px] font-bold px-2 py-1 rounded border border-[rgba(231,76,60,0.8)] shadow-[0_2px_8px_rgba(231,76,60,0.4)] flex items-center gap-1">
           <span>⚠</span>
-          <span
-            className="max-w-[140px] truncate"
-            title={errors.map((e) => e.message).join(", ")}
-          >
+          <span className="max-w-[140px] truncate" title={errors.map((e) => e.message).join(", ")}>
             {errors[0].message}
             {errors.length > 1 && ` (+${errors.length - 1})`}
           </span>
@@ -162,24 +146,22 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         <div className="absolute -top-[15px] right-0 flex gap-0.5 z-[3] items-center justify-center max-md:-top-3 max-md:right-2">
           {/* Show other tags first (limit total to 3 including event tag) */}
           {card.tags &&
-            card.tags
-              .slice(0, card.type === "event" ? 2 : 3)
-              .map((tag, index) => {
-                const tagIcon = getTagIconPath(tag.toLowerCase());
-                if (!tagIcon) return null;
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
-                  >
-                    <img
-                      src={tagIcon}
-                      alt={tag}
-                      className="w-8 h-8 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
-                    />
-                  </div>
-                );
-              })}
+            card.tags.slice(0, card.type === "event" ? 2 : 3).map((tag, index) => {
+              const tagIcon = getTagIconPath(tag.toLowerCase());
+              if (!tagIcon) return null;
+              return (
+                <div
+                  key={index}
+                  className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]"
+                >
+                  <img
+                    src={tagIcon}
+                    alt={tag}
+                    className="w-8 h-8 object-contain [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
+                  />
+                </div>
+              );
+            })}
           {/* Show event tag icon last (right-most) if card type is event */}
           {card.type === "event" && (
             <div className="flex items-center justify-center shrink-0 [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.7))]">
@@ -195,43 +177,23 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
         <div className="absolute -top-3 -left-3 flex flex-col items-center z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
           {/* Original cost (faded) */}
           <div className="grayscale-[0.7]">
-            <GameIcon
-              iconType={ResourceTypeCredit}
-              amount={displayCost}
-              size="medium"
-            />
+            <GameIcon iconType={ResourceTypeCredit} amount={displayCost} size="medium" />
           </div>
           {/* Downward arrow - centered container */}
           <div className="w-full flex justify-center items-center">
-            <svg
-              width="12"
-              height="8"
-              viewBox="0 0 12 8"
-              className="opacity-70 my-[6px]"
-            >
-              <path
-                d="M6 8 L0 0 L3 0 L6 5 L9 0 L12 0 Z"
-                fill="rgba(76, 175, 80, 0.9)"
-              />
+            <svg width="12" height="8" viewBox="0 0 12 8" className="opacity-70 my-[6px]">
+              <path d="M6 8 L0 0 L3 0 L6 5 L9 0 L12 0 Z" fill="rgba(76, 175, 80, 0.9)" />
             </svg>
           </div>
           {/* Discounted cost (clear) */}
           <div>
-            <GameIcon
-              iconType={ResourceTypeCredit}
-              amount={effectiveCost}
-              size="medium"
-            />
+            <GameIcon iconType={ResourceTypeCredit} amount={effectiveCost} size="medium" />
           </div>
         </div>
       ) : (
         // Single icon when no discount
         <div className="absolute -top-3 -left-3 flex items-center justify-start z-[3] shrink-0 max-md:-top-2.5 max-md:-left-2.5">
-          <GameIcon
-            iconType={ResourceTypeCredit}
-            amount={effectiveCost}
-            size="medium"
-          />
+          <GameIcon iconType={ResourceTypeCredit} amount={effectiveCost} size="medium" />
         </div>
       )}
 
@@ -278,9 +240,7 @@ const SimpleGameCard: React.FC<SimpleGameCardProps> = ({
           <div
             className={`w-6 h-6 rounded-full bg-[#2a3142] border-2 border-[rgba(100,150,200,0.3)] flex items-center justify-center transition-all duration-300 ${isSelected ? `${checkboxColor.bg} ${checkboxColor.border}` : ""}`}
           >
-            {isSelected && (
-              <span className="text-white text-sm font-bold">✓</span>
-            )}
+            {isSelected && <span className="text-white text-sm font-bold">✓</span>}
           </div>
         </div>
       )}

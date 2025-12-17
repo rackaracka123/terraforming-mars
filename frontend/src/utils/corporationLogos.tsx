@@ -416,8 +416,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
         </span>
         <span
           style={{
-            background:
-              "linear-gradient( to right, rgb(23, 185, 236), rgb(251, 192, 137) )",
+            background: "linear-gradient( to right, rgb(23, 185, 236), rgb(251, 192, 137) )",
           }}
         >
           ES
@@ -732,8 +731,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
           paddingRight: "8px",
           borderRadius: "20px",
           fontWeight: "normal",
-          boxShadow:
-            "0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(0, 0, 0, 0.3)",
+          boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(0, 0, 0, 0.3)",
           border: "1px solid #eee",
         }}
       >
@@ -833,8 +831,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
           fontSize: "22px",
           fontFamily: "Times",
           color: "white",
-          textShadow:
-            "0 1px 0px #444, 0px -1px 0px #444, -1px 0px 0px #444, 1px 0px 0px #444",
+          textShadow: "0 1px 0px #444, 0px -1px 0px #444, -1px 0px 0px #444, 1px 0px 0px #444",
           letterSpacing: "4px",
         }}
       >
@@ -1031,8 +1028,7 @@ export const corporationLogos: Record<string, React.ReactNode> = {
           padding: "10px",
           background: "red",
           color: "white",
-          boxShadow:
-            "0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(0, 0, 0, 0.3), 3px 3px 3px #444",
+          boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(0, 0, 0, 0.3), 3px 3px 3px #444",
           fontFamily: "Prototype",
           fontWeight: "normal",
           width: "120px",

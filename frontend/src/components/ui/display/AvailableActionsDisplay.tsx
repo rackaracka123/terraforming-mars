@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  hasActionsAvailable,
-  getActionsDisplayText,
-} from "../../../utils/actionUtils.ts";
+import { hasActionsAvailable, getActionsDisplayText } from "../../../utils/actionUtils.ts";
 
 interface AvailableActionsDisplayProps {
   availableActions: number;
@@ -45,8 +42,7 @@ const AvailableActionsDisplay: React.FC<AvailableActionsDisplayProps> = ({
         display: "flex",
         alignItems: "center",
         gap: dimensions.gap,
-        background:
-          "linear-gradient(135deg, rgba(80, 60, 40, 0.9) 0%, rgba(70, 50, 30, 0.8) 100%)",
+        background: "linear-gradient(135deg, rgba(80, 60, 40, 0.9) 0%, rgba(70, 50, 30, 0.8) 100%)",
         border: "2px solid rgba(255, 200, 100, 0.4)",
         borderRadius: "8px",
         padding: dimensions.padding,
@@ -115,9 +111,7 @@ const AvailableActionsDisplay: React.FC<AvailableActionsDisplayProps> = ({
               lineHeight: "1",
               minWidth: "16px",
               textAlign: "center",
-              background: hasActions
-                ? "rgba(0, 255, 100, 0.2)"
-                : "rgba(100, 100, 100, 0.2)",
+              background: hasActions ? "rgba(0, 255, 100, 0.2)" : "rgba(100, 100, 100, 0.2)",
               padding: "2px 4px",
               borderRadius: "3px",
               border: hasActions
@@ -171,9 +165,7 @@ const AvailableActionsDisplay: React.FC<AvailableActionsDisplayProps> = ({
               minWidth: "16px",
               textAlign: "center",
               background:
-                availableEffects > 0
-                  ? "rgba(255, 100, 0, 0.2)"
-                  : "rgba(100, 100, 100, 0.2)",
+                availableEffects > 0 ? "rgba(255, 100, 0, 0.2)" : "rgba(100, 100, 100, 0.2)",
               padding: "2px 4px",
               borderRadius: "3px",
               border:
