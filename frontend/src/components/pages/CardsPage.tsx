@@ -685,7 +685,7 @@ const CardsPage: React.FC = () => {
                     onClick={() => toggleTag(tag)}
                     title={tag}
                   >
-                    <GameIcon iconType={tag} size="small" />
+                    <GameIcon iconType={`${tag}-tag`} size="small" />
                   </button>
                 ))}
               </div>

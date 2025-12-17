@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"sort"
 
 	"terraforming-mars-backend/internal/cards"
 	gamecards "terraforming-mars-backend/internal/game/cards"
@@ -44,6 +45,12 @@ func (a *ListCardsAction) Execute(ctx context.Context, offset, limit int) (*List
 
 	// Get all cards from registry
 	allCards := a.cardRegistry.GetAll()
+
+	// Sort by ID for consistent ordering
+	sort.Slice(allCards, func(i, j int) bool {
+		return allCards[i].ID < allCards[j].ID
+	})
+
 	totalCount := len(allCards)
 
 	// Apply pagination
