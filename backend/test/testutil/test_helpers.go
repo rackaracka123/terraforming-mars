@@ -147,6 +147,7 @@ func CreateTestCardRegistry() cards.CardRegistry {
 			Type: gamecards.CardTypeEvent,
 			Pack: "base",
 			Cost: 14,
+			Tags: []shared.CardTag{shared.TagSpace, shared.TagEvent},
 		},
 		{
 			ID:   "card-water-import",

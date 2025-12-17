@@ -16,23 +16,34 @@ type CardPayment struct {
 	Substitutes map[shared.ResourceType]int
 }
 
-// Payment method constants
-const (
-	SteelValue    = 2
-	TitaniumValue = 3
-)
-
-// TotalValue calculates the total MC value of this payment
+// TotalValue calculates the total MC value of this payment.
+// playerSubstitutes MUST include steel and titanium with their effective values
+// (base value + any modifiers from cards like Phobolog or Advanced Alloys).
+// All payment values (steel, titanium, other substitutes) are looked up from playerSubstitutes.
 func (p CardPayment) TotalValue(playerSubstitutes []shared.PaymentSubstitute) int {
-	total := p.Credits + (p.Steel * SteelValue) + (p.Titanium * TitaniumValue)
+	total := p.Credits
 
+	// Build lookup map for efficient access
+	substituteValues := make(map[shared.ResourceType]int)
+	for _, sub := range playerSubstitutes {
+		substituteValues[sub.ResourceType] = sub.ConversionRate
+	}
+
+	// Add steel value (must be in substitutes)
+	if steelValue, ok := substituteValues[shared.ResourceSteel]; ok {
+		total += p.Steel * steelValue
+	}
+
+	// Add titanium value (must be in substitutes)
+	if titaniumValue, ok := substituteValues[shared.ResourceTitanium]; ok {
+		total += p.Titanium * titaniumValue
+	}
+
+	// Add values from other substitutes (heat for Helion, etc.)
 	if p.Substitutes != nil {
 		for resourceType, amount := range p.Substitutes {
-			for _, sub := range playerSubstitutes {
-				if sub.ResourceType == resourceType {
-					total += amount * sub.ConversionRate
-					break
-				}
+			if conversionRate, ok := substituteValues[resourceType]; ok {
+				total += amount * conversionRate
 			}
 		}
 	}
