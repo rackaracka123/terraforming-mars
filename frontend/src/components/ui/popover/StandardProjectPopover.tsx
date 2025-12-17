@@ -189,16 +189,44 @@ const StandardProjectPopover: React.FC<StandardProjectsPopoverProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Show effective cost with discount indicator */}
-                    <GameIcon
-                      iconType={ResourceTypeCredit}
-                      amount={effectiveCreditCost}
-                      size="small"
-                    />
-                    {hasDiscount && (
-                      <span className="text-green-400 text-xs line-through opacity-60">
-                        {baseCreditCost}
-                      </span>
+                    {/* Show cost with discount in card style: [original greyed] -> [discounted] */}
+                    {hasDiscount ? (
+                      <div className="flex items-center gap-1">
+                        {/* Original cost (greyed out) */}
+                        <div className="grayscale-[0.7] flex items-center">
+                          <GameIcon
+                            iconType={ResourceTypeCredit}
+                            amount={baseCreditCost}
+                            size="small"
+                          />
+                        </div>
+                        {/* Right arrow */}
+                        <svg
+                          width="10"
+                          height="8"
+                          viewBox="0 0 10 8"
+                          className="opacity-70 mx-0.5 flex-shrink-0"
+                        >
+                          <path
+                            d="M10 4 L4 0 L4 2 L0 2 L0 6 L4 6 L4 8 Z"
+                            fill="rgba(76, 175, 80, 0.9)"
+                          />
+                        </svg>
+                        {/* Discounted cost (clear) */}
+                        <div className="flex items-center">
+                          <GameIcon
+                            iconType={ResourceTypeCredit}
+                            amount={effectiveCreditCost}
+                            size="small"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <GameIcon
+                        iconType={ResourceTypeCredit}
+                        amount={effectiveCreditCost}
+                        size="small"
+                      />
                     )}
                     {effects.length > 0 && (
                       <>
