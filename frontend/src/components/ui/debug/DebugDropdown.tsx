@@ -270,7 +270,8 @@ const DebugDropdown: React.FC<DebugDropdownProps> = ({
         borderRadius: "8px",
         padding: "16px",
         zIndex: 999999,
-        overflow: "hidden",
+        // Allow overflow on admin tab for autocomplete dropdowns
+        overflow: activeTab === "admin" ? "visible" : "hidden",
         display: "flex",
         flexDirection: "column",
         boxShadow: "0 4px 20px rgba(155, 89, 182, 0.3)",

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { globalWebSocketManager } from "../../../services/globalWebSocketManager.ts";
+import { apiService } from "../../../services/apiService.ts";
 import {
   GameDto,
   AdminCommandRequest,
@@ -20,6 +21,8 @@ import {
   GamePhaseAction,
   GamePhaseProductionAndCardDraw,
   GamePhaseComplete,
+  CardDto,
+  CardTypeCorporation,
 } from "../../../types/generated/api-types.ts";
 
 interface AdminCommandPanelProps {
@@ -27,28 +30,18 @@ interface AdminCommandPanelProps {
   onClose?: () => void;
 }
 
-const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
-  gameState,
-  onClose,
-}) => {
+const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({ gameState, onClose }) => {
   const [selectedCommand, setSelectedCommand] = useState<string>("");
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, boolean>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   // Shared styling functions
 
-  const getInputStyle = (
-    hasError: boolean = false,
-    disabled: boolean = false,
-  ) => ({
+  const getInputStyle = (hasError: boolean = false, disabled: boolean = false) => ({
     width: "100%",
     padding: "6px 10px",
     marginTop: "2px",
     background: disabled ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.8)",
-    border: hasError
-      ? "1px solid #ff4444"
-      : "1px solid rgba(155, 89, 182, 0.3)",
+    border: hasError ? "1px solid #ff4444" : "1px solid rgba(155, 89, 182, 0.3)",
     borderRadius: "4px",
     color: disabled ? "#666" : "white",
     fontSize: "12px",
@@ -63,9 +56,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     padding: "6px 10px",
     marginTop: "2px",
     background: "rgba(0, 0, 0, 0.8)",
-    border: hasError
-      ? "1px solid #ff4444"
-      : "1px solid rgba(155, 89, 182, 0.3)",
+    border: hasError ? "1px solid #ff4444" : "1px solid rgba(155, 89, 182, 0.3)",
     borderRadius: "4px",
     color: "white",
     fontSize: "12px",
@@ -82,8 +73,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
   const buttonStyle = {
     padding: "8px 16px",
-    background:
-      "linear-gradient(135deg, rgba(155, 89, 182, 0.8), rgba(155, 89, 182, 0.6))",
+    background: "linear-gradient(135deg, rgba(155, 89, 182, 0.8), rgba(155, 89, 182, 0.6))",
     border: "1px solid rgba(155, 89, 182, 0.5)",
     borderRadius: "6px",
     color: "white",
@@ -116,9 +106,9 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     heat: "",
   });
   const [globalParamsForm, setGlobalParamsForm] = useState({
-    temperature: gameState.globalParameters.temperature,
-    oxygen: gameState.globalParameters.oxygen,
-    oceans: gameState.globalParameters.oceans,
+    temperature: gameState.globalParameters.temperature.toString(),
+    oxygen: gameState.globalParameters.oxygen.toString(),
+    oceans: gameState.globalParameters.oceans.toString(),
   });
   const [tileSelectionForm, setTileSelectionForm] = useState({
     playerId: "",
@@ -129,14 +119,23 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     corporationId: "",
   });
 
+  // Card data cache for autocomplete
+  const [allCards, setAllCards] = useState<CardDto[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
+
+  // Autocomplete state
+  const [giveCardQuery, setGiveCardQuery] = useState("");
+  const [corporationQuery, setCorporationQuery] = useState("");
+  const [showGiveCardDropdown, setShowGiveCardDropdown] = useState(false);
+  const [showCorporationDropdown, setShowCorporationDropdown] = useState(false);
+
   const allPlayers = [gameState.currentPlayer, ...gameState.otherPlayers];
+  const defaultPlayerId = allPlayers[0]?.id || "";
 
   // Update forms when player selection changes
   useEffect(() => {
     if (resourcesForm.playerId) {
-      const selectedPlayer = allPlayers.find(
-        (p) => p.id === resourcesForm.playerId,
-      );
+      const selectedPlayer = allPlayers.find((p) => p.id === resourcesForm.playerId);
       if (selectedPlayer && selectedPlayer.resources) {
         setResourcesForm((prev) => ({
           ...prev,
@@ -164,9 +163,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
   useEffect(() => {
     if (productionForm.playerId) {
-      const selectedPlayer = allPlayers.find(
-        (p) => p.id === productionForm.playerId,
-      );
+      const selectedPlayer = allPlayers.find((p) => p.id === productionForm.playerId);
       if (selectedPlayer && selectedPlayer.production) {
         setProductionForm((prev) => ({
           ...prev,
@@ -195,19 +192,144 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   // Update global parameters form when game state changes
   useEffect(() => {
     setGlobalParamsForm({
-      temperature: gameState.globalParameters.temperature,
-      oxygen: gameState.globalParameters.oxygen,
-      oceans: gameState.globalParameters.oceans,
+      temperature: gameState.globalParameters.temperature.toString(),
+      oxygen: gameState.globalParameters.oxygen.toString(),
+      oceans: gameState.globalParameters.oceans.toString(),
     });
   }, [gameState.globalParameters]);
 
-  // Keyboard event handlers for Enter key support
-  const handleGiveCardKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      void handleGiveCard();
+  // Load all cards on mount for autocomplete
+  useEffect(() => {
+    const loadCards = async () => {
+      if (allCards.length > 0 || cardsLoading) return;
+      setCardsLoading(true);
+      try {
+        const response = await apiService.listCards(0, 10000);
+        setAllCards(response.cards);
+      } catch (error) {
+        console.error("Failed to load cards for autocomplete:", error);
+      } finally {
+        setCardsLoading(false);
+      }
+    };
+    void loadCards();
+  }, []);
+
+  // Initialize player selection to first player for player-related forms
+  useEffect(() => {
+    if (defaultPlayerId) {
+      if (!giveCardForm.playerId) {
+        setGiveCardForm((prev) => ({ ...prev, playerId: defaultPlayerId }));
+      }
+      if (!resourcesForm.playerId) {
+        setResourcesForm((prev) => ({ ...prev, playerId: defaultPlayerId }));
+      }
+      if (!productionForm.playerId) {
+        setProductionForm((prev) => ({ ...prev, playerId: defaultPlayerId }));
+      }
+      if (!tileSelectionForm.playerId) {
+        setTileSelectionForm((prev) => ({
+          ...prev,
+          playerId: defaultPlayerId,
+        }));
+      }
+      if (!setCorporationForm.playerId) {
+        setSetCorporationForm((prev) => ({
+          ...prev,
+          playerId: defaultPlayerId,
+        }));
+      }
     }
+  }, [defaultPlayerId]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!target.closest(".card-autocomplete-container")) {
+        setShowGiveCardDropdown(false);
+        setShowCorporationDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Parse search query for prefixes like tag:space or behavior:discount
+  const parseSearchQuery = (rawQuery: string) => {
+    const query = rawQuery.toLowerCase().trim();
+    if (query.startsWith("tag:")) {
+      return { type: "tag" as const, value: query.slice(4).trim() };
+    }
+    if (query.startsWith("behavior:") || query.startsWith("b:")) {
+      const prefix = query.startsWith("behavior:") ? 9 : 2;
+      return { type: "behavior" as const, value: query.slice(prefix).trim() };
+    }
+    if (query.startsWith("type:") || query.startsWith("t:")) {
+      const prefix = query.startsWith("type:") ? 5 : 2;
+      return { type: "cardType" as const, value: query.slice(prefix).trim() };
+    }
+    return { type: "text" as const, value: query };
   };
 
+  // Filter cards based on parsed query
+  const filterCardsByQuery = (cards: CardDto[], rawQuery: string) => {
+    const parsed = parseSearchQuery(rawQuery);
+    if (!parsed.value) return [];
+
+    return cards.filter((card) => {
+      switch (parsed.type) {
+        case "tag":
+          return card.tags?.some((tag) => tag.toLowerCase().includes(parsed.value));
+        case "behavior":
+          return card.behaviors?.some((behavior) => {
+            const inputMatch = behavior.inputs?.some((input) =>
+              input.type.toLowerCase().includes(parsed.value),
+            );
+            const outputMatch = behavior.outputs?.some((output) =>
+              output.type.toLowerCase().includes(parsed.value),
+            );
+            return inputMatch || outputMatch;
+          });
+        case "cardType":
+          return card.type.toLowerCase().includes(parsed.value);
+        case "text":
+        default:
+          return (
+            card.id.toLowerCase().includes(parsed.value) ||
+            card.name.toLowerCase().includes(parsed.value)
+          );
+      }
+    });
+  };
+
+  // Filter cards for autocomplete
+  const filteredCards = useMemo(() => {
+    if (!giveCardQuery.trim()) return [];
+    return filterCardsByQuery(allCards, giveCardQuery).slice(0, 3);
+  }, [allCards, giveCardQuery]);
+
+  const filteredCorporations = useMemo(() => {
+    const corporations = allCards.filter((card) => card.type === CardTypeCorporation);
+    if (!corporationQuery.trim()) return [];
+    return filterCardsByQuery(corporations, corporationQuery).slice(0, 3);
+  }, [allCards, corporationQuery]);
+
+  // Helper to filter numeric input - allows digits, minus sign, and empty string
+  const filterNumericInput = (value: string): string => {
+    // Allow empty, minus sign, or digits with optional leading minus
+    return value.replace(/[^0-9-]/g, "").replace(/(?!^)-/g, "");
+  };
+
+  // Helper to clamp and validate numeric value on blur
+  const clampValue = (value: string, min: number, max: number, defaultVal: number): string => {
+    if (value === "" || value === "-") return defaultVal.toString();
+    const num = parseInt(value, 10);
+    if (isNaN(num)) return defaultVal.toString();
+    return Math.max(min, Math.min(max, num)).toString();
+  };
+
+  // Keyboard event handlers for Enter key support
   const handleSetPhaseKeyDown = (e: React.KeyboardEvent<HTMLSelectElement>) => {
     if (e.key === "Enter") {
       void handleSetPhase();
@@ -220,17 +342,13 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     }
   };
 
-  const handleProductionKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleProductionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       void handleSetProduction();
     }
   };
 
-  const handleGlobalParamsKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleGlobalParamsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       void handleSetGlobalParams();
     }
@@ -271,6 +389,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     await sendAdminCommand(AdminCommandTypeGiveCard, command);
     // Keep player selected, only clear card ID for next card
     setGiveCardForm({ ...giveCardForm, cardId: "" });
+    setGiveCardQuery("");
   };
 
   const handleSetPhase = async () => {
@@ -306,25 +425,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     if (!resourcesForm.playerId) errors.setResourcesPlayerId = true;
 
     // Validate that all resource values are valid numbers
-    const resourceFields = [
-      "credit",
-      "steel",
-      "titanium",
-      "plant",
-      "energy",
-      "heat",
-    ];
+    const resourceFields = ["credit", "steel", "titanium", "plant", "energy", "heat"];
     for (const field of resourceFields) {
-      const value = resourcesForm[
-        field as keyof typeof resourcesForm
-      ] as string;
-      if (
-        value !== "" &&
-        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
-      ) {
-        errors[
-          `setResources${field.charAt(0).toUpperCase() + field.slice(1)}`
-        ] = true;
+      const value = resourcesForm[field as keyof typeof resourcesForm] as string;
+      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
+        errors[`setResources${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
       }
     }
 
@@ -356,25 +461,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     if (!productionForm.playerId) errors.setProductionPlayerId = true;
 
     // Validate that all production values are valid numbers
-    const productionFields = [
-      "credit",
-      "steel",
-      "titanium",
-      "plant",
-      "energy",
-      "heat",
-    ];
+    const productionFields = ["credit", "steel", "titanium", "plant", "energy", "heat"];
     for (const field of productionFields) {
-      const value = productionForm[
-        field as keyof typeof productionForm
-      ] as string;
-      if (
-        value !== "" &&
-        (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)
-      ) {
-        errors[
-          `setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`
-        ] = true;
+      const value = productionForm[field as keyof typeof productionForm] as string;
+      if (value !== "" && (isNaN(parseInt(value, 10)) || parseInt(value, 10) < 0)) {
+        errors[`setProduction${field.charAt(0).toUpperCase() + field.slice(1)}`] = true;
       }
     }
 
@@ -403,9 +494,9 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
   const handleSetGlobalParams = async () => {
     const command: SetGlobalParamsAdminCommand = {
       globalParameters: {
-        temperature: globalParamsForm.temperature,
-        oxygen: globalParamsForm.oxygen,
-        oceans: globalParamsForm.oceans,
+        temperature: parseInt(globalParamsForm.temperature, 10) || -30,
+        oxygen: parseInt(globalParamsForm.oxygen, 10) || 0,
+        oceans: parseInt(globalParamsForm.oceans, 10) || 0,
       },
     };
 
@@ -431,7 +522,8 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     };
 
     await sendAdminCommand(AdminCommandTypeStartTileSelection, command);
-    setTileSelectionForm({ playerId: "", tileType: "" });
+    // Keep player selected, only clear tile type
+    setTileSelectionForm({ ...tileSelectionForm, tileType: "" });
 
     // Close the admin panel after starting tile selection
     if (onClose) {
@@ -443,8 +535,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     const errors: Record<string, boolean> = {};
 
     if (!setCorporationForm.playerId) errors.setCorporationPlayerId = true;
-    if (!setCorporationForm.corporationId)
-      errors.setCorporationCorporationId = true;
+    if (!setCorporationForm.corporationId) errors.setCorporationCorporationId = true;
 
     setValidationErrors(errors);
 
@@ -459,7 +550,9 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
     };
 
     await sendAdminCommand("set-corporation" as any, command);
-    setSetCorporationForm({ playerId: "", corporationId: "" });
+    // Keep player selected, only clear corporation
+    setSetCorporationForm({ ...setCorporationForm, corporationId: "" });
+    setCorporationQuery("");
   };
 
   const commandOptions = [
@@ -488,7 +581,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       className="debug-content-area"
       style={{
         flex: 1,
-        overflow: "auto",
+        overflow: "visible",
         background: "rgba(0, 0, 0, 0.5)",
         padding: "12px",
         borderRadius: "4px",
@@ -496,9 +589,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
       }}
     >
       <div style={{ marginBottom: "16px" }}>
-        <label
-          style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold" }}
-        >
+        <label style={{ color: "#9b59b6", fontSize: "12px", fontWeight: "bold" }}>
           Select Admin Command:
         </label>
         <select
@@ -525,15 +616,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "give-card" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Give Card to Player
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Give Card to Player</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={giveCardForm.playerId}
-              onChange={(e) =>
-                setGiveCardForm({ ...giveCardForm, playerId: e.target.value })
-              }
+              onChange={(e) => setGiveCardForm({ ...giveCardForm, playerId: e.target.value })}
               style={getSelectStyle(validationErrors.giveCardPlayerId)}
             >
               <option value="">Select player...</option>
@@ -544,21 +631,107 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               ))}
             </select>
           </div>
-          <div style={{ marginBottom: "8px" }}>
+          <div
+            className="card-autocomplete-container"
+            style={{ marginBottom: "8px", position: "relative" }}
+          >
             <input
               type="text"
-              placeholder="Enter card ID"
-              value={giveCardForm.cardId}
-              onChange={(e) =>
-                setGiveCardForm({ ...giveCardForm, cardId: e.target.value })
-              }
-              onKeyDown={handleGiveCardKeyDown}
+              placeholder="Search: name, tag:space, b:discount..."
+              value={giveCardQuery}
+              onChange={(e) => {
+                setGiveCardQuery(e.target.value);
+                setShowGiveCardDropdown(true);
+                // Clear the actual cardId when user is typing
+                if (giveCardForm.cardId) {
+                  setGiveCardForm({ ...giveCardForm, cardId: "" });
+                }
+              }}
+              onFocus={() => setShowGiveCardDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  // If there's exactly one match, select it
+                  if (filteredCards.length === 1) {
+                    setGiveCardForm({
+                      ...giveCardForm,
+                      cardId: filteredCards[0].id,
+                    });
+                    setGiveCardQuery(`${filteredCards[0].id} - ${filteredCards[0].name}`);
+                    setShowGiveCardDropdown(false);
+                  } else if (giveCardForm.cardId) {
+                    void handleGiveCard();
+                  }
+                }
+              }}
               style={{
                 ...getInputStyle(validationErrors.giveCardCardId),
-                width: "200px",
-                maxWidth: "100%",
+                width: "100%",
               }}
             />
+            {showGiveCardDropdown && giveCardQuery.trim() && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "rgba(0, 0, 0, 0.98)",
+                  border: "1px solid rgba(155, 89, 182, 0.5)",
+                  borderRadius: "4px",
+                  marginTop: "2px",
+                  zIndex: 9999,
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.8)",
+                }}
+              >
+                {filteredCards.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      color: "#666",
+                      fontSize: "12px",
+                    }}
+                  >
+                    No results
+                  </div>
+                ) : (
+                  filteredCards.map((card) => (
+                    <div
+                      key={card.id}
+                      onClick={() => {
+                        setGiveCardForm({ ...giveCardForm, cardId: card.id });
+                        setGiveCardQuery(`${card.id} - ${card.name}`);
+                        setShowGiveCardDropdown(false);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        borderBottom: "1px solid rgba(155, 89, 182, 0.2)",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "rgba(155, 89, 182, 0.2)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <span style={{ color: "#9b59b6", fontWeight: "bold" }}>{card.id}</span>
+                      <span style={{ color: "#abb2bf" }}> - {card.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            {giveCardForm.cardId && (
+              <div
+                style={{
+                  marginTop: "4px",
+                  fontSize: "11px",
+                  color: "#4caf50",
+                }}
+              >
+                Selected: {giveCardForm.cardId}
+              </div>
+            )}
           </div>
           <button onClick={handleGiveCard} style={buttonStyle}>
             Give Card
@@ -568,9 +741,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-phase" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Game Phase
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Game Phase</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={setPhaseForm.phase}
@@ -594,15 +765,11 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-resources" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Resources
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Resources</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={resourcesForm.playerId}
-              onChange={(e) =>
-                setResourcesForm({ ...resourcesForm, playerId: e.target.value })
-              }
+              onChange={(e) => setResourcesForm({ ...resourcesForm, playerId: e.target.value })}
               style={getSelectStyle(validationErrors.setResourcesPlayerId)}
             >
               <option value="">Select player...</option>
@@ -622,46 +789,51 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
-              (resource) => (
-                <div key={resource} style={{ minWidth: 0 }}>
-                  <label
-                    style={{
-                      color: "#abb2bf",
-                      fontSize: "11px",
-                      textTransform: "capitalize",
-                      display: "block",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {resource}:
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      resourcesForm[
-                        resource as keyof typeof resourcesForm
-                      ] as string
-                    }
-                    onChange={(e) =>
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map((resource) => (
+              <div key={resource} style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    color: "#abb2bf",
+                    fontSize: "11px",
+                    textTransform: "capitalize",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {resource}:
+                </label>
+                <input
+                  type="text"
+                  value={resourcesForm[resource as keyof typeof resourcesForm] as string}
+                  onChange={(e) =>
+                    setResourcesForm({
+                      ...resourcesForm,
+                      [resource]: filterNumericInput(e.target.value),
+                    })
+                  }
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") return;
+                    const num = parseInt(val, 10);
+                    if (isNaN(num) || num < 0) {
                       setResourcesForm({
                         ...resourcesForm,
-                        [resource]: e.target.value,
-                      })
+                        [resource]: "0",
+                      });
                     }
-                    onKeyDown={handleResourcesKeyDown}
-                    disabled={!resourcesForm.playerId}
-                    style={{
-                      ...getInputStyle(false, !resourcesForm.playerId),
-                      fontSize: "11px",
-                      width: "100%",
-                      minWidth: 0,
-                      boxSizing: "border-box" as const,
-                    }}
-                  />
-                </div>
-              ),
-            )}
+                  }}
+                  onKeyDown={handleResourcesKeyDown}
+                  disabled={!resourcesForm.playerId}
+                  style={{
+                    ...getInputStyle(false, !resourcesForm.playerId),
+                    fontSize: "11px",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box" as const,
+                  }}
+                />
+              </div>
+            ))}
           </div>
           <button onClick={handleSetResources} style={buttonStyle}>
             Set Resources
@@ -671,9 +843,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-production" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Production
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Production</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={productionForm.playerId}
@@ -702,46 +872,52 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               padding: "0 4px",
             }}
           >
-            {["credit", "steel", "titanium", "plant", "energy", "heat"].map(
-              (resource) => (
-                <div key={resource} style={{ minWidth: 0 }}>
-                  <label
-                    style={{
-                      color: "#abb2bf",
-                      fontSize: "11px",
-                      textTransform: "capitalize",
-                      display: "block",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    {resource}:
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      productionForm[
-                        resource as keyof typeof productionForm
-                      ] as string
-                    }
-                    onChange={(e) =>
+            {["credit", "steel", "titanium", "plant", "energy", "heat"].map((resource) => (
+              <div key={resource} style={{ minWidth: 0 }}>
+                <label
+                  style={{
+                    color: "#abb2bf",
+                    fontSize: "11px",
+                    textTransform: "capitalize",
+                    display: "block",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {resource}:
+                </label>
+                <input
+                  type="text"
+                  value={productionForm[resource as keyof typeof productionForm] as string}
+                  onChange={(e) =>
+                    setProductionForm({
+                      ...productionForm,
+                      [resource]: filterNumericInput(e.target.value),
+                    })
+                  }
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || val === "-") return;
+                    const num = parseInt(val, 10);
+                    // Production can be negative (credits can go to -5)
+                    if (isNaN(num)) {
                       setProductionForm({
                         ...productionForm,
-                        [resource]: e.target.value,
-                      })
+                        [resource]: "0",
+                      });
                     }
-                    onKeyDown={handleProductionKeyDown}
-                    disabled={!productionForm.playerId}
-                    style={{
-                      ...getInputStyle(false, !productionForm.playerId),
-                      fontSize: "11px",
-                      width: "100%",
-                      minWidth: 0,
-                      boxSizing: "border-box" as const,
-                    }}
-                  />
-                </div>
-              ),
-            )}
+                  }}
+                  onKeyDown={handleProductionKeyDown}
+                  disabled={!productionForm.playerId}
+                  style={{
+                    ...getInputStyle(false, !productionForm.playerId),
+                    fontSize: "11px",
+                    width: "100%",
+                    minWidth: 0,
+                    boxSizing: "border-box" as const,
+                  }}
+                />
+              </div>
+            ))}
           </div>
           <button onClick={handleSetProduction} style={buttonStyle}>
             Set Production
@@ -751,9 +927,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "set-global-params" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Global Parameters
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Global Parameters</h4>
           <div
             style={{
               display: "grid",
@@ -773,14 +947,18 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                 Temperature (-30 to +8°C):
               </label>
               <input
-                type="number"
-                min="-30"
-                max="8"
+                type="text"
                 value={globalParamsForm.temperature}
                 onChange={(e) =>
                   setGlobalParamsForm({
                     ...globalParamsForm,
-                    temperature: parseInt(e.target.value) || -30,
+                    temperature: filterNumericInput(e.target.value),
+                  })
+                }
+                onBlur={(e) =>
+                  setGlobalParamsForm({
+                    ...globalParamsForm,
+                    temperature: clampValue(e.target.value, -30, 8, -30),
                   })
                 }
                 onKeyDown={handleGlobalParamsKeyDown}
@@ -802,14 +980,18 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                 Oxygen (0-14%):
               </label>
               <input
-                type="number"
-                min="0"
-                max="14"
+                type="text"
                 value={globalParamsForm.oxygen}
                 onChange={(e) =>
                   setGlobalParamsForm({
                     ...globalParamsForm,
-                    oxygen: parseInt(e.target.value) || 0,
+                    oxygen: filterNumericInput(e.target.value),
+                  })
+                }
+                onBlur={(e) =>
+                  setGlobalParamsForm({
+                    ...globalParamsForm,
+                    oxygen: clampValue(e.target.value, 0, 14, 0),
                   })
                 }
                 onKeyDown={handleGlobalParamsKeyDown}
@@ -831,14 +1013,18 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
                 Oceans (0-9):
               </label>
               <input
-                type="number"
-                min="0"
-                max="9"
+                type="text"
                 value={globalParamsForm.oceans}
                 onChange={(e) =>
                   setGlobalParamsForm({
                     ...globalParamsForm,
-                    oceans: parseInt(e.target.value) || 0,
+                    oceans: filterNumericInput(e.target.value),
+                  })
+                }
+                onBlur={(e) =>
+                  setGlobalParamsForm({
+                    ...globalParamsForm,
+                    oceans: clampValue(e.target.value, 0, 9, 0),
                   })
                 }
                 onKeyDown={handleGlobalParamsKeyDown}
@@ -858,9 +1044,7 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
 
       {selectedCommand === "start-tile-selection" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Start Tile Selection (Demo)
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Start Tile Selection (Demo)</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={tileSelectionForm.playerId}
@@ -911,18 +1095,16 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               color: "#ffc107",
             }}
           >
-            <strong>Demo:</strong> This will trigger tile selection for the
-            chosen player. Available hexes will be highlighted on the Mars
-            board. Click a highlighted hex to complete the tile placement.
+            <strong>Demo:</strong> This will trigger tile selection for the chosen player. Available
+            hexes will be highlighted on the Mars board. Click a highlighted hex to complete the
+            tile placement.
           </div>
         </div>
       )}
 
       {selectedCommand === "set-corporation" && (
         <div style={{ marginBottom: "16px" }}>
-          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>
-            Set Player Corporation
-          </h4>
+          <h4 style={{ color: "#9b59b6", margin: "0 0 12px 0" }}>Set Player Corporation</h4>
           <div style={{ marginBottom: "8px" }}>
             <select
               value={setCorporationForm.playerId}
@@ -942,22 +1124,115 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
               ))}
             </select>
           </div>
-          <div style={{ marginBottom: "8px" }}>
+          <div
+            className="card-autocomplete-container"
+            style={{ marginBottom: "8px", position: "relative" }}
+          >
             <input
               type="text"
-              placeholder="Enter corporation ID (e.g., B03 for Helion)"
-              value={setCorporationForm.corporationId}
-              onChange={(e) =>
-                setSetCorporationForm({
-                  ...setCorporationForm,
-                  corporationId: e.target.value,
-                })
-              }
+              placeholder="Search: name, b:discount..."
+              value={corporationQuery}
+              onChange={(e) => {
+                setCorporationQuery(e.target.value);
+                setShowCorporationDropdown(true);
+                // Clear the actual corporationId when user is typing
+                if (setCorporationForm.corporationId) {
+                  setSetCorporationForm({
+                    ...setCorporationForm,
+                    corporationId: "",
+                  });
+                }
+              }}
+              onFocus={() => setShowCorporationDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  // If there's exactly one match, select it
+                  if (filteredCorporations.length === 1) {
+                    setSetCorporationForm({
+                      ...setCorporationForm,
+                      corporationId: filteredCorporations[0].id,
+                    });
+                    setCorporationQuery(
+                      `${filteredCorporations[0].id} - ${filteredCorporations[0].name}`,
+                    );
+                    setShowCorporationDropdown(false);
+                  } else if (setCorporationForm.corporationId) {
+                    void handleSetCorporation();
+                  }
+                }
+              }}
               style={{
                 ...getInputStyle(validationErrors.setCorporationCorporationId),
                 width: "100%",
               }}
             />
+            {showCorporationDropdown && corporationQuery.trim() && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "rgba(0, 0, 0, 0.98)",
+                  border: "1px solid rgba(155, 89, 182, 0.5)",
+                  borderRadius: "4px",
+                  marginTop: "2px",
+                  zIndex: 9999,
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.8)",
+                }}
+              >
+                {filteredCorporations.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      color: "#666",
+                      fontSize: "12px",
+                    }}
+                  >
+                    No results
+                  </div>
+                ) : (
+                  filteredCorporations.map((card) => (
+                    <div
+                      key={card.id}
+                      onClick={() => {
+                        setSetCorporationForm({
+                          ...setCorporationForm,
+                          corporationId: card.id,
+                        });
+                        setCorporationQuery(`${card.id} - ${card.name}`);
+                        setShowCorporationDropdown(false);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        borderBottom: "1px solid rgba(155, 89, 182, 0.2)",
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "rgba(155, 89, 182, 0.2)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <span style={{ color: "#ffc107", fontWeight: "bold" }}>{card.id}</span>
+                      <span style={{ color: "#abb2bf" }}> - {card.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            {setCorporationForm.corporationId && (
+              <div
+                style={{
+                  marginTop: "4px",
+                  fontSize: "11px",
+                  color: "#4caf50",
+                }}
+              >
+                Selected: {setCorporationForm.corporationId}
+              </div>
+            )}
           </div>
           <button onClick={handleSetCorporation} style={buttonStyle}>
             Set Corporation
@@ -965,17 +1240,29 @@ const AdminCommandPanel: React.FC<AdminCommandPanelProps> = ({
           <div
             style={{
               marginTop: "8px",
-              padding: "8px",
-              background: "rgba(255, 193, 7, 0.1)",
-              border: "1px solid rgba(255, 193, 7, 0.3)",
+              padding: "10px",
+              background: "rgba(100, 100, 100, 0.15)",
+              border: "1px solid rgba(150, 150, 150, 0.3)",
               borderRadius: "4px",
               fontSize: "11px",
-              color: "#ffc107",
+              color: "#bbb",
+              lineHeight: "1.5",
             }}
           >
-            ⚠️ <strong>Warning:</strong> This will clear any pending selections
-            and apply corporation bonuses (resources, production, payment
-            substitutes, effects, and actions).
+            <div style={{ marginBottom: "6px", color: "#fff", fontWeight: "bold" }}>
+              What happens:
+            </div>
+            <div style={{ color: "#ff6b6b", marginBottom: "4px" }}>
+              <strong>Cleared:</strong> Old corp effects, actions, card storage, payment
+              substitutes, value modifiers
+            </div>
+            <div style={{ color: "#4caf50", marginBottom: "4px" }}>
+              <strong>Applied:</strong> New corp starting resources, production, effects, actions,
+              payment bonuses
+            </div>
+            <div style={{ color: "#888" }}>
+              <strong>Kept:</strong> Current resources, production, played cards, terraform rating
+            </div>
           </div>
         </div>
       )}
