@@ -17,7 +17,8 @@ export interface ClassifiedBehavior {
     | "triggered-effect"
     | "auto-no-background"
     | "discount"
-    | "payment-substitute";
+    | "payment-substitute"
+    | "value-modifier";
 }
 
 export interface LayoutRequirement {

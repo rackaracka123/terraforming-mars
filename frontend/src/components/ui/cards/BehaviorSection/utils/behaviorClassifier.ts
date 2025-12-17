@@ -25,12 +25,20 @@ export const classifyBehaviors = (
         (output: any) => output.type === "payment-substitute",
       );
 
+    const hasValueModifier =
+      behavior.outputs &&
+      behavior.outputs.some((output: any) => output.type === "value-modifier");
+
     if (hasDiscount) {
       return { behavior, type: "discount" };
     }
 
     if (hasPaymentSubstitute) {
       return { behavior, type: "payment-substitute" };
+    }
+
+    if (hasValueModifier) {
+      return { behavior, type: "value-modifier" };
     }
 
     if (triggerType === "manual") {
